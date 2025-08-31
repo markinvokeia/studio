@@ -1,0 +1,120 @@
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import {
+  BotMessageSquare,
+  Menu,
+} from 'lucide-react';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { CommandBar } from './command-bar';
+import { Nav } from './nav';
+import { navItems } from '@/config/nav';
+import { usePathname } from 'next/navigation';
+
+export function Header() {
+  const pathname = usePathname();
+  const breadcrumbSegments = pathname.split('/').filter(Boolean);
+  const breadcrumbItems = breadcrumbSegments.map((segment, index) => {
+    const href = '/' + breadcrumbSegments.slice(0, index + 1).join('/');
+    const isLast = index === breadcrumbSegments.length - 1;
+    const navItem = navItems.flatMap(item => item.items ? item.items : item).find(item => item.href === href);
+    const title = navItem?.title || segment.charAt(0).toUpperCase() + segment.slice(1);
+    
+    return (
+      <React.Fragment key={href}>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          {isLast ? (
+            <BreadcrumbPage>{title}</BreadcrumbPage>
+          ) : (
+            <BreadcrumbLink asChild>
+              <Link href={href}>{title}</Link>
+            </BreadcrumbLink>
+          )}
+        </BreadcrumbItem>
+      </React.Fragment>
+    );
+  });
+
+  return (
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button size="icon" variant="outline" className="sm:hidden">
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle Menu</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="sm:max-w-xs">
+          <div className="flex h-16 items-center border-b px-6">
+            <Link href="/" className="flex items-center gap-2 font-semibold">
+              <BotMessageSquare className="h-6 w-6 text-primary" />
+              <span className="">InvokeIA</span>
+            </Link>
+          </div>
+          <div className="flex-1 overflow-y-auto py-2">
+            <Nav items={navItems} />
+          </div>
+        </SheetContent>
+      </Sheet>
+      <Breadcrumb className="hidden md:flex">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/">Dashboard</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          {breadcrumbItems}
+        </BreadcrumbList>
+      </Breadcrumb>
+      <div className="relative ml-auto flex-1 md:grow-0">
+        <CommandBar />
+      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="overflow-hidden rounded-full"
+          >
+            <Image
+              src="https://picsum.photos/36/36"
+              width={36}
+              height={36}
+              alt="Avatar"
+              className="overflow-hidden rounded-full"
+              data-ai-hint="user avatar"
+            />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem>Settings</DropdownMenuItem>
+          <DropdownMenuItem>Support</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem>Logout</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </header>
+  );
+}
