@@ -52,7 +52,7 @@ export function InvoiceStatusChart() {
         <CardTitle>Invoice Status</CardTitle>
         <CardDescription>Current state of all invoices</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 pb-0">
+      <CardContent className="flex flex-1 flex-col items-center justify-center gap-2 pb-0">
         <ChartContainer
           config={chartConfig}
           className="mx-auto aspect-square max-h-[250px]"
@@ -73,6 +73,10 @@ export function InvoiceStatusChart() {
                 <Cell key={`cell-${index}`} fill={entry.fill} />
               ))}
             </Pie>
+             <ChartLegend
+                content={<ChartLegendContent nameKey="name" />}
+                className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
+              />
           </PieChart>
         </ChartContainer>
       </CardContent>
@@ -82,10 +86,6 @@ export function InvoiceStatusChart() {
         >
           Total Invoices: {totalValue}
         </div>
-         <ChartLegend
-            content={<ChartLegendContent nameKey="name" />}
-            className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
-          />
       </CardContent>
     </Card>
   );

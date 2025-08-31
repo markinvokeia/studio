@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { BotMessageSquare } from 'lucide-react';
 import { Nav } from './nav';
