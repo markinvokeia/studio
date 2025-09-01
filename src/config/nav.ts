@@ -15,6 +15,8 @@ import {
   Wallet,
   FileWarning,
   UserCheck,
+  CalendarClock,
+  CalendarOff,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -56,7 +58,9 @@ export const navItems: NavItem[] = [
     icon: Settings,
     items: [
       { title: 'Services', href: '/config/services', icon: Briefcase, isChidren: true },
-      { title: 'Clinics', href: '/config/clinics', icon: Building, isChidren: true },
+      { title: 'Clinic Details', href: '/config/clinics', icon: Building, isChidren: true },
+      { title: 'Schedules', href: '/config/schedules', icon: CalendarClock, isChidren: true },
+      { title: 'Holidays', href: '/config/holidays', icon: CalendarOff, isChidren: true },
     ],
   },
   {

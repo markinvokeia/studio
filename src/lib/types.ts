@@ -86,6 +86,22 @@ export type Clinic = {
   phone_number: string;
 };
 
+export type ClinicSchedule = {
+  id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+};
+
+export type ClinicException = {
+  id: string;
+  date: string;
+  is_open: boolean;
+  start_time?: string;
+  end_time?: string;
+  notes: string;
+};
+
 export type Conversation = {
   id: string;
   subject: string;

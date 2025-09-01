@@ -25,9 +25,9 @@ async function getClinics(): Promise<Clinic[]> {
         return clinicsData.map((apiClinic: any) => ({
             id: apiClinic.id ? String(apiClinic.id) : `cli_${Math.random().toString(36).substr(2, 9)}`,
             name: apiClinic.name || 'No Name',
-            location: apiClinic.location || 'No Location',
-            contact_email: apiClinic.contact_email || 'no-email@example.com',
-            phone_number: apiClinic.phone_number || '000-000-0000',
+            location: apiClinic.address || 'No Location',
+            contact_email: apiClinic.email || 'no-email@example.com',
+            phone_number: apiClinic.phone || '000-000-0000',
         }));
     } catch (error) {
         console.error("Failed to fetch clinics:", error);
@@ -41,8 +41,8 @@ export default async function ClinicsPage() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Clinics</CardTitle>
-                <CardDescription>Manage clinic locations.</CardDescription>
+                <CardTitle>Clinic Details</CardTitle>
+                <CardDescription>Manage clinic locations and contact information.</CardDescription>
             </CardHeader>
             <CardContent>
                 <DataTable columns={clinicsColumns} data={clinics} filterColumnId="name" filterPlaceholder="Filter clinics..." />
