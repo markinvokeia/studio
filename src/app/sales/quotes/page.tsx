@@ -123,7 +123,7 @@ async function getOrders(quoteId: string): Promise<Order[]> {
 async function getInvoices(quoteId: string): Promise<Invoice[]> {
     if (!quoteId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices?quote_id=${quoteId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_invoices?quote_id=${quoteId}`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -341,5 +341,7 @@ export default function QuotesPage() {
         </>
     );
 }
+
+    
 
     
