@@ -33,6 +33,9 @@ interface DataTableProps<TData, TValue> {
   filterPlaceholder: string;
   onRowSelectionChange?: (selectedRows: TData[]) => void;
   enableSingleRowSelection?: boolean;
+  onCreate?: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -42,6 +45,9 @@ export function DataTable<TData, TValue>({
   filterPlaceholder,
   onRowSelectionChange,
   enableSingleRowSelection = false,
+  onCreate,
+  onRefresh,
+  isRefreshing,
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
@@ -86,6 +92,9 @@ export function DataTable<TData, TValue>({
         table={table}
         filterColumnId={filterColumnId}
         filterPlaceholder={filterPlaceholder}
+        onCreate={onCreate}
+        onRefresh={onRefresh}
+        isRefreshing={isRefreshing}
       />
       <div className="rounded-md border">
         <Table>

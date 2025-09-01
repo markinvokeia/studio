@@ -1,3 +1,6 @@
+'use client';
+
+import * as React from 'react';
 import { auditLogs } from '@/lib/data';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,6 +18,17 @@ const columns: ColumnDef<AuditLog>[] = [
 ];
 
 export default function AuditLogPage() {
+    const [data, setData] = React.useState<AuditLog[]>(auditLogs);
+    const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+    const handleRefresh = () => {
+        setIsRefreshing(true);
+        setTimeout(() => {
+            setData([...auditLogs]);
+            setIsRefreshing(false);
+        }, 1000);
+    };
+
   return (
     <Card>
       <CardHeader>
@@ -22,7 +36,14 @@ export default function AuditLogPage() {
         <CardDescription>Review system activity.</CardDescription>
       </CardHeader>
       <CardContent>
-        <DataTable columns={columns} data={auditLogs} filterColumnId="table_name" filterPlaceholder="Filter logs by table name..." />
+        <DataTable 
+            columns={columns} 
+            data={data} 
+            filterColumnId="table_name" 
+            filterPlaceholder="Filter logs by table name..." 
+            onRefresh={handleRefresh}
+            isRefreshing={isRefreshing}
+        />
       </CardContent>
     </Card>
   );

@@ -6,6 +6,16 @@ import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Role } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
 async function getRoles(): Promise<Role[]> {
   try {
@@ -39,14 +49,19 @@ async function getRoles(): Promise<Role[]> {
 export default function RolesPage() {
   const [roles, setRoles] = React.useState<Role[]>([]);
   const [selectedRole, setSelectedRole] = React.useState<Role | null>(null);
+  const [isCreateOpen, setCreateOpen] = React.useState(false);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+  const loadRoles = React.useCallback(async () => {
+    setIsRefreshing(true);
+    const fetchedRoles = await getRoles();
+    setRoles(fetchedRoles);
+    setIsRefreshing(false);
+  }, []);
 
   React.useEffect(() => {
-    async function loadRoles() {
-      const fetchedRoles = await getRoles();
-      setRoles(fetchedRoles);
-    }
     loadRoles();
-  }, []);
+  }, [loadRoles]);
 
   const handleRowSelectionChange = (selectedRows: Role[]) => {
     const role = selectedRows.length > 0 ? selectedRows[0] : null;
@@ -54,6 +69,7 @@ export default function RolesPage() {
   };
   
   return (
+    <>
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className={cn("transition-all duration-300", selectedRole ? "lg:col-span-2" : "lg:col-span-3")}>
             <Card>
@@ -69,6 +85,9 @@ export default function RolesPage() {
                     filterPlaceholder="Filter roles by name..."
                     onRowSelectionChange={handleRowSelectionChange}
                     enableSingleRowSelection={true}
+                    onCreate={() => setCreateOpen(true)}
+                    onRefresh={loadRoles}
+                    isRefreshing={isRefreshing}
                     />
                 </CardContent>
             </Card>
@@ -87,5 +106,29 @@ export default function RolesPage() {
             </div>
         )}
     </div>
+
+    <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create New Role</DialogTitle>
+          <DialogDescription>
+            Fill in the details below to add a new role.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="name" className="text-right">
+              Name
+            </Label>
+            <Input id="name" placeholder="Admin" className="col-span-3" />
+          </div>
+        </div>
+         <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button type="submit">Create Role</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

@@ -1,3 +1,6 @@
+'use client';
+
+import * as React from 'react';
 import { errorLogs } from '@/lib/data';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -14,6 +17,17 @@ const columns: ColumnDef<ErrorLog>[] = [
 ];
 
 export default function ErrorLogPage() {
+    const [data, setData] = React.useState<ErrorLog[]>(errorLogs);
+    const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+    const handleRefresh = () => {
+        setIsRefreshing(true);
+        setTimeout(() => {
+            setData([...errorLogs]);
+            setIsRefreshing(false);
+        }, 1000);
+    };
+
   return (
     <Card>
       <CardHeader>
@@ -21,7 +35,14 @@ export default function ErrorLogPage() {
         <CardDescription>Track system errors and warnings.</CardDescription>
       </CardHeader>
       <CardContent>
-        <DataTable columns={columns} data={errorLogs} filterColumnId="message" filterPlaceholder="Filter errors by message..." />
+        <DataTable 
+            columns={columns} 
+            data={data} 
+            filterColumnId="message" 
+            filterPlaceholder="Filter errors by message..."
+            onRefresh={handleRefresh}
+            isRefreshing={isRefreshing}
+        />
       </CardContent>
     </Card>
   );

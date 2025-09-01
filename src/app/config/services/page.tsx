@@ -1,7 +1,20 @@
+'use client';
+
+import * as React from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { servicesColumns } from './columns';
 import { Service } from '@/lib/types';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
 async function getServices(): Promise<Service[]> {
   try {
@@ -34,18 +47,83 @@ async function getServices(): Promise<Service[]> {
   }
 }
 
-export default async function ServicesPage() {
-  const services = await getServices();
+export default function ServicesPage() {
+  const [services, setServices] = React.useState<Service[]>([]);
+  const [isCreateOpen, setCreateOpen] = React.useState(false);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+  const loadServices = React.useCallback(async () => {
+    setIsRefreshing(true);
+    const fetchedServices = await getServices();
+    setServices(fetchedServices);
+    setIsRefreshing(false);
+  }, []);
+
+  React.useEffect(() => {
+    loadServices();
+  }, [loadServices]);
+
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle>Service Catalog</CardTitle>
         <CardDescription>Manage business services.</CardDescription>
       </CardHeader>
       <CardContent>
-        <DataTable columns={servicesColumns} data={services} filterColumnId="name" filterPlaceholder="Filter services by name..." />
+        <DataTable 
+          columns={servicesColumns} 
+          data={services} 
+          filterColumnId="name" 
+          filterPlaceholder="Filter services by name..." 
+          onCreate={() => setCreateOpen(true)}
+          onRefresh={loadServices}
+          isRefreshing={isRefreshing}
+        />
       </CardContent>
     </Card>
+
+    <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create New Service</DialogTitle>
+          <DialogDescription>
+            Fill in the details below to add a new service.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="name" className="text-right">
+              Name
+            </Label>
+            <Input id="name" placeholder="e.g., Initial Consultation" className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="category" className="text-right">
+              Category
+            </Label>
+            <Input id="category" placeholder="e.g., Consulting" className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="price" className="text-right">
+              Price
+            </Label>
+            <Input id="price" type="number" placeholder="0.00" className="col-span-3" />
+          </div>
+           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="duration" className="text-right">
+              Duration (min)
+            </Label>
+            <Input id="duration" type="number" placeholder="60" className="col-span-3" />
+          </div>
+        </div>
+         <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button type="submit">Create Service</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

@@ -24,7 +24,7 @@ const columns: ColumnDef<Quote>[] = [
         <RadioGroup
           value={isSelected ? row.id : ''}
           onValueChange={() => {
-            table.toggleAllRowsSelected(false);
+            table.toggleAllPageRowsSelected(false);
             row.toggleSelected(true);
           }}
         >
@@ -109,9 +109,12 @@ const columns: ColumnDef<Quote>[] = [
 interface RecentQuotesTableProps {
   quotes: Quote[];
   onRowSelectionChange?: (selectedRows: Quote[]) => void;
+  onCreate?: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-export function RecentQuotesTable({ quotes, onRowSelectionChange }: RecentQuotesTableProps) {
+export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRefresh, isRefreshing }: RecentQuotesTableProps) {
   return (
     <Card>
       <CardHeader>
@@ -126,6 +129,9 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange }: RecentQuotes
           filterPlaceholder="Filter quotes by user name..."
           onRowSelectionChange={onRowSelectionChange}
           enableSingleRowSelection={true}
+          onCreate={onCreate}
+          onRefresh={onRefresh}
+          isRefreshing={isRefreshing}
         />
       </CardContent>
     </Card>

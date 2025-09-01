@@ -8,12 +8,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 
 async function getUsers(): Promise<User[]> {
   try {
@@ -50,18 +55,22 @@ async function getUsers(): Promise<User[]> {
 export default function UsersPage() {
   const [users, setUsers] = React.useState<User[]>([]);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
+  const [isCreateOpen, setCreateOpen] = React.useState(false);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+  const loadUsers = React.useCallback(async () => {
+    setIsRefreshing(true);
+    const fetchedUsers = await getUsers();
+    setUsers(fetchedUsers);
+    setIsRefreshing(false);
+  }, []);
 
   React.useEffect(() => {
-    async function loadUsers() {
-      const fetchedUsers = await getUsers();
-      setUsers(fetchedUsers);
-    }
     loadUsers();
-  }, []);
+  }, [loadUsers]);
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
-    // Check if the selection has actually changed to prevent infinite loops
     if (user?.id !== selectedUser?.id) {
        setSelectedUser(user);
     } else if (!user && selectedUser) {
@@ -70,6 +79,7 @@ export default function UsersPage() {
   };
   
   return (
+    <>
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-2" : "lg:col-span-3")}>
         <Card>
@@ -85,6 +95,9 @@ export default function UsersPage() {
               filterPlaceholder="Filter users by email..."
               onRowSelectionChange={handleRowSelectionChange}
               enableSingleRowSelection={true}
+              onCreate={() => setCreateOpen(true)}
+              onRefresh={loadUsers}
+              isRefreshing={isRefreshing}
             />
           </CardContent>
         </Card>
@@ -155,5 +168,51 @@ export default function UsersPage() {
         </div>
       )}
     </div>
+
+    <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create New User</DialogTitle>
+          <DialogDescription>
+            Fill in the details below to add a new user.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="name" className="text-right">
+              Name
+            </Label>
+            <Input id="name" placeholder="John Doe" className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="email" className="text-right">
+              Email
+            </Label>
+            <Input id="email" type="email" placeholder="john.doe@example.com" className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="phone" className="text-right">
+              Phone
+            </Label>
+            <Input id="phone" placeholder="123-456-7890" className="col-span-3" />
+          </div>
+           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="avatar" className="text-right">
+              Avatar URL
+            </Label>
+            <Input id="avatar" placeholder="https://example.com/avatar.png" className="col-span-3" />
+          </div>
+          <div className="flex items-center space-x-2 justify-end">
+             <Checkbox id="is_active" />
+            <Label htmlFor="is_active">Is Active</Label>
+          </div>
+        </div>
+         <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button type="submit">Create User</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
