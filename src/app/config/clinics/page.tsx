@@ -1,13 +1,15 @@
-
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Clinic } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { UploadCloud } from 'lucide-react';
 
 async function getClinic(): Promise<Clinic | null> {
     try {
@@ -50,6 +52,8 @@ async function getClinic(): Promise<Clinic | null> {
 export default function ClinicsPage() {
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
+    const [logoPreview, setLogoPreview] = React.useState<string | null>(null);
+    const { toast } = useToast();
 
     const loadClinic = React.useCallback(async () => {
         setIsLoading(true);
@@ -68,6 +72,22 @@ export default function ClinicsPage() {
         setClinic({ ...clinic, [id]: value });
     };
 
+    const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 1024 * 1024) { // 1MB limit
+                toast({
+                    variant: 'destructive',
+                    title: 'File Too Large',
+                    description: 'The selected logo image must be less than 1MB.',
+                });
+                return;
+            }
+            setLogoPreview(URL.createObjectURL(file));
+        }
+    };
+
+
     if (isLoading) {
         return (
              <Card>
@@ -76,21 +96,28 @@ export default function ClinicsPage() {
                     <Skeleton className="h-4 w-3/4" />
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-10 w-full" />
-                    </div>
-                    <div className="space-y-2">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-10 w-full" />
-                    </div>
-                    <div className="space-y-2">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-10 w-full" />
-                    </div>
-                    <div className="space-y-2">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-10 w-full" />
+                    <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                        <div className="space-y-6">
+                             <div className="space-y-2">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-10 w-full" />
+                            </div>
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-10 w-full" />
+                            </div>
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-10 w-full" />
+                            </div>
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-10 w-full" />
+                            </div>
+                        </div>
+                        <div>
+                            <Skeleton className="h-[400px] w-full" />
+                        </div>
                     </div>
                 </CardContent>
                 <CardFooter>
@@ -121,22 +148,48 @@ export default function ClinicsPage() {
                 <CardTitle>Clinic Details</CardTitle>
                 <CardDescription>Manage clinic locations and contact information.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input id="name" value={clinic.name} onChange={handleInputChange} placeholder="e.g., Downtown Branch" />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="location">Location</Label>
-                    <Input id="location" value={clinic.location} onChange={handleInputChange} placeholder="e.g., 123 Main St, Anytown" />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="contact_email">Email</Label>
-                    <Input id="contact_email" type="email" value={clinic.contact_email} onChange={handleInputChange} placeholder="e.g., branch@clinic.com" />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="phone_number">Phone</Label>
-                    <Input id="phone_number" value={clinic.phone_number} onChange={handleInputChange} placeholder="e.g., 111-222-3333" />
+            <CardContent>
+                <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                    <div className="space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="logo">Clinic Logo</Label>
+                             <div className="flex items-center gap-4">
+                                <div className="relative h-24 w-24 rounded-md border-2 border-dashed border-muted-foreground/50 flex items-center justify-center">
+                                    {logoPreview ? (
+                                    <Image src={logoPreview} alt="Logo Preview" layout="fill" className="object-contain rounded-md" />
+                                    ) : (
+                                    <UploadCloud className="h-8 w-8 text-muted-foreground" />
+                                    )}
+                                </div>
+                                <Input id="logo" type="file" onChange={handleLogoChange} accept="image/*" className="max-w-xs" />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Name</Label>
+                            <Input id="name" value={clinic.name} onChange={handleInputChange} placeholder="e.g., Downtown Branch" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="location">Location</Label>
+                            <Input id="location" value={clinic.location} onChange={handleInputChange} placeholder="e.g., 123 Main St, Anytown" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="contact_email">Email</Label>
+                            <Input id="contact_email" type="email" value={clinic.contact_email} onChange={handleInputChange} placeholder="e.g., branch@clinic.com" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="phone_number">Phone</Label>
+                            <Input id="phone_number" value={clinic.phone_number} onChange={handleInputChange} placeholder="e.g., 111-222-3333" />
+                        </div>
+                    </div>
+                    <div className="h-[400px] w-full overflow-hidden rounded-lg md:h-full">
+                        <iframe
+                            className="h-full w-full border-0"
+                            loading="lazy"
+                            allowFullScreen
+                            src={`https://maps.google.com/maps?q=${encodeURIComponent(clinic.location)}&output=embed`}
+                        ></iframe>
+                    </div>
                 </div>
             </CardContent>
             <CardFooter>
@@ -145,4 +198,3 @@ export default function ClinicsPage() {
         </Card>
     );
 }
-
