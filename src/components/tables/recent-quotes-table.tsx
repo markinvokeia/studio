@@ -92,7 +92,7 @@ const columns: ColumnDef<Quote>[] = [
       const status = row.getValue('payment_status') as string;
       const variant = {
         paid: 'success',
-        partial: 'secondary',
+        partial: 'info',
         unpaid: 'outline',
       }[status.toLowerCase()] ?? ('default'as any);
 
