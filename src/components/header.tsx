@@ -4,7 +4,6 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  BotMessageSquare,
   Menu,
   Moon,
   Sun,
@@ -32,6 +31,7 @@ import { CommandBar } from './command-bar';
 import { Nav } from './nav';
 import { navItems } from '@/config/nav';
 import { usePathname } from 'next/navigation';
+import { Logo } from './icons/logo';
 
 export function Header() {
   const pathname = usePathname();
@@ -72,7 +72,7 @@ export function Header() {
         <SheetContent side="left" className="sm:max-w-xs">
           <div className="flex h-16 items-center border-b px-6">
             <Link href="/" className="flex items-center gap-2 font-semibold">
-              <BotMessageSquare className="h-6 w-6 text-primary" />
+              <Logo className="h-8 w-8" />
               <span className="">InvokeIA</span>
             </Link>
           </div>
