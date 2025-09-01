@@ -6,7 +6,7 @@ import { clinicsColumns } from './columns';
 
 async function getClinics(): Promise<Clinic[]> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/clinics', {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/clinic', {
             method: 'GET',
             mode: 'cors',
             headers: {
