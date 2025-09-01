@@ -98,30 +98,30 @@ export default function UsersPage() {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="roles" className="w-full">
-                  <div className="relative w-full">
-                    <Carousel
-                        opts={{
-                          align: "start",
-                          dragFree: true,
-                        }}
-                        className="w-full"
-                      >
-                       <CarouselContent>
-                          <CarouselItem className="basis-auto p-0">
-                            <TabsList>
-                              <TabsTrigger value="roles">Roles</TabsTrigger>
-                              <TabsTrigger value="services">Services</TabsTrigger>
-                              <TabsTrigger value="quotes">Quotes</TabsTrigger>
-                              <TabsTrigger value="appointments">Appointments</TabsTrigger>
-                              <TabsTrigger value="messages">Messages</TabsTrigger>
-                              <TabsTrigger value="logs">Logs</TabsTrigger>
-                            </TabsList>
-                          </CarouselItem>
-                       </CarouselContent>
-                       <CarouselPrevious className="absolute -left-4 top-1/2 -translate-y-1/2" />
-                       <CarouselNext className="absolute -right-4 top-1/2 -translate-y-1/2" />
+                   <Carousel
+                      opts={{
+                        align: "start",
+                        dragFree: true,
+                      }}
+                      className="w-full"
+                    >
+                      <div className="flex items-center">
+                        <CarouselPrevious className="static -left-0 -translate-y-0" />
+                        <CarouselContent className="flex-grow">
+                            <CarouselItem className="basis-auto p-0">
+                              <TabsList>
+                                <TabsTrigger value="roles">Roles</TabsTrigger>
+                                <TabsTrigger value="services">Services</TabsTrigger>
+                                <TabsTrigger value="quotes">Quotes</TabsTrigger>
+                                <TabsTrigger value="appointments">Appointments</TabsTrigger>
+                                <TabsTrigger value="messages">Messages</TabsTrigger>
+                                <TabsTrigger value="logs">Logs</TabsTrigger>
+                              </TabsList>
+                            </CarouselItem>
+                        </CarouselContent>
+                        <CarouselNext className="static -right-0 -translate-y-0" />
+                      </div>
                     </Carousel>
-                  </div>
 
                   <TabsContent value="roles">
                     <Card>
