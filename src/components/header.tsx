@@ -7,6 +7,8 @@ import {
   Menu,
   Moon,
   Sun,
+  PanelLeftClose,
+  PanelRightClose
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import {
@@ -32,10 +34,13 @@ import { Nav } from './nav';
 import { navItems } from '@/config/nav';
 import { usePathname } from 'next/navigation';
 import { Logo } from './icons/logo';
+import { useSidebar } from '@/hooks/use-sidebar';
+import { cn } from '@/lib/utils';
 
 export function Header() {
   const pathname = usePathname();
   const { setTheme } = useTheme();
+  const { isMinimized, toggleSidebar } = useSidebar();
   
   const breadcrumbSegments = pathname.split('/').filter(Boolean);
   const breadcrumbItems = breadcrumbSegments.map((segment, index) => {
@@ -62,6 +67,10 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+       <Button size="icon" variant="outline" className="hidden sm:flex" onClick={toggleSidebar}>
+          {isMinimized ? <PanelRightClose className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+          <span className="sr-only">Toggle Menu</span>
+        </Button>
       <Sheet>
         <SheetTrigger asChild>
           <Button size="icon" variant="outline" className="sm:hidden">
@@ -77,7 +86,7 @@ export function Header() {
             </Link>
           </div>
           <div className="flex-1 overflow-y-auto py-2">
-            <Nav items={navItems} />
+            <Nav items={navItems} isMinimized={false} />
           </div>
         </SheetContent>
       </Sheet>

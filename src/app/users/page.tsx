@@ -6,6 +6,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 async function getUsers(): Promise<User[]> {
   try {
@@ -53,88 +54,96 @@ export default function UsersPage() {
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
-    setSelectedUser(user);
+    if (user?.id === selectedUser?.id) {
+       setSelectedUser(null);
+    } else {
+       setSelectedUser(user);
+    }
   };
   
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Users</CardTitle>
-          <CardDescription>Manage all users in the system.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DataTable 
-            columns={userColumns} 
-            data={users} 
-            filterColumnId="email" 
-            filterPlaceholder="Filter by email..."
-            onRowSelectionChange={handleRowSelectionChange}
-          />
-        </CardContent>
-      </Card>
-      
-      {selectedUser && (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-2" : "lg:col-span-3")}>
         <Card>
           <CardHeader>
-             <CardTitle>Details for {selectedUser.name}</CardTitle>
-             <CardDescription>User ID: {selectedUser.id}</CardDescription>
+            <CardTitle>Users</CardTitle>
+            <CardDescription>Manage all users in the system.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="roles">
-              <TabsList>
-                <TabsTrigger value="roles">Roles</TabsTrigger>
-                <TabsTrigger value="services">Services</TabsTrigger>
-                <TabsTrigger value="quotes">Quotes</TabsTrigger>
-                <TabsTrigger value="appointments">Appointments</TabsTrigger>
-                <TabsTrigger value="messages">Messages</TabsTrigger>
-                <TabsTrigger value="logs">Logs</TabsTrigger>
-              </TabsList>
-              <TabsContent value="roles">
-                <Card>
-                  <CardContent className="p-6">
-                    <p>Roles content for {selectedUser.name}.</p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              <TabsContent value="services">
-                 <Card>
-                  <CardContent className="p-6">
-                    <p>Services content for {selectedUser.name}.</p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              <TabsContent value="quotes">
-                 <Card>
-                  <CardContent className="p-6">
-                    <p>Quotes content for {selectedUser.name}.</p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              <TabsContent value="appointments">
-                 <Card>
-                  <CardContent className="p-6">
-                    <p>Appointments content for {selectedUser.name}.</p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              <TabsContent value="messages">
-                 <Card>
-                  <CardContent className="p-6">
-                    <p>Messages content for {selectedUser.name}.</p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              <TabsContent value="logs">
-                 <Card>
-                  <CardContent className="p-6">
-                    <p>Logs content for {selectedUser.name}.</p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+            <DataTable 
+              columns={userColumns} 
+              data={users} 
+              filterColumnId="email" 
+              filterPlaceholder="Filter by email..."
+              onRowSelectionChange={handleRowSelectionChange}
+            />
           </CardContent>
         </Card>
+      </div>
+      
+      {selectedUser && (
+        <div className="lg:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle>Details for {selectedUser.name}</CardTitle>
+                <CardDescription>User ID: {selectedUser.id}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="roles">
+                  <TabsList>
+                    <TabsTrigger value="roles">Roles</TabsTrigger>
+                    <TabsTrigger value="services">Services</TabsTrigger>
+                    <TabsTrigger value="quotes">Quotes</TabsTrigger>
+                    <TabsTrigger value="appointments">Appointments</TabsTrigger>
+                    <TabsTrigger value="messages">Messages</TabsTrigger>
+                    <TabsTrigger value="logs">Logs</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="roles">
+                    <Card>
+                      <CardContent className="p-6">
+                        <p>Roles content for {selectedUser.name}.</p>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  <TabsContent value="services">
+                    <Card>
+                      <CardContent className="p-6">
+                        <p>Services content for {selectedUser.name}.</p>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  <TabsContent value="quotes">
+                    <Card>
+                      <CardContent className="p-6">
+                        <p>Quotes content for {selectedUser.name}.</p>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  <TabsContent value="appointments">
+                    <Card>
+                      <CardContent className="p-6">
+                        <p>Appointments content for {selectedUser.name}.</p>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  <TabsContent value="messages">
+                    <Card>
+                      <CardContent className="p-6">
+                        <p>Messages content for {selectedUser.name}.</p>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  <TabsContent value="logs">
+                    <Card>
+                      <CardContent className="p-6">
+                        <p>Logs content for {selectedUser.name}.</p>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+        </div>
       )}
     </div>
   );

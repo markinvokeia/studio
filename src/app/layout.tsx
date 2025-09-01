@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
 import { Chatbot } from '@/components/chatbot';
 import { ThemeProvider } from '@/components/theme-provider';
+import { SidebarProvider } from '@/hooks/use-sidebar';
 
 export const metadata: Metadata = {
   title: 'InvokeAI Command Center',
@@ -30,6 +31,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+        <SidebarProvider>
           <div className="flex min-h-screen w-full flex-col bg-background">
             <div className="flex min-h-screen w-full">
               <Sidebar />
@@ -43,6 +45,7 @@ export default function RootLayout({
           </div>
           <Toaster />
           <Chatbot />
+        </SidebarProvider>
         </ThemeProvider>
       </body>
     </html>
