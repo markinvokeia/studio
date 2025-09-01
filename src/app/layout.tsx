@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
+import { Chatbot } from '@/components/chatbot';
 
 export const metadata: Metadata = {
   title: 'InvokeAI Command Center',
@@ -34,6 +35,7 @@ export default function RootLayout({
           </div>
         </div>
         <Toaster />
+        <Chatbot />
       </body>
     </html>
   );
