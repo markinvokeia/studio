@@ -6,9 +6,6 @@ import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User } from '@/lib/types';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Button } from '@/components/ui/button';
-import { ChevronsUpDown } from 'lucide-react';
 
 async function getUsers(): Promise<User[]> {
   try {
@@ -45,7 +42,6 @@ async function getUsers(): Promise<User[]> {
 export default function UsersPage() {
   const [users, setUsers] = React.useState<User[]>([]);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
-  const [isUsersTableCollapsed, setIsUsersTableCollapsed] = React.useState(false);
 
   React.useEffect(() => {
     async function loadUsers() {
@@ -58,41 +54,26 @@ export default function UsersPage() {
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
     setSelectedUser(user);
-    setIsUsersTableCollapsed(user !== null);
   };
   
   return (
     <div className="space-y-4">
-      <Collapsible
-        open={!isUsersTableCollapsed}
-        onOpenChange={(open) => setIsUsersTableCollapsed(!open)}
-      >
-        <Card>
-          <CardHeader className='flex-row items-center justify-between'>
-            <div>
-              <CardTitle>Users</CardTitle>
-              <CardDescription>Manage all users in the system.</CardDescription>
-            </div>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-9 p-0">
-                <ChevronsUpDown className="h-4 w-4" />
-                <span className="sr-only">Toggle</span>
-              </Button>
-            </CollapsibleTrigger>
-          </CardHeader>
-          <CollapsibleContent>
-            <CardContent>
-              <DataTable 
-                columns={userColumns} 
-                data={users} 
-                filterColumnId="email" 
-                filterPlaceholder="Filter by email..."
-                onRowSelectionChange={handleRowSelectionChange}
-              />
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
+      <Card>
+        <CardHeader>
+          <CardTitle>Users</CardTitle>
+          <CardDescription>Manage all users in the system.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DataTable 
+            columns={userColumns} 
+            data={users} 
+            filterColumnId="email" 
+            filterPlaceholder="Filter by email..."
+            onRowSelectionChange={handleRowSelectionChange}
+          />
+        </CardContent>
+      </Card>
+      
       {selectedUser && (
         <Card>
           <CardHeader>
