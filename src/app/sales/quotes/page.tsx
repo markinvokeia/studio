@@ -45,7 +45,7 @@ async function getQuotes(): Promise<Quote[]> {
 async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
     if (!quoteId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook-test/quote_items?quote_id=${quoteId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_items?quote_id=${quoteId}`, {
             method: 'GET',
             mode: 'cors',
             headers: {
