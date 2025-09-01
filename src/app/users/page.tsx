@@ -1,6 +1,10 @@
+'use client';
+
+import * as React from 'react';
 import { userColumns } from './columns';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User } from '@/lib/types';
 
 async function getUsers(): Promise<User[]> {
@@ -11,7 +15,7 @@ async function getUsers(): Promise<User[]> {
       headers: {
         'Accept': 'application/json',
       },
-      cache: 'no-store', // Asegura que los datos se obtengan en cada solicitud
+      cache: 'no-store',
     });
 
     if (!response.ok) {
@@ -21,7 +25,6 @@ async function getUsers(): Promise<User[]> {
     const data = await response.json();
     const usersData = Array.isArray(data) ? data : (data.users || data.data || data.result || []);
 
-    // Mapear los datos de la API al tipo User, proporcionando valores predeterminados
     return usersData.map((apiUser: any) => ({
       id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
       name: apiUser.name || 'No Name',
@@ -32,22 +35,105 @@ async function getUsers(): Promise<User[]> {
     }));
   } catch (error) {
     console.error("Failed to fetch users:", error);
-    return []; // Devuelve un array vacío en caso de error
+    return [];
   }
 }
 
-export default async function UsersPage() {
-  const users = await getUsers();
+export default function UsersPage() {
+  const [users, setUsers] = React.useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
 
+  React.useEffect(() => {
+    async function loadUsers() {
+      const fetchedUsers = await getUsers();
+      setUsers(fetchedUsers);
+    }
+    loadUsers();
+  }, []);
+
+  const handleRowSelectionChange = (selectedRows: User[]) => {
+    setSelectedUser(selectedRows.length > 0 ? selectedRows[0] : null);
+  };
+  
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Users</CardTitle>
-        <CardDescription>Manage all users in the system.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <DataTable columns={userColumns} data={users} filterColumnId="email" filterPlaceholder="Filter by email..." />
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Users</CardTitle>
+          <CardDescription>Manage all users in the system.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DataTable 
+            columns={userColumns} 
+            data={users} 
+            filterColumnId="email" 
+            filterPlaceholder="Filter by email..."
+            onRowSelectionChange={handleRowSelectionChange}
+          />
+        </CardContent>
+      </Card>
+      {selectedUser && (
+        <Card>
+          <CardHeader>
+             <CardTitle>Details for {selectedUser.name}</CardTitle>
+             <CardDescription>User ID: {selectedUser.id}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="roles">
+              <TabsList>
+                <TabsTrigger value="roles">Roles</TabsTrigger>
+                <TabsTrigger value="services">Services</TabsTrigger>
+                <TabsTrigger value="quotes">Quotes</TabsTrigger>
+                <TabsTrigger value="appointments">Appointments</TabsTrigger>
+                <TabsTrigger value="messages">Messages</TabsTrigger>
+                <TabsTrigger value="logs">Logs</TabsTrigger>
+              </TabsList>
+              <TabsContent value="roles">
+                <Card>
+                  <CardContent className="p-6">
+                    <p>Roles content for {selectedUser.name}.</p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="services">
+                 <Card>
+                  <CardContent className="p-6">
+                    <p>Services content for {selectedUser.name}.</p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="quotes">
+                 <Card>
+                  <CardContent className="p-6">
+                    <p>Quotes content for {selectedUser.name}.</p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="appointments">
+                 <Card>
+                  <CardContent className="p-6">
+                    <p>Appointments content for {selectedUser.name}.</p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="messages">
+                 <Card>
+                  <CardContent className="p-6">
+                    <p>Messages content for {selectedUser.name}.</p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="logs">
+                 <Card>
+                  <CardContent className="p-6">
+                    <p>Logs content for {selectedUser.name}.</p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }
