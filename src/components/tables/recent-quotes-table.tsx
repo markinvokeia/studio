@@ -71,7 +71,7 @@ const columns: ColumnDef<Quote>[] = [
         accepted: 'success',
         confirmed: 'success',
         sent: 'default',
-        pending: 'default',
+        pending: 'info',
         draft: 'outline',
         rejected: 'destructive',
       }[status] ?? ('default' as any);
