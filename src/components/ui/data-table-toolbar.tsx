@@ -46,19 +46,19 @@ export function DataTableToolbar<TData>({
         {onRefresh && (
           <Button
             variant="outline"
-            size="sm"
-            className="ml-auto h-8 lg:flex"
+            size="icon"
+            className="h-8 w-8"
             onClick={onRefresh}
             disabled={isRefreshing}
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="sr-only">Refresh</span>
           </Button>
         )}
         {onCreate && (
-          <Button size="sm" className="h-8" onClick={onCreate}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Create
+          <Button size="icon" className="h-8 w-8" onClick={onCreate}>
+            <PlusCircle className="h-4 w-4" />
+            <span className="sr-only">Create</span>
           </Button>
         )}
         <DropdownMenu>
