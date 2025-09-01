@@ -62,8 +62,8 @@ export function Nav({ items, isMinimized }: NavProps) {
                   <TooltipTrigger asChild>
                     <DropdownMenuTrigger
                       className={cn(
-                        'flex items-center justify-center gap-3 rounded-md px-3 py-2 text-muted-foreground transition-all hover:bg-muted hover:text-primary',
-                        item.href === parentPath && 'bg-muted text-primary'
+                        'flex items-center justify-center gap-3 rounded-md px-3 py-2 text-primary-foreground/70 transition-all hover:bg-primary-foreground/10 hover:text-primary-foreground',
+                        item.href === parentPath && 'bg-primary-foreground/10 text-primary-foreground'
                       )}
                     >
                       <item.icon className="h-4 w-4" />
@@ -78,10 +78,10 @@ export function Nav({ items, isMinimized }: NavProps) {
                       <Link
                         href={subItem.href}
                         className={cn(
-                          'flex items-center gap-3 rounded-md px-3 py-2 transition-all hover:text-primary',
+                          'flex items-center gap-3 rounded-md px-3 py-2 transition-all',
                           pathname === subItem.href
                             ? 'bg-muted text-primary'
-                            : 'text-muted-foreground'
+                            : 'text-muted-foreground hover:text-primary'
                         )}
                       >
                         {subItem.title}
@@ -100,7 +100,7 @@ export function Nav({ items, isMinimized }: NavProps) {
                 <AccordionItem value={`item-${index}`} className="border-b-0">
                   <AccordionTrigger
                     className={cn(
-                      'flex items-center gap-3 rounded-md px-3 py-2 text-muted-foreground transition-all hover:bg-muted hover:text-primary hover:no-underline'
+                      'flex items-center gap-3 rounded-md px-3 py-2 text-primary-foreground/70 transition-all hover:bg-primary-foreground/10 hover:text-primary-foreground hover:no-underline'
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -115,10 +115,10 @@ export function Nav({ items, isMinimized }: NavProps) {
                           key={subIndex}
                           href={subItem.href}
                           className={cn(
-                            'flex items-center gap-3 rounded-md px-3 py-2 transition-all hover:text-primary',
+                            'flex items-center gap-3 rounded-md px-3 py-2 transition-all',
                             pathname === subItem.href
-                              ? 'bg-muted text-primary'
-                              : 'text-muted-foreground'
+                              ? 'bg-primary-foreground/10 text-primary-foreground'
+                              : 'text-primary-foreground/70 hover:text-primary-foreground'
                           )}
                         >
                           {subItem.title}
@@ -135,10 +135,10 @@ export function Nav({ items, isMinimized }: NavProps) {
                 <Link
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2 transition-all hover:text-primary',
+                    'flex items-center gap-3 rounded-md px-3 py-2 transition-all',
                     pathname === item.href
-                      ? 'bg-muted text-primary'
-                      : 'text-muted-foreground',
+                      ? 'bg-primary-foreground/10 text-primary-foreground'
+                      : 'text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground',
                     isMinimized && 'justify-center'
                   )}
                 >
