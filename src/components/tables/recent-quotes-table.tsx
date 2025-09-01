@@ -162,7 +162,7 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
           filterColumnId="user_name"
           filterPlaceholder="Filter quotes by user name..."
           onRowSelectionChange={onRowSelectionChange}
-          enableSingleRowSelection={true}
+          enableSingleRowSelection={onRowSelectionChange ? true : false}
           onCreate={onCreate}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}

@@ -2,10 +2,11 @@ import { Stats } from '@/components/dashboard/stats';
 import { SalesSummaryChart } from '@/components/charts/sales-summary-chart';
 import { SalesByServiceChart } from '@/components/charts/sales-by-service-chart';
 import { InvoiceStatusChart } from '@/components/charts/invoice-status-chart';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ReportFilters } from '@/components/dashboard/report-filters';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
-import { Quote } from '@/lib/types';
+import { RecentOrdersTable } from '@/components/tables/recent-orders-table';
+import { NewUsersTable } from '@/components/tables/new-users-table';
+import { Quote, Order, User } from '@/lib/types';
 
 async function getQuotes(): Promise<Quote[]> {
   try {
@@ -41,8 +42,65 @@ async function getQuotes(): Promise<Quote[]> {
   }
 }
 
+async function getOrders(): Promise<Order[]> {
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/orders', {
+             method: 'GET',
+             mode: 'cors',
+             headers: { 'Accept': 'application/json' },
+             cache: 'no-store',
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
+        return ordersData.map((apiOrder: any) => ({
+            id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
+            user_id: apiOrder.user_id,
+            status: apiOrder.status,
+            createdAt: apiOrder.createdAt || new Date().toISOString().split('T')[0],
+        }));
+    } catch (error) {
+        console.error("Failed to fetch orders:", error);
+        return [];
+    }
+}
+
+async function getUsers(): Promise<User[]> {
+  try {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users', {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const usersData = Array.isArray(data) ? data : (data.users || data.data || data.result || []);
+
+    return usersData.map((apiUser: any) => ({
+      id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+      name: apiUser.name || 'No Name',
+      email: apiUser.email || 'no-email@example.com',
+      phone_number: apiUser.phone_number || '000-000-0000',
+      is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+      avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch users:", error);
+    return [];
+  }
+}
+
 export default async function DashboardPage() {
   const quotes = await getQuotes();
+  const orders = await getOrders();
+  const users = await getUsers();
 
   return (
     <>
@@ -56,7 +114,11 @@ export default async function DashboardPage() {
              <InvoiceStatusChart />
           </div>
         </div>
-        <RecentQuotesTable quotes={quotes} />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <RecentQuotesTable quotes={quotes} />
+            <RecentOrdersTable orders={orders} />
+        </div>
+        <NewUsersTable users={users} />
       </div>
     </>
   );
