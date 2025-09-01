@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MedicalHistory } from '@/components/users/medical-history';
+import { UserRoles } from '@/components/users/user-roles';
 
 async function getUsers(): Promise<User[]> {
   try {
@@ -124,11 +125,7 @@ export default function UsersPage() {
                     <TabsTrigger value="logs">Logs</TabsTrigger>
                   </TabsList>
                   <TabsContent value="roles">
-                    <Card>
-                      <CardContent className="p-6">
-                        <p>Roles content for {selectedUser.name}.</p>
-                      </CardContent>
-                    </Card>
+                    <UserRoles userId={selectedUser.id} />
                   </TabsContent>
                   <TabsContent value="services">
                     <Card>
