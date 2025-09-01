@@ -107,9 +107,10 @@ const columns: ColumnDef<Quote>[] = [
 
 interface RecentQuotesTableProps {
   quotes: Quote[];
+  onRowSelectionChange?: (selectedRows: Quote[]) => void;
 }
 
-export function RecentQuotesTable({ quotes }: RecentQuotesTableProps) {
+export function RecentQuotesTable({ quotes, onRowSelectionChange }: RecentQuotesTableProps) {
   return (
     <Card>
       <CardHeader>
@@ -122,6 +123,7 @@ export function RecentQuotesTable({ quotes }: RecentQuotesTableProps) {
           data={quotes}
           filterColumnId="userName"
           filterPlaceholder="Filter by user..."
+          onRowSelectionChange={onRowSelectionChange}
         />
       </CardContent>
     </Card>
