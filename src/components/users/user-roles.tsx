@@ -34,14 +34,13 @@ const columns: ColumnDef<UserRole>[] = [
 ];
 
 async function getRolesForUser(userId: string): Promise<UserRole[]> {
+  if (!userId) return [];
   try {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_roles', {
-      method: 'POST',
+    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_roles?user_id=${userId}`, {
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify({ user_id: userId }),
       cache: 'no-store',
     });
 
