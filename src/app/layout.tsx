@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
-import { Chatbot } from '@/components/chatbot';
+import { FloatingActions } from '@/components/floating-actions';
 import { ThemeProvider } from '@/components/theme-provider';
 import { SidebarProvider } from '@/hooks/use-sidebar';
 
@@ -42,7 +42,7 @@ export default function RootLayout({
               </div>
           </div>
           <Toaster />
-          <Chatbot />
+          <FloatingActions />
         </SidebarProvider>
         </ThemeProvider>
       </body>
