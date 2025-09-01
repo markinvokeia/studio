@@ -25,6 +25,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { MoreHorizontal } from 'lucide-react';
 
 
 const columns: ColumnDef<CommunicationChannel>[] = [
@@ -32,6 +41,27 @@ const columns: ColumnDef<CommunicationChannel>[] = [
     { accessorKey: 'name', header: ({column}) => <DataTableColumnHeader column={column} title="Name" /> },
     { accessorKey: 'channel_type', header: ({column}) => <DataTableColumnHeader column={column} title="Type" /> },
     { accessorKey: 'is_active', header: ({column}) => <DataTableColumnHeader column={column} title="Active" />, cell: ({row}) => row.original.is_active ? "Yes" : "No" },
+    {
+        id: 'actions',
+        cell: ({ row }) => {
+        const channel = row.original;
+        return (
+            <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem>Edit</DropdownMenuItem>
+                <DropdownMenuItem>Delete</DropdownMenuItem>
+            </DropdownMenuContent>
+            </DropdownMenu>
+        );
+        },
+    },
 ];
 
 export default function ChannelsPage() {

@@ -7,6 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ColumnDef } from '@tanstack/react-table';
 import { AccessLog } from '@/lib/types';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { MoreHorizontal } from 'lucide-react';
 
 const columns: ColumnDef<AccessLog>[] = [
     { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title="ID" /> },
@@ -15,6 +25,26 @@ const columns: ColumnDef<AccessLog>[] = [
     { accessorKey: 'action', header: ({column}) => <DataTableColumnHeader column={column} title="Action" /> },
     { accessorKey: 'success', header: ({column}) => <DataTableColumnHeader column={column} title="Success" />, cell: ({row}) => row.original.success ? "Yes" : "No" },
     { accessorKey: 'ip_address', header: ({column}) => <DataTableColumnHeader column={column} title="IP Address" /> },
+    {
+        id: 'actions',
+        cell: ({ row }) => {
+        const log = row.original;
+        return (
+            <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem>View User</DropdownMenuItem>
+            </DropdownMenuContent>
+            </DropdownMenu>
+        );
+        },
+    },
 ];
 
 export default function AccessLogPage() {

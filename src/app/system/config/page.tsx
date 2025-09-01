@@ -24,6 +24,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { MoreHorizontal } from 'lucide-react';
+
 
 const columns: ColumnDef<SystemConfiguration>[] = [
     { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title="ID" /> },
@@ -31,6 +41,27 @@ const columns: ColumnDef<SystemConfiguration>[] = [
     { accessorKey: 'value', header: ({column}) => <DataTableColumnHeader column={column} title="Value" /> },
     { accessorKey: 'data_type', header: ({column}) => <DataTableColumnHeader column={column} title="Type" /> },
     { accessorKey: 'updated_by', header: ({column}) => <DataTableColumnHeader column={column} title="Updated By" /> },
+    {
+        id: 'actions',
+        cell: ({ row }) => {
+        const config = row.original;
+        return (
+            <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem>Edit</DropdownMenuItem>
+                <DropdownMenuItem>Delete</DropdownMenuItem>
+            </DropdownMenuContent>
+            </DropdownMenu>
+        );
+        },
+    },
 ];
 
 export default function SystemConfigPage() {

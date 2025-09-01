@@ -5,6 +5,17 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import type { Permission } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { MoreHorizontal } from 'lucide-react';
+
 
 export const permissionColumns: ColumnDef<Permission>[] = [
   {
@@ -52,5 +63,26 @@ export const permissionColumns: ColumnDef<Permission>[] = [
       <DataTableColumnHeader column={column} title="Resource" />
     ),
     cell: ({ row }) => <Badge variant="outline" className="capitalize">{row.getValue('resource')}</Badge>
+  },
+  {
+    id: 'actions',
+    cell: ({ row }) => {
+      const permission = row.original;
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem>Edit</DropdownMenuItem>
+            <DropdownMenuItem>Delete</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    },
   },
 ];
