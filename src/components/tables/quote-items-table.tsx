@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
@@ -74,7 +75,7 @@ export function QuoteItemsTable({ items, isLoading = false }: QuoteItemsTablePro
   }
   return (
     <Card>
-      <CardContent className="p-0 pt-4">
+      <CardContent className="p-4">
         <DataTable
           columns={columns}
           data={items}

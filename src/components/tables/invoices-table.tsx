@@ -77,7 +77,7 @@ export function InvoicesTable({ invoices, isLoading = false }: InvoicesTableProp
   }
   return (
     <Card>
-      <CardContent className="p-0 pt-4">
+      <CardContent className="p-4">
         <DataTable
           columns={columns}
           data={invoices}

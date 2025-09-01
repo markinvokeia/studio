@@ -76,7 +76,7 @@ export function PaymentsTable({ payments, isLoading = false }: PaymentsTableProp
   }
   return (
     <Card>
-      <CardContent className="p-0 pt-4">
+      <CardContent className="p-4">
         <DataTable
           columns={columns}
           data={payments}
