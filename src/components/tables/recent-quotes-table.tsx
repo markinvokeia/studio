@@ -6,7 +6,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Quote } from '@/lib/types';
-import { quotes } from '@/lib/data';
 import {
   Card,
   CardContent,
@@ -104,7 +103,11 @@ const columns: ColumnDef<Quote>[] = [
   },
 ];
 
-export function RecentQuotesTable() {
+interface RecentQuotesTableProps {
+  quotes: Quote[];
+}
+
+export function RecentQuotesTable({ quotes }: RecentQuotesTableProps) {
   return (
     <Card>
       <CardHeader>
