@@ -45,14 +45,12 @@ async function getQuotes(): Promise<Quote[]> {
 async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
     if (!quoteId) return [];
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook-test/quote_items', {
-            method: 'POST',
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook-test/quote_items?quote_id=${quoteId}`, {
+            method: 'GET',
             mode: 'cors',
             headers: {
-                'Content-Type': 'application/json',
                 'Accept': 'application/json',
             },
-            body: JSON.stringify({ quote_id: quoteId }),
             cache: 'no-store',
         });
 
