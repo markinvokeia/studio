@@ -36,7 +36,7 @@ export type Quote = {
   id: string;
   user_id: string;
   total: number;
-  status: 'draft' | 'sent' | 'accepted' | 'rejected';
+  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'pending' | 'confirmed';
   payment_status: 'unpaid' | 'paid' | 'partial';
   userName?: string;
   userEmail?: string;

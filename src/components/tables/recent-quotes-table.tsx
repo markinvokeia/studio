@@ -68,8 +68,10 @@ const columns: ColumnDef<Quote>[] = [
     cell: ({ row }) => {
       const status = row.getValue('status') as string;
       const variant = {
-        accepted: 'default',
-        sent: 'secondary',
+        accepted: 'success',
+        confirmed: 'success',
+        sent: 'default',
+        pending: 'default',
         draft: 'outline',
         rejected: 'destructive',
       }[status] ?? ('default' as any);
@@ -89,7 +91,7 @@ const columns: ColumnDef<Quote>[] = [
      cell: ({ row }) => {
       const status = row.getValue('payment_status') as string;
       const variant = {
-        paid: 'default',
+        paid: 'success',
         partial: 'secondary',
         unpaid: 'outline',
       }[status] ?? ('default'as any);
