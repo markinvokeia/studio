@@ -8,13 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { QuoteItemsTable } from '@/components/tables/quote-items-table';
 
-// Mock data for quote items, as no endpoint is provided.
-const quoteItems: QuoteItem[] = [
-    { id: 'qi_1', service_id: 'srv_1', unit_price: 150, quantity: 1, total: 150 },
-    { id: 'qi_2', service_id: 'srv_2', unit_price: 1200, quantity: 1, total: 1200 },
-    { id: 'qi_3', service_id: 'srv_4', unit_price: 500, quantity: 1, total: 500 },
-];
-
 async function getQuotes(): Promise<Quote[]> {
   try {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quotes', {
@@ -49,10 +42,47 @@ async function getQuotes(): Promise<Quote[]> {
   }
 }
 
+async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
+    if (!quoteId) return [];
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook-test/quote_items', {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ quote_id: quoteId }),
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const itemsData = Array.isArray(data) ? data : (data.quote_items || data.data || data.result || []);
+        
+        return itemsData.map((apiItem: any) => ({
+            id: apiItem.id ? String(apiItem.id) : `qi_${Math.random().toString(36).substr(2, 9)}`,
+            service_id: apiItem.service_id || 'N/A',
+            unit_price: apiItem.unit_price || 0,
+            quantity: apiItem.quantity || 0,
+            total: apiItem.total || 0,
+        }));
+    } catch (error) {
+        console.error("Failed to fetch quote items:", error);
+        return [];
+    }
+}
+
 
 export default function QuotesPage() {
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
+    const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
+    const [isLoadingItems, setIsLoadingItems] = React.useState(false);
+
 
     React.useEffect(() => {
         async function loadQuotes() {
@@ -61,6 +91,20 @@ export default function QuotesPage() {
         }
         loadQuotes();
     }, []);
+
+    React.useEffect(() => {
+        if (selectedQuote) {
+            async function loadQuoteItems() {
+                setIsLoadingItems(true);
+                const items = await getQuoteItems(selectedQuote!.id);
+                setQuoteItems(items);
+                setIsLoadingItems(false);
+            }
+            loadQuoteItems();
+        } else {
+            setQuoteItems([]);
+        }
+    }, [selectedQuote]);
 
     const handleRowSelectionChange = (selectedRows: Quote[]) => {
         const quote = selectedRows.length > 0 ? selectedRows[0] : null;
@@ -93,7 +137,7 @@ export default function QuotesPage() {
                                     <TabsTrigger value="payments">Payments</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="items">
-                                   <QuoteItemsTable items={quoteItems} />
+                                   <QuoteItemsTable items={quoteItems} isLoading={isLoadingItems} />
                                 </TabsContent>
                                 <TabsContent value="orders">
                                     <Card>

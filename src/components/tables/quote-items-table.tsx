@@ -5,6 +5,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { QuoteItem } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const columns: ColumnDef<QuoteItem>[] = [
   {
@@ -57,9 +58,20 @@ const columns: ColumnDef<QuoteItem>[] = [
 
 interface QuoteItemsTableProps {
   items: QuoteItem[];
+  isLoading?: boolean;
 }
 
-export function QuoteItemsTable({ items }: QuoteItemsTableProps) {
+export function QuoteItemsTable({ items, isLoading = false }: QuoteItemsTableProps) {
+    if (isLoading) {
+    return (
+      <div className="space-y-4 pt-4">
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+      </div>
+    );
+  }
   return (
     <Card>
       <CardContent className="p-0 pt-4">
