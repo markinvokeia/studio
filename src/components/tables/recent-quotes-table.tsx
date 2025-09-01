@@ -74,7 +74,7 @@ const columns: ColumnDef<Quote>[] = [
         pending: 'info',
         draft: 'outline',
         rejected: 'destructive',
-      }[status] ?? ('default' as any);
+      }[status.toLowerCase()] ?? ('default' as any);
 
       return (
         <Badge variant={variant} className="capitalize">
@@ -94,7 +94,7 @@ const columns: ColumnDef<Quote>[] = [
         paid: 'success',
         partial: 'secondary',
         unpaid: 'outline',
-      }[status] ?? ('default'as any);
+      }[status.toLowerCase()] ?? ('default'as any);
 
       return (
         <Badge variant={variant} className="capitalize">
