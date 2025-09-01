@@ -35,7 +35,6 @@ import { navItems } from '@/config/nav';
 import { usePathname } from 'next/navigation';
 import { Logo } from './icons/logo';
 import { useSidebar } from '@/hooks/use-sidebar';
-import { cn } from '@/lib/utils';
 
 export function Header() {
   const pathname = usePathname();
@@ -67,10 +66,6 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-       <Button size="icon" variant="outline" className="hidden sm:flex" onClick={toggleSidebar}>
-          {isMinimized ? <PanelRightClose className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
-          <span className="sr-only">Toggle Menu</span>
-        </Button>
       <Sheet>
         <SheetTrigger asChild>
           <Button size="icon" variant="outline" className="sm:hidden">
@@ -78,10 +73,10 @@ export function Header() {
             <span className="sr-only">Toggle Menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="sm:max-w-xs">
-          <div className="flex h-16 items-center border-b px-6">
+        <SheetContent side="left" className="sm:max-w-xs p-0">
+           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
             <Link href="/" className="flex items-center gap-2 font-semibold">
-              <Logo className="h-8 w-8" />
+              <Logo className="h-6 w-6" />
               <span className="">InvokeIA</span>
             </Link>
           </div>
@@ -90,6 +85,10 @@ export function Header() {
           </div>
         </SheetContent>
       </Sheet>
+       <Button size="icon" variant="outline" className="hidden sm:flex" onClick={toggleSidebar}>
+          {isMinimized ? <PanelRightClose className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+          <span className="sr-only">Toggle Menu</span>
+        </Button>
       <Breadcrumb className="hidden md:flex">
         <BreadcrumbList>
           <BreadcrumbItem>

@@ -32,16 +32,14 @@ export default function RootLayout({
           disableTransitionOnChange
         >
         <SidebarProvider>
-          <div className="flex min-h-screen w-full flex-col bg-background">
-            <div className="flex min-h-screen w-full">
+          <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr]">
               <Sidebar />
-              <div className="flex flex-1 flex-col">
+              <div className="flex flex-col">
                 <Header />
-                <main className="flex-1 space-y-4 p-4 md:p-6 lg:p-8">
+                <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
                   {children}
                 </main>
               </div>
-            </div>
           </div>
           <Toaster />
           <Chatbot />
