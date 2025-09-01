@@ -32,6 +32,7 @@ interface DataTableProps<TData, TValue> {
   filterColumnId: string;
   filterPlaceholder: string;
   onRowSelectionChange?: (selectedRows: TData[]) => void;
+  enableSingleRowSelection?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -40,6 +41,7 @@ export function DataTable<TData, TValue>({
   filterColumnId,
   filterPlaceholder,
   onRowSelectionChange,
+  enableSingleRowSelection = false,
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
@@ -59,6 +61,7 @@ export function DataTable<TData, TValue>({
       columnFilters,
     },
     enableRowSelection: true,
+    enableMultiRowSelection: !enableSingleRowSelection,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,

@@ -106,11 +106,7 @@ export default function QuotesPage() {
 
     const handleRowSelectionChange = (selectedRows: Quote[]) => {
         const quote = selectedRows.length > 0 ? selectedRows[0] : null;
-        if (quote?.id !== selectedQuote?.id) {
-            setSelectedQuote(quote);
-        } else if (!quote && selectedQuote) {
-            setSelectedQuote(null);
-        }
+        setSelectedQuote(quote);
     };
     
     return (
