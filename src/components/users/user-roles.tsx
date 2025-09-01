@@ -1,13 +1,39 @@
 'use client';
 
 import * as React from 'react';
-import { Role, UserRole } from '@/lib/types';
+import { ColumnDef } from '@tanstack/react-table';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { KeyRound } from 'lucide-react';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 
-async function getRolesForUser(userId: string): Promise<{name: string, is_active: boolean, role_id: string}[]> {
+type UserRole = {
+  role_id: string;
+  name: string;
+  is_active: boolean;
+};
+
+const columns: ColumnDef<UserRole>[] = [
+    {
+        accessorKey: 'name',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Role" />,
+    },
+    {
+        accessorKey: 'is_active',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+        cell: ({ row }) => {
+            const isActive = row.getValue('is_active');
+            return (
+                <Badge variant={isActive ? 'success' : 'outline'}>
+                    {isActive ? 'Active' : 'Inactive'}
+                </Badge>
+            );
+        }
+    }
+];
+
+async function getRolesForUser(userId: string): Promise<UserRole[]> {
   try {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_roles', {
       method: 'POST',
@@ -42,7 +68,7 @@ interface UserRolesProps {
 }
 
 export function UserRoles({ userId }: UserRolesProps) {
-  const [userRoles, setUserRoles] = React.useState<{name: string, is_active: boolean, role_id: string}[]>([]);
+  const [userRoles, setUserRoles] = React.useState<UserRole[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -60,30 +86,21 @@ export function UserRoles({ userId }: UserRolesProps) {
     return (
       <div className="space-y-2 pt-4">
         <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
       </div>
     );
   }
 
   return (
     <Card>
-      <CardContent className="p-4 space-y-2">
-        {userRoles.length > 0 ? (
-          userRoles.map((role) => (
-            <div key={role.role_id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
-              <div className="flex items-center gap-2">
-                <KeyRound className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{role.name}</span>
-              </div>
-              <Badge variant={role.is_active ? 'success' : 'outline'}>
-                {role.is_active ? 'Active' : 'Inactive'}
-              </Badge>
-            </div>
-          ))
-        ) : (
-          <p className="text-muted-foreground text-center p-4">No roles assigned to this user.</p>
-        )}
+      <CardContent className="p-4">
+        <DataTable
+          columns={columns}
+          data={userRoles}
+          filterColumnId='name'
+          filterPlaceholder='Filter by role...'
+        />
       </CardContent>
     </Card>
   );
