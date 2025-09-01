@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
@@ -42,7 +43,7 @@ const columns: ColumnDef<Quote>[] = [
     ),
   },
   {
-    accessorKey: 'userName',
+    accessorKey: 'user_name',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="User" />
     ),
@@ -125,7 +126,7 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
         <DataTable
           columns={columns}
           data={quotes}
-          filterColumnId="userName"
+          filterColumnId="user_name"
           filterPlaceholder="Filter quotes by user name..."
           onRowSelectionChange={onRowSelectionChange}
           enableSingleRowSelection={true}

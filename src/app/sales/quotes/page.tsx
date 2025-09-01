@@ -1,8 +1,9 @@
+
 'use client';
 
 import * as React from 'react';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
-import { Quote, QuoteItem } from '@/lib/types';
+import { Quote, QuoteItem, Order, Invoice, Payment } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,6 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { OrdersTable } from '@/components/tables/orders-table';
+import { InvoicesTable } from '@/components/tables/invoices-table';
+import { PaymentsTable } from '@/components/tables/payments-table';
+
 
 async function getQuotes(): Promise<Quote[]> {
   try {
@@ -49,7 +54,7 @@ async function getQuotes(): Promise<Quote[]> {
       total: apiQuote.total || 0,
       status: apiQuote.status || 'draft',
       payment_status: apiQuote.payment_status || 'unpaid',
-      userName: apiQuote.user_name || 'No Name',
+      user_name: apiQuote.user_name || 'No Name',
       userEmail: apiQuote.userEmail || 'no-email@example.com',
       createdAt: apiQuote.createdAt || new Date().toISOString().split('T')[0],
     }));
@@ -91,12 +96,93 @@ async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
     }
 }
 
+async function getOrders(quoteId: string): Promise<Order[]> {
+    if (!quoteId) return [];
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/orders?quote_id=${quoteId}`, {
+             method: 'GET',
+             mode: 'cors',
+             headers: { 'Accept': 'application/json' },
+             cache: 'no-store',
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
+        return ordersData.map((apiOrder: any) => ({
+            id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
+            user_id: apiOrder.user_id,
+            status: apiOrder.status,
+            createdAt: apiOrder.createdAt || new Date().toISOString().split('T')[0],
+        }));
+    } catch (error) {
+        console.error("Failed to fetch orders:", error);
+        return [];
+    }
+}
+
+async function getInvoices(quoteId: string): Promise<Invoice[]> {
+    if (!quoteId) return [];
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices?quote_id=${quoteId}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
+        return invoicesData.map((apiInvoice: any) => ({
+            id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
+            total: apiInvoice.total || 0,
+            status: apiInvoice.status || 'draft',
+            createdAt: apiInvoice.createdAt || new Date().toISOString().split('T')[0],
+        }));
+    } catch (error) {
+        console.error("Failed to fetch invoices:", error);
+        return [];
+    }
+}
+
+async function getPayments(quoteId: string): Promise<Payment[]> {
+    if (!quoteId) return [];
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/payments?quote_id=${quoteId}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
+        return paymentsData.map((apiPayment: any) => ({
+            id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
+            amount: apiPayment.amount || 0,
+            method: apiPayment.method || 'credit_card',
+            status: apiPayment.status || 'pending',
+            createdAt: apiPayment.createdAt || new Date().toISOString().split('T')[0],
+        }));
+    } catch (error) {
+        console.error("Failed to fetch payments:", error);
+        return [];
+    }
+}
+
 
 export default function QuotesPage() {
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
     const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
+    const [orders, setOrders] = React.useState<Order[]>([]);
+    const [invoices, setInvoices] = React.useState<Invoice[]>([]);
+    const [payments, setPayments] = React.useState<Payment[]>([]);
+
     const [isLoadingItems, setIsLoadingItems] = React.useState(false);
+    const [isLoadingOrders, setIsLoadingOrders] = React.useState(false);
+    const [isLoadingInvoices, setIsLoadingInvoices] = React.useState(false);
+    const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
+    
     const [isCreateOpen, setCreateOpen] = React.useState(false);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
 
@@ -113,15 +199,29 @@ export default function QuotesPage() {
 
     React.useEffect(() => {
         if (selectedQuote) {
-            async function loadQuoteItems() {
+            async function loadQuoteSubItems() {
                 setIsLoadingItems(true);
-                const items = await getQuoteItems(selectedQuote!.id);
-                setQuoteItems(items);
+                setQuoteItems(await getQuoteItems(selectedQuote!.id));
                 setIsLoadingItems(false);
+
+                setIsLoadingOrders(true);
+                setOrders(await getOrders(selectedQuote!.id));
+                setIsLoadingOrders(false);
+
+                setIsLoadingInvoices(true);
+                setInvoices(await getInvoices(selectedQuote!.id));
+                setIsLoadingInvoices(false);
+
+                setIsLoadingPayments(true);
+                setPayments(await getPayments(selectedQuote!.id));
+                setIsLoadingPayments(false);
             }
-            loadQuoteItems();
+            loadQuoteSubItems();
         } else {
             setQuoteItems([]);
+            setOrders([]);
+            setInvoices([]);
+            setPayments([]);
         }
     }, [selectedQuote]);
 
@@ -162,25 +262,13 @@ export default function QuotesPage() {
                                    <QuoteItemsTable items={quoteItems} isLoading={isLoadingItems} />
                                 </TabsContent>
                                 <TabsContent value="orders">
-                                    <Card>
-                                        <CardContent className="p-6">
-                                            <p>Orders content for Quote ID: {selectedQuote.id}.</p>
-                                        </CardContent>
-                                    </Card>
+                                    <OrdersTable orders={orders} isLoading={isLoadingOrders} />
                                 </TabsContent>
                                 <TabsContent value="invoices">
-                                    <Card>
-                                        <CardContent className="p-6">
-                                            <p>Invoices content for Quote ID: {selectedQuote.id}.</p>
-                                        </CardContent>
-                                    </Card>
+                                    <InvoicesTable invoices={invoices} isLoading={isLoadingInvoices} />
                                 </TabsContent>
                                 <TabsContent value="payments">
-                                    <Card>
-                                        <CardContent className="p-6">
-                                            <p>Payments content for Quote ID: {selectedQuote.id}.</p>
-                                        </CardContent>
-                                    </Card>
+                                    <PaymentsTable payments={payments} isLoading={isLoadingPayments} />
                                 </TabsContent>
                             </Tabs>
                         </CardContent>

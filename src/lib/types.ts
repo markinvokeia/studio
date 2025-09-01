@@ -1,3 +1,4 @@
+
 export type User = {
   id: string;
   name: string;
@@ -38,7 +39,7 @@ export type Quote = {
   total: number;
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'pending' | 'confirmed';
   payment_status: 'unpaid' | 'paid' | 'partial';
-  userName?: string;
+  user_name?: string;
   userEmail?: string;
   createdAt: string;
 };
@@ -55,12 +56,14 @@ export type Order = {
   id: string;
   user_id: string;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  createdAt: string;
 };
 
 export type Invoice = {
   id: string;
   total: number;
   status: 'draft' | 'sent' | 'paid' | 'overdue';
+  createdAt: string;
 };
 
 export type Payment = {
@@ -68,6 +71,7 @@ export type Payment = {
   amount: number;
   method: 'credit_card' | 'bank_transfer' | 'cash';
   status: 'pending' | 'completed' | 'failed';
+  createdAt: string;
 };
 
 export type Service = {
