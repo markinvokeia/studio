@@ -44,7 +44,7 @@ export default async function ServicesPage() {
         <CardDescription>Manage business services.</CardDescription>
       </CardHeader>
       <CardContent>
-        <DataTable columns={servicesColumns} data={services} filterColumnId="name" filterPlaceholder="Filter services..." />
+        <DataTable columns={servicesColumns} data={services} filterColumnId="name" filterPlaceholder="Filter services by name..." />
       </CardContent>
     </Card>
   );

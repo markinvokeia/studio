@@ -22,7 +22,7 @@ export default function AuditLogPage() {
         <CardDescription>Review system activity.</CardDescription>
       </CardHeader>
       <CardContent>
-        <DataTable columns={columns} data={auditLogs} filterColumnId="table_name" filterPlaceholder="Filter by table..." />
+        <DataTable columns={columns} data={auditLogs} filterColumnId="table_name" filterPlaceholder="Filter logs by table name..." />
       </CardContent>
     </Card>
   );

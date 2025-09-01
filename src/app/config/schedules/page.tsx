@@ -42,7 +42,7 @@ export default async function SchedulesPage() {
                 <CardDescription>Manage regular weekly schedules for the clinic.</CardDescription>
             </CardHeader>
             <CardContent>
-                <DataTable columns={schedulesColumns} data={schedules} filterColumnId="day_of_week" filterPlaceholder="Filter by day..." />
+                <DataTable columns={schedulesColumns} data={schedules} filterColumnId="day_of_week" filterPlaceholder="Filter schedules by day of the week..." />
             </CardContent>
         </Card>
     );

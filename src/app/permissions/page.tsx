@@ -1,7 +1,11 @@
+'use client';
+
+import * as React from 'react';
 import { permissionColumns } from './columns';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Permission } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 async function getPermissions(): Promise<Permission[]> {
   try {
@@ -33,18 +37,56 @@ async function getPermissions(): Promise<Permission[]> {
   }
 }
 
-export default async function PermissionsPage() {
-  const permissions = await getPermissions();
+export default function PermissionsPage() {
+  const [permissions, setPermissions] = React.useState<Permission[]>([]);
+  const [selectedPermission, setSelectedPermission] = React.useState<Permission | null>(null);
 
+  React.useEffect(() => {
+    async function loadPermissions() {
+      const fetchedPermissions = await getPermissions();
+      setPermissions(fetchedPermissions);
+    }
+    loadPermissions();
+  }, []);
+
+  const handleRowSelectionChange = (selectedRows: Permission[]) => {
+    const permission = selectedRows.length > 0 ? selectedRows[0] : null;
+    setSelectedPermission(permission);
+  };
+  
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Permissions</CardTitle>
-        <CardDescription>View all system permissions.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <DataTable columns={permissionColumns} data={permissions} filterColumnId="name" filterPlaceholder="Filter by name..." />
-      </CardContent>
-    </Card>
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className={cn("transition-all duration-300", selectedPermission ? "lg:col-span-2" : "lg:col-span-3")}>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Permissions</CardTitle>
+                    <CardDescription>View all system permissions.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <DataTable 
+                    columns={permissionColumns} 
+                    data={permissions} 
+                    filterColumnId="name" 
+                    filterPlaceholder="Filter permissions by name..."
+                    onRowSelectionChange={handleRowSelectionChange}
+                    enableSingleRowSelection={true}
+                    />
+                </CardContent>
+            </Card>
+        </div>
+        {selectedPermission && (
+            <div className="lg:col-span-1">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Details for {selectedPermission.name}</CardTitle>
+                        <CardDescription>Permission ID: {selectedPermission.id}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p>Details for the selected permission will be displayed here.</p>
+                    </CardContent>
+                </Card>
+            </div>
+        )}
+    </div>
   );
 }

@@ -82,8 +82,9 @@ export default function UsersPage() {
               columns={userColumns} 
               data={users} 
               filterColumnId="email" 
-              filterPlaceholder="Filter by email..."
+              filterPlaceholder="Filter users by email..."
               onRowSelectionChange={handleRowSelectionChange}
+              enableSingleRowSelection={true}
             />
           </CardContent>
         </Card>
@@ -98,7 +99,7 @@ export default function UsersPage() {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="roles" className="w-full">
-                  <TabsList>
+                   <TabsList className="h-auto items-center justify-start flex-wrap">
                     <TabsTrigger value="roles">Roles</TabsTrigger>
                     <TabsTrigger value="services">Services</TabsTrigger>
                     <TabsTrigger value="quotes">Quotes</TabsTrigger>

@@ -21,7 +21,7 @@ export default function CommunicationsPage() {
         <CardDescription>Manage user conversations.</CardDescription>
       </CardHeader>
       <CardContent>
-        <DataTable columns={columns} data={conversations} filterColumnId="subject" filterPlaceholder="Filter subjects..." />
+        <DataTable columns={columns} data={conversations} filterColumnId="subject" filterPlaceholder="Filter conversations by subject..." />
       </CardContent>
     </Card>
   );

@@ -21,7 +21,7 @@ export default function ErrorLogPage() {
         <CardDescription>Track system errors and warnings.</CardDescription>
       </CardHeader>
       <CardContent>
-        <DataTable columns={columns} data={errorLogs} filterColumnId="message" filterPlaceholder="Filter by message..." />
+        <DataTable columns={columns} data={errorLogs} filterColumnId="message" filterPlaceholder="Filter errors by message..." />
       </CardContent>
     </Card>
   );

@@ -20,7 +20,7 @@ export default function ChannelsPage() {
         <CardDescription>Manage communication channels.</CardDescription>
       </CardHeader>
       <CardContent>
-        <DataTable columns={columns} data={communicationChannels} filterColumnId="name" filterPlaceholder="Filter channels..." />
+        <DataTable columns={columns} data={communicationChannels} filterColumnId="name" filterPlaceholder="Filter channels by name..." />
       </CardContent>
     </Card>
   );

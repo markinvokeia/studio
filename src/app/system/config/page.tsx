@@ -21,7 +21,7 @@ export default function SystemConfigPage() {
         <CardDescription>Manage system-wide settings.</CardDescription>
       </CardHeader>
       <CardContent>
-        <DataTable columns={columns} data={systemConfigurations} filterColumnId="key" filterPlaceholder="Filter keys..." />
+        <DataTable columns={columns} data={systemConfigurations} filterColumnId="key" filterPlaceholder="Filter configurations by key..." />
       </CardContent>
     </Card>
   );

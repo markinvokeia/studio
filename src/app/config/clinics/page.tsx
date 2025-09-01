@@ -45,7 +45,7 @@ export default async function ClinicsPage() {
                 <CardDescription>Manage clinic locations and contact information.</CardDescription>
             </CardHeader>
             <CardContent>
-                <DataTable columns={clinicsColumns} data={clinics} filterColumnId="name" filterPlaceholder="Filter clinics..." />
+                <DataTable columns={clinicsColumns} data={clinics} filterColumnId="name" filterPlaceholder="Filter clinics by name..." />
             </CardContent>
         </Card>
     );

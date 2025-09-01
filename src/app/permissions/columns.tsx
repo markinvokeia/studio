@@ -1,7 +1,7 @@
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
-import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import type { Permission } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -9,20 +9,21 @@ import { Badge } from '@/components/ui/badge';
 export const permissionColumns: ColumnDef<Permission>[] = [
   {
     id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected()}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
+    header: () => null,
+    cell: ({ row, table }) => {
+      const isSelected = row.getIsSelected();
+      return (
+        <RadioGroup
+          value={isSelected ? row.id : ''}
+          onValueChange={() => {
+            table.toggleAllPageRowsSelected(false);
+            row.toggleSelected(true);
+          }}
+        >
+          <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
+        </RadioGroup>
+      );
+    },
     enableSorting: false,
     enableHiding: false,
   },

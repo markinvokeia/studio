@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,20 +20,21 @@ import type { User } from '@/lib/types';
 export const userColumns: ColumnDef<User>[] = [
   {
     id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected()}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
+    header: () => null,
+    cell: ({ row, table }) => {
+      const isSelected = row.getIsSelected();
+      return (
+        <RadioGroup
+          value={isSelected ? row.id : ''}
+          onValueChange={() => {
+            table.toggleAllRowsSelected(false);
+            row.toggleSelected(true);
+          }}
+        >
+          <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
+        </RadioGroup>
+      );
+    },
     enableSorting: false,
     enableHiding: false,
   },

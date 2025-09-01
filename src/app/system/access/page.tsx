@@ -22,7 +22,7 @@ export default function AccessLogPage() {
         <CardDescription>Monitor user access and login attempts.</CardDescription>
       </CardHeader>
       <CardContent>
-        <DataTable columns={columns} data={accessLogs} filterColumnId="user_id" filterPlaceholder="Filter by user..." />
+        <DataTable columns={columns} data={accessLogs} filterColumnId="user_id" filterPlaceholder="Filter logs by user ID..." />
       </CardContent>
     </Card>
   );

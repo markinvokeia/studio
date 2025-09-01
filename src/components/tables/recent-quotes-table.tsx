@@ -123,7 +123,7 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange }: RecentQuotes
           columns={columns}
           data={quotes}
           filterColumnId="userName"
-          filterPlaceholder="Filter by user..."
+          filterPlaceholder="Filter quotes by user name..."
           onRowSelectionChange={onRowSelectionChange}
           enableSingleRowSelection={true}
         />

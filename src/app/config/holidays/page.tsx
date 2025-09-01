@@ -45,7 +45,7 @@ export default async function HolidaysPage() {
                 <CardDescription>Manage exceptions to the regular clinic schedule.</CardDescription>
             </CardHeader>
             <CardContent>
-                <DataTable columns={holidaysColumns} data={holidays} filterColumnId="date" filterPlaceholder="Filter by date..." />
+                <DataTable columns={holidaysColumns} data={holidays} filterColumnId="date" filterPlaceholder="Filter holidays by date..." />
             </CardContent>
         </Card>
     );
