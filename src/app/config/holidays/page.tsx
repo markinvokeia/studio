@@ -5,7 +5,7 @@ import { holidaysColumns } from './columns';
 
 async function getHolidays(): Promise<ClinicException[]> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/holidays', {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/exceptions', {
             method: 'GET',
             mode: 'cors',
             headers: {
