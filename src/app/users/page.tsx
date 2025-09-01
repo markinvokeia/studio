@@ -54,10 +54,11 @@ export default function UsersPage() {
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
-    if (user?.id === selectedUser?.id) {
-       setSelectedUser(null);
-    } else {
+    // Check if the selection has actually changed to prevent infinite loops
+    if (user?.id !== selectedUser?.id) {
        setSelectedUser(user);
+    } else if (!user && selectedUser) {
+       setSelectedUser(null);
     }
   };
   
