@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { MedicalHistory } from '@/components/users/medical-history';
 
 async function getUsers(): Promise<User[]> {
   try {
@@ -56,6 +57,7 @@ export default function UsersPage() {
   const [users, setUsers] = React.useState<User[]>([]);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
   const [isCreateOpen, setCreateOpen] = React.useState(false);
+  const [isHistoryOpen, setHistoryOpen] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   const loadUsers = React.useCallback(async () => {
@@ -98,6 +100,7 @@ export default function UsersPage() {
               onCreate={() => setCreateOpen(true)}
               onRefresh={loadUsers}
               isRefreshing={isRefreshing}
+              onShowHistory={() => setHistoryOpen(true)}
             />
           </CardContent>
         </Card>
@@ -213,6 +216,13 @@ export default function UsersPage() {
         </div>
       </DialogContent>
     </Dialog>
+    {selectedUser && (
+      <MedicalHistory
+        isOpen={isHistoryOpen}
+        onOpenChange={setHistoryOpen}
+        user={selectedUser}
+      />
+    )}
     </>
   );
 }

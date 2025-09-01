@@ -154,3 +154,11 @@ export type ErrorLog = {
   message: string;
   user_id?: string;
 };
+
+export type MedicalEvent = {
+  id: string;
+  date: string;
+  title: string;
+  description: string;
+  eventType: 'appointment' | 'procedure' | 'test' | 'prescription' | 'note';
+};

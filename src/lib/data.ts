@@ -11,6 +11,7 @@ import {
   AuditLog,
   AccessLog,
   ErrorLog,
+  MedicalEvent,
 } from './types';
 
 export const statsData = [
@@ -143,4 +144,15 @@ export const accessLogs: AccessLog[] = [
 export const errorLogs: ErrorLog[] = [
   { id: 'err_1', timestamp: '2023-10-26T11:00:00Z', severity: 'error', message: 'Database connection failed', user_id: 'system' },
   { id: 'err_2', timestamp: '2023-10-26T11:02:00Z', severity: 'warning', message: 'API response time exceeded threshold', user_id: 'usr_4' },
+];
+
+export const medicalHistory: MedicalEvent[] = [
+  { id: 'evt_1', date: '2023-01-15', title: 'Annual Check-up', description: 'Routine annual physical examination. All vitals normal.', eventType: 'appointment' },
+  { id: 'evt_2', date: '2023-03-22', title: 'Blood Test', description: 'Complete blood count (CBC). Results within normal range.', eventType: 'test' },
+  { id: 'evt_3', date: '2023-05-30', title: 'X-Ray', description: 'Chest X-ray due to persistent cough. No abnormalities found.', eventType: 'procedure' },
+  { id: 'evt_4', date: '2023-06-05', title: 'Prescription Refill', description: 'Refilled prescription for hypertension medication.', eventType: 'prescription' },
+  { id: 'evt_5', date: '2023-09-10', title: 'Follow-up Consultation', description: 'Follow-up regarding hypertension. Blood pressure stable.', eventType: 'appointment' },
+  { id: 'evt_6', date: '2023-11-20', title: 'Flu Shot', description: 'Seasonal influenza vaccination administered.', eventType: 'procedure' },
+  { id: 'evt_7', date: '2024-01-18', title: 'Annual Check-up', description: 'Routine annual physical. Recommended increase in physical activity.', eventType: 'appointment' },
+  { id: 'evt_8', date: '2024-02-25', title: 'Patient Note', description: 'Patient reports feeling well and adhering to medication schedule.', eventType: 'note' },
 ];

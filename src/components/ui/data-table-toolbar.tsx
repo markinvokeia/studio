@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PlusCircle, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { PlusCircle, RefreshCw, SlidersHorizontal, History } from 'lucide-react';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -20,6 +20,7 @@ interface DataTableToolbarProps<TData> {
   onCreate?: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  onShowHistory?: () => void;
 }
 
 export function DataTableToolbar<TData>({
@@ -29,7 +30,10 @@ export function DataTableToolbar<TData>({
   onCreate,
   onRefresh,
   isRefreshing,
+  onShowHistory,
 }: DataTableToolbarProps<TData>) {
+  const isRowSelected = Object.keys(table.getState().rowSelection).length > 0;
+
   return (
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center space-x-2">
@@ -41,6 +45,18 @@ export function DataTableToolbar<TData>({
           }
           className="h-8 w-[150px] lg:w-[250px]"
         />
+         {onShowHistory && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={onShowHistory}
+            disabled={!isRowSelected}
+          >
+            <History className="h-4 w-4" />
+            <span className="sr-only">View History</span>
+          </Button>
+        )}
       </div>
       <div className="flex items-center space-x-2">
         {onRefresh && (

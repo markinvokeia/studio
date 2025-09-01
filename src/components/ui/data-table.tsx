@@ -36,6 +36,7 @@ interface DataTableProps<TData, TValue> {
   onCreate?: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  onShowHistory?: () => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -48,6 +49,7 @@ export function DataTable<TData, TValue>({
   onCreate,
   onRefresh,
   isRefreshing,
+  onShowHistory,
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
@@ -95,6 +97,7 @@ export function DataTable<TData, TValue>({
         onCreate={onCreate}
         onRefresh={onRefresh}
         isRefreshing={isRefreshing}
+        onShowHistory={onShowHistory}
       />
       <div className="rounded-md border">
         <Table>
