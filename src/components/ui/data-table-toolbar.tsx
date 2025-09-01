@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ChevronDownIcon, PlusCircle, RefreshCw } from 'lucide-react';
+import { ChevronDownIcon, PlusCircle, RefreshCw, SlidersHorizontal } from 'lucide-react';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -64,7 +64,8 @@ export function DataTableToolbar<TData>({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="ml-auto h-8 lg:flex">
-              Columns <ChevronDownIcon className="ml-2 h-4 w-4" />
+              <SlidersHorizontal className="mr-2 h-4 w-4" />
+              View
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
