@@ -42,7 +42,7 @@ async function getUsers(): Promise<User[]> {
       id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
       name: apiUser.name || 'No Name',
       email: apiUser.email || 'no-email@example.com',
-      phone_number: apiUser.phone || '000-000-0000',
+      phone_number: apiUser.phone_number || '000-000-0000',
       is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
       avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
     }));
