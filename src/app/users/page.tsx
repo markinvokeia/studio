@@ -7,6 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 async function getUsers(): Promise<User[]> {
   try {
@@ -90,15 +97,32 @@ export default function UsersPage() {
                 <CardDescription>User ID: {selectedUser.id}</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="roles">
-                  <TabsList>
-                    <TabsTrigger value="roles">Roles</TabsTrigger>
-                    <TabsTrigger value="services">Services</TabsTrigger>
-                    <TabsTrigger value="quotes">Quotes</TabsTrigger>
-                    <TabsTrigger value="appointments">Appointments</TabsTrigger>
-                    <TabsTrigger value="messages">Messages</TabsTrigger>
-                    <TabsTrigger value="logs">Logs</TabsTrigger>
-                  </TabsList>
+                <Tabs defaultValue="roles" className="w-full">
+                  <div className="relative w-full">
+                    <Carousel
+                        opts={{
+                          align: "start",
+                          dragFree: true,
+                        }}
+                        className="w-full"
+                      >
+                       <CarouselContent>
+                          <CarouselItem className="basis-auto p-0">
+                            <TabsList>
+                              <TabsTrigger value="roles">Roles</TabsTrigger>
+                              <TabsTrigger value="services">Services</TabsTrigger>
+                              <TabsTrigger value="quotes">Quotes</TabsTrigger>
+                              <TabsTrigger value="appointments">Appointments</TabsTrigger>
+                              <TabsTrigger value="messages">Messages</TabsTrigger>
+                              <TabsTrigger value="logs">Logs</TabsTrigger>
+                            </TabsList>
+                          </CarouselItem>
+                       </CarouselContent>
+                       <CarouselPrevious className="absolute -left-4 top-1/2 -translate-y-1/2" />
+                       <CarouselNext className="absolute -right-4 top-1/2 -translate-y-1/2" />
+                    </Carousel>
+                  </div>
+
                   <TabsContent value="roles">
                     <Card>
                       <CardContent className="p-6">
