@@ -16,12 +16,6 @@ const columns: ColumnDef<QuoteItem>[] = [
     ),
   },
   {
-    accessorKey: 'service_id',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Service Name" />
-    ),
-  },
-  {
     accessorKey: 'quantity',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Qty" />
