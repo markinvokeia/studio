@@ -22,6 +22,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { MedicalHistory } from '@/components/users/medical-history';
 import { UserRoles } from '@/components/users/user-roles';
 import { UserServices } from '@/components/users/user-services';
+import { UserQuotes } from '@/components/users/user-quotes';
 
 async function getUsers(): Promise<User[]> {
   try {
@@ -132,11 +133,7 @@ export default function UsersPage() {
                     <UserServices userId={selectedUser.id} />
                   </TabsContent>
                   <TabsContent value="quotes">
-                    <Card>
-                      <CardContent className="p-6">
-                        <p>Quotes content for {selectedUser.name}.</p>
-                      </CardContent>
-                    </Card>
+                    <UserQuotes userId={selectedUser.id} />
                   </TabsContent>
                   <TabsContent value="appointments">
                     <Card>
