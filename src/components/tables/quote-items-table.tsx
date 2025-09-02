@@ -10,12 +10,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const columns: ColumnDef<QuoteItem>[] = [
   {
-    accessorKey: 'id',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Item ID" />
-    ),
-  },
-  {
     accessorKey: 'service_name',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Service" />
