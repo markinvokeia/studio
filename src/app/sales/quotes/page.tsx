@@ -133,7 +133,7 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
-        const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || []);
+        const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
         return itemsData.map((apiItem: any) => ({
             id: apiItem.id ? String(apiItem.id) : `oi_${Math.random().toString(36).substr(2, 9)}`,
             service_id: apiItem.service_id,
