@@ -88,6 +88,7 @@ async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
         return itemsData.map((apiItem: any) => ({
             id: apiItem.id ? String(apiItem.id) : `qi_${Math.random().toString(36).substr(2, 9)}`,
             service_id: apiItem.service_id || 'N/A',
+            service_name: apiItem.service_name || 'N/A',
             unit_price: apiItem.unit_price || 0,
             quantity: apiItem.quantity || 0,
             total: apiItem.total || 0,

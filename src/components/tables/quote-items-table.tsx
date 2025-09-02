@@ -16,6 +16,12 @@ const columns: ColumnDef<QuoteItem>[] = [
     ),
   },
   {
+    accessorKey: 'service_name',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Service" />
+    ),
+  },
+  {
     accessorKey: 'quantity',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Qty" />
@@ -73,7 +79,7 @@ export function QuoteItemsTable({ items, isLoading = false }: QuoteItemsTablePro
         <DataTable
           columns={columns}
           data={items}
-          filterColumnId="service_id"
+          filterColumnId="service_name"
           filterPlaceholder="Filter by service..."
         />
       </CardContent>
