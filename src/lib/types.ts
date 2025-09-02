@@ -68,6 +68,8 @@ export type OrderItem = {
     quantity: number;
     unit_price: number;
     total: number;
+    scheduled_date?: string;
+    completed_date?: string;
 };
 
 export type Invoice = {

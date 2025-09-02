@@ -49,6 +49,20 @@ const columns: ColumnDef<OrderItem>[] = [
       return <div className="font-medium">{formatted}</div>;
     },
   },
+  {
+    accessorKey: 'scheduled_date',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Scheduled" />
+    ),
+     cell: ({ row }) => row.getValue('scheduled_date') || 'N/A',
+  },
+  {
+    accessorKey: 'completed_date',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Completed" />
+    ),
+    cell: ({ row }) => row.getValue('completed_date') || 'N/A',
+  },
 ];
 
 interface OrderItemsTableProps {

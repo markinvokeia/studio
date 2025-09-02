@@ -142,6 +142,8 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
             quantity: apiItem.quantity,
             unit_price: apiItem.unit_price,
             total: apiItem.total,
+            scheduled_date: apiItem.scheduled_date,
+            completed_date: apiItem.completed_date,
         }));
     } catch (error) {
         console.error("Failed to fetch order items:", error);
