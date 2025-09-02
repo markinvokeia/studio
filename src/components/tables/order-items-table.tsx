@@ -7,6 +7,26 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { OrderItem } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+
+const DateCell = ({ dateValue }: { dateValue: string | null }) => {
+    if (!dateValue || dateValue === 'N/A') {
+        return <Badge variant="destructive">N/A</Badge>;
+    }
+
+    const date = new Date(dateValue);
+    const now = new Date();
+    
+    // Reset time part for accurate date-only comparison
+    date.setHours(0, 0, 0, 0);
+    now.setHours(0, 0, 0, 0);
+
+    if (date < now) {
+        return <Badge variant="success">{dateValue}</Badge>; // Past
+    }
+    return <Badge variant="info">{dateValue}</Badge>; // Future or Today
+};
+
 
 const columns: ColumnDef<OrderItem>[] = [
   {
@@ -54,14 +74,14 @@ const columns: ColumnDef<OrderItem>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Scheduled" />
     ),
-     cell: ({ row }) => row.getValue('scheduled_date') || 'N/A',
+     cell: ({ row }) => <DateCell dateValue={row.getValue('scheduled_date')} />,
   },
   {
     accessorKey: 'completed_date',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Completed" />
     ),
-    cell: ({ row }) => row.getValue('completed_date') || 'N/A',
+    cell: ({ row }) => <DateCell dateValue={row.getValue('completed_date')} />,
   },
 ];
 
