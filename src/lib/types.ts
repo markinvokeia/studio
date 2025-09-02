@@ -63,6 +63,7 @@ export type Order = {
 export type OrderItem = {
     id: string;
     service_id: string;
+    service_name: string;
     quantity: number;
     unit_price: number;
     total: number;
@@ -78,6 +79,7 @@ export type Invoice = {
 export type InvoiceItem = {
     id: string;
     service_id: string;
+    service_name: string;
     quantity: number;
     unit_price: number;
     total: number;

@@ -16,9 +16,9 @@ const columns: ColumnDef<InvoiceItem>[] = [
     ),
   },
   {
-    accessorKey: 'service_id',
+    accessorKey: 'service_name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Service ID" />
+      <DataTableColumnHeader column={column} title="Service" />
     ),
   },
   {
@@ -79,7 +79,7 @@ export function InvoiceItemsTable({ items, isLoading = false }: InvoiceItemsTabl
         <DataTable
           columns={columns}
           data={items}
-          filterColumnId="service_id"
+          filterColumnId="service_name"
           filterPlaceholder="Filter by service..."
         />
       </CardContent>

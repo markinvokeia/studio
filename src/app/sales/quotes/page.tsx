@@ -137,6 +137,7 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
         return itemsData.map((apiItem: any) => ({
             id: apiItem.id ? String(apiItem.id) : `oi_${Math.random().toString(36).substr(2, 9)}`,
             service_id: apiItem.service_id,
+            service_name: apiItem.service_name || 'N/A',
             quantity: apiItem.quantity,
             unit_price: apiItem.unit_price,
             total: apiItem.total,
@@ -186,6 +187,7 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
         return itemsData.map((apiItem: any) => ({
             id: apiItem.id ? String(apiItem.id) : `ii_${Math.random().toString(36).substr(2, 9)}`,
             service_id: apiItem.service_id,
+            service_name: apiItem.service_name || 'N/A',
             quantity: apiItem.quantity,
             unit_price: apiItem.unit_price,
             total: apiItem.total,
