@@ -18,7 +18,7 @@ const columns: ColumnDef<QuoteItem>[] = [
   {
     accessorKey: 'service_id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Service ID" />
+      <DataTableColumnHeader column={column} title="Service Name" />
     ),
   },
   {
