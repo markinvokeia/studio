@@ -8,8 +8,29 @@ import { Invoice } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const columns: ColumnDef<Invoice>[] = [
+  {
+    id: 'select',
+    header: () => null,
+    cell: ({ row, table }) => {
+      const isSelected = row.getIsSelected();
+      return (
+        <RadioGroup
+          value={isSelected ? row.id : ''}
+          onValueChange={() => {
+            table.toggleAllPageRowsSelected(false);
+            row.toggleSelected(true);
+          }}
+        >
+          <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
+        </RadioGroup>
+      );
+    },
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: 'id',
     header: ({ column }) => (
@@ -62,9 +83,10 @@ const columns: ColumnDef<Invoice>[] = [
 interface InvoicesTableProps {
   invoices: Invoice[];
   isLoading?: boolean;
+  onRowSelectionChange?: (selectedRows: Invoice[]) => void;
 }
 
-export function InvoicesTable({ invoices, isLoading = false }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange }: InvoicesTableProps) {
     if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
@@ -83,6 +105,8 @@ export function InvoicesTable({ invoices, isLoading = false }: InvoicesTableProp
           data={invoices}
           filterColumnId="id"
           filterPlaceholder="Filter by invoice ID..."
+          onRowSelectionChange={onRowSelectionChange}
+          enableSingleRowSelection={onRowSelectionChange ? true : false}
         />
       </CardContent>
     </Card>

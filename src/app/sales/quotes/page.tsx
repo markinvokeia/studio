@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
-import { Quote, QuoteItem, Order, Invoice, Payment } from '@/lib/types';
+import { Quote, QuoteItem, Order, Invoice, Payment, OrderItem, InvoiceItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,6 +28,8 @@ import {
 import { OrdersTable } from '@/components/tables/orders-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
+import { OrderItemsTable } from '@/components/tables/order-items-table';
+import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 
 
 async function getQuotes(): Promise<Quote[]> {
@@ -120,6 +122,31 @@ async function getOrders(quoteId: string): Promise<Order[]> {
     }
 }
 
+async function getOrderItems(orderId: string): Promise<OrderItem[]> {
+    if (!orderId) return [];
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_items?order_id=${orderId}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || []);
+        return itemsData.map((apiItem: any) => ({
+            id: apiItem.id ? String(apiItem.id) : `oi_${Math.random().toString(36).substr(2, 9)}`,
+            service_id: apiItem.service_id,
+            quantity: apiItem.quantity,
+            unit_price: apiItem.unit_price,
+            total: apiItem.total,
+        }));
+    } catch (error) {
+        console.error("Failed to fetch order items:", error);
+        return [];
+    }
+}
+
 async function getInvoices(quoteId: string): Promise<Invoice[]> {
     if (!quoteId) return [];
     try {
@@ -143,6 +170,32 @@ async function getInvoices(quoteId: string): Promise<Invoice[]> {
         return [];
     }
 }
+
+async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
+    if (!invoiceId) return [];
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        const itemsData = Array.isArray(data) ? data : (data.invoice_items || data.data || []);
+        return itemsData.map((apiItem: any) => ({
+            id: apiItem.id ? String(apiItem.id) : `ii_${Math.random().toString(36).substr(2, 9)}`,
+            service_id: apiItem.service_id,
+            quantity: apiItem.quantity,
+            unit_price: apiItem.unit_price,
+            total: apiItem.total,
+        }));
+    } catch (error) {
+        console.error("Failed to fetch invoice items:", error);
+        return [];
+    }
+}
+
 
 async function getPayments(quoteId: string): Promise<Payment[]> {
     if (!quoteId) return [];
@@ -174,13 +227,22 @@ export default function QuotesPage() {
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
     const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
+    
     const [orders, setOrders] = React.useState<Order[]>([]);
+    const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
+    const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
+    
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
+    const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
+    const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
+
     const [payments, setPayments] = React.useState<Payment[]>([]);
 
     const [isLoadingItems, setIsLoadingItems] = React.useState(false);
     const [isLoadingOrders, setIsLoadingOrders] = React.useState(false);
+    const [isLoadingOrderItems, setIsLoadingOrderItems] = React.useState(false);
     const [isLoadingInvoices, setIsLoadingInvoices] = React.useState(false);
+    const [isLoadingInvoiceItems, setIsLoadingInvoiceItems] = React.useState(false);
     const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
     
     const [isCreateOpen, setCreateOpen] = React.useState(false);
@@ -217,6 +279,8 @@ export default function QuotesPage() {
                 setIsLoadingPayments(false);
             }
             loadQuoteSubItems();
+            setSelectedOrder(null);
+            setSelectedInvoice(null);
         } else {
             setQuoteItems([]);
             setOrders([]);
@@ -224,10 +288,47 @@ export default function QuotesPage() {
             setPayments([]);
         }
     }, [selectedQuote]);
+    
+    React.useEffect(() => {
+        if(selectedOrder) {
+            async function loadOrderItems() {
+                setIsLoadingOrderItems(true);
+                setOrderItems(await getOrderItems(selectedOrder!.id));
+                setIsLoadingOrderItems(false);
+            }
+            loadOrderItems();
+        } else {
+            setOrderItems([]);
+        }
+    }, [selectedOrder]);
+
+    React.useEffect(() => {
+        if(selectedInvoice) {
+            async function loadInvoiceItems() {
+                setIsLoadingInvoiceItems(true);
+                setInvoiceItems(await getInvoiceItems(selectedInvoice!.id));
+                setIsLoadingInvoiceItems(false);
+            }
+            loadInvoiceItems();
+        } else {
+            setInvoiceItems([]);
+        }
+    }, [selectedInvoice]);
+
 
     const handleRowSelectionChange = (selectedRows: Quote[]) => {
         const quote = selectedRows.length > 0 ? selectedRows[0] : null;
         setSelectedQuote(quote);
+    };
+
+    const handleOrderSelectionChange = (selectedRows: Order[]) => {
+        const order = selectedRows.length > 0 ? selectedRows[0] : null;
+        setSelectedOrder(order);
+    };
+
+    const handleInvoiceSelectionChange = (selectedRows: Invoice[]) => {
+        const invoice = selectedRows.length > 0 ? selectedRows[0] : null;
+        setSelectedInvoice(invoice);
     };
     
     return (
@@ -262,10 +363,22 @@ export default function QuotesPage() {
                                    <QuoteItemsTable items={quoteItems} isLoading={isLoadingItems} />
                                 </TabsContent>
                                 <TabsContent value="orders">
-                                    <OrdersTable orders={orders} isLoading={isLoadingOrders} />
+                                    <OrdersTable orders={orders} isLoading={isLoadingOrders} onRowSelectionChange={handleOrderSelectionChange} />
+                                    {selectedOrder && (
+                                        <div className="mt-4">
+                                            <h4 className="text-md font-semibold mb-2">Order Items for {selectedOrder.id}</h4>
+                                            <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} />
+                                        </div>
+                                    )}
                                 </TabsContent>
                                 <TabsContent value="invoices">
-                                    <InvoicesTable invoices={invoices} isLoading={isLoadingInvoices} />
+                                    <InvoicesTable invoices={invoices} isLoading={isLoadingInvoices} onRowSelectionChange={handleInvoiceSelectionChange} />
+                                    {selectedInvoice && (
+                                        <div className="mt-4">
+                                            <h4 className="text-md font-semibold mb-2">Invoice Items for {selectedInvoice.id}</h4>
+                                            <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
+                                        </div>
+                                    )}
                                 </TabsContent>
                                 <TabsContent value="payments">
                                     <PaymentsTable payments={payments} isLoading={isLoadingPayments} />

@@ -24,6 +24,7 @@ export type UserRole = {
   user_id: string;
   role_id: string;
   is_active: boolean;
+  name: string;
 };
 
 export type UserClinic = {
@@ -59,11 +60,27 @@ export type Order = {
   createdAt: string;
 };
 
+export type OrderItem = {
+    id: string;
+    service_id: string;
+    quantity: number;
+    unit_price: number;
+    total: number;
+};
+
 export type Invoice = {
   id: string;
   total: number;
   status: 'draft' | 'sent' | 'paid' | 'overdue';
   createdAt: string;
+};
+
+export type InvoiceItem = {
+    id: string;
+    service_id: string;
+    quantity: number;
+    unit_price: number;
+    total: number;
 };
 
 export type Payment = {
