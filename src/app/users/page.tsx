@@ -24,11 +24,20 @@ import { UserRoles } from '@/components/users/user-roles';
 import { UserServices } from '@/components/users/user-services';
 import { UserQuotes } from '@/components/users/user-quotes';
 import { X } from 'lucide-react';
-import { RowSelectionState } from '@tanstack/react-table';
+import { RowSelectionState, PaginationState } from '@tanstack/react-table';
 
-async function getUsers(): Promise<User[]> {
+type GetUsersResponse = {
+  users: User[];
+  total: number;
+};
+
+async function getUsers(pagination: PaginationState): Promise<GetUsersResponse> {
   try {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users', {
+    const params = new URLSearchParams({
+      page: (pagination.pageIndex + 1).toString(),
+      limit: pagination.pageSize.toString(),
+    });
+    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?${params.toString()}`, {
       method: 'GET',
       mode: 'cors',
       headers: {
@@ -42,9 +51,10 @@ async function getUsers(): Promise<User[]> {
     }
 
     const data = await response.json();
-    const usersData = Array.isArray(data) ? data : (data.users || data.data || data.result || []);
+    const usersData = Array.isArray(data.data) ? data.data : (data.users || data.data || data.result || []);
+    const total = data.total || (Array.isArray(data) ? data.length : 0);
 
-    return usersData.map((apiUser: any) => ({
+    const mappedUsers = usersData.map((apiUser: any) => ({
       id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
       name: apiUser.name || 'No Name',
       email: apiUser.email || 'no-email@example.com',
@@ -52,26 +62,36 @@ async function getUsers(): Promise<User[]> {
       is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
       avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
     }));
+
+    return { users: mappedUsers, total: total };
+
   } catch (error) {
     console.error("Failed to fetch users:", error);
-    return [];
+    return { users: [], total: 0 };
   }
 }
 
 export default function UsersPage() {
   const [users, setUsers] = React.useState<User[]>([]);
+  const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
   const [isCreateOpen, setCreateOpen] = React.useState(false);
   const [isHistoryOpen, setHistoryOpen] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const [pagination, setPagination] = React.useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
 
   const loadUsers = React.useCallback(async () => {
     setIsRefreshing(true);
-    const fetchedUsers = await getUsers();
+    const { users: fetchedUsers, total } = await getUsers(pagination);
     setUsers(fetchedUsers);
+    setUserCount(total);
     setIsRefreshing(false);
-  }, []);
+  }, [pagination]);
 
   React.useEffect(() => {
     loadUsers();
@@ -110,6 +130,10 @@ export default function UsersPage() {
               onShowHistory={() => setHistoryOpen(true)}
               rowSelection={rowSelection}
               setRowSelection={setRowSelection}
+              pageCount={Math.ceil(userCount / pagination.pageSize)}
+              pagination={pagination}
+              onPaginationChange={setPagination}
+              manualPagination={true}
             />
           </CardContent>
         </Card>

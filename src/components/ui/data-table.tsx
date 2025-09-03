@@ -14,6 +14,7 @@ import {
   useReactTable,
   Row,
   RowSelectionState,
+  PaginationState,
 } from '@tanstack/react-table';
 
 import {
@@ -40,6 +41,10 @@ interface DataTableProps<TData, TValue> {
   onShowHistory?: () => void;
   rowSelection?: RowSelectionState;
   setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  pageCount?: number;
+  pagination?: PaginationState;
+  onPaginationChange?: React.Dispatch<React.SetStateAction<PaginationState>>;
+  manualPagination?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -55,6 +60,10 @@ export function DataTable<TData, TValue>({
   onShowHistory,
   rowSelection,
   setRowSelection,
+  pageCount,
+  pagination,
+  onPaginationChange,
+  manualPagination = false,
 }: DataTableProps<TData, TValue>) {
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
@@ -63,15 +72,19 @@ export function DataTable<TData, TValue>({
     []
   );
   const [sorting, setSorting] = React.useState<SortingState>([]);
+  
+  const isControlledPagination = manualPagination && pagination !== undefined && onPaginationChange !== undefined;
 
   const table = useReactTable({
     data,
     columns,
+    pageCount: pageCount,
     state: {
       sorting,
       columnVisibility,
       rowSelection: rowSelection ?? internalRowSelection,
       columnFilters,
+      ...(isControlledPagination && { pagination }),
     },
     enableRowSelection: true,
     enableMultiRowSelection: !enableSingleRowSelection,
@@ -83,6 +96,8 @@ export function DataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    manualPagination: manualPagination,
+    ...(isControlledPagination && { onPaginationChange: onPaginationChange }),
   });
   
   React.useEffect(() => {
