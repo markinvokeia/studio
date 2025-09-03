@@ -45,7 +45,7 @@ export function DataTableToolbar<TData>({
           }
           className="h-8 w-[150px] lg:w-[250px]"
         />
-         {onShowHistory && (
+        {onShowHistory && (
           <Button
             variant="outline"
             size="icon"
@@ -57,8 +57,6 @@ export function DataTableToolbar<TData>({
             <span className="sr-only">View History</span>
           </Button>
         )}
-      </div>
-      <div className="flex items-center space-x-2">
         {onRefresh && (
           <Button
             variant="outline"
@@ -77,6 +75,8 @@ export function DataTableToolbar<TData>({
             <span className="sr-only">Create</span>
           </Button>
         )}
+      </div>
+      <div className="flex items-center space-x-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon" className="ml-auto h-8 w-8 lg:flex">
