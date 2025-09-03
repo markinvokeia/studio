@@ -84,9 +84,11 @@ interface InvoicesTableProps {
   invoices: Invoice[];
   isLoading?: boolean;
   onRowSelectionChange?: (selectedRows: Invoice[]) => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing }: InvoicesTableProps) {
     if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
@@ -107,6 +109,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           filterPlaceholder="Filter by invoice ID..."
           onRowSelectionChange={onRowSelectionChange}
           enableSingleRowSelection={onRowSelectionChange ? true : false}
+          onRefresh={onRefresh}
+          isRefreshing={isRefreshing}
         />
       </CardContent>
     </Card>

@@ -385,20 +385,21 @@ export default function QuotesPage() {
                                     <TabsTrigger value="payments">Payments</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="items">
-                                   <div className="flex justify-end mb-2">
-                                        <Button variant="outline" size="icon" onClick={loadQuoteItems} disabled={isLoadingItems}>
-                                            <RefreshCw className={`h-4 w-4 ${isLoadingItems ? 'animate-spin' : ''}`} />
-                                        </Button>
-                                   </div>
-                                   <QuoteItemsTable items={quoteItems} isLoading={isLoadingItems} />
+                                   <QuoteItemsTable 
+                                        items={quoteItems} 
+                                        isLoading={isLoadingItems}
+                                        onRefresh={loadQuoteItems}
+                                        isRefreshing={isLoadingItems}
+                                    />
                                 </TabsContent>
                                 <TabsContent value="orders">
-                                    <div className="flex justify-end mb-2">
-                                        <Button variant="outline" size="icon" onClick={loadOrders} disabled={isLoadingOrders}>
-                                            <RefreshCw className={`h-4 w-4 ${isLoadingOrders ? 'animate-spin' : ''}`} />
-                                        </Button>
-                                    </div>
-                                    <OrdersTable orders={orders} isLoading={isLoadingOrders} onRowSelectionChange={handleOrderSelectionChange} />
+                                    <OrdersTable 
+                                        orders={orders} 
+                                        isLoading={isLoadingOrders} 
+                                        onRowSelectionChange={handleOrderSelectionChange} 
+                                        onRefresh={loadOrders}
+                                        isRefreshing={isLoadingOrders}
+                                    />
                                     {selectedOrder && (
                                         <div className="mt-4">
                                             <div className="flex items-center justify-between mb-2">
@@ -412,12 +413,13 @@ export default function QuotesPage() {
                                     )}
                                 </TabsContent>
                                 <TabsContent value="invoices">
-                                    <div className="flex justify-end mb-2">
-                                        <Button variant="outline" size="icon" onClick={loadInvoices} disabled={isLoadingInvoices}>
-                                            <RefreshCw className={`h-4 w-4 ${isLoadingInvoices ? 'animate-spin' : ''}`} />
-                                        </Button>
-                                    </div>
-                                    <InvoicesTable invoices={invoices} isLoading={isLoadingInvoices} onRowSelectionChange={handleInvoiceSelectionChange} />
+                                    <InvoicesTable 
+                                        invoices={invoices} 
+                                        isLoading={isLoadingInvoices} 
+                                        onRowSelectionChange={handleInvoiceSelectionChange}
+                                        onRefresh={loadInvoices}
+                                        isRefreshing={isLoadingInvoices}
+                                    />
                                     {selectedInvoice && (
                                         <div className="mt-4">
                                             <div className="flex items-center justify-between mb-2">
@@ -431,12 +433,12 @@ export default function QuotesPage() {
                                     )}
                                 </TabsContent>
                                 <TabsContent value="payments">
-                                    <div className="flex justify-end mb-2">
-                                        <Button variant="outline" size="icon" onClick={loadPayments} disabled={isLoadingPayments}>
-                                            <RefreshCw className={`h-4 w-4 ${isLoadingPayments ? 'animate-spin' : ''}`} />
-                                        </Button>
-                                    </div>
-                                    <PaymentsTable payments={payments} isLoading={isLoadingPayments} />
+                                    <PaymentsTable 
+                                        payments={payments} 
+                                        isLoading={isLoadingPayments}
+                                        onRefresh={loadPayments}
+                                        isRefreshing={isLoadingPayments}
+                                    />
                                 </TabsContent>
                             </Tabs>
                         </CardContent>

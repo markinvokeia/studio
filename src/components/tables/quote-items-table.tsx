@@ -54,9 +54,11 @@ const columns: ColumnDef<QuoteItem>[] = [
 interface QuoteItemsTableProps {
   items: QuoteItem[];
   isLoading?: boolean;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-export function QuoteItemsTable({ items, isLoading = false }: QuoteItemsTableProps) {
+export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing }: QuoteItemsTableProps) {
     if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
@@ -75,6 +77,8 @@ export function QuoteItemsTable({ items, isLoading = false }: QuoteItemsTablePro
           data={items}
           filterColumnId="service_name"
           filterPlaceholder="Filter by service..."
+          onRefresh={onRefresh}
+          isRefreshing={isRefreshing}
         />
       </CardContent>
     </Card>

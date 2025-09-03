@@ -61,9 +61,11 @@ const columns: ColumnDef<Payment>[] = [
 interface PaymentsTableProps {
   payments: Payment[];
   isLoading?: boolean;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-export function PaymentsTable({ payments, isLoading = false }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing }: PaymentsTableProps) {
     if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
@@ -82,6 +84,8 @@ export function PaymentsTable({ payments, isLoading = false }: PaymentsTableProp
           data={payments}
           filterColumnId="id"
           filterPlaceholder="Filter by payment ID..."
+          onRefresh={onRefresh}
+          isRefreshing={isRefreshing}
         />
       </CardContent>
     </Card>

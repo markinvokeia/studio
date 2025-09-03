@@ -71,9 +71,11 @@ interface OrdersTableProps {
   orders: Order[];
   isLoading?: boolean;
   onRowSelectionChange?: (selectedRows: Order[]) => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-export function OrdersTable({ orders, isLoading = false, onRowSelectionChange }: OrdersTableProps) {
+export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing }: OrdersTableProps) {
     if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
@@ -94,6 +96,8 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange }:
           filterPlaceholder="Filter by order ID..."
           onRowSelectionChange={onRowSelectionChange}
           enableSingleRowSelection={onRowSelectionChange ? true : false}
+          onRefresh={onRefresh}
+          isRefreshing={isRefreshing}
         />
       </CardContent>
     </Card>
