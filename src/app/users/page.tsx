@@ -23,6 +23,7 @@ import { MedicalHistory } from '@/components/users/medical-history';
 import { UserRoles } from '@/components/users/user-roles';
 import { UserServices } from '@/components/users/user-services';
 import { UserQuotes } from '@/components/users/user-quotes';
+import { X } from 'lucide-react';
 
 async function getUsers(): Promise<User[]> {
   try {
@@ -112,10 +113,16 @@ export default function UsersPage() {
       {selectedUser && (
         <div className="lg:col-span-1">
             <Card>
-              <CardHeader>
-                <CardTitle>Details for {selectedUser.name}</CardTitle>
-                <CardDescription>User ID: {selectedUser.id}</CardDescription>
-              </CardHeader>
+               <CardHeader className="flex flex-row items-start justify-between">
+                <div>
+                    <CardTitle>Details for {selectedUser.name}</CardTitle>
+                    <CardDescription>User ID: {selectedUser.id}</CardDescription>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setSelectedUser(null)}>
+                    <X className="h-5 w-5" />
+                    <span className="sr-only">Close details</span>
+                </Button>
+            </CardHeader>
               <CardContent>
                 <Tabs defaultValue="roles" className="w-full">
                    <TabsList className="h-auto items-center justify-start flex-wrap">
