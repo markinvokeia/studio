@@ -159,8 +159,12 @@ export const medicalHistory: MedicalEvent[] = [
 ];
 
 export const messages: Message[] = [
-  { id: 'msg_1', user_id: 'usr_1', sender: 'user', content: 'Hello, I have a question about my bill.', timestamp: '2024-05-15T10:30:00Z' },
-  { id: 'msg_2', user_id: 'usr_1', sender: 'system', content: 'Of course, I can help with that. What is your question?', timestamp: '2024-05-15T10:30:45Z' },
-  { id: 'msg_3', user_id: 'usr_1', sender: 'user', content: 'I see a charge from last week that I don\'t recognize.', timestamp: '2024-05-15T10:31:20Z' },
-  { id: 'msg_4', user_id: 'usr_1', sender: 'system', content: 'I can look into that for you. Can you provide the date and amount of the charge?', timestamp: '2024-05-15T10:32:00Z' },
+  { id: 'msg_1', user_id: 'mock_user', sender: 'user', content: 'Hello, I have a question about my bill.', timestamp: '2024-05-15T10:30:00Z' },
+  { id: 'msg_2', user_id: 'mock_user', sender: 'system', content: 'Of course, I can help with that. What is your question?', timestamp: '2024-05-15T10:30:45Z' },
+  { id: 'msg_3', user_id: 'mock_user', sender: 'user', content: 'I see a charge from last week that I don\'t recognize.', timestamp: '2024-05-15T10:31:20Z' },
+  { id: 'msg_4', user_id: 'mock_user', sender: 'system', content: 'I can look into that for you. Can you provide the date and amount of the charge?', timestamp: '2024-05-15T10:32:00Z' },
+  { id: 'msg_5', user_id: 'mock_user', sender: 'user', content: 'It was for $45.50 on May 8th.', timestamp: '2024-05-15T10:33:10Z' },
+  { id: 'msg_6', user_id: 'mock_user', sender: 'system', content: 'Thank you. One moment while I pull up that transaction... I see it was for a co-payment for your visit with Dr. Smith. Does that sound correct?', timestamp: '2024-05-15T10:34:00Z' },
+  { id: 'msg_7', user_id: 'mock_user', sender: 'user', content: 'Oh, right! I completely forgot. Thanks for clarifying.', timestamp: '2024-05-15T10:34:50Z' },
+  { id: 'msg_8', user_id: 'mock_user', sender: 'system', content: 'You\'re welcome! Is there anything else I can help you with today?', timestamp: '2024-05-15T10:35:15Z' },
 ];

@@ -11,13 +11,9 @@ import { format } from 'date-fns';
 
 async function getMessagesForUser(userId: string): Promise<Message[]> {
   if (!userId) return [];
-  // Simulate API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const userMessages = mockMessages.filter((msg) => msg.user_id === userId);
-      resolve(userMessages);
-    }, 500);
-  });
+  // Simulate API call and filter messages for the user.
+  // In a real app, you'd fetch this from your backend.
+  return Promise.resolve(mockMessages.filter(msg => msg.user_id === userId || msg.user_id === 'mock_user'));
 }
 
 interface UserMessagesProps {
@@ -31,9 +27,9 @@ export function UserMessages({ userId }: UserMessagesProps) {
 
   React.useEffect(() => {
     async function loadMessages() {
-      if (!userId) return;
       setIsLoading(true);
-      const fetchedMessages = await getMessagesForUser(userId);
+      // We use a mock user ID here to ensure we get the sample data.
+      const fetchedMessages = await getMessagesForUser('mock_user');
       setMessages(fetchedMessages);
       setIsLoading(false);
     }
