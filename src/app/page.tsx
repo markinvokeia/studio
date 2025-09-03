@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Stats } from '@/components/dashboard/stats';
@@ -53,7 +54,10 @@ async function getOrders(): Promise<Order[]> {
              headers: { 'Accept': 'application/json' },
              cache: 'no-store',
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+            console.error(`HTTP error! status: ${response.status}`);
+            return [];
+        }
         const data = await response.json();
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
         return ordersData.map((apiOrder: any) => ({
