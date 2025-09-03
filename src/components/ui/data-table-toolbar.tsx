@@ -45,7 +45,7 @@ export function DataTableToolbar<TData>({
           }
           className="h-8 w-[150px] lg:w-[250px]"
         />
-        <div className="flex items-center space-x-2">
+         <div className="flex items-center space-x-2">
           {onShowHistory && (
             <Button
               variant="outline"
@@ -67,7 +67,7 @@ export function DataTableToolbar<TData>({
         </div>
       </div>
       <div className="flex items-center space-x-2">
-        {onRefresh && (
+         {onRefresh && (
           <Button
             variant="outline"
             size="icon"
