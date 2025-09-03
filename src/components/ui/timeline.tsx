@@ -31,7 +31,7 @@ export const TimelineConnector = React.forwardRef<HTMLDivElement, React.Componen
     <div
       ref={ref}
       className={cn(
-        'absolute left-[34px] top-6 h-full w-px -translate-x-1/2 translate-y-2 bg-primary/20',
+        'absolute left-[24px] top-6 h-full w-px -translate-x-1/2 translate-y-2 bg-primary/20',
         className
       )}
       {...props}
@@ -71,7 +71,7 @@ export const TimelineIcon = React.forwardRef<HTMLDivElement, React.ComponentProp
     <div
       ref={ref}
       className={cn(
-        'absolute left-[34px] top-6 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-primary-foreground',
+        'absolute left-[24px] top-6 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-primary-foreground',
         className
       )}
       {...props}
