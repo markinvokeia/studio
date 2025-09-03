@@ -1,3 +1,5 @@
+'use client';
+
 import { Stats } from '@/components/dashboard/stats';
 import { SalesSummaryChart } from '@/components/charts/sales-summary-chart';
 import { SalesByServiceChart } from '@/components/charts/sales-by-service-chart';
@@ -45,7 +47,7 @@ async function getQuotes(): Promise<Quote[]> {
 
 async function getOrders(): Promise<Order[]> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_orders', {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/orders', {
              method: 'GET',
              mode: 'cors',
              headers: { 'Accept': 'application/json' },
@@ -98,10 +100,16 @@ async function getUsers(): Promise<User[]> {
   }
 }
 
-export default async function DashboardPage() {
-  const quotes = await getQuotes();
-  const orders = await getOrders();
-  const users = await getUsers();
+export default function DashboardPage() {
+  const [quotes, setQuotes] = React.useState<Quote[]>([]);
+  const [orders, setOrders] = React.useState<Order[]>([]);
+  const [users, setUsers] = React.useState<User[]>([]);
+
+  React.useEffect(() => {
+    getQuotes().then(setQuotes);
+    getOrders().then(setOrders);
+    getUsers().then(setUsers);
+  }, []);
 
   return (
     <>
@@ -124,5 +132,3 @@ export default async function DashboardPage() {
     </>
   );
 }
-
-    
