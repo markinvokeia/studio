@@ -24,6 +24,8 @@ import { UserRoles } from '@/components/users/user-roles';
 import { UserServices } from '@/components/users/user-services';
 import { UserQuotes } from '@/components/users/user-quotes';
 import { UserMessages } from '@/components/users/user-messages';
+import { UserAppointments } from '@/components/users/user-appointments';
+import { UserLogs } from '@/components/users/user-logs';
 import { X } from 'lucide-react';
 import { RowSelectionState, PaginationState } from '@tanstack/react-table';
 
@@ -175,21 +177,13 @@ export default function UsersPage() {
                     <UserQuotes userId={selectedUser.id} />
                   </TabsContent>
                   <TabsContent value="appointments">
-                    <Card>
-                      <CardContent className="p-6">
-                        <p>Appointments content for {selectedUser.name}.</p>
-                      </CardContent>
-                    </Card>
+                    <UserAppointments userId={selectedUser.id} />
                   </TabsContent>
                   <TabsContent value="messages">
                     <UserMessages userId={selectedUser.id} />
                   </TabsContent>
                   <TabsContent value="logs">
-                    <Card>
-                      <CardContent className="p-6">
-                        <p>Logs content for {selectedUser.name}.</p>
-                      </CardContent>
-                    </Card>
+                    <UserLogs userId={selectedUser.id} />
                   </TabsContent>
                 </Tabs>
               </CardContent>

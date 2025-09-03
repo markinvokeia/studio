@@ -13,6 +13,8 @@ import {
   ErrorLog,
   MedicalEvent,
   Message,
+  Appointment,
+  UserLog,
 } from './types';
 
 export const statsData = [
@@ -167,4 +169,21 @@ export const messages: Message[] = [
   { id: 'msg_6', user_id: 'mock_user', sender: 'system', content: 'Thank you. One moment while I pull up that transaction... I see it was for a co-payment for your visit with Dr. Smith. Does that sound correct?', timestamp: '2024-05-15T10:34:00Z' },
   { id: 'msg_7', user_id: 'mock_user', sender: 'user', content: 'Oh, right! I completely forgot. Thanks for clarifying.', timestamp: '2024-05-15T10:34:50Z' },
   { id: 'msg_8', user_id: 'mock_user', sender: 'system', content: 'You\'re welcome! Is there anything else I can help you with today?', timestamp: '2024-05-15T10:35:15Z' },
+];
+
+
+export const appointments: Appointment[] = [
+  { id: 'apt_1', service_name: 'Initial Consultation', date: '2024-06-01', time: '10:00 AM', status: 'completed' },
+  { id: 'apt_2', service_name: 'Follow-up', date: '2024-06-15', time: '02:30 PM', status: 'confirmed' },
+  { id: 'apt_3', service_name: 'Dental Cleaning', date: '2024-07-01', time: '11:00 AM', status: 'confirmed' },
+  { id: 'apt_4', service_name: 'Check-up', date: '2024-05-20', time: '09:00 AM', status: 'cancelled' },
+  { id: 'apt_5', service_name: 'Teeth Whitening', date: '2024-08-01', time: '04:00 PM', status: 'pending' },
+];
+
+export const userLogs: UserLog[] = [
+  { id: 'log_1', timestamp: '2024-06-01T10:00:00Z', action: 'User Login', details: 'Successful login from IP 192.168.1.1' },
+  { id: 'log_2', timestamp: '2024-06-01T10:05:00Z', action: 'Profile Update', details: 'Changed phone number.' },
+  { id: 'log_3', timestamp: '2024-06-02T14:00:00Z', action: 'Quote Created', details: 'Created quote #QT-2024-001' },
+  { id: 'log_4', timestamp: '2024-06-03T16:30:00Z', action: 'Password Reset', details: 'Password reset requested from email.' },
+  { id: 'log_5', timestamp: '2024-06-04T09:00:00Z', action: 'User Logout', details: 'User logged out.' },
 ];

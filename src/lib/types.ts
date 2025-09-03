@@ -1,5 +1,6 @@
 
 
+
 export type User = {
   id: string;
   name: string;
@@ -193,4 +194,19 @@ export type Message = {
   content: string;
   timestamp: string;
   sender: 'user' | 'system';
+};
+
+export type Appointment = {
+  id: string;
+  service_name: string;
+  date: string;
+  time: string;
+  status: 'confirmed' | 'completed' | 'cancelled' | 'pending';
+};
+
+export type UserLog = {
+  id: string;
+  timestamp: string;
+  action: string;
+  details: string;
 };
