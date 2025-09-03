@@ -95,7 +95,7 @@ export default function UsersPage() {
 
   React.useEffect(() => {
     loadUsers();
-  }, [loadUsers]);
+  }, [pagination]);
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
