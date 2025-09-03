@@ -77,17 +77,13 @@ export default function UsersPage() {
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
-    if (user?.id !== selectedUser?.id) {
-       setSelectedUser(user);
-    } else if (!user && selectedUser) {
-       setSelectedUser(null);
-    }
+    setSelectedUser(user);
   };
   
   return (
     <>
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-1" : "lg:col-span-2")}>
+    <div className={cn("grid grid-cols-1 gap-4", selectedUser ? "lg:grid-cols-2" : "lg:grid-cols-1")}>
+      <div className="col-span-1">
         <Card>
           <CardHeader>
             <CardTitle>Users</CardTitle>
@@ -111,7 +107,7 @@ export default function UsersPage() {
       </div>
       
       {selectedUser && (
-        <div className="lg:col-span-1">
+        <div className="col-span-1">
             <Card>
                <CardHeader className="flex flex-row items-start justify-between">
                 <div>
