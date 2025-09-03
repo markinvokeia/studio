@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Nav } from './nav';
 import { navItems } from '@/config/nav';
-import { Logo } from './icons/logo';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/hooks/use-sidebar';
 import * as React from 'react';
@@ -23,7 +23,7 @@ export function Sidebar() {
     )}>
       <div className="flex h-14 items-center border-b border-primary-foreground/20 px-4 lg:h-[60px] lg:px-6">
         <Link href="/" className="flex items-center gap-2 font-semibold text-primary-foreground">
-          <Logo className="h-6 w-6" />
+          <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={24} height={24} alt="InvokeIA Logo" />
            {(!isMinimized) && <span className="">InvokeIA</span>}
         </Link>
       </div>
