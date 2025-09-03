@@ -12,6 +12,7 @@ import {
   AccessLog,
   ErrorLog,
   MedicalEvent,
+  Message,
 } from './types';
 
 export const statsData = [
@@ -155,4 +156,11 @@ export const medicalHistory: MedicalEvent[] = [
   { id: 'evt_6', date: '2023-11-20', title: 'Flu Shot', description: 'Seasonal influenza vaccination administered.', eventType: 'procedure' },
   { id: 'evt_7', date: '2024-01-18', title: 'Annual Check-up', description: 'Routine annual physical. Recommended increase in physical activity.', eventType: 'appointment' },
   { id: 'evt_8', date: '2024-02-25', title: 'Patient Note', description: 'Patient reports feeling well and adhering to medication schedule.', eventType: 'note' },
+];
+
+export const messages: Message[] = [
+  { id: 'msg_1', user_id: 'usr_1', sender: 'user', content: 'Hello, I have a question about my bill.', timestamp: '2024-05-15T10:30:00Z' },
+  { id: 'msg_2', user_id: 'usr_1', sender: 'system', content: 'Of course, I can help with that. What is your question?', timestamp: '2024-05-15T10:30:45Z' },
+  { id: 'msg_3', user_id: 'usr_1', sender: 'user', content: 'I see a charge from last week that I don\'t recognize.', timestamp: '2024-05-15T10:31:20Z' },
+  { id: 'msg_4', user_id: 'usr_1', sender: 'system', content: 'I can look into that for you. Can you provide the date and amount of the charge?', timestamp: '2024-05-15T10:32:00Z' },
 ];

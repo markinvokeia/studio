@@ -23,6 +23,7 @@ import { MedicalHistory } from '@/components/users/medical-history';
 import { UserRoles } from '@/components/users/user-roles';
 import { UserServices } from '@/components/users/user-services';
 import { UserQuotes } from '@/components/users/user-quotes';
+import { UserMessages } from '@/components/users/user-messages';
 import { X } from 'lucide-react';
 import { RowSelectionState, PaginationState } from '@tanstack/react-table';
 
@@ -97,7 +98,7 @@ export default function UsersPage() {
 
   React.useEffect(() => {
     loadUsers();
-  }, [pagination]);
+  }, [loadUsers]);
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
@@ -181,11 +182,7 @@ export default function UsersPage() {
                     </Card>
                   </TabsContent>
                   <TabsContent value="messages">
-                    <Card>
-                      <CardContent className="p-6">
-                        <p>Messages content for {selectedUser.name}.</p>
-                      </CardContent>
-                    </Card>
+                    <UserMessages userId={selectedUser.id} />
                   </TabsContent>
                   <TabsContent value="logs">
                     <Card>

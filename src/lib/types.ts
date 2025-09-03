@@ -1,4 +1,5 @@
 
+
 export type User = {
   id: string;
   name: string;
@@ -184,4 +185,12 @@ export type MedicalEvent = {
   title: string;
   description: string;
   eventType: 'appointment' | 'procedure' | 'test' | 'prescription' | 'note';
+};
+
+export type Message = {
+  id: string;
+  user_id: string;
+  content: string;
+  timestamp: string;
+  sender: 'user' | 'system';
 };
