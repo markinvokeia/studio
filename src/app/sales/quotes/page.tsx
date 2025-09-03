@@ -30,6 +30,7 @@ import { InvoicesTable } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
+import { RefreshCw } from 'lucide-react';
 
 
 async function getQuotes(): Promise<Quote[]> {
@@ -265,26 +266,54 @@ export default function QuotesPage() {
         loadQuotes();
     }, [loadQuotes]);
 
+    const loadQuoteItems = React.useCallback(async () => {
+        if (!selectedQuote) return;
+        setIsLoadingItems(true);
+        setQuoteItems(await getQuoteItems(selectedQuote.id));
+        setIsLoadingItems(false);
+    }, [selectedQuote]);
+
+    const loadOrders = React.useCallback(async () => {
+        if (!selectedQuote) return;
+        setIsLoadingOrders(true);
+        setOrders(await getOrders(selectedQuote.id));
+        setIsLoadingOrders(false);
+    }, [selectedQuote]);
+
+    const loadOrderItems = React.useCallback(async () => {
+        if (!selectedOrder) return;
+        setIsLoadingOrderItems(true);
+        setOrderItems(await getOrderItems(selectedOrder.id));
+        setIsLoadingOrderItems(false);
+    }, [selectedOrder]);
+
+    const loadInvoices = React.useCallback(async () => {
+        if (!selectedQuote) return;
+        setIsLoadingInvoices(true);
+        setInvoices(await getInvoices(selectedQuote.id));
+        setIsLoadingInvoices(false);
+    }, [selectedQuote]);
+
+    const loadInvoiceItems = React.useCallback(async () => {
+        if (!selectedInvoice) return;
+        setIsLoadingInvoiceItems(true);
+        setInvoiceItems(await getInvoiceItems(selectedInvoice.id));
+        setIsLoadingInvoiceItems(false);
+    }, [selectedInvoice]);
+
+    const loadPayments = React.useCallback(async () => {
+        if (!selectedQuote) return;
+        setIsLoadingPayments(true);
+        setPayments(await getPayments(selectedQuote.id));
+        setIsLoadingPayments(false);
+    }, [selectedQuote]);
+
     React.useEffect(() => {
         if (selectedQuote) {
-            async function loadQuoteSubItems() {
-                setIsLoadingItems(true);
-                setQuoteItems(await getQuoteItems(selectedQuote!.id));
-                setIsLoadingItems(false);
-
-                setIsLoadingOrders(true);
-                setOrders(await getOrders(selectedQuote!.id));
-                setIsLoadingOrders(false);
-
-                setIsLoadingInvoices(true);
-                setInvoices(await getInvoices(selectedQuote!.id));
-                setIsLoadingInvoices(false);
-
-                setIsLoadingPayments(true);
-                setPayments(await getPayments(selectedQuote!.id));
-                setIsLoadingPayments(false);
-            }
-            loadQuoteSubItems();
+            loadQuoteItems();
+            loadOrders();
+            loadInvoices();
+            loadPayments();
             setSelectedOrder(null);
             setSelectedInvoice(null);
         } else {
@@ -293,33 +322,23 @@ export default function QuotesPage() {
             setInvoices([]);
             setPayments([]);
         }
-    }, [selectedQuote]);
+    }, [selectedQuote, loadQuoteItems, loadOrders, loadInvoices, loadPayments]);
     
     React.useEffect(() => {
         if(selectedOrder) {
-            async function loadOrderItems() {
-                setIsLoadingOrderItems(true);
-                setOrderItems(await getOrderItems(selectedOrder!.id));
-                setIsLoadingOrderItems(false);
-            }
             loadOrderItems();
         } else {
             setOrderItems([]);
         }
-    }, [selectedOrder]);
+    }, [selectedOrder, loadOrderItems]);
 
     React.useEffect(() => {
         if(selectedInvoice) {
-            async function loadInvoiceItems() {
-                setIsLoadingInvoiceItems(true);
-                setInvoiceItems(await getInvoiceItems(selectedInvoice!.id));
-                setIsLoadingInvoiceItems(false);
-            }
             loadInvoiceItems();
         } else {
             setInvoiceItems([]);
         }
-    }, [selectedInvoice]);
+    }, [selectedInvoice, loadInvoiceItems]);
 
 
     const handleRowSelectionChange = (selectedRows: Quote[]) => {
@@ -366,27 +385,57 @@ export default function QuotesPage() {
                                     <TabsTrigger value="payments">Payments</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="items">
+                                   <div className="flex justify-end mb-2">
+                                        <Button variant="outline" size="icon" onClick={loadQuoteItems} disabled={isLoadingItems}>
+                                            <RefreshCw className={`h-4 w-4 ${isLoadingItems ? 'animate-spin' : ''}`} />
+                                        </Button>
+                                   </div>
                                    <QuoteItemsTable items={quoteItems} isLoading={isLoadingItems} />
                                 </TabsContent>
                                 <TabsContent value="orders">
+                                    <div className="flex justify-end mb-2">
+                                        <Button variant="outline" size="icon" onClick={loadOrders} disabled={isLoadingOrders}>
+                                            <RefreshCw className={`h-4 w-4 ${isLoadingOrders ? 'animate-spin' : ''}`} />
+                                        </Button>
+                                    </div>
                                     <OrdersTable orders={orders} isLoading={isLoadingOrders} onRowSelectionChange={handleOrderSelectionChange} />
                                     {selectedOrder && (
                                         <div className="mt-4">
-                                            <h4 className="text-md font-semibold mb-2">Order Items for {selectedOrder.id}</h4>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h4 className="text-md font-semibold">Order Items for {selectedOrder.id}</h4>
+                                                <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
+                                                    <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
+                                                </Button>
+                                            </div>
                                             <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} />
                                         </div>
                                     )}
                                 </TabsContent>
                                 <TabsContent value="invoices">
+                                    <div className="flex justify-end mb-2">
+                                        <Button variant="outline" size="icon" onClick={loadInvoices} disabled={isLoadingInvoices}>
+                                            <RefreshCw className={`h-4 w-4 ${isLoadingInvoices ? 'animate-spin' : ''}`} />
+                                        </Button>
+                                    </div>
                                     <InvoicesTable invoices={invoices} isLoading={isLoadingInvoices} onRowSelectionChange={handleInvoiceSelectionChange} />
                                     {selectedInvoice && (
                                         <div className="mt-4">
-                                            <h4 className="text-md font-semibold mb-2">Invoice Items for {selectedInvoice.id}</h4>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h4 className="text-md font-semibold">Invoice Items for {selectedInvoice.id}</h4>
+                                                <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
+                                                    <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
+                                                </Button>
+                                            </div>
                                             <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
                                         </div>
                                     )}
                                 </TabsContent>
                                 <TabsContent value="payments">
+                                    <div className="flex justify-end mb-2">
+                                        <Button variant="outline" size="icon" onClick={loadPayments} disabled={isLoadingPayments}>
+                                            <RefreshCw className={`h-4 w-4 ${isLoadingPayments ? 'animate-spin' : ''}`} />
+                                        </Button>
+                                    </div>
                                     <PaymentsTable payments={payments} isLoading={isLoadingPayments} />
                                 </TabsContent>
                             </Tabs>
@@ -460,3 +509,5 @@ export default function QuotesPage() {
         </>
     );
 }
+
+    
