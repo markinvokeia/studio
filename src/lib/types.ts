@@ -68,6 +68,7 @@ export type OrderItem = {
     quantity: number;
     unit_price: number;
     total: number;
+    status: 'scheduled' | 'completed' | 'cancelled';
     scheduled_date?: string;
     completed_date?: string;
 };

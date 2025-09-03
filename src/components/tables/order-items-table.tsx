@@ -70,6 +70,26 @@ const columns: ColumnDef<OrderItem>[] = [
     },
   },
   {
+    accessorKey: 'status',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Status" />
+    ),
+    cell: ({ row }) => {
+      const status = row.getValue('status') as string;
+      const variant = {
+        completed: 'success',
+        scheduled: 'info',
+        cancelled: 'destructive',
+      }[status.toLowerCase()] ?? ('default' as any);
+
+      return (
+        <Badge variant={variant} className="capitalize">
+          {status}
+        </Badge>
+      );
+    },
+  },
+  {
     accessorKey: 'scheduled_date',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Scheduled" />

@@ -142,6 +142,7 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
             quantity: apiItem.quantity,
             unit_price: apiItem.unit_price,
             total: apiItem.total,
+            status: apiItem.status || 'scheduled',
             scheduled_date: apiItem.scheduled_date,
             completed_date: apiItem.completed_date,
         }));
