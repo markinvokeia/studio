@@ -24,6 +24,7 @@ import { UserRoles } from '@/components/users/user-roles';
 import { UserServices } from '@/components/users/user-services';
 import { UserQuotes } from '@/components/users/user-quotes';
 import { X } from 'lucide-react';
+import { RowSelectionState } from '@tanstack/react-table';
 
 async function getUsers(): Promise<User[]> {
   try {
@@ -63,6 +64,7 @@ export default function UsersPage() {
   const [isCreateOpen, setCreateOpen] = React.useState(false);
   const [isHistoryOpen, setHistoryOpen] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
   const loadUsers = React.useCallback(async () => {
     setIsRefreshing(true);
@@ -80,10 +82,15 @@ export default function UsersPage() {
     setSelectedUser(user);
   };
   
+  const handleCloseDetails = () => {
+    setSelectedUser(null);
+    setRowSelection({});
+  };
+  
   return (
     <>
     <div className={cn("grid grid-cols-1 gap-4", selectedUser ? "lg:grid-cols-2" : "lg:grid-cols-1")}>
-      <div className="col-span-1">
+      <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-1" : "lg:col-span-2")}>
         <Card>
           <CardHeader>
             <CardTitle>Users</CardTitle>
@@ -101,6 +108,8 @@ export default function UsersPage() {
               onRefresh={loadUsers}
               isRefreshing={isRefreshing}
               onShowHistory={() => setHistoryOpen(true)}
+              rowSelection={rowSelection}
+              setRowSelection={setRowSelection}
             />
           </CardContent>
         </Card>
@@ -114,7 +123,7 @@ export default function UsersPage() {
                     <CardTitle>Details for {selectedUser.name}</CardTitle>
                     <CardDescription>User ID: {selectedUser.id}</CardDescription>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setSelectedUser(null)}>
+                <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                     <X className="h-5 w-5" />
                     <span className="sr-only">Close details</span>
                 </Button>

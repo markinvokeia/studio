@@ -13,6 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
   Row,
+  RowSelectionState,
 } from '@tanstack/react-table';
 
 import {
@@ -37,6 +38,8 @@ interface DataTableProps<TData, TValue> {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   onShowHistory?: () => void;
+  rowSelection?: RowSelectionState;
+  setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
 }
 
 export function DataTable<TData, TValue>({
@@ -50,8 +53,10 @@ export function DataTable<TData, TValue>({
   onRefresh,
   isRefreshing,
   onShowHistory,
+  rowSelection,
+  setRowSelection,
 }: DataTableProps<TData, TValue>) {
-  const [rowSelection, setRowSelection] = React.useState({});
+  const [internalRowSelection, setInternalRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -65,12 +70,12 @@ export function DataTable<TData, TValue>({
     state: {
       sorting,
       columnVisibility,
-      rowSelection,
+      rowSelection: rowSelection ?? internalRowSelection,
       columnFilters,
     },
     enableRowSelection: true,
     enableMultiRowSelection: !enableSingleRowSelection,
-    onRowSelectionChange: setRowSelection,
+    onRowSelectionChange: setRowSelection ?? setInternalRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
@@ -85,7 +90,7 @@ export function DataTable<TData, TValue>({
       const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original);
       onRowSelectionChange(selectedRows);
     }
-  }, [rowSelection, table, onRowSelectionChange]);
+  }, [rowSelection, internalRowSelection, table, onRowSelectionChange]);
 
 
   return (
