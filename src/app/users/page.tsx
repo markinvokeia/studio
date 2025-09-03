@@ -85,8 +85,8 @@ export default function UsersPage() {
   
   return (
     <>
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-      <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-2" : "lg:col-span-3")}>
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-1" : "lg:col-span-2")}>
         <Card>
           <CardHeader>
             <CardTitle>Users</CardTitle>
