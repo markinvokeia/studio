@@ -150,26 +150,94 @@ export const errorLogs: ErrorLog[] = [
 ];
 
 export const medicalHistory: MedicalEvent[] = [
-  { id: 'evt_1', date: '2023-01-15', title: 'Annual Check-up', description: 'Routine annual physical examination. All vitals normal.', eventType: 'appointment' },
-  { id: 'evt_2', date: '2023-03-22', title: 'Blood Test', description: 'Complete blood count (CBC). Results within normal range.', eventType: 'test' },
-  { id: 'evt_3', date: '2023-05-30', title: 'X-Ray', description: 'Chest X-ray due to persistent cough. No abnormalities found.', eventType: 'procedure' },
-  { id: 'evt_4', date: '2023-06-05', title: 'Prescription Refill', description: 'Refilled prescription for hypertension medication.', eventType: 'prescription' },
-  { id: 'evt_5', date: '2023-09-10', title: 'Follow-up Consultation', description: 'Follow-up regarding hypertension. Blood pressure stable.', eventType: 'appointment' },
-  { id: 'evt_6', date: '2023-11-20', title: 'Flu Shot', description: 'Seasonal influenza vaccination administered.', eventType: 'procedure' },
-  { id: 'evt_7', date: '2024-01-18', title: 'Annual Check-up', description: 'Routine annual physical. Recommended increase in physical activity.', eventType: 'appointment' },
-  { id: 'evt_8', date: '2024-02-25', title: 'Patient Note', description: 'Patient reports feeling well and adhering to medication schedule.', eventType: 'note' },
+  {
+    id: 'evt_1',
+    date: '2023-01-15',
+    title: 'Annual Check-up',
+    doctor: 'Dr. Evelyn Reed',
+    summary: 'Routine annual physical examination. All vitals normal.',
+    details: 'Patient presented for annual check-up. Blood pressure 120/80. Heart rate 70 bpm. No acute complaints. <strong>Advised to continue current medication and diet plan.</strong> Follow-up in one year.',
+    eventType: 'appointment',
+  },
+  {
+    id: 'evt_2',
+    date: '2023-03-22',
+    title: 'Blood Test',
+    doctor: 'Dr. Samuel Carter',
+    summary: 'Complete blood count (CBC). Results within normal range.',
+    details: 'CBC ordered by Dr. Reed. All markers within normal limits. Cholesterol levels show slight improvement. <strong>Patient commended for adherence to diet.</strong>',
+    eventType: 'test',
+  },
+  {
+    id: 'evt_3',
+    date: '2023-05-30',
+    title: 'X-Ray',
+    doctor: 'Dr. Evelyn Reed',
+    summary: 'Chest X-ray due to persistent cough. No abnormalities found.',
+    details: 'Patient reported a persistent dry cough for 3 weeks. Chest X-ray was clear. Diagnosis: Post-viral cough. <strong>Prescribed cough suppressant and advised rest.</strong>',
+    eventType: 'procedure',
+  },
+  {
+    id: 'evt_4',
+    date: '2023-06-05',
+    title: 'Prescription Refill',
+    doctor: 'Dr. Evelyn Reed',
+    summary: 'Refilled prescription for hypertension medication.',
+    details: 'Lisinopril (10mg) prescription refilled for 3 months. <strong>Patient reminded to monitor blood pressure at home.</strong>',
+    eventType: 'prescription',
+  },
+  {
+    id: 'evt_5',
+    date: '2023-09-10',
+    title: 'Follow-up Consultation',
+    doctor: 'Dr. Evelyn Reed',
+    summary: 'Follow-up regarding hypertension. Blood pressure stable.',
+    details: 'Patient\'s home blood pressure readings are stable. No side effects reported from medication. Continue current treatment plan. <strong>Next follow-up scheduled in 6 months.</strong>',
+    eventType: 'appointment',
+  },
+  {
+    id: 'evt_6',
+    date: '2023-11-20',
+    title: 'Flu Shot',
+    doctor: 'Nurse Alice Faye',
+    summary: 'Seasonal influenza vaccination administered.',
+    details: 'Patient received the quadrivalent influenza vaccine in the left deltoid. No immediate adverse reaction. <strong>Post-vaccination instructions provided.</strong>',
+    eventType: 'procedure',
+  },
+  {
+    id: 'evt_7',
+    date: '2024-01-18',
+    title: 'Annual Check-up',
+    doctor: 'Dr. Evelyn Reed',
+    summary: 'Routine annual physical. Recommended increase in physical activity.',
+    details: 'Vitals stable. Patient reports feeling well. Discussed importance of regular exercise. <strong>Goal set for 30 minutes of moderate activity, 3-4 times a week.</strong>',
+    eventType: 'appointment'
+  },
+  {
+    id: 'evt_8',
+    date: '2024-02-25',
+    title: 'Patient Note',
+    doctor: 'Dr. Evelyn Reed',
+    summary: 'Patient reports feeling well and adhering to medication schedule.',
+    details: 'Patient called to confirm next appointment. Reports no new issues and is adherent to all prescribed medications and lifestyle recommendations. <strong>No changes to plan of care needed at this time.</strong>',
+    eventType: 'note'
+  },
 ];
 
+
 export const messages: Message[] = [
-  { id: 'msg_1', user_id: 'mock_user', sender: 'user', content: 'Hello, I have a question about my bill.', timestamp: '2024-05-15T10:30:00Z' },
-  { id: 'msg_2', user_id: 'mock_user', sender: 'system', content: 'Of course, I can help with that. What is your question?', timestamp: '2024-05-15T10:30:45Z' },
-  { id: 'msg_3', user_id: 'mock_user', sender: 'user', content: 'I see a charge from last week that I don\'t recognize.', timestamp: '2024-05-15T10:31:20Z' },
-  { id: 'msg_4', user_id: 'mock_user', sender: 'system', content: 'I can look into that for you. Can you provide the date and amount of the charge?', timestamp: '2024-05-15T10:32:00Z' },
-  { id: 'msg_5', user_id: 'mock_user', sender: 'user', content: 'It was for $45.50 on May 8th.', timestamp: '2024-05-15T10:33:10Z' },
-  { id: 'msg_6', user_id: 'mock_user', sender: 'system', content: 'Thank you. One moment while I pull up that transaction... I see it was for a co-payment for your visit with Dr. Smith. Does that sound correct?', timestamp: '2024-05-15T10:34:00Z' },
-  { id: 'msg_7', user_id: 'mock_user', sender: 'user', content: 'Oh, right! I completely forgot. Thanks for clarifying.', timestamp: '2024-05-15T10:34:50Z' },
-  { id: 'msg_8', user_id: 'mock_user', sender: 'system', content: 'You\'re welcome! Is there anything else I can help you with today?', timestamp: '2024-05-15T10:35:15Z' },
+    { id: 'msg_1', user_id: 'mock_user', sender: 'user', content: 'Hello, I have a question about my bill.', timestamp: '2024-05-15T10:30:00Z' },
+    { id: 'msg_2', user_id: 'mock_user', sender: 'system', content: 'Of course, I can help with that. What is your question?', timestamp: '2024-05-15T10:30:45Z' },
+    { id: 'msg_3', user_id: 'mock_user', sender: 'user', content: 'I see a charge from last week that I don\'t recognize.', timestamp: '2024-05-15T10:31:20Z' },
+    { id: 'msg_4', user_id: 'mock_user', sender: 'system', content: 'I can look into that for you. Can you provide the date and amount of the charge?', timestamp: '2024-05-15T10:32:00Z' },
+    { id: 'msg_5', user_id: 'mock_user', sender: 'user', content: 'It was for $45.50 on May 8th.', timestamp: '2024-05-15T10:33:10Z' },
+    { id: 'msg_6', user_id: 'mock_user', sender: 'system', content: 'Thank you. One moment while I pull up that transaction... I see it was for a co-payment for your visit with Dr. Smith. Does that sound correct?', timestamp: '2024-05-15T10:34:00Z' },
+    { id: 'msg_7', user_id: 'mock_user', sender: 'user', content: 'Oh, right! I completely forgot. Thanks for clarifying.', timestamp: '2024-05-15T10:34:50Z' },
+    { id: 'msg_8', user_id: 'mock_user', sender: 'system', content: 'You\'re welcome! Is there anything else I can help you with today?', timestamp: '2024-05-15T10:35:15Z' },
+    { id: 'msg_9', user_id: 'another_user', sender: 'user', content: 'I need to reschedule my appointment.', timestamp: '2024-05-16T11:00:00Z' },
+    { id: 'msg_10', user_id: 'another_user', sender: 'system', content: 'I can help with that. Which appointment would you like to reschedule?', timestamp: '2024-05-16T11:00:30Z' }
 ];
+
 
 
 export const appointments: Appointment[] = [

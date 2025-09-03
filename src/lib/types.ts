@@ -2,6 +2,7 @@
 
 
 
+
 export type User = {
   id: string;
   name: string;
@@ -185,7 +186,9 @@ export type MedicalEvent = {
   id: string;
   date: string;
   title: string;
-  description: string;
+  doctor: string;
+  summary: string;
+  details: string;
   eventType: 'appointment' | 'procedure' | 'test' | 'prescription' | 'note';
 };
 
