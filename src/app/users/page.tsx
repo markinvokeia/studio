@@ -50,7 +50,9 @@ async function getUsers(pagination: PaginationState): Promise<GetUsersResponse> 
       throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const responseData = await response.json();
+    const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
+    
     const usersData = Array.isArray(data.data) ? data.data : (data.users || data.data || data.result || []);
     const total = data.total || (Array.isArray(data) ? data.length : 0);
 
