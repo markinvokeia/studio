@@ -84,7 +84,8 @@ async function getUsers(): Promise<User[]> {
     });
 
     if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+      console.error(`HTTP error! status: ${response.status}`);
+      return [];
     }
 
     const data = await response.json();
