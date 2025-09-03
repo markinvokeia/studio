@@ -96,7 +96,7 @@ export function DataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    manualPagination: manualPagination,
+    manualPagination: isControlledPagination,
     ...(isControlledPagination && { onPaginationChange: onPaginationChange }),
   });
   
