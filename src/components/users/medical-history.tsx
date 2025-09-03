@@ -47,7 +47,7 @@ export function MedicalHistory({ user }: MedicalHistoryProps) {
                         <TimelineIcon>
                             <Icon size={16} />
                         </TimelineIcon>
-                        <div className="flex flex-col flex-grow ml-4">
+                        <div className="flex flex-col flex-grow ml-5">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-baseline gap-2">
                                      <p className='text-sm font-medium text-muted-foreground'>{event.date}</p>
