@@ -81,7 +81,6 @@ export default function UsersPage() {
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
   const [isCreateOpen, setCreateOpen] = React.useState(false);
-  const [isHistoryOpen, setHistoryOpen] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [pagination, setPagination] = React.useState<PaginationState>({
@@ -132,7 +131,6 @@ export default function UsersPage() {
               onCreate={() => setCreateOpen(true)}
               onRefresh={loadUsers}
               isRefreshing={isRefreshing}
-              onShowHistory={() => setHistoryOpen(true)}
               rowSelection={rowSelection}
               setRowSelection={setRowSelection}
               pageCount={Math.ceil(userCount / pagination.pageSize)}
@@ -166,6 +164,7 @@ export default function UsersPage() {
                     <TabsTrigger value="appointments">Appointments</TabsTrigger>
                     <TabsTrigger value="messages">Messages</TabsTrigger>
                     <TabsTrigger value="logs">Logs</TabsTrigger>
+                    <TabsTrigger value="history">Clinic History</TabsTrigger>
                   </TabsList>
                   <TabsContent value="roles">
                     <UserRoles userId={selectedUser.id} />
@@ -184,6 +183,9 @@ export default function UsersPage() {
                   </TabsContent>
                   <TabsContent value="logs">
                     <UserLogs userId={selectedUser.id} />
+                  </TabsContent>
+                  <TabsContent value="history">
+                    <MedicalHistory user={selectedUser} />
                   </TabsContent>
                 </Tabs>
               </CardContent>
@@ -236,13 +238,6 @@ export default function UsersPage() {
         </div>
       </DialogContent>
     </Dialog>
-    {selectedUser && (
-      <MedicalHistory
-        isOpen={isHistoryOpen}
-        onOpenChange={setHistoryOpen}
-        user={selectedUser}
-      />
-    )}
     </>
   );
 }

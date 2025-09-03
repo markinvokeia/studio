@@ -38,7 +38,6 @@ interface DataTableProps<TData, TValue> {
   onCreate?: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
-  onShowHistory?: () => void;
   rowSelection?: RowSelectionState;
   setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
   pageCount?: number;
@@ -57,7 +56,6 @@ export function DataTable<TData, TValue>({
   onCreate,
   onRefresh,
   isRefreshing,
-  onShowHistory,
   rowSelection,
   setRowSelection,
   pageCount,
@@ -117,7 +115,6 @@ export function DataTable<TData, TValue>({
         onCreate={onCreate}
         onRefresh={onRefresh}
         isRefreshing={isRefreshing}
-        onShowHistory={onShowHistory}
       />
       <div className="rounded-md border">
         <Table>
