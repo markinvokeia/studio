@@ -7,6 +7,7 @@ import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
 import { RecentOrdersTable } from '@/components/tables/recent-orders-table';
 import { NewUsersTable } from '@/components/tables/new-users-table';
 import { Quote, Order, User } from '@/lib/types';
+import * as React from 'react';
 
 async function getQuotes(): Promise<Quote[]> {
   try {
@@ -123,3 +124,5 @@ export default async function DashboardPage() {
     </>
   );
 }
+
+    

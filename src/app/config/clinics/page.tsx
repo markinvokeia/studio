@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { UploadCloud } from 'lucide-react';
+import { RefreshCw, UploadCloud } from 'lucide-react';
 
 async function getClinic(): Promise<Clinic | null> {
     try {
@@ -192,9 +192,14 @@ export default function ClinicsPage() {
                     </div>
                 </div>
             </CardContent>
-            <CardFooter>
-                 <Button>Save Changes</Button>
+            <CardFooter className="justify-between">
+                <Button>Save Changes</Button>
+                <Button variant="outline" size="icon" onClick={loadClinic} disabled={isLoading}>
+                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                </Button>
             </CardFooter>
         </Card>
     );
 }
+
+    

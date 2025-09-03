@@ -55,9 +55,11 @@ const columns: ColumnDef<User>[] = [
 
 interface NewUsersTableProps {
   users: User[];
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-export function NewUsersTable({ users }: NewUsersTableProps) {
+export function NewUsersTable({ users, onRefresh, isRefreshing }: NewUsersTableProps) {
   return (
     <Card>
       <CardHeader>
@@ -70,8 +72,12 @@ export function NewUsersTable({ users }: NewUsersTableProps) {
           data={users}
           filterColumnId="name"
           filterPlaceholder="Filter by name..."
+          onRefresh={onRefresh}
+          isRefreshing={isRefreshing}
         />
       </CardContent>
     </Card>
   );
 }
+
+    

@@ -46,9 +46,11 @@ const columns: ColumnDef<Order>[] = [
 
 interface RecentOrdersTableProps {
   orders: Order[];
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-export function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
+export function RecentOrdersTable({ orders, onRefresh, isRefreshing }: RecentOrdersTableProps) {
   return (
     <Card>
       <CardHeader>
@@ -61,8 +63,12 @@ export function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
           data={orders}
           filterColumnId="id"
           filterPlaceholder="Filter by order ID..."
+          onRefresh={onRefresh}
+          isRefreshing={isRefreshing}
         />
       </CardContent>
     </Card>
   );
 }
+
+    
