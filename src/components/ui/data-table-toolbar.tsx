@@ -45,18 +45,28 @@ export function DataTableToolbar<TData>({
           }
           className="h-8 w-[150px] lg:w-[250px]"
         />
-        {onShowHistory && (
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={onShowHistory}
-            disabled={!isRowSelected}
-          >
-            <History className="h-4 w-4" />
-            <span className="sr-only">View History</span>
-          </Button>
-        )}
+        <div className="flex items-center space-x-2">
+          {onShowHistory && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={onShowHistory}
+              disabled={!isRowSelected}
+            >
+              <History className="h-4 w-4" />
+              <span className="sr-only">View History</span>
+            </Button>
+          )}
+          {onCreate && (
+            <Button size="icon" className="h-8 w-8" onClick={onCreate}>
+              <PlusCircle className="h-4 w-4" />
+              <span className="sr-only">Create</span>
+            </Button>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center space-x-2">
         {onRefresh && (
           <Button
             variant="outline"
@@ -69,14 +79,6 @@ export function DataTableToolbar<TData>({
             <span className="sr-only">Refresh</span>
           </Button>
         )}
-        {onCreate && (
-          <Button size="icon" className="h-8 w-8" onClick={onCreate}>
-            <PlusCircle className="h-4 w-4" />
-            <span className="sr-only">Create</span>
-          </Button>
-        )}
-      </div>
-      <div className="flex items-center space-x-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon" className="ml-auto h-8 w-8 lg:flex">
