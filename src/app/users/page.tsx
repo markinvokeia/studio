@@ -55,10 +55,10 @@ async function getUsers(pagination: PaginationState): Promise<GetUsersResponse> 
     }
 
     const responseData = await response.json();
-    const data = (Array.isArray(responseData) && responseData.length > 0 && responseData[0].users) ? responseData[0] : responseData;
+    const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
     
-    const usersData = Array.isArray(data.users) ? data.users : [];
-    const total = data.total || usersData.length;
+    const usersData = Array.isArray(data.data) ? data.data : [];
+    const total = Number(data.total) || usersData.length;
 
     const mappedUsers = usersData.map((apiUser: any) => ({
       id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
