@@ -74,10 +74,10 @@ async function getAppointmentsForUser(user: User | null): Promise<Appointment[]>
         }
 
         const data = await response.json();
-        const appointmentsData = Array.isArray(data) ? data : (data.appointments || data.data || data.result || []);
-
+        const appointmentsData = data[0]?.filteredEvents || [];
+        
         return appointmentsData.map((apiAppt: any) => {
-            const appointmentDateTime = new Date(apiAppt.start_time);
+            const appointmentDateTime = new Date(apiAppt.start.dateTime);
             return {
                 id: apiAppt.id ? String(apiAppt.id) : `appt_${Math.random().toString(36).substr(2, 9)}`,
                 service_name: apiAppt.summary || 'No Service Name',
@@ -100,16 +100,17 @@ export function UserAppointments({ user }: UserAppointmentsProps) {
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
-  React.useEffect(() => {
-    async function loadAppointments() {
+  const loadAppointments = React.useCallback(async () => {
       if (!user) return;
       setIsLoading(true);
       const fetchedAppointments = await getAppointmentsForUser(user);
       setAppointments(fetchedAppointments);
       setIsLoading(false);
-    }
+    }, [user]);
+
+  React.useEffect(() => {
     loadAppointments();
-  }, [user]);
+  }, [loadAppointments]);
 
   if (isLoading) {
     return (
