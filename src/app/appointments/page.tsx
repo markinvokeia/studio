@@ -97,7 +97,6 @@ export default function AppointmentsPage() {
   }, [appointments, selectedDate]);
   
   const filteredAppointments = React.useMemo(() => {
-    const now = new Date();
     return appointments.filter(apt => {
         const aptDate = parseISO(`${apt.date}T${apt.time}`);
         switch (dateFilter) {
