@@ -2,19 +2,11 @@
 'use client';
 
 import * as React from 'react';
-import { Calendar, momentLocalizer, EventProps, ToolbarProps, View } from 'react-big-calendar';
-import moment from 'moment';
+import { addMonths, format, parseISO, isSameDay } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
+import { PlusCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -24,75 +16,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { format, addMonths, parse } from 'date-fns';
-
-const localizer = momentLocalizer(moment);
-
-const transformAppointmentsToEvents = (appointments: Appointment[]) => {
-    return appointments.map(apt => {
-        if (!apt.date || !apt.time) return null;
-        // Combine date and time and parse. Handles various time formats.
-        const start = moment(`${apt.date} ${apt.time}`, 'YYYY-MM-DD HH:mm:ss').toDate();
-        if (!moment(start).isValid()) return null;
-
-        // Default to 1-hour duration if no end time is provided
-        const end = moment(start).add(1, 'hour').toDate(); 
-        
-        return {
-            title: `${apt.service_name} - ${apt.user_name}`,
-            start,
-            end,
-            resource: apt,
-        };
-    }).filter((event): event is { title: string; start: Date; end: Date; resource: Appointment } => event !== null);
-};
-
-const CustomEvent = ({ event }: EventProps<{ resource: Appointment }>) => {
-    if (!event.resource) return null;
-    const status = event.resource.status;
-    const variant = {
-        completed: 'success',
-        confirmed: 'default',
-        pending: 'info',
-        cancelled: 'destructive',
-    }[status] || 'default';
-
-    return (
-        <div className="flex flex-col p-1 text-xs">
-            <span className="font-semibold">{event.title}</span>
-            <Badge variant={variant as any} className="capitalize w-fit mt-1">{status}</Badge>
-        </div>
-    );
-};
-
-const CustomToolbar = ({ label, onNavigate, onView, view, views }: ToolbarProps) => {
-    return (
-        <div className="rbc-toolbar">
-            <span className="rbc-btn-group">
-                <Button variant="outline" size="sm" onClick={() => onNavigate('PREV')}><ChevronLeft /></Button>
-                <Button variant="outline" size="sm" onClick={() => onNavigate('TODAY')}>Today</Button>
-                <Button variant="outline" size="sm" onClick={() => onNavigate('NEXT')}><ChevronRight /></Button>
-            </span>
-            <span className="rbc-toolbar-label">{label}</span>
-            <span className="rbc-btn-group">
-                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="capitalize w-24">{view}</Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                        {(views as View[]).map((v) => (
-                            <DropdownMenuItem key={v} onClick={() => onView(v)}>{v}</DropdownMenuItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </span>
-        </div>
-    );
-};
+import { Calendar } from '@/components/ui/calendar';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 async function getAppointments(): Promise<Appointment[]> {
     const now = new Date();
-    // Fetch a wider range of appointments, e.g., one year back and one year forward
     const startDate = addMonths(now, -6);
     const endDate = addMonths(now, 6);
     const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
@@ -127,7 +57,7 @@ async function getAppointments(): Promise<Appointment[]> {
             const appointmentDateTimeStr = apiAppt.start_time || (apiAppt.start && apiAppt.start.dateTime);
             if (!appointmentDateTimeStr) return null;
 
-            const appointmentDateTime = new Date(appointmentDateTimeStr);
+            const appointmentDateTime = parseISO(appointmentDateTimeStr);
             if (isNaN(appointmentDateTime.getTime())) return null;
 
             return {
@@ -145,55 +75,97 @@ async function getAppointments(): Promise<Appointment[]> {
     }
 }
 
-
 export default function AppointmentsPage() {
-  const [events, setEvents] = React.useState<ReturnType<typeof transformAppointmentsToEvents>>([]);
+  const [appointments, setAppointments] = React.useState<Appointment[]>([]);
+  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
   const [isCreateOpen, setCreateOpen] = React.useState(false);
 
   React.useEffect(() => {
-    async function loadAppointments() {
-        const appointments = await getAppointments();
-        const calendarEvents = transformAppointmentsToEvents(appointments);
-        setEvents(calendarEvents);
-    }
-    loadAppointments();
+    getAppointments().then(setAppointments);
   }, []);
+
+  const selectedDayAppointments = React.useMemo(() => {
+    if (!selectedDate) return [];
+    return appointments
+      .filter(apt => isSameDay(parseISO(`${apt.date}T${apt.time}`), selectedDate))
+      .sort((a, b) => a.time.localeCompare(b.time));
+  }, [appointments, selectedDate]);
+  
+  const getStatusVariant = (status: Appointment['status']) => {
+    return {
+        completed: 'success',
+        confirmed: 'default',
+        pending: 'info',
+        cancelled: 'destructive',
+    }[status] || 'default';
+  };
 
   return (
     <>
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Appointments</CardTitle>
-          <CardDescription>Manage all appointments.</CardDescription>
-        </div>
-         <Button onClick={() => setCreateOpen(true)} className="flex items-center gap-2">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Appointments</CardTitle>
+            <CardDescription>Manage all appointments.</CardDescription>
+          </div>
+          <Button onClick={() => setCreateOpen(true)} className="flex items-center gap-2">
             <PlusCircle className="h-5 w-5" />
             <span>New Appointment</span>
-        </Button>
-      </CardHeader>
-       <CardContent className="p-0 md:p-6 h-[calc(100vh-220px)]">
-        <Calendar
-          localizer={localizer}
-          events={events}
-          startAccessor="start"
-          endAccessor="end"
-          views={['month', 'week', 'day', 'agenda']}
-          components={{
-            event: CustomEvent,
-            toolbar: CustomToolbar
-          }}
-          eventPropGetter={(event) => {
-            if (!event.resource) return {className: ''};
-            const status = event.resource.status;
-            return {
-                className: `rbc-event-${status}`
-            };
-          }}
-        />
-      </CardContent>
-    </Card>
-     <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="md:col-span-1">
+               <Card>
+                <CardContent className="p-2">
+                    <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        className="rounded-md"
+                        initialFocus
+                    />
+                </CardContent>
+              </Card>
+            </div>
+            <div className="md:col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    Appointments for {selectedDate ? format(selectedDate, 'PPP') : '...'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[calc(100vh-400px)]">
+                    {selectedDayAppointments.length > 0 ? (
+                      <div className="space-y-4">
+                        {selectedDayAppointments.map((apt, index) => (
+                          <React.Fragment key={apt.id}>
+                            <div className="flex items-start justify-between space-x-4">
+                                <div className="flex items-center space-x-4">
+                                     <Badge variant={getStatusVariant(apt.status) as any} className="h-fit capitalize">{apt.status}</Badge>
+                                    <div>
+                                        <p className="font-semibold">{apt.service_name}</p>
+                                        <p className="text-sm text-muted-foreground">{apt.user_name}</p>
+                                    </div>
+                                </div>
+                                <p className="text-sm font-medium text-muted-foreground">{format(parseISO(`${apt.date}T${apt.time}`), 'p')}</p>
+                            </div>
+                            {index < selectedDayAppointments.length - 1 && <Separator />}
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center text-muted-foreground">No appointments for this day.</p>
+                    )}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New Appointment</DialogTitle>

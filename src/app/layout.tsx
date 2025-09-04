@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
-import '../styles/calendar.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
