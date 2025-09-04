@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -74,18 +75,25 @@ async function getAppointmentsForUser(user: User | null): Promise<Appointment[]>
         }
 
         const data = await response.json();
-        const appointmentsData = Array.isArray(data) ? (data[0]?.filteredEvents || []) : (data.appointments || data.data || data.result || []);
+        const appointmentsData = (Array.isArray(data) && data.length > 0 && data[0].filteredEvents) ? data[0].filteredEvents : [];
+
         
         return appointmentsData.map((apiAppt: any) => {
-            const appointmentDateTime = new Date(apiAppt.start.dateTime);
+            const appointmentDateTimeStr = apiAppt.start_time || (apiAppt.start && apiAppt.start.dateTime);
+            if (!appointmentDateTimeStr) return null;
+
+            const appointmentDateTime = new Date(appointmentDateTimeStr);
+            if (isNaN(appointmentDateTime.getTime())) return null;
+
             return {
                 id: apiAppt.id ? String(apiAppt.id) : `appt_${Math.random().toString(36).substr(2, 9)}`,
+                user_name: apiAppt.user_name || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees[0].email : 'N/A'),
                 service_name: apiAppt.summary || 'No Service Name',
                 date: format(appointmentDateTime, 'yyyy-MM-dd'),
-                time: format(appointmentDateTime, 'hh:mm a'),
+                time: format(appointmentDateTime, 'HH:mm:ss'),
                 status: apiAppt.status || 'confirmed',
             };
-        });
+        }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
         console.error("Failed to fetch appointments:", error);
         return [];
