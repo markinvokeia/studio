@@ -1,13 +1,12 @@
 'use client';
 
 import * as React from 'react';
-import { Calendar, momentLocalizer, EventProps, ToolbarProps } from 'react-big-calendar';
+import { Calendar, momentLocalizer, EventProps, ToolbarProps, View } from 'react-big-calendar';
 import moment from 'moment';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { appointments as appointmentData } from '@/lib/data';
 import { Appointment } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, PlusCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,24 +23,28 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { format, addMonths } from 'date-fns';
 
 const localizer = momentLocalizer(moment);
 
 const transformAppointmentsToEvents = (appointments: Appointment[]) => {
     return appointments.map(apt => {
+        if (!apt.date || !apt.time) return null;
         const start = moment(`${apt.date} ${apt.time}`).toDate();
-        const end = moment(start).add(1, 'hour').toDate(); // Assuming 1-hour appointments
+        // Assuming 1-hour appointments if no end time is provided
+        const end = moment(start).add(1, 'hour').toDate(); 
         return {
             title: `${apt.service_name} - ${apt.user_name}`,
             start,
             end,
             resource: apt,
         };
-    });
+    }).filter(event => event !== null);
 };
 
 const CustomEvent = ({ event }: EventProps) => {
     const { resource } = event;
+    if (!resource) return null;
     const status = resource.status as Appointment['status'];
 
     const variant = {
@@ -49,7 +52,7 @@ const CustomEvent = ({ event }: EventProps) => {
       confirmed: 'default',
       pending: 'info',
       cancelled: 'destructive',
-    }[status.toLowerCase()] ?? ('default' as any);
+    }[status.toLowerCase() as keyof typeof status] ?? 'default' as any;
     
     return (
         <div className="flex flex-col p-1 text-xs">
@@ -84,10 +87,65 @@ const CustomToolbar = ({ label, onNavigate, onView, view, views }: ToolbarProps)
     );
 };
 
+async function getAppointments(): Promise<Appointment[]> {
+    const now = new Date();
+    const startDate = addMonths(now, -6);
+    const endDate = addMonths(now, 6);
+    const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
+    
+    const params = new URLSearchParams({
+        startingDateAndTime: formatDateForAPI(startDate),
+        endingDateAndTime: formatDateForAPI(endDate),
+    });
+
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/json',
+            },
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            console.error(`HTTP error! status: ${response.status}`);
+            return [];
+        }
+
+        const data = await response.json();
+        const appointmentsData = Array.isArray(data) ? data : (data.appointments || data.data || data.result || []);
+
+        return appointmentsData.map((apiAppt: any) => {
+            const appointmentDateTime = new Date(apiAppt.start_time || apiAppt.start.dateTime);
+            return {
+                id: apiAppt.id ? String(apiAppt.id) : `appt_${Math.random().toString(36).substr(2, 9)}`,
+                user_name: apiAppt.user_name || 'N/A',
+                service_name: apiAppt.summary || 'No Service Name',
+                date: format(appointmentDateTime, 'yyyy-MM-dd'),
+                time: format(appointmentDateTime, 'HH:mm:ss'),
+                status: apiAppt.status || 'confirmed',
+            };
+        });
+    } catch (error) {
+        console.error("Failed to fetch appointments:", error);
+        return [];
+    }
+}
+
 
 export default function AppointmentsPage() {
-  const [events, setEvents] = React.useState(transformAppointmentsToEvents(appointmentData));
+  const [events, setEvents] = React.useState<any[]>([]);
   const [isCreateOpen, setCreateOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    async function loadAppointments() {
+        const appointments = await getAppointments();
+        const calendarEvents = transformAppointmentsToEvents(appointments);
+        setEvents(calendarEvents as any[]);
+    }
+    loadAppointments();
+  }, []);
 
   return (
     <>
@@ -108,11 +166,13 @@ export default function AppointmentsPage() {
           events={events}
           startAccessor="start"
           endAccessor="end"
+          views={['month', 'week', 'day', 'agenda']}
           components={{
             event: CustomEvent,
             toolbar: CustomToolbar
           }}
           eventPropGetter={(event) => {
+            if (!event.resource) return {className: ''};
             const status = event.resource.status as Appointment['status'];
             let className = 'rbc-event-';
             switch (status) {

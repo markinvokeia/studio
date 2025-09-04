@@ -74,7 +74,7 @@ async function getAppointmentsForUser(user: User | null): Promise<Appointment[]>
         }
 
         const data = await response.json();
-        const appointmentsData = data[0]?.filteredEvents || [];
+        const appointmentsData = Array.isArray(data) ? (data[0]?.filteredEvents || []) : (data.appointments || data.data || data.result || []);
         
         return appointmentsData.map((apiAppt: any) => {
             const appointmentDateTime = new Date(apiAppt.start.dateTime);
