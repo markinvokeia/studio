@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { addMonths, format, parseISO, isSameDay, isToday, isThisWeek, isThisMonth } from 'date-fns';
+import { addMonths, format, parseISO, isSameDay, isToday, isThisWeek, isThisMonth, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -102,8 +102,12 @@ export default function AppointmentsPage() {
         switch (dateFilter) {
             case 'today':
                 return isToday(aptDate);
-            case 'this_week':
-                return isThisWeek(aptDate, { weekStartsOn: 1 });
+            case 'this_week': {
+                const now = new Date();
+                const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+                const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+                return isWithinInterval(aptDate, { start: weekStart, end: weekEnd });
+            }
             case 'this_month':
                 return isThisMonth(aptDate);
             default:
