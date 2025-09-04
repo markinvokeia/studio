@@ -50,11 +50,17 @@ const transformAppointmentsToEvents = (appointments: Appointment[]) => {
 const CustomEvent = ({ event }: EventProps<{ resource: Appointment }>) => {
     if (!event.resource) return null;
     const status = event.resource.status;
+    const variant = {
+        completed: 'success',
+        confirmed: 'default',
+        pending: 'info',
+        cancelled: 'destructive',
+    }[status] || 'default';
 
     return (
         <div className="flex flex-col p-1 text-xs">
             <span className="font-semibold">{event.title}</span>
-            <Badge variant={status === 'completed' ? 'success' : status === 'pending' ? 'info' : 'default'} className="capitalize w-fit mt-1">{status}</Badge>
+            <Badge variant={variant as any} className="capitalize w-fit mt-1">{status}</Badge>
         </div>
     );
 };
@@ -166,7 +172,7 @@ export default function AppointmentsPage() {
             <span>New Appointment</span>
         </Button>
       </CardHeader>
-      <CardContent className="h-[70vh] p-0 md:p-6">
+       <CardContent className="p-0 md:p-6 h-[calc(100vh-220px)]">
         <Calendar
           localizer={localizer}
           events={events}
