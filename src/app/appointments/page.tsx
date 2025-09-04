@@ -20,6 +20,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DataTable } from '@/components/ui/data-table';
+import { appointmentColumns } from './columns';
 
 async function getAppointments(): Promise<Appointment[]> {
     const now = new Date();
@@ -114,55 +117,71 @@ export default function AppointmentsPage() {
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <div className="md:col-span-1">
-               <Card>
-                <CardContent className="p-2">
-                    <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        className="rounded-md"
-                        initialFocus
-                    />
-                </CardContent>
-              </Card>
-            </div>
-            <div className="md:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>
-                    Appointments for {selectedDate ? format(selectedDate, 'PPP') : '...'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[calc(100vh-400px)]">
-                    {selectedDayAppointments.length > 0 ? (
-                      <div className="space-y-4">
-                        {selectedDayAppointments.map((apt, index) => (
-                          <React.Fragment key={apt.id}>
-                            <div className="flex items-start justify-between space-x-4">
-                                <div className="flex items-center space-x-4">
-                                     <Badge variant={getStatusVariant(apt.status) as any} className="h-fit capitalize">{apt.status}</Badge>
-                                    <div>
-                                        <p className="font-semibold">{apt.service_name}</p>
-                                        <p className="text-sm text-muted-foreground">{apt.user_name}</p>
+          <Tabs defaultValue="calendar">
+            <TabsList>
+              <TabsTrigger value="calendar">Calendar View</TabsTrigger>
+              <TabsTrigger value="list">List View</TabsTrigger>
+            </TabsList>
+            <TabsContent value="calendar" className="pt-4">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div className="md:col-span-1">
+                  <Card>
+                    <CardContent className="p-2">
+                        <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={setSelectedDate}
+                            className="rounded-md"
+                            initialFocus
+                        />
+                    </CardContent>
+                  </Card>
+                </div>
+                <div className="md:col-span-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>
+                        Appointments for {selectedDate ? format(selectedDate, 'PPP') : '...'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-[calc(100vh-400px)]">
+                        {selectedDayAppointments.length > 0 ? (
+                          <div className="space-y-4">
+                            {selectedDayAppointments.map((apt, index) => (
+                              <React.Fragment key={apt.id}>
+                                <div className="flex items-start justify-between space-x-4">
+                                    <div className="flex items-center space-x-4">
+                                        <Badge variant={getStatusVariant(apt.status) as any} className="h-fit capitalize">{apt.status}</Badge>
+                                        <div>
+                                            <p className="font-semibold">{apt.service_name}</p>
+                                            <p className="text-sm text-muted-foreground">{apt.user_name}</p>
+                                        </div>
                                     </div>
+                                    <p className="text-sm font-medium text-muted-foreground">{format(parseISO(`${apt.date}T${apt.time}`), 'p')}</p>
                                 </div>
-                                <p className="text-sm font-medium text-muted-foreground">{format(parseISO(`${apt.date}T${apt.time}`), 'p')}</p>
-                            </div>
-                            {index < selectedDayAppointments.length - 1 && <Separator />}
-                          </React.Fragment>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-center text-muted-foreground">No appointments for this day.</p>
-                    )}
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                                {index < selectedDayAppointments.length - 1 && <Separator />}
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-center text-muted-foreground">No appointments for this day.</p>
+                        )}
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="list" className="pt-4">
+               <DataTable 
+                columns={appointmentColumns} 
+                data={appointments} 
+                filterColumnId='service_name'
+                filterPlaceholder='Filter by service...'
+              />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
       <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
