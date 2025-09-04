@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { addMonths, format, parseISO, isSameDay } from 'date-fns';
+import { addMonths, format, parseISO, isSameDay, isToday, isThisWeek, isThisMonth } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTable } from '@/components/ui/data-table';
 import { appointmentColumns } from './columns';
+import { cn } from '@/lib/utils';
 
 async function getAppointments(): Promise<Appointment[]> {
     const now = new Date();
@@ -82,6 +83,7 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
   const [isCreateOpen, setCreateOpen] = React.useState(false);
+  const [dateFilter, setDateFilter] = React.useState<'today' | 'this_week' | 'this_month'>('today');
 
   React.useEffect(() => {
     getAppointments().then(setAppointments);
@@ -93,6 +95,23 @@ export default function AppointmentsPage() {
       .filter(apt => isSameDay(parseISO(`${apt.date}T${apt.time}`), selectedDate))
       .sort((a, b) => a.time.localeCompare(b.time));
   }, [appointments, selectedDate]);
+  
+  const filteredAppointments = React.useMemo(() => {
+    const now = new Date();
+    return appointments.filter(apt => {
+        const aptDate = parseISO(`${apt.date}T${apt.time}`);
+        switch (dateFilter) {
+            case 'today':
+                return isToday(aptDate);
+            case 'this_week':
+                return isThisWeek(aptDate, { weekStartsOn: 1 });
+            case 'this_month':
+                return isThisMonth(aptDate);
+            default:
+                return true;
+        }
+    });
+  }, [appointments, dateFilter]);
   
   const getStatusVariant = (status: Appointment['status']) => {
     return {
@@ -173,10 +192,30 @@ export default function AppointmentsPage() {
                 </div>
               </div>
             </TabsContent>
-            <TabsContent value="list" className="pt-4">
+            <TabsContent value="list" className="pt-4 space-y-4">
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant={dateFilter === 'today' ? 'default' : 'outline'}
+                        onClick={() => setDateFilter('today')}
+                    >
+                        Today
+                    </Button>
+                    <Button
+                        variant={dateFilter === 'this_week' ? 'default' : 'outline'}
+                        onClick={() => setDateFilter('this_week')}
+                    >
+                        This Week
+                    </Button>
+                    <Button
+                        variant={dateFilter === 'this_month' ? 'default' : 'outline'}
+                        onClick={() => setDateFilter('this_month')}
+                    >
+                        This Month
+                    </Button>
+                </div>
                <DataTable 
                 columns={appointmentColumns} 
-                data={appointments} 
+                data={filteredAppointments} 
                 filterColumnId='service_name'
                 filterPlaceholder='Filter by service...'
               />
