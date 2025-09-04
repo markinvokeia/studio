@@ -7,7 +7,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { UserLog } from '@/lib/types';
-import { userLogs as mockLogs } from '@/lib/data';
 
 const columns: ColumnDef<UserLog>[] = [
   {
@@ -27,8 +26,32 @@ const columns: ColumnDef<UserLog>[] = [
 
 async function getLogsForUser(userId: string): Promise<UserLog[]> {
   if (!userId) return [];
-  // Simulate API call. In a real app, you'd fetch this.
-  return Promise.resolve(mockLogs);
+  try {
+    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_logs?user_id=${userId}`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+        },
+        cache: 'no-store',
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const logsData = Array.isArray(data) ? data : (data.user_logs || data.data || data.result || []);
+
+    return logsData.map((apiLog: any) => ({
+        id: apiLog.id ? String(apiLog.id) : `log_${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: apiLog.timestamp,
+        action: apiLog.action,
+        details: apiLog.details,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch user logs:", error);
+    return [];
+  }
 }
 
 interface UserLogsProps {
