@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import '../styles/calendar.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
