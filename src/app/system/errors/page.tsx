@@ -25,9 +25,10 @@ const columns: ColumnDef<ErrorLog>[] = [
         header: ({column}) => <DataTableColumnHeader column={column} title="ID" />,
         enableHiding: true,
     },
-    { accessorKey: 'timestamp', header: ({column}) => <DataTableColumnHeader column={column} title="Timestamp" /> },
+    { accessorKey: 'created_at', header: ({column}) => <DataTableColumnHeader column={column} title="Created At" /> },
     { accessorKey: 'severity', header: ({column}) => <DataTableColumnHeader column={column} title="Severity" /> },
     { accessorKey: 'message', header: ({column}) => <DataTableColumnHeader column={column} title="Message" /> },
+    { accessorKey: 'channel', header: ({column}) => <DataTableColumnHeader column={column} title="Channel" /> },
     { accessorKey: 'user_id', header: ({column}) => <DataTableColumnHeader column={column} title="User ID" /> },
     {
         id: 'actions',
@@ -83,10 +84,11 @@ async function getErrorLogs(pagination: PaginationState): Promise<GetErrorLogsRe
 
         const mappedLogs = logsData.map((apiLog: any) => ({
             id: apiLog.id ? String(apiLog.id) : `err_${Math.random().toString(36).substr(2, 9)}`,
-            timestamp: apiLog.timestamp,
+            created_at: apiLog.created_at,
             severity: apiLog.severity,
-            message: apiLog.message,
+            message: apiLog.error_message,
             user_id: apiLog.user_id,
+            channel: apiLog.channel,
         }));
         
         return { errorLogs: mappedLogs, total };

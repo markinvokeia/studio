@@ -180,10 +180,11 @@ export type AccessLog = {
 
 export type ErrorLog = {
   id: string;
-  timestamp: string;
+  created_at: string;
   severity: 'info' | 'warning' | 'error' | 'critical';
   message: string;
   user_id?: string;
+  channel?: string;
 };
 
 export type MedicalEvent = {
