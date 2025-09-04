@@ -8,7 +8,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Appointment, User } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
-import { format, addMonths } from 'date-fns';
+import { format } from 'date-fns';
 
 const columns: ColumnDef<Appointment>[] = [
   {
@@ -47,21 +47,13 @@ const columns: ColumnDef<Appointment>[] = [
 async function getAppointmentsForUser(user: User | null): Promise<Appointment[]> {
     if (!user || !user.email) return [];
 
-    const now = new Date();
-    const startDate = addMonths(now, -6);
-    const endDate = addMonths(now, 6);
-    const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
-    
     const params = new URLSearchParams({
-        startingDateAndTime: formatDateForAPI(startDate),
-        endingDateAndTime: formatDateForAPI(endDate),
         attendeesEmails: user.email,
     });
 
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
+        const response = await fetch(`/api/appointments?${params.toString()}`, {
             method: 'GET',
-            mode: 'cors',
             headers: {
                 'Accept': 'application/json',
             },
