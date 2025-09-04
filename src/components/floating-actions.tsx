@@ -18,7 +18,7 @@ export function FloatingActions() {
 
   return (
     <>
-      <div className="fixed bottom-4 left-4 z-50 flex flex-col items-start gap-2">
+      <div className="fixed bottom-4 left-2 z-50 flex flex-col items-start gap-2">
          <Link href="https://wa.me/59894024661" target="_blank" rel="noopener noreferrer">
           <Button size="icon" className="rounded-full h-12 w-12 bg-green-500 text-white shadow-lg hover:bg-green-600">
             <WhatsAppIcon className="h-6 w-6" />
