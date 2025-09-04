@@ -114,7 +114,6 @@ async function getAppointments(): Promise<Appointment[]> {
         }
 
         const data = await response.json();
-        // The API returns an array containing an object with a `filteredEvents` property
         const appointmentsData = (Array.isArray(data) && data.length > 0 && data[0].filteredEvents) ? data[0].filteredEvents : [];
         
         if (!Array.isArray(appointmentsData)) {
