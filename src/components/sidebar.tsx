@@ -16,6 +16,10 @@ export function Sidebar() {
         setIsClient(true);
     }, []);
 
+    if (!isClient) {
+        return null;
+    }
+
   return (
     <aside className={cn(
         "hidden flex-col border-r bg-primary text-primary-foreground transition-all duration-300 ease-in-out sm:flex",
