@@ -31,12 +31,30 @@ const columns: ColumnDef<AuditLog>[] = [
     { 
         accessorKey: 'old_value', 
         header: ({column}) => <DataTableColumnHeader column={column} title="Old Value" />,
-        cell: ({ row }) => <pre className="text-xs whitespace-pre-wrap max-w-xs break-all">{JSON.stringify(row.original.old_value, null, 2)}</pre>
+        cell: ({ row }) => {
+            const value = row.original.old_value;
+            let displayValue = '';
+            if (typeof value === 'object' && value !== null) {
+                displayValue = JSON.stringify(value, null, 2);
+            } else if (value !== null && value !== undefined) {
+                displayValue = String(value);
+            }
+            return <pre className="text-xs whitespace-pre-wrap max-w-xs break-all">{displayValue}</pre>
+        }
     },
     { 
         accessorKey: 'new_value', 
         header: ({column}) => <DataTableColumnHeader column={column} title="New Value" />,
-        cell: ({ row }) => <pre className="text-xs whitespace-pre-wrap max-w-xs break-all">{JSON.stringify(row.original.new_value, null, 2)}</pre>
+        cell: ({ row }) => {
+             const value = row.original.new_value;
+            let displayValue = '';
+            if (typeof value === 'object' && value !== null) {
+                displayValue = JSON.stringify(value, null, 2);
+            } else if (value !== null && value !== undefined) {
+                displayValue = String(value);
+            }
+            return <pre className="text-xs whitespace-pre-wrap max-w-xs break-all">{displayValue}</pre>
+        }
     },
     { accessorKey: 'changed_by', header: ({column}) => <DataTableColumnHeader column={column} title="Changed By" /> },
     {
