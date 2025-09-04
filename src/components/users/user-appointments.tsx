@@ -69,7 +69,8 @@ async function getAppointmentsForUser(user: User | null): Promise<Appointment[]>
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            console.error(`HTTP error! status: ${response.status}`);
+            return [];
         }
 
         const data = await response.json();
