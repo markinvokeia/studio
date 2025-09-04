@@ -30,6 +30,12 @@ const DateCell = ({ dateValue }: { dateValue: string | null }) => {
 
 const columns: ColumnDef<OrderItem>[] = [
   {
+    accessorKey: 'id',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="ID" />
+    ),
+  },
+  {
     accessorKey: 'service_name',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Service" />
