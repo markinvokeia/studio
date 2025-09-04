@@ -176,7 +176,7 @@ export default function UsersPage() {
                     <UserQuotes userId={selectedUser.id} />
                   </TabsContent>
                   <TabsContent value="appointments">
-                    <UserAppointments userId={selectedUser.id} />
+                    <UserAppointments user={selectedUser} />
                   </TabsContent>
                   <TabsContent value="messages">
                     <UserMessages userId={selectedUser.id} />

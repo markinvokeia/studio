@@ -6,9 +6,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Appointment } from '@/lib/types';
-import { appointments as mockAppointments } from '@/lib/data';
+import { Appointment, User } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
+import { format, addMonths } from 'date-fns';
 
 const columns: ColumnDef<Appointment>[] = [
   {
@@ -44,30 +44,71 @@ const columns: ColumnDef<Appointment>[] = [
   },
 ];
 
-async function getAppointmentsForUser(userId: string): Promise<Appointment[]> {
-  if (!userId) return [];
-  // Simulate API call. In a real app, you'd fetch this.
-  return Promise.resolve(mockAppointments);
+async function getAppointmentsForUser(user: User | null): Promise<Appointment[]> {
+    if (!user || !user.email) return [];
+
+    const now = new Date();
+    const startDate = addMonths(now, -6);
+    const endDate = addMonths(now, 6);
+    const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
+
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appoitments', {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                startingDateAndTime: formatDateForAPI(startDate),
+                endingDateAndTime: formatDateForAPI(endDate),
+                attendeesEmails: user.email,
+            }),
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const appointmentsData = Array.isArray(data) ? data : (data.appointments || data.data || data.result || []);
+
+        return appointmentsData.map((apiAppt: any) => {
+            const appointmentDateTime = new Date(apiAppt.start_time);
+            return {
+                id: apiAppt.id ? String(apiAppt.id) : `appt_${Math.random().toString(36).substr(2, 9)}`,
+                service_name: apiAppt.summary || 'No Service Name',
+                date: format(appointmentDateTime, 'yyyy-MM-dd'),
+                time: format(appointmentDateTime, 'hh:mm a'),
+                status: apiAppt.status || 'confirmed',
+            };
+        });
+    } catch (error) {
+        console.error("Failed to fetch appointments:", error);
+        return [];
+    }
 }
 
 interface UserAppointmentsProps {
-  userId: string;
+  user: User;
 }
 
-export function UserAppointments({ userId }: UserAppointmentsProps) {
+export function UserAppointments({ user }: UserAppointmentsProps) {
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
     async function loadAppointments() {
-      if (!userId) return;
+      if (!user) return;
       setIsLoading(true);
-      const fetchedAppointments = await getAppointmentsForUser(userId);
+      const fetchedAppointments = await getAppointmentsForUser(user);
       setAppointments(fetchedAppointments);
       setIsLoading(false);
     }
     loadAppointments();
-  }, [userId]);
+  }, [user]);
 
   if (isLoading) {
     return (
