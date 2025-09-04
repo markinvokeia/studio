@@ -30,7 +30,11 @@ const columns: ColumnDef<AccessLog>[] = [
     { accessorKey: 'success', header: ({column}) => <DataTableColumnHeader column={column} title="Success" />, cell: ({row}) => row.original.success ? "Yes" : "No" },
     { accessorKey: 'ip_address', header: ({column}) => <DataTableColumnHeader column={column} title="IP Address" /> },
     { accessorKey: 'channel', header: ({column}) => <DataTableColumnHeader column={column} title="Channel" /> },
-    { accessorKey: 'details', header: ({column}) => <DataTableColumnHeader column={column} title="Details" /> },
+    { 
+        accessorKey: 'details', 
+        header: ({column}) => <DataTableColumnHeader column={column} title="Details" />,
+        cell: ({ row }) => <div className="max-w-xs whitespace-pre-wrap break-all">{row.original.details}</div>
+    },
     {
         id: 'actions',
         cell: ({ row }) => {
