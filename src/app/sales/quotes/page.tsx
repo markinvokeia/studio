@@ -146,6 +146,7 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
             status: apiItem.status || 'scheduled',
             scheduled_date: apiItem.scheduled_date,
             completed_date: apiItem.completed_date,
+            invoiced_date: apiItem.invoiced_date,
         }));
     } catch (error) {
         console.error("Failed to fetch order items:", error);

@@ -1,11 +1,4 @@
 
-
-
-
-
-
-
-
 export type User = {
   id: string;
   name: string;
@@ -79,6 +72,7 @@ export type OrderItem = {
     status: 'scheduled' | 'completed' | 'cancelled';
     scheduled_date?: string;
     completed_date?: string;
+    invoiced_date?: string;
 };
 
 export type Invoice = {

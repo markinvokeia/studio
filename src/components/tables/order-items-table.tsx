@@ -109,6 +109,13 @@ const columns: ColumnDef<OrderItem>[] = [
     ),
     cell: ({ row }) => <DateCell dateValue={row.getValue('completed_date')} />,
   },
+  {
+    accessorKey: 'invoiced_date',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Invoiced" />
+    ),
+    cell: ({ row }) => <DateCell dateValue={row.getValue('invoiced_date')} />,
+  },
 ];
 
 interface OrderItemsTableProps {
