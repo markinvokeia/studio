@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -23,6 +24,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { RowSelectionState } from '@tanstack/react-table';
+import { X } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PermissionUsers } from '@/components/permissions/permission-users';
+
 
 async function getPermissions(): Promise<Permission[]> {
   try {
@@ -60,6 +66,7 @@ export default function PermissionsPage() {
   const [selectedPermission, setSelectedPermission] = React.useState<Permission | null>(null);
   const [isCreateOpen, setCreateOpen] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
   const loadPermissions = React.useCallback(async () => {
     setIsRefreshing(true);
@@ -77,10 +84,15 @@ export default function PermissionsPage() {
     setSelectedPermission(permission);
   };
   
+  const handleCloseDetails = () => {
+    setSelectedPermission(null);
+    setRowSelection({});
+  };
+
   return (
     <>
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className={cn("transition-all duration-300", selectedPermission ? "lg:col-span-2" : "lg:col-span-3")}>
+    <div className={cn("grid grid-cols-1 gap-4", selectedPermission ? "lg:grid-cols-2" : "lg:grid-cols-1")}>
+        <div className={cn("transition-all duration-300", selectedPermission ? "lg:col-span-1" : "lg:col-span-2")}>
             <Card>
                 <CardHeader>
                     <CardTitle>Permissions</CardTitle>
@@ -97,19 +109,34 @@ export default function PermissionsPage() {
                     onCreate={() => setCreateOpen(true)}
                     onRefresh={loadPermissions}
                     isRefreshing={isRefreshing}
+                    rowSelection={rowSelection}
+                    setRowSelection={setRowSelection}
                     />
                 </CardContent>
             </Card>
         </div>
         {selectedPermission && (
-            <div className="lg:col-span-1">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Details for {selectedPermission.name}</CardTitle>
-                        <CardDescription>Permission ID: {selectedPermission.id}</CardDescription>
+             <div className="lg:col-span-1">
+                 <Card>
+                    <CardHeader className="flex flex-row items-start justify-between">
+                        <div>
+                            <CardTitle>Details for {selectedPermission.name}</CardTitle>
+                            <CardDescription>Permission ID: {selectedPermission.id}</CardDescription>
+                        </div>
+                         <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                            <X className="h-5 w-5" />
+                            <span className="sr-only">Close details</span>
+                        </Button>
                     </CardHeader>
                     <CardContent>
-                        <p>Details for the selected permission will be displayed here.</p>
+                        <Tabs defaultValue="users" className="w-full">
+                            <TabsList className="h-auto items-center justify-start flex-wrap">
+                                <TabsTrigger value="users">Users</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="users">
+                                <PermissionUsers permissionId={selectedPermission.id} />
+                            </TabsContent>
+                        </Tabs>
                     </CardContent>
                 </Card>
             </div>
@@ -164,5 +191,3 @@ export default function PermissionsPage() {
     </>
   );
 }
-
-    
