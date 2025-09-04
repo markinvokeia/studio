@@ -24,17 +24,20 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { format, addMonths } from 'date-fns';
+import { format, addMonths, parse } from 'date-fns';
 
 const localizer = momentLocalizer(moment);
 
 const transformAppointmentsToEvents = (appointments: Appointment[]) => {
     return appointments.map(apt => {
         if (!apt.date || !apt.time) return null;
+        // Combine date and time and parse. Handles various time formats.
         const start = moment(`${apt.date} ${apt.time}`, 'YYYY-MM-DD HH:mm:ss').toDate();
         if (!moment(start).isValid()) return null;
 
+        // Default to 1-hour duration if no end time is provided
         const end = moment(start).add(1, 'hour').toDate(); 
+        
         return {
             title: `${apt.service_name} - ${apt.user_name}`,
             start,
@@ -44,23 +47,14 @@ const transformAppointmentsToEvents = (appointments: Appointment[]) => {
     }).filter((event): event is { title: string; start: Date; end: Date; resource: Appointment } => event !== null);
 };
 
-const CustomEvent = ({ event }: EventProps) => {
-    const { resource } = event;
-    if (!resource) return null;
-    const status = resource.status as Appointment['status'];
+const CustomEvent = ({ event }: EventProps<{ resource: Appointment }>) => {
+    if (!event.resource) return null;
+    const status = event.resource.status;
 
-    const variantMap: Record<Appointment['status'], 'success' | 'default' | 'info' | 'destructive'> = {
-      completed: 'success',
-      confirmed: 'default',
-      pending: 'info',
-      cancelled: 'destructive',
-    };
-    const variant = variantMap[status] ?? 'default';
-    
     return (
         <div className="flex flex-col p-1 text-xs">
             <span className="font-semibold">{event.title}</span>
-            <Badge variant={variant} className="capitalize w-fit mt-1">{status}</Badge>
+            <Badge variant={status === 'completed' ? 'success' : status === 'pending' ? 'info' : 'default'} className="capitalize w-fit mt-1">{status}</Badge>
         </div>
     );
 };
@@ -92,6 +86,7 @@ const CustomToolbar = ({ label, onNavigate, onView, view, views }: ToolbarProps)
 
 async function getAppointments(): Promise<Appointment[]> {
     const now = new Date();
+    // Fetch a wider range of appointments, e.g., one year back and one year forward
     const startDate = addMonths(now, -6);
     const endDate = addMonths(now, 6);
     const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
@@ -184,7 +179,7 @@ export default function AppointmentsPage() {
           }}
           eventPropGetter={(event) => {
             if (!event.resource) return {className: ''};
-            const status = event.resource.status as Appointment['status'];
+            const status = event.resource.status;
             return {
                 className: `rbc-event-${status}`
             };
