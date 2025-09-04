@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -28,6 +29,8 @@ const columns: ColumnDef<AccessLog>[] = [
     { accessorKey: 'action', header: ({column}) => <DataTableColumnHeader column={column} title="Action" /> },
     { accessorKey: 'success', header: ({column}) => <DataTableColumnHeader column={column} title="Success" />, cell: ({row}) => row.original.success ? "Yes" : "No" },
     { accessorKey: 'ip_address', header: ({column}) => <DataTableColumnHeader column={column} title="IP Address" /> },
+    { accessorKey: 'channel', header: ({column}) => <DataTableColumnHeader column={column} title="Channel" /> },
+    { accessorKey: 'details', header: ({column}) => <DataTableColumnHeader column={column} title="Details" /> },
     {
         id: 'actions',
         cell: ({ row }) => {
@@ -87,6 +90,8 @@ async function getAccessLogs(pagination: PaginationState): Promise<GetAccessLogs
             action: apiLog.action,
             success: apiLog.success,
             ip_address: apiLog.ip_address,
+            channel: apiLog.channel,
+            details: apiLog.details,
         }));
         
         return { accessLogs: mappedLogs, total };
@@ -107,6 +112,7 @@ export default function AccessLogPage() {
     });
      const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
         id: false,
+        ip_address: false,
     });
 
     const loadLogs = React.useCallback(async () => {

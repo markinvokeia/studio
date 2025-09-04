@@ -173,6 +173,8 @@ export type AccessLog = {
   action: 'login' | 'logout' | 'failed_login';
   success: boolean;
   ip_address: string;
+  channel?: string;
+  details?: string;
 };
 
 export type ErrorLog = {
