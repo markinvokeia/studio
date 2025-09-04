@@ -119,6 +119,26 @@ const columns: ColumnDef<Quote>[] = [
     },
   },
   {
+    accessorKey: 'billing_status',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Billing Status" />
+    ),
+     cell: ({ row }) => {
+      const status = row.getValue('billing_status') as string;
+      const variant = {
+        invoiced: 'success',
+        'partially invoiced': 'info',
+        'not invoiced': 'outline',
+      }[status.toLowerCase()] ?? ('default'as any);
+
+      return (
+        <Badge variant={variant} className="capitalize">
+          {status}
+        </Badge>
+      );
+    },
+  },
+  {
     id: 'actions',
     cell: ({ row }) => {
       const quote = row.original;

@@ -42,6 +42,7 @@ export type Quote = {
   total: number;
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'pending' | 'confirmed';
   payment_status: 'unpaid' | 'paid' | 'partial';
+  billing_status: string;
   user_name?: string;
   userEmail?: string;
   createdAt: string;

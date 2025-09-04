@@ -36,6 +36,7 @@ async function getQuotes(): Promise<Quote[]> {
       total: apiQuote.total || 0,
       status: apiQuote.status || 'draft',
       payment_status: apiQuote.payment_status || 'unpaid',
+      billing_status: apiQuote.billing_status || 'not invoiced',
       userName: apiQuote.user_name || 'No Name',
       userEmail: apiQuote.userEmail || 'no-email@example.com',
       createdAt: apiQuote.createdAt || new Date().toISOString().split('T')[0],
