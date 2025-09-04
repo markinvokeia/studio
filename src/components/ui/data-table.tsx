@@ -45,6 +45,8 @@ interface DataTableProps<TData, TValue> {
   pagination?: PaginationState;
   onPaginationChange?: React.Dispatch<React.SetStateAction<PaginationState>>;
   manualPagination?: boolean;
+  columnVisibility?: VisibilityState;
+  onColumnVisibilityChange?: React.Dispatch<React.SetStateAction<VisibilityState>>;
 }
 
 export function DataTable<TData, TValue>({
@@ -63,9 +65,11 @@ export function DataTable<TData, TValue>({
   pagination,
   onPaginationChange,
   manualPagination = false,
+  columnVisibility,
+  onColumnVisibilityChange,
 }: DataTableProps<TData, TValue>) {
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
-  const [columnVisibility, setColumnVisibility] =
+  const [internalColumnVisibility, setInternalColumnVisibility] =
     React.useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -80,7 +84,7 @@ export function DataTable<TData, TValue>({
     pageCount: pageCount,
     state: {
       sorting,
-      columnVisibility,
+      columnVisibility: columnVisibility ?? internalColumnVisibility,
       rowSelection: rowSelection ?? internalRowSelection,
       columnFilters,
       ...(isControlledPagination && { pagination }),
@@ -90,7 +94,7 @@ export function DataTable<TData, TValue>({
     onRowSelectionChange: setRowSelection ?? setInternalRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
+    onColumnVisibilityChange: onColumnVisibilityChange ?? setInternalColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),

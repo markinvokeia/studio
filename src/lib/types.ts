@@ -157,11 +157,13 @@ export type SystemConfiguration = {
 
 export type AuditLog = {
   id: string;
-  timestamp: string;
+  changed_at: string;
   changed_by: string;
   table_name: string;
   record_id: string;
   operation: 'create' | 'update' | 'delete';
+  old_value: any;
+  new_value: any;
 };
 
 export type AccessLog = {

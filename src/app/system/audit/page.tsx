@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ColumnDef, PaginationState } from '@tanstack/react-table';
+import { ColumnDef, PaginationState, VisibilityState } from '@tanstack/react-table';
 import { AuditLog } from '@/lib/types';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
@@ -19,12 +19,26 @@ import { MoreHorizontal } from 'lucide-react';
 
 
 const columns: ColumnDef<AuditLog>[] = [
-    { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title="ID" /> },
-    { accessorKey: 'timestamp', header: ({column}) => <DataTableColumnHeader column={column} title="Timestamp" /> },
-    { accessorKey: 'changed_by', header: ({column}) => <DataTableColumnHeader column={column} title="Changed By" /> },
+    { 
+        accessorKey: 'id', 
+        header: ({column}) => <DataTableColumnHeader column={column} title="ID" />,
+        enableHiding: true,
+    },
+    { accessorKey: 'changed_at', header: ({column}) => <DataTableColumnHeader column={column} title="Changed At" /> },
     { accessorKey: 'table_name', header: ({column}) => <DataTableColumnHeader column={column} title="Table" /> },
     { accessorKey: 'record_id', header: ({column}) => <DataTableColumnHeader column={column} title="Record ID" /> },
     { accessorKey: 'operation', header: ({column}) => <DataTableColumnHeader column={column} title="Operation" /> },
+    { 
+        accessorKey: 'old_value', 
+        header: ({column}) => <DataTableColumnHeader column={column} title="Old Value" />,
+        cell: ({ row }) => <pre className="text-xs">{JSON.stringify(row.original.old_value, null, 2)}</pre>
+    },
+    { 
+        accessorKey: 'new_value', 
+        header: ({column}) => <DataTableColumnHeader column={column} title="New Value" />,
+        cell: ({ row }) => <pre className="text-xs">{JSON.stringify(row.original.new_value, null, 2)}</pre>
+    },
+    { accessorKey: 'changed_by', header: ({column}) => <DataTableColumnHeader column={column} title="Changed By" /> },
     {
         id: 'actions',
         cell: ({ row }) => {
@@ -80,11 +94,13 @@ async function getAuditLogs(pagination: PaginationState): Promise<GetAuditLogsRe
 
         const mappedLogs = logsData.map((apiLog: any) => ({
             id: apiLog.id ? String(apiLog.id) : `aud_${Math.random().toString(36).substr(2, 9)}`,
-            timestamp: apiLog.timestamp,
+            changed_at: apiLog.changed_at,
             changed_by: apiLog.changed_by_id,
             table_name: apiLog.table_name,
             record_id: String(apiLog.record_id),
             operation: apiLog.operation,
+            old_value: apiLog.old_value,
+            new_value: apiLog.new_value,
         }));
         
         return { auditLogs: mappedLogs, total };
@@ -102,6 +118,9 @@ export default function AuditLogPage() {
     const [pagination, setPagination] = React.useState<PaginationState>({
         pageIndex: 0,
         pageSize: 10,
+    });
+    const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
+        id: false,
     });
 
     const loadLogs = React.useCallback(async () => {
@@ -134,6 +153,8 @@ export default function AuditLogPage() {
                     pagination={pagination}
                     onPaginationChange={setPagination}
                     manualPagination={true}
+                    columnVisibility={columnVisibility}
+                    onColumnVisibilityChange={setColumnVisibility}
                 />
             </CardContent>
         </Card>
