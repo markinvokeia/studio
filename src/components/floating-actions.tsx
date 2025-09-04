@@ -18,28 +18,28 @@ export function FloatingActions() {
 
   return (
     <>
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
+      <div className="fixed bottom-4 left-4 z-50 flex flex-col items-start gap-2">
          <Link href="https://wa.me/59894024661" target="_blank" rel="noopener noreferrer">
-          <Button size="icon" className="rounded-full h-14 w-14 bg-green-500 text-white shadow-lg hover:bg-green-600">
-            <WhatsAppIcon className="h-7 w-7" />
+          <Button size="icon" className="rounded-full h-12 w-12 bg-green-500 text-white shadow-lg hover:bg-green-600">
+            <WhatsAppIcon className="h-6 w-6" />
             <span className="sr-only">Open WhatsApp</span>
           </Button>
         </Link>
          <Link href="https://t.me/InvokIA_bot" target="_blank" rel="noopener noreferrer">
-          <Button size="icon" className="rounded-full h-14 w-14 bg-blue-500 text-white shadow-lg hover:bg-blue-600">
-            <TelegramIcon className="h-7 w-7" />
+          <Button size="icon" className="rounded-full h-12 w-12 bg-blue-500 text-white shadow-lg hover:bg-blue-600">
+            <TelegramIcon className="h-6 w-6" />
             <span className="sr-only">Open Telegram</span>
           </Button>
         </Link>
-        <Button onClick={toggleChat} size="icon" className="rounded-full h-14 w-14 bg-primary text-primary-foreground shadow-lg hover:bg-primary/90">
-          {isOpen ? <X className="h-6 w-6" /> : <MessageSquare className="h-6 w-6" />}
+        <Button onClick={toggleChat} size="icon" className="rounded-full h-12 w-12 bg-primary text-primary-foreground shadow-lg hover:bg-primary/90">
+          {isOpen ? <X className="h-5 w-5" /> : <MessageSquare className="h-5 w-5" />}
           <span className="sr-only">{isOpen ? 'Close Chat' : 'Open Chat'}</span>
         </Button>
       </div>
 
       <div
         className={cn(
-          'fixed bottom-20 right-4 z-50 w-full max-w-sm rounded-lg border bg-card shadow-lg transition-all duration-300 ease-in-out',
+          'fixed bottom-20 left-4 z-50 w-full max-w-sm rounded-lg border bg-card shadow-lg transition-all duration-300 ease-in-out',
           isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
         )}
       >
