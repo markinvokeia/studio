@@ -104,8 +104,8 @@ export default function AppointmentsPage() {
                 return isToday(aptDate);
             case 'this_week': {
                 const now = new Date();
-                const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-                const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+                const weekStart = startOfWeek(now, { weekStartsOn: 0 });
+                const weekEnd = endOfWeek(now, { weekStartsOn: 0 });
                 return isWithinInterval(aptDate, { start: weekStart, end: weekEnd });
             }
             case 'this_month':
