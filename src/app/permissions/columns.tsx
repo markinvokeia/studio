@@ -51,6 +51,12 @@ export const permissionColumns: ColumnDef<Permission>[] = [
     ),
   },
   {
+    accessorKey: 'description',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Description" />
+    ),
+  },
+  {
     accessorKey: 'action',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Action" />

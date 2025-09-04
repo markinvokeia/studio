@@ -15,6 +15,10 @@ const columns: ColumnDef<Permission>[] = [
     header: ({ column }) => <DataTableColumnHeader column={column} title="Permission" />,
   },
   {
+    accessorKey: 'description',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Description" />,
+  },
+  {
     accessorKey: 'action',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Action" />,
     cell: ({ row }) => <Badge variant="secondary" className="capitalize">{row.getValue('action')}</Badge>,
@@ -49,6 +53,7 @@ async function getPermissionsForRole(roleId: string): Promise<Permission[]> {
       name: apiPerm.name || 'Unknown Permission',
       action: apiPerm.action || 'N/A',
       resource: apiPerm.resource || 'N/A',
+      description: apiPerm.description || 'No description',
     }));
   } catch (error) {
     console.error("Failed to fetch role permissions:", error);

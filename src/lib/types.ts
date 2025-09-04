@@ -3,6 +3,7 @@
 
 
 
+
 export type User = {
   id: string;
   name: string;
@@ -22,6 +23,7 @@ export type Permission = {
   name: string;
   action: string;
   resource: string;
+  description?: string;
 };
 
 export type UserRole = {

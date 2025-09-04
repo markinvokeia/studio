@@ -47,6 +47,7 @@ async function getPermissions(): Promise<Permission[]> {
       name: apiPerm.name || 'No Name',
       action: apiPerm.action || 'No Action',
       resource: apiPerm.resource || 'No Resource',
+      description: apiPerm.description || 'No description',
     }));
   } catch (error) {
     console.error("Failed to fetch permissions:", error);
