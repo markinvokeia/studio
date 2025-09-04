@@ -17,7 +17,11 @@ import { MoreHorizontal } from 'lucide-react';
 export const appointmentColumns: ColumnDef<Appointment>[] = [
     { accessorKey: 'service_name', header: ({column}) => <DataTableColumnHeader column={column} title="Service" /> },
     { accessorKey: 'user_name', header: ({column}) => <DataTableColumnHeader column={column} title="User" /> },
-    { accessorKey: 'date', header: ({column}) => <DataTableColumnHeader column={column} title="Date" /> },
+    { 
+      accessorKey: 'date', 
+      header: ({column}) => <DataTableColumnHeader column={column} title="Date" />,
+      size: 200,
+    },
     { accessorKey: 'time', header: ({column}) => <DataTableColumnHeader column={column} title="Time" /> },
     { 
       accessorKey: 'status', 
