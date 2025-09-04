@@ -1,10 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { accessLogs } from '@/lib/data';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef, PaginationState, VisibilityState } from '@tanstack/react-table';
 import { AccessLog } from '@/lib/types';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
@@ -19,7 +18,11 @@ import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 
 const columns: ColumnDef<AccessLog>[] = [
-    { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title="ID" /> },
+    { 
+        accessorKey: 'id', 
+        header: ({column}) => <DataTableColumnHeader column={column} title="ID" />,
+        enableHiding: true,
+    },
     { accessorKey: 'user_id', header: ({column}) => <DataTableColumnHeader column={column} title="User ID" /> },
     { accessorKey: 'timestamp', header: ({column}) => <DataTableColumnHeader column={column} title="Timestamp" /> },
     { accessorKey: 'action', header: ({column}) => <DataTableColumnHeader column={column} title="Action" /> },
@@ -47,35 +50,99 @@ const columns: ColumnDef<AccessLog>[] = [
     },
 ];
 
-export default function AccessLogPage() {
-    const [data, setData] = React.useState<AccessLog[]>(accessLogs);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
+type GetAccessLogsResponse = {
+  accessLogs: AccessLog[];
+  total: number;
+};
 
-    const handleRefresh = () => {
-        setIsRefreshing(true);
-        setTimeout(() => {
-            setData([...accessLogs]);
-            setIsRefreshing(false);
-        }, 1000);
-    };
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Access Log</CardTitle>
-        <CardDescription>Monitor user access and login attempts.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <DataTable 
-            columns={columns} 
-            data={data} 
-            filterColumnId="user_id" 
-            filterPlaceholder="Filter logs by user ID..."
-            onRefresh={handleRefresh}
-            isRefreshing={isRefreshing}
-        />
-      </CardContent>
-    </Card>
-  );
+async function getAccessLogs(pagination: PaginationState): Promise<GetAccessLogsResponse> {
+    try {
+        const params = new URLSearchParams({
+            page: (pagination.pageIndex + 1).toString(),
+            limit: pagination.pageSize.toString(),
+        });
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/access_logs?${params.toString()}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/json',
+            },
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+        }
+
+        const responseData = await response.json();
+        const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
+        
+        const logsData = Array.isArray(data.data) ? data.data : (data.access_logs || data.data || data.result || []);
+        const total = data.total || (Array.isArray(data) ? data.length : 0);
+
+        const mappedLogs = logsData.map((apiLog: any) => ({
+            id: apiLog.id ? String(apiLog.id) : `acc_${Math.random().toString(36).substr(2, 9)}`,
+            user_id: apiLog.user_id,
+            timestamp: apiLog.timestamp,
+            action: apiLog.action,
+            success: apiLog.success,
+            ip_address: apiLog.ip_address,
+        }));
+        
+        return { accessLogs: mappedLogs, total };
+    } catch (error) {
+        console.error("Failed to fetch access logs:", error);
+        return { accessLogs: [], total: 0 };
+    }
 }
 
-    
+
+export default function AccessLogPage() {
+    const [data, setData] = React.useState<AccessLog[]>([]);
+    const [logCount, setLogCount] = React.useState(0);
+    const [isRefreshing, setIsRefreshing] = React.useState(false);
+    const [pagination, setPagination] = React.useState<PaginationState>({
+        pageIndex: 0,
+        pageSize: 10,
+    });
+     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
+        id: false,
+    });
+
+    const loadLogs = React.useCallback(async () => {
+        setIsRefreshing(true);
+        const { accessLogs, total } = await getAccessLogs(pagination);
+        setData(accessLogs);
+        setLogCount(total);
+        setIsRefreshing(false);
+    }, [pagination]);
+
+    React.useEffect(() => {
+        loadLogs();
+    }, [loadLogs]);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Access Log</CardTitle>
+                <CardDescription>Monitor user access and login attempts.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <DataTable 
+                    columns={columns} 
+                    data={data} 
+                    filterColumnId="user_id" 
+                    filterPlaceholder="Filter logs by user ID..."
+                    onRefresh={loadLogs}
+                    isRefreshing={isRefreshing}
+                    pageCount={Math.ceil(logCount / pagination.pageSize)}
+                    pagination={pagination}
+                    onPaginationChange={setPagination}
+                    manualPagination={true}
+                    columnVisibility={columnVisibility}
+                    onColumnVisibilityChange={setColumnVisibility}
+                />
+            </CardContent>
+        </Card>
+    );
+}
