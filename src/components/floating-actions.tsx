@@ -31,7 +31,7 @@ export function FloatingActions() {
             <span className="sr-only">Open Telegram</span>
           </Button>
         </Link>
-        <Button onClick={toggleChat} size="icon" className="rounded-full h-12 w-12 bg-primary text-primary-foreground shadow-lg hover:bg-primary/90">
+        <Button onClick={toggleChat} size="icon" className="rounded-full h-12 w-12 bg-fuchsia-600 text-primary-foreground shadow-lg hover:bg-fuchsia-700">
           {isOpen ? <X className="h-5 w-5" /> : <MessageSquare className="h-5 w-5" />}
           <span className="sr-only">{isOpen ? 'Close Chat' : 'Open Chat'}</span>
         </Button>
