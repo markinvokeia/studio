@@ -46,12 +46,14 @@ const columns: ColumnDef<Quote>[] = [
     },
     enableSorting: false,
     enableHiding: false,
+    size: 20,
   },
   {
     accessorKey: 'id',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Quote ID" />
     ),
+    size: 50,
   },
   {
     accessorKey: 'user_name',

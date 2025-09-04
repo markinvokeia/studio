@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -123,7 +124,7 @@ export function DataTable<TData, TValue>({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} style={{ width: header.getSize() !== 150 ? `${header.getSize()}px` : undefined }}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
