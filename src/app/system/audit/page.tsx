@@ -31,12 +31,12 @@ const columns: ColumnDef<AuditLog>[] = [
     { 
         accessorKey: 'old_value', 
         header: ({column}) => <DataTableColumnHeader column={column} title="Old Value" />,
-        cell: ({ row }) => <pre className="text-xs">{JSON.stringify(row.original.old_value, null, 2)}</pre>
+        cell: ({ row }) => <pre className="text-xs whitespace-pre-wrap max-w-xs break-all">{JSON.stringify(row.original.old_value, null, 2)}</pre>
     },
     { 
         accessorKey: 'new_value', 
         header: ({column}) => <DataTableColumnHeader column={column} title="New Value" />,
-        cell: ({ row }) => <pre className="text-xs">{JSON.stringify(row.original.new_value, null, 2)}</pre>
+        cell: ({ row }) => <pre className="text-xs whitespace-pre-wrap max-w-xs break-all">{JSON.stringify(row.original.new_value, null, 2)}</pre>
     },
     { accessorKey: 'changed_by', header: ({column}) => <DataTableColumnHeader column={column} title="Changed By" /> },
     {
