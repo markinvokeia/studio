@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { addMonths, format, parseISO, isSameDay, isToday, isThisWeek, isThisMonth, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { addMonths, format, parseISO, isSameDay, isToday, isThisMonth, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTable } from '@/components/ui/data-table';
 import { appointmentColumns } from './columns';
 import { cn } from '@/lib/utils';
+import { SortingState } from '@tanstack/react-table';
 
 async function getAppointments(): Promise<Appointment[]> {
     const now = new Date();
@@ -84,6 +85,9 @@ export default function AppointmentsPage() {
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
   const [isCreateOpen, setCreateOpen] = React.useState(false);
   const [dateFilter, setDateFilter] = React.useState<'today' | 'this_week' | 'this_month'>('today');
+  const [sorting, setSorting] = React.useState<SortingState>([
+    { id: 'date', desc: false },
+  ]);
 
   React.useEffect(() => {
     getAppointments().then(setAppointments);
@@ -221,6 +225,8 @@ export default function AppointmentsPage() {
                 data={filteredAppointments} 
                 filterColumnId='service_name'
                 filterPlaceholder='Filter by service...'
+                sorting={sorting}
+                onSortingChange={setSorting}
               />
             </TabsContent>
           </Tabs>
