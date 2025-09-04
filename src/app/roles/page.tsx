@@ -16,6 +16,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RoleUsers } from '@/components/roles/role-users';
+import { RolePermissions } from '@/components/roles/role-permissions';
+import { X } from 'lucide-react';
+import { RowSelectionState } from '@tanstack/react-table';
 
 async function getRoles(): Promise<Role[]> {
   try {
@@ -51,6 +56,7 @@ export default function RolesPage() {
   const [selectedRole, setSelectedRole] = React.useState<Role | null>(null);
   const [isCreateOpen, setCreateOpen] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
   const loadRoles = React.useCallback(async () => {
     setIsRefreshing(true);
@@ -68,10 +74,15 @@ export default function RolesPage() {
     setSelectedRole(role);
   };
   
+  const handleCloseDetails = () => {
+    setSelectedRole(null);
+    setRowSelection({});
+  };
+
   return (
     <>
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className={cn("transition-all duration-300", selectedRole ? "lg:col-span-2" : "lg:col-span-3")}>
+    <div className={cn("grid grid-cols-1 gap-4", selectedRole ? "lg:grid-cols-2" : "lg:grid-cols-1")}>
+        <div className={cn("transition-all duration-300", selectedRole ? "lg:col-span-1" : "lg:col-span-2")}>
             <Card>
                 <CardHeader>
                     <CardTitle>Roles</CardTitle>
@@ -88,19 +99,38 @@ export default function RolesPage() {
                     onCreate={() => setCreateOpen(true)}
                     onRefresh={loadRoles}
                     isRefreshing={isRefreshing}
+                    rowSelection={rowSelection}
+                    setRowSelection={setRowSelection}
                     />
                 </CardContent>
             </Card>
         </div>
         {selectedRole && (
             <div className="lg:col-span-1">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Details for {selectedRole.name}</CardTitle>
-                        <CardDescription>Role ID: {selectedRole.id}</CardDescription>
+                 <Card>
+                    <CardHeader className="flex flex-row items-start justify-between">
+                        <div>
+                            <CardTitle>Details for {selectedRole.name}</CardTitle>
+                            <CardDescription>Role ID: {selectedRole.id}</CardDescription>
+                        </div>
+                         <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                            <X className="h-5 w-5" />
+                            <span className="sr-only">Close details</span>
+                        </Button>
                     </CardHeader>
                     <CardContent>
-                        <p>Details for the selected role will be displayed here.</p>
+                        <Tabs defaultValue="users" className="w-full">
+                            <TabsList className="h-auto items-center justify-start flex-wrap">
+                                <TabsTrigger value="users">Users</TabsTrigger>
+                                <TabsTrigger value="permissions">Permissions</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="users">
+                                <RoleUsers roleId={selectedRole.id} />
+                            </TabsContent>
+                            <TabsContent value="permissions">
+                                <RolePermissions roleId={selectedRole.id} />
+                            </TabsContent>
+                        </Tabs>
                     </CardContent>
                 </Card>
             </div>
@@ -114,7 +144,7 @@ export default function RolesPage() {
           <DialogDescription>
             Fill in the details below to add a new role.
           </DialogDescription>
-        </DialogHeader>
+        </Header>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
