@@ -30,8 +30,9 @@ const localizer = momentLocalizer(moment);
 const transformAppointmentsToEvents = (appointments: Appointment[]) => {
     return appointments.map(apt => {
         if (!apt.date || !apt.time) return null;
-        const start = moment(`${apt.date} ${apt.time}`).toDate();
-        // Assuming 1-hour appointments if no end time is provided
+        const start = moment(`${apt.date} ${apt.time}`, 'YYYY-MM-DD HH:mm:ss').toDate();
+        if (!moment(start).isValid()) return null;
+
         const end = moment(start).add(1, 'hour').toDate(); 
         return {
             title: `${apt.service_name} - ${apt.user_name}`,
@@ -47,12 +48,13 @@ const CustomEvent = ({ event }: EventProps) => {
     if (!resource) return null;
     const status = resource.status as Appointment['status'];
 
-    const variant = {
+    const variantMap:  Record<Appointment['status'], 'success' | 'default' | 'info' | 'destructive'> = {
       completed: 'success',
       confirmed: 'default',
       pending: 'info',
       cancelled: 'destructive',
-    }[status.toLowerCase() as keyof typeof status] ?? 'default' as any;
+    };
+    const variant = variantMap[status] ?? 'default';
     
     return (
         <div className="flex flex-col p-1 text-xs">
@@ -77,7 +79,7 @@ const CustomToolbar = ({ label, onNavigate, onView, view, views }: ToolbarProps)
                         <Button variant="outline" className="capitalize">{view}</Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                        {Array.isArray(views) && views.map((v) => (
+                        {(views as View[]).map((v) => (
                             <DropdownMenuItem key={v} onClick={() => onView(v)}>{v}</DropdownMenuItem>
                         ))}
                     </DropdownMenuContent>
@@ -102,9 +104,7 @@ async function getAppointments(): Promise<Appointment[]> {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
             method: 'GET',
             mode: 'cors',
-            headers: {
-                'Accept': 'application/json',
-            },
+            headers: { 'Accept': 'application/json' },
             cache: 'no-store',
         });
 
@@ -114,19 +114,30 @@ async function getAppointments(): Promise<Appointment[]> {
         }
 
         const data = await response.json();
-        const appointmentsData = Array.isArray(data) ? data : (data.appointments || data.data || data.result || []);
+        // The API returns an array containing an object with a `filteredEvents` property
+        const appointmentsData = (Array.isArray(data) && data.length > 0 && data[0].filteredEvents) ? data[0].filteredEvents : [];
+        
+        if (!Array.isArray(appointmentsData)) {
+            console.error("Fetched data is not an array:", appointmentsData);
+            return [];
+        }
 
         return appointmentsData.map((apiAppt: any) => {
-            const appointmentDateTime = new Date(apiAppt.start_time || apiAppt.start.dateTime);
+            const appointmentDateTimeStr = apiAppt.start_time || (apiAppt.start && apiAppt.start.dateTime);
+            if (!appointmentDateTimeStr) return null;
+
+            const appointmentDateTime = new Date(appointmentDateTimeStr);
+            if (isNaN(appointmentDateTime.getTime())) return null;
+
             return {
                 id: apiAppt.id ? String(apiAppt.id) : `appt_${Math.random().toString(36).substr(2, 9)}`,
-                user_name: apiAppt.user_name || 'N/A',
+                user_name: apiAppt.user_name || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees[0].email : 'N/A'),
                 service_name: apiAppt.summary || 'No Service Name',
                 date: format(appointmentDateTime, 'yyyy-MM-dd'),
                 time: format(appointmentDateTime, 'HH:mm:ss'),
                 status: apiAppt.status || 'confirmed',
             };
-        });
+        }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
         console.error("Failed to fetch appointments:", error);
         return [];
