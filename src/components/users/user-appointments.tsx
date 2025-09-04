@@ -53,7 +53,7 @@ async function getAppointmentsForUser(user: User | null): Promise<Appointment[]>
     const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
 
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appoitments', {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments', {
             method: 'POST',
             mode: 'cors',
             headers: {
