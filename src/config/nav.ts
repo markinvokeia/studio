@@ -17,6 +17,7 @@ import {
   UserCheck,
   CalendarClock,
   CalendarOff,
+  Calendar,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -33,6 +34,11 @@ export const navItems: NavItem[] = [
     title: 'Dashboard',
     href: '/',
     icon: Home,
+  },
+  {
+    title: 'Appointments',
+    href: '/appointments',
+    icon: Calendar,
   },
   {
     title: 'Users & Access',

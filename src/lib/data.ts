@@ -90,11 +90,11 @@ export const roles: Role[] = [
 ];
 
 export const permissions: Permission[] = [
-  { id: 'perm_1', name: 'Create User', action: 'create', resource: 'user' },
-  { id: 'perm_2', name: 'Read User', action: 'read', resource: 'user' },
-  { id: 'perm_3', name: 'Update User', action: 'update', resource: 'user' },
-  { id: 'perm_4', name: 'Delete User', action: 'delete', resource: 'user' },
-  { id: 'perm_5', name: 'Manage Billing', action: 'manage', resource: 'billing' },
+  { id: 'perm_1', name: 'Create User', action: 'create', resource: 'user', description: 'Allows creating new users.' },
+  { id: 'perm_2', name: 'Read User', action: 'read', resource: 'user', description: 'Allows viewing user profiles.' },
+  { id: 'perm_3', name: 'Update User', action: 'update', resource: 'user', description: 'Allows editing user details.' },
+  { id: 'perm_4', name: 'Delete User', action: 'delete', resource: 'user', description: 'Allows deleting users.' },
+  { id: 'perm_5', name: 'Manage Billing', action: 'manage', resource: 'billing', description: 'Full access to billing and invoices.' },
 ];
 
 export const services: Service[] = [
@@ -241,11 +241,13 @@ export const messages: Message[] = [
 
 
 export const appointments: Appointment[] = [
-  { id: 'apt_1', service_name: 'Initial Consultation', date: '2024-06-01', time: '10:00 AM', status: 'completed' },
-  { id: 'apt_2', service_name: 'Follow-up', date: '2024-06-15', time: '02:30 PM', status: 'confirmed' },
-  { id: 'apt_3', service_name: 'Dental Cleaning', date: '2024-07-01', time: '11:00 AM', status: 'confirmed' },
-  { id: 'apt_4', service_name: 'Check-up', date: '2024-05-20', time: '09:00 AM', status: 'cancelled' },
-  { id: 'apt_5', service_name: 'Teeth Whitening', date: '2024-08-01', time: '04:00 PM', status: 'pending' },
+  { id: 'apt_1', user_name: 'Alice Johnson', service_name: 'Initial Consultation', date: '2024-06-01', time: '10:00:00', status: 'completed' },
+  { id: 'apt_2', user_name: 'Bob Williams', service_name: 'Follow-up', date: '2024-06-15', time: '14:30:00', status: 'confirmed' },
+  { id: 'apt_3', user_name: 'Charlie Brown', service_name: 'Dental Cleaning', date: '2024-07-01', time: '11:00:00', status: 'confirmed' },
+  { id: 'apt_4', user_name: 'Diana Miller', service_name: 'Check-up', date: '2024-05-20', time: '09:00:00', status: 'cancelled' },
+  { id: 'apt_5', user_name: 'Ethan Davis', service_name: 'Teeth Whitening', date: '2024-08-01', time: '16:00:00', status: 'pending' },
+  { id: 'apt_6', user_name: 'Alice Johnson', service_name: 'Dental Cleaning', date: '2024-07-10', time: '09:30:00', status: 'confirmed' },
+  { id: 'apt_7', user_name: 'Charlie Brown', service_name: 'Follow-up', date: '2024-07-22', time: '15:00:00', status: 'confirmed' },
 ];
 
 export const userLogs: UserLog[] = [

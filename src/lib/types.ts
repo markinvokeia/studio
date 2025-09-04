@@ -4,6 +4,7 @@
 
 
 
+
 export type User = {
   id: string;
   name: string;
@@ -204,6 +205,7 @@ export type Message = {
 
 export type Appointment = {
   id: string;
+  user_name?: string;
   service_name: string;
   date: string;
   time: string;
