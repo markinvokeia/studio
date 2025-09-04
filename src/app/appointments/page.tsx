@@ -88,10 +88,19 @@ export default function AppointmentsPage() {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'date', desc: false },
   ]);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+  const loadAppointments = React.useCallback(async () => {
+    setIsRefreshing(true);
+    const fetchedAppointments = await getAppointments();
+    setAppointments(fetchedAppointments);
+    setIsRefreshing(false);
+  }, []);
 
   React.useEffect(() => {
-    getAppointments().then(setAppointments);
-  }, []);
+    loadAppointments();
+  }, [loadAppointments]);
+
 
   const selectedDayAppointments = React.useMemo(() => {
     if (!selectedDate) return [];
@@ -227,6 +236,8 @@ export default function AppointmentsPage() {
                 filterPlaceholder='Filter by service...'
                 sorting={sorting}
                 onSortingChange={setSorting}
+                onRefresh={loadAppointments}
+                isRefreshing={isRefreshing}
               />
             </TabsContent>
           </Tabs>
