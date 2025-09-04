@@ -41,7 +41,7 @@ const transformAppointmentsToEvents = (appointments: Appointment[]) => {
             end,
             resource: apt,
         };
-    }).filter(event => event !== null);
+    }).filter((event): event is { title: string; start: Date; end: Date; resource: Appointment } => event !== null);
 };
 
 const CustomEvent = ({ event }: EventProps) => {
@@ -49,7 +49,7 @@ const CustomEvent = ({ event }: EventProps) => {
     if (!resource) return null;
     const status = resource.status as Appointment['status'];
 
-    const variantMap:  Record<Appointment['status'], 'success' | 'default' | 'info' | 'destructive'> = {
+    const variantMap: Record<Appointment['status'], 'success' | 'default' | 'info' | 'destructive'> = {
       completed: 'success',
       confirmed: 'default',
       pending: 'info',
@@ -68,16 +68,16 @@ const CustomEvent = ({ event }: EventProps) => {
 const CustomToolbar = ({ label, onNavigate, onView, view, views }: ToolbarProps) => {
     return (
         <div className="rbc-toolbar">
-            <div className="rbc-btn-group">
-                <Button variant="outline" size="icon" onClick={() => onNavigate('PREV')}><ChevronLeft /></Button>
-                <Button variant="outline" onClick={() => onNavigate('TODAY')}>Today</Button>
-                <Button variant="outline" size="icon" onClick={() => onNavigate('NEXT')}><ChevronRight /></Button>
-            </div>
-            <div className="rbc-toolbar-label">{label}</div>
-            <div className="rbc-btn-group">
+            <span className="rbc-btn-group">
+                <Button variant="outline" size="sm" onClick={() => onNavigate('PREV')}><ChevronLeft /></Button>
+                <Button variant="outline" size="sm" onClick={() => onNavigate('TODAY')}>Today</Button>
+                <Button variant="outline" size="sm" onClick={() => onNavigate('NEXT')}><ChevronRight /></Button>
+            </span>
+            <span className="rbc-toolbar-label">{label}</span>
+            <span className="rbc-btn-group">
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="capitalize">{view}</Button>
+                        <Button variant="outline" size="sm" className="capitalize w-24">{view}</Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                         {(views as View[]).map((v) => (
@@ -85,7 +85,7 @@ const CustomToolbar = ({ label, onNavigate, onView, view, views }: ToolbarProps)
                         ))}
                     </DropdownMenuContent>
                 </DropdownMenu>
-            </div>
+            </span>
         </div>
     );
 };
@@ -131,7 +131,7 @@ async function getAppointments(): Promise<Appointment[]> {
 
             return {
                 id: apiAppt.id ? String(apiAppt.id) : `appt_${Math.random().toString(36).substr(2, 9)}`,
-                user_name: apiAppt.user_name || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees[0].email : 'N/A'),
+                user_name: apiAppt.user_name || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a:any) => a.email).join(', ') : 'N/A'),
                 service_name: apiAppt.summary || 'No Service Name',
                 date: format(appointmentDateTime, 'yyyy-MM-dd'),
                 time: format(appointmentDateTime, 'HH:mm:ss'),
@@ -146,14 +146,14 @@ async function getAppointments(): Promise<Appointment[]> {
 
 
 export default function AppointmentsPage() {
-  const [events, setEvents] = React.useState<any[]>([]);
+  const [events, setEvents] = React.useState<ReturnType<typeof transformAppointmentsToEvents>>([]);
   const [isCreateOpen, setCreateOpen] = React.useState(false);
 
   React.useEffect(() => {
     async function loadAppointments() {
         const appointments = await getAppointments();
         const calendarEvents = transformAppointmentsToEvents(appointments);
-        setEvents(calendarEvents as any[]);
+        setEvents(calendarEvents);
     }
     loadAppointments();
   }, []);
@@ -171,7 +171,7 @@ export default function AppointmentsPage() {
             <span>New Appointment</span>
         </Button>
       </CardHeader>
-      <CardContent className="h-[70vh]">
+      <CardContent className="h-[70vh] p-0 md:p-6">
         <Calendar
           localizer={localizer}
           events={events}
@@ -185,15 +185,9 @@ export default function AppointmentsPage() {
           eventPropGetter={(event) => {
             if (!event.resource) return {className: ''};
             const status = event.resource.status as Appointment['status'];
-            let className = 'rbc-event-';
-            switch (status) {
-              case 'completed': className += 'completed'; break;
-              case 'confirmed': className += 'confirmed'; break;
-              case 'pending': className += 'pending'; break;
-              case 'cancelled': className += 'cancelled'; break;
-              default: break;
-            }
-            return { className };
+            return {
+                className: `rbc-event-${status}`
+            };
           }}
         />
       </CardContent>
