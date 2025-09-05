@@ -161,7 +161,7 @@ export default function AppointmentsPage() {
               <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <div className="md:col-span-1">
                   <Card>
-                    <CardContent className="p-2">
+                    <CardContent className="p-0">
                         <Calendar
                             mode="single"
                             selected={selectedDate}
