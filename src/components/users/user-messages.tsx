@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 async function getMessagesForUser(userId: string): Promise<Message[]> {
   if (!userId) return [];
   try {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/access_logs?user_id=${userId}`, {
+    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/messages_logs?user_id=${userId}`, {
         method: 'GET',
         headers: {
             'Accept': 'application/json',
