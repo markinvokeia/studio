@@ -149,7 +149,6 @@ export default function UsersPage() {
                <CardHeader className="flex flex-row items-start justify-between">
                 <div>
                     <CardTitle>Details for {selectedUser.name}</CardTitle>
-                    <CardDescription>User ID: {selectedUser.id}</CardDescription>
                 </div>
                 <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                     <X className="h-5 w-5" />
