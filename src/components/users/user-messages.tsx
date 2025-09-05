@@ -4,16 +4,56 @@ import * as React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Message } from '@/lib/types';
-import { messages as mockMessages } from '@/lib/data';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 async function getMessagesForUser(userId: string): Promise<Message[]> {
   if (!userId) return [];
-  // Simulate API call and filter messages for the user.
-  // In a real app, you'd fetch this from your backend.
-  return Promise.resolve(mockMessages.filter(msg => msg.user_id === userId || msg.user_id === 'mock_user'));
+  try {
+    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/access_logs?user_id=${userId}`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+        },
+        cache: 'no-store',
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const logsData = Array.isArray(data) ? (data[0]?.data || []) : (data.access_logs || data.data || data.result || []);
+
+    const messages: Message[] = [];
+    logsData.forEach((log: any) => {
+        if(log.details) {
+            messages.push({
+                id: `${log.id}-user`,
+                user_id: userId,
+                content: log.details,
+                timestamp: log.timestamp,
+                sender: 'user',
+            });
+        }
+        if (log.response) {
+            messages.push({
+                id: `${log.id}-system`,
+                user_id: userId,
+                content: log.response,
+                timestamp: log.finished || log.timestamp, 
+                sender: 'system',
+            });
+        }
+    });
+
+    return messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+  } catch (error) {
+    console.error("Failed to fetch user messages from logs:", error);
+    return [];
+  }
 }
 
 interface UserMessagesProps {
@@ -28,8 +68,7 @@ export function UserMessages({ userId }: UserMessagesProps) {
   React.useEffect(() => {
     async function loadMessages() {
       setIsLoading(true);
-      // We use a mock user ID here to ensure we get the sample data.
-      const fetchedMessages = await getMessagesForUser('mock_user');
+      const fetchedMessages = await getMessagesForUser(userId);
       setMessages(fetchedMessages);
       setIsLoading(false);
     }
@@ -38,7 +77,6 @@ export function UserMessages({ userId }: UserMessagesProps) {
 
   React.useEffect(() => {
     if (scrollAreaRef.current) {
-        // This is a bit of a hack since ScrollArea doesn't expose the viewport ref directly
         const viewport = scrollAreaRef.current.querySelector('div[style*="overflow: scroll"]');
         if (viewport) {
             viewport.scrollTop = viewport.scrollHeight;
@@ -78,6 +116,7 @@ export function UserMessages({ userId }: UserMessagesProps) {
                       : 'bg-muted'
                   )}
                 >
+                  <p className="font-semibold capitalize">{message.sender === 'user' ? 'User' : 'System Response'}</p>
                   <p>{message.content}</p>
                 </div>
                 <span className="text-xs text-muted-foreground">
