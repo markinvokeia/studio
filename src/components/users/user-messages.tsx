@@ -20,7 +20,8 @@ async function getMessagesForUser(userId: string): Promise<Message[]> {
     });
 
     if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.error(`HTTP error! status: ${response.status}`);
+        return [];
     }
 
     const data = await response.json();
