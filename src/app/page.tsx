@@ -71,7 +71,7 @@ async function getDashboardSummary(dateRange: DateRange | undefined): Promise<St
             {
                 title: 'Quote Conversion Rate',
                 value: `${summaryData.quote_conversion_rate || 0}%`,
-                change: `${summaryData.quote_conversion_rate_change || 0}% from last month`,
+                change: `${summaryData.quote_conversion_rate_growth || 0}% from last month`,
                 icon: 'file-text',
             },
         ];
