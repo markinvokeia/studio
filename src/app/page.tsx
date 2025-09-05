@@ -64,7 +64,7 @@ async function getDashboardSummary(dateRange: DateRange | undefined): Promise<St
             },
             {
                 title: 'Sales',
-                value: `+${summaryData.total_sales || 0}`,
+                value: `+${summaryData.current_period_sales || 0}`,
                 change: `+${summaryData.sales_growth_percentage || 0}% from last month`,
                 icon: 'credit-card',
             },
