@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
-import { addDays, format } from 'date-fns';
+import { addDays, format, subMonths } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -23,8 +23,8 @@ import {
 
 export function ReportFilters() {
   const [date, setDate] = React.useState<DateRange | undefined>({
-    from: new Date(2023, 0, 20),
-    to: addDays(new Date(2023, 0, 20), 20),
+    from: subMonths(new Date(), 1),
+    to: new Date(),
   });
 
   return (
