@@ -13,7 +13,7 @@ import { Quote, Order, User, Stat } from '@/lib/types';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { subMonths, format } from 'date-fns';
-import { DollarSign, Users as UsersIcon, CreditCard, Activity } from 'lucide-react';
+import { DollarSign, Users as UsersIcon, CreditCard, Activity, FileText } from 'lucide-react';
 
 
 async function getDashboardSummary(dateRange: DateRange | undefined): Promise<Stat[]> {
@@ -69,10 +69,10 @@ async function getDashboardSummary(dateRange: DateRange | undefined): Promise<St
                 icon: 'credit-card',
             },
             {
-                title: 'Active Now',
-                value: `+${summaryData.active_users || 0}`,
-                change: `+${summaryData.active_users_change || 0} since last hour`,
-                icon: 'activity',
+                title: 'Quote Conversion Rate',
+                value: `${summaryData.quote_conversion_rate || 0}%`,
+                change: `${summaryData.quote_conversion_rate_change || 0}% from last month`,
+                icon: 'file-text',
             },
         ];
 

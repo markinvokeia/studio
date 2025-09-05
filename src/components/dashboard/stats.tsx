@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Stat } from '@/lib/types';
-import { Activity, CreditCard, DollarSign, Users } from 'lucide-react';
+import { Activity, CreditCard, DollarSign, Users, FileText } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 
 const iconMap: { [key: string]: React.ElementType } = {
@@ -16,6 +16,7 @@ const iconMap: { [key: string]: React.ElementType } = {
   users: Users,
   'credit-card': CreditCard,
   activity: Activity,
+  'file-text': FileText,
 };
 
 interface StatsProps {
