@@ -58,8 +58,8 @@ async function getDashboardSummary(dateRange: DateRange | undefined): Promise<St
             },
             {
                 title: 'Pacientes Nuevos',
-                value: `+${summaryData.new_subscriptions || 0}`,
-                change: `+${summaryData.subscriptions_growth_percentage || 0}% from last month`,
+                value: `+${summaryData.current_period_new_patients || 0}`,
+                change: `+${summaryData.new_patients_growth_percentage || 0}% from last month`,
                 icon: 'users',
             },
             {
