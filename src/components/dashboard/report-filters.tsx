@@ -1,8 +1,9 @@
+
 'use client';
 
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
-import { addDays, format, subMonths } from 'date-fns';
+import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -21,12 +22,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-export function ReportFilters() {
-  const [date, setDate] = React.useState<DateRange | undefined>({
-    from: subMonths(new Date(), 1),
-    to: new Date(),
-  });
+interface ReportFiltersProps {
+    date: DateRange | undefined;
+    setDate: React.Dispatch<React.SetStateAction<DateRange | undefined>>;
+}
 
+export function ReportFilters({ date, setDate }: ReportFiltersProps) {
   return (
     <div className="flex items-center space-x-2">
       <Popover>

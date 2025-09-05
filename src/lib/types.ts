@@ -220,3 +220,10 @@ export type UserLog = {
   action: string;
   details: string;
 };
+
+export type Stat = {
+  title: string;
+  value: string;
+  change: string;
+  icon: string;
+};
