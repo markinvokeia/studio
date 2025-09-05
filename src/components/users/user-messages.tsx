@@ -64,7 +64,7 @@ interface UserMessagesProps {
 export function UserMessages({ userId }: UserMessagesProps) {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+  const viewportRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     async function loadMessages() {
@@ -77,13 +77,10 @@ export function UserMessages({ userId }: UserMessagesProps) {
   }, [userId]);
 
   React.useEffect(() => {
-    if (scrollAreaRef.current) {
-        const viewport = scrollAreaRef.current.querySelector('div[style*="overflow: scroll"]');
-        if (viewport) {
-            viewport.scrollTop = viewport.scrollHeight;
-        }
+    if (viewportRef.current) {
+        viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isLoading]);
 
 
   if (isLoading) {
@@ -99,7 +96,7 @@ export function UserMessages({ userId }: UserMessagesProps) {
   return (
     <Card>
       <CardContent className="p-0">
-        <ScrollArea className="h-[400px] w-full p-4" ref={scrollAreaRef}>
+        <ScrollArea className="h-[400px] w-full p-4" viewportRef={viewportRef}>
           <div className="flex flex-col gap-4">
             {messages.map((message) => (
               <div
