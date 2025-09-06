@@ -126,6 +126,14 @@ async function getSalesSummaryChartData(dateRange: DateRange | undefined): Promi
     }
 }
 
+const CHART_COLORS = [
+    'hsl(var(--chart-1))',
+    'hsl(var(--chart-2))',
+    'hsl(var(--chart-3))',
+    'hsl(var(--chart-4))',
+    'hsl(var(--chart-5))',
+];
+
 async function getSalesByServiceChartData(dateRange: DateRange | undefined): Promise<SalesByServiceChartData[]> {
     if (!dateRange || !dateRange.from || !dateRange.to) {
         return [];
@@ -151,9 +159,22 @@ async function getSalesByServiceChartData(dateRange: DateRange | undefined): Pro
         const data = await response.json();
         const serviceSalesData = Array.isArray(data) ? data : (data.sales_by_service || data.data || []);
         
-        return serviceSalesData.map((item: any) => ({
+        const totalSales = serviceSalesData.reduce((acc: number, item: any) => acc + (Number(item.sales) || 0), 0);
+        
+        if (totalSales === 0) {
+            return serviceSalesData.map((item: any, index: number) => ({
+                name: item.name,
+                sales: 0,
+                percentage: 0,
+                color: CHART_COLORS[index % CHART_COLORS.length],
+            }));
+        }
+
+        return serviceSalesData.map((item: any, index: number) => ({
             name: item.name,
             sales: Number(item.sales) || 0,
+            percentage: (Number(item.sales) / totalSales) * 100,
+            color: CHART_COLORS[index % CHART_COLORS.length],
         }));
 
     } catch (error) {

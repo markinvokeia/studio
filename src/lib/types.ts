@@ -237,4 +237,6 @@ export type SalesChartData = {
 export type SalesByServiceChartData = {
     name: string;
     sales: number;
+    percentage: number;
+    color: string;
 };
