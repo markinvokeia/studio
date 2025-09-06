@@ -97,7 +97,7 @@ export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }
               />
               <Line
                 dataKey="revenue"
-                type="natural"
+                type="monotone"
                 stroke="var(--color-revenue)"
                 strokeWidth={2}
                 dot={false}
