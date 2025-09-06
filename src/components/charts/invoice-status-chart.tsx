@@ -17,7 +17,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   ChartLegend,
-  ChartLegendContent
+  ChartLegendContent,
 } from '@/components/ui/chart';
 import { invoiceStatusData } from '@/lib/data';
 
@@ -76,16 +76,14 @@ export function InvoiceStatusChart() {
               ))}
             </Pie>
             <ChartLegend
-                content={<ChartLegendContent nameKey="name" />}
-                className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
+              content={<ChartLegendContent nameKey="name" />}
+              className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
             />
           </PieChart>
         </ChartContainer>
       </CardContent>
-       <CardFooter className="flex-col gap-1.5 pb-6 pt-4">
-        <div
-          className="flex items-center justify-center text-xs text-muted-foreground"
-        >
+      <CardFooter className="flex-col gap-1.5 pb-6 pt-4">
+        <div className="flex items-center justify-center text-xs text-muted-foreground">
           Total Invoices: {totalValue}
         </div>
       </CardFooter>
