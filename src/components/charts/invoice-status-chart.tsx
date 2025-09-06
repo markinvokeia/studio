@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
+  CardFooter,
 } from '@/components/ui/card';
 import {
   ChartContainer,
@@ -81,13 +82,13 @@ export function InvoiceStatusChart() {
           </PieChart>
         </ChartContainer>
       </CardContent>
-       <CardContent className="mt-auto flex flex-col items-center justify-center gap-2">
+       <CardFooter className="mt-auto flex flex-col items-center justify-center gap-2 pt-4">
         <div
           className="flex items-center gap-2 text-center text-sm font-medium leading-none text-muted-foreground"
         >
           Total Invoices: {totalValue}
         </div>
-      </CardContent>
+      </CardFooter>
     </Card>
   );
 }
