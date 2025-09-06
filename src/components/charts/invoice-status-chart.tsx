@@ -42,6 +42,10 @@ const chartConfig = {
     label: 'Sent',
     color: 'hsl(var(--chart-2))',
   },
+  Pending: {
+    label: 'Pending',
+    color: 'hsl(var(--chart-2))',
+  },
 };
 
 interface InvoiceStatusChartProps {
