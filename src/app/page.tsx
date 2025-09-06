@@ -327,14 +327,16 @@ export default function DashboardPage() {
       <div className="space-y-4">
         <ReportFilters date={date} setDate={setDate} />
         <Stats data={stats} />
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <SalesSummaryChart 
-            salesTrend={salesTrend} 
-            date={date} 
-            chartData={salesChartData}
-            isLoading={isChartLoading}
-          />
-          <div className="grid grid-cols-1 gap-4 lg:col-span-3 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-5">
+          <div className="xl:col-span-3">
+            <SalesSummaryChart 
+                salesTrend={salesTrend} 
+                date={date} 
+                chartData={salesChartData}
+                isLoading={isChartLoading}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:col-span-2 xl:grid-cols-1">
              <SalesByServiceChart chartData={salesByServiceData} isLoading={isSalesByServiceLoading}/>
              <InvoiceStatusChart />
           </div>

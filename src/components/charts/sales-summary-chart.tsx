@@ -60,7 +60,7 @@ export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }
   const footerDateText = formatDateRange(date);
 
   return (
-    <Card className="lg:col-span-4">
+    <Card className="h-full">
       <CardHeader>
         <CardTitle>Sales Summary</CardTitle>
         <CardDescription>
