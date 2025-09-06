@@ -37,6 +37,7 @@ async function getMessagesForUser(userId: string): Promise<Message[]> {
                 content: log.details,
                 timestamp: log.timestamp,
                 sender: 'user',
+                channel: log.channel,
             });
         }
         if (log.response) {
@@ -66,9 +67,9 @@ function formatMessageContent(content: string) {
         .replace(/\n/g, '<br />')
         .replace(/(\r\n|\n|\r)/gm,"<br>");
 
-    html = html.replace(/(\n|^)([\*\-]\s.*)+/g, (match) => {
-        const items = match.trim().split('\n');
-        const listItems = items.map(item => `<li>${item.substring(2)}</li>`).join('');
+    html = html.replace(/(<br\s*\/?>|^)([\*\-]\s.*(<br\s*\/?>)?)+/g, (match) => {
+        const items = match.trim().split(/<br\s*\/?>/);
+        const listItems = items.filter(item => item.trim().startsWith('* ') || item.trim().startsWith('- ')).map(item => `<li>${item.trim().substring(2)}</li>`).join('');
         return `<ul>${listItems}</ul>`;
     });
     
@@ -132,7 +133,11 @@ export function UserMessages({ userId }: UserMessagesProps) {
                       : 'bg-muted'
                   )}
                 >
-                  <p className="font-semibold capitalize">{message.sender === 'user' ? 'User' : 'System Response'}</p>
+                  <p className="font-semibold capitalize">
+                    {message.sender === 'user' 
+                      ? `User via ${message.channel || 'Website'}` 
+                      : 'System Response'}
+                  </p>
                    <div dangerouslySetInnerHTML={formatMessageContent(message.content)} />
                 </div>
                 <span className="text-xs text-muted-foreground">

@@ -203,6 +203,7 @@ export type Message = {
   content: string;
   timestamp: string;
   sender: 'user' | 'system';
+  channel?: string;
 };
 
 export type Appointment = {
