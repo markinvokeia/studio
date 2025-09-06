@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -59,10 +60,10 @@ export function KpiRow() {
           <CardTitle>Pacientes Nuevos vs. Recurrentes</CardTitle>
           <CardDescription>Análisis de la base de pacientes activos</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-1 items-center justify-center pb-0">
+        <CardContent className="flex flex-1 flex-col items-center justify-center pb-0">
           <ChartContainer
             config={patientsChartConfig}
-            className="mx-auto aspect-square max-h-[250px]"
+            className="mx-auto aspect-square max-h-[250px] flex flex-col items-center justify-center"
           >
             <PieChart>
               <ChartTooltip
@@ -80,16 +81,16 @@ export function KpiRow() {
                 <Cell key="cell-1" fill="var(--color-recurring)" />
               </Pie>
             </PieChart>
+             <ChartLegend
+                content={<ChartLegendContent nameKey="name" />}
+                className="flex-wrap gap-2 [&>*]:basis-1/3 [&>*]:justify-center"
+              />
           </ChartContainer>
         </CardContent>
         <CardFooter className="flex-col gap-2 text-sm pt-4">
           <div className="flex w-full items-center justify-center text-center font-medium leading-none">
             Total Pacientes Activos: {totalPatients.toLocaleString()}
           </div>
-          <ChartLegend
-            content={<ChartLegendContent nameKey="name" />}
-            className="flex-wrap gap-2 [&>*]:basis-1/3 [&>*]:justify-center"
-          />
         </CardFooter>
       </Card>
       

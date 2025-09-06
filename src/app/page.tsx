@@ -14,6 +14,7 @@ import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { subMonths, format } from 'date-fns';
 import { DollarSign, Users as UsersIcon, CreditCard, Activity, FileText } from 'lucide-react';
+import { KpiRow } from '@/components/dashboard/kpi-row';
 
 
 type DashboardSummary = {
@@ -338,6 +339,7 @@ export default function DashboardPage() {
              <InvoiceStatusChart />
           </div>
         </div>
+        <KpiRow />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <RecentQuotesTable quotes={quotes} />
             <RecentOrdersTable orders={orders} />
@@ -347,5 +349,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    
