@@ -75,16 +75,16 @@ export function InvoiceStatusChart() {
                 <Cell key={`cell-${index}`} fill={entry.fill} />
               ))}
             </Pie>
-             <ChartLegend
+            <ChartLegend
                 content={<ChartLegendContent nameKey="name" />}
                 className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
-              />
+            />
           </PieChart>
         </ChartContainer>
       </CardContent>
-       <CardFooter className="mt-auto flex flex-col items-center justify-center gap-2 pt-4">
+       <CardFooter className="mt-auto flex-col items-center justify-center gap-2 pt-4">
         <div
-          className="flex items-center gap-2 text-center text-sm font-medium leading-none text-muted-foreground"
+          className="text-sm font-medium leading-none text-muted-foreground"
         >
           Total Invoices: {totalValue}
         </div>
