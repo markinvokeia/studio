@@ -39,14 +39,17 @@ export function SalesSummaryChart({ salesTrend = 0, date }: SalesSummaryChartPro
     if (!dateRange || !dateRange.from) {
       return 'Showing data for the last 12 months';
     }
+    
+    const fromYear = dateRange.from.getFullYear();
+    
     if (dateRange.to) {
-        const fromYear = dateRange.from.getFullYear();
         const toYear = dateRange.to.getFullYear();
         if (fromYear === toYear) {
-             return `${format(dateRange.from, 'LLLL')} - ${format(dateRange.to, 'LLLL yyyy')}`;
+             return `January - December ${fromYear}`;
         }
-        return `${format(dateRange.from, 'LLLL yyyy')} - ${format(dateRange.to, 'LLLL yyyy')}`;
+        return `January ${fromYear} - December ${toYear}`;
     }
+
     return `From ${format(dateRange.from, 'PPP')}`;
   };
 
