@@ -27,6 +27,7 @@ const INVOICE_CHART_COLORS: { [key: string]: string } = {
   Overdue: 'hsl(var(--destructive))',
   Draft: 'hsl(var(--muted-foreground))',
   Sent: 'hsl(var(--chart-2))',
+  Pending: 'hsl(var(--chart-2))',
 };
 
 async function getDashboardSummary(dateRange: DateRange | undefined): Promise<DashboardSummary> {
@@ -209,9 +210,9 @@ async function getInvoiceStatusChartData(): Promise<InvoiceStatusData[]> {
         const statusData = Array.isArray(data) ? data : (data.invoice_status || data.data || []);
 
         return statusData.map((item: any) => ({
-            name: item.status,
-            value: Number(item.count) || 0,
-            fill: INVOICE_CHART_COLORS[item.status] || 'hsl(var(--muted-foreground))',
+            name: item.name,
+            value: Number(item.value) || 0,
+            fill: item.fill || INVOICE_CHART_COLORS[item.name] || 'hsl(var(--muted-foreground))',
         }));
 
     } catch (error) {
