@@ -67,13 +67,6 @@ export const salesByServiceData = [
     { name: 'Service E', sales: 189, fill: "var(--color-chart-5)" },
 ];
 
-export const invoiceStatusData = [
-    { name: 'Paid', value: 400, fill: 'hsl(var(--chart-1))' },
-    { name: 'Overdue', value: 150, fill: 'hsl(var(--destructive))' },
-    { name: 'Draft', value: 300, fill: 'hsl(var(--muted-foreground))' },
-    { name: 'Sent', value: 200, fill: 'hsl(var(--chart-2))' },
-];
-
 export const users: User[] = [
   { id: 'usr_1', name: 'Alice Johnson', email: 'alice@example.com', phone_number: '123-456-7890', is_active: true, avatar: 'https://picsum.photos/id/1011/40/40' },
   { id: 'usr_2', name: 'Bob Williams', email: 'bob@example.com', phone_number: '234-567-8901', is_active: false, avatar: 'https://picsum.photos/id/1012/40/40' },
@@ -110,11 +103,11 @@ export const clinics: Clinic[] = [
 ];
 
 export const quotes: Quote[] = [
-  { id: 'qt_1', user_id: 'usr_1', total: 1500, status: 'accepted', payment_status: 'paid', userName: 'Alice Johnson', userEmail: 'alice@example.com', createdAt: '2023-10-01' },
-  { id: 'qt_2', user_id: 'usr_2', total: 500, status: 'sent', payment_status: 'unpaid', userName: 'Bob Williams', userEmail: 'bob@example.com', createdAt: '2023-10-05' },
-  { id: 'qt_3', user_id: 'usr_3', total: 7500, status: 'draft', payment_status: 'unpaid', userName: 'Charlie Brown', userEmail: 'charlie@example.com', createdAt: '2023-10-10' },
-  { id: 'qt_4', user_id: 'usr_4', total: 300, status: 'accepted', payment_status: 'partial', userName: 'Diana Miller', userEmail: 'diana@example.com', createdAt: '2023-10-12' },
-  { id: 'qt_5', user_id: 'usr_5', total: 2500, status: 'rejected', payment_status: 'unpaid', userName: 'Ethan Davis', userEmail: 'ethan@example.com', createdAt: '2023-10-15' },
+  { id: 'qt_1', user_id: 'usr_1', total: 1500, status: 'accepted', payment_status: 'paid', billing_status: 'invoiced', userName: 'Alice Johnson', userEmail: 'alice@example.com', createdAt: '2023-10-01' },
+  { id: 'qt_2', user_id: 'usr_2', total: 500, status: 'sent', payment_status: 'unpaid', billing_status: 'not invoiced', userName: 'Bob Williams', userEmail: 'bob@example.com', createdAt: '2023-10-05' },
+  { id: 'qt_3', user_id: 'usr_3', total: 7500, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', userName: 'Charlie Brown', userEmail: 'charlie@example.com', createdAt: '2023-10-10' },
+  { id: 'qt_4', user_id: 'usr_4', total: 300, status: 'accepted', payment_status: 'partial', billing_status: 'partially invoiced', userName: 'Diana Miller', userEmail: 'diana@example.com', createdAt: '2023-10-12' },
+  { id: 'qt_5', user_id: 'usr_5', total: 2500, status: 'rejected', payment_status: 'unpaid', billing_status: 'not invoiced', userName: 'Ethan Davis', userEmail: 'ethan@example.com', createdAt: '2023-10-15' },
 ];
 
 export const conversations: Conversation[] = [
@@ -135,8 +128,8 @@ export const systemConfigurations: SystemConfiguration[] = [
 ];
 
 export const auditLogs: AuditLog[] = [
-  { id: 'aud_1', timestamp: '2023-10-26T10:00:00Z', changed_by: 'usr_1', table_name: 'users', record_id: 'usr_2', operation: 'update' },
-  { id: 'aud_2', timestamp: '2023-10-26T10:05:00Z', changed_by: 'usr_1', table_name: 'roles', record_id: 'rol_3', operation: 'create' },
+  { id: 'aud_1', changed_at: '2023-10-26T10:00:00Z', changed_by: 'usr_1', table_name: 'users', record_id: 'usr_2', operation: 'update', old_value: {}, new_value: {} },
+  { id: 'aud_2', changed_at: '2023-10-26T10:05:00Z', changed_by: 'usr_1', table_name: 'roles', record_id: 'rol_3', operation: 'create', old_value: {}, new_value: {} },
 ];
 
 export const accessLogs: AccessLog[] = [
@@ -145,8 +138,8 @@ export const accessLogs: AccessLog[] = [
 ];
 
 export const errorLogs: ErrorLog[] = [
-  { id: 'err_1', timestamp: '2023-10-26T11:00:00Z', severity: 'error', message: 'Database connection failed', user_id: 'system' },
-  { id: 'err_2', timestamp: '2023-10-26T11:02:00Z', severity: 'warning', message: 'API response time exceeded threshold', user_id: 'usr_4' },
+  { id: 'err_1', created_at: '2023-10-26T11:00:00Z', severity: 'error', message: 'Database connection failed', user_id: 'system' },
+  { id: 'err_2', created_at: '2023-10-26T11:02:00Z', severity: 'warning', message: 'API response time exceeded threshold', user_id: 'usr_4' },
 ];
 
 export const medicalHistory: MedicalEvent[] = [

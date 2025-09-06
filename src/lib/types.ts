@@ -240,3 +240,9 @@ export type SalesByServiceChartData = {
     percentage: number;
     color: string;
 };
+
+export type InvoiceStatusData = {
+    name: string;
+    value: number;
+    fill: string;
+};

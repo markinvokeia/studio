@@ -19,7 +19,8 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart';
-import { invoiceStatusData } from '@/lib/data';
+import { InvoiceStatusData } from '@/lib/types';
+import { Skeleton } from '../ui/skeleton';
 
 const chartConfig = {
   value: {
@@ -43,10 +44,32 @@ const chartConfig = {
   },
 };
 
-export function InvoiceStatusChart() {
+interface InvoiceStatusChartProps {
+    chartData: InvoiceStatusData[];
+    isLoading?: boolean;
+}
+
+export function InvoiceStatusChart({ chartData, isLoading }: InvoiceStatusChartProps) {
   const totalValue = React.useMemo(() => {
-    return invoiceStatusData.reduce((acc, curr) => acc + curr.value, 0);
-  }, []);
+    return chartData.reduce((acc, curr) => acc + curr.value, 0);
+  }, [chartData]);
+  
+  if (isLoading) {
+    return (
+        <Card className="flex h-full flex-col lg:col-span-1">
+            <CardHeader>
+                <CardTitle>Invoice Status</CardTitle>
+                <CardDescription>Current state of all invoices</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 pb-0 flex items-center justify-center">
+                 <Skeleton className="h-[200px] w-[200px] rounded-full" />
+            </CardContent>
+            <CardFooter className="flex-col gap-1.5 pb-6 pt-4">
+                 <Skeleton className="h-4 w-1/2" />
+            </CardFooter>
+        </Card>
+    );
+  }
 
   return (
     <Card className="flex h-full flex-col lg:col-span-1">
@@ -65,13 +88,13 @@ export function InvoiceStatusChart() {
               content={<ChartTooltipContent hideLabel />}
             />
             <Pie
-              data={invoiceStatusData}
+              data={chartData}
               dataKey="value"
               nameKey="name"
               innerRadius={60}
               strokeWidth={5}
             >
-              {invoiceStatusData.map((entry, index) => (
+              {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.fill} />
               ))}
             </Pie>

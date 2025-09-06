@@ -9,7 +9,7 @@ import { ReportFilters } from '@/components/dashboard/report-filters';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
 import { RecentOrdersTable } from '@/components/tables/recent-orders-table';
 import { NewUsersTable } from '@/components/tables/new-users-table';
-import { Quote, Order, User, Stat, SalesChartData, SalesByServiceChartData } from '@/lib/types';
+import { Quote, Order, User, Stat, SalesChartData, SalesByServiceChartData, InvoiceStatusData } from '@/lib/types';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { subMonths, format } from 'date-fns';
@@ -21,6 +21,13 @@ type DashboardSummary = {
     stats: Stat[],
     salesTrend: number,
 }
+
+const INVOICE_CHART_COLORS: { [key: string]: string } = {
+  Paid: 'hsl(var(--chart-1))',
+  Overdue: 'hsl(var(--destructive))',
+  Draft: 'hsl(var(--muted-foreground))',
+  Sent: 'hsl(var(--chart-2))',
+};
 
 async function getDashboardSummary(dateRange: DateRange | undefined): Promise<DashboardSummary> {
     const defaultSummary = { stats: [], salesTrend: 0 };
@@ -184,6 +191,35 @@ async function getSalesByServiceChartData(dateRange: DateRange | undefined): Pro
     }
 }
 
+async function getInvoiceStatusChartData(): Promise<InvoiceStatusData[]> {
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/dashboard_invoice_status`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            console.error(`HTTP error! status: ${response.status}`);
+            return [];
+        }
+
+        const data = await response.json();
+        const statusData = Array.isArray(data) ? data : (data.invoice_status || data.data || []);
+
+        return statusData.map((item: any) => ({
+            name: item.status,
+            value: Number(item.count) || 0,
+            fill: INVOICE_CHART_COLORS[item.status] || 'hsl(var(--muted-foreground))',
+        }));
+
+    } catch (error) {
+        console.error("Failed to fetch invoice status chart data:", error);
+        return [];
+    }
+}
+
 
 async function getQuotes(): Promise<Quote[]> {
   try {
@@ -288,6 +324,8 @@ export default function DashboardPage() {
   const [isChartLoading, setIsChartLoading] = React.useState(true);
   const [salesByServiceData, setSalesByServiceData] = React.useState<SalesByServiceChartData[]>([]);
   const [isSalesByServiceLoading, setIsSalesByServiceLoading] = React.useState(true);
+  const [invoiceStatusData, setInvoiceStatusData] = React.useState<InvoiceStatusData[]>([]);
+  const [isInvoiceStatusLoading, setIsInvoiceStatusLoading] = React.useState(true);
   const [quotes, setQuotes] = React.useState<Quote[]>([]);
   const [orders, setOrders] = React.useState<Order[]>([]);
   const [users, setUsers] = React.useState<User[]>([]);
@@ -312,6 +350,12 @@ export default function DashboardPage() {
     getSalesByServiceChartData(date).then(data => {
         setSalesByServiceData(data);
         setIsSalesByServiceLoading(false);
+    });
+    
+    setIsInvoiceStatusLoading(true);
+    getInvoiceStatusChartData().then(data => {
+        setInvoiceStatusData(data);
+        setIsInvoiceStatusLoading(false);
     });
 
   }, [date]);
@@ -338,7 +382,7 @@ export default function DashboardPage() {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
              <SalesByServiceChart chartData={salesByServiceData} isLoading={isSalesByServiceLoading}/>
-             <InvoiceStatusChart />
+             <InvoiceStatusChart chartData={invoiceStatusData} isLoading={isInvoiceStatusLoading} />
           </div>
         </div>
         <KpiRow />
