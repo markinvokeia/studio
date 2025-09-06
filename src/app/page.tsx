@@ -9,7 +9,7 @@ import { ReportFilters } from '@/components/dashboard/report-filters';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
 import { RecentOrdersTable } from '@/components/tables/recent-orders-table';
 import { NewUsersTable } from '@/components/tables/new-users-table';
-import { Quote, Order, User, Stat, SalesChartData } from '@/lib/types';
+import { Quote, Order, User, Stat, SalesChartData, SalesByServiceChartData } from '@/lib/types';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { subMonths, format } from 'date-fns';
@@ -126,6 +126,42 @@ async function getSalesSummaryChartData(dateRange: DateRange | undefined): Promi
     }
 }
 
+async function getSalesByServiceChartData(dateRange: DateRange | undefined): Promise<SalesByServiceChartData[]> {
+    if (!dateRange || !dateRange.from || !dateRange.to) {
+        return [];
+    }
+    const params = new URLSearchParams({
+        start_date: format(dateRange.from, 'yyyy-MM-dd'),
+        end_date: format(dateRange.to, 'yyyy-MM-dd'),
+    });
+
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/dashboard_sales_by_service?${params.toString()}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            console.error(`HTTP error! status: ${response.status}`);
+            return [];
+        }
+
+        const data = await response.json();
+        const serviceSalesData = Array.isArray(data) ? data : (data.sales_by_service || data.data || []);
+        
+        return serviceSalesData.map((item: any) => ({
+            name: item.name,
+            sales: Number(item.sales) || 0,
+        }));
+
+    } catch (error) {
+        console.error("Failed to fetch sales by service chart data:", error);
+        return [];
+    }
+}
+
 
 async function getQuotes(): Promise<Quote[]> {
   try {
@@ -228,6 +264,8 @@ export default function DashboardPage() {
   const [salesTrend, setSalesTrend] = React.useState(0);
   const [salesChartData, setSalesChartData] = React.useState<SalesChartData[]>([]);
   const [isChartLoading, setIsChartLoading] = React.useState(true);
+  const [salesByServiceData, setSalesByServiceData] = React.useState<SalesByServiceChartData[]>([]);
+  const [isSalesByServiceLoading, setIsSalesByServiceLoading] = React.useState(true);
   const [quotes, setQuotes] = React.useState<Quote[]>([]);
   const [orders, setOrders] = React.useState<Order[]>([]);
   const [users, setUsers] = React.useState<User[]>([]);
@@ -246,6 +284,12 @@ export default function DashboardPage() {
     getSalesSummaryChartData(date).then(data => {
         setSalesChartData(data);
         setIsChartLoading(false);
+    });
+
+    setIsSalesByServiceLoading(true);
+    getSalesByServiceChartData(date).then(data => {
+        setSalesByServiceData(data);
+        setIsSalesByServiceLoading(false);
     });
 
   }, [date]);
@@ -269,7 +313,7 @@ export default function DashboardPage() {
             isLoading={isChartLoading}
           />
           <div className="grid grid-cols-1 gap-4 lg:col-span-3 lg:grid-cols-2">
-             <SalesByServiceChart />
+             <SalesByServiceChart chartData={salesByServiceData} isLoading={isSalesByServiceLoading}/>
              <InvoiceStatusChart />
           </div>
         </div>

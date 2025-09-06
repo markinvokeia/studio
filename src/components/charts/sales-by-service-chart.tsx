@@ -1,7 +1,8 @@
+
 'use client';
 
 import { Bar, BarChart, XAxis, YAxis } from 'recharts';
-
+import { SalesByServiceChartData } from '@/lib/types';
 import {
   Card,
   CardContent,
@@ -14,7 +15,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import { salesByServiceData } from '@/lib/data';
+import { Skeleton } from '../ui/skeleton';
 
 const chartConfig = {
   sales: {
@@ -27,7 +28,26 @@ const chartConfig = {
   'Service E': { color: 'hsl(var(--chart-5))' },
 };
 
-export function SalesByServiceChart() {
+interface SalesByServiceChartProps {
+    chartData: SalesByServiceChartData[];
+    isLoading?: boolean;
+}
+
+export function SalesByServiceChart({ chartData, isLoading }: SalesByServiceChartProps) {
+  if (isLoading) {
+    return (
+        <Card className='lg:col-span-1'>
+            <CardHeader>
+                <CardTitle>Sales by Service</CardTitle>
+                <CardDescription>Top performing services</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Skeleton className="h-[250px] w-full" />
+            </CardContent>
+        </Card>
+    );
+  }
+
   return (
     <Card className='lg:col-span-1'>
       <CardHeader>
@@ -36,7 +56,7 @@ export function SalesByServiceChart() {
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="aspect-square h-full w-full">
-          <BarChart data={salesByServiceData} layout="vertical" margin={{ left: 0, right: 20 }}>
+          <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 20 }}>
             <XAxis type="number" hide />
             <YAxis
               dataKey="name"
@@ -47,7 +67,7 @@ export function SalesByServiceChart() {
               className="w-20"
             />
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-            <Bar dataKey="sales" radius={5} />
+            <Bar dataKey="sales" radius={5} fill="var(--color-primary)" />
           </BarChart>
         </ChartContainer>
       </CardContent>

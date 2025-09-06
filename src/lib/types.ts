@@ -233,3 +233,8 @@ export type SalesChartData = {
     month: string;
     revenue: number;
 };
+
+export type SalesByServiceChartData = {
+    name: string;
+    sales: number;
+};
