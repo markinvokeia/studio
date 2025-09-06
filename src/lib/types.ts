@@ -228,3 +228,8 @@ export type Stat = {
   change: string;
   icon: string;
 };
+
+export type SalesChartData = {
+    month: string;
+    revenue: number;
+};

@@ -9,7 +9,7 @@ import { ReportFilters } from '@/components/dashboard/report-filters';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
 import { RecentOrdersTable } from '@/components/tables/recent-orders-table';
 import { NewUsersTable } from '@/components/tables/new-users-table';
-import { Quote, Order, User, Stat } from '@/lib/types';
+import { Quote, Order, User, Stat, SalesChartData } from '@/lib/types';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { subMonths, format } from 'date-fns';
@@ -88,6 +88,41 @@ async function getDashboardSummary(dateRange: DateRange | undefined): Promise<Da
     } catch (error) {
         console.error("Failed to fetch dashboard summary:", error);
         return defaultSummary;
+    }
+}
+
+async function getSalesSummaryChartData(dateRange: DateRange | undefined): Promise<SalesChartData[]> {
+    if (!dateRange || !dateRange.from) {
+        return [];
+    }
+    const params = new URLSearchParams({
+        target_date: format(dateRange.from, 'yyyy-MM-dd'),
+    });
+
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/dashboard_sales_summary?${params.toString()}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            console.error(`HTTP error! status: ${response.status}`);
+            return [];
+        }
+
+        const data = await response.json();
+        const salesData = Array.isArray(data) ? data : (data.sales_summary || data.data || []);
+        
+        return salesData.map((item: any) => ({
+            month: item.month,
+            revenue: Number(item.total_revenue) || 0,
+        }));
+
+    } catch (error) {
+        console.error("Failed to fetch sales summary chart data:", error);
+        return [];
     }
 }
 
@@ -191,6 +226,8 @@ async function getUsers(): Promise<User[]> {
 export default function DashboardPage() {
   const [stats, setStats] = React.useState<Stat[]>([]);
   const [salesTrend, setSalesTrend] = React.useState(0);
+  const [salesChartData, setSalesChartData] = React.useState<SalesChartData[]>([]);
+  const [isChartLoading, setIsChartLoading] = React.useState(true);
   const [quotes, setQuotes] = React.useState<Quote[]>([]);
   const [orders, setOrders] = React.useState<Order[]>([]);
   const [users, setUsers] = React.useState<User[]>([]);
@@ -204,6 +241,13 @@ export default function DashboardPage() {
         setStats(stats);
         setSalesTrend(salesTrend);
     });
+    
+    setIsChartLoading(true);
+    getSalesSummaryChartData(date).then(data => {
+        setSalesChartData(data);
+        setIsChartLoading(false);
+    });
+
   }, [date]);
 
   React.useEffect(() => {
@@ -218,7 +262,12 @@ export default function DashboardPage() {
         <ReportFilters date={date} setDate={setDate} />
         <Stats data={stats} />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <SalesSummaryChart salesTrend={salesTrend} date={date}/>
+          <SalesSummaryChart 
+            salesTrend={salesTrend} 
+            date={date} 
+            chartData={salesChartData}
+            isLoading={isChartLoading}
+          />
           <div className="grid grid-cols-1 gap-4 lg:col-span-3 lg:grid-cols-2">
              <SalesByServiceChart />
              <InvoiceStatusChart />

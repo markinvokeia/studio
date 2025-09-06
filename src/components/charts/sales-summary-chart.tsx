@@ -16,9 +16,10 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import { revenueChartData } from '@/lib/data';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
+import { SalesChartData } from '@/lib/types';
+import { Skeleton } from '../ui/skeleton';
 
 const chartConfig = {
   revenue: {
@@ -30,9 +31,11 @@ const chartConfig = {
 interface SalesSummaryChartProps {
     salesTrend?: number;
     date?: DateRange;
+    chartData: SalesChartData[];
+    isLoading?: boolean;
 }
 
-export function SalesSummaryChart({ salesTrend = 0, date }: SalesSummaryChartProps) {
+export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }: SalesSummaryChartProps) {
   const isTrendingUp = salesTrend >= 0;
 
   const formatDateRange = (dateRange: DateRange | undefined) => {
@@ -65,37 +68,43 @@ export function SalesSummaryChart({ salesTrend = 0, date }: SalesSummaryChartPro
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
-          <LineChart
-            data={revenueChartData}
-            margin={{
-              left: 12,
-              right: 12,
-              top: 10,
-              bottom: 10
-            }}
-          >
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="month"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tickFormatter={(value) => value.slice(0, 3)}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent indicator="dot" />}
-            />
-            <Line
-              dataKey="revenue"
-              type="natural"
-              stroke="var(--color-revenue)"
-              strokeWidth={2}
-              dot={false}
-            />
-          </LineChart>
-        </ChartContainer>
+        {isLoading ? (
+          <div className="h-[250px] w-full flex items-center justify-center">
+            <Skeleton className="h-full w-full" />
+          </div>
+        ) : (
+          <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
+            <LineChart
+              data={chartData}
+              margin={{
+                left: 12,
+                right: 12,
+                top: 10,
+                bottom: 10
+              }}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="month"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tickFormatter={(value) => value.slice(0, 3)}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent indicator="dot" />}
+              />
+              <Line
+                dataKey="revenue"
+                type="natural"
+                stroke="var(--color-revenue)"
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
+          </ChartContainer>
+        )}
       </CardContent>
       <CardFooter>
         <div className="flex w-full items-start gap-2 text-sm">
