@@ -58,6 +58,23 @@ async function getMessagesForUser(userId: string): Promise<Message[]> {
   }
 }
 
+function formatMessageContent(content: string) {
+    if (!content) return { __html: '' };
+    let html = content
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code class="bg-muted text-foreground p-1 rounded-sm text-xs">$1</code>')
+        .replace(/\n/g, '<br />')
+        .replace(/(\r\n|\n|\r)/gm,"<br>");
+
+    html = html.replace(/(\n|^)([\*\-]\s.*)+/g, (match) => {
+        const items = match.trim().split('\n');
+        const listItems = items.map(item => `<li>${item.substring(2)}</li>`).join('');
+        return `<ul>${listItems}</ul>`;
+    });
+    
+    return { __html: html };
+}
+
 interface UserMessagesProps {
   userId: string;
 }
@@ -116,7 +133,7 @@ export function UserMessages({ userId }: UserMessagesProps) {
                   )}
                 >
                   <p className="font-semibold capitalize">{message.sender === 'user' ? 'User' : 'System Response'}</p>
-                  <p>{message.content}</p>
+                   <div dangerouslySetInnerHTML={formatMessageContent(message.content)} />
                 </div>
                 <span className="text-xs text-muted-foreground">
                   {format(new Date(message.timestamp), 'PPpp')}
