@@ -117,7 +117,7 @@ async function getSalesSummaryChartData(dateRange: DateRange | undefined): Promi
         
         return salesData.map((item: any) => ({
             month: item.month,
-            revenue: Number(item.total_revenue) || 0,
+            revenue: Number(item.revenue) || 0,
         }));
 
     } catch (error) {
@@ -282,3 +282,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
