@@ -1,6 +1,7 @@
+
 'use client';
 
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, XAxis } from 'recharts';
 import {
   Card,
@@ -24,7 +25,12 @@ const chartConfig = {
   },
 };
 
-export function SalesSummaryChart() {
+interface SalesSummaryChartProps {
+    salesTrend?: number;
+}
+
+export function SalesSummaryChart({ salesTrend = 0 }: SalesSummaryChartProps) {
+  const isTrendingUp = salesTrend >= 0;
   return (
     <Card className="lg:col-span-4">
       <CardHeader>
@@ -70,7 +76,8 @@ export function SalesSummaryChart() {
         <div className="flex w-full items-start gap-2 text-sm">
           <div className="grid gap-2">
             <div className="flex items-center gap-2 font-medium leading-none">
-              Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
+              Trending {isTrendingUp ? 'up' : 'down'} by {Math.abs(salesTrend).toFixed(1)}% this month 
+              {isTrendingUp ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
             </div>
             <div className="flex items-center gap-2 leading-none text-muted-foreground">
               January - December 2023

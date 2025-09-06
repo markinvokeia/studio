@@ -16,9 +16,15 @@ import { subMonths, format } from 'date-fns';
 import { DollarSign, Users as UsersIcon, CreditCard, Activity, FileText } from 'lucide-react';
 
 
-async function getDashboardSummary(dateRange: DateRange | undefined): Promise<Stat[]> {
+type DashboardSummary = {
+    stats: Stat[],
+    salesTrend: number,
+}
+
+async function getDashboardSummary(dateRange: DateRange | undefined): Promise<DashboardSummary> {
+    const defaultSummary = { stats: [], salesTrend: 0 };
     if (!dateRange || !dateRange.from || !dateRange.to) {
-        return [];
+        return defaultSummary;
     }
     const params = new URLSearchParams({
         start_date: format(dateRange.from, 'yyyy-MM-dd'),
@@ -35,7 +41,7 @@ async function getDashboardSummary(dateRange: DateRange | undefined): Promise<St
 
         if (!response.ok) {
             console.error(`HTTP error! status: ${response.status}`);
-            return [];
+            return defaultSummary;
         }
 
         const data = await response.json();
@@ -49,36 +55,39 @@ async function getDashboardSummary(dateRange: DateRange | undefined): Promise<St
             return `${value.toFixed(1)}% from last month`;
         }
 
-        return [
-            {
-                title: 'Total Revenue',
-                value: formatCurrency(summaryData.current_period_revenue || 0),
-                change: formatPercentage(summaryData.revenue_growth_percentage || 0),
-                icon: 'dollar-sign',
-            },
-            {
-                title: 'New Patients',
-                value: `+${summaryData.current_period_new_patients || 0}`,
-                change: `+${summaryData.new_patients_growth_percentage || 0}% from last month`,
-                icon: 'users',
-            },
-            {
-                title: 'Sales',
-                value: `+${summaryData.current_period_sales || 0}`,
-                change: `+${summaryData.sales_growth_percentage || 0}% from last month`,
-                icon: 'credit-card',
-            },
-            {
-                title: 'Quote Conversion Rate',
-                value: `${summaryData.quote_conversion_rate || 0}%`,
-                change: `${summaryData.quote_conversion_rate_growth || 0}% from last month`,
-                icon: 'file-text',
-            },
-        ];
+        return {
+            stats: [
+                {
+                    title: 'Total Revenue',
+                    value: formatCurrency(summaryData.current_period_revenue || 0),
+                    change: formatPercentage(summaryData.revenue_growth_percentage || 0),
+                    icon: 'dollar-sign',
+                },
+                {
+                    title: 'New Patients',
+                    value: `+${summaryData.current_period_new_patients || 0}`,
+                    change: `+${summaryData.new_patients_growth_percentage || 0}% from last month`,
+                    icon: 'users',
+                },
+                {
+                    title: 'Sales',
+                    value: `+${summaryData.current_period_sales || 0}`,
+                    change: `+${summaryData.sales_growth_percentage || 0}% from last month`,
+                    icon: 'credit-card',
+                },
+                {
+                    title: 'Quote Conversion Rate',
+                    value: `${summaryData.quote_conversion_rate || 0}%`,
+                    change: `${summaryData.quote_conversion_rate_growth || 0}% from last month`,
+                    icon: 'file-text',
+                },
+            ],
+            salesTrend: summaryData.sales_trend_percentage || 0
+        };
 
     } catch (error) {
         console.error("Failed to fetch dashboard summary:", error);
-        return [];
+        return defaultSummary;
     }
 }
 
@@ -181,6 +190,7 @@ async function getUsers(): Promise<User[]> {
 
 export default function DashboardPage() {
   const [stats, setStats] = React.useState<Stat[]>([]);
+  const [salesTrend, setSalesTrend] = React.useState(0);
   const [quotes, setQuotes] = React.useState<Quote[]>([]);
   const [orders, setOrders] = React.useState<Order[]>([]);
   const [users, setUsers] = React.useState<User[]>([]);
@@ -190,7 +200,10 @@ export default function DashboardPage() {
   });
 
   React.useEffect(() => {
-    getDashboardSummary(date).then(setStats);
+    getDashboardSummary(date).then(({stats, salesTrend}) => {
+        setStats(stats);
+        setSalesTrend(salesTrend);
+    });
   }, [date]);
 
   React.useEffect(() => {
@@ -205,7 +218,7 @@ export default function DashboardPage() {
         <ReportFilters date={date} setDate={setDate} />
         <Stats data={stats} />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <SalesSummaryChart />
+          <SalesSummaryChart salesTrend={salesTrend} />
           <div className="grid grid-cols-1 gap-4 lg:col-span-3 lg:grid-cols-2">
              <SalesByServiceChart />
              <InvoiceStatusChart />
