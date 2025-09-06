@@ -54,7 +54,7 @@ export function InvoiceStatusChart() {
         <CardTitle>Invoice Status</CardTitle>
         <CardDescription>Current state of all invoices</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-1 flex-col items-center justify-center gap-2 pb-0">
+      <CardContent className="flex-1 pb-0">
         <ChartContainer
           config={chartConfig}
           className="mx-auto aspect-square max-h-[250px]"
@@ -82,9 +82,9 @@ export function InvoiceStatusChart() {
           </PieChart>
         </ChartContainer>
       </CardContent>
-       <CardFooter className="mt-auto flex-col items-center justify-center gap-2 pt-4">
+       <CardFooter className="flex-col gap-1.5 pb-6 pt-4">
         <div
-          className="text-sm font-medium leading-none text-muted-foreground"
+          className="flex items-center justify-center text-xs text-muted-foreground"
         >
           Total Invoices: {totalValue}
         </div>
