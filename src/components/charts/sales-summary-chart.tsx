@@ -17,6 +17,8 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart';
 import { revenueChartData } from '@/lib/data';
+import { DateRange } from 'react-day-picker';
+import { format } from 'date-fns';
 
 const chartConfig = {
   revenue: {
@@ -27,16 +29,36 @@ const chartConfig = {
 
 interface SalesSummaryChartProps {
     salesTrend?: number;
+    date?: DateRange;
 }
 
-export function SalesSummaryChart({ salesTrend = 0 }: SalesSummaryChartProps) {
+export function SalesSummaryChart({ salesTrend = 0, date }: SalesSummaryChartProps) {
   const isTrendingUp = salesTrend >= 0;
+
+  const formatDateRange = (dateRange: DateRange | undefined) => {
+    if (!dateRange || !dateRange.from) {
+      return 'Showing data for the last 12 months';
+    }
+    if (dateRange.to) {
+        const fromYear = dateRange.from.getFullYear();
+        const toYear = dateRange.to.getFullYear();
+        if (fromYear === toYear) {
+             return `${format(dateRange.from, 'LLLL')} - ${format(dateRange.to, 'LLLL yyyy')}`;
+        }
+        return `${format(dateRange.from, 'LLLL yyyy')} - ${format(dateRange.to, 'LLLL yyyy')}`;
+    }
+    return `From ${format(dateRange.from, 'PPP')}`;
+  };
+
+  const chartDescription = `Showing total revenue for the selected period.`;
+  const footerDateText = formatDateRange(date);
+
   return (
     <Card className="lg:col-span-4">
       <CardHeader>
         <CardTitle>Sales Summary</CardTitle>
         <CardDescription>
-          Showing total revenue for the last 12 months.
+          {chartDescription}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -80,7 +102,7 @@ export function SalesSummaryChart({ salesTrend = 0 }: SalesSummaryChartProps) {
               {isTrendingUp ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
             </div>
             <div className="flex items-center gap-2 leading-none text-muted-foreground">
-              January - December 2023
+              {footerDateText}
             </div>
           </div>
         </div>
