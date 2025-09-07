@@ -13,7 +13,6 @@ import { Quote, Order, User, Stat, SalesChartData, SalesByServiceChartData, Invo
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { subMonths, format } from 'date-fns';
-import { KpiRow } from '@/components/dashboard/kpi-row';
 
 
 type DashboardSummary = {
@@ -89,7 +88,7 @@ async function getDashboardSummary(dateRange: DateRange | undefined): Promise<Da
                 {
                     title: 'Sales',
                     value: `+${summaryData.current_period_sales || 0}`,
-                    change: formatPercentage(Number(summaryData.sales_growth_percentage) || 0),
+                    change: formatPercentage(Number(summaryData.sales_growth_percentage || 0)),
                     changeType: getChangeType(Number(summaryData.sales_growth_percentage) || 0),
                     icon: 'arrow-trending-up',
                 },
@@ -382,21 +381,18 @@ export default function DashboardPage() {
       <div className="space-y-4">
         <ReportFilters date={date} setDate={setDate} />
         <Stats data={stats} />
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-          <div className="xl:col-span-2">
-            <SalesSummaryChart 
-                salesTrend={salesTrend} 
-                date={date} 
-                chartData={salesChartData}
-                isLoading={isChartLoading}
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <SalesSummaryChart 
+              salesTrend={salesTrend} 
+              date={date} 
+              chartData={salesChartData}
+              isLoading={isChartLoading}
+          />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-2">
              <SalesByServiceChart chartData={salesByServiceData} isLoading={isSalesByServiceLoading}/>
              <InvoiceStatusChart chartData={invoiceStatusData} isLoading={isInvoiceStatusLoading} />
           </div>
         </div>
-        <KpiRow />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <RecentQuotesTable quotes={quotes} />
             <RecentOrdersTable orders={orders} />
@@ -406,3 +402,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
