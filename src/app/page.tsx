@@ -9,7 +9,7 @@ import { ReportFilters } from '@/components/dashboard/report-filters';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
 import { RecentOrdersTable } from '@/components/tables/recent-orders-table';
 import { NewUsersTable } from '@/components/tables/new-users-table';
-import { Quote, Order, User, Stat, SalesChartData, SalesByServiceChartData, InvoiceStatusData, AverageBilling, AppointmentAttendanceRate } from '@/lib/types';
+import { Quote, Order, User, Stat, SalesChartData, SalesByServiceChartData, InvoiceStatusData, AverageBilling, AppointmentAttendanceRate, PatientDemographics } from '@/lib/types';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { subMonths, format } from 'date-fns';
@@ -247,6 +247,39 @@ async function getInvoiceStatusChartData(): Promise<InvoiceStatusData[]> {
     }
 }
 
+async function getPatientDemographicsData(): Promise<PatientDemographics | null> {
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/dashboard_new_vs_recurring_patients', {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            console.error(`HTTP error! status: ${response.status}`);
+            return null;
+        }
+
+        const data = await response.json();
+        const apiData = Array.isArray(data) && data.length > 0 ? data[0] : data;
+
+        const newPatients = Number(apiData.new_patients) || 0;
+        const recurringPatients = Number(apiData.recurring_patients) || 0;
+        
+        return {
+            total: newPatients + recurringPatients,
+            data: [
+                { type: 'New', count: newPatients, fill: 'hsl(var(--chart-1))' },
+                { type: 'Recurrent', count: recurringPatients, fill: 'hsl(var(--chart-2))' },
+            ]
+        };
+    } catch (error) {
+        console.error("Failed to fetch patient demographics data:", error);
+        return null;
+    }
+}
+
 
 async function getQuotes(): Promise<Quote[]> {
   try {
@@ -349,6 +382,7 @@ export default function DashboardPage() {
   const [salesTrend, setSalesTrend] = React.useState(0);
   const [averageBilling, setAverageBilling] = React.useState<AverageBilling | null>(null);
   const [appointmentAttendance, setAppointmentAttendance] = React.useState<AppointmentAttendanceRate | null>(null);
+  const [patientDemographics, setPatientDemographics] = React.useState<PatientDemographics | null>(null);
   const [isKpiLoading, setIsKpiLoading] = React.useState(true);
   
   const [salesChartData, setSalesChartData] = React.useState<SalesChartData[]>([]);
@@ -375,6 +409,10 @@ export default function DashboardPage() {
         setAverageBilling(averageBilling);
         setAppointmentAttendance(appointmentAttendance);
         setIsKpiLoading(false);
+    });
+    
+    getPatientDemographicsData().then(data => {
+        setPatientDemographics(data);
     });
     
     setIsChartLoading(true);
@@ -423,6 +461,7 @@ export default function DashboardPage() {
         <KpiRow 
             averageBillingData={averageBilling}
             appointmentAttendanceData={appointmentAttendance}
+            patientDemographicsData={patientDemographics}
             isLoading={isKpiLoading}
         />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

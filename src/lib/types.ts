@@ -256,13 +256,15 @@ export type AverageBilling = {
     changeType: KpiChangeType;
 };
 
+export type PatientDemographicsData = {
+    type: 'New' | 'Recurrent';
+    count: number;
+    fill: string;
+};
+
 export type PatientDemographics = {
     total: number;
-    data: {
-        type: 'New' | 'Recurrent';
-        count: number;
-        fill: string;
-    }[];
+    data: PatientDemographicsData[];
 };
 
 export type AppointmentAttendanceRate = {
