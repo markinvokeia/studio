@@ -43,11 +43,11 @@ export function AverageBillingCard() {
     return (
       <Card>
         <CardHeader>
-          <CardDescription>Facturación Promedio por Paciente</CardDescription>
-          <CardTitle className="text-4xl">${value}</CardTitle>
+          <CardTitle>Facturación Promedio por Paciente</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className={cn("text-xs flex items-center", trendColor)}>
+          <div className="text-4xl font-bold">${value}</div>
+          <div className={cn("text-xs flex items-center mt-2", trendColor)}>
             <TrendIcon className="h-4 w-4 mr-1" />
             {change}% vs el período anterior
           </div>
@@ -108,11 +108,11 @@ export function AppointmentAttendanceCard() {
     return (
       <Card>
         <CardHeader>
-          <CardDescription>Tasa de Asistencia a Citas</CardDescription>
-          <CardTitle className="text-4xl">{value}%</CardTitle>
+          <CardTitle>Tasa de Asistencia a Citas</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className={cn("text-xs flex items-center", trendColor)}>
+          <div className="text-4xl font-bold">{value}%</div>
+          <div className={cn("text-xs flex items-center mt-2", trendColor)}>
             <TrendIcon className="h-4 w-4 mr-1" />
             {change}% vs el período anterior
           </div>
