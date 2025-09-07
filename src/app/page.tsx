@@ -9,11 +9,11 @@ import { ReportFilters } from '@/components/dashboard/report-filters';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
 import { RecentOrdersTable } from '@/components/tables/recent-orders-table';
 import { NewUsersTable } from '@/components/tables/new-users-table';
-import { Quote, Order, User, Stat, SalesChartData, SalesByServiceChartData, InvoiceStatusData } from '@/lib/types';
+import { Quote, Order, User, Stat, SalesChartData, SalesByServiceChartData, InvoiceStatusData, AverageBilling, PatientDemographics } from '@/lib/types';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { subMonths, format } from 'date-fns';
-import { KpiRow } from '@/components/dashboard/kpi-row';
+import { AverageBillingCard, PatientDemographicsCard } from '@/components/dashboard/kpi-row';
 
 
 type DashboardSummary = {
@@ -382,19 +382,22 @@ export default function DashboardPage() {
       <div className="space-y-4">
         <ReportFilters date={date} setDate={setDate} />
         <Stats data={stats} />
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4">
           <SalesSummaryChart 
               salesTrend={salesTrend} 
               date={date} 
               chartData={salesChartData}
               isLoading={isChartLoading}
           />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
-             <SalesByServiceChart chartData={salesByServiceData} isLoading={isSalesByServiceLoading}/>
-             <InvoiceStatusChart chartData={invoiceStatusData} isLoading={isInvoiceStatusLoading} />
-          </div>
         </div>
-        <KpiRow />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <SalesByServiceChart chartData={salesByServiceData} isLoading={isSalesByServiceLoading}/>
+            <InvoiceStatusChart chartData={invoiceStatusData} isLoading={isInvoiceStatusLoading} />
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <AverageBillingCard />
+            <PatientDemographicsCard />
+        </div>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <RecentQuotesTable quotes={quotes} />
             <RecentOrdersTable orders={orders} />

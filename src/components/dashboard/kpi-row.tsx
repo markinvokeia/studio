@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { TrendingUpIcon } from '../icons/trending-up-icon';
 import { TrendingDownIcon } from '../icons/trending-down-icon';
 
-function AverageBillingCard() {
+export function AverageBillingCard() {
     const { value, change, changeType } = averageBillingData;
     const isPositive = changeType === 'positive';
     const trendColor = isPositive ? 'text-green-500' : 'text-red-500';
@@ -45,7 +45,7 @@ function AverageBillingCard() {
     );
 }
 
-function PatientDemographicsCard() {
+export function PatientDemographicsCard() {
     const { total, data } = patientDemographicsData;
     const chartConfig = {
         new: { label: 'New', color: 'hsl(var(--chart-1))' },
@@ -85,13 +85,4 @@ function PatientDemographicsCard() {
             </div>
         </Card>
     );
-}
-
-export function KpiRow() {
-  return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <AverageBillingCard />
-        <PatientDemographicsCard />
-    </div>
-  );
 }
