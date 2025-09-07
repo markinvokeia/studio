@@ -18,6 +18,7 @@ import {
   CalendarClock,
   CalendarOff,
   Calendar,
+  HeartPulse,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -48,6 +49,7 @@ export const navItems: NavItem[] = [
       { title: 'Users', href: '/users', icon: Users, isChidren: true },
       { title: 'Roles', href: '/roles', icon: KeyRound, isChidren: true },
       { title: 'Permissions', href: '/permissions', icon: Shield, isChidren: true },
+      { title: 'Clinic History', href: '/clinic-history/1', icon: HeartPulse, isChidren: true },
     ],
   },
   {
