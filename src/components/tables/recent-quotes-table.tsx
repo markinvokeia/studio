@@ -176,7 +176,7 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-            <DocumentTextIcon className="h-6 w-6" />
+            <DocumentTextIcon className="h-6 w-6 text-amber-500" />
             <CardTitle>Recent Quotes</CardTitle>
         </div>
         <CardDescription>An overview of the latest quotes.</CardDescription>

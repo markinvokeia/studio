@@ -40,7 +40,7 @@ export function SalesByServiceChart({ chartData, isLoading }: SalesByServiceChar
     <Card className='lg:col-span-1'>
       <CardHeader>
         <div className="flex items-center gap-2">
-            <BriefcaseIcon className="h-6 w-6" />
+            <BriefcaseIcon className="h-6 w-6 text-violet-500" />
             <CardTitle>Sales by Service</CardTitle>
         </div>
         <CardDescription>Top performing services by percentage</CardDescription>

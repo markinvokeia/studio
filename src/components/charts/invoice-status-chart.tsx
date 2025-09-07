@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Pie, PieChart, Cell } from 'recharts';
+import { Pie, PieChart, Cell, Legend } from 'recharts';
 
 import {
   Card,
@@ -80,7 +80,7 @@ export function InvoiceStatusChart({ chartData, isLoading }: InvoiceStatusChartP
     <Card className="flex h-full flex-col lg:col-span-1">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <DocumentCheckIcon className="h-6 w-6" />
+          <DocumentCheckIcon className="h-6 w-6 text-emerald-500" />
           <CardTitle>Invoice Status</CardTitle>
         </div>
         <CardDescription>Current state of all invoices</CardDescription>

@@ -64,7 +64,7 @@ export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }
     <Card className="h-full">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <ChartBarSquareIcon className="h-6 w-6" />
+          <ChartBarSquareIcon className="h-6 w-6 text-blue-500" />
           <CardTitle>Sales Summary</CardTitle>
         </div>
         <CardDescription>
