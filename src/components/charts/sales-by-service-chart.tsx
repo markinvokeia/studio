@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Skeleton } from '../ui/skeleton';
 import { Progress } from '../ui/progress';
+import { BriefcaseIcon } from '../icons/briefcase-icon';
 
 interface SalesByServiceChartProps {
     chartData: SalesByServiceChartData[];
@@ -38,7 +39,10 @@ export function SalesByServiceChart({ chartData, isLoading }: SalesByServiceChar
   return (
     <Card className='lg:col-span-1'>
       <CardHeader>
-        <CardTitle>Sales by Service</CardTitle>
+        <div className="flex items-center gap-2">
+            <BriefcaseIcon className="h-6 w-6" />
+            <CardTitle>Sales by Service</CardTitle>
+        </div>
         <CardDescription>Top performing services by percentage</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

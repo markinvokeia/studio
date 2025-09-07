@@ -8,15 +8,18 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Stat } from '@/lib/types';
-import { Activity, CreditCard, DollarSign, Users, FileText } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
+import { ArrowTrendingUpIcon } from '../icons/arrow-trending-up-icon';
+import { ChartPieIcon } from '../icons/chart-pie-icon';
+import { CurrencyDollarIcon } from '../icons/currency-dollar-icon';
+import { UserPlusIcon } from '../icons/user-plus-icon';
+
 
 const iconMap: { [key: string]: React.ElementType } = {
-  'dollar-sign': DollarSign,
-  users: Users,
-  'credit-card': CreditCard,
-  activity: Activity,
-  'file-text': FileText,
+  'currency-dollar': CurrencyDollarIcon,
+  'user-plus': UserPlusIcon,
+  'arrow-trending-up': ArrowTrendingUpIcon,
+  'chart-pie': ChartPieIcon,
 };
 
 interface StatsProps {
@@ -50,7 +53,11 @@ export function Stats({ data }: StatsProps) {
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+              {Icon && (
+                <div className="rounded-lg bg-primary/10 p-2">
+                    <Icon className="h-6 w-6 text-primary" />
+                </div>
+              )}
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>

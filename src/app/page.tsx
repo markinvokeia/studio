@@ -13,7 +13,6 @@ import { Quote, Order, User, Stat, SalesChartData, SalesByServiceChartData, Invo
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { subMonths, format } from 'date-fns';
-import { DollarSign, Users as UsersIcon, CreditCard, Activity, FileText } from 'lucide-react';
 import { KpiRow } from '@/components/dashboard/kpi-row';
 
 
@@ -70,25 +69,25 @@ async function getDashboardSummary(dateRange: DateRange | undefined): Promise<Da
                     title: 'Total Revenue',
                     value: formatCurrency(summaryData.current_period_revenue || 0),
                     change: formatPercentage(summaryData.revenue_growth_percentage || 0),
-                    icon: 'dollar-sign',
+                    icon: 'currency-dollar',
                 },
                 {
                     title: 'New Patients',
                     value: `+${summaryData.current_period_new_patients || 0}`,
                     change: `+${summaryData.new_patients_growth_percentage || 0}% from last month`,
-                    icon: 'users',
+                    icon: 'user-plus',
                 },
                 {
                     title: 'Sales',
                     value: `+${summaryData.current_period_sales || 0}`,
                     change: `+${summaryData.sales_growth_percentage || 0}% from last month`,
-                    icon: 'credit-card',
+                    icon: 'arrow-trending-up',
                 },
                 {
                     title: 'Quote Conversion Rate',
                     value: `${summaryData.quote_conversion_rate || 0}%`,
                     change: `${summaryData.quote_conversion_rate_growth || 0}% from last month`,
-                    icon: 'file-text',
+                    icon: 'chart-pie',
                 },
             ],
             salesTrend: summaryData.sales_trend_percentage || 0

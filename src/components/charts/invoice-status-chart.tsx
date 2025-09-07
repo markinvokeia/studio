@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/chart';
 import { InvoiceStatusData } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
+import { DocumentCheckIcon } from '../icons/document-check-icon';
 
 const chartConfig = {
   value: {
@@ -78,7 +79,10 @@ export function InvoiceStatusChart({ chartData, isLoading }: InvoiceStatusChartP
   return (
     <Card className="flex h-full flex-col lg:col-span-1">
       <CardHeader>
-        <CardTitle>Invoice Status</CardTitle>
+        <div className="flex items-center gap-2">
+          <DocumentCheckIcon className="h-6 w-6" />
+          <CardTitle>Invoice Status</CardTitle>
+        </div>
         <CardDescription>Current state of all invoices</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">

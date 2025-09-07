@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
+import { DocumentTextIcon } from '../icons/document-text-icon';
 
 
 const columns: ColumnDef<Quote>[] = [
@@ -174,7 +175,10 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Quotes</CardTitle>
+        <div className="flex items-center gap-2">
+            <DocumentTextIcon className="h-6 w-6" />
+            <CardTitle>Recent Quotes</CardTitle>
+        </div>
         <CardDescription>An overview of the latest quotes.</CardDescription>
       </CardHeader>
       <CardContent>

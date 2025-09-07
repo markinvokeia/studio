@@ -20,6 +20,7 @@ import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
 import { SalesChartData } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
+import { ChartBarSquareIcon } from '../icons/chart-bar-square-icon';
 
 const chartConfig = {
   revenue: {
@@ -62,7 +63,10 @@ export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Sales Summary</CardTitle>
+        <div className="flex items-center gap-2">
+          <ChartBarSquareIcon className="h-6 w-6" />
+          <CardTitle>Sales Summary</CardTitle>
+        </div>
         <CardDescription>
           {chartDescription}
         </CardDescription>
