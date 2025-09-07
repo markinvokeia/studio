@@ -247,3 +247,26 @@ export type InvoiceStatusData = {
     value: number;
     fill: string;
 };
+
+export type KpiChangeType = 'positive' | 'negative' | 'neutral';
+
+export type AverageBilling = {
+    value: number;
+    change: number;
+    changeType: KpiChangeType;
+};
+
+export type PatientDemographics = {
+    total: number;
+    data: {
+        type: 'New' | 'Recurrent';
+        count: number;
+        fill: string;
+    }[];
+};
+
+export type AppointmentAttendance = {
+    value: number;
+    change: number;
+    changeType: KpiChangeType;
+};
