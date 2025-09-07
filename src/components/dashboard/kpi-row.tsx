@@ -1,8 +1,6 @@
 
 'use client';
 
-import { TrendingUp, TrendingDown } from 'lucide-react';
-import { Pie, PieChart, Cell } from 'recharts';
 import {
   Card,
   CardContent,
@@ -18,10 +16,23 @@ import {
 import {
     averageBillingData,
     patientDemographicsData,
+    appointmentAttendanceData,
 } from '@/lib/data/kpi-data';
 import { cn } from '@/lib/utils';
-import { TrendingUpIcon } from '../icons/trending-up-icon';
+import { Cell, Pie, PieChart } from 'recharts';
 import { TrendingDownIcon } from '../icons/trending-down-icon';
+import { TrendingUpIcon } from '../icons/trending-up-icon';
+
+
+export function KpiRow() {
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <AverageBillingCard />
+      <PatientDemographicsCard />
+      <AppointmentAttendanceCard />
+    </div>
+  );
+}
 
 export function AverageBillingCard() {
     const { value, change, changeType } = averageBillingData;
@@ -84,5 +95,28 @@ export function PatientDemographicsCard() {
                 </div>
             </div>
         </Card>
+    );
+}
+
+
+export function AppointmentAttendanceCard() {
+    const { value, change, changeType } = appointmentAttendanceData;
+    const isPositive = changeType === 'positive';
+    const trendColor = isPositive ? 'text-green-500' : 'text-red-500';
+    const TrendIcon = isPositive ? TrendingUpIcon : TrendingDownIcon;
+  
+    return (
+      <Card>
+        <CardHeader>
+          <CardDescription>Tasa de Asistencia a Citas</CardDescription>
+          <CardTitle className="text-4xl">{value}%</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className={cn("text-xs flex items-center", trendColor)}>
+            <TrendIcon className="h-4 w-4 mr-1" />
+            {change}% vs el período anterior
+          </div>
+        </CardContent>
+      </Card>
     );
 }
