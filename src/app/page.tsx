@@ -247,9 +247,17 @@ async function getInvoiceStatusChartData(): Promise<InvoiceStatusData[]> {
     }
 }
 
-async function getPatientDemographicsData(): Promise<PatientDemographics | null> {
+async function getPatientDemographicsData(dateRange: DateRange | undefined): Promise<PatientDemographics | null> {
+    if (!dateRange || !dateRange.from || !dateRange.to) {
+        return null;
+    }
+    const params = new URLSearchParams({
+        start_date: format(dateRange.from, 'yyyy-MM-dd'),
+        end_date: format(dateRange.to, 'yyyy-MM-dd'),
+    });
+
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/dashboard_new_vs_recurring_patients', {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/dashboard_new_vs_recurring_patients?${params.toString()}`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -411,7 +419,7 @@ export default function DashboardPage() {
         setIsKpiLoading(false);
     });
     
-    getPatientDemographicsData().then(data => {
+    getPatientDemographicsData(date).then(data => {
         setPatientDemographics(data);
     });
     
