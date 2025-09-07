@@ -372,302 +372,165 @@ const DentalClinicalSystem = () => {
     }
   ];
 
-  // Componente ToothShape para formas realistas
-  const ToothShape = ({ toothNumber, toothType, state, size = 40 }) => {
+    const AnatomicalTooth = ({ toothNumber, state }) => {
+    const toothType = TOOTH_TYPES[toothNumber];
     const condition = state.conditions[0];
-    const colorData = ISO_1942_SYMBOLS[condition] || ISO_1942_SYMBOLS.SOUND;
-    
-    const getToothPath = (type) => {
-      const w = size;
-      const h = size * 1.5;
-      
-      switch(type) {
-        case 'incisor_central':
-          return `M ${w*0.2} ${h*0.1} Q ${w*0.5} 0 ${w*0.8} ${h*0.1} L ${w*0.85} ${h*0.9} Q ${w*0.5} ${h} ${w*0.15} ${h*0.9} Z`;
-        case 'incisor_lateral':
-          return `M ${w*0.25} ${h*0.15} Q ${w*0.5} 0 ${w*0.75} ${h*0.15} L ${w*0.8} ${h*0.9} Q ${w*0.5} ${h} ${w*0.2} ${h*0.9} Z`;
-        case 'canine':
-          return `M ${w*0.3} ${h*0.2} L ${w*0.5} 0 L ${w*0.7} ${h*0.2} L ${w*0.75} ${h*0.9} Q ${w*0.5} ${h} ${w*0.25} ${h*0.9} Z`;
-        case 'premolar1':
-        case 'premolar2':
-          return `M ${w*0.2} ${h*0.25} Q ${w*0.35} 0 ${w*0.5} ${h*0.1} Q ${w*0.65} 0 ${w*0.8} ${h*0.25} L ${w*0.85} ${h*0.85} Q ${w*0.5} ${h} ${w*0.15} ${h*0.85} Z`;
-        case 'molar1':
-        case 'molar2':
-        case 'molar3':
-          return `M ${w*0.15} ${h*0.3} Q ${w*0.25} 0 ${w*0.4} ${h*0.15} Q ${w*0.5} 0 ${w*0.6} ${h*0.15} Q ${w*0.75} 0 ${w*0.85} ${h*0.3} L ${w*0.9} ${h*0.8} Q ${w*0.5} ${h} ${w*0.1} ${h*0.8} Z`;
-        default:
-          return `M ${w*0.2} ${h*0.2} Q ${w*0.5} 0 ${w*0.8} ${h*0.2} L ${w*0.8} ${h*0.8} Q ${w*0.5} ${h} ${w*0.2} ${h*0.8} Z`;
-      }
+
+    // Basic paths for different tooth types
+    const paths = {
+      incisor_central: "M10 2 L20 2 L22 20 L8 20 Z",
+      incisor_lateral: "M11 2 L19 2 L21 20 L9 20 Z",
+      canine: "M10 2 L15 0 L20 2 L22 20 L8 20 Z",
+      premolar1: "M8 3 L22 3 L24 20 L6 20 Z",
+      premolar2: "M8 3 L22 3 L24 20 L6 20 Z",
+      molar1: "M5 4 L25 4 L28 20 L2 20 Z",
+      molar2: "M6 4 L24 4 L26 20 L4 20 Z",
+      molar3: "M7 4 L23 4 L25 20 L5 20 Z",
     };
 
-    const getSpecialSymbol = (condition, size) => {
-      switch(condition) {
-        case 'CROWN':
-          return (
-            <g>
-              <path d={`M ${size*0.25} ${size*0.3} L ${size*0.75} ${size*0.3} L ${size*0.7} ${size*0.15} L ${size*0.5} ${size*0.05} L ${size*0.3} ${size*0.15} Z`} 
-                    fill="#FFD700" stroke="#FFA000" strokeWidth="1"/>
-            </g>
-          );
-        case 'IMPLANT':
-          return (
-            <g>
-              <rect x={size*0.35} y={size*0.7} width={size*0.3} height={size*0.4} 
-                    fill="#673AB7" stroke="#4527A0" strokeWidth="1" rx="2"/>
-              <circle cx={size*0.5} cy={size*0.5} r={size*0.15} 
-                      fill="none" stroke="#673AB7" strokeWidth="2"/>
-            </g>
-          );
-        case 'MISSING':
-          return (
-            <g>
-              <line x1={size*0.2} y1={size*0.2} x2={size*0.8} y2={size*0.8} 
-                    stroke="#9E9E9E" strokeWidth="3"/>
-              <line x1={size*0.8} y1={size*0.2} x2={size*0.2} y2={size*0.8} 
-                    stroke="#9E9E9E" strokeWidth="3"/>
-            </g>
-          );
-        case 'ROOT_FILLED':
-          return (
-            <g>
-              <circle cx={size*0.5} cy={size*0.6} r={size*0.1} 
-                      fill="#E91E63" stroke="#C2185B" strokeWidth="1"/>
-              <line x1={size*0.5} y1={size*0.5} x2={size*0.5} y2={size*0.9} 
-                    stroke="#E91E63" strokeWidth="2"/>
-            </g>
-          );
-        default:
-          return null;
-      }
-    };
+    const SvgWrapper = ({ children, isUpper }) => (
+      <svg
+        viewBox="0 0 30 22"
+        className="w-full h-full"
+        style={{ transform: isUpper ? 'none' : 'scaleY(-1)' }}
+      >
+        {children}
+      </svg>
+    );
+
+    const isUpper = toothNumber < 30;
+
+    let toothFill = '#FFFFFF';
+    let strokeColor = '#6b7280'; // gray-500
+    let specialRender = null;
+    
+    if (condition === 'MISSING') {
+      return null; // Don't render missing teeth
+    }
+    
+    if (condition === 'ROOT_FILLED') {
+      toothFill = '#e5e7eb'; // gray-200
+      specialRender = <path d="M14 10 L16 10 L16 20 L14 20 Z" fill="black" />;
+    }
+    
+    if (condition === 'IMPLANT') {
+        toothFill = '#111827'; // gray-900
+        strokeColor = '#4b5563'; // gray-600
+    }
+
+    if (condition === 'CROWN') {
+        toothFill = '#fef08a'; // yellow-200
+    }
+    
+    if(Object.keys(state.surfaces).length > 0){
+        toothFill = '#9ca3af'; // gray-400
+    }
+
 
     return (
-      <g>
-        <path
-          d={getToothPath(toothType)}
-          fill={colorData.color}
-          stroke={colorData.borderColor}
-          strokeWidth="2"
-          opacity={condition === 'MISSING' ? 0.3 : 1}
-        />
-        
-        {getSpecialSymbol(condition, size)}
-        
-        <text
-          x={size/2}
-          y={size * 1.2}
-          textAnchor="middle"
-          className="text-xs font-medium fill-current text-gray-700"
-        >
-          {toothNumber}
-        </text>
-        
-        {Object.keys(state.surfaces).length > 0 && (
-          <circle
-            cx={size * 0.85}
-            cy={size * 0.15}
-            r="4"
-            fill="#FF5722"
-            stroke="white"
-            strokeWidth="1"
-          />
-        )}
-      </g>
+      <div className="w-6 h-8 flex items-center justify-center">
+        <SvgWrapper isUpper={isUpper}>
+          <g>
+            <path d={paths[toothType] || paths.premolar1} fill={toothFill} stroke={strokeColor} strokeWidth="0.5" />
+            {specialRender}
+          </g>
+        </SvgWrapper>
+      </div>
+    );
+  };
+
+  const SymbolicTooth = ({ state }) => {
+    const condition = state.conditions[0];
+    let symbolFill = 'white';
+    let strokeColor = '#9ca3af'; // gray-400
+
+    if (condition === 'MISSING') {
+        return (
+            <div className="w-6 h-6 flex items-center justify-center">
+                <X className="w-4 h-4 text-gray-400" />
+            </div>
+        );
+    }
+    
+    if(Object.keys(state.surfaces).length > 0){
+        symbolFill = '#9ca3af'; // gray-400
+    }
+
+    return (
+      <div className="w-6 h-6">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10" fill={symbolFill} stroke={strokeColor} strokeWidth="1" />
+          <path d="M12 2 L12 22 M2 12 L22 12 M7 7 L17 17 M7 17 L17 7" stroke={strokeColor} strokeWidth="0.5" />
+        </svg>
+      </div>
     );
   };
 
   // Componente Odontograma
-  const Odontogram = ({ data, onToothClick, onToothHover, hoveredTooth, selectedTooth, title, isComparison = false }) => {
-    const getToothStroke = (toothNum) => {
-      if (selectedTooth === toothNum) return '#007bff';
-      if (hoveredTooth === toothNum) return '#0056b3';
-      return 'transparent';
-    };
+  const Odontogram = ({ data, onToothClick, selectedTooth, title }) => {
+    const { upperRight, upperLeft, lowerLeft, lowerRight } = FDI_NOTATION[dentitionType];
+    const allUpper = [...upperRight.slice().reverse(), ...upperLeft];
+    const allLower = [...lowerRight.slice().reverse(), ...lowerLeft];
 
-    const currentNotation = FDI_NOTATION[dentitionType];
-    const { upperRight, upperLeft, lowerLeft, lowerRight } = currentNotation;
+    const Quadrant = ({ teeth, isUpper }) => (
+      <div className="flex justify-center">
+        {teeth.map(toothNum => {
+          const toothData = data[toothNum] || { conditions: ['SOUND'], surfaces: {} };
+          return (
+            <div
+              key={toothNum}
+              className={`flex flex-col items-center cursor-pointer p-1 ${selectedTooth === toothNum ? 'bg-blue-100 rounded-md' : ''}`}
+              onClick={() => onToothClick(toothNum)}
+            >
+              {isUpper && <AnatomicalTooth toothNumber={toothNum} state={toothData} />}
+              <SymbolicTooth state={toothData} />
+              <span className="text-xs mt-1">{toothNum}</span>
+              {!isUpper && <AnatomicalTooth toothNumber={toothNum} state={toothData} />}
+            </div>
+          );
+        })}
+      </div>
+    );
+    
+     const QuadrantRow = ({ teeth, isUpper }) => {
+        const midPoint = teeth.length / 2;
+        const rightQuadrant = isUpper ? teeth.slice(0, midPoint).reverse() : teeth.slice(0, midPoint).reverse();
+        const leftQuadrant = isUpper ? teeth.slice(midPoint) : teeth.slice(midPoint);
+
+        const renderTeeth = (quadrantTeeth) => quadrantTeeth.map(toothNum => {
+            const toothData = data[toothNum] || { conditions: ['SOUND'], surfaces: {} };
+            const isMissing = toothData.conditions[0] === 'MISSING';
+            return (
+                <div
+                  key={toothNum}
+                  className={`flex flex-col items-center cursor-pointer p-1 space-y-1 ${selectedTooth === toothNum ? 'bg-blue-100 rounded-md' : ''}`}
+                  onClick={() => onToothClick(toothNum)}
+                >
+                  {isUpper && !isMissing && <AnatomicalTooth toothNumber={toothNum} state={toothData} />}
+                   <SymbolicTooth state={toothData} />
+                   <span className="text-xs font-mono">{toothNum}</span>
+                  {!isUpper && !isMissing && <AnatomicalTooth toothNumber={toothNum} state={toothData} />}
+                </div>
+            )
+        });
+
+        return (
+            <div className="flex justify-between w-full">
+                <div className="flex justify-end flex-1">{renderTeeth(rightQuadrant)}</div>
+                <div className="w-px bg-gray-300 mx-2"></div>
+                <div className="flex justify-start flex-1">{renderTeeth(leftQuadrant)}</div>
+            </div>
+        )
+    }
+
 
     return (
-      <div className={`bg-white rounded-xl shadow-lg p-6 ${isComparison ? 'border-2 border-blue-200' : ''}`}>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-gray-800">{title}</h3>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <Shield className="w-4 h-4 text-green-600" />
-              <span className="text-sm text-gray-600">ISO 3950 Compliant</span>
-            </div>
-            <select
-              value={dentitionType}
-              onChange={(e) => setDentitionType(e.target.value)}
-              className="text-sm border border-gray-300 rounded px-2 py-1"
-              disabled={isComparison}
-            >
-              <option value="permanent">Dentición Permanente</option>
-              <option value="deciduous">Dentición Decidua</option>
-            </select>
-          </div>
-        </div>
-
-        <svg viewBox="0 0 900 500" className="w-full h-auto border border-gray-200 rounded-lg">
-          {/* Arcada Superior Derecha */}
-          <g transform="translate(50, 50)">
-            {upperRight.map((tooth, index) => {
-              const toothData = data[tooth] || { conditions: ['SOUND'], surfaces: {} };
-              const toothType = TOOTH_TYPES[tooth] || 'premolar1';
-              
-              return (
-                <g key={tooth} transform={`translate(${index * 55}, 0)`}>
-                  <rect
-                    x="0" y="0" width="50" height="80" fill="transparent"
-                    stroke={getToothStroke(tooth)} strokeWidth="3" rx="8"
-                    className="cursor-pointer transition-all duration-200"
-                    onClick={() => !isComparison && onToothClick(tooth)}
-                    onMouseEnter={() => !isComparison && onToothHover(tooth)}
-                    onMouseLeave={() => !isComparison && onToothHover(null)}
-                  />
-                  <g transform="translate(5, 5)">
-                    <ToothShape 
-                      toothNumber={tooth}
-                      toothType={toothType}
-                      state={toothData}
-                      size={40}
-                    />
-                  </g>
-                  
-                  {isComparison && data !== odontogramData[selectedDate] && 
-                   JSON.stringify(data[tooth]) !== JSON.stringify(odontogramData[selectedDate][tooth]) && (
-                    <circle cx="45" cy="5" r="5" fill="#ff6b35" stroke="white" strokeWidth="2" />
-                  )}
-                </g>
-              );
-            })}
-          </g>
-
-          {/* Arcada Superior Izquierda */}
-          <g transform="translate(490, 50)">
-            {upperLeft.map((tooth, index) => {
-              const toothData = data[tooth] || { conditions: ['SOUND'], surfaces: {} };
-              const toothType = TOOTH_TYPES[tooth] || 'premolar1';
-              
-              return (
-                <g key={tooth} transform={`translate(${index * 55}, 0)`}>
-                  <rect
-                    x="0" y="0" width="50" height="80" fill="transparent"
-                    stroke={getToothStroke(tooth)} strokeWidth="3" rx="8"
-                    className="cursor-pointer transition-all duration-200"
-                    onClick={() => !isComparison && onToothClick(tooth)}
-                    onMouseEnter={() => !isComparison && onToothHover(tooth)}
-                    onMouseLeave={() => !isComparison && onToothHover(null)}
-                  />
-                  <g transform="translate(5, 5)">
-                    <ToothShape 
-                      toothNumber={tooth}
-                      toothType={toothType}
-                      state={toothData}
-                      size={40}
-                    />
-                  </g>
-                </g>
-              );
-            })}
-          </g>
-
-          {/* Arcada Inferior Izquierda */}
-          <g transform="translate(490, 300)">
-            {lowerLeft.map((tooth, index) => {
-              const toothData = data[tooth] || { conditions: ['SOUND'], surfaces: {} };
-              const toothType = TOOTH_TYPES[tooth] || 'premolar1';
-              
-              return (
-                <g key={tooth} transform={`translate(${index * 55}, 0)`}>
-                  <rect
-                    x="0" y="0" width="50" height="80" fill="transparent"
-                    stroke={getToothStroke(tooth)} strokeWidth="3" rx="8"
-                    className="cursor-pointer transition-all duration-200"
-                    onClick={() => !isComparison && onToothClick(tooth)}
-                    onMouseEnter={() => !isComparison && onToothHover(tooth)}
-                    onMouseLeave={() => !isComparison && onToothHover(null)}
-                  />
-                  <g transform="translate(5, 5) scale(1, -1) translate(0, -60)">
-                    <ToothShape 
-                      toothNumber={tooth}
-                      toothType={toothType}
-                      state={toothData}
-                      size={40}
-                    />
-                  </g>
-                </g>
-              );
-            })}
-          </g>
-
-          {/* Arcada Inferior Derecha */}
-          <g transform="translate(50, 300)">
-            {lowerRight.map((tooth, index) => {
-              const toothData = data[tooth] || { conditions: ['SOUND'], surfaces: {} };
-              const toothType = TOOTH_TYPES[tooth] || 'premolar1';
-              
-              return (
-                <g key={tooth} transform={`translate(${index * 55}, 0)`}>
-                  <rect
-                    x="0" y="0" width="50" height="80" fill="transparent"
-                    stroke={getToothStroke(tooth)} strokeWidth="3" rx="8"
-                    className="cursor-pointer transition-all duration-200"
-                    onClick={() => !isComparison && onToothClick(tooth)}
-                    onMouseEnter={() => !isComparison && onToothHover(tooth)}
-                    onMouseLeave={() => !isComparison && onToothHover(null)}
-                  />
-                  <g transform="translate(5, 5) scale(1, -1) translate(0, -60)">
-                    <ToothShape 
-                      toothNumber={tooth}
-                      toothType={toothType}
-                      state={toothData}
-                      size={40}
-                    />
-                  </g>
-                </g>
-              );
-            })}
-          </g>
-
-          {/* Leyenda ISO 1942 */}
-          <g transform="translate(50, 430)">
-            {Object.entries(ISO_1942_SYMBOLS).slice(0, 6).map(([key, symbol], index) => (
-              <g key={key} transform={`translate(${index * 100}, 0)`}>
-                <rect 
-                  x="0" y="0" width="15" height="15" 
-                  fill={symbol.color} stroke={symbol.borderColor} strokeWidth="2"
-                />
-                <text x="20" y="12" className="text-xs fill-current text-gray-600">
-                  {symbol.name}
-                </text>
-              </g>
-            ))}
-            
-            {isComparison && (
-              <g transform="translate(700, 0)">
-                <circle cx="7" cy="7" r="5" fill="#ff6b35" stroke="white" strokeWidth="1" />
-                <text x="20" y="12" className="text-xs fill-current text-gray-600">Cambio</text>
-              </g>
-            )}
-          </g>
-        </svg>
-
-        {/* Panel de información ISO */}
-        <div className="mt-4 bg-blue-50 rounded-lg p-3">
-          <div className="flex items-center space-x-4 text-sm">
-            <div className="flex items-center space-x-2">
-              <Award className="w-4 h-4 text-blue-600" />
-              <span className="font-medium">Estándar: ISO 3950 (FDI World Dental Federation)</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Zap className="w-4 h-4 text-green-600" />
-              <span>Simbología: ISO 1942</span>
-            </div>
-            <div className="text-gray-600">
-              Última actualización: {selectedDate}
-            </div>
-          </div>
+      <div className="bg-white rounded-xl shadow-lg p-4">
+        <h3 className="text-lg font-bold text-gray-800 mb-4">{title}</h3>
+        <div className="flex flex-col items-center space-y-2">
+            <QuadrantRow teeth={allUpper} isUpper={true} />
+            <div className="w-full h-px bg-gray-300 my-2"></div>
+            <QuadrantRow teeth={allLower} isUpper={false} />
         </div>
       </div>
     );
@@ -1456,27 +1319,20 @@ const DentalClinicalSystem = () => {
                     <Odontogram
                       data={odontogramData[selectedDate]}
                       onToothClick={setSelectedTooth}
-                      onToothHover={setHoveredTooth}
-                      hoveredTooth={hoveredTooth}
                       selectedTooth={selectedTooth}
                       title={`Estado Actual (${selectedDate})`}
                     />
                     <Odontogram
                       data={odontogramData[compareDate]}
                       onToothClick={() => {}}
-                      onToothHover={() => {}}
-                      hoveredTooth={null}
                       selectedTooth={null}
                       title={`Estado Anterior (${compareDate})`}
-                      isComparison={true}
                     />
                   </div>
                 ) : (
                   <Odontogram
                     data={odontogramData[selectedDate]}
                     onToothClick={setSelectedTooth}
-                    onToothHover={setHoveredTooth}
-                    hoveredTooth={hoveredTooth}
                     selectedTooth={selectedTooth}
                     title="Odontograma Interactivo ISO 3950"
                   />
@@ -1555,27 +1411,20 @@ const DentalClinicalSystem = () => {
                         <Odontogram
                           data={odontogramData[selectedDate]}
                           onToothClick={setSelectedTooth}
-                          onToothHover={setHoveredTooth}
-                          hoveredTooth={hoveredTooth}
                           selectedTooth={selectedTooth}
                           title={`Estado Actual (${selectedDate})`}
                         />
                         <Odontogram
                           data={odontogramData[compareDate]}
                           onToothClick={() => {}}
-                          onToothHover={() => {}}
-                          hoveredTooth={null}
                           selectedTooth={null}
                           title={`Estado Anterior (${compareDate})`}
-                          isComparison={true}
                         />
                       </div>
                     ) : (
                       <Odontogram
                         data={odontogramData[selectedDate]}
                         onToothClick={setSelectedTooth}
-                        onToothHover={setHoveredTooth}
-                        hoveredTooth={hoveredTooth}
                         selectedTooth={selectedTooth}
                         title="Odontograma Interactivo ISO 3950"
                       />
