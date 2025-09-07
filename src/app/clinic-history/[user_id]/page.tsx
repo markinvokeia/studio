@@ -1348,7 +1348,6 @@ const DentalClinicalSystem = () => {
         {[
           { id: 'dashboard', label: 'Dashboard', icon: Stethoscope },
           { id: 'odontogram', label: 'Odontograma ISO', icon: Search },
-          { id: 'periodontogram', label: 'Periodontograma AAP', icon: BarChart3 },
           { id: 'anamnesis', label: 'Anamnesis HL7', icon: FileText },
           { id: 'timeline', label: 'Timeline FHIR', icon: Clock },
           { id: 'images', label: 'Imágenes DICOM', icon: Camera },
