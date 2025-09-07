@@ -45,8 +45,8 @@ export function AverageBillingCard({ data, isLoading }: AverageBillingCardProps)
     if (isLoading || !data) {
         return (
             <Card>
-                <CardHeader><CardTitle>Facturación Promedio por Paciente</CardTitle></CardHeader>
-                <CardContent>
+                <CardHeader className="py-4"><CardTitle>Facturación Promedio por Paciente</CardTitle></CardHeader>
+                <CardContent className="py-4">
                     <Skeleton className="h-10 w-1/2 mb-2" />
                     <Skeleton className="h-4 w-3/4" />
                 </CardContent>
@@ -60,10 +60,10 @@ export function AverageBillingCard({ data, isLoading }: AverageBillingCardProps)
   
     return (
       <Card>
-        <CardHeader>
+        <CardHeader className="py-4">
           <CardTitle>Facturación Promedio por Paciente</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="py-4">
           <div className="text-4xl font-bold">${value.toFixed(2)}</div>
           <div className={cn("text-xs flex items-center mt-2", trendColor)}>
             <TrendIcon className="h-4 w-4 mr-1" />
@@ -82,9 +82,9 @@ export function PatientDemographicsCard({ data, isLoading }: PatientDemographics
     if (isLoading || !data) {
         return (
             <Card>
-                <CardHeader><CardTitle>Pacientes Nuevos vs. Recurrentes</CardTitle></CardHeader>
-                <CardContent className="flex items-center justify-center">
-                    <Skeleton className="h-[150px] w-[150px] rounded-full" />
+                <CardHeader className="py-4"><CardTitle>Pacientes Nuevos vs. Recurrentes</CardTitle></CardHeader>
+                <CardContent className="flex items-center justify-center py-2">
+                    <Skeleton className="h-[120px] w-[120px] rounded-full" />
                 </CardContent>
             </Card>
         );
@@ -97,17 +97,17 @@ export function PatientDemographicsCard({ data, isLoading }: PatientDemographics
     };
     return (
         <Card className="flex flex-col">
-            <CardHeader>
+            <CardHeader className="py-4">
                 <CardTitle>Pacientes Nuevos vs. Recurrentes</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col items-center justify-center">
+            <CardContent className="flex-1 flex flex-col items-center justify-center py-2">
                 <ChartContainer
                     config={chartConfig}
-                    className="mx-auto aspect-square h-[150px]"
+                    className="mx-auto aspect-square h-[120px]"
                 >
                 <PieChart>
                     <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                    <Pie data={chartData} dataKey="count" nameKey="type" innerRadius={40} strokeWidth={5}>
+                    <Pie data={chartData} dataKey="count" nameKey="type" innerRadius={30} strokeWidth={5}>
                         {chartData.map((entry) => (
                             <Cell key={entry.type} fill={entry.fill} />
                         ))}
@@ -115,10 +115,10 @@ export function PatientDemographicsCard({ data, isLoading }: PatientDemographics
                 </PieChart>
                 </ChartContainer>
             </CardContent>
-            <div className="flex flex-col items-center justify-center p-4">
+            <div className="flex flex-col items-center justify-center p-4 pt-2">
                  <div className="text-4xl font-bold">{total}</div>
                 <p className="text-xs text-muted-foreground">Pacientes activos</p>
-                <div className="w-full flex justify-center gap-4 mt-4 text-xs">
+                <div className="w-full flex justify-center gap-4 mt-2 text-xs">
                     {chartData.map((entry) => (
                         <div key={entry.type} className="flex items-center gap-1.5">
                             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.fill }}></span>
@@ -140,8 +140,8 @@ export function AppointmentAttendanceCard({ data, isLoading }: AppointmentAttend
     if (isLoading || !data) {
          return (
             <Card>
-                <CardHeader><CardTitle>Tasa de Asistencia a Citas</CardTitle></CardHeader>
-                <CardContent>
+                <CardHeader className="py-4"><CardTitle>Tasa de Asistencia a Citas</CardTitle></CardHeader>
+                <CardContent className="py-4">
                     <Skeleton className="h-10 w-1/2 mb-2" />
                     <Skeleton className="h-4 w-3/4" />
                 </CardContent>
@@ -155,10 +155,10 @@ export function AppointmentAttendanceCard({ data, isLoading }: AppointmentAttend
   
     return (
       <Card>
-        <CardHeader>
+        <CardHeader className="py-4">
           <CardTitle>Tasa de Asistencia a Citas</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="py-4">
           <div className="text-4xl font-bold">{value}%</div>
           <div className={cn("text-xs flex items-center mt-2", trendColor)}>
             <TrendIcon className="h-4 w-4 mr-1" />
