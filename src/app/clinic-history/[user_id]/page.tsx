@@ -1375,7 +1375,7 @@ const DentalClinicalSystem = () => {
       <div className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Sistema Clínico Dental Profesional</h1>
+            <h1 className="text-2xl font-bold text-gray-800">Historial Clinico Digital</h1>
             <p className="text-gray-600">Paciente: {patient.name} • Edad: {patient.age} años</p>
             <div className="flex items-center space-x-4 mt-2">
               <div className="flex items-center space-x-1 text-sm">
@@ -1415,7 +1415,7 @@ const DentalClinicalSystem = () => {
 
       <Navigation />
 
-      <div className="container mx-auto px-6 pb-8">
+      <div className="px-6 pb-8">
         <div className="space-y-6">
           {activeView === 'dashboard' && (
               <div className="space-y-6">
