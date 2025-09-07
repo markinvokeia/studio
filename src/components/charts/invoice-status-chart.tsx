@@ -99,7 +99,7 @@ export function InvoiceStatusChart({ chartData, isLoading }: InvoiceStatusChartP
               data={chartData}
               dataKey="value"
               nameKey="name"
-              innerRadius={60}
+              innerRadius={40}
               strokeWidth={5}
             >
               {chartData.map((entry, index) => (
