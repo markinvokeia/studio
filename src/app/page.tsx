@@ -83,7 +83,7 @@ async function getDashboardSummary(dateRange: DateRange | undefined): Promise<Da
                     title: 'New Patients',
                     value: `+${summaryData.current_period_new_patients || 0}`,
                     change: `+${(Number(summaryData.new_patients_growth_percentage) || 0).toFixed(1)}% from last month`,
-                    changeType: getChangeType(Number(summaryData.new_patients_growth_percentage) || 0),
+                    changeType: getChangeType(Number(summaryData.new_patients_growth_percentage || 0)),
                     icon: 'user-plus',
                 },
                 {
@@ -382,19 +382,17 @@ export default function DashboardPage() {
       <div className="space-y-4">
         <ReportFilters date={date} setDate={setDate} />
         <Stats data={stats} />
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-          <div className="lg:col-span-3">
+        <div className="grid grid-cols-1 gap-4">
             <SalesSummaryChart 
                 salesTrend={salesTrend} 
                 date={date} 
                 chartData={salesChartData}
                 isLoading={isChartLoading}
             />
-          </div>
-          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
-              <SalesByServiceChart chartData={salesByServiceData} isLoading={isSalesByServiceLoading}/>
-              <InvoiceStatusChart chartData={invoiceStatusData} isLoading={isInvoiceStatusLoading} />
-          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SalesByServiceChart chartData={salesByServiceData} isLoading={isSalesByServiceLoading}/>
+            <InvoiceStatusChart chartData={invoiceStatusData} isLoading={isInvoiceStatusLoading} />
         </div>
         <KpiRow />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
