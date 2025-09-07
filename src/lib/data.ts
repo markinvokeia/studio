@@ -1,3 +1,4 @@
+
 import {
   User,
   Role,
@@ -15,6 +16,7 @@ import {
   Message,
   Appointment,
   UserLog,
+  PatientDemographics,
 } from './types';
 
 export const statsData = [
@@ -250,3 +252,11 @@ export const userLogs: UserLog[] = [
   { id: 'log_4', timestamp: '2024-06-03T16:30:00Z', action: 'Password Reset', details: 'Password reset requested from email.' },
   { id: 'log_5', timestamp: '2024-06-04T09:00:00Z', action: 'User Logout', details: 'User logged out.' },
 ];
+
+export const patientDemographicsData: PatientDemographics = {
+    total: 215,
+    data: [
+        { type: 'New', count: 86, fill: 'hsl(var(--chart-1))' },
+        { type: 'Recurrent', count: 129, fill: 'hsl(var(--chart-2))' },
+    ]
+};

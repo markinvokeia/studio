@@ -9,7 +9,7 @@ import { ReportFilters } from '@/components/dashboard/report-filters';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
 import { RecentOrdersTable } from '@/components/tables/recent-orders-table';
 import { NewUsersTable } from '@/components/tables/new-users-table';
-import { Quote, Order, User, Stat, SalesChartData, SalesByServiceChartData, InvoiceStatusData, AverageBilling, PatientDemographics, AppointmentAttendanceRate } from '@/lib/types';
+import { Quote, Order, User, Stat, SalesChartData, SalesByServiceChartData, InvoiceStatusData, AverageBilling, AppointmentAttendanceRate } from '@/lib/types';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { subMonths, format } from 'date-fns';
@@ -19,6 +19,8 @@ import { KpiRow } from '@/components/dashboard/kpi-row';
 type DashboardSummary = {
     stats: Stat[],
     salesTrend: number,
+    averageBilling: AverageBilling | null,
+    appointmentAttendance: AppointmentAttendanceRate | null,
 }
 
 const INVOICE_CHART_COLORS: { [key: string]: string } = {
@@ -29,8 +31,8 @@ const INVOICE_CHART_COLORS: { [key: string]: string } = {
   Pending: 'hsl(var(--chart-2))',
 };
 
-async function getDashboardSummary(dateRange: DateRange | undefined): Promise<DashboardSummary> {
-    const defaultSummary = { stats: [], salesTrend: 0 };
+async function getDashboardData(dateRange: DateRange | undefined): Promise<DashboardSummary> {
+    const defaultSummary: DashboardSummary = { stats: [], salesTrend: 0, averageBilling: null, appointmentAttendance: null };
     if (!dateRange || !dateRange.from || !dateRange.to) {
         return defaultSummary;
     }
@@ -70,6 +72,10 @@ async function getDashboardSummary(dateRange: DateRange | undefined): Promise<Da
             return 'neutral';
         }
 
+        const avgRevenueChange = Number(summaryData.avg_revenue_change_vs_previous || 0);
+        const showRateChange = Number(summaryData.show_rate_change_vs_previous || 0);
+
+
         return {
             stats: [
                 {
@@ -82,7 +88,7 @@ async function getDashboardSummary(dateRange: DateRange | undefined): Promise<Da
                 {
                     title: 'New Patients',
                     value: `+${summaryData.current_period_new_patients || 0}`,
-                    change: `+${(Number(summaryData.new_patients_growth_percentage) || 0).toFixed(1)}% from last month`,
+                    change: `+${Number(summaryData.new_patients_growth_percentage || 0).toFixed(1)}% from last month`,
                     changeType: getChangeType(Number(summaryData.new_patients_growth_percentage || 0)),
                     icon: 'user-plus',
                 },
@@ -101,7 +107,17 @@ async function getDashboardSummary(dateRange: DateRange | undefined): Promise<Da
                     icon: 'chart-pie',
                 },
             ],
-            salesTrend: summaryData.sales_trend_percentage || 0
+            salesTrend: summaryData.sales_trend_percentage || 0,
+            averageBilling: {
+                value: Number(summaryData.average_revenue_per_patient || 0),
+                change: avgRevenueChange,
+                changeType: getChangeType(avgRevenueChange),
+            },
+            appointmentAttendance: {
+                value: Number(summaryData.show_rate_percentage || 0),
+                change: showRateChange,
+                changeType: getChangeType(showRateChange),
+            }
         };
 
     } catch (error) {
@@ -331,24 +347,34 @@ async function getUsers(): Promise<User[]> {
 export default function DashboardPage() {
   const [stats, setStats] = React.useState<Stat[]>([]);
   const [salesTrend, setSalesTrend] = React.useState(0);
+  const [averageBilling, setAverageBilling] = React.useState<AverageBilling | null>(null);
+  const [appointmentAttendance, setAppointmentAttendance] = React.useState<AppointmentAttendanceRate | null>(null);
+  const [isKpiLoading, setIsKpiLoading] = React.useState(true);
+  
   const [salesChartData, setSalesChartData] = React.useState<SalesChartData[]>([]);
   const [isChartLoading, setIsChartLoading] = React.useState(true);
   const [salesByServiceData, setSalesByServiceData] = React.useState<SalesByServiceChartData[]>([]);
   const [isSalesByServiceLoading, setIsSalesByServiceLoading] = React.useState(true);
   const [invoiceStatusData, setInvoiceStatusData] = React.useState<InvoiceStatusData[]>([]);
   const [isInvoiceStatusLoading, setIsInvoiceStatusLoading] = React.useState(true);
+  
   const [quotes, setQuotes] = React.useState<Quote[]>([]);
   const [orders, setOrders] = React.useState<Order[]>([]);
   const [users, setUsers] = React.useState<User[]>([]);
+  
   const [date, setDate] = React.useState<DateRange | undefined>({
     from: subMonths(new Date(), 1),
     to: new Date(),
   });
 
   React.useEffect(() => {
-    getDashboardSummary(date).then(({stats, salesTrend}) => {
+    setIsKpiLoading(true);
+    getDashboardData(date).then(({stats, salesTrend, averageBilling, appointmentAttendance}) => {
         setStats(stats);
         setSalesTrend(salesTrend);
+        setAverageBilling(averageBilling);
+        setAppointmentAttendance(appointmentAttendance);
+        setIsKpiLoading(false);
     });
     
     setIsChartLoading(true);
@@ -382,19 +408,23 @@ export default function DashboardPage() {
       <div className="space-y-4">
         <ReportFilters date={date} setDate={setDate} />
         <Stats data={stats} />
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <SalesSummaryChart 
                 salesTrend={salesTrend} 
                 date={date} 
                 chartData={salesChartData}
                 isLoading={isChartLoading}
             />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <SalesByServiceChart chartData={salesByServiceData} isLoading={isSalesByServiceLoading}/>
+                <InvoiceStatusChart chartData={invoiceStatusData} isLoading={isInvoiceStatusLoading} />
+            </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <SalesByServiceChart chartData={salesByServiceData} isLoading={isSalesByServiceLoading}/>
-            <InvoiceStatusChart chartData={invoiceStatusData} isLoading={isInvoiceStatusLoading} />
-        </div>
-        <KpiRow />
+        <KpiRow 
+            averageBillingData={averageBilling}
+            appointmentAttendanceData={appointmentAttendance}
+            isLoading={isKpiLoading}
+        />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <RecentQuotesTable quotes={quotes} />
             <RecentOrdersTable orders={orders} />

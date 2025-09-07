@@ -4,7 +4,6 @@
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -13,29 +12,48 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import {
-    averageBillingData,
-    patientDemographicsData,
-    appointmentAttendanceData,
-} from '@/lib/data/kpi-data';
+import { patientDemographicsData } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { Cell, Pie, PieChart } from 'recharts';
 import { TrendingDownIcon } from '../icons/trending-down-icon';
 import { TrendingUpIcon } from '../icons/trending-up-icon';
+import { AppointmentAttendanceRate, AverageBilling } from '@/lib/types';
+import { Skeleton } from '../ui/skeleton';
+
+interface KpiRowProps {
+    averageBillingData: AverageBilling | null;
+    appointmentAttendanceData: AppointmentAttendanceRate | null;
+    isLoading?: boolean;
+}
 
 
-export function KpiRow() {
+export function KpiRow({ averageBillingData, appointmentAttendanceData, isLoading }: KpiRowProps) {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-      <AverageBillingCard />
+      <AverageBillingCard data={averageBillingData} isLoading={isLoading} />
       <PatientDemographicsCard />
-      <AppointmentAttendanceCard />
+      <AppointmentAttendanceCard data={appointmentAttendanceData} isLoading={isLoading} />
     </div>
   );
 }
 
-export function AverageBillingCard() {
-    const { value, change, changeType } = averageBillingData;
+interface AverageBillingCardProps {
+    data: AverageBilling | null;
+    isLoading?: boolean;
+}
+export function AverageBillingCard({ data, isLoading }: AverageBillingCardProps) {
+    if (isLoading || !data) {
+        return (
+            <Card>
+                <CardHeader><CardTitle>Facturación Promedio por Paciente</CardTitle></CardHeader>
+                <CardContent>
+                    <Skeleton className="h-10 w-1/2 mb-2" />
+                    <Skeleton className="h-4 w-3/4" />
+                </CardContent>
+            </Card>
+        );
+    }
+    const { value, change, changeType } = data;
     const isPositive = changeType === 'positive';
     const trendColor = isPositive ? 'text-green-500' : 'text-red-500';
     const TrendIcon = isPositive ? TrendingUpIcon : TrendingDownIcon;
@@ -46,10 +64,10 @@ export function AverageBillingCard() {
           <CardTitle>Facturación Promedio por Paciente</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-4xl font-bold">${value}</div>
+          <div className="text-4xl font-bold">${value.toFixed(2)}</div>
           <div className={cn("text-xs flex items-center mt-2", trendColor)}>
             <TrendIcon className="h-4 w-4 mr-1" />
-            {change}% vs el período anterior
+            {change.toFixed(1)}% vs el período anterior
           </div>
         </CardContent>
       </Card>
@@ -98,9 +116,24 @@ export function PatientDemographicsCard() {
     );
 }
 
+interface AppointmentAttendanceCardProps {
+    data: AppointmentAttendanceRate | null;
+    isLoading?: boolean;
+}
 
-export function AppointmentAttendanceCard() {
-    const { value, change, changeType } = appointmentAttendanceData;
+export function AppointmentAttendanceCard({ data, isLoading }: AppointmentAttendanceCardProps) {
+    if (isLoading || !data) {
+         return (
+            <Card>
+                <CardHeader><CardTitle>Tasa de Asistencia a Citas</CardTitle></CardHeader>
+                <CardContent>
+                    <Skeleton className="h-10 w-1/2 mb-2" />
+                    <Skeleton className="h-4 w-3/4" />
+                </CardContent>
+            </Card>
+        );
+    }
+    const { value, change, changeType } = data;
     const isPositive = changeType === 'positive';
     const trendColor = isPositive ? 'text-green-500' : 'text-red-500';
     const TrendIcon = isPositive ? TrendingUpIcon : TrendingDownIcon;
@@ -114,7 +147,7 @@ export function AppointmentAttendanceCard() {
           <div className="text-4xl font-bold">{value}%</div>
           <div className={cn("text-xs flex items-center mt-2", trendColor)}>
             <TrendIcon className="h-4 w-4 mr-1" />
-            {change}% vs el período anterior
+            {change.toFixed(1)}% vs el período anterior
           </div>
         </CardContent>
       </Card>
