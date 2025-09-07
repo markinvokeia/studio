@@ -264,9 +264,3 @@ export type PatientDemographics = {
         fill: string;
     }[];
 };
-
-export type AppointmentAttendance = {
-    value: number;
-    change: number;
-    changeType: KpiChangeType;
-};

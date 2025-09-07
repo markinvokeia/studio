@@ -1,5 +1,5 @@
 
-import { AverageBilling, PatientDemographics, AppointmentAttendance } from '../types';
+import { AverageBilling, PatientDemographics } from '../types';
 
 export const averageBillingData: AverageBilling = {
     value: 458,
@@ -13,10 +13,4 @@ export const patientDemographicsData: PatientDemographics = {
         { type: 'New', count: 120, fill: 'hsl(var(--chart-1))' },
         { type: 'Recurrent', count: 232, fill: 'hsl(var(--chart-2))' },
     ],
-};
-
-export const appointmentAttendanceData: AppointmentAttendance = {
-    value: 92,
-    change: -1.5,
-    changeType: 'negative',
 };

@@ -18,7 +18,6 @@ import {
 import {
     averageBillingData,
     patientDemographicsData,
-    appointmentAttendanceData,
 } from '@/lib/data/kpi-data';
 import { cn } from '@/lib/utils';
 import { TrendingUpIcon } from '../icons/trending-up-icon';
@@ -88,36 +87,11 @@ function PatientDemographicsCard() {
     );
 }
 
-
-function AppointmentAttendanceCard() {
-    const { value, change, changeType } = appointmentAttendanceData;
-    const isPositive = changeType === 'positive';
-    const trendColor = isPositive ? 'text-green-500' : 'text-red-500';
-    const TrendIcon = isPositive ? TrendingUpIcon : TrendingDownIcon;
-  
-    return (
-      <Card>
-        <CardHeader>
-          <CardDescription>Tasa de Asistencia a Citas</CardDescription>
-          <CardTitle className="text-4xl">{value}%</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className={cn("text-xs flex items-center", trendColor)}>
-            <TrendIcon className="h-4 w-4 mr-1" />
-            {change}% vs el período anterior
-          </div>
-        </CardContent>
-      </Card>
-    );
-}
-
 export function KpiRow() {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <AverageBillingCard />
         <PatientDemographicsCard />
-        <AppointmentAttendanceCard />
     </div>
   );
 }
-
