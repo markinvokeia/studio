@@ -13,13 +13,14 @@ import { ArrowTrendingUpIcon } from '../icons/arrow-trending-up-icon';
 import { ChartPieIcon } from '../icons/chart-pie-icon';
 import { CurrencyDollarIcon } from '../icons/currency-dollar-icon';
 import { UserPlusIcon } from '../icons/user-plus-icon';
+import { cn } from '@/lib/utils';
 
 
-const iconMap: { [key: string]: React.ElementType } = {
-  'currency-dollar': CurrencyDollarIcon,
-  'user-plus': UserPlusIcon,
-  'arrow-trending-up': ArrowTrendingUpIcon,
-  'chart-pie': ChartPieIcon,
+const iconMap: { [key: string]: { component: React.ElementType, className: string } } = {
+  'currency-dollar': { component: CurrencyDollarIcon, className: 'text-emerald-500 bg-emerald-500/10' },
+  'user-plus': { component: UserPlusIcon, className: 'text-violet-500 bg-violet-500/10' },
+  'arrow-trending-up': { component: ArrowTrendingUpIcon, className: 'text-blue-500 bg-blue-500/10' },
+  'chart-pie': { component: ChartPieIcon, className: 'text-amber-500 bg-amber-500/10' },
 };
 
 interface StatsProps {
@@ -48,14 +49,15 @@ export function Stats({ data }: StatsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
       {data.map((stat, index) => {
-        const Icon = iconMap[stat.icon];
+        const IconInfo = iconMap[stat.icon];
+        const Icon = IconInfo ? IconInfo.component : null;
         return (
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
               {Icon && (
-                <div className="rounded-lg bg-primary/10 p-2">
-                    <Icon className="h-6 w-6 text-primary" />
+                <div className={cn("rounded-lg p-2", IconInfo.className)}>
+                    <Icon className="h-6 w-6" />
                 </div>
               )}
             </CardHeader>
