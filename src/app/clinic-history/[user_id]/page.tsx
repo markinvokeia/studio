@@ -1416,10 +1416,8 @@ const DentalClinicalSystem = () => {
       <Navigation />
 
       <div className="container mx-auto px-6 pb-8">
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-          {/* Contenido principal */}
-          <div className="xl:col-span-3">
-            {activeView === 'dashboard' && (
+        <div className="space-y-6">
+          {activeView === 'dashboard' && (
               <div className="space-y-6">
                 <MedicalAlerts alerts={patient.alerts} />
                 
@@ -1505,7 +1503,6 @@ const DentalClinicalSystem = () => {
 
             {activeView === 'odontogram' && (
               <div className="space-y-6">
-                {/* Panel de control */}
                 <div className="bg-white rounded-xl shadow-lg p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-bold text-gray-800">Odontograma ISO 3950 + Periodontograma AAP 2017</h3>
@@ -1551,10 +1548,8 @@ const DentalClinicalSystem = () => {
                   </div>
                 </div>
 
-                {/* Layout unificado 60-40 */}
-                <div className="grid grid-cols-5 gap-6">
-                  {/* Odontograma - 60% */}
-                  <div className="col-span-3">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
                     {compareMode ? (
                       <div className="space-y-4">
                         <Odontogram
@@ -1587,8 +1582,14 @@ const DentalClinicalSystem = () => {
                     )}
                   </div>
 
-                  {/* Periodontograma - 40% */}
-                  <div className="col-span-2">
+                  <div className="space-y-6">
+                     {selectedTooth && (
+                      <ToothDetails
+                        toothNumber={selectedTooth}
+                        data={odontogramData[selectedDate]}
+                      />
+                    )}
+
                     {selectedTooth && periodontogramData[selectedDate] && periodontogramData[selectedDate][selectedTooth] ? (
                       <Periodontogram
                         data={periodontogramData[selectedDate]}
@@ -1626,39 +1627,6 @@ const DentalClinicalSystem = () => {
                         </div>
                       </div>
                     )}
-
-                    {/* Resumen periodontal si hay diente seleccionado */}
-                    {selectedTooth && periodontogramData[selectedDate] && periodontogramData[selectedDate][selectedTooth] && (
-                      <div className="mt-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4">
-                        <h4 className="text-sm font-bold text-gray-800 mb-3">Resumen Clasificación AAP 2017</h4>
-                        <div className="space-y-2">
-                          {Object.entries(periodontogramData[selectedDate])
-                            .filter(([tooth, data]) => data)
-                            .map(([tooth, data]) => (
-                              <div key={tooth} className="flex items-center justify-between text-xs">
-                                <span className="font-medium">Diente {tooth}:</span>
-                                <div className="flex items-center space-x-1">
-                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                    data.stage === 'IV' ? 'bg-red-200 text-red-800' :
-                                    data.stage === 'III' ? 'bg-orange-200 text-orange-800' :
-                                    data.stage === 'II' ? 'bg-yellow-200 text-yellow-800' :
-                                    'bg-green-200 text-green-800'
-                                  }`}>
-                                    {data.stage}
-                                  </span>
-                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                    data.grade === 'C' ? 'bg-red-200 text-red-800' :
-                                    data.grade === 'B' ? 'bg-yellow-200 text-yellow-800' :
-                                    'bg-green-200 text-green-800'
-                                  }`}>
-                                    {data.grade}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1668,64 +1636,18 @@ const DentalClinicalSystem = () => {
             {activeView === 'timeline' && <TreatmentTimeline treatments={treatmentTimeline} />}
             {activeView === 'images' && <ImageGallery />}
             {activeView === 'voice' && <VoiceCapture />}
-            {activeView === 'reports' && <ReportExport />}
-          </div>
-
-          {/* Panel lateral */}
-          <div className="space-y-6">
-            {selectedTooth && (
-              <ToothDetails
-                toothNumber={selectedTooth}
-                data={odontogramData[selectedDate]}
-              />
+            {activeView === 'reports' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <ReportExport />
+                {showAIChat && <AIChat />}
+              </div>
             )}
-
-            {showAIChat && <AIChat />}
-
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">Estándares Internacionales</h3>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <Shield className="w-4 h-4 text-green-600" />
-                  <span className="text-sm">ISO 3950/1942 Compliant</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Award className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm">AAP/EFP 2017 Certified</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Zap className="w-4 h-4 text-purple-600" />
-                  <span className="text-sm">HL7 FHIR R4</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Camera className="w-4 h-4 text-orange-600" />
-                  <span className="text-sm">DICOM 3.0</span>
-                </div>
+             
+            {activeView !== 'reports' && showAIChat && (
+              <div className="mt-6">
+                <AIChat />
               </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">Estadísticas</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total dientes:</span>
-                  <span className="font-semibold">30/32</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Sanos:</span>
-                  <span className="font-semibold text-green-600">22</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Con tratamiento:</span>
-                  <span className="font-semibold text-blue-600">6</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Ausentes:</span>
-                  <span className="font-semibold text-gray-600">2</span>
-                </div>
-              </div>
-            </div>
-          </div>
+            )}
         </div>
       </div>
     </div>
