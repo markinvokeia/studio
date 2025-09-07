@@ -51,6 +51,12 @@ export function Stats({ data }: StatsProps) {
       {data.map((stat, index) => {
         const IconInfo = iconMap[stat.icon];
         const Icon = IconInfo ? IconInfo.component : null;
+        const changeColor = {
+            positive: 'text-green-500',
+            negative: 'text-destructive',
+            neutral: 'text-muted-foreground'
+        }[stat.changeType];
+
         return (
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -63,7 +69,7 @@ export function Stats({ data }: StatsProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">{stat.change}</p>
+              <p className={cn("text-xs", changeColor)}>{stat.change}</p>
             </CardContent>
           </Card>
         );

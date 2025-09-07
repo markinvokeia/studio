@@ -226,6 +226,7 @@ export type Stat = {
   title: string;
   value: string;
   change: string;
+  changeType: 'positive' | 'negative' | 'neutral';
   icon: string;
 };
 

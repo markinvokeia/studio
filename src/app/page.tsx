@@ -60,7 +60,14 @@ async function getDashboardSummary(dateRange: DateRange | undefined): Promise<Da
         }
         
         const formatPercentage = (value: number) => {
-            return `${value.toFixed(1)}% from last month`;
+            const sign = value > 0 ? '+' : '';
+            return `${sign}${value.toFixed(1)}% from last month`;
+        }
+        
+        const getChangeType = (value: number): 'positive' | 'negative' | 'neutral' => {
+            if (value > 0) return 'positive';
+            if (value < 0) return 'negative';
+            return 'neutral';
         }
 
         return {
@@ -69,24 +76,28 @@ async function getDashboardSummary(dateRange: DateRange | undefined): Promise<Da
                     title: 'Total Revenue',
                     value: formatCurrency(summaryData.current_period_revenue || 0),
                     change: formatPercentage(summaryData.revenue_growth_percentage || 0),
+                    changeType: getChangeType(summaryData.revenue_growth_percentage || 0),
                     icon: 'currency-dollar',
                 },
                 {
                     title: 'New Patients',
                     value: `+${summaryData.current_period_new_patients || 0}`,
-                    change: `+${summaryData.new_patients_growth_percentage || 0}% from last month`,
+                    change: `+${(summaryData.new_patients_growth_percentage || 0).toFixed(1)}% from last month`,
+                    changeType: getChangeType(summaryData.new_patients_growth_percentage || 0),
                     icon: 'user-plus',
                 },
                 {
                     title: 'Sales',
                     value: `+${summaryData.current_period_sales || 0}`,
-                    change: `+${summaryData.sales_growth_percentage || 0}% from last month`,
+                    change: formatPercentage(summaryData.sales_growth_percentage || 0),
+                    changeType: getChangeType(summaryData.sales_growth_percentage || 0),
                     icon: 'arrow-trending-up',
                 },
                 {
                     title: 'Quote Conversion Rate',
-                    value: `${summaryData.quote_conversion_rate || 0}%`,
-                    change: `${summaryData.quote_conversion_rate_growth || 0}% from last month`,
+                    value: `${(summaryData.quote_conversion_rate || 0).toFixed(1)}%`,
+                    change: formatPercentage(summaryData.quote_conversion_rate_growth || 0),
+                    changeType: getChangeType(summaryData.quote_conversion_rate_growth || 0),
                     icon: 'chart-pie',
                 },
             ],
