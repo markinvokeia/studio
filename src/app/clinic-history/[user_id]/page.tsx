@@ -543,18 +543,18 @@ const DentalClinicalSystem = () => {
             <div className="sketchfab-embed-wrapper rounded-lg overflow-hidden h-[400px] md:h-[500px]">
                 <iframe
                     style={{width: '100%', height: '100%'}}
-                    title="Full set of adult teeth"
+                    title="Photorealistic human mouth"
                     frameBorder="0"
                     allowFullScreen
-                    mozAllowFullScreen
-                    webkitAllowFullScreen
+                    mozallowfullscreen="true"
+                    webkitallowfullscreen="true"
                     allow="autoplay; fullscreen; xr-spatial-tracking"
-                    src="https://sketchfab.com/models/aad7e23466284f81b459c82ff9742e15/embed?autospin=1&autostart=1&preload=1"
+                    src="https://sketchfab.com/models/d92cfd5873ac43299c7b64cdf9725526/embed?autostart=1&preload=1"
                 ></iframe>
                 <p style={{ fontSize: '13px', fontWeight: 'normal', margin: '5px', color: '#4A4A4A' }}>
-                    <a href="https://sketchfab.com/3d-models/full-set-of-adult-teeth-aad7e23466284f81b459c82ff9742e15?utm_medium=embed&utm_campaign=share-popup&utm_content=aad7e23466284f81b459c82ff9742e15" target="_blank" rel="nofollow" style={{ fontWeight: 'bold', color: '#1CAAD9' }}> Full set of adult teeth </a>
-                    by <a href="https://sketchfab.com/sdeo?utm_medium=embed&utm_campaign=share-popup&utm_content=aad7e23466284f81b459c82ff9742e15" target="_blank" rel="nofollow" style={{ fontWeight: 'bold', color: '#1CAAD9' }}> SDEO </a>
-                    on <a href="https://sketchfab.com?utm_medium=embed&utm_campaign=share-popup&utm_content=aad7e23466284f81b459c82ff9742e15" target="_blank" rel="nofollow" style={{ fontWeight: 'bold', color: '#1CAAD9' }}>Sketchfab</a>
+                    <a href="https://sketchfab.com/3d-models/photorealistic-human-mouth-d92cfd5873ac43299c7b64cdf9725526?utm_medium=embed&utm_campaign=share-popup&utm_content=d92cfd5873ac43299c7b64cdf9725526" target="_blank" rel="nofollow" style={{ fontWeight: 'bold', color: '#1CAAD9' }}> Photorealistic human mouth </a>
+                    by <a href="https://sketchfab.com/cesar_salcedo?utm_medium=embed&utm_campaign=share-popup&utm_content=d92cfd5873ac43299c7b64cdf9725526" target="_blank" rel="nofollow" style={{ fontWeight: 'bold', color: '#1CAAD9' }}> Cesar Salcedo CG </a>
+                    on <a href="https://sketchfab.com?utm_medium=embed&utm_campaign=share-popup&utm_content=d92cfd5873ac43299c7b64cdf9725526" target="_blank" rel="nofollow" style={{ fontWeight: 'bold', color: '#1CAAD9' }}>Sketchfab</a>
                 </p>
             </div>
         </div>
