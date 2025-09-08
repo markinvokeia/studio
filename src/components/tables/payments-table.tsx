@@ -17,9 +17,15 @@ const columns: ColumnDef<Payment>[] = [
     ),
   },
   {
+    accessorKey: 'invoice_id',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Invoice ID" />
+    ),
+  },
+  {
     accessorKey: 'createdAt',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created At" />
+      <DataTableColumnHeader column={column} title="Date" />
     ),
   },
   {
@@ -37,23 +43,13 @@ const columns: ColumnDef<Payment>[] = [
     },
   },
   {
-    accessorKey: 'status',
+    accessorKey: 'method',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
+      <DataTableColumnHeader column={column} title="Method" />
     ),
-    cell: ({ row }) => {
-      const status = row.getValue('status') as string;
-      const variant = {
-        completed: 'success',
-        pending: 'info',
-        failed: 'destructive',
-      }[status.toLowerCase()] ?? ('default' as any);
-
-      return (
-        <Badge variant={variant} className="capitalize">
-          {status}
-        </Badge>
-      );
+     cell: ({ row }) => {
+      const method = row.getValue('method') as string;
+      return <div className="capitalize">{method.replace(/_/g, ' ')}</div>;
     },
   },
 ];
@@ -82,8 +78,8 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
         <DataTable
           columns={columns}
           data={payments}
-          filterColumnId="id"
-          filterPlaceholder="Filter by payment ID..."
+          filterColumnId="invoice_id"
+          filterPlaceholder="Filter by invoice ID..."
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
         />

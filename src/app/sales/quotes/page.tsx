@@ -220,6 +220,7 @@ async function getPayments(quoteId: string): Promise<Payment[]> {
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
             id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
+            invoice_id: apiPayment.invoice_id,
             amount: apiPayment.amount || 0,
             method: apiPayment.method || 'credit_card',
             status: apiPayment.status || 'pending',

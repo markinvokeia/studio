@@ -95,6 +95,7 @@ export type InvoiceItem = {
 
 export type Payment = {
   id: string;
+  invoice_id: string;
   amount: number;
   method: 'credit_card' | 'bank_transfer' | 'cash';
   status: 'pending' | 'completed' | 'failed';
