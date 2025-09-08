@@ -535,6 +535,32 @@ const DentalClinicalSystem = () => {
       </div>
     );
   };
+  
+  const SketchfabOdontogram = () => {
+    return (
+        <div className="bg-white rounded-xl shadow-lg p-4">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Interactive 3D Odontogram</h3>
+            <div className="sketchfab-embed-wrapper rounded-lg overflow-hidden h-[400px] md:h-[500px]">
+                <iframe
+                    style={{width: '100%', height: '100%'}}
+                    title="Full set of adult teeth"
+                    frameBorder="0"
+                    allowFullScreen
+                    mozAllowFullScreen
+                    webkitAllowFullScreen
+                    allow="autoplay; fullscreen; xr-spatial-tracking"
+                    src="https://sketchfab.com/models/aad7e23466284f81b459c82ff9742e15/embed?autospin=1&autostart=1&preload=1"
+                ></iframe>
+                <p style={{ fontSize: '13px', fontWeight: 'normal', margin: '5px', color: '#4A4A4A' }}>
+                    <a href="https://sketchfab.com/3d-models/full-set-of-adult-teeth-aad7e23466284f81b459c82ff9742e15?utm_medium=embed&utm_campaign=share-popup&utm_content=aad7e23466284f81b459c82ff9742e15" target="_blank" rel="nofollow" style={{ fontWeight: 'bold', color: '#1CAAD9' }}> Full set of adult teeth </a>
+                    by <a href="https://sketchfab.com/sdeo?utm_medium=embed&utm_campaign=share-popup&utm_content=aad7e23466284f81b459c82ff9742e15" target="_blank" rel="nofollow" style={{ fontWeight: 'bold', color: '#1CAAD9' }}> SDEO </a>
+                    on <a href="https://sketchfab.com?utm_medium=embed&utm_campaign=share-popup&utm_content=aad7e23466284f81b459c82ff9742e15" target="_blank" rel="nofollow" style={{ fontWeight: 'bold', color: '#1CAAD9' }}>Sketchfab</a>
+                </p>
+            </div>
+        </div>
+    );
+  };
+
 
   // Periodontograma
   const Periodontogram = ({ data, tooth, onPointClick, onPointHover }) => {
@@ -1314,29 +1340,7 @@ const DentalClinicalSystem = () => {
                   </div>
                 </div>
 
-                {compareMode ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <Odontogram
-                      data={odontogramData[selectedDate]}
-                      onToothClick={setSelectedTooth}
-                      selectedTooth={selectedTooth}
-                      title={`Estado Actual (${selectedDate})`}
-                    />
-                    <Odontogram
-                      data={odontogramData[compareDate]}
-                      onToothClick={() => {}}
-                      selectedTooth={null}
-                      title={`Estado Anterior (${compareDate})`}
-                    />
-                  </div>
-                ) : (
-                  <Odontogram
-                    data={odontogramData[selectedDate]}
-                    onToothClick={setSelectedTooth}
-                    selectedTooth={selectedTooth}
-                    title="Odontograma Interactivo ISO 3950"
-                  />
-                )}
+                <SketchfabOdontogram />
 
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6">
                   <h3 className="text-lg font-bold text-gray-800 mb-4">Estadísticas Clínicas ISO 1942</h3>
@@ -1405,40 +1409,13 @@ const DentalClinicalSystem = () => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div>
-                    {compareMode ? (
-                      <div className="space-y-4">
-                        <Odontogram
-                          data={odontogramData[selectedDate]}
-                          onToothClick={setSelectedTooth}
-                          selectedTooth={selectedTooth}
-                          title={`Estado Actual (${selectedDate})`}
-                        />
-                        <Odontogram
-                          data={odontogramData[compareDate]}
-                          onToothClick={() => {}}
-                          selectedTooth={null}
-                          title={`Estado Anterior (${compareDate})`}
-                        />
-                      </div>
-                    ) : (
-                      <Odontogram
-                        data={odontogramData[selectedDate]}
-                        onToothClick={setSelectedTooth}
-                        selectedTooth={selectedTooth}
-                        title="Odontograma Interactivo ISO 3950"
-                      />
-                    )}
-                  </div>
-
-                  <div className="space-y-6">
-                     {selectedTooth && (
+                  <div className='space-y-6'>
+                    {selectedTooth && (
                       <ToothDetails
                         toothNumber={selectedTooth}
                         data={odontogramData[selectedDate]}
                       />
                     )}
-
                     {selectedTooth && periodontogramData[selectedDate] && periodontogramData[selectedDate][selectedTooth] ? (
                       <Periodontogram
                         data={periodontogramData[selectedDate]}
@@ -1475,6 +1452,31 @@ const DentalClinicalSystem = () => {
                           </div>
                         </div>
                       </div>
+                    )}
+                  </div>
+                  <div>
+                    {compareMode ? (
+                      <div className="space-y-4">
+                        <Odontogram
+                          data={odontogramData[selectedDate]}
+                          onToothClick={setSelectedTooth}
+                          selectedTooth={selectedTooth}
+                          title={`Estado Actual (${selectedDate})`}
+                        />
+                        <Odontogram
+                          data={odontogramData[compareDate]}
+                          onToothClick={() => {}}
+                          selectedTooth={null}
+                          title={`Estado Anterior (${compareDate})`}
+                        />
+                      </div>
+                    ) : (
+                      <Odontogram
+                        data={odontogramData[selectedDate]}
+                        onToothClick={setSelectedTooth}
+                        selectedTooth={selectedTooth}
+                        title="Odontograma Interactivo ISO 3950"
+                      />
                     )}
                   </div>
                 </div>
