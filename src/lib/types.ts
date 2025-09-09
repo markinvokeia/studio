@@ -273,3 +273,11 @@ export type AppointmentAttendanceRate = {
     change: number;
     changeType: KpiChangeType;
 };
+
+export type Calendar = {
+  id: string;
+  name: string;
+  description: string;
+  timezone: string;
+  is_default: boolean;
+};

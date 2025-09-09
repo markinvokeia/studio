@@ -69,6 +69,7 @@ export const navItems: NavItem[] = [
       { title: 'Clinic Details', href: '/config/clinics', icon: Building, isChidren: true },
       { title: 'Schedules', href: '/config/schedules', icon: CalendarClock, isChidren: true },
       { title: 'Holidays', href: '/config/holidays', icon: CalendarOff, isChidren: true },
+      { title: 'Calendars', href: '/config/calendars', icon: Calendar, isChidren: true },
     ],
   },
   {
