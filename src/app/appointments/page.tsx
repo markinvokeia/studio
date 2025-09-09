@@ -4,9 +4,9 @@
 import * as React from 'react';
 import { addMonths, format, parseISO, isSameDay, isToday, isThisMonth, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Appointment } from '@/lib/types';
+import { Appointment, Calendar as CalendarType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Calendar as CalendarIcon } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -25,8 +25,10 @@ import { DataTable } from '@/components/ui/data-table';
 import { appointmentColumns } from './columns';
 import { cn } from '@/lib/utils';
 import { SortingState } from '@tanstack/react-table';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Skeleton } from '@/components/ui/skeleton';
 
-async function getAppointments(): Promise<Appointment[]> {
+async function getAppointments(calendarIds: string[]): Promise<Appointment[]> {
     const now = new Date();
     const startDate = addMonths(now, -6);
     const endDate = addMonths(now, 6);
@@ -36,6 +38,10 @@ async function getAppointments(): Promise<Appointment[]> {
         startingDateAndTime: formatDateForAPI(startDate),
         endingDateAndTime: formatDateForAPI(endDate),
     });
+    
+    if (calendarIds.length > 0) {
+        params.append('calendar_ids', calendarIds.join(','));
+    }
 
     try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
@@ -80,8 +86,35 @@ async function getAppointments(): Promise<Appointment[]> {
     }
 }
 
+async function getCalendars(): Promise<CalendarType[]> {
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/calendars', {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
+        return calendarsData.map((apiCalendar: any) => ({
+            id: apiCalendar.google_calendar_id,
+            name: apiCalendar.name,
+            google_calendar_id: apiCalendar.google_calendar_id,
+            is_active: apiCalendar.is_active,
+        }));
+    } catch (error) {
+        console.error("Failed to fetch calendars:", error);
+        return [];
+    }
+}
+
+
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
+  const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
+  const [selectedCalendarIds, setSelectedCalendarIds] = React.useState<string[]>([]);
+  const [isCalendarsLoading, setIsCalendarsLoading] = React.useState(true);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
   const [isCreateOpen, setCreateOpen] = React.useState(false);
   const [dateFilter, setDateFilter] = React.useState<'today' | 'this_week' | 'this_month'>('today');
@@ -91,12 +124,28 @@ export default function AppointmentsPage() {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   const loadAppointments = React.useCallback(async () => {
+    if (selectedCalendarIds.length === 0) {
+        setAppointments([]);
+        return;
+    };
     setIsRefreshing(true);
-    const fetchedAppointments = await getAppointments();
+    const fetchedAppointments = await getAppointments(selectedCalendarIds);
     setAppointments(fetchedAppointments);
     setIsRefreshing(false);
+  }, [selectedCalendarIds]);
+  
+  const loadCalendars = React.useCallback(async () => {
+    setIsCalendarsLoading(true);
+    const fetchedCalendars = await getCalendars();
+    setCalendars(fetchedCalendars);
+    setSelectedCalendarIds(fetchedCalendars.map(c => c.id));
+    setIsCalendarsLoading(false);
   }, []);
 
+  React.useEffect(() => {
+    loadCalendars();
+  }, [loadCalendars]);
+  
   React.useEffect(() => {
     loadAppointments();
   }, [loadAppointments]);
@@ -138,6 +187,20 @@ export default function AppointmentsPage() {
     }[status] || 'default';
   };
 
+  const handleSelectAllCalendars = (checked: boolean | 'indeterminate') => {
+    if (checked) {
+        setSelectedCalendarIds(calendars.map(c => c.id));
+    } else {
+        setSelectedCalendarIds([]);
+    }
+  };
+
+  const handleCalendarSelection = (calendarId: string, checked: boolean) => {
+    setSelectedCalendarIds(prev => 
+        checked ? [...prev, calendarId] : prev.filter(id => id !== calendarId)
+    );
+  };
+
   return (
     <>
       <Card>
@@ -159,7 +222,7 @@ export default function AppointmentsPage() {
             </TabsList>
             <TabsContent value="calendar" className="pt-4">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                <div className="md:col-span-1">
+                <div className="md:col-span-1 space-y-4">
                   <Card>
                     <CardContent className="p-0">
                         <Calendar
@@ -171,6 +234,47 @@ export default function AppointmentsPage() {
                         />
                     </CardContent>
                   </Card>
+                   <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <CalendarIcon className="h-5 w-5"/>
+                          Calendars
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {isCalendarsLoading ? (
+                          <div className="space-y-2">
+                            <Skeleton className="h-5 w-full" />
+                            <Skeleton className="h-5 w-full" />
+                            <Skeleton className="h-5 w-full" />
+                          </div>
+                        ) : (
+                           <div className="space-y-2">
+                             <div className="flex items-center space-x-2">
+                                <Checkbox 
+                                    id="select-all"
+                                    checked={selectedCalendarIds.length === calendars.length}
+                                    onCheckedChange={handleSelectAllCalendars}
+                                />
+                                <Label htmlFor="select-all" className="font-semibold">Select All</Label>
+                            </div>
+                            <Separator />
+                            <ScrollArea className="h-32">
+                                {calendars.map(calendar => (
+                                <div key={calendar.id} className="flex items-center space-x-2 py-1">
+                                    <Checkbox 
+                                        id={calendar.id}
+                                        checked={selectedCalendarIds.includes(calendar.id)}
+                                        onCheckedChange={(checked) => handleCalendarSelection(calendar.id, !!checked)}
+                                    />
+                                    <Label htmlFor={calendar.id}>{calendar.name}</Label>
+                                </div>
+                                ))}
+                            </ScrollArea>
+                           </div>
+                        )}
+                      </CardContent>
+                    </Card>
                 </div>
                 <div className="md:col-span-2">
                   <Card>
