@@ -247,7 +247,9 @@ const DentalClinicalSystem = () => {
                 headers: { 'Accept': 'application/json' },
             });
             if (!response.ok) {
-                throw new Error('Network response was not ok for patient sessions');
+                console.error('Network response was not ok for patient sessions');
+                setPatientSessions([]);
+                return;
             }
             const data = await response.json();
             const sessionsData = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
@@ -1823,6 +1825,7 @@ export default DentalClinicalSystem;
     
 
     
+
 
 
 
