@@ -46,7 +46,7 @@ const initialPatient = {
   };
   
 const DentalClinicalSystem = () => {
-  const [activeView, setActiveView] = useState('odontogram');
+  const [activeView, setActiveView] = useState('anamnesis');
   const [selectedTooth, setSelectedTooth] = useState(null);
   const [selectedDate, setSelectedDate] = useState('2024-11-15');
   const [hoveredTooth, setHoveredTooth] = useState(null);
@@ -1306,8 +1306,8 @@ const DentalClinicalSystem = () => {
     <div className="bg-white shadow-sm border-b border-gray-200 mb-8">
       <div className="flex space-x-8 px-6 overflow-x-auto">
         {[
-          { id: 'odontogram', label: 'Odontograma ISO', icon: Search },
           { id: 'anamnesis', label: 'Anamnesis HL7', icon: FileText },
+          { id: 'odontogram', label: 'Odontograma ISO', icon: Search },
           { id: 'timeline', label: 'Timeline FHIR', icon: Clock },
           { id: 'images', label: 'Imágenes DICOM', icon: Camera },
           { id: 'voice', label: 'Voz SNOMED', icon: Mic },
