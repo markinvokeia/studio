@@ -99,7 +99,7 @@ const DentalClinicalSystem = () => {
                 throw new Error('Network response was not ok for personal history');
             }
             const data = await response.json();
-            const historyData = Array.isArray(data.data) ? data.data : (data.antecedentes_personales || []);
+            const historyData = Array.isArray(data) ? data : (data.data || data.antecedentes_personales || []);
             
             const mappedHistory = historyData.map((item: any): PersonalHistoryItem => ({
                 nombre: item.nombre || 'N/A',
