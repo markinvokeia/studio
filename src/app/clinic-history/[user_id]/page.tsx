@@ -193,7 +193,7 @@ const DentalClinicalSystem = () => {
             
             const mappedAllergies = allergyData.map((item: any): AllergyItem => ({
                 allergen: item.alergeno || 'N/A',
-                reaction: item.reaccion || 'N/A',
+                reaction: item.reaccion_descrita || 'N/A',
                 snomed: item.snomed_ct_id || 'N/A',
             }));
             setAllergies(mappedAllergies);
