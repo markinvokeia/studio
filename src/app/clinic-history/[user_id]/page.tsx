@@ -12,10 +12,11 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import type { User as UserType } from '@/lib/types';
+import { useParams, useRouter } from 'next/navigation';
 
 
 const initialPatient = {
-    id: 1,
+    id: '1',
     name: "María García López",
     age: 34,
     lastVisit: "2024-11-15",
@@ -55,6 +56,10 @@ type PersonalHistoryItem = {
 };
 
 const DentalClinicalSystem = () => {
+  const router = useRouter();
+  const params = useParams();
+  const userId = params.user_id as string;
+
   const [activeView, setActiveView] = useState('anamnesis');
   const [selectedTooth, setSelectedTooth] = useState(null);
   const [selectedDate, setSelectedDate] = useState('2024-11-15');
@@ -82,10 +87,10 @@ const DentalClinicalSystem = () => {
   
     useEffect(() => {
         const fetchPersonalHistory = async () => {
-            if (!selectedPatient?.id) return;
+            if (!userId) return;
             setIsLoadingPersonalHistory(true);
             try {
-                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales?user_id=${selectedPatient.id}`, {
+                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales?user_id=${userId}`, {
                     method: 'GET',
                     mode: 'cors',
                     headers: {
@@ -116,7 +121,7 @@ const DentalClinicalSystem = () => {
         };
 
         fetchPersonalHistory();
-    }, [selectedPatient]);
+    }, [userId]);
 
   // Debounced search effect
   useEffect(() => {
@@ -138,7 +143,7 @@ const DentalClinicalSystem = () => {
           const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
           
           const mappedUsers = usersData.map((apiUser: any) => ({
-            id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiUser.user_id ? String(apiUser.user_id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
             name: apiUser.name || 'No Name',
             email: apiUser.email || 'no-email@example.com',
             phone_number: apiUser.phone_number || '000-000-0000',
@@ -163,17 +168,36 @@ const DentalClinicalSystem = () => {
   }, [searchQuery]);
   
   const handleSelectPatient = (user: UserType) => {
-    // In a real app, you would fetch this patient's full data
-    // For now, we'll just update the name and mock some data
-    setSelectedPatient({
-        ...initialPatient, // spread initial patient to get all the structure
-        id: parseInt(user.id.replace(/[^0-9]/g, ''), 10) || 0,
-        name: user.name,
-        age: 30 + Math.floor(Math.random() * 10), // random age
-    });
+    router.push(`/clinic-history/${user.id}`);
     setPatientSearchOpen(false);
     setSearchQuery(user.name);
   };
+  
+  useEffect(() => {
+    // This effect runs when the user ID from the URL changes.
+    // We can fetch the patient's main info here.
+    // For now, we'll just update the selectedPatient state if the ID is different.
+    if (userId && userId !== selectedPatient.id) {
+        // In a real app, you would fetch patient details by ID here.
+        // For demonstration, we'll find the user in the search results or create a placeholder.
+        const foundUser = searchResults.find(u => u.id === userId);
+        if (foundUser) {
+            setSelectedPatient({
+                ...initialPatient,
+                id: foundUser.id,
+                name: foundUser.name,
+                age: 30 + Math.floor(Math.random() * 10),
+            });
+        } else {
+             setSelectedPatient({
+                ...initialPatient,
+                id: userId,
+                name: "Loading...",
+            });
+        }
+    }
+  }, [userId, searchResults, selectedPatient.id]);
+
 
   // Nomenclatura FDI ISO 3950 completa
   const FDI_NOTATION = {
@@ -1427,7 +1451,10 @@ const DentalClinicalSystem = () => {
                     </Command>
                 </PopoverContent>
             </Popover>
-             <p className="text-gray-600 mt-2">Paciente: {patient.name} • Edad: {patient.age} años</p>
+             <div className="text-gray-600 mt-2">
+                <p>Paciente: {patient.name} • Edad: {patient.age} años</p>
+                <p className="text-xs font-mono">User ID: {patient.id}</p>
+             </div>
             <div className="flex items-center space-x-4 mt-2">
               <div className="flex items-center space-x-1 text-sm">
                 <Shield className="w-4 h-4 text-green-600" />
