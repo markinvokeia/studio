@@ -1469,8 +1469,7 @@ const DentalClinicalSystem = () => {
                 </PopoverContent>
             </Popover>
             <div className="text-gray-600 mt-4">
-                <p className="text-xl font-semibold text-gray-900">Paciente: {patient.name}</p>
-                <p className="text-sm text-gray-500 font-mono mt-1">User ID: {patient.id}</p>
+                <p className="text-xl font-semibold text-gray-900">{patient.name}</p>
              </div>
           </div>
           <div className="flex items-center space-x-4">
@@ -1640,5 +1639,7 @@ const DentalClinicalSystem = () => {
 
 export default DentalClinicalSystem;
 
+
+    
 
     
