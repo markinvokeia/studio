@@ -79,7 +79,7 @@ const DentalClinicalSystem = () => {
   const [searchResults, setSearchResults] = useState<UserType[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(initialPatient);
-  const [personalHistory, setPersonalHistory] = useState<PersonalHistoryItem[]>(initialPatient.medicalHistory.personalHistory);
+  const [personalHistory, setPersonalHistory] = useState<PersonalHistoryItem[]>([]);
   const [isLoadingPersonalHistory, setIsLoadingPersonalHistory] = useState(false);
 
   const patient = selectedPatient;
@@ -100,7 +100,7 @@ const DentalClinicalSystem = () => {
                     throw new Error('Network response was not ok');
                 }
                 const data = await response.json();
-                const historyData = Array.isArray(data) ? data : (data.antecedentes_personales || data.data || []);
+                const historyData = Array.isArray(data.data) ? data.data : (data.antecedentes_personales || []);
                 
                 const mappedHistory = historyData.map((item: any): PersonalHistoryItem => ({
                     nombre: item.nombre || 'N/A',
@@ -185,12 +185,14 @@ const DentalClinicalSystem = () => {
                 name: foundUser.name,
                 age: 30 + Math.floor(Math.random() * 10),
             });
+             setSearchQuery(foundUser.name);
         } else {
              setSelectedPatient({
                 ...initialPatient,
                 id: userId,
                 name: "Loading...",
             });
+            setSearchQuery("Loading...")
         }
     }
   }, [userId, searchResults, selectedPatient.id]);
