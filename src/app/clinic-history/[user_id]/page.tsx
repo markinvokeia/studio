@@ -1371,7 +1371,7 @@ const DentalClinicalSystem = () => {
                                     <div>
                                         <strong className="text-gray-600">Tratamientos:</strong>
                                         <ul className="list-disc pl-5 mt-1">
-                                            {session.tratamientos.map((t, i) => (
+                                            {session.tratamientos && session.tratamientos.map((t, i) => (
                                                 <li key={i}>{t.descripcion} {t.numero_diente && `(Diente ${t.numero_diente})`}</li>
                                             ))}
                                         </ul>
@@ -1802,6 +1802,7 @@ export default DentalClinicalSystem;
     
 
     
+
 
 
 
