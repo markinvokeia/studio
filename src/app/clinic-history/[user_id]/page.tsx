@@ -1631,12 +1631,11 @@ const DentalClinicalSystem = () => {
               className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 flex items-center space-x-2 transition-colors"
             >
               <MessageSquare className="w-4 h-4" />
-              <span>IA SNOMED-CT</span>
+              <span>Habla con el historial</span>
             </button>
             <div className="text-right">
               <div className="text-sm text-gray-500">Última visita</div>
               <div className="font-semibold text-gray-800">{patient.lastVisit}</div>
-              <div className="text-xs text-gray-500">Registro HL7 FHIR: {patient.id}</div>
             </div>
           </div>
         </div>
@@ -1796,4 +1795,5 @@ export default DentalClinicalSystem;
     
 
     
+
 
