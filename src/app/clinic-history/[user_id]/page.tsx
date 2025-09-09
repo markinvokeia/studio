@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import type { User as UserType } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 
 const initialPatient = {
@@ -27,8 +28,8 @@ const initialPatient = {
     ],
     medicalHistory: {
       personalHistory: [
-        { condition: "Hipertensión Arterial", since: "2019", status: "Controlada", comments: "Medicación diaria", icd10: "I10", snomed: "38341003" },
-        { condition: "Diabetes Tipo 2", since: "2021", status: "En control", comments: "Dieta y ejercicio", icd10: "E11", snomed: "44054006" }
+        { nombre: "Hipertensión Arterial", categoria: "Cardiovascular", nivel_alerta: 2, comentarios: "Medicación diaria" },
+        { nombre: "Diabetes Tipo 2", categoria: "Endocrino", nivel_alerta: 2, comentarios: "Dieta y ejercicio" }
       ],
       familyHistory: [
         { condition: "Diabetes", relative: "Madre", comments: "Diagnosticada a los 45 años" },
@@ -47,12 +48,10 @@ const initialPatient = {
   };
   
 type PersonalHistoryItem = {
-    condition: string;
-    since: string;
-    status: string;
-    comments: string;
-    icd10: string;
-    snomed: string;
+    nombre: string;
+    categoria: string;
+    nivel_alerta: number;
+    comentarios: string;
 };
 
 const DentalClinicalSystem = () => {
@@ -104,12 +103,10 @@ const DentalClinicalSystem = () => {
                 const historyData = Array.isArray(data) ? data : (data.antecedentes_personales || data.data || []);
                 
                 const mappedHistory = historyData.map((item: any): PersonalHistoryItem => ({
-                    condition: item.condition || 'N/A',
-                    since: item.since || 'N/A',
-                    status: item.status || 'N/A',
-                    comments: item.comments || '',
-                    icd10: item.icd10 || 'N/A',
-                    snomed: item.snomed || 'N/A'
+                    nombre: item.nombre || 'N/A',
+                    categoria: item.categoria || 'N/A',
+                    nivel_alerta: Number(item.nivel_alerta) || 1,
+                    comentarios: item.comentarios || '',
                 }));
                 setPersonalHistory(mappedHistory);
             } catch (error) {
@@ -459,7 +456,7 @@ const DentalClinicalSystem = () => {
       modality: "IO",
       bodyPart: "TEETH",
       viewPosition: "ANTERIOR",
-      url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhkN2RhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IiM3MjE3NGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIEludHJhb3JhbCBBbnRlcmlvcjwvdGV4dD48L3N2Zz4=",
+      url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ_g0PSIxMDAlIiBmaWxsPSIjZjhkN2RhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IiM3MjE3NGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIEludHJhb3JhbCBBbnRlcmlvcjwvdGV4dD48L3N2Zz4=",
       description: "Vista frontal de los dientes anteriores"
     },
     {
@@ -1285,101 +1282,109 @@ const DentalClinicalSystem = () => {
     );
   };
 
-  const AnamnesisDashboard = () => (
-    <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-800">Anamnesis Estructurada</h3>
-          <div className="flex items-center space-x-2">
-            <Shield className="w-4 h-4 text-blue-600" />
-            <span className="text-sm text-gray-600">HL7 FHIR | SNOMED-CT</span>
-          </div>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center mb-4">
-            <User className="w-5 h-5 text-blue-600 mr-2" />
-            <h3 className="text-lg font-bold text-gray-800">Antecedentes Personales</h3>
-          </div>
-          <div className="space-y-3">
-            {isLoadingPersonalHistory ? (
-                <p>Loading personal history...</p>
-            ) : personalHistory.length > 0 ? (
-                personalHistory.map((item, index) => (
-              <div key={index} className="border-l-4 border-blue-200 pl-4 py-2">
-                <div className="flex justify-between items-center">
-                  <div className="font-semibold text-gray-800">{item.condition}</div>
-                  <span className="text-xs font-mono text-gray-500">{item.snomed}</span>
-                </div>
-                <div className="text-sm text-gray-600">
-                  ICD-10: {item.icd10} • Desde: {item.since} • Estado: {item.status}
-                </div>
-                <div className="text-sm text-gray-700">{item.comments}</div>
-              </div>
-            ))
-            ) : (
-                <p>No personal history found.</p>
-            )}
-          </div>
-        </div>
+  const AnamnesisDashboard = () => {
+    const getAlertBorderColor = (level: number) => {
+        switch (level) {
+            case 1: return 'border-blue-300';
+            case 2: return 'border-yellow-400';
+            case 3: return 'border-red-500';
+            default: return 'border-gray-200';
+        }
+    };
 
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center mb-4">
-            <Heart className="w-5 h-5 text-red-600 mr-2" />
-            <h3 className="text-lg font-bold text-gray-800">Antecedentes Familiares</h3>
-          </div>
-          <div className="space-y-3">
-            {patient.medicalHistory.familyHistory.map((item, index) => (
-              <div key={index} className="border-l-4 border-red-200 pl-4 py-2">
-                <div className="font-semibold text-gray-800">{item.condition}</div>
-                <div className="text-sm text-gray-600">Familiar: {item.relative}</div>
-                <div className="text-sm text-gray-700">{item.comments}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center mb-4">
-            <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
-            <h3 className="text-lg font-bold text-gray-800">Alergias</h3>
-          </div>
-          <div className="space-y-3">
-            {patient.medicalHistory.allergies.map((item, index) => (
-              <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <div className="flex justify-between items-center">
-                  <div className="font-semibold text-red-800">{item.allergen}</div>
-                  <span className="text-xs font-mono text-gray-500">{item.snomed}</span>
+    return (
+        <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-gray-800">Anamnesis Estructurada</h3>
+                    <div className="flex items-center space-x-2">
+                        <Shield className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm text-gray-600">HL7 FHIR | SNOMED-CT</span>
+                    </div>
                 </div>
-                <div className="text-sm text-red-600">{item.reaction}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center mb-4">
-            <Pill className="w-5 h-5 text-green-600 mr-2" />
-            <h3 className="text-lg font-bold text-gray-800">Medicamentos Actuales</h3>
-          </div>
-          <div className="space-y-3">
-            {patient.medicalHistory.medications.map((item, index) => (
-              <div key={index} className="border-l-4 border-green-200 pl-4 py-2">
-                <div className="flex justify-between items-center">
-                  <div className="font-semibold text-gray-800">{item.name}</div>
-                  <span className="text-xs font-mono text-gray-500">{item.code}</span>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                    <div className="flex items-center mb-4">
+                        <User className="w-5 h-5 text-blue-600 mr-2" />
+                        <h3 className="text-lg font-bold text-gray-800">Antecedentes Personales</h3>
+                    </div>
+                    <div className="space-y-3">
+                        {isLoadingPersonalHistory ? (
+                            <p>Loading personal history...</p>
+                        ) : personalHistory.length > 0 ? (
+                            personalHistory.map((item, index) => (
+                                <div key={index} className={`border-l-4 ${getAlertBorderColor(item.nivel_alerta)} pl-4 py-2`}>
+                                    <div className="flex justify-between items-center">
+                                        <div className="font-semibold text-gray-800">{item.nombre}</div>
+                                        <div className="text-xs text-gray-500">{item.categoria}</div>
+                                    </div>
+                                    <div className="text-sm text-gray-700">{item.comentarios}</div>
+                                </div>
+                            ))
+                        ) : (
+                            <p>No personal history found.</p>
+                        )}
+                    </div>
                 </div>
-                <div className="text-sm text-gray-600">{item.dose} • {item.frequency}</div>
-                <div className="text-sm text-gray-700">Desde: {item.since}</div>
-              </div>
-            ))}
-          </div>
+
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                    <div className="flex items-center mb-4">
+                        <Heart className="w-5 h-5 text-red-600 mr-2" />
+                        <h3 className="text-lg font-bold text-gray-800">Antecedentes Familiares</h3>
+                    </div>
+                    <div className="space-y-3">
+                        {patient.medicalHistory.familyHistory.map((item, index) => (
+                            <div key={index} className="border-l-4 border-red-200 pl-4 py-2">
+                                <div className="font-semibold text-gray-800">{item.condition}</div>
+                                <div className="text-sm text-gray-600">Familiar: {item.relative}</div>
+                                <div className="text-sm text-gray-700">{item.comments}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                    <div className="flex items-center mb-4">
+                        <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
+                        <h3 className="text-lg font-bold text-gray-800">Alergias</h3>
+                    </div>
+                    <div className="space-y-3">
+                        {patient.medicalHistory.allergies.map((item, index) => (
+                            <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <div className="flex justify-between items-center">
+                                    <div className="font-semibold text-red-800">{item.allergen}</div>
+                                    <span className="text-xs font-mono text-gray-500">{item.snomed}</span>
+                                </div>
+                                <div className="text-sm text-red-600">{item.reaction}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                    <div className="flex items-center mb-4">
+                        <Pill className="w-5 h-5 text-green-600 mr-2" />
+                        <h3 className="text-lg font-bold text-gray-800">Medicamentos Actuales</h3>
+                    </div>
+                    <div className="space-y-3">
+                        {patient.medicalHistory.medications.map((item, index) => (
+                            <div key={index} className="border-l-4 border-green-200 pl-4 py-2">
+                                <div className="flex justify-between items-center">
+                                    <div className="font-semibold text-gray-800">{item.name}</div>
+                                    <span className="text-xs font-mono text-gray-500">{item.code}</span>
+                                </div>
+                                <div className="text-sm text-gray-600">{item.dose} • {item.frequency}</div>
+                                <div className="text-sm text-gray-700">Desde: {item.since}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
+    };
 
   const Navigation = () => (
     <div className="bg-white shadow-sm border-b border-gray-200 mb-8">
