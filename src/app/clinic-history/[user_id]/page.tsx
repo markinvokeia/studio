@@ -196,8 +196,8 @@ const DentalClinicalSystem = () => {
             
             const mappedAllergies = allergyData.map((item: any): AllergyItem => ({
                 allergen: item.alergeno || 'N/A',
-                reaction: item.reaccion_descrita || 'N/A',
-                snomed: item.snomed_ct_id || 'N/A',
+                reaction: item.reaccion_descrita || '',
+                snomed: item.snomed_ct_id || '',
             }));
             setAllergies(mappedAllergies);
         } catch (error) {
@@ -231,8 +231,8 @@ const DentalClinicalSystem = () => {
                 frequency: item.frecuencia || 'N/A',
                 since: item.fecha_inicio || null,
                 endDate: item.fecha_fin || null,
-                reason: item.motivo || 'N/A',
-                code: item.snomed_ct_id || 'N/A',
+                reason: item.motivo || '',
+                code: item.snomed_ct_id || '',
             }));
             setMedications(mappedMedications);
         } catch (error) {
@@ -1446,16 +1446,6 @@ const DentalClinicalSystem = () => {
 
     return (
         <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-gray-800">Anamnesis Estructurada</h3>
-                    <div className="flex items-center space-x-2">
-                        <Shield className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm text-gray-600">HL7 FHIR | SNOMED-CT</span>
-                    </div>
-                </div>
-            </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white rounded-xl shadow-lg p-6">
                     <div className="flex items-center mb-4">
@@ -1516,9 +1506,9 @@ const DentalClinicalSystem = () => {
                                 <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-3">
                                     <div className="flex justify-between items-center">
                                         <div className="font-semibold text-red-800">{item.allergen}</div>
-                                        <span className="text-xs font-mono text-gray-500">{item.snomed}</span>
+                                        {item.snomed && <span className="text-xs font-mono text-gray-500">{item.snomed}</span>}
                                     </div>
-                                    <div className="text-sm text-red-600">{item.reaction}</div>
+                                    {item.reaction && <div className="text-sm text-red-600">{item.reaction}</div>}
                                 </div>
                             ))
                         ) : (
@@ -1806,3 +1796,4 @@ export default DentalClinicalSystem;
     
 
     
+
