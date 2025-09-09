@@ -1363,7 +1363,7 @@ const DentalClinicalSystem = () => {
                             <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
                                 <div className="flex justify-between items-start mb-2">
                                     <h4 className="font-semibold text-gray-800">{session.procedimiento_realizado}</h4>
-                                    <span className="text-sm text-gray-500">{format(parseISO(session.fecha_sesion), 'dd/MM/yyyy')}</span>
+                                    <span className="text-sm text-gray-500">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</span>
                                 </div>
                                 <div className="space-y-3 text-sm text-gray-700">
                                     <p><strong className="text-gray-600">Diagnóstico:</strong> {session.diagnostico}</p>
@@ -1802,6 +1802,7 @@ export default DentalClinicalSystem;
     
 
     
+
 
 
 
