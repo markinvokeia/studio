@@ -99,7 +99,7 @@ const DentalClinicalSystem = () => {
                 throw new Error('Network response was not ok for personal history');
             }
             const data = await response.json();
-            const historyData = Array.isArray(data) ? data : (data.data || data.antecedentes_personales || []);
+            const historyData = Array.isArray(data) ? data : (data.antecedentes_personales || data.data || []);
             
             const mappedHistory = historyData.map((item: any): PersonalHistoryItem => ({
                 nombre: item.nombre || 'N/A',
@@ -1468,28 +1468,10 @@ const DentalClinicalSystem = () => {
                     </Command>
                 </PopoverContent>
             </Popover>
-             <div className="text-gray-600 mt-2">
-                <p>Paciente: {patient.name} • Edad: {patient.age} años</p>
-                <p className="text-xs font-mono">User ID: {patient.id}</p>
+            <div className="text-gray-600 mt-4">
+                <p className="text-xl font-semibold text-gray-900">Paciente: {patient.name}</p>
+                <p className="text-sm text-gray-500 font-mono mt-1">User ID: {patient.id}</p>
              </div>
-            <div className="flex items-center space-x-4 mt-2">
-              <div className="flex items-center space-x-1 text-sm">
-                <Shield className="w-4 h-4 text-green-600" />
-                <span className="text-gray-600">ISO 3950/1942</span>
-              </div>
-              <div className="flex items-center space-x-1 text-sm">
-                <Award className="w-4 h-4 text-blue-600" />
-                <span className="text-gray-600">AAP/EFP 2017</span>
-              </div>
-              <div className="flex items-center space-x-1 text-sm">
-                <Zap className="w-4 h-4 text-purple-600" />
-                <span className="text-gray-600">HL7 FHIR</span>
-              </div>
-              <div className="flex items-center space-x-1 text-sm">
-                <Camera className="w-4 h-4 text-orange-600" />
-                <span className="text-gray-600">DICOM</span>
-              </div>
-            </div>
           </div>
           <div className="flex items-center space-x-4">
             <button
@@ -1658,3 +1640,5 @@ const DentalClinicalSystem = () => {
 
 export default DentalClinicalSystem;
 
+
+    
