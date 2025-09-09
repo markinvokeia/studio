@@ -18,12 +18,32 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
 async function getMedications(): Promise<Medication[]> {
-    // This is a placeholder. In a real application, you would fetch this from your API.
-    return [
-        { id: '1', nombre_generico: 'Ibuprofeno', nombre_comercial: 'Advil' },
-        { id: '2', nombre_generico: 'Paracetamol', nombre_comercial: 'Tylenol' },
-        { id: '3', nombre_generico: 'Amoxicilina', nombre_comercial: 'Amoxil' },
-    ];
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogo_medicamentos', {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/json',
+            },
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const medicationsData = Array.isArray(data) ? data : (data.catalogo_medicamentos || data.data || data.result || []);
+
+        return medicationsData.map((apiMedication: any) => ({
+            id: apiMedication.id ? String(apiMedication.id) : `med_${Math.random().toString(36).substr(2, 9)}`,
+            nombre_generico: apiMedication.nombre_generico,
+            nombre_comercial: apiMedication.nombre_comercial,
+        }));
+    } catch (error) {
+        console.error("Failed to fetch medications:", error);
+        return [];
+    }
 }
 
 export default function MedicationsPage() {
