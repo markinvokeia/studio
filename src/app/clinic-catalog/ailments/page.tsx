@@ -19,12 +19,33 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 async function getAilments(): Promise<Ailment[]> {
-    // This is a placeholder. In a real application, you would fetch this from your API.
-    return [
-        { id: '1', nombre: 'Hipertensión Arterial', categoria: 'Cardiovascular', nivel_alerta: 2 },
-        { id: '2', nombre: 'Diabetes Tipo 2', categoria: 'Endocrino', nivel_alerta: 2 },
-        { id: '3', nombre: 'Alergia a Penicilina', categoria: 'Alergia', nivel_alerta: 3 },
-    ];
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogo_padecimientos', {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/json',
+            },
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const ailmentsData = Array.isArray(data) ? data : (data.catalogo_padecimientos || data.data || data.result || []);
+
+        return ailmentsData.map((apiAilment: any) => ({
+            id: apiAilment.id ? String(apiAilment.id) : `ail_${Math.random().toString(36).substr(2, 9)}`,
+            nombre: apiAilment.nombre,
+            categoria: apiAilment.categoria,
+            nivel_alerta: Number(apiAilment.nivel_alerta)
+        }));
+    } catch (error) {
+        console.error("Failed to fetch ailments:", error);
+        return [];
+    }
 }
 
 export default function AilmentsPage() {
