@@ -1591,8 +1591,8 @@ const DentalClinicalSystem = () => {
       <div className="flex space-x-8 px-6 overflow-x-auto">
         {[
           { id: 'anamnesis', label: 'Anamnesis HL7', icon: FileText },
-          { id: 'odontogram', label: 'Odontograma ISO', icon: Search },
           { id: 'timeline', label: 'Timeline FHIR', icon: Clock },
+          { id: 'odontogram', label: 'Odontograma ISO', icon: Search },
           { id: 'images', label: 'Imágenes DICOM', icon: Camera },
           { id: 'voice', label: 'Voz SNOMED', icon: Mic },
           { id: 'reports', label: 'Reportes HL7', icon: FileDown }
