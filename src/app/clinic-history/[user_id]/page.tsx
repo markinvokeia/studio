@@ -54,6 +54,12 @@ type PersonalHistoryItem = {
     comentarios: string;
 };
 
+type FamilyHistoryItem = {
+    condition: string;
+    relative: string;
+    comments: string;
+};
+
 const DentalClinicalSystem = () => {
   const router = useRouter();
   const params = useParams();
@@ -81,6 +87,9 @@ const DentalClinicalSystem = () => {
   const [selectedPatient, setSelectedPatient] = useState<any>(initialPatient);
   const [personalHistory, setPersonalHistory] = useState<PersonalHistoryItem[]>([]);
   const [isLoadingPersonalHistory, setIsLoadingPersonalHistory] = useState(false);
+  const [familyHistory, setFamilyHistory] = useState<FamilyHistoryItem[]>([]);
+  const [isLoadingFamilyHistory, setIsLoadingFamilyHistory] = useState(false);
+
 
   const patient = selectedPatient;
   
@@ -113,6 +122,37 @@ const DentalClinicalSystem = () => {
             setPersonalHistory([]);
         } finally {
             setIsLoadingPersonalHistory(false);
+        }
+    }, []);
+    
+    const fetchFamilyHistory = useCallback(async (currentUserId: string) => {
+        if (!currentUserId) return;
+        setIsLoadingFamilyHistory(true);
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_familiares?user_id=${currentUserId}`, {
+                method: 'GET',
+                mode: 'cors',
+                headers: {
+                    'Accept': 'application/json',
+                },
+            });
+            if (!response.ok) {
+                throw new Error('Network response was not ok for family history');
+            }
+            const data = await response.json();
+            const historyData = Array.isArray(data) ? data : (data.antecedentes_familiares || data.data || []);
+            
+            const mappedHistory = historyData.map((item: any): FamilyHistoryItem => ({
+                condition: item.nombre || 'N/A',
+                relative: item.parentesco || 'N/A',
+                comments: item.comentarios || '',
+            }));
+            setFamilyHistory(mappedHistory);
+        } catch (error) {
+            console.error("Failed to fetch family history:", error);
+            setFamilyHistory([]);
+        } finally {
+            setIsLoadingFamilyHistory(false);
         }
     }, []);
 
@@ -182,10 +222,10 @@ const DentalClinicalSystem = () => {
                 if (usersData.length > 0) {
                     const apiUser = usersData[0];
                     setSelectedPatient({
+                        ...initialPatient, // keep other mocked data for now
                         id: apiUser.user_id,
                         name: apiUser.name || "Unknown Patient",
                         age: 30 + Math.floor(Math.random() * 10), // Mocked age
-                        ...initialPatient // keep other mocked data for now
                     });
                     setSearchQuery(apiUser.name || '');
                 }
@@ -199,13 +239,14 @@ const DentalClinicalSystem = () => {
 
         // Fetch data for all tabs
         fetchPersonalHistory(currentUserId);
+        fetchFamilyHistory(currentUserId);
         // Add other data fetching calls for other tabs here
     };
 
     if (userId) {
         fetchPatientData(userId);
     }
-  }, [userId, fetchPersonalHistory]);
+  }, [userId, fetchPersonalHistory, fetchFamilyHistory]);
 
 
   // Nomenclatura FDI ISO 3950 completa
@@ -1347,13 +1388,19 @@ const DentalClinicalSystem = () => {
                         <h3 className="text-lg font-bold text-gray-800">Antecedentes Familiares</h3>
                     </div>
                     <div className="space-y-3">
-                        {patient.medicalHistory.familyHistory.map((item, index) => (
-                            <div key={index} className="border-l-4 border-red-200 pl-4 py-2">
-                                <div className="font-semibold text-gray-800">{item.condition}</div>
-                                <div className="text-sm text-gray-600">Familiar: {item.relative}</div>
-                                <div className="text-sm text-gray-700">{item.comments}</div>
-                            </div>
-                        ))}
+                        {isLoadingFamilyHistory ? (
+                            <p>Loading family history...</p>
+                        ) : familyHistory.length > 0 ? (
+                            familyHistory.map((item, index) => (
+                                <div key={index} className="border-l-4 border-red-200 pl-4 py-2">
+                                    <div className="font-semibold text-gray-800">{item.condition}</div>
+                                    <div className="text-sm text-gray-600">Familiar: {item.relative}</div>
+                                    <div className="text-sm text-gray-700">{item.comments}</div>
+                                </div>
+                            ))
+                        ) : (
+                           <p>No family history found.</p>
+                        )}
                     </div>
                 </div>
 
