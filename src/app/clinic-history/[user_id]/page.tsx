@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   Calendar, AlertTriangle, FileText, Camera, Stethoscope, Heart, Pill, Search, 
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
@@ -78,53 +78,52 @@ const DentalClinicalSystem = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserType[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState(initialPatient);
+  const [selectedPatient, setSelectedPatient] = useState<any>(initialPatient);
   const [personalHistory, setPersonalHistory] = useState<PersonalHistoryItem[]>([]);
   const [isLoadingPersonalHistory, setIsLoadingPersonalHistory] = useState(false);
 
   const patient = selectedPatient;
   
-    useEffect(() => {
-        const fetchPersonalHistory = async () => {
-            if (!userId) return;
-            setIsLoadingPersonalHistory(true);
-            try {
-                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales?user_id=${userId}`, {
-                    method: 'GET',
-                    mode: 'cors',
-                    headers: {
-                        'Accept': 'application/json',
-                    },
-                });
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const data = await response.json();
-                const historyData = Array.isArray(data.data) ? data.data : (data.antecedentes_personales || []);
-                
-                const mappedHistory = historyData.map((item: any): PersonalHistoryItem => ({
-                    nombre: item.nombre || 'N/A',
-                    categoria: item.categoria || 'N/A',
-                    nivel_alerta: Number(item.nivel_alerta) || 1,
-                    comentarios: item.comentarios || '',
-                }));
-                setPersonalHistory(mappedHistory);
-            } catch (error) {
-                console.error("Failed to fetch personal history:", error);
-                setPersonalHistory([]);
-            } finally {
-                setIsLoadingPersonalHistory(false);
+    const fetchPersonalHistory = useCallback(async (currentUserId: string) => {
+        if (!currentUserId) return;
+        setIsLoadingPersonalHistory(true);
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales?user_id=${currentUserId}`, {
+                method: 'GET',
+                mode: 'cors',
+                headers: {
+                    'Accept': 'application/json',
+                },
+            });
+            if (!response.ok) {
+                throw new Error('Network response was not ok for personal history');
             }
-        };
-
-        fetchPersonalHistory();
-    }, [userId]);
+            const data = await response.json();
+            const historyData = Array.isArray(data.data) ? data.data : (data.antecedentes_personales || []);
+            
+            const mappedHistory = historyData.map((item: any): PersonalHistoryItem => ({
+                nombre: item.nombre || 'N/A',
+                categoria: item.categoria || 'N/A',
+                nivel_alerta: Number(item.nivel_alerta) || 1,
+                comentarios: item.comentarios || '',
+            }));
+            setPersonalHistory(mappedHistory);
+        } catch (error) {
+            console.error("Failed to fetch personal history:", error);
+            setPersonalHistory([]);
+        } finally {
+            setIsLoadingPersonalHistory(false);
+        }
+    }, []);
 
   // Debounced search effect
   useEffect(() => {
-    if (searchQuery.length >= 5) {
-      setIsSearching(true);
-      const handler = setTimeout(async () => {
+    const handler = setTimeout(async () => {
+        if (searchQuery.length < 3) {
+            setSearchResults([]);
+            return;
+        };
+        setIsSearching(true);
         try {
           const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/filter_users?search=${searchQuery}`, {
             method: 'GET',
@@ -154,48 +153,59 @@ const DentalClinicalSystem = () => {
         } finally {
           setIsSearching(false);
         }
-      }, 500);
+    }, 500);
 
-      return () => {
+    return () => {
         clearTimeout(handler);
-      };
-    } else {
-      setSearchResults([]);
-    }
+    };
   }, [searchQuery]);
   
   const handleSelectPatient = (user: UserType) => {
     router.push(`/clinic-history/${user.id}`);
     setPatientSearchOpen(false);
-    setSearchQuery(user.name);
   };
   
   useEffect(() => {
-    // This effect runs when the user ID from the URL changes.
-    // We can fetch the patient's main info here.
-    // For now, we'll just update the selectedPatient state if the ID is different.
-    if (userId && userId !== selectedPatient.id) {
-        // In a real app, you would fetch patient details by ID here.
-        // For demonstration, we'll find the user in the search results or create a placeholder.
-        const foundUser = searchResults.find(u => u.id === userId);
-        if (foundUser) {
-            setSelectedPatient({
-                ...initialPatient,
-                id: foundUser.id,
-                name: foundUser.name,
-                age: 30 + Math.floor(Math.random() * 10),
+    const fetchPatientData = async (currentUserId: string) => {
+        if (!currentUserId) return;
+        
+        // Fetch patient details
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/filter_users?search=${currentUserId}`, {
+                method: 'GET',
+                mode: 'cors',
+                headers: { 'Accept': 'application/json' },
             });
-             setSearchQuery(foundUser.name);
-        } else {
-             setSelectedPatient({
-                ...initialPatient,
-                id: userId,
-                name: "Loading...",
-            });
-            setSearchQuery("Loading...")
+            if (response.ok) {
+                const data = await response.json();
+                const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
+                if (usersData.length > 0) {
+                    const apiUser = usersData[0];
+                    setSelectedPatient({
+                        id: apiUser.user_id,
+                        name: apiUser.name || "Unknown Patient",
+                        age: 30 + Math.floor(Math.random() * 10), // Mocked age
+                        ...initialPatient // keep other mocked data for now
+                    });
+                    setSearchQuery(apiUser.name || '');
+                }
+            } else {
+                 throw new Error('Failed to fetch patient details');
+            }
+        } catch (error) {
+            console.error("Error fetching patient details:", error);
+            setSelectedPatient({ ...initialPatient, id: currentUserId, name: "Could not load patient" });
         }
+
+        // Fetch data for all tabs
+        fetchPersonalHistory(currentUserId);
+        // Add other data fetching calls for other tabs here
+    };
+
+    if (userId) {
+        fetchPatientData(userId);
     }
-  }, [userId, searchResults, selectedPatient.id]);
+  }, [userId, fetchPersonalHistory]);
 
 
   // Nomenclatura FDI ISO 3950 completa
@@ -458,7 +468,7 @@ const DentalClinicalSystem = () => {
       modality: "IO",
       bodyPart: "TEETH",
       viewPosition: "ANTERIOR",
-      url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ_g0PSIxMDAlIiBmaWxsPSIjZjhkN2RhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IiM3MjE3NGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIEludHJhb3JhbCBBbnRlcmlvcjwvdGV4dD48L3N2Zz4=",
+      url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhkN2RhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IiM3MjE3NGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIEludHJhb3JhbCBBbnRlcmlvcjwvdGV4dD48L3N2Zz4=",
       description: "Vista frontal de los dientes anteriores"
     },
     {
@@ -1438,7 +1448,7 @@ const DentalClinicalSystem = () => {
                 </PopoverTrigger>
                 <PopoverContent className="p-0 w-96" align="start">
                     <Command>
-                        <CommandInput placeholder="Buscar por nombre..." value={searchQuery} onValueChange={setSearchQuery}/>
+                        <CommandInput placeholder="Buscar por nombre o ID..." value={searchQuery} onValueChange={setSearchQuery}/>
                         <CommandList>
                             <CommandEmpty>
                                 {isSearching ? 'Buscando...' : 'No se encontraron pacientes.'}
