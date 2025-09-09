@@ -1054,7 +1054,7 @@ const DentalClinicalSystem = () => {
             </div>
             <div className="flex items-center space-x-2">
               <button
-                onClick={()={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.25))}
+                onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.25))}
                 className="p-2 text-gray-600 hover:bg-gray-100 rounded"
               >
                 <ZoomOut className="w-5 h-5" />
@@ -1121,7 +1121,7 @@ const DentalClinicalSystem = () => {
               <div
                 key={image.id}
                 className="bg-gray-100 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer border"
-                onClick={()={() => setSelectedImage(image)}
+                onClick={() => setSelectedImage(image)}
               >
                 <div className="aspect-w-16 aspect-h-12">
                   <img
