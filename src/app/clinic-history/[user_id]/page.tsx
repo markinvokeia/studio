@@ -60,6 +60,12 @@ type FamilyHistoryItem = {
     comments: string;
 };
 
+type AllergyItem = {
+    allergen: string;
+    reaction: string;
+    snomed: string;
+};
+
 const DentalClinicalSystem = () => {
   const router = useRouter();
   const params = useParams();
@@ -89,6 +95,8 @@ const DentalClinicalSystem = () => {
   const [isLoadingPersonalHistory, setIsLoadingPersonalHistory] = useState(false);
   const [familyHistory, setFamilyHistory] = useState<FamilyHistoryItem[]>([]);
   const [isLoadingFamilyHistory, setIsLoadingFamilyHistory] = useState(false);
+  const [allergies, setAllergies] = useState<AllergyItem[]>([]);
+  const [isLoadingAllergies, setIsLoadingAllergies] = useState(false);
 
 
   const patient = selectedPatient;
@@ -153,6 +161,37 @@ const DentalClinicalSystem = () => {
             setFamilyHistory([]);
         } finally {
             setIsLoadingFamilyHistory(false);
+        }
+    }, []);
+
+    const fetchAllergies = useCallback(async (currentUserId: string) => {
+        if (!currentUserId) return;
+        setIsLoadingAllergies(true);
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_alergias?user_id=${currentUserId}`, {
+                method: 'GET',
+                mode: 'cors',
+                headers: {
+                    'Accept': 'application/json',
+                },
+            });
+            if (!response.ok) {
+                throw new Error('Network response was not ok for allergies');
+            }
+            const data = await response.json();
+            const allergyData = Array.isArray(data) ? data : (data.antecedentes_alergias || data.data || []);
+            
+            const mappedAllergies = allergyData.map((item: any): AllergyItem => ({
+                allergen: item.alergeno || 'N/A',
+                reaction: item.reaccion || 'N/A',
+                snomed: item.snomed_ct_id || 'N/A',
+            }));
+            setAllergies(mappedAllergies);
+        } catch (error) {
+            console.error("Failed to fetch allergies:", error);
+            setAllergies([]);
+        } finally {
+            setIsLoadingAllergies(false);
         }
     }, []);
 
@@ -240,13 +279,14 @@ const DentalClinicalSystem = () => {
         // Fetch data for all tabs
         fetchPersonalHistory(currentUserId);
         fetchFamilyHistory(currentUserId);
+        fetchAllergies(currentUserId);
         // Add other data fetching calls for other tabs here
     };
 
     if (userId) {
         fetchPatientData(userId);
     }
-  }, [userId, fetchPersonalHistory, fetchFamilyHistory]);
+  }, [userId, fetchPersonalHistory, fetchFamilyHistory, fetchAllergies]);
 
 
   // Nomenclatura FDI ISO 3950 completa
@@ -1410,15 +1450,21 @@ const DentalClinicalSystem = () => {
                         <h3 className="text-lg font-bold text-gray-800">Alergias</h3>
                     </div>
                     <div className="space-y-3">
-                        {patient.medicalHistory.allergies.map((item, index) => (
-                            <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-3">
-                                <div className="flex justify-between items-center">
-                                    <div className="font-semibold text-red-800">{item.allergen}</div>
-                                    <span className="text-xs font-mono text-gray-500">{item.snomed}</span>
+                        {isLoadingAllergies ? (
+                            <p>Loading allergies...</p>
+                        ) : allergies.length > 0 ? (
+                            allergies.map((item, index) => (
+                                <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                    <div className="flex justify-between items-center">
+                                        <div className="font-semibold text-red-800">{item.allergen}</div>
+                                        <span className="text-xs font-mono text-gray-500">{item.snomed}</span>
+                                    </div>
+                                    <div className="text-sm text-red-600">{item.reaction}</div>
                                 </div>
-                                <div className="text-sm text-red-600">{item.reaction}</div>
-                            </div>
-                        ))}
+                            ))
+                        ) : (
+                            <p>No allergies found.</p>
+                        )}
                     </div>
                 </div>
 
