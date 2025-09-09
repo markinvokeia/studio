@@ -45,13 +45,6 @@ const initialPatient = {
     }
   };
   
-const mockedUsers: UserType[] = [
-    { id: 'usr_1', name: 'María García López', email: 'maria.garcia@example.com', phone_number: '123-456-7890', is_active: true, avatar: 'https://picsum.photos/id/1011/40/40' },
-    { id: 'usr_2', name: 'Juan Carlos Rodríguez', email: 'juan.carlos@example.com', phone_number: '234-567-8901', is_active: true, avatar: 'https://picsum.photos/id/1012/40/40' },
-    { id: 'usr_3', name: 'Ana Martínez Hernández', email: 'ana.martinez@example.com', phone_number: '345-678-9012', is_active: true, avatar: 'https://picsum.photos/id/1013/40/40' },
-];
-
-
 const DentalClinicalSystem = () => {
   const [activeView, setActiveView] = useState('dashboard');
   const [selectedTooth, setSelectedTooth] = useState(null);
@@ -80,13 +73,36 @@ const DentalClinicalSystem = () => {
   useEffect(() => {
     if (searchQuery.length >= 5) {
       setIsSearching(true);
-      const handler = setTimeout(() => {
-        // Mock API call
-        const filteredUsers = mockedUsers.filter(user =>
-          user.name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        setSearchResults(filteredUsers);
-        setIsSearching(false);
+      const handler = setTimeout(async () => {
+        try {
+          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/filter_users?search=${searchQuery}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+              'Accept': 'application/json',
+            },
+          });
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          const data = await response.json();
+          const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
+          
+          const mappedUsers = usersData.map((apiUser: any) => ({
+            id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+            name: apiUser.name || 'No Name',
+            email: apiUser.email || 'no-email@example.com',
+            phone_number: apiUser.phone_number || '000-000-0000',
+            is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+            avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
+          }));
+          setSearchResults(mappedUsers);
+        } catch (error) {
+          console.error("Failed to fetch users:", error);
+          setSearchResults([]);
+        } finally {
+          setIsSearching(false);
+        }
       }, 500);
 
       return () => {
