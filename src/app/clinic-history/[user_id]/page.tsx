@@ -1,12 +1,56 @@
+
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Calendar, AlertTriangle, FileText, Camera, Stethoscope, Heart, Pill, Search, 
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
   BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
+import type { User as UserType } from '@/lib/types';
+
+
+const initialPatient = {
+    id: 1,
+    name: "María García López",
+    age: 34,
+    lastVisit: "2024-11-15",
+    alerts: [
+      { type: "allergy", text: "ALERGIA A PENICILINA", severity: "high", code: "294505008" },
+      { type: "condition", text: "HIPERTENSIÓN ARTERIAL", severity: "medium", code: "38341003" },
+      { type: "medication", text: "ANTICOAGULADO (Sintrom)", severity: "high", code: "182840001" }
+    ],
+    medicalHistory: {
+      personalHistory: [
+        { condition: "Hipertensión Arterial", since: "2019", status: "Controlada", comments: "Medicación diaria", icd10: "I10", snomed: "38341003" },
+        { condition: "Diabetes Tipo 2", since: "2021", status: "En control", comments: "Dieta y ejercicio", icd10: "E11", snomed: "44054006" }
+      ],
+      familyHistory: [
+        { condition: "Diabetes", relative: "Madre", comments: "Diagnosticada a los 45 años" },
+        { condition: "Cardiopatía", relative: "Padre", comments: "Infarto a los 60 años" }
+      ],
+      allergies: [
+        { allergen: "Penicilina", reaction: "Urticaria severa", snomed: "294505008" },
+        { allergen: "AINEs", reaction: "Irritación gástrica", snomed: "293586001" }
+      ],
+      medications: [
+        { name: "Enalapril", dose: "10mg", frequency: "1/día", since: "2019-03-15", code: "387467008" },
+        { name: "Metformina", dose: "850mg", frequency: "2/día", since: "2021-07-20", code: "109081006" },
+        { name: "Sintrom", dose: "4mg", frequency: "1/día", since: "2023-01-10", code: "387467008" }
+      ]
+    }
+  };
+  
+const mockedUsers: UserType[] = [
+    { id: 'usr_1', name: 'María García López', email: 'maria.garcia@example.com', phone_number: '123-456-7890', is_active: true, avatar: 'https://picsum.photos/id/1011/40/40' },
+    { id: 'usr_2', name: 'Juan Carlos Rodríguez', email: 'juan.carlos@example.com', phone_number: '234-567-8901', is_active: true, avatar: 'https://picsum.photos/id/1012/40/40' },
+    { id: 'usr_3', name: 'Ana Martínez Hernández', email: 'ana.martinez@example.com', phone_number: '345-678-9012', is_active: true, avatar: 'https://picsum.photos/id/1013/40/40' },
+];
+
 
 const DentalClinicalSystem = () => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -22,6 +66,49 @@ const DentalClinicalSystem = () => {
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [dentitionType, setDentitionType] = useState('permanent');
+
+  // Patient Search State
+  const [patientSearchOpen, setPatientSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<UserType[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(initialPatient);
+  
+  const patient = selectedPatient;
+
+  // Debounced search effect
+  useEffect(() => {
+    if (searchQuery.length >= 5) {
+      setIsSearching(true);
+      const handler = setTimeout(() => {
+        // Mock API call
+        const filteredUsers = mockedUsers.filter(user =>
+          user.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        setSearchResults(filteredUsers);
+        setIsSearching(false);
+      }, 500);
+
+      return () => {
+        clearTimeout(handler);
+      };
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery]);
+  
+  const handleSelectPatient = (user: UserType) => {
+    // In a real app, you would fetch this patient's full data
+    // For now, we'll just update the name and mock some data
+    setSelectedPatient({
+        ...initialPatient, // spread initial patient to get all the structure
+        id: parseInt(user.id.split('_')[1], 10),
+        name: user.name,
+        age: 30 + Math.floor(Math.random() * 10), // random age
+    });
+    setPatientSearchOpen(false);
+    setSearchQuery(user.name);
+  };
 
   // Nomenclatura FDI ISO 3950 completa
   const FDI_NOTATION = {
@@ -128,38 +215,6 @@ const DentalClinicalSystem = () => {
     16: 'molar1', 26: 'molar1', 36: 'molar1', 46: 'molar1',
     17: 'molar2', 27: 'molar2', 37: 'molar2', 47: 'molar2',
     18: 'molar3', 28: 'molar3', 38: 'molar3', 48: 'molar3'
-  };
-
-  // Datos del paciente
-  const patient = {
-    id: 1,
-    name: "María García López",
-    age: 34,
-    lastVisit: "2024-11-15",
-    alerts: [
-      { type: "allergy", text: "ALERGIA A PENICILINA", severity: "high", code: "294505008" },
-      { type: "condition", text: "HIPERTENSIÓN ARTERIAL", severity: "medium", code: "38341003" },
-      { type: "medication", text: "ANTICOAGULADO (Sintrom)", severity: "high", code: "182840001" }
-    ],
-    medicalHistory: {
-      personalHistory: [
-        { condition: "Hipertensión Arterial", since: "2019", status: "Controlada", comments: "Medicación diaria", icd10: "I10", snomed: "38341003" },
-        { condition: "Diabetes Tipo 2", since: "2021", status: "En control", comments: "Dieta y ejercicio", icd10: "E11", snomed: "44054006" }
-      ],
-      familyHistory: [
-        { condition: "Diabetes", relative: "Madre", comments: "Diagnosticada a los 45 años" },
-        { condition: "Cardiopatía", relative: "Padre", comments: "Infarto a los 60 años" }
-      ],
-      allergies: [
-        { allergen: "Penicilina", reaction: "Urticaria severa", snomed: "294505008" },
-        { allergen: "AINEs", reaction: "Irritación gástrica", snomed: "293586001" }
-      ],
-      medications: [
-        { name: "Enalapril", dose: "10mg", frequency: "1/día", since: "2019-03-15", code: "387467008" },
-        { name: "Metformina", dose: "850mg", frequency: "2/día", since: "2021-07-20", code: "109081006" },
-        { name: "Sintrom", dose: "4mg", frequency: "1/día", since: "2023-01-10", code: "387467008" }
-      ]
-    }
   };
 
   // Datos del odontograma
@@ -1265,7 +1320,44 @@ const DentalClinicalSystem = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Historial Clinico Digital</h1>
-            <p className="text-gray-600">Paciente: {patient.name} • Edad: {patient.age} años</p>
+             <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
+                <PopoverTrigger asChild>
+                    <div className="relative mt-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                        <Input
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value)
+                                if(!patientSearchOpen) setPatientSearchOpen(true)
+                            }}
+                            placeholder="Buscar paciente..."
+                            className="pl-9 w-96"
+                        />
+                    </div>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-96" align="start">
+                    <Command>
+                        <CommandInput placeholder="Buscar por nombre..." value={searchQuery} onValueChange={setSearchQuery}/>
+                        <CommandList>
+                            <CommandEmpty>
+                                {isSearching ? 'Buscando...' : 'No se encontraron pacientes.'}
+                            </CommandEmpty>
+                            <CommandGroup>
+                                {searchResults.map((user) => (
+                                    <CommandItem
+                                        key={user.id}
+                                        value={user.name}
+                                        onSelect={() => handleSelectPatient(user)}
+                                    >
+                                        {user.name}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+             <p className="text-gray-600 mt-2">Paciente: {patient.name} • Edad: {patient.age} años</p>
             <div className="flex items-center space-x-4 mt-2">
               <div className="flex items-center space-x-1 text-sm">
                 <Shield className="w-4 h-4 text-green-600" />
@@ -1506,3 +1598,4 @@ const DentalClinicalSystem = () => {
 };
 
 export default DentalClinicalSystem;
+
