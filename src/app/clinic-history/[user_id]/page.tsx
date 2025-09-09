@@ -66,6 +66,14 @@ type AllergyItem = {
     snomed: string;
 };
 
+type MedicationItem = {
+    name: string;
+    dose: string;
+    frequency: string;
+    since: string;
+    code: string;
+};
+
 const DentalClinicalSystem = () => {
   const router = useRouter();
   const params = useParams();
@@ -97,6 +105,8 @@ const DentalClinicalSystem = () => {
   const [isLoadingFamilyHistory, setIsLoadingFamilyHistory] = useState(false);
   const [allergies, setAllergies] = useState<AllergyItem[]>([]);
   const [isLoadingAllergies, setIsLoadingAllergies] = useState(false);
+  const [medications, setMedications] = useState<MedicationItem[]>([]);
+  const [isLoadingMedications, setIsLoadingMedications] = useState(false);
 
 
   const patient = selectedPatient;
@@ -195,6 +205,39 @@ const DentalClinicalSystem = () => {
         }
     }, []);
 
+    const fetchMedications = useCallback(async (currentUserId: string) => {
+        if (!currentUserId) return;
+        setIsLoadingMedications(true);
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_medicamentos?user_id=${currentUserId}`, {
+                method: 'GET',
+                mode: 'cors',
+                headers: {
+                    'Accept': 'application/json',
+                },
+            });
+            if (!response.ok) {
+                throw new Error('Network response was not ok for medications');
+            }
+            const data = await response.json();
+            const medicationData = Array.isArray(data) ? data : (data.antecedentes_medicamentos || data.data || []);
+            
+            const mappedMedications = medicationData.map((item: any): MedicationItem => ({
+                name: item.nombre || 'N/A',
+                dose: item.dosis || 'N/A',
+                frequency: item.frecuencia || 'N/A',
+                since: item.fecha_inicio || 'N/A',
+                code: item.snomed_ct_id || 'N/A',
+            }));
+            setMedications(mappedMedications);
+        } catch (error) {
+            console.error("Failed to fetch medications:", error);
+            setMedications([]);
+        } finally {
+            setIsLoadingMedications(false);
+        }
+    }, []);
+
   // Debounced search effect
   useEffect(() => {
     const handler = setTimeout(async () => {
@@ -280,13 +323,14 @@ const DentalClinicalSystem = () => {
         fetchPersonalHistory(currentUserId);
         fetchFamilyHistory(currentUserId);
         fetchAllergies(currentUserId);
+        fetchMedications(currentUserId);
         // Add other data fetching calls for other tabs here
     };
 
     if (userId) {
         fetchPatientData(userId);
     }
-  }, [userId, fetchPersonalHistory, fetchFamilyHistory, fetchAllergies]);
+  }, [userId, fetchPersonalHistory, fetchFamilyHistory, fetchAllergies, fetchMedications]);
 
 
   // Nomenclatura FDI ISO 3950 completa
@@ -1474,7 +1518,10 @@ const DentalClinicalSystem = () => {
                         <h3 className="text-lg font-bold text-gray-800">Medicamentos Actuales</h3>
                     </div>
                     <div className="space-y-3">
-                        {patient.medicalHistory.medications.map((item, index) => (
+                        {isLoadingMedications ? (
+                            <p>Loading medications...</p>
+                        ) : medications.length > 0 ? (
+                            medications.map((item, index) => (
                             <div key={index} className="border-l-4 border-green-200 pl-4 py-2">
                                 <div className="flex justify-between items-center">
                                     <div className="font-semibold text-gray-800">{item.name}</div>
@@ -1483,7 +1530,10 @@ const DentalClinicalSystem = () => {
                                 <div className="text-sm text-gray-600">{item.dose} • {item.frequency}</div>
                                 <div className="text-sm text-gray-700">Desde: {item.since}</div>
                             </div>
-                        ))}
+                        ))
+                        ) : (
+                           <p>No medications found.</p>
+                        )}
                     </div>
                 </div>
             </div>
