@@ -19,6 +19,10 @@ import {
   CalendarOff,
   Calendar,
   HeartPulse,
+  Pill,
+  Smile,
+  Layers,
+  BookHeart,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -58,6 +62,17 @@ export const navItems: NavItem[] = [
     icon: Wallet,
     items: [
       { title: 'Quotes', href: '/sales/quotes', icon: FileText, isChidren: true },
+    ],
+  },
+   {
+    title: 'Clinic Catalog',
+    href: '/clinic-catalog',
+    icon: BookHeart,
+    items: [
+      { title: 'Ailments', href: '/clinic-catalog/ailments', icon: HeartPulse, isChidren: true },
+      { title: 'Medications', href: '/clinic-catalog/medications', icon: Pill, isChidren: true },
+      { title: 'Dental Conditions', href: '/clinic-catalog/dental-conditions', icon: Smile, isChidren: true },
+      { title: 'Dental Surfaces', href: '/clinic-catalog/dental-surfaces', icon: Layers, isChidren: true },
     ],
   },
   {

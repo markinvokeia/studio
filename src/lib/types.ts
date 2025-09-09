@@ -280,3 +280,29 @@ export type Calendar = {
   google_calendar_id: string;
   is_active: boolean;
 };
+
+export type Ailment = {
+    id: string;
+    nombre: string;
+    categoria: string;
+    nivel_alerta: number;
+};
+
+export type Medication = {
+    id: string;
+    nombre_generico: string;
+    nombre_comercial?: string;
+};
+
+export type DentalCondition = {
+    id: string;
+    nombre: string;
+    codigo_visual: string;
+    color_hex?: string;
+};
+
+export type DentalSurface = {
+    id: string;
+    nombre: string;
+    codigo: string;
+};
