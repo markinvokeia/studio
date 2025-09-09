@@ -45,6 +45,15 @@ const initialPatient = {
     }
   };
   
+type PersonalHistoryItem = {
+    condition: string;
+    since: string;
+    status: string;
+    comments: string;
+    icd10: string;
+    snomed: string;
+};
+
 const DentalClinicalSystem = () => {
   const [activeView, setActiveView] = useState('anamnesis');
   const [selectedTooth, setSelectedTooth] = useState(null);
@@ -66,8 +75,42 @@ const DentalClinicalSystem = () => {
   const [searchResults, setSearchResults] = useState<UserType[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(initialPatient);
-  
+  const [personalHistory, setPersonalHistory] = useState<PersonalHistoryItem[]>(initialPatient.medicalHistory.personalHistory);
+  const [isLoadingPersonalHistory, setIsLoadingPersonalHistory] = useState(false);
+
   const patient = selectedPatient;
+  
+    useEffect(() => {
+        const fetchPersonalHistory = async () => {
+            if (!selectedPatient?.id) return;
+            setIsLoadingPersonalHistory(true);
+            try {
+                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales?user_id=${selectedPatient.id}`);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                const historyData = Array.isArray(data) ? data : (data.antecedentes_personales || data.data || []);
+                
+                const mappedHistory = historyData.map((item: any): PersonalHistoryItem => ({
+                    condition: item.condition || 'N/A',
+                    since: item.since || 'N/A',
+                    status: item.status || 'N/A',
+                    comments: item.comments || '',
+                    icd10: item.icd10 || 'N/A',
+                    snomed: item.snomed || 'N/A'
+                }));
+                setPersonalHistory(mappedHistory);
+            } catch (error) {
+                console.error("Failed to fetch personal history:", error);
+                setPersonalHistory([]);
+            } finally {
+                setIsLoadingPersonalHistory(false);
+            }
+        };
+
+        fetchPersonalHistory();
+    }, [selectedPatient]);
 
   // Debounced search effect
   useEffect(() => {
@@ -118,7 +161,7 @@ const DentalClinicalSystem = () => {
     // For now, we'll just update the name and mock some data
     setSelectedPatient({
         ...initialPatient, // spread initial patient to get all the structure
-        id: parseInt(user.id.split('_')[1], 10),
+        id: parseInt(user.id.replace(/[^0-9]/g, ''), 10) || 0,
         name: user.name,
         age: 30 + Math.floor(Math.random() * 10), // random age
     });
@@ -1231,7 +1274,10 @@ const DentalClinicalSystem = () => {
             <h3 className="text-lg font-bold text-gray-800">Antecedentes Personales</h3>
           </div>
           <div className="space-y-3">
-            {patient.medicalHistory.personalHistory.map((item, index) => (
+            {isLoadingPersonalHistory ? (
+                <p>Loading personal history...</p>
+            ) : personalHistory.length > 0 ? (
+                personalHistory.map((item, index) => (
               <div key={index} className="border-l-4 border-blue-200 pl-4 py-2">
                 <div className="flex justify-between items-center">
                   <div className="font-semibold text-gray-800">{item.condition}</div>
@@ -1242,7 +1288,10 @@ const DentalClinicalSystem = () => {
                 </div>
                 <div className="text-sm text-gray-700">{item.comments}</div>
               </div>
-            ))}
+            ))
+            ) : (
+                <p>No personal history found.</p>
+            )}
           </div>
         </div>
 
@@ -1558,3 +1607,4 @@ const DentalClinicalSystem = () => {
 };
 
 export default DentalClinicalSystem;
+
