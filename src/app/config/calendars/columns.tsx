@@ -15,14 +15,12 @@ import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export const calendarsColumns: ColumnDef<Calendar>[] = [
-    { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title="ID" /> },
     { accessorKey: 'name', header: ({column}) => <DataTableColumnHeader column={column} title="Name" /> },
-    { accessorKey: 'description', header: ({column}) => <DataTableColumnHeader column={column} title="Description" /> },
-    { accessorKey: 'timezone', header: ({column}) => <DataTableColumnHeader column={column} title="Timezone" /> },
+    { accessorKey: 'google_calendar_id', header: ({column}) => <DataTableColumnHeader column={column} title="Google Calendar ID" /> },
     { 
-      accessorKey: 'is_default', 
-      header: ({column}) => <DataTableColumnHeader column={column} title="Default" />,
-      cell: ({ row }) => <Badge variant={row.original.is_default ? 'success' : 'outline'}>{row.original.is_default ? 'Yes' : 'No'}</Badge>,
+      accessorKey: 'is_active', 
+      header: ({column}) => <DataTableColumnHeader column={column} title="Active" />,
+      cell: ({ row }) => <Badge variant={row.original.is_active ? 'success' : 'outline'}>{row.original.is_active ? 'Yes' : 'No'}</Badge>,
     },
     {
         id: 'actions',

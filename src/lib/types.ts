@@ -277,7 +277,6 @@ export type AppointmentAttendanceRate = {
 export type Calendar = {
   id: string;
   name: string;
-  description: string;
-  timezone: string;
-  is_default: boolean;
+  google_calendar_id: string;
+  is_active: boolean;
 };

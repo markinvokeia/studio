@@ -37,11 +37,10 @@ async function getCalendars(): Promise<Calendar[]> {
         const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
 
         return calendarsData.map((apiCalendar: any) => ({
-            id: apiCalendar.id ? String(apiCalendar.id) : `cal_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiCalendar.google_calendar_id || `cal_${Math.random().toString(36).substr(2, 9)}`,
             name: apiCalendar.name,
-            description: apiCalendar.description,
-            timezone: apiCalendar.timezone,
-            is_default: apiCalendar.is_default,
+            google_calendar_id: apiCalendar.google_calendar_id,
+            is_active: apiCalendar.is_active,
         }));
     } catch (error) {
         console.error("Failed to fetch calendars:", error);
@@ -100,20 +99,14 @@ export default function CalendarsPage() {
                         <Input id="name" placeholder="e.g., Main Calendar" className="col-span-3" />
                     </div>
                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="description" className="text-right">
-                        Description
+                        <Label htmlFor="google_calendar_id" className="text-right">
+                        Google Calendar ID
                         </Label>
-                        <Textarea id="description" placeholder="e.g., For general appointments" className="col-span-3" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="timezone" className="text-right">
-                        Timezone
-                        </Label>
-                        <Input id="timezone" placeholder="e.g., America/New_York" className="col-span-3" />
+                        <Input id="google_calendar_id" placeholder="e.g., abc@group.calendar.google.com" className="col-span-3" />
                     </div>
                     <div className="flex items-center space-x-2 justify-end">
-                        <Checkbox id="is_default" />
-                        <Label htmlFor="is_default">Default Calendar</Label>
+                        <Checkbox id="is_active" />
+                        <Label htmlFor="is_active">Active</Label>
                     </div>
                 </div>
                 <div className="flex justify-end space-x-2">
