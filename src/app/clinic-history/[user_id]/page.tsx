@@ -7,7 +7,7 @@ import {
   Calendar, AlertTriangle, FileText, Camera, Stethoscope, Heart, Pill, Search, 
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
-  BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap
+  BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -1367,6 +1367,7 @@ const DentalClinicalSystem = () => {
                                 </div>
                                 <div className="space-y-3 text-sm text-gray-700">
                                     <p><strong className="text-gray-600">Diagnóstico:</strong> {session.diagnostico}</p>
+                                    <p><strong className="text-gray-600">Procedimiento:</strong> {session.procedimiento_realizado}</p>
                                     <p><strong className="text-gray-600">Notas:</strong> {session.notas_clinicas}</p>
                                     <div>
                                         <strong className="text-gray-600">Tratamientos:</strong>
@@ -1376,6 +1377,26 @@ const DentalClinicalSystem = () => {
                                             ))}
                                         </ul>
                                     </div>
+                                    {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
+                                        <div>
+                                            <strong className="text-gray-600">Archivos Adjuntos:</strong>
+                                            <ul className="list-disc pl-5 mt-1">
+                                                {session.archivos_adjuntos.map((file, i) => (
+                                                    <li key={i}>
+                                                        <a 
+                                                            href={`https://n8n-project-n8n.7ig1i3.easypanel.host${file.ruta}`} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer" 
+                                                            className="text-blue-600 hover:underline flex items-center gap-1"
+                                                        >
+                                                            <Paperclip className="w-3 h-3" />
+                                                            {file.tipo} {file.diente_asociado && `(Diente ${file.diente_asociado})`}
+                                                        </a>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -1629,7 +1650,7 @@ const DentalClinicalSystem = () => {
                 </PopoverContent>
             </Popover>
             <div className="mt-4">
-                <p className="text-xl font-semibold text-gray-900">{patient.name}</p>
+                <p className="text-2xl font-bold text-gray-900">{patient.name}</p>
              </div>
           </div>
           <div className="flex items-center space-x-4">
@@ -1802,6 +1823,7 @@ export default DentalClinicalSystem;
     
 
     
+
 
 
 
