@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -11,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import type { User as UserType } from '@/lib/types';
+import type { User as UserType, PatientSession, TreatmentDetail, AttachedFile } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -110,7 +111,8 @@ const DentalClinicalSystem = () => {
   const [isLoadingAllergies, setIsLoadingAllergies] = useState(false);
   const [medications, setMedications] = useState<MedicationItem[]>([]);
   const [isLoadingMedications, setIsLoadingMedications] = useState(false);
-
+  const [patientSessions, setPatientSessions] = useState<PatientSession[]>([]);
+  const [isLoadingPatientSessions, setIsLoadingPatientSessions] = useState(false);
 
   const patient = selectedPatient;
   
@@ -121,9 +123,7 @@ const DentalClinicalSystem = () => {
             const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales?user_id=${currentUserId}`, {
                 method: 'GET',
                 mode: 'cors',
-                headers: {
-                    'Accept': 'application/json',
-                },
+                headers: { 'Accept': 'application/json' },
             });
             if (!response.ok) {
                 throw new Error('Network response was not ok for personal history');
@@ -153,9 +153,7 @@ const DentalClinicalSystem = () => {
             const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_familiares?user_id=${currentUserId}`, {
                 method: 'GET',
                 mode: 'cors',
-                headers: {
-                    'Accept': 'application/json',
-                },
+                headers: { 'Accept': 'application/json' },
             });
             if (!response.ok) {
                 throw new Error('Network response was not ok for family history');
@@ -184,9 +182,7 @@ const DentalClinicalSystem = () => {
             const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_alergias?user_id=${currentUserId}`, {
                 method: 'GET',
                 mode: 'cors',
-                headers: {
-                    'Accept': 'application/json',
-                },
+                headers: { 'Accept': 'application/json' },
             });
             if (!response.ok) {
                 throw new Error('Network response was not ok for allergies');
@@ -215,9 +211,7 @@ const DentalClinicalSystem = () => {
             const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_medicamentos?user_id=${currentUserId}`, {
                 method: 'GET',
                 mode: 'cors',
-                headers: {
-                    'Accept': 'application/json',
-                },
+                headers: { 'Accept': 'application/json' },
             });
             if (!response.ok) {
                 throw new Error('Network response was not ok for medications');
@@ -240,6 +234,29 @@ const DentalClinicalSystem = () => {
             setMedications([]);
         } finally {
             setIsLoadingMedications(false);
+        }
+    }, []);
+    
+    const fetchPatientSessions = useCallback(async (currentUserId: string) => {
+        if (!currentUserId) return;
+        setIsLoadingPatientSessions(true);
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/patient_sessions?user_id=${currentUserId}`, {
+                method: 'GET',
+                mode: 'cors',
+                headers: { 'Accept': 'application/json' },
+            });
+            if (!response.ok) {
+                throw new Error('Network response was not ok for patient sessions');
+            }
+            const data = await response.json();
+            const sessionsData = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
+            setPatientSessions(sessionsData);
+        } catch (error) {
+            console.error("Failed to fetch patient sessions:", error);
+            setPatientSessions([]);
+        } finally {
+            setIsLoadingPatientSessions(false);
         }
     }, []);
 
@@ -329,13 +346,13 @@ const DentalClinicalSystem = () => {
         fetchFamilyHistory(currentUserId);
         fetchAllergies(currentUserId);
         fetchMedications(currentUserId);
-        // Add other data fetching calls for other tabs here
+        fetchPatientSessions(currentUserId);
     };
 
     if (userId) {
         fetchPatientData(userId);
     }
-  }, [userId, fetchPersonalHistory, fetchFamilyHistory, fetchAllergies, fetchMedications]);
+  }, [userId, fetchPersonalHistory, fetchFamilyHistory, fetchAllergies, fetchMedications, fetchPatientSessions]);
 
 
   // Nomenclatura FDI ISO 3950 completa
@@ -612,46 +629,6 @@ const DentalClinicalSystem = () => {
       viewPosition: "PER",
       url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+UmFkaW9ncmFmw61hIDI0PC90ZXh0Pjwvc3ZnPg==",
       description: "Radiografía periapical del diente 24 post-endodoncia"
-    }
-  ];
-
-  // Timeline de tratamientos
-  const treatmentTimeline = [
-    {
-      date: '2024-11-15',
-      doctor: 'Dr. Rodríguez',
-      tooth: '24',
-      procedure: 'Endodoncia',
-      procedureCode: '18946005',
-      diagnosis: 'Caries profunda',
-      diagnosisCode: '80967001',
-      notes: 'Procedimiento completado exitosamente. Paciente tolera bien el tratamiento.',
-      images: [1, 3],
-      status: 'completed'
-    },
-    {
-      date: '2024-10-20',
-      doctor: 'Dr. Martínez',
-      tooth: '46',
-      procedure: 'Corona de porcelana',
-      procedureCode: '82130000',
-      diagnosis: 'Fractura dental',
-      diagnosisCode: '125589008',
-      notes: 'Colocación de corona temporal. Control en 2 semanas.',
-      images: [],
-      status: 'in_progress'
-    },
-    {
-      date: '2024-09-15',
-      doctor: 'Dra. López',
-      tooth: 'General',
-      procedure: 'Higiene dental',
-      procedureCode: '108290001',
-      diagnosis: 'Acumulación de sarro',
-      diagnosisCode: '109564008',
-      notes: 'Limpieza profunda realizada. Se instruye en técnica de cepillado.',
-      images: [2],
-      status: 'completed'
     }
   ];
 
@@ -1338,46 +1315,76 @@ const DentalClinicalSystem = () => {
     </div>
   );
 
-  const TreatmentTimeline = ({ treatments }) => (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold text-gray-800">Historial de Tratamientos</h3>
-        <div className="flex items-center space-x-2">
-          <Shield className="w-4 h-4 text-blue-600" />
-          <span className="text-sm text-gray-600">HL7 FHIR</span>
-        </div>
-      </div>
-      <div className="relative">
-        <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-400 to-blue-600"></div>
-        {treatments.map((treatment, index) => (
-          <div key={index} className="relative flex items-start mb-8 last:mb-0">
-            <div className={`relative z-10 w-6 h-6 rounded-full border-4 border-white shadow-lg ${
-              treatment.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'
-            }`}></div>
-            <div className="ml-6 flex-1">
-              <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-semibold text-gray-800">{treatment.procedure}</h4>
-                  <span className="text-sm text-gray-500">{treatment.date}</span>
+  const TreatmentTimeline = ({ sessions }: { sessions: PatientSession[] }) => {
+    if (isLoadingPatientSessions) {
+        return (
+            <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-xl font-bold text-gray-800 mb-6">Historial de Tratamientos</h3>
+                <div className="space-y-4">
+                    <div className="flex gap-4">
+                        <div className="flex flex-col items-center">
+                           <div className="w-6 h-6 rounded-full bg-gray-200 animate-pulse"></div>
+                           <div className="w-0.5 h-20 bg-gray-200 animate-pulse mt-2"></div>
+                        </div>
+                        <div className="flex-1 space-y-2">
+                            <div className="h-5 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                            <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                        </div>
+                    </div>
+                     <div className="flex gap-4">
+                        <div className="flex flex-col items-center">
+                           <div className="w-6 h-6 rounded-full bg-gray-200 animate-pulse"></div>
+                        </div>
+                        <div className="flex-1 space-y-2">
+                            <div className="h-5 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                            <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                        </div>
+                    </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 mb-3">
-                  <div>
-                    <span className="text-sm text-gray-600">SNOMED-CT:</span>
-                    <span className="ml-2 font-mono text-xs">{treatment.procedureCode}</span>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-600">Diente:</span>
-                    <span className="ml-2 font-medium">{treatment.tooth}</span>
-                  </div>
-                </div>
-                <p className="text-gray-700 text-sm">{treatment.notes}</p>
-              </div>
             </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+        );
+    }
+    
+    return (
+        <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-800">Historial de Tratamientos</h3>
+                <div className="flex items-center space-x-2">
+                    <Shield className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm text-gray-600">HL7 FHIR</span>
+                </div>
+            </div>
+            <div className="relative">
+                <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-400 to-blue-600"></div>
+                {sessions.map((session, index) => (
+                    <div key={session.sesion_id} className="relative flex items-start mb-8 last:mb-0 pl-8">
+                        <div className={`absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-4 border-white shadow-lg bg-blue-500`}></div>
+                        <div className="flex-1">
+                            <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
+                                <div className="flex justify-between items-start mb-2">
+                                    <h4 className="font-semibold text-gray-800">{session.procedimiento_realizado}</h4>
+                                    <span className="text-sm text-gray-500">{format(parseISO(session.fecha_sesion), 'dd/MM/yyyy')}</span>
+                                </div>
+                                <div className="space-y-3 text-sm text-gray-700">
+                                    <p><strong className="text-gray-600">Diagnóstico:</strong> {session.diagnostico}</p>
+                                    <p><strong className="text-gray-600">Notas:</strong> {session.notas_clinicas}</p>
+                                    <div>
+                                        <strong className="text-gray-600">Tratamientos:</strong>
+                                        <ul className="list-disc pl-5 mt-1">
+                                            {session.tratamientos.map((t, i) => (
+                                                <li key={i}>{t.descripcion} {t.numero_diente && `(Diente ${t.numero_diente})`}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
 
   const ToothDetails = ({ toothNumber, data }) => {
     if (!toothNumber || !data[toothNumber]) return null;
@@ -1768,7 +1775,7 @@ const DentalClinicalSystem = () => {
             )}
 
             {activeView === 'anamnesis' && <AnamnesisDashboard />}
-            {activeView === 'timeline' && <TreatmentTimeline treatments={treatmentTimeline} />}
+            {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} />}
             {activeView === 'images' && <ImageGallery />}
             {activeView === 'voice' && <VoiceCapture />}
             {activeView === 'reports' && (
@@ -1795,5 +1802,6 @@ export default DentalClinicalSystem;
     
 
     
+
 
 

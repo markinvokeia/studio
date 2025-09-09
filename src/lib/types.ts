@@ -306,3 +306,25 @@ export type DentalSurface = {
     nombre: string;
     codigo: string;
 };
+
+export type TreatmentDetail = {
+  numero_diente: number | null;
+  descripcion: string;
+};
+
+export type AttachedFile = {
+  diente_asociado: number | null;
+  ruta: string;
+  tipo: string;
+};
+
+export type PatientSession = {
+  sesion_id: number;
+  fecha_sesion: string;
+  diagnostico: string;
+  procedimiento_realizado: string;
+  notas_clinicas: string;
+  doctor_id: string;
+  tratamientos: TreatmentDetail[];
+  archivos_adjuntos: AttachedFile[];
+};
