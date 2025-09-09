@@ -7,7 +7,7 @@ import {
   Calendar, AlertTriangle, FileText, Camera, Stethoscope, Heart, Pill, Search, 
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
-  BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip
+  BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -102,7 +102,7 @@ const DentalClinicalSystem = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserType[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<any>(initialPatient);
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [personalHistory, setPersonalHistory] = useState<PersonalHistoryItem[]>([]);
   const [isLoadingPersonalHistory, setIsLoadingPersonalHistory] = useState(false);
   const [familyHistory, setFamilyHistory] = useState<FamilyHistoryItem[]>([]);
@@ -113,8 +113,6 @@ const DentalClinicalSystem = () => {
   const [isLoadingMedications, setIsLoadingMedications] = useState(false);
   const [patientSessions, setPatientSessions] = useState<PatientSession[]>([]);
   const [isLoadingPatientSessions, setIsLoadingPatientSessions] = useState(false);
-
-  const patient = selectedPatient;
   
     const fetchPersonalHistory = useCallback(async (currentUserId: string) => {
         if (!currentUserId) return;
@@ -313,7 +311,10 @@ const DentalClinicalSystem = () => {
   
   useEffect(() => {
     const fetchPatientData = async (currentUserId: string) => {
-        if (!currentUserId) return;
+        if (!currentUserId || currentUserId === '1') {
+            setSelectedPatient(null);
+            return;
+        };
         
         // Fetch patient details
         try {
@@ -334,13 +335,15 @@ const DentalClinicalSystem = () => {
                         age: 30 + Math.floor(Math.random() * 10), // Mocked age
                     });
                     setSearchQuery(apiUser.name || '');
+                } else {
+                    setSelectedPatient(null); // No user found
                 }
             } else {
                  throw new Error('Failed to fetch patient details');
             }
         } catch (error) {
             console.error("Error fetching patient details:", error);
-            setSelectedPatient({ ...initialPatient, id: currentUserId, name: "Could not load patient" });
+            setSelectedPatient(null);
         }
 
         // Fetch data for all tabs
@@ -1051,7 +1054,7 @@ const DentalClinicalSystem = () => {
             </div>
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.25))}
+                onClick={()={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.25))}
                 className="p-2 text-gray-600 hover:bg-gray-100 rounded"
               >
                 <ZoomOut className="w-5 h-5" />
@@ -1118,7 +1121,7 @@ const DentalClinicalSystem = () => {
               <div
                 key={image.id}
                 className="bg-gray-100 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer border"
-                onClick={() => setSelectedImage(image)}
+                onClick={()={() => setSelectedImage(image)}
               >
                 <div className="aspect-w-16 aspect-h-12">
                   <img
@@ -1162,14 +1165,14 @@ const DentalClinicalSystem = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     const sendMessage = async () => {
-      if (!message.trim()) return;
+      if (!message.trim() || !selectedPatient) return;
       const userMessage = { role: 'user', content: message, timestamp: new Date() };
       setAiMessages([...aiMessages, userMessage]);
       setMessage('');
       setIsLoading(true);
 
       setTimeout(() => {
-        const response = `Análisis HL7 FHIR del historial de ${patient.name}: Sistema con codificación SNOMED-CT activo. ¿Qué aspecto clínico específico deseas consultar?`;
+        const response = `Análisis HL7 FHIR del historial de ${selectedPatient.name}: Sistema con codificación SNOMED-CT activo. ¿Qué aspecto clínico específico deseas consultar?`;
         const aiResponse = { role: 'assistant', content: response, timestamp: new Date() };
         setAiMessages(prev => [...prev, aiResponse]);
         setIsLoading(false);
@@ -1371,14 +1374,16 @@ const DentalClinicalSystem = () => {
                                     <p><strong className="text-gray-600">Diagnóstico:</strong> {session.diagnostico}</p>
                                     <p><strong className="text-gray-600">Procedimiento:</strong> {session.procedimiento_realizado}</p>
                                     <p><strong className="text-gray-600">Notas:</strong> {session.notas_clinicas}</p>
+                                    {session.tratamientos && (
                                     <div>
                                         <strong className="text-gray-600">Tratamientos:</strong>
                                         <ul className="list-disc pl-5 mt-1">
-                                            {session.tratamientos && session.tratamientos.map((t, i) => (
+                                            {session.tratamientos.map((t, i) => (
                                                 <li key={i}>{t.descripcion} {t.numero_diente && `(Diente ${t.numero_diente})`}</li>
                                             ))}
                                         </ul>
                                     </div>
+                                    )}
                                     {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
                                         <div>
                                             <strong className="text-gray-600">Archivos Adjuntos:</strong>
@@ -1651,9 +1656,11 @@ const DentalClinicalSystem = () => {
                     </Command>
                 </PopoverContent>
             </Popover>
-            <div className="mt-4">
-                <p className="text-2xl font-bold text-gray-900">{patient.name}</p>
-             </div>
+            {selectedPatient && (
+                <div className="mt-4">
+                    <p className="text-2xl font-bold text-gray-900">{selectedPatient.name}</p>
+                 </div>
+            )}
           </div>
           <div className="flex items-center space-x-4">
             <button
@@ -1663,158 +1670,170 @@ const DentalClinicalSystem = () => {
               <MessageSquare className="w-4 h-4" />
               <span>Habla con el historial</span>
             </button>
-            <div className="text-right">
-              <div className="text-sm text-gray-500">Última visita</div>
-              <div className="font-semibold text-gray-800">{patient.lastVisit}</div>
-            </div>
+            {selectedPatient && (
+                <div className="text-right">
+                <div className="text-sm text-gray-500">Última visita</div>
+                <div className="font-semibold text-gray-800">{selectedPatient.lastVisit}</div>
+                </div>
+            )}
           </div>
         </div>
       </div>
+    
+      {selectedPatient ? (
+        <>
+            <Navigation />
 
-      <Navigation />
-
-      <div className="px-6 pb-8">
-        <div className="space-y-6">
-            {activeView === 'odontogram' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-gray-800">Odontograma ISO 3950 + Periodontograma AAP 2017</h3>
-                    <div className="flex items-center space-x-4">
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={compareMode}
-                          onChange={(e) => setCompareMode(e.target.checked)}
-                          className="rounded"
-                        />
-                        <span className="text-sm">Comparación temporal</span>
-                      </label>
-                      {compareMode && (
-                        <select
-                          value={compareDate}
-                          onChange={(e) => setCompareDate(e.target.value)}
-                          className="border border-gray-300 rounded px-3 py-1 text-sm"
-                        >
-                          <option value="2024-01-15">Enero 2024</option>
-                        </select>
-                      )}
-                      <div className="flex items-center space-x-2">
-                        <Shield className="w-4 h-4 text-green-600" />
-                        <span className="text-sm text-gray-600">ISO + AAP Certified</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3">
-                    <div className="flex items-center space-x-4 text-sm">
-                      <div className="flex items-center space-x-2">
-                        <Shield className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium">ISO 3950/1942</span>
-                        <span className="text-gray-600">- Nomenclatura y Simbología Internacional</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Award className="w-4 h-4 text-purple-600" />
-                        <span className="font-medium">AAP/EFP 2017</span>
-                        <span className="text-gray-600">- Clasificación Periodontal Moderna</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className='space-y-6'>
-                    {selectedTooth && (
-                      <ToothDetails
-                        toothNumber={selectedTooth}
-                        data={odontogramData[selectedDate]}
-                      />
-                    )}
-                    {selectedTooth && periodontogramData[selectedDate] && periodontogramData[selectedDate][selectedTooth] ? (
-                      <Periodontogram
-                        data={periodontogramData[selectedDate]}
-                        tooth={selectedTooth}
-                        onPointClick={setSelectedPoint}
-                        onPointHover={setHoveredPoint}
-                      />
-                    ) : (
-                      <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="px-6 pb-8">
+                <div className="space-y-6">
+                    {activeView === 'odontogram' && (
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-xl shadow-lg p-4">
                         <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-xl font-bold text-gray-800">Periodontograma AAP 2017</h3>
-                          <div className="flex items-center space-x-2">
-                            <Award className="w-4 h-4 text-purple-600" />
-                            <span className="text-sm text-gray-600">AAP/EFP 2017</span>
-                          </div>
-                        </div>
-                        <div className="text-center py-12">
-                          <BarChart3 className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                          <p className="text-gray-600 mb-4">
-                            Selecciona un diente para ver su periodontograma
-                          </p>
-                          <div className="text-sm text-gray-500 mb-4">
-                            Disponible para dientes: <br/>
-                            <span className="font-mono bg-gray-100 px-2 py-1 rounded">16, 26, 36, 46</span>
-                          </div>
-                          <div className="bg-purple-50 rounded-lg p-3 text-sm">
-                            <div className="flex items-center justify-center space-x-2 mb-2">
-                              <Award className="w-4 h-4 text-purple-600" />
-                              <span className="font-medium">Clasificación AAP/EFP 2017</span>
+                            <h3 className="text-lg font-bold text-gray-800">Odontograma ISO 3950 + Periodontograma AAP 2017</h3>
+                            <div className="flex items-center space-x-4">
+                            <label className="flex items-center space-x-2">
+                                <input
+                                type="checkbox"
+                                checked={compareMode}
+                                onChange={(e) => setCompareMode(e.target.checked)}
+                                className="rounded"
+                                />
+                                <span className="text-sm">Comparación temporal</span>
+                            </label>
+                            {compareMode && (
+                                <select
+                                value={compareDate}
+                                onChange={(e) => setCompareDate(e.target.value)}
+                                className="border border-gray-300 rounded px-3 py-1 text-sm"
+                                >
+                                <option value="2024-01-15">Enero 2024</option>
+                                </select>
+                            )}
+                            <div className="flex items-center space-x-2">
+                                <Shield className="w-4 h-4 text-green-600" />
+                                <span className="text-sm text-gray-600">ISO + AAP Certified</span>
                             </div>
-                            <div className="text-gray-600">
-                              6 puntos de sondaje • Estadios I-IV • Grados A-C
                             </div>
-                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    {compareMode ? (
-                      <div className="space-y-4">
-                        <Odontogram
-                          data={odontogramData[selectedDate]}
-                          onToothClick={setSelectedTooth}
-                          selectedTooth={selectedTooth}
-                          title={`Estado Actual (${selectedDate})`}
-                        />
-                        <Odontogram
-                          data={odontogramData[compareDate]}
-                          onToothClick={() => {}}
-                          selectedTooth={null}
-                          title={`Estado Anterior (${compareDate})`}
-                        />
-                      </div>
-                    ) : (
-                      <Odontogram
-                        data={odontogramData[selectedDate]}
-                        onToothClick={setSelectedTooth}
-                        selectedTooth={selectedTooth}
-                        title="Odontograma Interactivo ISO 3950"
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
+                        
+                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3">
+                            <div className="flex items-center space-x-4 text-sm">
+                            <div className="flex items-center space-x-2">
+                                <Shield className="w-4 h-4 text-blue-600" />
+                                <span className="font-medium">ISO 3950/1942</span>
+                                <span className="text-gray-600">- Nomenclatura y Simbología Internacional</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Award className="w-4 h-4 text-purple-600" />
+                                <span className="font-medium">AAP/EFP 2017</span>
+                                <span className="text-gray-600">- Clasificación Periodontal Moderna</span>
+                            </div>
+                            </div>
+                        </div>
+                        </div>
 
-            {activeView === 'anamnesis' && <AnamnesisDashboard />}
-            {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} />}
-            {activeView === 'images' && <ImageGallery />}
-            {activeView === 'voice' && <VoiceCapture />}
-            {activeView === 'reports' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <ReportExport />
-                {showAIChat && <AIChat />}
-              </div>
-            )}
-             
-            {activeView !== 'reports' && showAIChat && (
-              <div className="mt-6">
-                <AIChat />
-              </div>
-            )}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className='space-y-6'>
+                            {selectedTooth && (
+                            <ToothDetails
+                                toothNumber={selectedTooth}
+                                data={odontogramData[selectedDate]}
+                            />
+                            )}
+                            {selectedTooth && periodontogramData[selectedDate] && periodontogramData[selectedDate][selectedTooth] ? (
+                            <Periodontogram
+                                data={periodontogramData[selectedDate]}
+                                tooth={selectedTooth}
+                                onPointClick={setSelectedPoint}
+                                onPointHover={setHoveredPoint}
+                            />
+                            ) : (
+                            <div className="bg-white rounded-xl shadow-lg p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xl font-bold text-gray-800">Periodontograma AAP 2017</h3>
+                                <div className="flex items-center space-x-2">
+                                    <Award className="w-4 h-4 text-purple-600" />
+                                    <span className="text-sm text-gray-600">AAP/EFP 2017</span>
+                                </div>
+                                </div>
+                                <div className="text-center py-12">
+                                <BarChart3 className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                                <p className="text-gray-600 mb-4">
+                                    Selecciona un diente para ver su periodontograma
+                                </p>
+                                <div className="text-sm text-gray-500 mb-4">
+                                    Disponible para dientes: <br/>
+                                    <span className="font-mono bg-gray-100 px-2 py-1 rounded">16, 26, 36, 46</span>
+                                </div>
+                                <div className="bg-purple-50 rounded-lg p-3 text-sm">
+                                    <div className="flex items-center justify-center space-x-2 mb-2">
+                                    <Award className="w-4 h-4 text-purple-600" />
+                                    <span className="font-medium">Clasificación AAP/EFP 2017</span>
+                                    </div>
+                                    <div className="text-gray-600">
+                                    6 puntos de sondaje • Estadios I-IV • Grados A-C
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+                            )}
+                        </div>
+                        <div>
+                            {compareMode ? (
+                            <div className="space-y-4">
+                                <Odontogram
+                                data={odontogramData[selectedDate]}
+                                onToothClick={setSelectedTooth}
+                                selectedTooth={selectedTooth}
+                                title={`Estado Actual (${selectedDate})`}
+                                />
+                                <Odontogram
+                                data={odontogramData[compareDate]}
+                                onToothClick={() => {}}
+                                selectedTooth={null}
+                                title={`Estado Anterior (${compareDate})`}
+                                />
+                            </div>
+                            ) : (
+                            <Odontogram
+                                data={odontogramData[selectedDate]}
+                                onToothClick={setSelectedTooth}
+                                selectedTooth={selectedTooth}
+                                title="Odontograma Interactivo ISO 3950"
+                            />
+                            )}
+                        </div>
+                        </div>
+                    </div>
+                    )}
+
+                    {activeView === 'anamnesis' && <AnamnesisDashboard />}
+                    {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} />}
+                    {activeView === 'images' && <ImageGallery />}
+                    {activeView === 'voice' && <VoiceCapture />}
+                    {activeView === 'reports' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <ReportExport />
+                        {showAIChat && <AIChat />}
+                    </div>
+                    )}
+                    
+                    {activeView !== 'reports' && showAIChat && (
+                    <div className="mt-6">
+                        <AIChat />
+                    </div>
+                    )}
+                </div>
+            </div>
+        </>
+      ) : (
+        <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
+            <SearchCheck className="w-24 h-24 text-gray-300 mb-4" />
+            <h2 className="text-2xl font-semibold text-gray-700">Seleccione un paciente</h2>
+            <p className="text-gray-500 mt-2">Utilice la barra de búsqueda de arriba para encontrar y cargar el historial clínico de un paciente.</p>
         </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -1833,3 +1852,5 @@ export default DentalClinicalSystem;
 
 
 
+
+ 
