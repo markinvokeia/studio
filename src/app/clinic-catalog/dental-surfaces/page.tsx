@@ -18,15 +18,32 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
 async function getDentalSurfaces(): Promise<DentalSurface[]> {
-    // This is a placeholder. In a real application, you would fetch this from your API.
-    return [
-        { id: '1', nombre: 'Oclusal', codigo: 'O' },
-        { id: '2', nombre: 'Mesial', codigo: 'M' },
-        { id: '3', nombre: 'Vestibular', codigo: 'V' },
-        { id: '4', nombre: 'Distal', codigo: 'D' },
-        { id: '5', nombre: 'Lingual', codigo: 'L' },
-        { id: '6', nombre: 'Palatino', codigo: 'P' },
-    ];
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogo_superficies_dentales', {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/json',
+            },
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const surfacesData = Array.isArray(data) ? data : (data.catalogo_superficies_dentales || data.data || data.result || []);
+
+        return surfacesData.map((apiSurface: any) => ({
+            id: apiSurface.id ? String(apiSurface.id) : `surf_${Math.random().toString(36).substr(2, 9)}`,
+            nombre: apiSurface.nombre,
+            codigo: apiSurface.codigo,
+        }));
+    } catch (error) {
+        console.error("Failed to fetch dental surfaces:", error);
+        return [];
+    }
 }
 
 export default function DentalSurfacesPage() {
