@@ -1357,7 +1357,7 @@ const DentalClinicalSystem = () => {
             <div className="relative">
                 <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-400 to-blue-600"></div>
                 {sessions.map((session, index) => (
-                    <div key={session.sesion_id} className="relative flex items-start mb-8 last:mb-0 pl-8">
+                    <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
                         <div className={`absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-4 border-white shadow-lg bg-blue-500`}></div>
                         <div className="flex-1">
                             <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
@@ -1802,6 +1802,7 @@ export default DentalClinicalSystem;
     
 
     
+
 
 
 
