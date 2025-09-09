@@ -18,12 +18,33 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
 async function getDentalConditions(): Promise<DentalCondition[]> {
-    // This is a placeholder. In a real application, you would fetch this from your API.
-    return [
-        { id: '1', nombre: 'Caries', codigo_visual: 'CARIES', color_hex: '#FF0000' },
-        { id: '2', nombre: 'Restauración Resina', codigo_visual: 'FILLED_RESIN', color_hex: '#0000FF' },
-        { id: '3', nombre: 'Ausente', codigo_visual: 'MISSING', color_hex: '#808080' },
-    ];
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogo_condiciones_dentales', {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/json',
+            },
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const conditionsData = Array.isArray(data) ? data : (data.catalogo_condiciones_dentales || data.data || data.result || []);
+
+        return conditionsData.map((apiCondition: any) => ({
+            id: apiCondition.id ? String(apiCondition.id) : `cond_${Math.random().toString(36).substr(2, 9)}`,
+            nombre: apiCondition.nombre,
+            codigo_visual: apiCondition.codigo_visual,
+            color_hex: apiCondition.color_hex,
+        }));
+    } catch (error) {
+        console.error("Failed to fetch dental conditions:", error);
+        return [];
+    }
 }
 
 export default function DentalConditionsPage() {
