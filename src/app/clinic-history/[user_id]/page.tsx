@@ -46,7 +46,7 @@ const initialPatient = {
   };
   
 const DentalClinicalSystem = () => {
-  const [activeView, setActiveView] = useState('dashboard');
+  const [activeView, setActiveView] = useState('odontogram');
   const [selectedTooth, setSelectedTooth] = useState(null);
   const [selectedDate, setSelectedDate] = useState('2024-11-15');
   const [hoveredTooth, setHoveredTooth] = useState(null);
@@ -1306,7 +1306,6 @@ const DentalClinicalSystem = () => {
     <div className="bg-white shadow-sm border-b border-gray-200 mb-8">
       <div className="flex space-x-8 px-6 overflow-x-auto">
         {[
-          { id: 'dashboard', label: 'Dashboard', icon: Stethoscope },
           { id: 'odontogram', label: 'Odontograma ISO', icon: Search },
           { id: 'anamnesis', label: 'Anamnesis HL7', icon: FileText },
           { id: 'timeline', label: 'Timeline FHIR', icon: Clock },
@@ -1414,61 +1413,6 @@ const DentalClinicalSystem = () => {
 
       <div className="px-6 pb-8">
         <div className="space-y-6">
-          {activeView === 'dashboard' && (
-              <div className="space-y-6">
-                <MedicalAlerts alerts={patient.alerts} />
-                
-                <div className="bg-white rounded-xl shadow-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-gray-800">Control del Odontograma ISO 3950</h3>
-                    <div className="flex items-center space-x-4">
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={compareMode}
-                          onChange={(e) => setCompareMode(e.target.checked)}
-                          className="rounded"
-                        />
-                        <span className="text-sm">Modo comparación temporal</span>
-                      </label>
-                      {compareMode && (
-                        <select
-                          value={compareDate}
-                          onChange={(e) => setCompareDate(e.target.value)}
-                          className="border border-gray-300 rounded px-3 py-1 text-sm"
-                        >
-                          <option value="2024-01-15">Enero 2024 (Estado anterior)</option>
-                        </select>
-                      )}
-                      <div className="flex items-center space-x-2">
-                        <Shield className="w-4 h-4 text-green-600" />
-                        <span className="text-sm text-gray-600">Certificado ISO</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <SketchfabOdontogram />
-
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4">Estadísticas Clínicas ISO 1942</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {Object.entries(ISO_1942_SYMBOLS).slice(0, 4).map(([key, symbol]) => {
-                      const count = Object.values(odontogramData[selectedDate])
-                        .filter(tooth => tooth.conditions.includes(key)).length;
-                      return (
-                        <div key={key} className="bg-white rounded-lg p-3 text-center">
-                          <div className="text-2xl font-bold text-gray-800">{count}</div>
-                          <div className="text-sm text-gray-600">{symbol.name}</div>
-                          <div className="text-xs text-gray-500">Código: {symbol.code}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-
             {activeView === 'odontogram' && (
               <div className="space-y-6">
                 <div className="bg-white rounded-xl shadow-lg p-4">
@@ -1614,4 +1558,3 @@ const DentalClinicalSystem = () => {
 };
 
 export default DentalClinicalSystem;
-
