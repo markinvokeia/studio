@@ -14,6 +14,7 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 import type { User as UserType } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { format, parseISO } from 'date-fns';
 
 
 const initialPatient = {
@@ -70,7 +71,9 @@ type MedicationItem = {
     name: string;
     dose: string;
     frequency: string;
-    since: string;
+    since: string | null;
+    endDate: string | null;
+    reason: string;
     code: string;
 };
 
@@ -223,10 +226,12 @@ const DentalClinicalSystem = () => {
             const medicationData = Array.isArray(data) ? data : (data.antecedentes_medicamentos || data.data || []);
             
             const mappedMedications = medicationData.map((item: any): MedicationItem => ({
-                name: item.nombre || 'N/A',
+                name: item.nombre_medicamento || 'N/A',
                 dose: item.dosis || 'N/A',
                 frequency: item.frecuencia || 'N/A',
-                since: item.fecha_inicio || 'N/A',
+                since: item.fecha_inicio || null,
+                endDate: item.fecha_fin || null,
+                reason: item.motivo || 'N/A',
                 code: item.snomed_ct_id || 'N/A',
             }));
             setMedications(mappedMedications);
@@ -1429,6 +1434,16 @@ const DentalClinicalSystem = () => {
         }
     };
 
+    const formatDate = (dateString: string | null) => {
+        if (!dateString) return '-';
+        try {
+            return format(parseISO(dateString), 'dd/MM/yyyy');
+        } catch (error) {
+            console.error("Invalid date format:", dateString);
+            return '-';
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
@@ -1522,15 +1537,20 @@ const DentalClinicalSystem = () => {
                             <p>Loading medications...</p>
                         ) : medications.length > 0 ? (
                             medications.map((item, index) => (
-                            <div key={index} className="border-l-4 border-green-200 pl-4 py-2">
-                                <div className="flex justify-between items-center">
-                                    <div className="font-semibold text-gray-800">{item.name}</div>
-                                    <span className="text-xs font-mono text-gray-500">{item.code}</span>
+                                <div key={index} className="border-l-4 border-green-200 pl-4 py-2">
+                                    <div className="flex justify-between items-start">
+                                        <div className="font-semibold text-gray-800">{item.name}</div>
+                                        <div className="text-right text-xs text-gray-500">
+                                            <div>{item.dose}</div>
+                                            <div>{item.frequency}</div>
+                                        </div>
+                                    </div>
+                                    <div className="text-sm text-gray-600 mt-1">
+                                        {formatDate(item.since)} - {formatDate(item.endDate)}
+                                    </div>
+                                    <div className="text-sm text-gray-700 mt-1">{item.reason}</div>
                                 </div>
-                                <div className="text-sm text-gray-600">{item.dose} • {item.frequency}</div>
-                                <div className="text-sm text-gray-700">Desde: {item.since}</div>
-                            </div>
-                        ))
+                            ))
                         ) : (
                            <p>No medications found.</p>
                         )}
@@ -1611,7 +1631,7 @@ const DentalClinicalSystem = () => {
                     </Command>
                 </PopoverContent>
             </Popover>
-            <div className="text-gray-600 mt-4">
+            <div className="mt-4">
                 <p className="text-xl font-semibold text-gray-900">{patient.name}</p>
              </div>
           </div>
