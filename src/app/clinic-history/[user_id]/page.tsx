@@ -275,7 +275,7 @@ const DentalClinicalSystem = () => {
         if (!currentUserId) return;
         setIsLoadingPatientHabits(true);
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/patient_habits?user_id=${currentUserId}`, {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/habitos_paciente?user_id=${currentUserId}`, {
                 method: 'GET',
                 mode: 'cors',
                 headers: { 'Accept': 'application/json' },
