@@ -7,7 +7,8 @@ import {
   Calendar, AlertTriangle, FileText, Camera, Stethoscope, Heart, Pill, Search, 
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
-  BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw
+  BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw,
+  Wind, GlassWater, Tooth
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -79,6 +80,12 @@ type MedicationItem = {
     code: string;
 };
 
+type PatientHabits = {
+  tabaquismo: string | null;
+  alcohol: string | null;
+  bruxismo: string | null;
+};
+
 const DentalClinicalSystem = () => {
   const router = useRouter();
   const params = useParams();
@@ -114,6 +121,9 @@ const DentalClinicalSystem = () => {
   const [isLoadingMedications, setIsLoadingMedications] = useState(false);
   const [patientSessions, setPatientSessions] = useState<PatientSession[]>([]);
   const [isLoadingPatientSessions, setIsLoadingPatientSessions] = useState(false);
+  const [patientHabits, setPatientHabits] = useState<PatientHabits | null>(null);
+  const [isLoadingPatientHabits, setIsLoadingPatientHabits] = useState(false);
+
   
     const fetchPersonalHistory = useCallback(async (currentUserId: string) => {
         if (!currentUserId) return;
@@ -261,6 +271,29 @@ const DentalClinicalSystem = () => {
         }
     }, []);
 
+    const fetchPatientHabits = useCallback(async (currentUserId: string) => {
+        if (!currentUserId) return;
+        setIsLoadingPatientHabits(true);
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/patient_habits?user_id=${currentUserId}`, {
+                method: 'GET',
+                mode: 'cors',
+                headers: { 'Accept': 'application/json' },
+            });
+            if (!response.ok) {
+                throw new Error('Network response was not ok for patient habits');
+            }
+            const data = await response.json();
+            const habitsData = Array.isArray(data) && data.length > 0 ? data[0] : (data.patient_habits || data.data || null);
+            setPatientHabits(habitsData);
+        } catch (error) {
+            console.error("Failed to fetch patient habits:", error);
+            setPatientHabits(null);
+        } finally {
+            setIsLoadingPatientHabits(false);
+        }
+    }, []);
+
   // Debounced search effect
   useEffect(() => {
     const handler = setTimeout(async () => {
@@ -353,12 +386,13 @@ const DentalClinicalSystem = () => {
         fetchAllergies(currentUserId);
         fetchMedications(currentUserId);
         fetchPatientSessions(currentUserId);
+        fetchPatientHabits(currentUserId);
     };
 
     if (userId) {
         fetchPatientData(userId);
     }
-  }, [userId, fetchPersonalHistory, fetchFamilyHistory, fetchAllergies, fetchMedications, fetchPatientSessions]);
+  }, [userId, fetchPersonalHistory, fetchFamilyHistory, fetchAllergies, fetchMedications, fetchPatientSessions, fetchPatientHabits]);
 
 
   // Nomenclatura FDI ISO 3950 completa
@@ -1480,10 +1514,48 @@ const DentalClinicalSystem = () => {
         }
     };
 
+    const HabitCard = ({ habits, isLoading }) => (
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="flex items-center mb-4">
+          <User className="w-5 h-5 text-blue-600 mr-2" />
+          <h3 className="text-lg font-bold text-gray-800">Hábitos del Paciente</h3>
+        </div>
+        {isLoading ? (
+          <p>Loading patient habits...</p>
+        ) : habits ? (
+          <div className="space-y-4">
+            <div className="flex items-start gap-4">
+              <Wind className="w-5 h-5 text-gray-500 mt-1" />
+              <div>
+                <h4 className="font-semibold">Tabaquismo</h4>
+                <p className="text-sm text-gray-700">{habits.tabaquismo || 'No especificado'}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-4">
+              <GlassWater className="w-5 h-5 text-gray-500 mt-1" />
+              <div>
+                <h4 className="font-semibold">Alcohol</h4>
+                <p className="text-sm text-gray-700">{habits.alcohol || 'No especificado'}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-4">
+              <Tooth className="w-5 h-5 text-gray-500 mt-1" />
+              <div>
+                <h4 className="font-semibold">Bruxismo</h4>
+                <p className="text-sm text-gray-700">{habits.bruxismo || 'No especificado'}</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p>No patient habits found.</p>
+        )}
+      </div>
+    );
+
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="bg-white rounded-xl shadow-lg p-6 xl:col-span-1">
                     <div className="flex items-center mb-4">
                         <User className="w-5 h-5 text-blue-600 mr-2" />
                         <h3 className="text-lg font-bold text-gray-800">Antecedentes Personales</h3>
@@ -1507,7 +1579,7 @@ const DentalClinicalSystem = () => {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="bg-white rounded-xl shadow-lg p-6 xl:col-span-1">
                     <div className="flex items-center mb-4">
                         <Heart className="w-5 h-5 text-red-600 mr-2" />
                         <h3 className="text-lg font-bold text-gray-800">Antecedentes Familiares</h3>
@@ -1529,7 +1601,9 @@ const DentalClinicalSystem = () => {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                <HabitCard habits={patientHabits} isLoading={isLoadingPatientHabits} />
+
+                <div className="bg-white rounded-xl shadow-lg p-6 xl:col-span-2">
                     <div className="flex items-center mb-4">
                         <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
                         <h3 className="text-lg font-bold text-gray-800">Alergias</h3>
@@ -1553,7 +1627,7 @@ const DentalClinicalSystem = () => {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="bg-white rounded-xl shadow-lg p-6 xl:col-span-3">
                     <div className="flex items-center mb-4">
                         <Pill className="w-5 h-5 text-green-600 mr-2" />
                         <h3 className="text-lg font-bold text-gray-800">Medicamentos Actuales</h3>
@@ -1572,7 +1646,7 @@ const DentalClinicalSystem = () => {
                                         </div>
                                     </div>
                                     <div className="text-sm text-gray-600 mt-1">
-                                        {formatDate(item.since)} - {formatDate(item.endDate)}
+                                        {formatDate(item.since)} - {item.endDate ? formatDate(item.endDate) : 'Presente'}
                                     </div>
                                     <div className="text-sm text-gray-700 mt-1">{item.reason}</div>
                                 </div>
