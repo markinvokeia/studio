@@ -7,7 +7,7 @@ import {
   Calendar, AlertTriangle, FileText, Camera, Stethoscope, Heart, Pill, Search, 
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
-  BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck
+  BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -16,6 +16,7 @@ import type { User as UserType, PatientSession, TreatmentDetail, AttachedFile } 
 import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
+import { Button } from '@/components/ui/button';
 
 
 const initialPatient = {
@@ -1657,8 +1658,11 @@ const DentalClinicalSystem = () => {
                 </PopoverContent>
             </Popover>
             {selectedPatient && (
-                <div className="mt-4">
+                <div className="mt-4 flex items-center gap-2">
                     <p className="text-2xl font-bold text-gray-900">{selectedPatient.name}</p>
+                     <Button variant="ghost" size="icon" onClick={() => router.refresh()}>
+                        <RefreshCw className="h-5 w-5" />
+                    </Button>
                  </div>
             )}
           </div>
