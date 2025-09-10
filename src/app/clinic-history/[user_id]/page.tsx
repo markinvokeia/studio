@@ -8,7 +8,7 @@ import {
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
   BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw,
-  Wind, GlassWater, Tooth
+  Wind, GlassWater
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -1077,7 +1077,7 @@ const DentalClinicalSystem = () => {
     });
 
     const ImageModal = ({ image, onClose }) => (
-      <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
+      (<div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
         <div className="relative max-w-7xl max-h-full w-full h-full flex flex-col">
           <div className="bg-white p-4 flex justify-between items-center">
             <div>
@@ -1126,7 +1126,7 @@ const DentalClinicalSystem = () => {
             />
           </div>
         </div>
-      </div>
+      </div>)
     );
 
     return (
@@ -1514,6 +1514,17 @@ const DentalClinicalSystem = () => {
         }
     };
 
+    const ToothIcon = (props) => (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        {...props}
+      >
+        <path d="M12.75,2.008c-3.134,0-5.75,2.566-5.75,5.75c0,1.517,0.613,2.93,1.5,4l-1.5,6.242H18l-1.5-6.242c0.887-1.07,1.5-2.483,1.5-4C18.5,4.574,15.884,2.008,12.75,2.008z M12.75,4.008c2.071,0,3.75,1.679,3.75,3.75S14.821,11.508,12.75,11.508c-2.071,0-3.75-1.679-3.75-3.75S10.679,4.008,12.75,4.008z" />
+      </svg>
+    );
+
     const HabitCard = ({ habits, isLoading }) => (
       <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex items-center mb-4">
@@ -1539,7 +1550,7 @@ const DentalClinicalSystem = () => {
               </div>
             </div>
             <div className="flex items-start gap-4">
-              <Tooth className="w-5 h-5 text-gray-500 mt-1" />
+              <ToothIcon className="w-5 h-5 text-gray-500 mt-1" />
               <div>
                 <h4 className="font-semibold">Bruxismo</h4>
                 <p className="text-sm text-gray-700">{habits.bruxismo || 'No especificado'}</p>
@@ -1618,7 +1629,7 @@ const DentalClinicalSystem = () => {
                                         <div className="font-semibold text-red-800">{item.allergen}</div>
                                         {item.snomed && <span className="text-xs font-mono text-gray-500">{item.snomed}</span>}
                                     </div>
-                                    {item.reaction && <div className="text-sm text-red-600">{item.reaction}</div>}
+                                    {item.reaction && <div className="text-sm text-red-700">{item.reaction}</div>}
                                 </div>
                             ))
                         ) : (
@@ -1932,3 +1943,5 @@ export default DentalClinicalSystem;
 
 
  
+
+    
