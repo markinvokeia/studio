@@ -294,6 +294,17 @@ const DentalClinicalSystem = () => {
         }
     }, []);
 
+    const refreshAllData = useCallback(() => {
+        if (userId && userId !== '1') {
+            fetchPersonalHistory(userId);
+            fetchFamilyHistory(userId);
+            fetchAllergies(userId);
+            fetchMedications(userId);
+            fetchPatientSessions(userId);
+            fetchPatientHabits(userId);
+        }
+    }, [userId, fetchPersonalHistory, fetchFamilyHistory, fetchAllergies, fetchMedications, fetchPatientSessions, fetchPatientHabits]);
+
   // Debounced search effect
   useEffect(() => {
     const handler = setTimeout(async () => {
@@ -381,18 +392,13 @@ const DentalClinicalSystem = () => {
         }
 
         // Fetch data for all tabs
-        fetchPersonalHistory(currentUserId);
-        fetchFamilyHistory(currentUserId);
-        fetchAllergies(currentUserId);
-        fetchMedications(currentUserId);
-        fetchPatientSessions(currentUserId);
-        fetchPatientHabits(currentUserId);
+        refreshAllData();
     };
 
     if (userId) {
         fetchPatientData(userId);
     }
-  }, [userId, fetchPersonalHistory, fetchFamilyHistory, fetchAllergies, fetchMedications, fetchPatientSessions, fetchPatientHabits]);
+  }, [userId, refreshAllData]);
 
 
   // Nomenclatura FDI ISO 3950 completa
@@ -1745,7 +1751,7 @@ const DentalClinicalSystem = () => {
             {selectedPatient && (
                 <div className="mt-4 flex items-center gap-2">
                     <p className="text-2xl font-bold text-gray-900">{selectedPatient.name}</p>
-                     <Button variant="ghost" size="icon" onClick={() => router.refresh()}>
+                     <Button variant="ghost" size="icon" onClick={refreshAllData}>
                         <RefreshCw className="h-5 w-5" />
                     </Button>
                  </div>
@@ -1943,5 +1949,7 @@ export default DentalClinicalSystem;
 
 
  
+
+    
 
     
