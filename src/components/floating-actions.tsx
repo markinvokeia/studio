@@ -11,29 +11,44 @@ import { WhatsAppIcon } from './icons/whatsapp-icon';
 
 export function FloatingActions() {
   const [isOpen, setIsOpen] = useState(false);
+  const [showSocials, setShowSocials] = useState(false);
 
   const toggleChat = () => {
     setIsOpen(!isOpen);
+    if (!isOpen) {
+        setShowSocials(false); // Close socials when opening chat
+    }
+  };
+
+  const toggleAll = () => {
+    setShowSocials(!showSocials);
+    if(isOpen) {
+        setIsOpen(false);
+    }
   };
 
   return (
     <>
-      <div className="fixed bottom-4 left-2 z-50 flex flex-col items-start gap-2">
-         <Link href="https://wa.me/59894024661" target="_blank" rel="noopener noreferrer">
-          <Button size="icon" className="rounded-full h-12 w-12 bg-green-500 text-white shadow-lg hover:bg-green-600">
-            <WhatsAppIcon className="h-6 w-6" />
-            <span className="sr-only">Open WhatsApp</span>
-          </Button>
-        </Link>
-         <Link href="https://t.me/InvokIA_bot" target="_blank" rel="noopener noreferrer">
-          <Button size="icon" className="rounded-full h-12 w-12 bg-blue-500 text-white shadow-lg hover:bg-blue-600">
-            <TelegramIcon className="h-6 w-6" />
-            <span className="sr-only">Open Telegram</span>
-          </Button>
-        </Link>
-        <Button onClick={toggleChat} size="icon" className="rounded-full h-12 w-12 bg-fuchsia-600 text-primary-foreground shadow-lg hover:bg-fuchsia-700">
-          {isOpen ? <X className="h-5 w-5" /> : <MessageSquare className="h-5 w-5" />}
-          <span className="sr-only">{isOpen ? 'Close Chat' : 'Open Chat'}</span>
+      <div className="fixed bottom-4 left-4 z-50 flex flex-col items-start gap-2">
+        {showSocials && (
+            <>
+                <Link href="https://wa.me/59894024661" target="_blank" rel="noopener noreferrer">
+                    <Button size="icon" className="rounded-full h-12 w-12 bg-green-500 text-white shadow-lg hover:bg-green-600">
+                        <WhatsAppIcon className="h-6 w-6" />
+                        <span className="sr-only">Open WhatsApp</span>
+                    </Button>
+                </Link>
+                <Link href="https://t.me/InvokIA_bot" target="_blank" rel="noopener noreferrer">
+                    <Button size="icon" className="rounded-full h-12 w-12 bg-blue-500 text-white shadow-lg hover:bg-blue-600">
+                        <TelegramIcon className="h-6 w-6" />
+                        <span className="sr-only">Open Telegram</span>
+                    </Button>
+                </Link>
+             </>
+        )}
+        <Button onClick={toggleAll} size="icon" className="rounded-full h-14 w-14 bg-fuchsia-600 text-primary-foreground shadow-lg hover:bg-fuchsia-700">
+          {showSocials ? <X className="h-6 w-6" /> : <MessageSquare className="h-6 w-6" />}
+          <span className="sr-only">{showSocials ? 'Close' : 'Open'}</span>
         </Button>
       </div>
 
@@ -46,6 +61,9 @@ export function FloatingActions() {
         <Card className="flex flex-col h-[60vh]">
           <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
             <CardTitle className="text-lg">Chatbot</CardTitle>
+             <Button variant="ghost" size="icon" onClick={toggleChat}>
+                <X className="h-4 w-4" />
+             </Button>
           </CardHeader>
           <CardContent className="p-0 flex-1">
             <iframe
