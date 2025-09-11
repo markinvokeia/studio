@@ -39,6 +39,12 @@ const columns: ColumnDef<Order>[] = [
     ),
   },
   {
+    accessorKey: 'user_name',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="User" />
+    ),
+  },
+  {
     accessorKey: 'status',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Status" />
@@ -94,8 +100,8 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
         <DataTable
           columns={columns}
           data={orders}
-          filterColumnId="id"
-          filterPlaceholder="Filter by order ID..."
+          filterColumnId="user_name"
+          filterPlaceholder="Filter by user..."
           onRowSelectionChange={onRowSelectionChange}
           enableSingleRowSelection={onRowSelectionChange ? true : false}
           onRefresh={onRefresh}
