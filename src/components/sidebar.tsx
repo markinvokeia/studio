@@ -10,38 +10,28 @@ import * as React from 'react';
 
 export function Sidebar() {
     const { isMinimized } = useSidebar();
-    const [isClient, setIsClient] = React.useState(false);
+    const [isMounted, setIsMounted] = React.useState(false);
 
     React.useEffect(() => {
-        setIsClient(true);
+        setIsMounted(true);
     }, []);
 
-    if (!isClient) {
-        return (
-            <aside className={cn(
-                "hidden flex-col border-r bg-gray-900 text-white transition-all duration-300 ease-in-out sm:flex",
-                "w-64" // Default to non-minimized width on server
-            )}>
-                {/* Render a placeholder or nothing on the server to avoid hydration mismatch */}
-            </aside>
-        );
-    }
+    const sidebarWidth = isMounted && isMinimized ? "w-16" : "w-64";
 
-
-  return (
-    <aside className={cn(
-        "hidden flex-col border-r bg-gray-900 text-white transition-all duration-300 ease-in-out sm:flex",
-        isMinimized ? "w-16" : "w-64"
-    )}>
-      <div className={cn("flex h-14 items-center border-b border-gray-700 px-4 lg:h-[60px]", isMinimized && "justify-center")}>
-        <Link href="/" className="flex items-center gap-2 font-semibold text-white">
-          <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={32} height={32} alt="InvokeIA Logo" />
-           {!isMinimized && <span className="">InvokeIA</span>}
-        </Link>
-      </div>
-      <div className="flex-1 overflow-y-auto">
-        {isClient ? <Nav items={navItems} isMinimized={isMinimized}/> : null}
-      </div>
-    </aside>
-  );
+    return (
+        <aside className={cn(
+            "hidden flex-col border-r bg-gray-900 text-white transition-all duration-300 ease-in-out sm:flex",
+            sidebarWidth
+        )}>
+            <div className={cn("flex h-14 items-center border-b border-gray-700 px-4 lg:h-[60px]", isMounted && isMinimized && "justify-center")}>
+                <Link href="/" className="flex items-center gap-2 font-semibold text-white">
+                    <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={32} height={32} alt="InvokeIA Logo" />
+                    {(!isMounted || !isMinimized) && <span className="">InvokeIA</span>}
+                </Link>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+                {isMounted ? <Nav items={navItems} isMinimized={isMinimized}/> : <Nav items={navItems} isMinimized={false} />}
+            </div>
+        </aside>
+    );
 }
