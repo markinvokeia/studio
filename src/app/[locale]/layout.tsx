@@ -27,6 +27,8 @@ export default function LocaleLayout({
   if (!locales.includes(params.locale as any)) notFound();
   
   const messages = useMessages();
+  console.log('Loaded messages for locale', params.locale, Object.keys(messages));
+
   return (
       <ThemeProvider
         attribute="class"
