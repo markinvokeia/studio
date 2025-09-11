@@ -85,6 +85,7 @@ export type OrderItem = {
 export type Invoice = {
   id: string;
   order_id: string;
+  quote_id: string;
   user_name: string;
   total: number;
   status: 'draft' | 'sent' | 'paid' | 'overdue';

@@ -6,7 +6,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Invoice } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
@@ -35,6 +35,12 @@ const columns: ColumnDef<Invoice>[] = [
     accessorKey: 'id',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Invoice ID" />
+    ),
+  },
+  {
+    accessorKey: 'quote_id',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Quote ID" />
     ),
   },
   {

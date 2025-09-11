@@ -26,6 +26,7 @@ async function getInvoices(): Promise<Invoice[]> {
         return invoicesData.map((apiInvoice: any) => ({
             id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
             order_id: apiInvoice.order_id,
+            quote_id: apiInvoice.quote_id,
             user_name: apiInvoice.user_name || 'N/A',
             total: apiInvoice.total || 0,
             status: apiInvoice.status || 'draft',
