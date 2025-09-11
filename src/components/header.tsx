@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -8,7 +9,8 @@ import {
   Moon,
   Sun,
   PanelLeftClose,
-  PanelRightClose
+  PanelRightClose,
+  Globe,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import {
@@ -100,6 +102,22 @@ export function Header() {
       </Breadcrumb>
       <div className="relative ml-auto flex flex-1 items-center justify-end gap-2 md:grow-0">
         <CommandBar />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon">
+              <Globe className="h-[1.2rem] w-[1.2rem]" />
+              <span className="sr-only">Toggle language</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem>
+              English
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              Español
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
          <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon">
