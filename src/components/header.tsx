@@ -34,20 +34,43 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { CommandBar } from './command-bar';
 import { Nav } from './nav';
 import { navItems } from '@/config/nav';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useSidebar } from '@/hooks/use-sidebar';
+import { useLocale, useTranslations } from 'next-intl';
+
 
 export function Header() {
   const pathname = usePathname();
   const { setTheme } = useTheme();
   const { isMinimized, toggleSidebar } = useSidebar();
+  const t = useTranslations('Header');
+  const locale = useLocale();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const onSelectLocale = (newLocale: string) => {
+    const newPathname = pathname.replace(`/${locale}`, `/${newLocale}`);
+    const newUrl = `${newPathname}?${searchParams.toString()}`;
+    router.replace(newUrl);
+  };
   
-  const breadcrumbSegments = pathname.split('/').filter(Boolean);
+  const breadcrumbSegments = pathname.split('/').filter(Boolean).slice(1);
+  const tNav = useTranslations('Navigation');
+  
+  const navItemMap: { [key: string]: string } = {};
+  navItems.forEach(item => {
+    if (item.href) navItemMap[item.href] = tNav(item.title as any);
+    if (item.items) {
+        item.items.forEach(subItem => {
+            if (subItem.href) navItemMap[subItem.href] = tNav(subItem.title as any);
+        });
+    }
+  });
+  
   const breadcrumbItems = breadcrumbSegments.map((segment, index) => {
     const href = '/' + breadcrumbSegments.slice(0, index + 1).join('/');
     const isLast = index === breadcrumbSegments.length - 1;
-    const navItem = navItems.flatMap(item => item.items ? item.items : item).find(item => item.href === href);
-    const title = navItem?.title || segment.charAt(0).toUpperCase() + segment.slice(1);
+    const title = navItemMap[`/${segment}`] || segment.charAt(0).toUpperCase() + segment.slice(1);
     
     return (
       <React.Fragment key={href}>
@@ -106,15 +129,15 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon">
               <Globe className="h-[1.2rem] w-[1.2rem]" />
-              <span className="sr-only">Toggle language</span>
+              <span className="sr-only">{t('toggleLanguage')}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>
-              English
+            <DropdownMenuItem onSelect={() => onSelectLocale('en')}>
+              {t('english')}
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              Español
+            <DropdownMenuItem onSelect={() => onSelectLocale('es')}>
+              {t('spanish')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

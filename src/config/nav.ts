@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 
 export interface NavItem {
-  title: string;
+  title: keyof IntlMessages['Navigation'];
   href: string;
   icon: LucideIcon;
   label?: string;
@@ -50,16 +50,16 @@ export const navItems: NavItem[] = [
     icon: Calendar,
   },
   {
-    title: 'Users & Access',
+    title: 'UsersAndAccess',
     href: '/users',
     icon: Users,
     items: [
       { title: 'Users', href: '/users', icon: Users, isChidren: true },
-      { title: 'Clinic History', href: '/clinic-history/1', icon: HeartPulse, isChidren: true },
+      { title: 'ClinicHistory', href: '/clinic-history/1', icon: HeartPulse, isChidren: true },
     ],
   },
   {
-    title: 'Sales & Billing',
+    title: 'SalesAndBilling',
     href: '/sales',
     icon: Wallet,
     items: [
@@ -70,23 +70,23 @@ export const navItems: NavItem[] = [
     ],
   },
    {
-    title: 'Clinic Catalog',
+    title: 'ClinicCatalog',
     href: '/clinic-catalog',
     icon: BookHeart,
     items: [
       { title: 'Ailments', href: '/clinic-catalog/ailments', icon: HeartPulse, isChidren: true },
       { title: 'Medications', href: '/clinic-catalog/medications', icon: Pill, isChidren: true },
-      { title: 'Dental Conditions', href: '/clinic-catalog/dental-conditions', icon: Smile, isChidren: true },
-      { title: 'Dental Surfaces', href: '/clinic-catalog/dental-surfaces', icon: Layers, isChidren: true },
+      { title: 'DentalConditions', href: '/clinic-catalog/dental-conditions', icon: Smile, isChidren: true },
+      { title: 'DentalSurfaces', href: '/clinic-catalog/dental-surfaces', icon: Layers, isChidren: true },
     ],
   },
   {
-    title: 'Business Setup',
+    title: 'BusinessSetup',
     href: '/config',
     icon: Settings,
     items: [
       { title: 'Services', href: '/config/services', icon: Briefcase, isChidren: true },
-      { title: 'Clinic Details', href: '/config/clinics', icon: Building, isChidren: true },
+      { title: 'ClinicDetails', href: '/config/clinics', icon: Building, isChidren: true },
       { title: 'Schedules', href: '/config/schedules', icon: CalendarClock, isChidren: true },
       { title: 'Holidays', href: '/config/holidays', icon: CalendarOff, isChidren: true },
       { title: 'Calendars', href: '/config/calendars', icon: Calendar, isChidren: true },
@@ -109,9 +109,9 @@ export const navItems: NavItem[] = [
       { title: 'Roles', href: '/roles', icon: KeyRound, isChidren: true },
       { title: 'Permissions', href: '/permissions', icon: Shield, isChidren: true },
       { title: 'Configurations', href: '/system/config', icon: Settings, isChidren: true },
-      { title: 'Audit Log', href: '/system/audit', icon: BarChart, isChidren: true },
-      { title: 'Access Log', href: '/system/access', icon: UserCheck, isChidren: true },
-      { title: 'Error Log', href: '/system/errors', icon: FileWarning, isChidren: true },
+      { title: 'AuditLog', href: '/system/audit', icon: BarChart, isChidren: true },
+      { title: 'AccessLog', href: '/system/access', icon: UserCheck, isChidren: true },
+      { title: 'ErrorLog', href: '/system/errors', icon: FileWarning, isChidren: true },
     ],
   },
 ];

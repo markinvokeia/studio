@@ -1,0 +1,40 @@
+{
+  "Navigation": {
+    "Dashboard": "Dashboard",
+    "Appointments": "Citas",
+    "UsersAndAccess": "Usuarios y Acceso",
+    "Users": "Usuarios",
+    "ClinicHistory": "Historial Clínico",
+    "SalesAndBilling": "Ventas y Facturación",
+    "Quotes": "Cotizaciones",
+    "Orders": "Pedidos",
+    "Invoices": "Facturas",
+    "Payments": "Pagos",
+    "ClinicCatalog": "Catálogo Clínico",
+    "Ailments": "Padecimientos",
+    "Medications": "Medicamentos",
+    "DentalConditions": "Condiciones Dentales",
+    "DentalSurfaces": "Superficies Dentales",
+    "BusinessSetup": "Configuración",
+    "Services": "Servicios",
+    "ClinicDetails": "Clínicas",
+    "Schedules": "Horarios",
+    "Holidays": "Feriados",
+    "Calendars": "Calendarios",
+    "Communications": "Comunicaciones",
+    "Conversations": "Conversaciones",
+    "Channels": "Canales",
+    "System": "Sistema",
+    "Roles": "Roles",
+    "Permissions": "Permisos",
+    "Configurations": "Configuraciones",
+    "AuditLog": "Auditoría",
+    "AccessLog": "Accesos",
+    "ErrorLog": "Errores"
+  },
+  "Header": {
+    "toggleLanguage": "Cambiar idioma",
+    "english": "English",
+    "spanish": "Español"
+  }
+}

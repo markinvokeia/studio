@@ -1,0 +1,40 @@
+{
+  "Navigation": {
+    "Dashboard": "Dashboard",
+    "Appointments": "Appointments",
+    "UsersAndAccess": "Users & Access",
+    "Users": "Users",
+    "ClinicHistory": "Clinic History",
+    "SalesAndBilling": "Sales & Billing",
+    "Quotes": "Quotes",
+    "Orders": "Orders",
+    "Invoices": "Invoices",
+    "Payments": "Payments",
+    "ClinicCatalog": "Clinic Catalog",
+    "Ailments": "Ailments",
+    "Medications": "Medications",
+    "DentalConditions": "Dental Conditions",
+    "DentalSurfaces": "Dental Surfaces",
+    "BusinessSetup": "Business Setup",
+    "Services": "Services",
+    "ClinicDetails": "Clinic Details",
+    "Schedules": "Schedules",
+    "Holidays": "Holidays",
+    "Calendars": "Calendars",
+    "Communications": "Communications",
+    "Conversations": "Conversations",
+    "Channels": "Channels",
+    "System": "System",
+    "Roles": "Roles",
+    "Permissions": "Permissions",
+    "Configurations": "Configurations",
+    "AuditLog": "Audit Log",
+    "AccessLog": "Access Log",
+    "ErrorLog": "Error Log"
+  },
+  "Header": {
+    "toggleLanguage": "Toggle language",
+    "english": "English",
+    "spanish": "Español"
+  }
+}
