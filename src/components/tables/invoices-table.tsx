@@ -38,24 +38,6 @@ const columns: ColumnDef<Invoice>[] = [
     ),
   },
   {
-    accessorKey: 'quote_id',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Quote ID" />
-    ),
-  },
-  {
-    accessorKey: 'order_id',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Order ID" />
-    ),
-  },
-  {
-    accessorKey: 'user_name',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="User" />
-    ),
-  },
-  {
     accessorKey: 'total',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Total" />
@@ -99,8 +81,8 @@ const columns: ColumnDef<Invoice>[] = [
         paid: 'success',
         partial: 'info',
         unpaid: 'outline',
-      }[status?.toLowerCase()] ?? ('default' as any);
-      return <Badge variant={variant} className="capitalize">{status}</Badge>;
+      }[status?.toLowerCase() ?? ('default' as any)];
+      return <Badge variant={variant} className="capitalize">{status || 'N/A'}</Badge>;
     },
   },
    {
