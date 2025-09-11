@@ -27,7 +27,6 @@ export default async function LocaleLayout({
   if (!locales.includes(locale)) notFound();
  
   const messages = await getMessages();
-  console.log('Loaded messages for locale', locale, Object.keys(messages));
 
   return (
       <ThemeProvider
