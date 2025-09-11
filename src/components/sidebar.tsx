@@ -18,7 +18,7 @@ export function Sidebar() {
 
   return (
     <aside className={cn(
-        "hidden flex-col border-r bg-primary text-primary-foreground transition-all duration-300 ease-in-out sm:flex",
+        "hidden flex-col border-r bg-card text-primary-foreground transition-all duration-300 ease-in-out sm:flex",
         isMinimized ? "w-16" : "w-64"
     )}>
       <div className="flex h-14 items-center border-b border-primary-foreground/20 px-4 lg:h-[60px]">
