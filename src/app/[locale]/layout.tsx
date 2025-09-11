@@ -8,7 +8,8 @@ import { Header } from '@/components/header';
 import { FloatingActionsWrapper } from '@/components/floating-actions-wrapper';
 import { ThemeProvider } from '@/components/theme-provider';
 import { SidebarProvider } from '@/hooks/use-sidebar';
-import {NextIntlClientProvider, useMessages} from 'next-intl';
+import {NextIntlClientProvider} from 'next-intl';
+import { getMessages } from 'next-intl/server';
 import { locales } from '@/i18n';
 
 export const metadata: Metadata = {
@@ -16,16 +17,16 @@ export const metadata: Metadata = {
   description: 'AI-powered command center for your business data.',
 };
 
-export default function LocaleLayout({
+export default async function LocaleLayout({
   children,
   params: { locale },
 }: Readonly<{
   children: React.ReactNode;
   params: { locale: string };
 }>) {
-  // `next-intl` will automatically validate that the locale parameter is valid
-  
-  const messages = useMessages();
+  if (!locales.includes(locale)) notFound();
+ 
+  const messages = await getMessages();
   console.log('Loaded messages for locale', locale, Object.keys(messages));
 
   return (
