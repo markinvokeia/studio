@@ -1,36 +1,37 @@
+
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, X } from 'lucide-react';
+import { MessageSquare, X, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { TelegramIcon } from './icons/telegram-icon';
 import { WhatsAppIcon } from './icons/whatsapp-icon';
 
 export function FloatingActions() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [showSocials, setShowSocials] = useState(false);
+  const [isChatOpen, setChatOpen] = useState(false);
+  const [isMenuOpen, setMenuOpen] = useState(false);
 
   const toggleChat = () => {
-    setIsOpen(!isOpen);
-    if (!isOpen) {
-        setShowSocials(false); // Close socials when opening chat
+    setChatOpen(!isChatOpen);
+    if (!isChatOpen) {
+        setMenuOpen(false); // Close main menu if opening chat
     }
   };
 
-  const toggleAll = () => {
-    setShowSocials(!showSocials);
-    if(isOpen) {
-        setIsOpen(false);
+  const toggleMenu = () => {
+    setMenuOpen(!isMenuOpen);
+    if (!isMenuOpen) {
+        setChatOpen(false); // Close chat if opening menu
     }
   };
 
   return (
     <>
       <div className="fixed bottom-4 left-4 z-50 flex flex-col items-start gap-2">
-        {showSocials && (
+        {isMenuOpen && (
             <>
                 <Link href="https://wa.me/59894024661" target="_blank" rel="noopener noreferrer">
                     <Button size="icon" className="rounded-full h-12 w-12 bg-green-500 text-white shadow-lg hover:bg-green-600">
@@ -44,18 +45,22 @@ export function FloatingActions() {
                         <span className="sr-only">Open Telegram</span>
                     </Button>
                 </Link>
+                 <Button onClick={toggleChat} size="icon" className="rounded-full h-12 w-12 bg-purple-500 text-white shadow-lg hover:bg-purple-600">
+                    <MessageSquare className="h-6 w-6" />
+                    <span className="sr-only">Open Chat</span>
+                </Button>
              </>
         )}
-        <Button onClick={toggleAll} size="icon" className="rounded-full h-14 w-14 bg-fuchsia-600 text-primary-foreground shadow-lg hover:bg-fuchsia-700">
-          {showSocials ? <X className="h-6 w-6" /> : <MessageSquare className="h-6 w-6" />}
-          <span className="sr-only">{showSocials ? 'Close' : 'Open'}</span>
+        <Button onClick={toggleMenu} size="icon" className="rounded-full h-14 w-14 bg-fuchsia-600 text-primary-foreground shadow-lg hover:bg-fuchsia-700">
+          {isMenuOpen ? <X className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
+          <span className="sr-only">{isMenuOpen ? 'Close Menu' : 'Open Menu'}</span>
         </Button>
       </div>
 
       <div
         className={cn(
           'fixed bottom-20 left-4 z-50 w-full max-w-sm rounded-lg border bg-card shadow-lg transition-all duration-300 ease-in-out',
-          isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+          isChatOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
         )}
       >
         <Card className="flex flex-col h-[60vh]">
