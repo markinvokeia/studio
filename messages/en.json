@@ -35,6 +35,187 @@
   "Header": {
     "toggleLanguage": "Toggle language",
     "english": "English",
-    "spanish": "Español"
+    "spanish": "Español",
+    "myAccount": "My Account",
+    "settings": "Settings",
+    "support": "Support",
+    "logout": "Logout",
+    "commandPlaceholder": "Enter a command..."
+  },
+  "ReportFilters": {
+    "apply": "Apply Filters",
+    "filterBy": "Filter by...",
+    "byService": "By Service",
+    "byUser": "By User",
+    "byStatus": "By Status",
+    "pickDate": "Pick a date"
+  },
+  "Stats": {
+    "totalRevenue": "Total Revenue",
+    "newPatients": "New Patients",
+    "sales": "Sales",
+    "quoteConversionRate": "Quote Conversion Rate",
+    "fromLastMonth": "from last month"
+  },
+  "SalesSummaryChart": {
+    "title": "Sales Summary",
+    "description": "Showing total revenue for the selected period.",
+    "trendingUp": "Trending up by {trend}% this month",
+    "trendingDown": "Trending down by {trend}% this month",
+    "last12Months": "Showing data for the last 12 months",
+    "januaryToDecember": "January - December {year}",
+    "dateRange": "From {from} to {to}",
+    "from": "From {from}"
+  },
+  "SalesByServiceChart": {
+    "title": "Sales by Service",
+    "description": "Top performing services by percentage",
+    "noData": "No sales data available for this period."
+  },
+  "InvoiceStatusChart": {
+    "title": "Invoice Status",
+    "description": "Current state of all invoices",
+    "totalInvoices": "Total Invoices: {total}"
+  },
+  "KpiRow": {
+    "avgBilling": "Average Billing per Patient",
+    "vsPreviousPeriod": "vs previous period",
+    "newVsRecurring": "New vs. Recurring Patients",
+    "activePatients": "Active Patients",
+    "new": "New",
+    "recurrent": "Recurrent",
+    "attendanceRate": "Appointment Attendance Rate"
+  },
+  "RecentQuotesTable": {
+    "title": "Recent Quotes",
+    "description": "An overview of the latest quotes.",
+    "filterPlaceholder": "Filter quotes by user name..."
+  },
+  "RecentOrdersTable": {
+    "title": "Recent Orders",
+    "description": "An overview of the latest orders.",
+    "filterPlaceholder": "Filter by order ID..."
+  },
+  "NewUsersTable": {
+    "title": "New Users",
+    "description": "A list of the newest users.",
+    "filterPlaceholder": "Filter by name..."
+  },
+  "AppointmentsPage": {
+    "title": "Appointments",
+    "description": "Manage all appointments.",
+    "newAppointment": "New Appointment",
+    "calendarView": "Calendar View",
+    "listView": "List View",
+    "calendars": "Calendars",
+    "selectAll": "Select All",
+    "appointmentsFor": "Appointments for {date}",
+    "noAppointments": "No appointments for this day.",
+    "today": "Today",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "filterByService": "Filter by service...",
+    "createDialog": {
+      "title": "Create New Appointment",
+      "description": "Fill in the details below to create a new appointment.",
+      "userName": "User Name",
+      "serviceName": "Service Name",
+      "date": "Date",
+      "time": "Time",
+      "save": "Save Appointment"
+    }
+  },
+  "AppointmentsColumns": {
+    "service": "Service",
+    "user": "User",
+    "date": "Date",
+    "time": "Time",
+    "status": "Status",
+    "actions": "Actions",
+    "edit": "Edit Appointment",
+    "cancel": "Cancel Appointment"
+  },
+  "AilmentsPage": {
+    "title": "Ailments",
+    "description": "Manage standardized medical conditions and diseases.",
+    "filterPlaceholder": "Filter by name...",
+    "createDialog": {
+      "title": "Create New Ailment",
+      "description": "Fill in the details below to add a new ailment.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Arterial Hypertension",
+      "category": "Category",
+      "categoryPlaceholder": "e.g., Cardiovascular",
+      "alertLevel": "Alert Level",
+      "alertLevelPlaceholder": "Select a level",
+      "level1": "1 (Normal)",
+      "level2": "2 (Warning)",
+      "level3": "3 (Critical)",
+      "cancel": "Cancel",
+      "save": "Create Ailment"
+    }
+  },
+  "AilmentsColumns": {
+    "id": "ID",
+    "name": "Name",
+    "category": "Category",
+    "alertLevel": "Alert Level",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "UsersPage": {
+    "title": "Users",
+    "description": "Manage all users in the system.",
+    "filterPlaceholder": "Filter users by email...",
+    "detailsFor": "Details for {name}",
+    "close": "Close details",
+    "tabs": {
+      "roles": "Roles",
+      "services": "Services",
+      "quotes": "Quotes",
+      "appointments": "Appointments",
+      "messages": "Messages",
+      "logs": "Logs",
+      "history": "Clinic History"
+    },
+    "createDialog": {
+      "title": "Create New User",
+      "description": "Fill in the details below to add a new user.",
+      "name": "Name",
+      "namePlaceholder": "John Doe",
+      "email": "Email",
+      "emailPlaceholder": "john.doe@example.com",
+      "phone": "Phone",
+      "phonePlaceholder": "123-456-7890",
+      "avatarUrl": "Avatar URL",
+      "avatarUrlPlaceholder": "https://example.com/avatar.png",
+      "isActive": "Is Active",
+      "cancel": "Cancel",
+      "save": "Create User"
+    }
+  },
+  "UserColumns": {
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "status": "Status",
+    "actions": "Actions",
+    "copyId": "Copy user ID",
+    "viewDetails": "View details",
+    "edit": "Edit user",
+    "delete": "Delete user"
+  },
+  "QuoteColumns": {
+    "quoteId": "Quote ID",
+    "total": "Total",
+    "billingStatus": "Billing Status"
+  },
+  "OrderColumns": {
+    "orderId": "Order ID",
+    "createdAt": "Created At"
+  },
+  "General": {
+    "noResults": "No results."
   }
 }
