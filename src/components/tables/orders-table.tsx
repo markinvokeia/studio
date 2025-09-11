@@ -38,6 +38,12 @@ const columns: ColumnDef<Order>[] = [
       <DataTableColumnHeader column={column} title="Order ID" />
     ),
   },
+    {
+    accessorKey: 'user_name',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="User" />
+    ),
+  },
   {
     accessorKey: 'createdAt',
     header: ({ column }) => (
@@ -73,9 +79,11 @@ interface OrdersTableProps {
   onRowSelectionChange?: (selectedRows: Order[]) => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  title?: string;
+  description?: string;
 }
 
-export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing }: OrdersTableProps) {
+export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, title, description }: OrdersTableProps) {
     if (isLoading) {
     return (
       <div className="space-y-4 pt-4">

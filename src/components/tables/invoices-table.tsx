@@ -108,7 +108,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           filterColumnId="id"
           filterPlaceholder="Filter by invoice ID..."
           onRowSelectionChange={onRowSelectionChange}
-          enableSingleRowSelection={onRowSelectionChange ? true : false}
+          enableSingleRowSelection={!!onRowSelectionChange}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
         />

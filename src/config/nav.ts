@@ -24,6 +24,9 @@ import {
   Smile,
   Layers,
   BookHeart,
+  ShoppingCart,
+  Receipt,
+  CreditCard,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -61,6 +64,9 @@ export const navItems: NavItem[] = [
     icon: Wallet,
     items: [
       { title: 'Quotes', href: '/sales/quotes', icon: FileText, isChidren: true },
+      { title: 'Orders', href: '/sales/orders', icon: ShoppingCart, isChidren: true },
+      { title: 'Invoices', href: '/sales/invoices', icon: Receipt, isChidren: true },
+      { title: 'Payments', href: '/sales/payments', icon: CreditCard, isChidren: true },
     ],
   },
    {

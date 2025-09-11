@@ -60,6 +60,7 @@ export type QuoteItem = {
 export type Order = {
   id: string;
   user_id: string;
+  user_name?: string;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   createdAt: string;
 };
