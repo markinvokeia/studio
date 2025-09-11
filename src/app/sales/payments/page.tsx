@@ -21,6 +21,7 @@ async function getPayments(): Promise<Payment[]> {
             id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
             order_id: apiPayment.order_id,
             invoice_id: apiPayment.invoice_id,
+            quote_id: apiPayment.quote_id,
             user_name: apiPayment.user_name || 'N/A',
             amount: apiPayment.amount || 0,
             method: apiPayment.method || 'credit_card',

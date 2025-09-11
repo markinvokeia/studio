@@ -45,7 +45,7 @@ export type Quote = {
   user_name?: string;
   userEmail?: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 };
 
 export type QuoteItem = {
@@ -106,6 +106,7 @@ export type Payment = {
   id: string;
   order_id: string;
   invoice_id: string;
+  quote_id: string;
   user_name: string;
   amount: number;
   method: 'credit_card' | 'bank_transfer' | 'cash';

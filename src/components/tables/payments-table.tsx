@@ -17,6 +17,12 @@ const columns: ColumnDef<Payment>[] = [
     ),
   },
   {
+    accessorKey: 'quote_id',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Quote ID" />
+    ),
+  },
+  {
     accessorKey: 'order_id',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Order ID" />
