@@ -25,7 +25,7 @@ export const roleColumns: ColumnDef<Role>[] = [
         <RadioGroup
           value={isSelected ? row.id : ''}
           onValueChange={() => {
-            table.toggleAllRowsSelected(false);
+            table.toggleAllPageRowsSelected(false);
             row.toggleSelected(true);
           }}
         >
