@@ -201,6 +201,6 @@
     "delete": "Eliminar usuario"
   },
   "General": {
-    "noResults": "No hay resultados."
+    "noResults": "No se encontraron resultados."
   }
 }
