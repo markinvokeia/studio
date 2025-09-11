@@ -22,7 +22,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTable } from '@/components/ui/data-table';
-import { appointmentColumns } from './columns';
+import { AppointmentColumnsWrapper } from './columns';
 import { cn } from '@/lib/utils';
 import { SortingState } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -113,6 +113,7 @@ async function getCalendars(): Promise<CalendarType[]> {
 
 export default function AppointmentsPage() {
   const t = useTranslations('AppointmentsPage');
+  const appointmentColumns = AppointmentColumnsWrapper();
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
   const [selectedCalendarIds, setSelectedCalendarIds] = React.useState<string[]>([]);

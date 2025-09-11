@@ -42,67 +42,67 @@
     "logout": "Logout",
     "commandPlaceholder": "Enter a command..."
   },
-  "Dashboard": {
-    "title": "Dashboard",
-    "filters": {
-      "apply": "Apply Filters",
-      "filterBy": "Filter by...",
-      "byService": "By Service",
-      "byUser": "By User",
-      "byStatus": "By Status",
-      "pickDate": "Pick a date"
-    },
-    "stats": {
-      "totalRevenue": "Total Revenue",
-      "newPatients": "New Patients",
-      "sales": "Sales",
-      "quoteConversionRate": "Quote Conversion Rate",
-      "fromLastMonth": "from last month"
-    },
-    "salesSummary": {
-      "title": "Sales Summary",
-      "description": "Showing total revenue for the selected period.",
-      "trendingUp": "Trending up by {trend}% this month",
-      "trendingDown": "Trending down by {trend}% this month",
-      "last12Months": "Showing data for the last 12 months",
-      "januaryToDecember": "January - December {year}",
-      "dateRange": "From {from} to {to}",
-      "from": "From {from}"
-    },
-    "salesByService": {
-      "title": "Sales by Service",
-      "description": "Top performing services by percentage",
-      "noData": "No sales data available for this period."
-    },
-    "invoiceStatus": {
-      "title": "Invoice Status",
-      "description": "Current state of all invoices",
-      "totalInvoices": "Total Invoices: {total}"
-    },
-    "kpi": {
-      "avgBilling": "Average Billing per Patient",
-      "vsPreviousPeriod": "vs previous period",
-      "newVsRecurring": "New vs. Recurring Patients",
-      "activePatients": "Active Patients",
-      "new": "New",
-      "recurrent": "Recurrent",
-      "attendanceRate": "Appointment Attendance Rate"
-    },
-    "recentQuotes": {
-      "title": "Recent Quotes",
-      "description": "An overview of the latest quotes.",
-      "filterPlaceholder": "Filter quotes by user name..."
-    },
-    "recentOrders": {
-      "title": "Recent Orders",
-      "description": "An overview of the latest orders.",
-      "filterPlaceholder": "Filter by order ID..."
-    },
-    "newUsers": {
-      "title": "New Users",
-      "description": "A list of the newest users.",
-      "filterPlaceholder": "Filter by name..."
-    }
+  "DashboardPage": {
+    "title": "Dashboard"
+  },
+  "ReportFilters": {
+    "apply": "Apply Filters",
+    "filterBy": "Filter by...",
+    "byService": "By Service",
+    "byUser": "By User",
+    "byStatus": "By Status",
+    "pickDate": "Pick a date"
+  },
+  "Stats": {
+    "totalRevenue": "Total Revenue",
+    "newPatients": "New Patients",
+    "sales": "Sales",
+    "quoteConversionRate": "Quote Conversion Rate",
+    "fromLastMonth": "from last month"
+  },
+  "SalesSummaryChart": {
+    "title": "Sales Summary",
+    "description": "Showing total revenue for the selected period.",
+    "trendingUp": "Trending up by {trend}% this month",
+    "trendingDown": "Trending down by {trend}% this month",
+    "last12Months": "Showing data for the last 12 months",
+    "januaryToDecember": "January - December {year}",
+    "dateRange": "From {from} to {to}",
+    "from": "From {from}"
+  },
+  "SalesByServiceChart": {
+    "title": "Sales by Service",
+    "description": "Top performing services by percentage",
+    "noData": "No sales data available for this period."
+  },
+  "InvoiceStatusChart": {
+    "title": "Invoice Status",
+    "description": "Current state of all invoices",
+    "totalInvoices": "Total Invoices: {total}"
+  },
+  "KpiRow": {
+    "avgBilling": "Average Billing per Patient",
+    "vsPreviousPeriod": "vs previous period",
+    "newVsRecurring": "New vs. Recurring Patients",
+    "activePatients": "Active Patients",
+    "new": "New",
+    "recurrent": "Recurrent",
+    "attendanceRate": "Appointment Attendance Rate"
+  },
+  "RecentQuotesTable": {
+    "title": "Recent Quotes",
+    "description": "An overview of the latest quotes.",
+    "filterPlaceholder": "Filter quotes by user name..."
+  },
+  "RecentOrdersTable": {
+    "title": "Recent Orders",
+    "description": "An overview of the latest orders.",
+    "filterPlaceholder": "Filter by order ID..."
+  },
+  "NewUsersTable": {
+    "title": "New Users",
+    "description": "A list of the newest users.",
+    "filterPlaceholder": "Filter by name..."
   },
   "AppointmentsPage": {
     "title": "Appointments",

@@ -62,22 +62,22 @@ interface NewUsersTableProps {
 }
 
 export function NewUsersTable({ users, onRefresh, isRefreshing }: NewUsersTableProps) {
-  const tDashboard = useTranslations('Dashboard.newUsers');
+  const t = useTranslations('NewUsersTable');
   const tColumns = useTranslations('UserColumns');
   const columns = React.useMemo(() => getColumns(tColumns), [tColumns]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{tDashboard('title')}</CardTitle>
-        <CardDescription>{tDashboard('description')}</CardDescription>
+        <CardTitle>{t('title')}</CardTitle>
+        <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <DataTable
           columns={columns}
           data={users}
           filterColumnId="name"
-          filterPlaceholder={tDashboard('filterPlaceholder')}
+          filterPlaceholder={t('filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
         />

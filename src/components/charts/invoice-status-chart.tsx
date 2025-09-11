@@ -56,7 +56,7 @@ interface InvoiceStatusChartProps {
 }
 
 export function InvoiceStatusChart({ chartData, isLoading }: InvoiceStatusChartProps) {
-  const t = useTranslations('Dashboard.invoiceStatus');
+  const t = useTranslations('InvoiceStatusChart');
   const totalValue = React.useMemo(() => {
     return chartData.reduce((acc, curr) => acc + curr.value, 0);
   }, [chartData]);

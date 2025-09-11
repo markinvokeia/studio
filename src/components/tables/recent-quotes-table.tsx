@@ -28,7 +28,7 @@ import { MoreHorizontal } from 'lucide-react';
 import { DocumentTextIcon } from '../icons/document-text-icon';
 import { useTranslations } from 'next-intl';
 
-const getColumns = (t: (key: string) => string, tQuote: (key: string) => string): ColumnDef<Quote>[] => [
+const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
   {
     id: 'select',
     header: () => null,
@@ -53,20 +53,20 @@ const getColumns = (t: (key: string) => string, tQuote: (key: string) => string)
   {
     accessorKey: 'id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={tQuote('quoteId')} />
+      <DataTableColumnHeader column={column} title={t('QuoteColumns.quoteId')} />
     ),
     size: 50,
   },
   {
     accessorKey: 'user_name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('name')} />
+      <DataTableColumnHeader column={column} title={t('UserColumns.name')} />
     ),
   },
   {
     accessorKey: 'total',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={tQuote('total')} />
+      <DataTableColumnHeader column={column} title={t('QuoteColumns.total')} />
     ),
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue('total'));
@@ -80,7 +80,7 @@ const getColumns = (t: (key: string) => string, tQuote: (key: string) => string)
   {
     accessorKey: 'status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('status')} />
+      <DataTableColumnHeader column={column} title={t('UserColumns.status')} />
     ),
     cell: ({ row }) => {
       const status = row.getValue('status') as string;
@@ -123,7 +123,7 @@ const getColumns = (t: (key: string) => string, tQuote: (key: string) => string)
   {
     accessorKey: 'billing_status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={tQuote('billingStatus')} />
+      <DataTableColumnHeader column={column} title={t('QuoteColumns.billingStatus')} />
     ),
      cell: ({ row }) => {
       const status = row.getValue('billing_status') as string;
@@ -143,6 +143,7 @@ const getColumns = (t: (key: string) => string, tQuote: (key: string) => string)
   {
     id: 'actions',
     cell: ({ row }) => {
+      const t = useTranslations('UserColumns');
       const quote = row.original;
       return (
         <DropdownMenu>
@@ -174,27 +175,32 @@ interface RecentQuotesTableProps {
 }
 
 export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRefresh, isRefreshing }: RecentQuotesTableProps) {
-  const tDashboard = useTranslations('Dashboard.recentQuotes');
+  const t = useTranslations('RecentQuotesTable');
   const tUserColumns = useTranslations('UserColumns');
   const tQuoteColumns = useTranslations('QuoteColumns');
-  const tNav = useTranslations();
+  const tNav = useTranslations('Navigation');
   
-  const columns = React.useMemo(() => getColumns(tUserColumns, tQuoteColumns), [tUserColumns, tQuoteColumns]);
+  const columns = React.useMemo(() => getColumns((key) => {
+    if (key.startsWith('UserColumns.')) return tUserColumns(key.replace('UserColumns.', '') as any);
+    if (key.startsWith('QuoteColumns.')) return tQuoteColumns(key.replace('QuoteColumns.', '') as any);
+    if (key.startsWith('Navigation.')) return tNav(key.replace('Navigation.', '') as any);
+    return key;
+  }), [tUserColumns, tQuoteColumns, tNav]);
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
             <DocumentTextIcon className="h-6 w-6 text-amber-500" />
-            <CardTitle>{tDashboard('title')}</CardTitle>
+            <CardTitle>{t('title')}</CardTitle>
         </div>
-        <CardDescription>{tDashboard('description')}</CardDescription>
+        <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <DataTable
           columns={columns}
           data={quotes}
           filterColumnId="user_name"
-          filterPlaceholder={tDashboard('filterPlaceholder')}
+          filterPlaceholder={t('filterPlaceholder')}
           onRowSelectionChange={onRowSelectionChange}
           enableSingleRowSelection={onRowSelectionChange ? true : false}
           onCreate={onCreate}

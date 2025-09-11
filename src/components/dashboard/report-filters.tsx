@@ -29,7 +29,7 @@ interface ReportFiltersProps {
 }
 
 export function ReportFilters({ date, setDate }: ReportFiltersProps) {
-  const t = useTranslations('Dashboard.filters');
+  const t = useTranslations('ReportFilters');
   return (
     <div className="flex items-center space-x-2">
       <Popover>

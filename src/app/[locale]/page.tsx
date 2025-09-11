@@ -386,9 +386,8 @@ async function getUsers(): Promise<User[]> {
 }
 
 export default function DashboardPage() {
-  const t = useTranslations('Dashboard');
-  const tStats = useTranslations('Dashboard.stats');
-  const tKpi = useTranslations('Dashboard.kpi');
+  const tStats = useTranslations('Stats');
+  const tKpi = useTranslations('KpiRow');
 
   const [stats, setStats] = React.useState<Stat[]>([]);
   const [salesTrend, setSalesTrend] = React.useState(0);

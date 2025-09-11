@@ -42,67 +42,67 @@
     "logout": "Cerrar Sesión",
     "commandPlaceholder": "Introduce un comando..."
   },
-  "Dashboard": {
-    "title": "Dashboard",
-    "filters": {
-      "apply": "Aplicar Filtros",
-      "filterBy": "Filtrar por...",
-      "byService": "Por Servicio",
-      "byUser": "Por Usuario",
-      "byStatus": "Por Estado",
-      "pickDate": "Selecciona una fecha"
-    },
-    "stats": {
-      "totalRevenue": "Ingresos Totales",
-      "newPatients": "Nuevos Pacientes",
-      "sales": "Ventas",
-      "quoteConversionRate": "Tasa de Conversión",
-      "fromLastMonth": "desde el mes pasado"
-    },
-    "salesSummary": {
-      "title": "Resumen de Ventas",
-      "description": "Mostrando los ingresos totales para el período seleccionado.",
-      "trendingUp": "Tendencia al alza de {trend}% este mes",
-      "trendingDown": "Tendencia a la baja de {trend}% este mes",
-      "last12Months": "Mostrando datos de los últimos 12 meses",
-      "januaryToDecember": "Enero - Diciembre {year}",
-      "dateRange": "Desde {from} hasta {to}",
-      "from": "Desde {from}"
-    },
-    "salesByService": {
-      "title": "Ventas por Servicio",
-      "description": "Servicios con mejor rendimiento por porcentaje",
-      "noData": "No hay datos de ventas para este período."
-    },
-    "invoiceStatus": {
-      "title": "Estado de Facturas",
-      "description": "Estado actual de todas las facturas",
-      "totalInvoices": "Total de Facturas: {total}"
-    },
-    "kpi": {
-      "avgBilling": "Facturación Promedio por Paciente",
-      "vsPreviousPeriod": "vs período anterior",
-      "newVsRecurring": "Pacientes Nuevos vs. Recurrentes",
-      "activePatients": "Pacientes activos",
-      "new": "Nuevos",
-      "recurrent": "Recurrentes",
-      "attendanceRate": "Tasa de Asistencia a Citas"
-    },
-    "recentQuotes": {
-      "title": "Cotizaciones Recientes",
-      "description": "Un resumen de las últimas cotizaciones.",
-      "filterPlaceholder": "Filtrar cotizaciones por nombre de usuario..."
-    },
-    "recentOrders": {
-      "title": "Pedidos Recientes",
-      "description": "Un resumen de los últimos pedidos.",
-      "filterPlaceholder": "Filtrar por ID de pedido..."
-    },
-    "newUsers": {
-      "title": "Nuevos Usuarios",
-      "description": "Una lista de los usuarios más nuevos.",
-      "filterPlaceholder": "Filtrar por nombre..."
-    }
+  "DashboardPage": {
+    "title": "Dashboard"
+  },
+  "ReportFilters": {
+    "apply": "Aplicar Filtros",
+    "filterBy": "Filtrar por...",
+    "byService": "Por Servicio",
+    "byUser": "Por Usuario",
+    "byStatus": "Por Estado",
+    "pickDate": "Selecciona una fecha"
+  },
+  "Stats": {
+    "totalRevenue": "Ingresos Totales",
+    "newPatients": "Nuevos Pacientes",
+    "sales": "Ventas",
+    "quoteConversionRate": "Tasa de Conversión",
+    "fromLastMonth": "desde el mes pasado"
+  },
+  "SalesSummaryChart": {
+    "title": "Resumen de Ventas",
+    "description": "Mostrando los ingresos totales para el período seleccionado.",
+    "trendingUp": "Tendencia al alza de {trend}% este mes",
+    "trendingDown": "Tendencia a la baja de {trend}% este mes",
+    "last12Months": "Mostrando datos de los últimos 12 meses",
+    "januaryToDecember": "Enero - Diciembre {year}",
+    "dateRange": "Desde {from} hasta {to}",
+    "from": "Desde {from}"
+  },
+  "SalesByServiceChart": {
+    "title": "Ventas por Servicio",
+    "description": "Servicios con mejor rendimiento por porcentaje",
+    "noData": "No hay datos de ventas para este período."
+  },
+  "InvoiceStatusChart": {
+    "title": "Estado de Facturas",
+    "description": "Estado actual de todas las facturas",
+    "totalInvoices": "Total de Facturas: {total}"
+  },
+  "KpiRow": {
+    "avgBilling": "Facturación Promedio por Paciente",
+    "vsPreviousPeriod": "vs período anterior",
+    "newVsRecurring": "Pacientes Nuevos vs. Recurrentes",
+    "activePatients": "Pacientes activos",
+    "new": "Nuevos",
+    "recurrent": "Recurrentes",
+    "attendanceRate": "Tasa de Asistencia a Citas"
+  },
+  "RecentQuotesTable": {
+    "title": "Cotizaciones Recientes",
+    "description": "Un resumen de las últimas cotizaciones.",
+    "filterPlaceholder": "Filtrar cotizaciones por nombre de usuario..."
+  },
+  "RecentOrdersTable": {
+    "title": "Pedidos Recientes",
+    "description": "Un resumen de los últimos pedidos.",
+    "filterPlaceholder": "Filtrar por ID de pedido..."
+  },
+  "NewUsersTable": {
+    "title": "Nuevos Usuarios",
+    "description": "Una lista de los usuarios más nuevos.",
+    "filterPlaceholder": "Filtrar por nombre..."
   },
   "AppointmentsPage": {
     "title": "Citas",

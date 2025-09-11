@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { userColumns } from './columns';
+import { UserColumnsWrapper } from './columns';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -80,6 +80,7 @@ async function getUsers(pagination: PaginationState): Promise<GetUsersResponse> 
 
 export default function UsersPage() {
   const t = useTranslations('UsersPage');
+  const userColumns = UserColumnsWrapper();
   const [users, setUsers] = React.useState<User[]>([]);
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);

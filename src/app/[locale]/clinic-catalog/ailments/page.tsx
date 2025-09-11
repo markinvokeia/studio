@@ -5,7 +5,7 @@ import * as React from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Ailment } from '@/lib/types';
-import { ailmentsColumns } from './columns';
+import { AilmentsColumnsWrapper } from './columns';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +51,7 @@ async function getAilments(): Promise<Ailment[]> {
 
 export default function AilmentsPage() {
     const t = useTranslations('AilmentsPage');
+    const ailmentsColumns = AilmentsColumnsWrapper();
     const [ailments, setAilments] = React.useState<Ailment[]>([]);
     const [isCreateOpen, setCreateOpen] = React.useState(false);
     const [isRefreshing, setIsRefreshing] = React.useState(false);

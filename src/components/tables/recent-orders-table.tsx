@@ -14,7 +14,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<Order>[] => [
   {
     accessorKey: 'id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('orderId')} />
+      <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />
     ),
   },
    {
@@ -26,7 +26,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<Order>[] => [
   {
     accessorKey: 'createdAt',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('createdAt')} />
+      <DataTableColumnHeader column={column} title={t('OrderColumns.createdAt')} />
     ),
   },
   {
@@ -59,27 +59,27 @@ interface RecentOrdersTableProps {
 }
 
 export function RecentOrdersTable({ orders, onRefresh, isRefreshing }: RecentOrdersTableProps) {
-  const tDashboard = useTranslations('Dashboard.recentOrders');
-  const tColumns = useTranslations('OrderColumns');
+  const t = useTranslations('RecentOrdersTable');
+  const tOrderColumns = useTranslations('OrderColumns');
   const tUserColumns = useTranslations('UserColumns');
 
   const columns = React.useMemo(() => getColumns((key) => {
     if (key.startsWith('UserColumns.')) return tUserColumns(key.replace('UserColumns.', '') as any);
-    return tColumns(key as any);
-  }), [tColumns, tUserColumns]);
+    return tOrderColumns(key.replace('OrderColumns.', '') as any);
+  }), [tOrderColumns, tUserColumns]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{tDashboard('title')}</CardTitle>
-        <CardDescription>{tDashboard('description')}</CardDescription>
+        <CardTitle>{t('title')}</CardTitle>
+        <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <DataTable
           columns={columns}
           data={orders}
           filterColumnId="id"
-          filterPlaceholder={tDashboard('filterPlaceholder')}
+          filterPlaceholder={t('filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
         />

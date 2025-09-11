@@ -20,7 +20,7 @@ interface SalesByServiceChartProps {
 }
 
 export function SalesByServiceChart({ chartData, isLoading }: SalesByServiceChartProps) {
-  const t = useTranslations('Dashboard.salesByService');
+  const t = useTranslations('SalesByServiceChart');
   if (isLoading) {
     return (
         <Card className='lg:col-span-1'>
