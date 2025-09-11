@@ -46,6 +46,7 @@
     "title": "Dashboard",
     "filters": {
       "apply": "Aplicar Filtros",
+      "filterBy": "Filtrar por...",
       "byService": "Por Servicio",
       "byUser": "Por Usuario",
       "byStatus": "Por Estado",
@@ -62,11 +63,16 @@
       "title": "Resumen de Ventas",
       "description": "Mostrando los ingresos totales para el período seleccionado.",
       "trendingUp": "Tendencia al alza de {trend}% este mes",
-      "trendingDown": "Tendencia a la baja de {trend}% este mes"
+      "trendingDown": "Tendencia a la baja de {trend}% este mes",
+      "last12Months": "Mostrando datos de los últimos 12 meses",
+      "januaryToDecember": "Enero - Diciembre {year}",
+      "dateRange": "Desde {from} hasta {to}",
+      "from": "Desde {from}"
     },
     "salesByService": {
       "title": "Ventas por Servicio",
-      "description": "Servicios con mejor rendimiento por porcentaje"
+      "description": "Servicios con mejor rendimiento por porcentaje",
+      "noData": "No hay datos de ventas para este período."
     },
     "invoiceStatus": {
       "title": "Estado de Facturas",
@@ -84,15 +90,18 @@
     },
     "recentQuotes": {
       "title": "Cotizaciones Recientes",
-      "description": "Un resumen de las últimas cotizaciones."
+      "description": "Un resumen de las últimas cotizaciones.",
+      "filterPlaceholder": "Filtrar cotizaciones por nombre de usuario..."
     },
     "recentOrders": {
       "title": "Pedidos Recientes",
-      "description": "Un resumen de los últimos pedidos."
+      "description": "Un resumen de los últimos pedidos.",
+      "filterPlaceholder": "Filtrar por ID de pedido..."
     },
     "newUsers": {
       "title": "Nuevos Usuarios",
-      "description": "Una lista de los usuarios más nuevos."
+      "description": "Una lista de los usuarios más nuevos.",
+      "filterPlaceholder": "Filtrar por nombre..."
     }
   },
   "AppointmentsPage": {
@@ -199,6 +208,15 @@
     "viewDetails": "Ver detalles",
     "edit": "Editar usuario",
     "delete": "Eliminar usuario"
+  },
+  "QuoteColumns": {
+    "quoteId": "ID Cotización",
+    "total": "Total",
+    "billingStatus": "Estado Facturación"
+  },
+  "OrderColumns": {
+    "orderId": "ID Pedido",
+    "createdAt": "Fecha Creación"
   },
   "General": {
     "noResults": "No se encontraron resultados."

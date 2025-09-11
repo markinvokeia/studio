@@ -14,13 +14,19 @@ const getColumns = (t: (key: string) => string): ColumnDef<Order>[] => [
   {
     accessorKey: 'id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Order ID" />
+      <DataTableColumnHeader column={column} title={t('orderId')} />
+    ),
+  },
+   {
+    accessorKey: 'user_name',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('UserColumns.name')} />
     ),
   },
   {
     accessorKey: 'createdAt',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created At" />
+      <DataTableColumnHeader column={column} title={t('createdAt')} />
     ),
   },
   {
@@ -54,8 +60,14 @@ interface RecentOrdersTableProps {
 
 export function RecentOrdersTable({ orders, onRefresh, isRefreshing }: RecentOrdersTableProps) {
   const tDashboard = useTranslations('Dashboard.recentOrders');
-  const t = useTranslations();
-  const columns = React.useMemo(() => getColumns(t), [t]);
+  const tColumns = useTranslations('OrderColumns');
+  const tUserColumns = useTranslations('UserColumns');
+
+  const columns = React.useMemo(() => getColumns((key) => {
+    if (key.startsWith('UserColumns.')) return tUserColumns(key.replace('UserColumns.', '') as any);
+    return tColumns(key as any);
+  }), [tColumns, tUserColumns]);
+
   return (
     <Card>
       <CardHeader>
@@ -67,7 +79,7 @@ export function RecentOrdersTable({ orders, onRefresh, isRefreshing }: RecentOrd
           columns={columns}
           data={orders}
           filterColumnId="id"
-          filterPlaceholder="Filter by order ID..."
+          filterPlaceholder={tDashboard('filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
         />

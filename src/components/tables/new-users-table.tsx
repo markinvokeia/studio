@@ -77,7 +77,7 @@ export function NewUsersTable({ users, onRefresh, isRefreshing }: NewUsersTableP
           columns={columns}
           data={users}
           filterColumnId="name"
-          filterPlaceholder="Filter by name..."
+          filterPlaceholder={tDashboard('filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
         />

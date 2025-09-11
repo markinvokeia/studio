@@ -46,6 +46,7 @@
     "title": "Dashboard",
     "filters": {
       "apply": "Apply Filters",
+      "filterBy": "Filter by...",
       "byService": "By Service",
       "byUser": "By User",
       "byStatus": "By Status",
@@ -62,11 +63,16 @@
       "title": "Sales Summary",
       "description": "Showing total revenue for the selected period.",
       "trendingUp": "Trending up by {trend}% this month",
-      "trendingDown": "Trending down by {trend}% this month"
+      "trendingDown": "Trending down by {trend}% this month",
+      "last12Months": "Showing data for the last 12 months",
+      "januaryToDecember": "January - December {year}",
+      "dateRange": "From {from} to {to}",
+      "from": "From {from}"
     },
     "salesByService": {
       "title": "Sales by Service",
-      "description": "Top performing services by percentage"
+      "description": "Top performing services by percentage",
+      "noData": "No sales data available for this period."
     },
     "invoiceStatus": {
       "title": "Invoice Status",
@@ -84,15 +90,18 @@
     },
     "recentQuotes": {
       "title": "Recent Quotes",
-      "description": "An overview of the latest quotes."
+      "description": "An overview of the latest quotes.",
+      "filterPlaceholder": "Filter quotes by user name..."
     },
     "recentOrders": {
       "title": "Recent Orders",
-      "description": "An overview of the latest orders."
+      "description": "An overview of the latest orders.",
+      "filterPlaceholder": "Filter by order ID..."
     },
     "newUsers": {
       "title": "New Users",
-      "description": "A list of the newest users."
+      "description": "A list of the newest users.",
+      "filterPlaceholder": "Filter by name..."
     }
   },
   "AppointmentsPage": {
@@ -199,6 +208,15 @@
     "viewDetails": "View details",
     "edit": "Edit user",
     "delete": "Delete user"
+  },
+  "QuoteColumns": {
+    "quoteId": "Quote ID",
+    "total": "Total",
+    "billingStatus": "Billing Status"
+  },
+  "OrderColumns": {
+    "orderId": "Order ID",
+    "createdAt": "Created At"
   },
   "General": {
     "noResults": "No results."

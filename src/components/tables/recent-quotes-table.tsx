@@ -28,7 +28,7 @@ import { MoreHorizontal } from 'lucide-react';
 import { DocumentTextIcon } from '../icons/document-text-icon';
 import { useTranslations } from 'next-intl';
 
-const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
+const getColumns = (t: (key: string) => string, tQuote: (key: string) => string): ColumnDef<Quote>[] => [
   {
     id: 'select',
     header: () => null,
@@ -53,20 +53,20 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
   {
     accessorKey: 'id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Quote ID" />
+      <DataTableColumnHeader column={column} title={tQuote('quoteId')} />
     ),
     size: 50,
   },
   {
     accessorKey: 'user_name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('UserColumns.name')} />
+      <DataTableColumnHeader column={column} title={t('name')} />
     ),
   },
   {
     accessorKey: 'total',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Total" />
+      <DataTableColumnHeader column={column} title={tQuote('total')} />
     ),
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue('total'));
@@ -80,7 +80,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
   {
     accessorKey: 'status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('UserColumns.status')} />
+      <DataTableColumnHeader column={column} title={t('status')} />
     ),
     cell: ({ row }) => {
       const status = row.getValue('status') as string;
@@ -123,7 +123,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
   {
     accessorKey: 'billing_status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('Navigation.SalesAndBilling')} />
+      <DataTableColumnHeader column={column} title={tQuote('billingStatus')} />
     ),
      cell: ({ row }) => {
       const status = row.getValue('billing_status') as string;
@@ -153,10 +153,10 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{t('UserColumns.actions')}</DropdownMenuLabel>
-            <DropdownMenuItem>{t('UserColumns.viewDetails')}</DropdownMenuItem>
-            <DropdownMenuItem>{t('UserColumns.edit')}</DropdownMenuItem>
-            <DropdownMenuItem>{t('UserColumns.delete')}</DropdownMenuItem>
+            <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
+            <DropdownMenuItem>{t('viewDetails')}</DropdownMenuItem>
+            <DropdownMenuItem>{t('edit')}</DropdownMenuItem>
+            <DropdownMenuItem>{t('delete')}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -175,8 +175,11 @@ interface RecentQuotesTableProps {
 
 export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRefresh, isRefreshing }: RecentQuotesTableProps) {
   const tDashboard = useTranslations('Dashboard.recentQuotes');
-  const t = useTranslations();
-  const columns = React.useMemo(() => getColumns(t), [t]);
+  const tUserColumns = useTranslations('UserColumns');
+  const tQuoteColumns = useTranslations('QuoteColumns');
+  const tNav = useTranslations();
+  
+  const columns = React.useMemo(() => getColumns(tUserColumns, tQuoteColumns), [tUserColumns, tQuoteColumns]);
   return (
     <Card>
       <CardHeader>
@@ -191,7 +194,7 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
           columns={columns}
           data={quotes}
           filterColumnId="user_name"
-          filterPlaceholder="Filter quotes by user name..."
+          filterPlaceholder={tDashboard('filterPlaceholder')}
           onRowSelectionChange={onRowSelectionChange}
           enableSingleRowSelection={onRowSelectionChange ? true : false}
           onCreate={onCreate}

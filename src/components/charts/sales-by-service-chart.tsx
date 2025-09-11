@@ -60,7 +60,7 @@ export function SalesByServiceChart({ chartData, isLoading }: SalesByServiceChar
             </div>
         )) : (
             <div className="flex items-center justify-center h-full text-muted-foreground">
-                No sales data available for this period.
+                {t('noData')}
             </div>
         )}
       </CardContent>

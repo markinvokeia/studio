@@ -43,7 +43,7 @@ export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }
 
   const formatDateRange = (dateRange: DateRange | undefined) => {
     if (!dateRange || !dateRange.from) {
-      return 'Showing data for the last 12 months';
+      return t('last12Months');
     }
     
     const fromYear = dateRange.from.getFullYear();
@@ -51,12 +51,12 @@ export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }
     if (dateRange.to) {
         const toYear = dateRange.to.getFullYear();
         if (fromYear === toYear) {
-             return `January - December ${fromYear}`;
+             return t('januaryToDecember', { year: fromYear });
         }
-        return `January ${fromYear} - December ${toYear}`;
+        return t('dateRange', { from: format(dateRange.from, 'PPP'), to: format(dateRange.to, 'PPP') });
     }
 
-    return `From ${format(dateRange.from, 'PPP')}`;
+    return t('from', { from: format(dateRange.from, 'PPP') });
   };
 
   const footerDateText = formatDateRange(date);

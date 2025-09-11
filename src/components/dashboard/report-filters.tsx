@@ -70,7 +70,7 @@ export function ReportFilters({ date, setDate }: ReportFiltersProps) {
       </Popover>
       <Select>
         <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Filter by..." />
+          <SelectValue placeholder={t('filterBy')} />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="service">{t('byService')}</SelectItem>
