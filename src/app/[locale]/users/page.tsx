@@ -80,6 +80,7 @@ async function getUsers(pagination: PaginationState): Promise<GetUsersResponse> 
 
 export default function UsersPage() {
   const t = useTranslations('UsersPage');
+  console.log('Translations for UsersPage loaded.');
   const userColumns = UserColumnsWrapper();
   const [users, setUsers] = React.useState<User[]>([]);
   const [userCount, setUserCount] = React.useState(0);

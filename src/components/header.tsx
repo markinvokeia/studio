@@ -45,6 +45,7 @@ export function Header() {
   const { setTheme } = useTheme();
   const { isMinimized, toggleSidebar } = useSidebar();
   const t = useTranslations('Header');
+  console.log('Translations for Header loaded.');
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -57,6 +58,7 @@ export function Header() {
   
   const breadcrumbSegments = pathname.split('/').filter(Boolean).slice(1);
   const tNav = useTranslations('Navigation');
+  console.log('Translations for Navigation loaded.');
   
   const navItemMap: { [key: string]: string } = {};
   navItems.forEach(item => {

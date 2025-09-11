@@ -74,6 +74,7 @@ export function DataTable<TData, TValue>({
   onSortingChange: setControlledSorting,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
+  console.log('Translations for General loaded.');
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
   const [internalColumnVisibility, setInternalColumnVisibility] =
     React.useState<VisibilityState>({});

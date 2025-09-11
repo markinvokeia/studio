@@ -113,6 +113,7 @@ async function getCalendars(): Promise<CalendarType[]> {
 
 export default function AppointmentsPage() {
   const t = useTranslations('AppointmentsPage');
+  console.log('Translations for AppointmentsPage loaded.');
   const appointmentColumns = AppointmentColumnsWrapper();
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);

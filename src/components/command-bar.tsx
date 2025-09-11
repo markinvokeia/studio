@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ export function CommandBar() {
   const [command, setCommand] = useState('');
   const { toast } = useToast();
   const t = useTranslations('Header');
+  console.log('Translations for Header loaded.');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

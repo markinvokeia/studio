@@ -39,6 +39,7 @@ interface SalesSummaryChartProps {
 
 export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }: SalesSummaryChartProps) {
   const t = useTranslations('SalesSummaryChart');
+  console.log('Translations for SalesSummaryChart loaded.');
   const isTrendingUp = salesTrend >= 0;
 
   const formatDateRange = (dateRange: DateRange | undefined) => {

@@ -33,6 +33,7 @@ interface NavProps {
 export function Nav({ items, isMinimized }: NavProps) {
   const pathname = usePathname();
   const t = useTranslations('Navigation');
+  console.log('Translations for Navigation loaded.');
   const locale = useLocale();
 
   const getParentPath = (path: string) => {

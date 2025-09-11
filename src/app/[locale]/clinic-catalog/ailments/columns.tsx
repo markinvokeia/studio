@@ -18,6 +18,7 @@ import { useTranslations } from 'next-intl';
 
 export const AilmentsColumnsWrapper = () => {
     const t = useTranslations('AilmentsColumns');
+    console.log('Translations for AilmentsColumns loaded.');
     const columns: ColumnDef<Ailment>[] = [
         { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title={t('id')} /> },
         { accessorKey: 'nombre', header: ({column}) => <DataTableColumnHeader column={column} title={t('name')} /> },

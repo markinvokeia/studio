@@ -21,6 +21,7 @@ interface SalesByServiceChartProps {
 
 export function SalesByServiceChart({ chartData, isLoading }: SalesByServiceChartProps) {
   const t = useTranslations('SalesByServiceChart');
+  console.log('Translations for SalesByServiceChart loaded.');
   if (isLoading) {
     return (
         <Card className='lg:col-span-1'>

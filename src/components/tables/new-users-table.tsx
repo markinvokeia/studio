@@ -63,7 +63,9 @@ interface NewUsersTableProps {
 
 export function NewUsersTable({ users, onRefresh, isRefreshing }: NewUsersTableProps) {
   const t = useTranslations('NewUsersTable');
+  console.log('Translations for NewUsersTable loaded.');
   const tColumns = useTranslations('UserColumns');
+  console.log('Translations for UserColumns loaded.');
   const columns = React.useMemo(() => getColumns(tColumns), [tColumns]);
 
   return (

@@ -51,6 +51,7 @@ async function getAilments(): Promise<Ailment[]> {
 
 export default function AilmentsPage() {
     const t = useTranslations('AilmentsPage');
+    console.log('Translations for AilmentsPage loaded.');
     const ailmentsColumns = AilmentsColumnsWrapper();
     const [ailments, setAilments] = React.useState<Ailment[]>([]);
     const [isCreateOpen, setCreateOpen] = React.useState(false);

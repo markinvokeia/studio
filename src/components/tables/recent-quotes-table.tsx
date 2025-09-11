@@ -147,6 +147,7 @@ const getColumns = (
     id: 'actions',
     cell: ({ row }) => {
       const t = useTranslations('UserColumns');
+      console.log('Translations for UserColumns loaded in cell.');
       const quote = row.original;
       return (
         <DropdownMenu>
@@ -179,9 +180,13 @@ interface RecentQuotesTableProps {
 
 export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRefresh, isRefreshing }: RecentQuotesTableProps) {
   const t = useTranslations('RecentQuotesTable');
+  console.log('Translations for RecentQuotesTable loaded.');
   const tUserColumns = useTranslations('UserColumns');
+  console.log('Translations for UserColumns loaded.');
   const tQuoteColumns = useTranslations('QuoteColumns');
+  console.log('Translations for QuoteColumns loaded.');
   const tNav = useTranslations('Navigation');
+  console.log('Translations for Navigation loaded.');
   const columns = React.useMemo(() => getColumns(tUserColumns, tQuoteColumns, tNav), [tUserColumns, tQuoteColumns, tNav]);
   return (
     <Card>

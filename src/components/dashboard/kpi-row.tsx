@@ -44,6 +44,7 @@ interface AverageBillingCardProps {
 }
 export function AverageBillingCard({ data, isLoading }: AverageBillingCardProps) {
     const t = useTranslations('KpiRow');
+    console.log('Translations for KpiRow loaded in AverageBillingCard.');
     if (isLoading || !data) {
         return (
             <Card>
@@ -82,6 +83,7 @@ interface PatientDemographicsCardProps {
 }
 export function PatientDemographicsCard({ data, isLoading }: PatientDemographicsCardProps) {
     const t = useTranslations('KpiRow');
+    console.log('Translations for KpiRow loaded in PatientDemographicsCard.');
     if (isLoading || !data) {
         return (
             <Card>
@@ -141,6 +143,7 @@ interface AppointmentAttendanceCardProps {
 
 export function AppointmentAttendanceCard({ data, isLoading }: AppointmentAttendanceCardProps) {
     const t = useTranslations('KpiRow');
+    console.log('Translations for KpiRow loaded in AppointmentAttendanceCard.');
     if (isLoading || !data) {
          return (
             <Card>

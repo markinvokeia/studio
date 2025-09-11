@@ -68,6 +68,7 @@ export const getAppointmentColumns = (t: (key: string) => string): ColumnDef<App
 
 export function AppointmentColumnsWrapper() {
     const t = useTranslations('AppointmentsColumns');
+    console.log('Translations for AppointmentsColumns loaded.');
     const columns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns(t), [t]);
     return columns;
 }

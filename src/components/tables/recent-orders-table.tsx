@@ -63,8 +63,11 @@ interface RecentOrdersTableProps {
 
 export function RecentOrdersTable({ orders, onRefresh, isRefreshing }: RecentOrdersTableProps) {
   const t = useTranslations('RecentOrdersTable');
+  console.log('Translations for RecentOrdersTable loaded.');
   const tUserColumns = useTranslations('UserColumns');
+  console.log('Translations for UserColumns loaded.');
   const tOrderColumns = useTranslations('OrderColumns');
+  console.log('Translations for OrderColumns loaded.');
   const columns = React.useMemo(() => getColumns(tUserColumns, tOrderColumns), [tUserColumns, tOrderColumns]);
 
   return (
