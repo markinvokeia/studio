@@ -175,32 +175,24 @@ interface RecentQuotesTableProps {
 }
 
 export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRefresh, isRefreshing }: RecentQuotesTableProps) {
-  const t = useTranslations('RecentQuotesTable');
-  const tUserColumns = useTranslations('UserColumns');
-  const tQuoteColumns = useTranslations('QuoteColumns');
-  const tNav = useTranslations('Navigation');
-  
-  const columns = React.useMemo(() => getColumns((key) => {
-    if (key.startsWith('UserColumns.')) return tUserColumns(key.replace('UserColumns.', '') as any);
-    if (key.startsWith('QuoteColumns.')) return tQuoteColumns(key.replace('QuoteColumns.', '') as any);
-    if (key.startsWith('Navigation.')) return tNav(key.replace('Navigation.', '') as any);
-    return key;
-  }), [tUserColumns, tQuoteColumns, tNav]);
+  const t = useTranslations();
+  const tRecentQuotes = useTranslations('RecentQuotesTable');
+  const columns = React.useMemo(() => getColumns(t), [t]);
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
             <DocumentTextIcon className="h-6 w-6 text-amber-500" />
-            <CardTitle>{t('title')}</CardTitle>
+            <CardTitle>{tRecentQuotes('title')}</CardTitle>
         </div>
-        <CardDescription>{t('description')}</CardDescription>
+        <CardDescription>{tRecentQuotes('description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <DataTable
           columns={columns}
           data={quotes}
           filterColumnId="user_name"
-          filterPlaceholder={t('filterPlaceholder')}
+          filterPlaceholder={tRecentQuotes('filterPlaceholder')}
           onRowSelectionChange={onRowSelectionChange}
           enableSingleRowSelection={onRowSelectionChange ? true : false}
           onCreate={onCreate}

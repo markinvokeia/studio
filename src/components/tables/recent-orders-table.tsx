@@ -59,27 +59,22 @@ interface RecentOrdersTableProps {
 }
 
 export function RecentOrdersTable({ orders, onRefresh, isRefreshing }: RecentOrdersTableProps) {
-  const t = useTranslations('RecentOrdersTable');
-  const tOrderColumns = useTranslations('OrderColumns');
-  const tUserColumns = useTranslations('UserColumns');
-
-  const columns = React.useMemo(() => getColumns((key) => {
-    if (key.startsWith('UserColumns.')) return tUserColumns(key.replace('UserColumns.', '') as any);
-    return tOrderColumns(key.replace('OrderColumns.', '') as any);
-  }), [tOrderColumns, tUserColumns]);
+  const t = useTranslations();
+  const tRecentOrders = useTranslations('RecentOrdersTable');
+  const columns = React.useMemo(() => getColumns(t), [t]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('title')}</CardTitle>
-        <CardDescription>{t('description')}</CardDescription>
+        <CardTitle>{tRecentOrders('title')}</CardTitle>
+        <CardDescription>{tRecentOrders('description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <DataTable
           columns={columns}
           data={orders}
           filterColumnId="id"
-          filterPlaceholder={t('filterPlaceholder')}
+          filterPlaceholder={tRecentOrders('filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
         />
