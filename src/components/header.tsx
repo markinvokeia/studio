@@ -139,16 +139,16 @@ export function Header() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => onSelectLocale('en')} disabled={locale === 'en'}>
-                <span className="flex items-center justify-between w-full">
-                    {t('english')}
-                    {locale === 'en' && <Check className="h-4 w-4 ml-2" />}
-                </span>
-            </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => onSelectLocale('es')} disabled={locale === 'es'}>
                  <span className="flex items-center justify-between w-full">
                     {t('spanish')}
                     {locale === 'es' && <Check className="h-4 w-4 ml-2" />}
+                </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onSelectLocale('en')} disabled={locale === 'en'}>
+                <span className="flex items-center justify-between w-full">
+                    {t('english')}
+                    {locale === 'en' && <Check className="h-4 w-4 ml-2" />}
                 </span>
             </DropdownMenuItem>
           </DropdownMenuContent>
