@@ -72,34 +72,6 @@ const columns: ColumnDef<Order>[] = [
     },
   },
   {
-    accessorKey: 'payment_status',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Payment" />,
-    cell: ({ row }) => {
-      const status = row.original.payment_status;
-       if (!status) return null;
-      const variant = {
-        paid: 'success',
-        partial: 'info',
-        unpaid: 'outline',
-      }[status.toLowerCase()] ?? ('default' as any);
-      return <Badge variant={variant} className="capitalize">{status}</Badge>;
-    },
-  },
-  {
-    accessorKey: 'billing_status',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Billing" />,
-    cell: ({ row }) => {
-      const status = row.original.billing_status;
-      if (!status) return null;
-      const variant = {
-        invoiced: 'success',
-        partially_invoiced: 'info',
-        not_invoiced: 'outline',
-      }[status.toLowerCase()] ?? ('default' as any);
-      return <Badge variant={variant} className="capitalize">{status.replace(/_/g, ' ')}</Badge>;
-    },
-  },
-  {
     accessorKey: 'createdAt',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Created At" />
