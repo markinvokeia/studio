@@ -9,10 +9,12 @@ import { cn } from '@/lib/utils';
 import { useSidebar } from '@/hooks/use-sidebar';
 import * as React from 'react';
 import { Skeleton } from './ui/skeleton';
+import { useLocale } from 'next-intl';
 
 export function Sidebar() {
     const { isMinimized } = useSidebar();
     const [isMounted, setIsMounted] = React.useState(false);
+    const locale = useLocale();
 
     React.useEffect(() => {
         setIsMounted(true);
@@ -24,7 +26,7 @@ export function Sidebar() {
         return (
             <aside className="hidden w-64 flex-col border-r bg-gray-900 text-white sm:flex">
                 <div className="flex h-14 items-center border-b border-gray-700 px-4 lg:h-[60px]">
-                     <Link href="/" className="flex items-center gap-2 font-semibold text-white">
+                     <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold text-white">
                         <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={32} height={32} alt="InvokeIA Logo" />
                         <span>InvokeIA</span>
                     </Link>
@@ -51,7 +53,7 @@ export function Sidebar() {
                 "flex h-14 items-center border-b border-gray-700 px-4 lg:h-[60px]",
                 isMinimized && "justify-center"
             )}>
-                <Link href="/" className="flex items-center gap-2 font-semibold text-white">
+                <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold text-white">
                     <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={32} height={32} alt="InvokeIA Logo" />
                     {!isMinimized && <span>InvokeIA</span>}
                 </Link>

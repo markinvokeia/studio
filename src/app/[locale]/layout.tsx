@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import '../globals.css';
@@ -27,27 +28,27 @@ export default function LocaleLayout({
   
   const messages = useMessages();
   return (
-    <NextIntlClientProvider locale={params.locale} messages={messages}>
       <ThemeProvider
         attribute="class"
         defaultTheme="system"
         enableSystem
         disableTransitionOnChange
       >
-      <SidebarProvider>
-        <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr]">
-            <Sidebar />
-            <div className="flex flex-col">
-              <Header />
-              <main className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
-                {children}
-              </main>
+      <NextIntlClientProvider locale={params.locale} messages={messages}>
+        <SidebarProvider>
+            <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr]">
+                <Sidebar />
+                <div className="flex flex-col">
+                <Header />
+                <main className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
+                    {children}
+                </main>
+                </div>
             </div>
-        </div>
-        <Toaster />
-        <FloatingActionsWrapper />
-      </SidebarProvider>
+            <Toaster />
+            <FloatingActionsWrapper />
+        </SidebarProvider>
+      </NextIntlClientProvider>
       </ThemeProvider>
-    </NextIntlClientProvider>
   );
 }

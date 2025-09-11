@@ -68,10 +68,15 @@ export function Header() {
   });
   
   const breadcrumbItems = breadcrumbSegments.map((segment, index) => {
-    const href = '/' + breadcrumbSegments.slice(0, index + 1).join('/');
+    const href = `/${locale}/${breadcrumbSegments.slice(0, index + 1).join('/')}`;
     const isLast = index === breadcrumbSegments.length - 1;
-    const title = navItemMap[`/${segment}`] || segment.charAt(0).toUpperCase() + segment.slice(1);
+    let title = segment.charAt(0).toUpperCase() + segment.slice(1);
     
+    const navKey = `/${segment}`;
+    if (navItemMap[navKey]) {
+        title = navItemMap[navKey];
+    }
+
     return (
       <React.Fragment key={href}>
         <BreadcrumbSeparator />
@@ -99,7 +104,7 @@ export function Header() {
         </SheetTrigger>
         <SheetContent side="left" className="sm:max-w-xs p-0">
            <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-            <Link href="/" className="flex items-center gap-2 font-semibold">
+            <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold">
               <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={24} height={24} alt="InvokeIA Logo" />
               <span className="">InvokeIA</span>
             </Link>
@@ -117,7 +122,7 @@ export function Header() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href="/">Dashboard</Link>
+              <Link href={`/${locale}`}>Dashboard</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           {breadcrumbItems}

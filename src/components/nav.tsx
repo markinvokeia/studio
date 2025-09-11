@@ -23,7 +23,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import type { NavItem } from '@/config/nav';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 interface NavProps {
   items: NavItem[];
@@ -33,6 +33,7 @@ interface NavProps {
 export function Nav({ items, isMinimized }: NavProps) {
   const pathname = usePathname();
   const t = useTranslations('Navigation');
+  const locale = useLocale();
 
   const getParentPath = (path: string) => {
     const parts = path.split('/').filter(Boolean);
@@ -43,28 +44,20 @@ export function Nav({ items, isMinimized }: NavProps) {
   };
 
   const parentPath = getParentPath(pathname);
-
-  const getAccordionDefaultValue = () => {
-    if (isMinimized) return undefined;
-    const activeParent = items.find(
-      (item) =>
-        item.href === parentPath ||
-        (item.items && item.items.some((child) => pathname.includes(child.href)))
-    );
-    return activeParent ? `item-${items.indexOf(activeParent)}` : undefined;
-  };
   
   const renderLink = (item: NavItem) => {
     const title = t(item.title as any);
-    const effectivePathname = pathname.substring(3); // Remove /en or /es
+    const effectivePathname = pathname.substring(3) || '/';
+    const linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
+
     return (
        <Tooltip key={item.href} delayDuration={0}>
         <TooltipTrigger asChild>
             <Link
-              href={item.href}
+              href={linkHref}
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 transition-all',
-                (item.href === '/' && effectivePathname === '') || (item.href !== '/' && effectivePathname.startsWith(item.href))
+                effectivePathname === item.href
                   ? 'bg-gray-700 text-white'
                   : 'text-gray-300 hover:bg-gray-700 hover:text-white',
                 isMinimized && 'justify-center'
@@ -85,7 +78,7 @@ export function Nav({ items, isMinimized }: NavProps) {
 
   const renderAccordion = (item: NavItem, index: number) => {
     const title = t(item.title as any);
-    const effectivePathname = pathname.substring(3); // Remove /en or /es
+    const effectivePathname = pathname.substring(3);
     const isActive = item.items?.some(subItem => effectivePathname.startsWith(subItem.href));
 
     return (
@@ -109,20 +102,23 @@ export function Nav({ items, isMinimized }: NavProps) {
               </AccordionTrigger>
               <AccordionContent className="pl-8 pt-1">
                 <div className="grid gap-1">
-                  {item.items?.map((subItem) => (
-                    <Link
-                      key={subItem.href}
-                      href={subItem.href}
-                      className={cn(
-                        'flex items-center gap-3 rounded-md px-3 py-2 transition-all',
-                        effectivePathname === subItem.href || (subItem.href !== '/' && effectivePathname.startsWith(subItem.href))
-                          ? 'bg-gray-700 text-white'
-                          : 'text-gray-400 hover:text-white'
-                      )}
-                    >
-                      {t(subItem.title as any)}
-                    </Link>
-                  ))}
+                  {item.items?.map((subItem) => {
+                    const linkHref = `/${locale}${subItem.href}`;
+                    return (
+                        <Link
+                        key={subItem.href}
+                        href={linkHref}
+                        className={cn(
+                            'flex items-center gap-3 rounded-md px-3 py-2 transition-all',
+                            effectivePathname === subItem.href || (subItem.href !== '/' && effectivePathname.startsWith(subItem.href))
+                            ? 'bg-gray-700 text-white'
+                            : 'text-gray-400 hover:text-white'
+                        )}
+                        >
+                        {t(subItem.title as any)}
+                        </Link>
+                    )
+                  })}
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -132,7 +128,7 @@ export function Nav({ items, isMinimized }: NavProps) {
   
    const renderDropdown = (item: NavItem, index: number) => {
     const title = t(item.title as any);
-    const effectivePathname = pathname.substring(3); // Remove /en or /es
+    const effectivePathname = pathname.substring(3);
     const isActive = item.items?.some(subItem => effectivePathname.startsWith(subItem.href));
      return (
         <DropdownMenu key={index}>
@@ -151,21 +147,24 @@ export function Nav({ items, isMinimized }: NavProps) {
               <TooltipContent side="right">{title}</TooltipContent>
             </Tooltip>
             <DropdownMenuContent side="right">
-              {item.items?.map((subItem) => (
-                <DropdownMenuItem key={subItem.href} asChild>
-                  <Link
-                    href={subItem.href}
-                    className={cn(
-                      'flex items-center gap-3 rounded-md px-3 py-2 transition-all',
-                       effectivePathname.startsWith(subItem.href)
-                        ? 'bg-muted text-primary'
-                        : 'text-muted-foreground hover:text-primary'
-                    )}
-                  >
-                    {t(subItem.title as any)}
-                  </Link>
-                </DropdownMenuItem>
-              ))}
+              {item.items?.map((subItem) => {
+                const linkHref = `/${locale}${subItem.href}`;
+                return (
+                    <DropdownMenuItem key={subItem.href} asChild>
+                    <Link
+                        href={linkHref}
+                        className={cn(
+                        'flex items-center gap-3 rounded-md px-3 py-2 transition-all',
+                        effectivePathname.startsWith(subItem.href)
+                            ? 'bg-muted text-primary'
+                            : 'text-muted-foreground hover:text-primary'
+                        )}
+                    >
+                        {t(subItem.title as any)}
+                    </Link>
+                    </DropdownMenuItem>
+                )
+              })}
             </DropdownMenuContent>
           </DropdownMenu>
      );
