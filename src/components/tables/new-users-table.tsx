@@ -14,12 +14,14 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import React from 'react';
+import { useTranslations } from 'next-intl';
 
-const columns: ColumnDef<User>[] = [
+const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
   {
     accessorKey: 'name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
+      <DataTableColumnHeader column={column} title={t('name')} />
     ),
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
@@ -37,13 +39,13 @@ const columns: ColumnDef<User>[] = [
   {
     accessorKey: 'email',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Email" />
+      <DataTableColumnHeader column={column} title={t('email')} />
     ),
   },
   {
     accessorKey: 'is_active',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
+      <DataTableColumnHeader column={column} title={t('status')} />
     ),
     cell: ({ row }) => (
       <Badge variant={row.getValue('is_active') ? 'default' : 'outline'}>
@@ -60,11 +62,15 @@ interface NewUsersTableProps {
 }
 
 export function NewUsersTable({ users, onRefresh, isRefreshing }: NewUsersTableProps) {
+  const tDashboard = useTranslations('Dashboard.newUsers');
+  const tColumns = useTranslations('UserColumns');
+  const columns = React.useMemo(() => getColumns(tColumns), [tColumns]);
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>New Users</CardTitle>
-        <CardDescription>A list of the newest users.</CardDescription>
+        <CardTitle>{tDashboard('title')}</CardTitle>
+        <CardDescription>{tDashboard('description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <DataTable
@@ -79,5 +85,3 @@ export function NewUsersTable({ users, onRefresh, isRefreshing }: NewUsersTableP
     </Card>
   );
 }
-
-    

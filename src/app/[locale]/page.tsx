@@ -14,7 +14,7 @@ import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { subMonths, format } from 'date-fns';
 import { KpiRow } from '@/components/dashboard/kpi-row';
-
+import { useTranslations } from 'next-intl';
 
 type DashboardSummary = {
     stats: Stat[],
@@ -31,7 +31,7 @@ const INVOICE_CHART_COLORS: { [key: string]: string } = {
   Pending: 'hsl(var(--chart-2))',
 };
 
-async function getDashboardData(dateRange: DateRange | undefined): Promise<DashboardSummary> {
+async function getDashboardData(dateRange: DateRange | undefined, t: (key: string) => string): Promise<DashboardSummary> {
     const defaultSummary: DashboardSummary = { stats: [], salesTrend: 0, averageBilling: null, appointmentAttendance: null };
     if (!dateRange || !dateRange.from || !dateRange.to) {
         return defaultSummary;
@@ -63,7 +63,7 @@ async function getDashboardData(dateRange: DateRange | undefined): Promise<Dashb
         
         const formatPercentage = (value: number) => {
             const sign = value > 0 ? '+' : '';
-            return `${sign}${value.toFixed(1)}% from last month`;
+            return `${sign}${value.toFixed(1)}% ${t('fromLastMonth')}`;
         }
         
         const getChangeType = (value: number): 'positive' | 'negative' | 'neutral' => {
@@ -75,32 +75,31 @@ async function getDashboardData(dateRange: DateRange | undefined): Promise<Dashb
         const avgRevenueChange = Number(summaryData.avg_revenue_change_vs_previous || 0);
         const showRateChange = Number(summaryData.show_rate_change_vs_previous || 0);
 
-
         return {
             stats: [
                 {
-                    title: 'Total Revenue',
+                    title: t('totalRevenue'),
                     value: formatCurrency(Number(summaryData.current_period_revenue || 0)),
                     change: formatPercentage(Number(summaryData.revenue_growth_percentage || 0)),
                     changeType: getChangeType(Number(summaryData.revenue_growth_percentage || 0)),
                     icon: 'currency-dollar',
                 },
                 {
-                    title: 'New Patients',
+                    title: t('newPatients'),
                     value: `+${summaryData.current_period_new_patients || 0}`,
-                    change: `+${Number(summaryData.new_patients_growth_percentage || 0).toFixed(1)}% from last month`,
+                    change: `+${Number(summaryData.new_patients_growth_percentage || 0).toFixed(1)}% ${t('fromLastMonth')}`,
                     changeType: getChangeType(Number(summaryData.new_patients_growth_percentage || 0)),
                     icon: 'user-plus',
                 },
                 {
-                    title: 'Sales',
+                    title: t('sales'),
                     value: `+${summaryData.current_period_sales || 0}`,
                     change: formatPercentage(Number(summaryData.sales_growth_percentage || 0)),
                     changeType: getChangeType(Number(summaryData.sales_growth_percentage) || 0),
                     icon: 'arrow-trending-up',
                 },
                 {
-                    title: 'Quote Conversion Rate',
+                    title: t('quoteConversionRate'),
                     value: `${(Number(summaryData.quote_conversion_rate) || 0).toFixed(1)}%`,
                     change: formatPercentage(Number(summaryData.quote_conversion_rate_growth) || 0),
                     changeType: getChangeType(Number(summaryData.quote_conversion_rate_growth) || 0),
@@ -125,6 +124,7 @@ async function getDashboardData(dateRange: DateRange | undefined): Promise<Dashb
         return defaultSummary;
     }
 }
+
 
 async function getSalesSummaryChartData(dateRange: DateRange | undefined): Promise<SalesChartData[]> {
     if (!dateRange || !dateRange.from) {
@@ -247,7 +247,7 @@ async function getInvoiceStatusChartData(): Promise<InvoiceStatusData[]> {
     }
 }
 
-async function getPatientDemographicsData(dateRange: DateRange | undefined): Promise<PatientDemographics | null> {
+async function getPatientDemographicsData(dateRange: DateRange | undefined, t: (key: string) => string): Promise<PatientDemographics | null> {
     if (!dateRange || !dateRange.from || !dateRange.to) {
         return null;
     }
@@ -278,8 +278,8 @@ async function getPatientDemographicsData(dateRange: DateRange | undefined): Pro
         return {
             total: newPatients + recurringPatients,
             data: [
-                { type: 'New', count: newPatients, fill: 'hsl(var(--chart-1))' },
-                { type: 'Recurrent', count: recurringPatients, fill: 'hsl(var(--chart-2))' },
+                { type: t('new'), count: newPatients, fill: 'hsl(var(--chart-1))' },
+                { type: t('recurrent'), count: recurringPatients, fill: 'hsl(var(--chart-2))' },
             ]
         };
     } catch (error) {
@@ -386,6 +386,10 @@ async function getUsers(): Promise<User[]> {
 }
 
 export default function DashboardPage() {
+  const t = useTranslations('Dashboard');
+  const tStats = useTranslations('Dashboard.stats');
+  const tKpi = useTranslations('Dashboard.kpi');
+
   const [stats, setStats] = React.useState<Stat[]>([]);
   const [salesTrend, setSalesTrend] = React.useState(0);
   const [averageBilling, setAverageBilling] = React.useState<AverageBilling | null>(null);
@@ -411,7 +415,7 @@ export default function DashboardPage() {
 
   React.useEffect(() => {
     setIsKpiLoading(true);
-    getDashboardData(date).then(({stats, salesTrend, averageBilling, appointmentAttendance}) => {
+    getDashboardData(date, tStats).then(({stats, salesTrend, averageBilling, appointmentAttendance}) => {
         setStats(stats);
         setSalesTrend(salesTrend);
         setAverageBilling(averageBilling);
@@ -419,7 +423,7 @@ export default function DashboardPage() {
         setIsKpiLoading(false);
     });
     
-    getPatientDemographicsData(date).then(data => {
+    getPatientDemographicsData(date, tKpi).then(data => {
         setPatientDemographics(data);
     });
     
@@ -441,7 +445,7 @@ export default function DashboardPage() {
         setIsInvoiceStatusLoading(false);
     });
 
-  }, [date]);
+  }, [date, tStats, tKpi]);
 
   React.useEffect(() => {
     getQuotes().then(setQuotes);

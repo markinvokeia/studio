@@ -5,6 +5,7 @@ import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ interface ReportFiltersProps {
 }
 
 export function ReportFilters({ date, setDate }: ReportFiltersProps) {
+  const t = useTranslations('Dashboard.filters');
   return (
     <div className="flex items-center space-x-2">
       <Popover>
@@ -51,7 +53,7 @@ export function ReportFilters({ date, setDate }: ReportFiltersProps) {
                 format(date.from, 'LLL dd, y')
               )
             ) : (
-              <span>Pick a date</span>
+              <span>{t('pickDate')}</span>
             )}
           </Button>
         </PopoverTrigger>
@@ -71,12 +73,12 @@ export function ReportFilters({ date, setDate }: ReportFiltersProps) {
           <SelectValue placeholder="Filter by..." />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="service">By Service</SelectItem>
-          <SelectItem value="user">By User</SelectItem>
-          <SelectItem value="status">By Status</SelectItem>
+          <SelectItem value="service">{t('byService')}</SelectItem>
+          <SelectItem value="user">{t('byUser')}</SelectItem>
+          <SelectItem value="status">{t('byStatus')}</SelectItem>
         </SelectContent>
       </Select>
-      <Button>Apply Filters</Button>
+      <Button>{t('apply')}</Button>
     </div>
   );
 }

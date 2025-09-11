@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
@@ -16,6 +17,109 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import type { User } from '@/lib/types';
+import { useTranslations } from 'next-intl';
+
+const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
+  {
+    id: 'select',
+    header: () => null,
+    cell: ({ row, table }) => {
+      const isSelected = row.getIsSelected();
+      return (
+        <RadioGroup
+          value={isSelected ? row.id : ''}
+          onValueChange={() => {
+            table.toggleAllPageRowsSelected(false);
+            row.toggleSelected(true);
+          }}
+        >
+          <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
+        </RadioGroup>
+      );
+    },
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
+    accessorKey: 'name',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('name')} />
+    ),
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2">
+        <Image
+          src={row.original.avatar}
+          width={32}
+          height={32}
+          alt={row.original.name}
+          className="rounded-full"
+        />
+        <span className="font-medium">{row.getValue('name')}</span>
+      </div>
+    ),
+  },
+  {
+    accessorKey: 'email',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('email')} />
+    ),
+  },
+  {
+    accessorKey: 'phone_number',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('phone')} />
+    ),
+  },
+  {
+    accessorKey: 'is_active',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('status')} />
+    ),
+    cell: ({ row }) => (
+      <Badge variant={row.getValue('is_active') ? 'default' : 'outline'}>
+        {row.getValue('is_active') ? 'Active' : 'Inactive'}
+      </Badge>
+    ),
+  },
+  {
+    id: 'actions',
+    cell: function Cell({ row }) {
+      const t = useTranslations('UserColumns');
+      const user = row.original;
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={() => navigator.clipboard.writeText(user.id)}
+            >
+              {t('copyId')}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>{t('viewDetails')}</DropdownMenuItem>
+            <DropdownMenuItem>{t('edit')}</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive">{t('delete')}</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    },
+  },
+];
+
+
+export function UserColumnsWrapper() {
+    const t = useTranslations('UserColumns');
+    const columns = React.useMemo(() => getColumns(t), [t]);
+    return columns;
+}
+
+import React from 'react';
 
 export const userColumns: ColumnDef<User>[] = [
   {
@@ -40,9 +144,10 @@ export const userColumns: ColumnDef<User>[] = [
   },
   {
     accessorKey: 'name',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
-    ),
+    header: function Header({ column }) {
+      const t = useTranslations('UserColumns');
+      return <DataTableColumnHeader column={column} title={t('name')} />
+    },
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <Image
@@ -58,21 +163,24 @@ export const userColumns: ColumnDef<User>[] = [
   },
   {
     accessorKey: 'email',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Email" />
-    ),
+    header: function Header({ column }) {
+      const t = useTranslations('UserColumns');
+      return <DataTableColumnHeader column={column} title={t('email')} />
+    },
   },
   {
     accessorKey: 'phone_number',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Phone" />
-    ),
+    header: function Header({ column }) {
+      const t = useTranslations('UserColumns');
+      return <DataTableColumnHeader column={column} title={t('phone')} />
+    },
   },
   {
     accessorKey: 'is_active',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
-    ),
+    header: function Header({ column }) {
+      const t = useTranslations('UserColumns');
+      return <DataTableColumnHeader column={column} title={t('status')} />
+    },
     cell: ({ row }) => (
       <Badge variant={row.getValue('is_active') ? 'default' : 'outline'}>
         {row.getValue('is_active') ? 'Active' : 'Inactive'}
@@ -83,6 +191,7 @@ export const userColumns: ColumnDef<User>[] = [
     id: 'actions',
     cell: ({ row }) => {
       const user = row.original;
+      const t = useTranslations('UserColumns');
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -92,16 +201,16 @@ export const userColumns: ColumnDef<User>[] = [
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
             <DropdownMenuItem
               onClick={() => navigator.clipboard.writeText(user.id)}
             >
-              Copy user ID
+              {t('copyId')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>View details</DropdownMenuItem>
-            <DropdownMenuItem>Edit user</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">Delete user</DropdownMenuItem>
+            <DropdownMenuItem>{t('viewDetails')}</DropdownMenuItem>
+            <DropdownMenuItem>{t('edit')}</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive">{t('delete')}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );

@@ -6,10 +6,12 @@ import { CornerDownLeft, Mic } from 'lucide-react';
 import { interpretUserCommand } from '@/ai/flows/interpret-user-command';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
+import { useTranslations } from 'next-intl';
 
 export function CommandBar() {
   const [command, setCommand] = useState('');
   const { toast } = useToast();
+  const t = useTranslations('Header');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -48,7 +50,7 @@ export function CommandBar() {
       <Input
         id="command-input"
         type="text"
-        placeholder="Enter a command..."
+        placeholder={t('commandPlaceholder')}
         className="w-full bg-background pl-4 pr-20 h-10"
         value={command}
         onChange={(e) => setCommand(e.target.value)}

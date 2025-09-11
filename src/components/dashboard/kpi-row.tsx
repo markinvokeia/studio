@@ -18,6 +18,7 @@ import { TrendingDownIcon } from '../icons/trending-down-icon';
 import { TrendingUpIcon } from '../icons/trending-up-icon';
 import { AppointmentAttendanceRate, AverageBilling, PatientDemographics } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
+import { useTranslations } from 'next-intl';
 
 interface KpiRowProps {
     averageBillingData: AverageBilling | null;
@@ -42,10 +43,11 @@ interface AverageBillingCardProps {
     isLoading?: boolean;
 }
 export function AverageBillingCard({ data, isLoading }: AverageBillingCardProps) {
+    const t = useTranslations('Dashboard.kpi');
     if (isLoading || !data) {
         return (
             <Card>
-                <CardHeader className="py-4"><CardTitle>Facturación Promedio por Paciente</CardTitle></CardHeader>
+                <CardHeader className="py-4"><CardTitle>{t('avgBilling')}</CardTitle></CardHeader>
                 <CardContent className="py-4">
                     <Skeleton className="h-10 w-1/2 mb-2" />
                     <Skeleton className="h-4 w-3/4" />
@@ -61,13 +63,13 @@ export function AverageBillingCard({ data, isLoading }: AverageBillingCardProps)
     return (
       <Card>
         <CardHeader className="py-4">
-          <CardTitle>Facturación Promedio por Paciente</CardTitle>
+          <CardTitle>{t('avgBilling')}</CardTitle>
         </CardHeader>
         <CardContent className="py-4">
           <div className="text-4xl font-bold">${value.toFixed(2)}</div>
           <div className={cn("text-xs flex items-center mt-2", trendColor)}>
             <TrendIcon className="h-4 w-4 mr-1" />
-            {change.toFixed(1)}% vs el período anterior
+            {change.toFixed(1)}% {t('vsPreviousPeriod')}
           </div>
         </CardContent>
       </Card>
@@ -79,10 +81,11 @@ interface PatientDemographicsCardProps {
     isLoading?: boolean;
 }
 export function PatientDemographicsCard({ data, isLoading }: PatientDemographicsCardProps) {
+    const t = useTranslations('Dashboard.kpi');
     if (isLoading || !data) {
         return (
             <Card>
-                <CardHeader className="py-4"><CardTitle>Pacientes Nuevos vs. Recurrentes</CardTitle></CardHeader>
+                <CardHeader className="py-4"><CardTitle>{t('newVsRecurring')}</CardTitle></CardHeader>
                 <CardContent className="flex items-center justify-center py-2">
                     <Skeleton className="h-[120px] w-[120px] rounded-full" />
                 </CardContent>
@@ -92,13 +95,13 @@ export function PatientDemographicsCard({ data, isLoading }: PatientDemographics
 
     const { total, data: chartData } = data;
     const chartConfig = {
-        New: { label: 'New', color: 'hsl(var(--chart-1))' },
-        Recurrent: { label: 'Recurrent', color: 'hsl(var(--chart-2))' },
+        New: { label: t('new'), color: 'hsl(var(--chart-1))' },
+        Recurrent: { label: t('recurrent'), color: 'hsl(var(--chart-2))' },
     };
     return (
         <Card className="flex flex-col">
             <CardHeader className="py-4">
-                <CardTitle>Pacientes Nuevos vs. Recurrentes</CardTitle>
+                <CardTitle>{t('newVsRecurring')}</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col items-center justify-center py-2">
                 <ChartContainer
@@ -117,7 +120,7 @@ export function PatientDemographicsCard({ data, isLoading }: PatientDemographics
             </CardContent>
             <div className="flex flex-col items-center justify-center p-4 pt-2">
                  <div className="text-4xl font-bold">{total}</div>
-                <p className="text-xs text-muted-foreground">Pacientes activos</p>
+                <p className="text-xs text-muted-foreground">{t('activePatients')}</p>
                 <div className="w-full flex justify-center gap-4 mt-2 text-xs">
                     {chartData.map((entry) => (
                         <div key={entry.type} className="flex items-center gap-1.5">
@@ -137,10 +140,11 @@ interface AppointmentAttendanceCardProps {
 }
 
 export function AppointmentAttendanceCard({ data, isLoading }: AppointmentAttendanceCardProps) {
+    const t = useTranslations('Dashboard.kpi');
     if (isLoading || !data) {
          return (
             <Card>
-                <CardHeader className="py-4"><CardTitle>Tasa de Asistencia a Citas</CardTitle></CardHeader>
+                <CardHeader className="py-4"><CardTitle>{t('attendanceRate')}</CardTitle></CardHeader>
                 <CardContent className="py-4">
                     <Skeleton className="h-10 w-1/2 mb-2" />
                     <Skeleton className="h-4 w-3/4" />
@@ -156,13 +160,13 @@ export function AppointmentAttendanceCard({ data, isLoading }: AppointmentAttend
     return (
       <Card>
         <CardHeader className="py-4">
-          <CardTitle>Tasa de Asistencia a Citas</CardTitle>
+          <CardTitle>{t('attendanceRate')}</CardTitle>
         </CardHeader>
         <CardContent className="py-4">
           <div className="text-4xl font-bold">{value}%</div>
           <div className={cn("text-xs flex items-center mt-2", trendColor)}>
             <TrendIcon className="h-4 w-4 mr-1" />
-            {change.toFixed(1)}% vs el período anterior
+            {change.toFixed(1)}% {t('vsPreviousPeriod')}
           </div>
         </CardContent>
       </Card>

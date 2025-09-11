@@ -1,0 +1,206 @@
+{
+  "Navigation": {
+    "Dashboard": "Dashboard",
+    "Appointments": "Appointments",
+    "UsersAndAccess": "Users & Access",
+    "Users": "Users",
+    "ClinicHistory": "Clinic History",
+    "SalesAndBilling": "Sales & Billing",
+    "Quotes": "Quotes",
+    "Orders": "Orders",
+    "Invoices": "Invoices",
+    "Payments": "Payments",
+    "ClinicCatalog": "Clinic Catalog",
+    "Ailments": "Ailments",
+    "Medications": "Medications",
+    "DentalConditions": "Dental Conditions",
+    "DentalSurfaces": "Dental Surfaces",
+    "BusinessSetup": "Business Setup",
+    "Services": "Services",
+    "ClinicDetails": "Clinic Details",
+    "Schedules": "Schedules",
+    "Holidays": "Holidays",
+    "Calendars": "Calendars",
+    "Communications": "Communications",
+    "Conversations": "Conversations",
+    "Channels": "Channels",
+    "System": "System",
+    "Roles": "Roles",
+    "Permissions": "Permissions",
+    "Configurations": "Configurations",
+    "AuditLog": "Audit Log",
+    "AccessLog": "Access Log",
+    "ErrorLog": "Error Log"
+  },
+  "Header": {
+    "toggleLanguage": "Toggle language",
+    "english": "English",
+    "spanish": "Español",
+    "myAccount": "My Account",
+    "settings": "Settings",
+    "support": "Support",
+    "logout": "Logout",
+    "commandPlaceholder": "Enter a command..."
+  },
+  "Dashboard": {
+    "title": "Dashboard",
+    "filters": {
+      "apply": "Apply Filters",
+      "byService": "By Service",
+      "byUser": "By User",
+      "byStatus": "By Status",
+      "pickDate": "Pick a date"
+    },
+    "stats": {
+      "totalRevenue": "Total Revenue",
+      "newPatients": "New Patients",
+      "sales": "Sales",
+      "quoteConversionRate": "Quote Conversion Rate",
+      "fromLastMonth": "from last month"
+    },
+    "salesSummary": {
+      "title": "Sales Summary",
+      "description": "Showing total revenue for the selected period.",
+      "trendingUp": "Trending up by {trend}% this month",
+      "trendingDown": "Trending down by {trend}% this month"
+    },
+    "salesByService": {
+      "title": "Sales by Service",
+      "description": "Top performing services by percentage"
+    },
+    "invoiceStatus": {
+      "title": "Invoice Status",
+      "description": "Current state of all invoices",
+      "totalInvoices": "Total Invoices: {total}"
+    },
+    "kpi": {
+      "avgBilling": "Average Billing per Patient",
+      "vsPreviousPeriod": "vs previous period",
+      "newVsRecurring": "New vs. Recurring Patients",
+      "activePatients": "Active Patients",
+      "new": "New",
+      "recurrent": "Recurrent",
+      "attendanceRate": "Appointment Attendance Rate"
+    },
+    "recentQuotes": {
+      "title": "Recent Quotes",
+      "description": "An overview of the latest quotes."
+    },
+    "recentOrders": {
+      "title": "Recent Orders",
+      "description": "An overview of the latest orders."
+    },
+    "newUsers": {
+      "title": "New Users",
+      "description": "A list of the newest users."
+    }
+  },
+  "AppointmentsPage": {
+    "title": "Appointments",
+    "description": "Manage all appointments.",
+    "newAppointment": "New Appointment",
+    "calendarView": "Calendar View",
+    "listView": "List View",
+    "calendars": "Calendars",
+    "selectAll": "Select All",
+    "appointmentsFor": "Appointments for {date}",
+    "noAppointments": "No appointments for this day.",
+    "today": "Today",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "filterByService": "Filter by service...",
+    "createDialog": {
+      "title": "Create New Appointment",
+      "description": "Fill in the details below to create a new appointment.",
+      "userName": "User Name",
+      "serviceName": "Service Name",
+      "date": "Date",
+      "time": "Time",
+      "save": "Save Appointment"
+    }
+  },
+  "AppointmentsColumns": {
+    "service": "Service",
+    "user": "User",
+    "date": "Date",
+    "time": "Time",
+    "status": "Status",
+    "actions": "Actions",
+    "edit": "Edit Appointment",
+    "cancel": "Cancel Appointment"
+  },
+  "AilmentsPage": {
+    "title": "Ailments",
+    "description": "Manage standardized medical conditions and diseases.",
+    "filterPlaceholder": "Filter by name...",
+    "createDialog": {
+      "title": "Create New Ailment",
+      "description": "Fill in the details below to add a new ailment.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Arterial Hypertension",
+      "category": "Category",
+      "categoryPlaceholder": "e.g., Cardiovascular",
+      "alertLevel": "Alert Level",
+      "alertLevelPlaceholder": "Select a level",
+      "level1": "1 (Normal)",
+      "level2": "2 (Warning)",
+      "level3": "3 (Critical)",
+      "cancel": "Cancel",
+      "save": "Create Ailment"
+    }
+  },
+  "AilmentsColumns": {
+    "id": "ID",
+    "name": "Name",
+    "category": "Category",
+    "alertLevel": "Alert Level",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "UsersPage": {
+    "title": "Users",
+    "description": "Manage all users in the system.",
+    "filterPlaceholder": "Filter users by email...",
+    "detailsFor": "Details for {name}",
+    "close": "Close details",
+    "tabs": {
+      "roles": "Roles",
+      "services": "Services",
+      "quotes": "Quotes",
+      "appointments": "Appointments",
+      "messages": "Messages",
+      "logs": "Logs",
+      "history": "Clinic History"
+    },
+    "createDialog": {
+      "title": "Create New User",
+      "description": "Fill in the details below to add a new user.",
+      "name": "Name",
+      "namePlaceholder": "John Doe",
+      "email": "Email",
+      "emailPlaceholder": "john.doe@example.com",
+      "phone": "Phone",
+      "phonePlaceholder": "123-456-7890",
+      "avatarUrl": "Avatar URL",
+      "avatarUrlPlaceholder": "https://example.com/avatar.png",
+      "isActive": "Is Active",
+      "cancel": "Cancel",
+      "save": "Create User"
+    }
+  },
+  "UserColumns": {
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "status": "Status",
+    "actions": "Actions",
+    "copyId": "Copy user ID",
+    "viewDetails": "View details",
+    "edit": "Edit user",
+    "delete": "Delete user"
+  },
+  "General": {
+    "noResults": "No results."
+  }
+}

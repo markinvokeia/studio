@@ -21,6 +21,7 @@ import { format } from 'date-fns';
 import { SalesChartData } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { ChartBarSquareIcon } from '../icons/chart-bar-square-icon';
+import { useTranslations } from 'next-intl';
 
 const chartConfig = {
   revenue: {
@@ -37,6 +38,7 @@ interface SalesSummaryChartProps {
 }
 
 export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }: SalesSummaryChartProps) {
+  const t = useTranslations('Dashboard.salesSummary');
   const isTrendingUp = salesTrend >= 0;
 
   const formatDateRange = (dateRange: DateRange | undefined) => {
@@ -57,7 +59,6 @@ export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }
     return `From ${format(dateRange.from, 'PPP')}`;
   };
 
-  const chartDescription = `Showing total revenue for the selected period.`;
   const footerDateText = formatDateRange(date);
 
   return (
@@ -65,10 +66,10 @@ export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }
       <CardHeader>
         <div className="flex items-center gap-2">
           <ChartBarSquareIcon className="h-6 w-6 text-blue-500" />
-          <CardTitle>Sales Summary</CardTitle>
+          <CardTitle>{t('title')}</CardTitle>
         </div>
         <CardDescription>
-          {chartDescription}
+          {t('description')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -114,7 +115,7 @@ export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }
         <div className="flex w-full items-start gap-2 text-sm">
           <div className="grid gap-2">
             <div className="flex items-center gap-2 font-medium leading-none">
-              Trending {isTrendingUp ? 'up' : 'down'} by {Math.abs(salesTrend).toFixed(1)}% this month 
+              {t(isTrendingUp ? 'trendingUp' : 'trendingDown', { trend: Math.abs(salesTrend).toFixed(1) })}
               {isTrendingUp ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
             </div>
             <div className="flex items-center gap-2 leading-none text-muted-foreground">

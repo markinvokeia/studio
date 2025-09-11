@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { SortingState } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslations } from 'next-intl';
 
 async function getAppointments(calendarIds: string[]): Promise<Appointment[]> {
     const now = new Date();
@@ -111,6 +112,7 @@ async function getCalendars(): Promise<CalendarType[]> {
 
 
 export default function AppointmentsPage() {
+  const t = useTranslations('AppointmentsPage');
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
   const [selectedCalendarIds, setSelectedCalendarIds] = React.useState<string[]>([]);
@@ -206,19 +208,19 @@ export default function AppointmentsPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Appointments</CardTitle>
-            <CardDescription>Manage all appointments.</CardDescription>
+            <CardTitle>{t('title')}</CardTitle>
+            <CardDescription>{t('description')}</CardDescription>
           </div>
           <Button onClick={() => setCreateOpen(true)} className="flex items-center gap-2">
             <PlusCircle className="h-5 w-5" />
-            <span>New Appointment</span>
+            <span>{t('newAppointment')}</span>
           </Button>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="calendar">
             <TabsList>
-              <TabsTrigger value="calendar">Calendar View</TabsTrigger>
-              <TabsTrigger value="list">List View</TabsTrigger>
+              <TabsTrigger value="calendar">{t('calendarView')}</TabsTrigger>
+              <TabsTrigger value="list">{t('listView')}</TabsTrigger>
             </TabsList>
             <TabsContent value="calendar" className="pt-4">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -238,7 +240,7 @@ export default function AppointmentsPage() {
                       <CardHeader className="pb-2">
                         <CardTitle className="text-base flex items-center gap-2">
                           <CalendarIcon className="h-5 w-5"/>
-                          Calendars
+                          {t('calendars')}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -256,7 +258,7 @@ export default function AppointmentsPage() {
                                     checked={selectedCalendarIds.length === calendars.length}
                                     onCheckedChange={handleSelectAllCalendars}
                                 />
-                                <Label htmlFor="select-all" className="font-semibold">Select All</Label>
+                                <Label htmlFor="select-all" className="font-semibold">{t('selectAll')}</Label>
                             </div>
                             <Separator />
                             <ScrollArea className="h-32">
@@ -280,7 +282,7 @@ export default function AppointmentsPage() {
                   <Card>
                     <CardHeader>
                       <CardTitle>
-                        Appointments for {selectedDate ? format(selectedDate, 'PPP') : '...'}
+                        {t('appointmentsFor', {date: selectedDate ? format(selectedDate, 'PPP') : '...'})}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -304,7 +306,7 @@ export default function AppointmentsPage() {
                             ))}
                           </div>
                         ) : (
-                          <p className="text-center text-muted-foreground">No appointments for this day.</p>
+                          <p className="text-center text-muted-foreground">{t('noAppointments')}</p>
                         )}
                       </ScrollArea>
                     </CardContent>
@@ -318,26 +320,26 @@ export default function AppointmentsPage() {
                         variant={dateFilter === 'today' ? 'default' : 'outline'}
                         onClick={() => setDateFilter('today')}
                     >
-                        Today
+                        {t('today')}
                     </Button>
                     <Button
                         variant={dateFilter === 'this_week' ? 'default' : 'outline'}
                         onClick={() => setDateFilter('this_week')}
                     >
-                        This Week
+                        {t('thisWeek')}
                     </Button>
                     <Button
                         variant={dateFilter === 'this_month' ? 'default' : 'outline'}
                         onClick={() => setDateFilter('this_month')}
                     >
-                        This Month
+                        {t('thisMonth')}
                     </Button>
                 </div>
                <DataTable 
                 columns={appointmentColumns} 
                 data={filteredAppointments} 
                 filterColumnId='service_name'
-                filterPlaceholder='Filter by service...'
+                filterPlaceholder={t('filterByService')}
                 sorting={sorting}
                 onSortingChange={setSorting}
                 onRefresh={loadAppointments}
@@ -350,39 +352,29 @@ export default function AppointmentsPage() {
       <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create New Appointment</DialogTitle>
-            <DialogDescription>
-              Fill in the details below to create a new appointment.
-            </DialogDescription>
+            <DialogTitle>{t('createDialog.title')}</DialogTitle>
+            <DialogDescription>{t('createDialog.description')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="user_name" className="text-right">
-                User Name
-              </Label>
+              <Label htmlFor="user_name" className="text-right">{t('createDialog.userName')}</Label>
               <Input id="user_name" className="col-span-3" />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="service_name" className="text-right">
-                Service Name
-              </Label>
+              <Label htmlFor="service_name" className="text-right">{t('createDialog.serviceName')}</Label>
               <Input id="service_name" className="col-span-3" />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="date" className="text-right">
-                Date
-              </Label>
+              <Label htmlFor="date" className="text-right">{t('createDialog.date')}</Label>
               <Input id="date" type="date" className="col-span-3" />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="time" className="text-right">
-                Time
-              </Label>
+              <Label htmlFor="time" className="text-right">{t('createDialog.time')}</Label>
               <Input id="time" type="time" className="col-span-3" />
             </div>
           </div>
           <div className="flex justify-end">
-            <Button>Save Appointment</Button>
+            <Button>{t('createDialog.save')}</Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -29,6 +29,7 @@ import { UserAppointments } from '@/components/users/user-appointments';
 import { UserLogs } from '@/components/users/user-logs';
 import { X } from 'lucide-react';
 import { RowSelectionState, PaginationState } from '@tanstack/react-table';
+import { useTranslations } from 'next-intl';
 
 type GetUsersResponse = {
   users: User[];
@@ -78,6 +79,7 @@ async function getUsers(pagination: PaginationState): Promise<GetUsersResponse> 
 }
 
 export default function UsersPage() {
+  const t = useTranslations('UsersPage');
   const [users, setUsers] = React.useState<User[]>([]);
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
@@ -118,15 +120,15 @@ export default function UsersPage() {
       <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-1" : "lg:col-span-2")}>
         <Card>
           <CardHeader>
-            <CardTitle>Users</CardTitle>
-            <CardDescription>Manage all users in the system.</CardDescription>
+            <CardTitle>{t('title')}</CardTitle>
+            <CardDescription>{t('description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <DataTable 
               columns={userColumns} 
               data={users} 
               filterColumnId="email" 
-              filterPlaceholder="Filter users by email..."
+              filterPlaceholder={t('filterPlaceholder')}
               onRowSelectionChange={handleRowSelectionChange}
               enableSingleRowSelection={true}
               onCreate={() => setCreateOpen(true)}
@@ -148,23 +150,23 @@ export default function UsersPage() {
             <Card>
                <CardHeader className="flex flex-row items-start justify-between">
                 <div>
-                    <CardTitle>Details for {selectedUser.name}</CardTitle>
+                    <CardTitle>{t('detailsFor', {name: selectedUser.name})}</CardTitle>
                 </div>
                 <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                     <X className="h-5 w-5" />
-                    <span className="sr-only">Close details</span>
+                    <span className="sr-only">{t('close')}</span>
                 </Button>
             </CardHeader>
               <CardContent>
                 <Tabs defaultValue="roles" className="w-full">
                    <TabsList className="h-auto items-center justify-start flex-wrap">
-                    <TabsTrigger value="roles">Roles</TabsTrigger>
-                    <TabsTrigger value="services">Services</TabsTrigger>
-                    <TabsTrigger value="quotes">Quotes</TabsTrigger>
-                    <TabsTrigger value="appointments">Appointments</TabsTrigger>
-                    <TabsTrigger value="messages">Messages</TabsTrigger>
-                    <TabsTrigger value="logs">Logs</TabsTrigger>
-                    <TabsTrigger value="history">Clinic History</TabsTrigger>
+                    <TabsTrigger value="roles">{t('tabs.roles')}</TabsTrigger>
+                    <TabsTrigger value="services">{t('tabs.services')}</TabsTrigger>
+                    <TabsTrigger value="quotes">{t('tabs.quotes')}</TabsTrigger>
+                    <TabsTrigger value="appointments">{t('tabs.appointments')}</TabsTrigger>
+                    <TabsTrigger value="messages">{t('tabs.messages')}</TabsTrigger>
+                    <TabsTrigger value="logs">{t('tabs.logs')}</TabsTrigger>
+                    <TabsTrigger value="history">{t('tabs.history')}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="roles">
                     <UserRoles userId={selectedUser.id} />
@@ -197,44 +199,34 @@ export default function UsersPage() {
     <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create New User</DialogTitle>
-          <DialogDescription>
-            Fill in the details below to add a new user.
-          </DialogDescription>
+          <DialogTitle>{t('createDialog.title')}</DialogTitle>
+          <DialogDescription>{t('createDialog.description')}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
-              Name
-            </Label>
-            <Input id="name" placeholder="John Doe" className="col-span-3" />
+            <Label htmlFor="name" className="text-right">{t('createDialog.name')}</Label>
+            <Input id="name" placeholder={t('createDialog.namePlaceholder')} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="email" className="text-right">
-              Email
-            </Label>
-            <Input id="email" type="email" placeholder="john.doe@example.com" className="col-span-3" />
+            <Label htmlFor="email" className="text-right">{t('createDialog.email')}</Label>
+            <Input id="email" type="email" placeholder={t('createDialog.emailPlaceholder')} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="phone" className="text-right">
-              Phone
-            </Label>
-            <Input id="phone" placeholder="123-456-7890" className="col-span-3" />
+            <Label htmlFor="phone" className="text-right">{t('createDialog.phone')}</Label>
+            <Input id="phone" placeholder={t('createDialog.phonePlaceholder')} className="col-span-3" />
           </div>
            <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="avatar" className="text-right">
-              Avatar URL
-            </Label>
-            <Input id="avatar" placeholder="https://example.com/avatar.png" className="col-span-3" />
+            <Label htmlFor="avatar" className="text-right">{t('createDialog.avatarUrl')}</Label>
+            <Input id="avatar" placeholder={t('createDialog.avatarUrlPlaceholder')} className="col-span-3" />
           </div>
           <div className="flex items-center space-x-2 justify-end">
              <Checkbox id="is_active" />
-            <Label htmlFor="is_active">Is Active</Label>
+            <Label htmlFor="is_active">{t('createDialog.isActive')}</Label>
           </div>
         </div>
          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button type="submit">Create User</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>{t('createDialog.cancel')}</Button>
+            <Button type="submit">{t('createDialog.save')}</Button>
         </div>
       </DialogContent>
     </Dialog>

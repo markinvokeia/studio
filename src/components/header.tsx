@@ -11,6 +11,7 @@ import {
   PanelLeftClose,
   PanelRightClose,
   Globe,
+  Check,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import {
@@ -122,7 +123,7 @@ export function Header() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href={`/${locale}`}>Dashboard</Link>
+              <Link href={`/${locale}`}>{tNav('Dashboard')}</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           {breadcrumbItems}
@@ -138,11 +139,17 @@ export function Header() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => onSelectLocale('en')}>
-              {t('english')}
+            <DropdownMenuItem onSelect={() => onSelectLocale('en')} disabled={locale === 'en'}>
+                <span className="flex items-center justify-between w-full">
+                    {t('english')}
+                    {locale === 'en' && <Check className="h-4 w-4 ml-2" />}
+                </span>
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onSelectLocale('es')}>
-              {t('spanish')}
+            <DropdownMenuItem onSelect={() => onSelectLocale('es')} disabled={locale === 'es'}>
+                 <span className="flex items-center justify-between w-full">
+                    {t('spanish')}
+                    {locale === 'es' && <Check className="h-4 w-4 ml-2" />}
+                </span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -184,12 +191,12 @@ export function Header() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('myAccount')}</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>Support</DropdownMenuItem>
+            <DropdownMenuItem>{t('settings')}</DropdownMenuItem>
+            <DropdownMenuItem>{t('support')}</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Logout</DropdownMenuItem>
+            <DropdownMenuItem>{t('logout')}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

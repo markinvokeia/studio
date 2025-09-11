@@ -1,0 +1,206 @@
+{
+  "Navigation": {
+    "Dashboard": "Dashboard",
+    "Appointments": "Citas",
+    "UsersAndAccess": "Usuarios y Acceso",
+    "Users": "Usuarios",
+    "ClinicHistory": "Historial Clínico",
+    "SalesAndBilling": "Ventas y Facturación",
+    "Quotes": "Cotizaciones",
+    "Orders": "Pedidos",
+    "Invoices": "Facturas",
+    "Payments": "Pagos",
+    "ClinicCatalog": "Catálogo Clínico",
+    "Ailments": "Padecimientos",
+    "Medications": "Medicamentos",
+    "DentalConditions": "Condiciones Dentales",
+    "DentalSurfaces": "Superficies Dentales",
+    "BusinessSetup": "Configuración",
+    "Services": "Servicios",
+    "ClinicDetails": "Clínicas",
+    "Schedules": "Horarios",
+    "Holidays": "Feriados",
+    "Calendars": "Calendarios",
+    "Communications": "Comunicaciones",
+    "Conversations": "Conversaciones",
+    "Channels": "Canales",
+    "System": "Sistema",
+    "Roles": "Roles",
+    "Permissions": "Permisos",
+    "Configurations": "Configuraciones",
+    "AuditLog": "Auditoría",
+    "AccessLog": "Accesos",
+    "ErrorLog": "Errores"
+  },
+  "Header": {
+    "toggleLanguage": "Cambiar idioma",
+    "english": "English",
+    "spanish": "Español",
+    "myAccount": "Mi Cuenta",
+    "settings": "Configuración",
+    "support": "Soporte",
+    "logout": "Cerrar Sesión",
+    "commandPlaceholder": "Introduce un comando..."
+  },
+  "Dashboard": {
+    "title": "Dashboard",
+    "filters": {
+      "apply": "Aplicar Filtros",
+      "byService": "Por Servicio",
+      "byUser": "Por Usuario",
+      "byStatus": "Por Estado",
+      "pickDate": "Selecciona una fecha"
+    },
+    "stats": {
+      "totalRevenue": "Ingresos Totales",
+      "newPatients": "Nuevos Pacientes",
+      "sales": "Ventas",
+      "quoteConversionRate": "Tasa de Conversión",
+      "fromLastMonth": "desde el mes pasado"
+    },
+    "salesSummary": {
+      "title": "Resumen de Ventas",
+      "description": "Mostrando los ingresos totales para el período seleccionado.",
+      "trendingUp": "Tendencia al alza de {trend}% este mes",
+      "trendingDown": "Tendencia a la baja de {trend}% este mes"
+    },
+    "salesByService": {
+      "title": "Ventas por Servicio",
+      "description": "Servicios con mejor rendimiento por porcentaje"
+    },
+    "invoiceStatus": {
+      "title": "Estado de Facturas",
+      "description": "Estado actual de todas las facturas",
+      "totalInvoices": "Total de Facturas: {total}"
+    },
+    "kpi": {
+      "avgBilling": "Facturación Promedio por Paciente",
+      "vsPreviousPeriod": "vs período anterior",
+      "newVsRecurring": "Pacientes Nuevos vs. Recurrentes",
+      "activePatients": "Pacientes activos",
+      "new": "Nuevos",
+      "recurrent": "Recurrentes",
+      "attendanceRate": "Tasa de Asistencia a Citas"
+    },
+    "recentQuotes": {
+      "title": "Cotizaciones Recientes",
+      "description": "Un resumen de las últimas cotizaciones."
+    },
+    "recentOrders": {
+      "title": "Pedidos Recientes",
+      "description": "Un resumen de los últimos pedidos."
+    },
+    "newUsers": {
+      "title": "Nuevos Usuarios",
+      "description": "Una lista de los usuarios más nuevos."
+    }
+  },
+  "AppointmentsPage": {
+    "title": "Citas",
+    "description": "Gestiona todas las citas.",
+    "newAppointment": "Nueva Cita",
+    "calendarView": "Vista de Calendario",
+    "listView": "Vista de Lista",
+    "calendars": "Calendarios",
+    "selectAll": "Seleccionar Todos",
+    "appointmentsFor": "Citas para el {date}",
+    "noAppointments": "No hay citas para este día.",
+    "today": "Hoy",
+    "thisWeek": "Esta Semana",
+    "thisMonth": "Este Mes",
+    "filterByService": "Filtrar por servicio...",
+    "createDialog": {
+      "title": "Crear Nueva Cita",
+      "description": "Completa los detalles a continuación para crear una nueva cita.",
+      "userName": "Nombre de Usuario",
+      "serviceName": "Nombre del Servicio",
+      "date": "Fecha",
+      "time": "Hora",
+      "save": "Guardar Cita"
+    }
+  },
+  "AppointmentsColumns": {
+    "service": "Servicio",
+    "user": "Usuario",
+    "date": "Fecha",
+    "time": "Hora",
+    "status": "Estado",
+    "actions": "Acciones",
+    "edit": "Editar Cita",
+    "cancel": "Cancelar Cita"
+  },
+  "AilmentsPage": {
+    "title": "Padecimientos",
+    "description": "Gestiona condiciones médicas y enfermedades estandarizadas.",
+    "filterPlaceholder": "Filtrar por nombre...",
+    "createDialog": {
+      "title": "Crear Nuevo Padecimiento",
+      "description": "Completa los detalles a continuación para agregar un nuevo padecimiento.",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Hipertensión Arterial",
+      "category": "Categoría",
+      "categoryPlaceholder": "ej., Cardiovascular",
+      "alertLevel": "Nivel de Alerta",
+      "alertLevelPlaceholder": "Selecciona un nivel",
+      "level1": "1 (Normal)",
+      "level2": "2 (Advertencia)",
+      "level3": "3 (Crítico)",
+      "cancel": "Cancelar",
+      "save": "Crear Padecimiento"
+    }
+  },
+  "AilmentsColumns": {
+    "id": "ID",
+    "name": "Nombre",
+    "category": "Categoría",
+    "alertLevel": "Nivel Alerta",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
+  "UsersPage": {
+    "title": "Usuarios",
+    "description": "Gestiona todos los usuarios del sistema.",
+    "filterPlaceholder": "Filtrar usuarios por email...",
+    "detailsFor": "Detalles de {name}",
+    "close": "Cerrar detalles",
+    "tabs": {
+      "roles": "Roles",
+      "services": "Servicios",
+      "quotes": "Cotizaciones",
+      "appointments": "Citas",
+      "messages": "Mensajes",
+      "logs": "Registros",
+      "history": "Historial Clínico"
+    },
+    "createDialog": {
+      "title": "Crear Nuevo Usuario",
+      "description": "Completa los detalles a continuación para agregar un nuevo usuario.",
+      "name": "Nombre",
+      "namePlaceholder": "John Doe",
+      "email": "Email",
+      "emailPlaceholder": "john.doe@example.com",
+      "phone": "Teléfono",
+      "phonePlaceholder": "123-456-7890",
+      "avatarUrl": "URL de Avatar",
+      "avatarUrlPlaceholder": "https://example.com/avatar.png",
+      "isActive": "Está Activo",
+      "cancel": "Cancelar",
+      "save": "Crear Usuario"
+    }
+  },
+  "UserColumns": {
+    "name": "Nombre",
+    "email": "Email",
+    "phone": "Teléfono",
+    "status": "Estado",
+    "actions": "Acciones",
+    "copyId": "Copiar ID de usuario",
+    "viewDetails": "Ver detalles",
+    "edit": "Editar usuario",
+    "delete": "Eliminar usuario"
+  },
+  "General": {
+    "noResults": "No hay resultados."
+  }
+}

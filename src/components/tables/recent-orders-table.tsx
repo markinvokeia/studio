@@ -7,8 +7,10 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Order } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useTranslations } from 'next-intl';
+import React from 'react';
 
-const columns: ColumnDef<Order>[] = [
+const getColumns = (t: (key: string) => string): ColumnDef<Order>[] => [
   {
     accessorKey: 'id',
     header: ({ column }) => (
@@ -24,7 +26,7 @@ const columns: ColumnDef<Order>[] = [
   {
     accessorKey: 'status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
+      <DataTableColumnHeader column={column} title={t('UserColumns.status')} />
     ),
     cell: ({ row }) => {
       const status = row.getValue('status') as string;
@@ -51,11 +53,14 @@ interface RecentOrdersTableProps {
 }
 
 export function RecentOrdersTable({ orders, onRefresh, isRefreshing }: RecentOrdersTableProps) {
+  const tDashboard = useTranslations('Dashboard.recentOrders');
+  const t = useTranslations();
+  const columns = React.useMemo(() => getColumns(t), [t]);
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Orders</CardTitle>
-        <CardDescription>An overview of the latest orders.</CardDescription>
+        <CardTitle>{tDashboard('title')}</CardTitle>
+        <CardDescription>{tDashboard('description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <DataTable
@@ -70,5 +75,3 @@ export function RecentOrdersTable({ orders, onRefresh, isRefreshing }: RecentOrd
     </Card>
   );
 }
-
-    

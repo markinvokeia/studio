@@ -1,6 +1,7 @@
 
 'use client';
 
+import * as React from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -25,9 +26,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { DocumentTextIcon } from '../icons/document-text-icon';
+import { useTranslations } from 'next-intl';
 
-
-const columns: ColumnDef<Quote>[] = [
+const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
   {
     id: 'select',
     header: () => null,
@@ -59,7 +60,7 @@ const columns: ColumnDef<Quote>[] = [
   {
     accessorKey: 'user_name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="User" />
+      <DataTableColumnHeader column={column} title={t('UserColumns.name')} />
     ),
   },
   {
@@ -79,7 +80,7 @@ const columns: ColumnDef<Quote>[] = [
   {
     accessorKey: 'status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
+      <DataTableColumnHeader column={column} title={t('UserColumns.status')} />
     ),
     cell: ({ row }) => {
       const status = row.getValue('status') as string;
@@ -102,7 +103,7 @@ const columns: ColumnDef<Quote>[] = [
   {
     accessorKey: 'payment_status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Payment" />
+      <DataTableColumnHeader column={column} title={t('Navigation.Payments')} />
     ),
      cell: ({ row }) => {
       const status = row.getValue('payment_status') as string;
@@ -122,7 +123,7 @@ const columns: ColumnDef<Quote>[] = [
   {
     accessorKey: 'billing_status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Billing Status" />
+      <DataTableColumnHeader column={column} title={t('Navigation.SalesAndBilling')} />
     ),
      cell: ({ row }) => {
       const status = row.getValue('billing_status') as string;
@@ -152,16 +153,17 @@ const columns: ColumnDef<Quote>[] = [
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem>View Details</DropdownMenuItem>
-            <DropdownMenuItem>Edit</DropdownMenuItem>
-            <DropdownMenuItem>Delete</DropdownMenuItem>
+            <DropdownMenuLabel>{t('UserColumns.actions')}</DropdownMenuLabel>
+            <DropdownMenuItem>{t('UserColumns.viewDetails')}</DropdownMenuItem>
+            <DropdownMenuItem>{t('UserColumns.edit')}</DropdownMenuItem>
+            <DropdownMenuItem>{t('UserColumns.delete')}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
     },
   },
 ];
+
 
 interface RecentQuotesTableProps {
   quotes: Quote[];
@@ -172,14 +174,17 @@ interface RecentQuotesTableProps {
 }
 
 export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRefresh, isRefreshing }: RecentQuotesTableProps) {
+  const tDashboard = useTranslations('Dashboard.recentQuotes');
+  const t = useTranslations();
+  const columns = React.useMemo(() => getColumns(t), [t]);
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
             <DocumentTextIcon className="h-6 w-6 text-amber-500" />
-            <CardTitle>Recent Quotes</CardTitle>
+            <CardTitle>{tDashboard('title')}</CardTitle>
         </div>
-        <CardDescription>An overview of the latest quotes.</CardDescription>
+        <CardDescription>{tDashboard('description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <DataTable

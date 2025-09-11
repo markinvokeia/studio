@@ -12,6 +12,7 @@ import {
 import { Skeleton } from '../ui/skeleton';
 import { Progress } from '../ui/progress';
 import { TagIcon } from '../icons/tag-icon';
+import { useTranslations } from 'next-intl';
 
 interface SalesByServiceChartProps {
     chartData: SalesByServiceChartData[];
@@ -19,12 +20,13 @@ interface SalesByServiceChartProps {
 }
 
 export function SalesByServiceChart({ chartData, isLoading }: SalesByServiceChartProps) {
+  const t = useTranslations('Dashboard.salesByService');
   if (isLoading) {
     return (
         <Card className='lg:col-span-1'>
             <CardHeader>
-                <CardTitle>Sales by Service</CardTitle>
-                <CardDescription>Top performing services</CardDescription>
+                <CardTitle>{t('title')}</CardTitle>
+                <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <Skeleton className="h-8 w-full" />
@@ -41,9 +43,9 @@ export function SalesByServiceChart({ chartData, isLoading }: SalesByServiceChar
       <CardHeader>
         <div className="flex items-center gap-2">
             <TagIcon className="h-6 w-6 text-violet-500" />
-            <CardTitle>Sales by Service</CardTitle>
+            <CardTitle>{t('title')}</CardTitle>
         </div>
-        <CardDescription>Top performing services by percentage</CardDescription>
+        <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {chartData.length > 0 ? chartData.map((service) => (

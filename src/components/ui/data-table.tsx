@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/table';
 import { DataTablePagination } from './data-table-pagination';
 import { DataTableToolbar } from './data-table-toolbar';
+import { useTranslations } from 'next-intl';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -72,6 +73,7 @@ export function DataTable<TData, TValue>({
   sorting: controlledSorting,
   onSortingChange: setControlledSorting,
 }: DataTableProps<TData, TValue>) {
+  const t = useTranslations('General');
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
   const [internalColumnVisibility, setInternalColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -171,7 +173,7 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  {t('noResults')}
                 </TableCell>
               </TableRow>
             )}

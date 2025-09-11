@@ -3,6 +3,7 @@
 
 import * as React from 'react';
 import { Pie, PieChart, Cell, Legend } from 'recharts';
+import { useTranslations } from 'next-intl';
 
 import {
   Card,
@@ -55,6 +56,7 @@ interface InvoiceStatusChartProps {
 }
 
 export function InvoiceStatusChart({ chartData, isLoading }: InvoiceStatusChartProps) {
+  const t = useTranslations('Dashboard.invoiceStatus');
   const totalValue = React.useMemo(() => {
     return chartData.reduce((acc, curr) => acc + curr.value, 0);
   }, [chartData]);
@@ -63,8 +65,8 @@ export function InvoiceStatusChart({ chartData, isLoading }: InvoiceStatusChartP
     return (
         <Card className="flex h-full flex-col lg:col-span-1">
             <CardHeader>
-                <CardTitle>Invoice Status</CardTitle>
-                <CardDescription>Current state of all invoices</CardDescription>
+                <CardTitle>{t('title')}</CardTitle>
+                <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 pb-0 flex items-center justify-center">
                  <Skeleton className="h-[200px] w-[200px] rounded-full" />
@@ -81,9 +83,9 @@ export function InvoiceStatusChart({ chartData, isLoading }: InvoiceStatusChartP
       <CardHeader>
         <div className="flex items-center gap-2">
           <DocumentCheckIcon className="h-6 w-6 text-emerald-500" />
-          <CardTitle>Invoice Status</CardTitle>
+          <CardTitle>{t('title')}</CardTitle>
         </div>
-        <CardDescription>Current state of all invoices</CardDescription>
+        <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         <ChartContainer
@@ -115,7 +117,7 @@ export function InvoiceStatusChart({ chartData, isLoading }: InvoiceStatusChartP
       </CardContent>
       <CardFooter className="flex-col gap-1.5 pb-6 pt-4">
         <div className="flex items-center justify-center text-xs text-muted-foreground">
-          Total Invoices: {totalValue}
+          {t('totalInvoices', {total: totalValue})}
         </div>
       </CardFooter>
     </Card>
