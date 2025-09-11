@@ -8,7 +8,7 @@ import { PaymentsTable } from '@/components/tables/payments-table';
 
 async function getPayments(): Promise<Payment[]> {
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/payments`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_payments`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
