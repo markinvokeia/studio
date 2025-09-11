@@ -1,53 +1,15 @@
-import type { Metadata } from 'next';
-import './globals.css';
-import { Toaster } from '@/components/ui/toaster';
-import { Sidebar } from '@/components/sidebar';
-import { Header } from '@/components/header';
-import { FloatingActionsWrapper } from '@/components/floating-actions-wrapper';
-import { ThemeProvider } from '@/components/theme-provider';
-import { SidebarProvider } from '@/hooks/use-sidebar';
+import {ReactNode} from 'react';
+import {notFound} from 'next/navigation';
+import {locales} from '../i18n';
 
-export const metadata: Metadata = {
-  title: 'InvokeAI Command Center',
-  description: 'AI-powered command center for your business data.',
+type Props = {
+  children: ReactNode;
+  params: {locale: string};
 };
 
-export default function RootLayout({
-  children,
-  params,
-}: Readonly<{
-  children: React.ReactNode;
-  params: { locale: string };
-}>) {
-  return (
-    <html lang={params.locale} suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-body antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-        <SidebarProvider>
-          <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr]">
-              <Sidebar />
-              <div className="flex flex-col">
-                <Header />
-                <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-                  {children}
-                </main>
-              </div>
-          </div>
-          <Toaster />
-          <FloatingActionsWrapper />
-        </SidebarProvider>
-        </ThemeProvider>
-      </body>
-    </html>
-  );
+export default function LocaleLayout({children, params: {locale}}: Props) {
+  // Validate that the incoming `locale` parameter is valid
+  if (!locales.includes(locale as any)) notFound();
+
+  return children
 }

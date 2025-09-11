@@ -3,7 +3,8 @@ import { locales } from './i18n';
 
 export default createMiddleware({
   locales,
-  defaultLocale: 'en'
+  defaultLocale: 'en',
+  localePrefix: 'always'
 });
 
 export const config = {
