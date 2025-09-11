@@ -27,36 +27,27 @@ export default function LocaleLayout({
   
   const messages = useMessages();
   return (
-    <html lang={params.locale} suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-body antialiased">
-        <NextIntlClientProvider locale={params.locale} messages={messages}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-          <SidebarProvider>
-            <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr]">
-                <Sidebar />
-                <div className="flex flex-col">
-                  <Header />
-                  <main className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
-                    {children}
-                  </main>
-                </div>
+    <NextIntlClientProvider locale={params.locale} messages={messages}>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
+      <SidebarProvider>
+        <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr]">
+            <Sidebar />
+            <div className="flex flex-col">
+              <Header />
+              <main className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
+                {children}
+              </main>
             </div>
-            <Toaster />
-            <FloatingActionsWrapper />
-          </SidebarProvider>
-          </ThemeProvider>
-        </NextIntlClientProvider>
-      </body>
-    </html>
+        </div>
+        <Toaster />
+        <FloatingActionsWrapper />
+      </SidebarProvider>
+      </ThemeProvider>
+    </NextIntlClientProvider>
   );
 }
