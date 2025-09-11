@@ -42,9 +42,6 @@
     "logout": "Cerrar Sesión",
     "commandPlaceholder": "Introduce un comando..."
   },
-  "DashboardPage": {
-    "title": "Dashboard"
-  },
   "ReportFilters": {
     "apply": "Aplicar Filtros",
     "filterBy": "Filtrar por...",
