@@ -38,6 +38,12 @@ const columns: ColumnDef<Invoice>[] = [
     ),
   },
   {
+    accessorKey: 'user_name',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="User" />
+    ),
+  },
+  {
     accessorKey: 'total',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Total" />
