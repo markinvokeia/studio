@@ -62,7 +62,7 @@ const columns: ColumnDef<Order>[] = [
         pending: 'info',
         processing: 'default',
         cancelled: 'destructive',
-      }[status.toLowerCase()] ?? ('default' as any);
+      }[status?.toLowerCase() ?? ''] ?? ('default' as any);
 
       return (
         <Badge variant={variant} className="capitalize">
@@ -76,6 +76,7 @@ const columns: ColumnDef<Order>[] = [
     header: ({ column }) => <DataTableColumnHeader column={column} title="Payment" />,
     cell: ({ row }) => {
       const status = row.original.payment_status;
+       if (!status) return null;
       const variant = {
         paid: 'success',
         partial: 'info',
@@ -89,6 +90,7 @@ const columns: ColumnDef<Order>[] = [
     header: ({ column }) => <DataTableColumnHeader column={column} title="Billing" />,
     cell: ({ row }) => {
       const status = row.original.billing_status;
+      if (!status) return null;
       const variant = {
         invoiced: 'success',
         partially_invoiced: 'info',
