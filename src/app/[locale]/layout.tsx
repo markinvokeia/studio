@@ -18,16 +18,15 @@ export const metadata: Metadata = {
 
 export default function LocaleLayout({
   children,
-  params,
+  params: { locale },
 }: Readonly<{
   children: React.ReactNode;
   params: { locale: string };
 }>) {
-  // Validate that the incoming `locale` parameter is valid
-  if (!locales.includes(params.locale as any)) notFound();
+  // `next-intl` will automatically validate that the locale parameter is valid
   
   const messages = useMessages();
-  console.log('Loaded messages for locale', params.locale, Object.keys(messages));
+  console.log('Loaded messages for locale', locale, Object.keys(messages));
 
   return (
       <ThemeProvider
@@ -36,7 +35,7 @@ export default function LocaleLayout({
         enableSystem
         disableTransitionOnChange
       >
-      <NextIntlClientProvider locale={params.locale} messages={messages}>
+      <NextIntlClientProvider locale={locale} messages={messages}>
         <SidebarProvider>
             <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr]">
                 <Sidebar />
