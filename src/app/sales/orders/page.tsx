@@ -15,7 +15,7 @@ import { RefreshCw } from 'lucide-react';
 
 async function getOrders(): Promise<Order[]> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/orders', {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_orders', {
              method: 'GET',
              mode: 'cors',
              headers: { 'Accept': 'application/json' },
