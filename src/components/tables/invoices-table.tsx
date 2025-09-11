@@ -81,7 +81,7 @@ const columns: ColumnDef<Invoice>[] = [
         sent: 'default',
         draft: 'outline',
         overdue: 'destructive',
-      }[status.toLowerCase()] ?? ('default' as any);
+      }[status?.toLowerCase()] ?? ('default' as any);
 
       return (
         <Badge variant={variant} className="capitalize">
@@ -99,7 +99,7 @@ const columns: ColumnDef<Invoice>[] = [
         paid: 'success',
         partial: 'info',
         unpaid: 'outline',
-      }[status.toLowerCase()] ?? ('default' as any);
+      }[status?.toLowerCase()] ?? ('default' as any);
       return <Badge variant={variant} className="capitalize">{status}</Badge>;
     },
   },
