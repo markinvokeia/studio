@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -28,9 +27,7 @@ import { DocumentTextIcon } from '../icons/document-text-icon';
 import { useTranslations } from 'next-intl';
 
 const getColumns = (
-    tUser: (key: string) => string,
-    tQuote: (key: string) => string,
-    tNav: (key: string) => string
+    t: (key: string) => string
 ): ColumnDef<Quote>[] => [
   {
     id: 'select',
@@ -56,20 +53,20 @@ const getColumns = (
   {
     accessorKey: 'id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={tQuote('quoteId')} />
+      <DataTableColumnHeader column={column} title={t('QuoteColumns.quoteId')} />
     ),
     size: 50,
   },
   {
     accessorKey: 'user_name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={tUser('name')} />
+      <DataTableColumnHeader column={column} title={t('UserColumns.name')} />
     ),
   },
   {
     accessorKey: 'total',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={tQuote('total')} />
+      <DataTableColumnHeader column={column} title={t('QuoteColumns.total')} />
     ),
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue('total'));
@@ -83,7 +80,7 @@ const getColumns = (
   {
     accessorKey: 'status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={tUser('status')} />
+      <DataTableColumnHeader column={column} title={t('UserColumns.status')} />
     ),
     cell: ({ row }) => {
       const status = row.getValue('status') as string;
@@ -106,7 +103,7 @@ const getColumns = (
   {
     accessorKey: 'payment_status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={tNav('Payments')} />
+      <DataTableColumnHeader column={column} title={t('Navigation.Payments')} />
     ),
      cell: ({ row }) => {
       const status = row.getValue('payment_status') as string;
@@ -126,7 +123,7 @@ const getColumns = (
   {
     accessorKey: 'billing_status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={tQuote('billingStatus')} />
+      <DataTableColumnHeader column={column} title={t('QuoteColumns.billingStatus')} />
     ),
      cell: ({ row }) => {
       const status = row.getValue('billing_status') as string;
@@ -179,30 +176,24 @@ interface RecentQuotesTableProps {
 }
 
 export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRefresh, isRefreshing }: RecentQuotesTableProps) {
-  const t = useTranslations('RecentQuotesTable');
+  const t = useTranslations();
   console.log('Translations for RecentQuotesTable loaded.');
-  const tUserColumns = useTranslations('UserColumns');
-  console.log('Translations for UserColumns loaded.');
-  const tQuoteColumns = useTranslations('QuoteColumns');
-  console.log('Translations for QuoteColumns loaded.');
-  const tNav = useTranslations('Navigation');
-  console.log('Translations for Navigation loaded.');
-  const columns = React.useMemo(() => getColumns(tUserColumns, tQuoteColumns, tNav), [tUserColumns, tQuoteColumns, tNav]);
+  const columns = React.useMemo(() => getColumns(t), [t]);
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
             <DocumentTextIcon className="h-6 w-6 text-amber-500" />
-            <CardTitle>{t('title')}</CardTitle>
+            <CardTitle>{t('RecentQuotesTable.title')}</CardTitle>
         </div>
-        <CardDescription>{t('description')}</CardDescription>
+        <CardDescription>{t('RecentQuotesTable.description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <DataTable
           columns={columns}
           data={quotes}
           filterColumnId="user_name"
-          filterPlaceholder={t('filterPlaceholder')}
+          filterPlaceholder={t('RecentQuotesTable.filterPlaceholder')}
           onRowSelectionChange={onRowSelectionChange}
           enableSingleRowSelection={onRowSelectionChange ? true : false}
           onCreate={onCreate}

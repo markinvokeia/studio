@@ -1,4 +1,3 @@
-
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
@@ -44,7 +43,7 @@ export const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
   {
     accessorKey: 'name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('name')} />
+      <DataTableColumnHeader column={column} title={t('UserColumns.name')} />
     ),
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
@@ -62,19 +61,19 @@ export const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
   {
     accessorKey: 'email',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('email')} />
+      <DataTableColumnHeader column={column} title={t('UserColumns.email')} />
     ),
   },
   {
     accessorKey: 'phone_number',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('phone')} />
+      <DataTableColumnHeader column={column} title={t('UserColumns.phone')} />
     ),
   },
   {
     accessorKey: 'is_active',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('status')} />
+      <DataTableColumnHeader column={column} title={t('UserColumns.status')} />
     ),
     cell: ({ row }) => (
       <Badge variant={row.getValue('is_active') ? 'default' : 'outline'}>
@@ -116,7 +115,7 @@ export const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
 
 
 export function UserColumnsWrapper() {
-    const t = useTranslations('UserColumns');
+    const t = useTranslations();
     console.log('Translations for UserColumns loaded.');
     const columns = React.useMemo(() => getColumns(t), [t]);
     return columns;

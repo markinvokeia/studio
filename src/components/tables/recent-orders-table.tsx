@@ -1,4 +1,3 @@
-
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
@@ -11,31 +10,30 @@ import { useTranslations } from 'next-intl';
 import React from 'react';
 
 const getColumns = (
-    tUser: (key: string) => string,
-    tOrder: (key: string) => string
+    t: (key: string) => string
 ): ColumnDef<Order>[] => [
   {
     accessorKey: 'id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={tOrder('orderId')} />
+      <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />
     ),
   },
    {
     accessorKey: 'user_name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={tUser('name')} />
+      <DataTableColumnHeader column={column} title={t('UserColumns.name')} />
     ),
   },
   {
     accessorKey: 'createdAt',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={tOrder('createdAt')} />
+      <DataTableColumnHeader column={column} title={t('OrderColumns.createdAt')} />
     ),
   },
   {
     accessorKey: 'status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={tUser('status')} />
+      <DataTableColumnHeader column={column} title={t('UserColumns.status')} />
     ),
     cell: ({ row }) => {
       const status = row.getValue('status') as string;
@@ -62,26 +60,22 @@ interface RecentOrdersTableProps {
 }
 
 export function RecentOrdersTable({ orders, onRefresh, isRefreshing }: RecentOrdersTableProps) {
-  const t = useTranslations('RecentOrdersTable');
+  const t = useTranslations();
   console.log('Translations for RecentOrdersTable loaded.');
-  const tUserColumns = useTranslations('UserColumns');
-  console.log('Translations for UserColumns loaded.');
-  const tOrderColumns = useTranslations('OrderColumns');
-  console.log('Translations for OrderColumns loaded.');
-  const columns = React.useMemo(() => getColumns(tUserColumns, tOrderColumns), [tUserColumns, tOrderColumns]);
+  const columns = React.useMemo(() => getColumns(t), [t]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('title')}</CardTitle>
-        <CardDescription>{t('description')}</CardDescription>
+        <CardTitle>{t('RecentOrdersTable.title')}</CardTitle>
+        <CardDescription>{t('RecentOrdersTable.description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <DataTable
           columns={columns}
           data={orders}
           filterColumnId="id"
-          filterPlaceholder={t('filterPlaceholder')}
+          filterPlaceholder={t('RecentOrdersTable.filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
         />

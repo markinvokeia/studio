@@ -1,4 +1,3 @@
-
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
@@ -21,7 +20,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
   {
     accessorKey: 'name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('name')} />
+      <DataTableColumnHeader column={column} title={t('UserColumns.name')} />
     ),
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
@@ -39,13 +38,13 @@ const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
   {
     accessorKey: 'email',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('email')} />
+      <DataTableColumnHeader column={column} title={t('UserColumns.email')} />
     ),
   },
   {
     accessorKey: 'is_active',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('status')} />
+      <DataTableColumnHeader column={column} title={t('UserColumns.status')} />
     ),
     cell: ({ row }) => (
       <Badge variant={row.getValue('is_active') ? 'default' : 'outline'}>
@@ -62,24 +61,22 @@ interface NewUsersTableProps {
 }
 
 export function NewUsersTable({ users, onRefresh, isRefreshing }: NewUsersTableProps) {
-  const t = useTranslations('NewUsersTable');
+  const t = useTranslations();
   console.log('Translations for NewUsersTable loaded.');
-  const tColumns = useTranslations('UserColumns');
-  console.log('Translations for UserColumns loaded.');
-  const columns = React.useMemo(() => getColumns(tColumns), [tColumns]);
+  const columns = React.useMemo(() => getColumns(t), [t]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('title')}</CardTitle>
-        <CardDescription>{t('description')}</CardDescription>
+        <CardTitle>{t('NewUsersTable.title')}</CardTitle>
+        <CardDescription>{t('NewUsersTable.description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <DataTable
           columns={columns}
           data={users}
           filterColumnId="name"
-          filterPlaceholder={t('filterPlaceholder')}
+          filterPlaceholder={t('NewUsersTable.filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
         />
