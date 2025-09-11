@@ -32,7 +32,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { CommandBar } from './command-bar';
 import { Nav } from './nav';
 import { navItems } from '@/config/nav';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
@@ -132,7 +131,6 @@ export function Header() {
         </BreadcrumbList>
       </Breadcrumb>
       <div className="relative ml-auto flex flex-1 items-center justify-end gap-2 md:grow-0">
-        <CommandBar />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon">
