@@ -16,6 +16,18 @@ export function Sidebar() {
         setIsClient(true);
     }, []);
 
+    if (!isClient) {
+        return (
+            <aside className={cn(
+                "hidden flex-col border-r bg-gray-900 text-white transition-all duration-300 ease-in-out sm:flex",
+                "w-64" // Default to non-minimized width on server
+            )}>
+                {/* Render a placeholder or nothing on the server to avoid hydration mismatch */}
+            </aside>
+        );
+    }
+
+
   return (
     <aside className={cn(
         "hidden flex-col border-r bg-gray-900 text-white transition-all duration-300 ease-in-out sm:flex",
