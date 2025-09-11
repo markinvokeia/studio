@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -442,6 +443,7 @@ export default function QuotesPage() {
                                         isLoading={isLoadingPayments}
                                         onRefresh={loadPayments}
                                         isRefreshing={isLoadingPayments}
+                                        columnsToHide={['quote_id', 'order_id', 'user_name']}
                                     />
                                 </TabsContent>
                             </Tabs>

@@ -96,9 +96,10 @@ interface PaymentsTableProps {
   isLoading?: boolean;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  columnsToHide?: string[];
 }
 
-export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [] }: PaymentsTableProps) {
     if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
@@ -109,11 +110,13 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
       </div>
     );
   }
+  const filteredColumns = columns.filter(col => !columnsToHide.includes(col.accessorKey as string));
+  
   return (
     <Card>
       <CardContent className="p-4">
         <DataTable
-          columns={columns}
+          columns={filteredColumns}
           data={payments}
           filterColumnId="invoice_id"
           filterPlaceholder="Filter by invoice ID..."
