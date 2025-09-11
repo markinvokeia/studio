@@ -30,9 +30,13 @@ async function getOrders(): Promise<Order[]> {
         return ordersData.map((apiOrder: any) => ({
             id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
             user_id: apiOrder.user_id,
+            quote_id: apiOrder.quote_id,
             user_name: apiOrder.user_name || 'N/A',
             status: apiOrder.status,
+            payment_status: apiOrder.payment_status,
+            billing_status: apiOrder.billing_status,
             createdAt: apiOrder.createdAt || new Date().toISOString().split('T')[0],
+            updatedAt: apiOrder.updatedAt || new Date().toISOString().split('T')[0],
         }));
     } catch (error) {
         console.error("Failed to fetch orders:", error);
@@ -84,9 +88,13 @@ async function getInvoicesForOrder(orderId: string): Promise<Invoice[]> {
         const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
         return invoicesData.map((apiInvoice: any) => ({
             id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
+            order_id: apiInvoice.order_id,
+            user_name: apiInvoice.user_name || 'N/A',
             total: apiInvoice.total || 0,
             status: apiInvoice.status || 'draft',
+            payment_status: apiInvoice.payment_status || 'unpaid',
             createdAt: apiInvoice.createdAt || new Date().toISOString().split('T')[0],
+            updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
         }));
     } catch (error) {
         console.error("Failed to fetch invoices for order:", error);
@@ -108,11 +116,14 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
             id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
+            order_id: apiPayment.order_id,
             invoice_id: apiPayment.invoice_id,
+            user_name: apiPayment.user_name || 'N/A',
             amount: apiPayment.amount || 0,
             method: apiPayment.method || 'credit_card',
             status: apiPayment.status || 'pending',
             createdAt: apiPayment.createdAt || new Date().toISOString().split('T')[0],
+            updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
         }));
     } catch (error) {
         console.error("Failed to fetch payments for order:", error);

@@ -38,16 +38,16 @@ const columns: ColumnDef<Order>[] = [
       <DataTableColumnHeader column={column} title="Order ID" />
     ),
   },
+   {
+    accessorKey: 'quote_id',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Quote ID" />
+    ),
+  },
     {
     accessorKey: 'user_name',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="User" />
-    ),
-  },
-  {
-    accessorKey: 'createdAt',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created At" />
     ),
   },
   {
@@ -70,6 +70,44 @@ const columns: ColumnDef<Order>[] = [
         </Badge>
       );
     },
+  },
+  {
+    accessorKey: 'payment_status',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Payment" />,
+    cell: ({ row }) => {
+      const status = row.original.payment_status;
+      const variant = {
+        paid: 'success',
+        partial: 'info',
+        unpaid: 'outline',
+      }[status.toLowerCase()] ?? ('default' as any);
+      return <Badge variant={variant} className="capitalize">{status}</Badge>;
+    },
+  },
+  {
+    accessorKey: 'billing_status',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Billing" />,
+    cell: ({ row }) => {
+      const status = row.original.billing_status;
+      const variant = {
+        invoiced: 'success',
+        partially_invoiced: 'info',
+        not_invoiced: 'outline',
+      }[status.toLowerCase()] ?? ('default' as any);
+      return <Badge variant={variant} className="capitalize">{status.replace(/_/g, ' ')}</Badge>;
+    },
+  },
+  {
+    accessorKey: 'createdAt',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Created At" />
+    ),
+  },
+  {
+    accessorKey: 'updatedAt',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Updated At" />
+    ),
   },
 ];
 

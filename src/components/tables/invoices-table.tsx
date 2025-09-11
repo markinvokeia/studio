@@ -37,10 +37,16 @@ const columns: ColumnDef<Invoice>[] = [
       <DataTableColumnHeader column={column} title="Invoice ID" />
     ),
   },
-   {
-    accessorKey: 'createdAt',
+  {
+    accessorKey: 'order_id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created At" />
+      <DataTableColumnHeader column={column} title="Order ID" />
+    ),
+  },
+  {
+    accessorKey: 'user_name',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="User" />
     ),
   },
   {
@@ -77,6 +83,31 @@ const columns: ColumnDef<Invoice>[] = [
         </Badge>
       );
     },
+  },
+  {
+    accessorKey: 'payment_status',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Payment" />,
+    cell: ({ row }) => {
+      const status = row.original.payment_status;
+      const variant = {
+        paid: 'success',
+        partial: 'info',
+        unpaid: 'outline',
+      }[status.toLowerCase()] ?? ('default' as any);
+      return <Badge variant={variant} className="capitalize">{status}</Badge>;
+    },
+  },
+   {
+    accessorKey: 'createdAt',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Created At" />
+    ),
+  },
+  {
+    accessorKey: 'updatedAt',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Updated At" />
+    ),
   },
 ];
 

@@ -17,15 +17,21 @@ const columns: ColumnDef<Payment>[] = [
     ),
   },
   {
+    accessorKey: 'order_id',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Order ID" />
+    ),
+  },
+  {
     accessorKey: 'invoice_id',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Invoice ID" />
     ),
   },
   {
-    accessorKey: 'createdAt',
+    accessorKey: 'user_name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Date" />
+      <DataTableColumnHeader column={column} title="User" />
     ),
   },
   {
@@ -51,6 +57,31 @@ const columns: ColumnDef<Payment>[] = [
       const method = row.getValue('method') as string;
       return <div className="capitalize">{method.replace(/_/g, ' ')}</div>;
     },
+  },
+  {
+    accessorKey: 'status',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    cell: ({ row }) => {
+      const status = row.original.status;
+      const variant = {
+        completed: 'success',
+        pending: 'info',
+        failed: 'destructive',
+      }[status.toLowerCase()] ?? ('default' as any);
+      return <Badge variant={variant} className="capitalize">{status}</Badge>;
+    },
+  },
+  {
+    accessorKey: 'createdAt',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Created At" />
+    ),
+  },
+  {
+    accessorKey: 'updatedAt',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Updated At" />
+    ),
   },
 ];
 

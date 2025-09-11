@@ -1,5 +1,4 @@
 
-
 export type User = {
   id: string;
   name: string;
@@ -46,6 +45,7 @@ export type Quote = {
   user_name?: string;
   userEmail?: string;
   createdAt: string;
+  updatedAt: string;
 };
 
 export type QuoteItem = {
@@ -60,9 +60,13 @@ export type QuoteItem = {
 export type Order = {
   id: string;
   user_id: string;
+  quote_id: string;
   user_name?: string;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  payment_status: 'unpaid' | 'paid' | 'partial';
+  billing_status: 'not_invoiced' | 'partially_invoiced' | 'invoiced';
   createdAt: string;
+  updatedAt: string;
 };
 
 export type OrderItem = {
@@ -80,9 +84,13 @@ export type OrderItem = {
 
 export type Invoice = {
   id: string;
+  order_id: string;
+  user_name: string;
   total: number;
   status: 'draft' | 'sent' | 'paid' | 'overdue';
+  payment_status: 'unpaid' | 'paid' | 'partial';
   createdAt: string;
+  updatedAt: string;
 };
 
 export type InvoiceItem = {
@@ -96,11 +104,14 @@ export type InvoiceItem = {
 
 export type Payment = {
   id: string;
+  order_id: string;
   invoice_id: string;
+  user_name: string;
   amount: number;
   method: 'credit_card' | 'bank_transfer' | 'cash';
   status: 'pending' | 'completed' | 'failed';
   createdAt: string;
+  updatedAt: string;
 };
 
 export type Service = {
