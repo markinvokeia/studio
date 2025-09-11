@@ -91,12 +91,6 @@ const columns: ColumnDef<Invoice>[] = [
       <DataTableColumnHeader column={column} title="Created At" />
     ),
   },
-  {
-    accessorKey: 'updatedAt',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Updated At" />
-    ),
-  },
 ];
 
 interface InvoicesTableProps {
