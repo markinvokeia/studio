@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from 'lucide-react';
 import {
   AreaChart,
@@ -51,8 +52,6 @@ export const navItems: NavItem[] = [
     icon: Users,
     items: [
       { title: 'Users', href: '/users', icon: Users, isChidren: true },
-      { title: 'Roles', href: '/roles', icon: KeyRound, isChidren: true },
-      { title: 'Permissions', href: '/permissions', icon: Shield, isChidren: true },
       { title: 'Clinic History', href: '/clinic-history/1', icon: HeartPulse, isChidren: true },
     ],
   },
@@ -101,6 +100,8 @@ export const navItems: NavItem[] = [
     href: '/system',
     icon: Shield,
     items: [
+      { title: 'Roles', href: '/roles', icon: KeyRound, isChidren: true },
+      { title: 'Permissions', href: '/permissions', icon: Shield, isChidren: true },
       { title: 'Configurations', href: '/system/config', icon: Settings, isChidren: true },
       { title: 'Audit Log', href: '/system/audit', icon: BarChart, isChidren: true },
       { title: 'Access Log', href: '/system/access', icon: UserCheck, isChidren: true },
