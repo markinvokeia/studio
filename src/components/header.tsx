@@ -86,9 +86,7 @@ export function Header() {
           {isLast ? (
             <BreadcrumbPage>{title}</BreadcrumbPage>
           ) : (
-            <BreadcrumbLink asChild>
-              <Link href={href}>{title}</Link>
-            </BreadcrumbLink>
+            <BreadcrumbPage className="text-muted-foreground">{title}</BreadcrumbPage>
           )}
         </BreadcrumbItem>
       </React.Fragment>
@@ -123,9 +121,7 @@ export function Header() {
       <Breadcrumb className="hidden md:flex">
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link href={`/${locale}`}>{tNav('Dashboard')}</Link>
-            </BreadcrumbLink>
+            <BreadcrumbPage className="text-muted-foreground">{tNav('Dashboard')}</BreadcrumbPage>
           </BreadcrumbItem>
           {breadcrumbItems}
         </BreadcrumbList>
