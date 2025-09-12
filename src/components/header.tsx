@@ -61,33 +61,24 @@ export function Header() {
   
   const navItemMap: { [key: string]: string } = {};
   navItems.forEach(item => {
-    if (item.href) navItemMap[item.href] = tNav(item.title as any);
+    if (item.href) navItemMap[item.href.replace('/', '')] = tNav(item.title as any);
     if (item.items) {
         item.items.forEach(subItem => {
-            if (subItem.href) navItemMap[subItem.href] = tNav(subItem.title as any);
+            if (subItem.href) navItemMap[subItem.href.replace('/', '')] = tNav(subItem.title as any);
         });
     }
   });
-  
+
   const breadcrumbItems = breadcrumbSegments.map((segment, index) => {
     const href = `/${locale}/${breadcrumbSegments.slice(0, index + 1).join('/')}`;
     const isLast = index === breadcrumbSegments.length - 1;
-    let title = segment.charAt(0).toUpperCase() + segment.slice(1);
-    
-    const navKey = `/${segment}`;
-    if (navItemMap[navKey]) {
-        title = navItemMap[navKey];
-    }
+    let title = navItemMap[segment] || segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
 
     return (
       <React.Fragment key={href}>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
-          {isLast ? (
-            <BreadcrumbPage>{title}</BreadcrumbPage>
-          ) : (
-            <BreadcrumbPage className="text-muted-foreground">{title}</BreadcrumbPage>
-          )}
+          <BreadcrumbPage className={isLast ? '' : "text-muted-foreground"}>{title}</BreadcrumbPage>
         </BreadcrumbItem>
       </React.Fragment>
     );
