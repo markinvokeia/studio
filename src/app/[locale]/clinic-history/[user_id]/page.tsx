@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -18,6 +16,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { OdontogramComponent } from '@/components/odontogram';
 
 
 const initialPatient = {
@@ -91,7 +90,7 @@ const DentalClinicalSystem = () => {
   const params = useParams();
   const userId = params.user_id as string;
 
-  const [activeView, setActiveView] = useState('anamnesis');
+  const [activeView, setActiveView] = useState('odontogram');
   const [selectedTooth, setSelectedTooth] = useState(null);
   const [selectedDate, setSelectedDate] = useState('2024-11-15');
   const [hoveredTooth, setHoveredTooth] = useState(null);
@@ -1784,125 +1783,7 @@ const DentalClinicalSystem = () => {
             <div className="px-6 pb-8">
                 <div className="space-y-6">
                     {activeView === 'odontogram' && (
-                    <div className="space-y-6">
-                        <div className="bg-white rounded-xl shadow-lg p-4">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-bold text-gray-800">Odontograma ISO 3950 + Periodontograma AAP 2017</h3>
-                            <div className="flex items-center space-x-4">
-                            <label className="flex items-center space-x-2">
-                                <input
-                                type="checkbox"
-                                checked={compareMode}
-                                onChange={(e) => setCompareMode(e.target.checked)}
-                                className="rounded"
-                                />
-                                <span className="text-sm">Comparación temporal</span>
-                            </label>
-                            {compareMode && (
-                                <select
-                                value={compareDate}
-                                onChange={(e) => setCompareDate(e.target.value)}
-                                className="border border-gray-300 rounded px-3 py-1 text-sm"
-                                >
-                                <option value="2024-01-15">Enero 2024</option>
-                                </select>
-                            )}
-                            <div className="flex items-center space-x-2">
-                                <Shield className="w-4 h-4 text-green-600" />
-                                <span className="text-sm text-gray-600">ISO + AAP Certified</span>
-                            </div>
-                            </div>
-                        </div>
-                        
-                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3">
-                            <div className="flex items-center space-x-4 text-sm">
-                            <div className="flex items-center space-x-2">
-                                <Shield className="w-4 h-4 text-blue-600" />
-                                <span className="font-medium">ISO 3950/1942</span>
-                                <span className="text-gray-600">- Nomenclatura y Simbología Internacional</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <Award className="w-4 h-4 text-purple-600" />
-                                <span className="font-medium">AAP/EFP 2017</span>
-                                <span className="text-gray-600">- Clasificación Periodontal Moderna</span>
-                            </div>
-                            </div>
-                        </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className='space-y-6'>
-                            {selectedTooth && (
-                            <ToothDetails
-                                toothNumber={selectedTooth}
-                                data={odontogramData[selectedDate]}
-                            />
-                            )}
-                            {selectedTooth && periodontogramData[selectedDate] && periodontogramData[selectedDate][selectedTooth] ? (
-                            <Periodontogram
-                                data={periodontogramData[selectedDate]}
-                                tooth={selectedTooth}
-                                onPointClick={setSelectedPoint}
-                                onPointHover={setHoveredPoint}
-                            />
-                            ) : (
-                            <div className="bg-white rounded-xl shadow-lg p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-xl font-bold text-gray-800">Periodontograma AAP 2017</h3>
-                                <div className="flex items-center space-x-2">
-                                    <Award className="w-4 h-4 text-purple-600" />
-                                    <span className="text-sm text-gray-600">AAP/EFP 2017</span>
-                                </div>
-                                </div>
-                                <div className="text-center py-12">
-                                <BarChart3 className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                                <p className="text-gray-600 mb-4">
-                                    Selecciona un diente para ver su periodontograma
-                                </p>
-                                <div className="text-sm text-gray-500 mb-4">
-                                    Disponible para dientes: <br/>
-                                    <span className="font-mono bg-gray-100 px-2 py-1 rounded">16, 26, 36, 46</span>
-                                </div>
-                                <div className="bg-purple-50 rounded-lg p-3 text-sm">
-                                    <div className="flex items-center justify-center space-x-2 mb-2">
-                                    <Award className="w-4 h-4 text-purple-600" />
-                                    <span className="font-medium">Clasificación AAP/EFP 2017</span>
-                                    </div>
-                                    <div className="text-gray-600">
-                                    6 puntos de sondaje • Estadios I-IV • Grados A-C
-                                    </div>
-                                </div>
-                                </div>
-                            </div>
-                            )}
-                        </div>
-                        <div>
-                            {compareMode ? (
-                            <div className="space-y-4">
-                                <Odontogram
-                                data={odontogramData[selectedDate]}
-                                onToothClick={setSelectedTooth}
-                                selectedTooth={selectedTooth}
-                                title={`Estado Actual (${selectedDate})`}
-                                />
-                                <Odontogram
-                                data={odontogramData[compareDate]}
-                                onToothClick={() => {}}
-                                selectedTooth={null}
-                                title={`Estado Anterior (${compareDate})`}
-                                />
-                            </div>
-                            ) : (
-                            <Odontogram
-                                data={odontogramData[selectedDate]}
-                                onToothClick={setSelectedTooth}
-                                selectedTooth={selectedTooth}
-                                title="Odontograma Interactivo ISO 3950"
-                            />
-                            )}
-                        </div>
-                        </div>
-                    </div>
+                        <OdontogramComponent />
                     )}
 
                     {activeView === 'anamnesis' && <AnamnesisDashboard />}
@@ -1936,23 +1817,3 @@ const DentalClinicalSystem = () => {
 };
 
 export default DentalClinicalSystem;
-
-
-    
-
-    
-
-
-
-
-
-
-
-
-
- 
-
-    
-
-    
-

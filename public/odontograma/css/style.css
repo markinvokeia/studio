@@ -1,0 +1,37 @@
+#wrapper
+{
+	width:100%;
+	overflow:hidden;
+}
+
+#container
+{
+	width:100%;
+	margin:0px auto;
+}
+
+#cuadrante_1, #cuadrante_2, #cuadrante_3, #cuadrante_4
+{
+	width: 50%;
+	float:left;
+	overflow:hidden;
+}
+
+#paleta
+{
+	width:100%;
+	margin:0px auto;
+}
+.row
+{
+	width:100%;
+	overflow:hidden;
+}
+.colors
+{
+	width:50px;
+	height:50px;
+	border:2px solid #000;
+	float:left;
+	margin:5px;
+}
