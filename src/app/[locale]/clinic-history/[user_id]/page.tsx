@@ -1617,33 +1617,6 @@ const DentalClinicalSystem = () => {
                         )}
                     </div>
                 </div>
-            </div>
-
-            <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                    <div className="flex items-center mb-4">
-                        <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
-                        <h3 className="text-lg font-bold text-gray-800">Alergias</h3>
-                    </div>
-                    <div className="space-y-3">
-                        {isLoadingAllergies ? (
-                            <p>Loading allergies...</p>
-                        ) : allergies.length > 0 ? (
-                            allergies.map((item, index) => (
-                                <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-3">
-                                    <div className="flex justify-between items-center">
-                                        <div className="font-semibold text-red-800">{item.allergen}</div>
-                                        {item.snomed && <span className="text-xs font-mono text-gray-500">{item.snomed}</span>}
-                                    </div>
-                                    {item.reaction && <div className="text-sm text-red-700">{item.reaction}</div>}
-                                </div>
-                            ))
-                        ) : (
-                            <p>No allergies found.</p>
-                        )}
-                    </div>
-                </div>
-
                 <div className="bg-white rounded-xl shadow-lg p-6">
                     <div className="flex items-center mb-4">
                         <Pill className="w-5 h-5 text-green-600 mr-2" />
@@ -1670,6 +1643,32 @@ const DentalClinicalSystem = () => {
                             ))
                         ) : (
                            <p>No medications found.</p>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                    <div className="flex items-center mb-4">
+                        <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
+                        <h3 className="text-lg font-bold text-gray-800">Alergias</h3>
+                    </div>
+                    <div className="space-y-3">
+                        {isLoadingAllergies ? (
+                            <p>Loading allergies...</p>
+                        ) : allergies.length > 0 ? (
+                            allergies.map((item, index) => (
+                                <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                    <div className="flex justify-between items-center">
+                                        <div className="font-semibold text-red-800">{item.allergen}</div>
+                                        {item.snomed && <span className="text-xs font-mono text-gray-500">{item.snomed}</span>}
+                                    </div>
+                                    {item.reaction && <div className="text-sm text-red-700">{item.reaction}</div>}
+                                </div>
+                            ))
+                        ) : (
+                            <p>No allergies found.</p>
                         )}
                     </div>
                 </div>
