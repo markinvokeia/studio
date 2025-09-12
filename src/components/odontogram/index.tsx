@@ -1,224 +1,250 @@
 
 'use client';
-import React, { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { X } from 'lucide-react';
 
-// Nomenclatura FDI ISO 3950 completa
-const FDI_NOTATION = {
-  permanent: {
-    upperRight: [18, 17, 16, 15, 14, 13, 12, 11],
-    upperLeft: [21, 22, 23, 24, 25, 26, 27, 28],
-    lowerLeft: [31, 32, 33, 34, 35, 36, 37, 38],
-    lowerRight: [41, 42, 43, 44, 45, 46, 47, 48],
-  },
-  deciduous: {
-    upperRight: [55, 54, 53, 52, 51],
-    upperLeft: [61, 62, 63, 64, 65],
-    lowerLeft: [71, 72, 73, 74, 75],
-    lowerRight: [81, 82, 83, 84, 85],
-  },
-};
+import React, { useRef, useEffect } from 'react';
 
-// Tipos de dientes para formas SVG realistas
-const TOOTH_TYPES: Record<number, string> = {
-    11: 'incisor_central', 21: 'incisor_central', 31: 'incisor_central', 41: 'incisor_central',
-    51: 'incisor_central', 61: 'incisor_central', 71: 'incisor_central', 81: 'incisor_central',
-    12: 'incisor_lateral', 22: 'incisor_lateral', 32: 'incisor_lateral', 42: 'incisor_lateral',
-    52: 'incisor_lateral', 62: 'incisor_lateral', 72: 'incisor_lateral', 82: 'incisor_lateral',
-    13: 'canine', 23: 'canine', 33: 'canine', 43: 'canine',
-    53: 'canine', 63: 'canine', 73: 'canine', 83: 'canine',
-    14: 'premolar1', 24: 'premolar1', 34: 'premolar1', 44: 'premolar1',
-    15: 'premolar2', 25: 'premolar2', 35: 'premolar2', 45: 'premolar2',
-    54: 'premolar1', 64: 'premolar1', 74: 'premolar1', 84: 'premolar1',
-    55: 'premolar2', 65: 'premolar2', 75: 'premolar2', 85: 'premolar2',
-    16: 'molar1', 26: 'molar1', 36: 'molar1', 46: 'molar1',
-    17: 'molar2', 27: 'molar2', 37: 'molar2', 47: 'molar2',
-    18: 'molar3', 28: 'molar3', 38: 'molar3', 48: 'molar3'
-};
+// This component is a wrapper for the vanilla JS odontogram engine.
+// It ensures the canvas is ready before the engine tries to use it.
 
-// Datos del odontograma
-const odontogramData = {
-    '2024-11-15': {
-      11: { conditions: ['SOUND'], surfaces: {}, notes: "Diente sano", lastModified: "2024-11-15T10:30:00Z" },
-      12: { conditions: ['SOUND'], surfaces: {} },
-      13: { conditions: ['SOUND'], surfaces: {} },
-      14: { conditions: ['FILLED'], surfaces: { 'O': 'resina' }, notes: "Restauración de resina compuesta oclusal" },
-      15: { conditions: ['SOUND'], surfaces: {} },
-      16: { conditions: ['CROWN'], surfaces: {}, notes: "Corona de porcelana sobre metal" },
-      17: { conditions: ['SOUND'], surfaces: {} },
-      18: { conditions: ['MISSING'], surfaces: {}, notes: "Extraído por caries extensa" },
-      21: { conditions: ['SOUND'], surfaces: {} },
-      22: { conditions: ['SOUND'], surfaces: {} },
-      23: { conditions: ['SOUND'], surfaces: {} },
-      24: { conditions: ['ROOT_FILLED'], surfaces: {}, notes: "Endodoncia completada, pendiente corona" },
-      25: { conditions: ['SOUND'], surfaces: {} },
-      26: { conditions: ['FILLED'], surfaces: { 'O': 'amalgama' }, notes: "Restauración de amalgama antigua" },
-      27: { conditions: ['SOUND'], surfaces: {} },
-      28: { conditions: ['MISSING'], surfaces: {}, notes: "Nunca erupcionó" },
-      31: { conditions: ['SOUND'], surfaces: {} },
-      32: { conditions: ['SOUND'], surfaces: {} },
-      33: { conditions: ['SOUND'], surfaces: {} },
-      34: { conditions: ['SOUND'], surfaces: {} },
-      35: { conditions: ['SOUND'], surfaces: {} },
-      36: { conditions: ['FILLED'], surfaces: { 'O': 'resina' }, notes: "Restauración reciente" },
-      37: { conditions: ['SOUND'], surfaces: {} },
-      38: { conditions: ['MISSING'], surfaces: {}, notes: "Extraído por impactación" },
-      41: { conditions: ['SOUND'], surfaces: {} },
-      42: { conditions: ['SOUND'], surfaces: {} },
-      43: { conditions: ['SOUND'], surfaces: {} },
-      44: { conditions: ['SOUND'], surfaces: {} },
-      45: { conditions: ['SOUND'], surfaces: {} },
-      46: { conditions: ['CROWN'], surfaces: {}, notes: "Corona de porcelana" },
-      47: { conditions: ['SOUND'], surfaces: {} },
-      48: { conditions: ['IMPACTED'], surfaces: {}, notes: "Muela del juicio impactada, asintomática" }
-    },
-};
+const OdontogramComponent = () => {
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-const AnatomicalTooth = ({ toothNumber, state }: { toothNumber: number, state: any }) => {
-    const toothType = TOOTH_TYPES[toothNumber];
-    const condition = state.conditions[0];
+    useEffect(() => {
+        // The Engine class and all its logic are defined inside this useEffect
+        // to keep it self-contained and avoid polluting the global scope.
 
-    const paths: Record<string, string> = {
-      incisor_central: "M10 2 L20 2 L22 20 L8 20 Z",
-      incisor_lateral: "M11 2 L19 2 L21 20 L9 20 Z",
-      canine: "M10 2 L15 0 L20 2 L22 20 L8 20 Z",
-      premolar1: "M8 3 L22 3 L24 20 L6 20 Z",
-      premolar2: "M8 3 L22 3 L24 20 L6 20 Z",
-      molar1: "M5 4 L25 4 L28 20 L2 20 Z",
-      molar2: "M6 4 L24 4 L26 20 L4 20 Z",
-      molar3: "M7 4 L23 4 L25 20 L5 20 Z",
-    };
+        class Engine {
+            canvas: HTMLCanvasElement | null = null;
+            context: CanvasRenderingContext2D | null = null;
+            properties: any = {};
+            images: any = {};
+            interval: any = null;
 
-    const SvgWrapper = ({ children, isUpper }: { children: React.ReactNode, isUpper: boolean }) => (
-      <svg
-        viewBox="0 0 30 22"
-        className="w-full h-full"
-        style={{ transform: isUpper ? 'none' : 'scaleY(-1)' }}
-      >
-        {children}
-      </svg>
-    );
+            setCanvas(canvas: HTMLCanvasElement) {
+                this.canvas = canvas;
+                this.context = canvas.getContext('2d');
+            }
 
-    const isUpper = toothNumber < 30;
-    let toothFill = '#FFFFFF';
-    let strokeColor = '#6b7280';
-    let specialRender = null;
-    
-    if (condition === 'MISSING') {
-      return null;
-    }
-    
-    if (condition === 'ROOT_FILLED') {
-      toothFill = '#e5e7eb';
-      specialRender = <path d="M14 10 L16 10 L16 20 L14 20 Z" fill="black" />;
-    }
-    
-    if (condition === 'IMPLANT') {
-        toothFill = '#111827';
-        strokeColor = '#4b5563';
-    }
+            async init() {
+                await this.loadImages();
+                this.loadPatientData("Clínica Dental Sonrisas", "Juan Pérez", "12345", "789", "2024-05-21", "Dr. Smith", "Paciente presenta sensibilidad en el cuadrante superior derecho.", "");
+                this.start();
+            }
+            
+            loadPatientData(p_clinica: any, p_paciente: any, p_ficha: any, p_hc: any, p_fecha: any, p_doctor: any, p_observaciones: any, p_especificaciones: any) {
+                if(!this.properties.paciente) this.properties.paciente = {};
+                this.properties.paciente.clinica = p_clinica;
+                this.properties.paciente.paciente = p_paciente;
+                this.properties.paciente.ficha = p_ficha;
+                this.properties.paciente.hc = p_hc;
+                this.properties.paciente.fecha = p_fecha;
+                this.properties.paciente.doctor = p_doctor;
+                this.properties.paciente.observaciones = p_observaciones;
+                this.properties.paciente.especificaciones = p_especificaciones;
+            }
 
-    if (condition === 'CROWN') {
-        toothFill = '#fef08a';
-    }
-    
-    if(Object.keys(state.surfaces).length > 0){
-        toothFill = '#9ca3af';
-    }
+
+            async loadImages() {
+                const loadImage = (src: string): Promise<HTMLImageElement> => {
+                    return new Promise((resolve, reject) => {
+                        const img = new Image();
+                        img.onload = () => resolve(img);
+                        img.onerror = (e) => reject(new Error(`Failed to load image: ${src}. Error: ${e}`));
+                        img.src = src;
+                    });
+                };
+
+                try {
+                    const imageSources = [
+                        'odontograma', 'paleta', 'odontograma_over', 'paleta_over',
+                        'p_a', 'p_b', 'p_c', 'p_d', 'p_e', 'p_f', 'p_g', 'p_h', 'p_i', 'p_j',
+                        'p_k', 'p_l', 'p_m', 'p_n', 'p_o', 'p_p', 'p_q', 'p_r', 'p_s',
+                        'p_t', 'p_u', 'p_v', 'p_w', 'p_x', 'p_y', 'p_z', 'p_0', 'p_1',
+                        'p_2', 'p_3', 'p_4', 'p_5', 'p_6', 'p_7'
+                    ];
+
+                    const dienteSources: string[] = [];
+                    const sup = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
+                    const inf = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
+
+                    sup.forEach(d => dienteSources.push(`dentadura-sup-${d}`));
+                    inf.forEach(d => dienteSources.push(`dentadura-inf-${d}`));
+
+                    const allSources = [...imageSources, ...dienteSources];
+
+                    const promises = allSources.map(name =>
+                        loadImage(`/odontograma/img/${name}.png`).then(img => ({ name, img }))
+                    );
+                    
+                    const results = await Promise.all(promises);
+
+                    results.forEach(result => {
+                        this.images[result.name] = result.img;
+                    });
+
+                } catch (error) {
+                    console.error("Error loading images:", error);
+                    // Stop further execution if images fail to load.
+                    throw error;
+                }
+            }
+
+
+            start() {
+                this.loadDientes();
+                this.interval = setInterval(() => this.draw(), 1000 / 30);
+            }
+
+            draw() {
+                if (!this.context || !this.canvas) return;
+                this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                this.drawOdontograma();
+                this.drawPaleta();
+                this.drawInfo();
+            }
+
+            drawOdontograma() {
+                if (!this.context || !this.images.odontograma) return;
+                this.context.drawImage(this.images.odontograma, 0, 0);
+
+                // Dibujar dientes
+                this.properties.dientes.forEach((diente: any) => {
+                    if (this.images[diente.img]) {
+                        this.context!.drawImage(this.images[diente.img], diente.x, diente.y);
+                    }
+                });
+            }
+            
+            drawPaleta() {
+                if (!this.context || !this.images.paleta) return;
+                this.context.drawImage(this.images.paleta, this.properties.paleta.x, this.properties.paleta.y);
+            }
+            
+            drawInfo() {
+                 if (!this.context || !this.properties.paciente) return;
+                const { paciente, clinica, ficha, hc, fecha, doctor } = this.properties.paciente;
+                
+                this.context.fillStyle = "rgb(1, 1, 1)";
+                this.context.font = "12px courier";
+
+                this.context.fillText(paciente, 160, 52);
+                this.context.fillText(clinica, 160, 32);
+                this.context.fillText(ficha, 442, 32);
+                this.context.fillText(hc, 442, 52);
+                this.context.fillText(fecha, 630, 32);
+                this.context.fillText(doctor, 630, 52);
+            }
+
+
+            loadDientes() {
+                this.properties.dientes = [];
+                let x = 32;
+                let y = 100;
+
+                const addDiente = (id: number, img: string, tipo: string) => {
+                    this.properties.dientes.push({ id, img, x, y, tipo, partes: this.getPartes(tipo) });
+                    x += 49;
+                };
+
+                // SUPERIOR DERECHA
+                addDiente(18, 'dentadura-sup-18', "M");
+                addDiente(17, 'dentadura-sup-17', "M");
+                addDiente(16, 'dentadura-sup-16', "M");
+                addDiente(15, 'dentadura-sup-15', "P");
+                addDiente(14, 'dentadura-sup-14', "P");
+                addDiente(13, 'dentadura-sup-13', "C");
+                addDiente(12, 'dentadura-sup-12', "I");
+                addDiente(11, 'dentadura-sup-11', "I");
+                
+                // SUPERIOR IZQUIERDA
+                addDiente(21, 'dentadura-sup-21', "I");
+                addDiente(22, 'dentadura-sup-22', "I");
+                addDiente(23, 'dentadura-sup-23', "C");
+                addDiente(24, 'dentadura-sup-24', "P");
+                addDiente(25, 'dentadura-sup-25', "P");
+                addDiente(26, 'dentadura-sup-26', "M");
+                addDiente(27, 'dentadura-sup-27', "M");
+                addDiente(28, 'dentadura-sup-28', "M");
+                
+                x = 32;
+                y = 230;
+
+                // INFERIOR DERECHA
+                addDiente(48, 'dentadura-inf-48', "M");
+                addDiente(47, 'dentadura-inf-47', "M");
+                addDiente(46, 'dentadura-inf-46', "M");
+                addDiente(45, 'dentadura-inf-45', "P");
+                addDiente(44, 'dentadura-inf-44', "P");
+                addDiente(43, 'dentadura-inf-43', "C");
+                addDiente(42, 'dentadura-inf-42', "I");
+                addDiente(41, 'dentadura-inf-41', "I");
+                
+                // INFERIOR IZQUIERDA
+                addDiente(31, 'dentadura-inf-31', "I");
+                addDiente(32, 'dentadura-inf-32', "I");
+                addDiente(33, 'dentadura-inf-33', "C");
+                addDiente(34, 'dentadura-inf-34', "P");
+                addDiente(35, 'dentadura-inf-35', "P");
+                addDiente(36, 'dentadura-inf-36', "M");
+                addDiente(37, 'dentadura-inf-37', "M");
+                addDiente(38, 'dentadura-inf-38', "M");
+
+                // Posición de la paleta
+                this.properties.paleta = { x: 32, y: 390 };
+            }
+
+            getPartes(tipo: string) {
+                const partes: any = {};
+                if (tipo === "M" || tipo === "P") { // Molar o Premolar
+                    partes['O'] = [{ x: 13, y: 21 }, { x: 36, y: 21 }, { x: 36, y: 44 }, { x: 13, y: 44 }];
+                    partes['V'] = [{ x: 0, y: 0 }, { x: 49, y: 0 }, { x: 36, y: 21 }, { x: 13, y: 21 }];
+                    partes['L'] = [{ x: 13, y: 44 }, { x: 36, y: 44 }, { x: 49, y: 65 }, { x: 0, y: 65 }];
+                    partes['D'] = [{ x: 36, y: 21 }, { x: 49, y: 0 }, { x: 49, y: 65 }, { x: 36, y: 44 }];
+                    partes['M'] = [{ x: 0, y: 0 }, { x: 13, y: 21 }, { x: 13, y: 44 }, { x: 0, y: 65 }];
+                } else if (tipo === "I" || tipo === "C") { // Incisivo o Canino
+                    partes['O'] = [{ x: 0, y: 0 }, { x: 49, y: 0 }, { x: 49, y: 20 }, { x: 0, y: 20 }];
+                    partes['V'] = [{ x: 0, y: 20 }, { x: 49, y: 20 }, { x: 49, y: 45 }, { x: 0, y: 45 }];
+                    partes['L'] = [{ x: 0, y: 45 }, { x: 49, y: 45 }, { x: 49, y: 65 }, { x: 0, y: 65 }];
+                }
+                return partes;
+            }
+
+            stop() {
+                clearInterval(this.interval);
+            }
+        }
+        
+        console.log("Odontogram component mounted, initializing engine...");
+
+        if (canvasRef.current) {
+            const engine = new Engine();
+            engine.setCanvas(canvasRef.current);
+            engine.init().then(() => {
+                console.log("Engine initialized and drawing started.");
+                alert("Odontogram viewer has been initialized and should be visible.");
+            }).catch(error => {
+                console.error("Engine failed to initialize:", error);
+                alert(`Error initializing odontogram: ${error.message}`);
+            });
+            
+            // Cleanup function to stop the interval when the component unmounts.
+            return () => {
+                console.log("Unmounting odontogram component, stopping engine.");
+                engine.stop();
+            };
+        }
+    }, []); // Empty dependency array ensures this effect runs only once.
 
     return (
-      <div className="w-6 h-8 flex items-center justify-center">
-        <SvgWrapper isUpper={isUpper}>
-          <g>
-            <path d={paths[toothType] || paths.premolar1} fill={toothFill} stroke={strokeColor} strokeWidth="0.5" />
-            {specialRender}
-          </g>
-        </SvgWrapper>
-      </div>
-    );
-};
-
-const SymbolicTooth = ({ state }: { state: any }) => {
-    const condition = state.conditions[0];
-    let symbolFill = 'white';
-    let strokeColor = '#9ca3af';
-
-    if (condition === 'MISSING') {
-        return (
-            <div className="w-6 h-6 flex items-center justify-center">
-                <X className="w-4 h-4 text-gray-400" />
-            </div>
-        );
-    }
-    
-    if(Object.keys(state.surfaces).length > 0){
-        symbolFill = '#9ca3af';
-    }
-
-    return (
-      <div className="w-6 h-6">
-        <svg viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10" fill={symbolFill} stroke={strokeColor} strokeWidth="1" />
-          <path d="M12 2 L12 22 M2 12 L22 12 M7 7 L17 17 M7 17 L17 7" stroke={strokeColor} strokeWidth="0.5" />
-        </svg>
-      </div>
-    );
-};
-
-export const OdontogramComponent = () => {
-    const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
-    const [dentitionType, setDentitionType] = useState<'permanent' | 'deciduous'>('permanent');
-
-    const data = odontogramData['2024-11-15'];
-
-    const onToothClick = (toothNum: number) => {
-        setSelectedTooth(toothNum === selectedTooth ? null : toothNum);
-    };
-
-    const QuadrantRow = ({ teeth, isUpper }: { teeth: number[], isUpper: boolean }) => {
-        const midPoint = teeth.length / 2;
-        const rightQuadrant = isUpper ? teeth.slice(0, midPoint).reverse() : teeth.slice(0, midPoint).reverse();
-        const leftQuadrant = isUpper ? teeth.slice(midPoint) : teeth.slice(midPoint);
-
-        const renderTeeth = (quadrantTeeth: number[]) => quadrantTeeth.map(toothNum => {
-            const toothData = data[toothNum as keyof typeof data] || { conditions: ['SOUND'], surfaces: {} };
-            const isMissing = toothData.conditions[0] === 'MISSING';
-            return (
-                <div
-                  key={toothNum}
-                  className={`flex flex-col items-center cursor-pointer p-1 space-y-1 ${selectedTooth === toothNum ? 'bg-blue-100 rounded-md' : ''}`}
-                  onClick={() => onToothClick(toothNum)}
-                >
-                  {isUpper && !isMissing && <AnatomicalTooth toothNumber={toothNum} state={toothData} />}
-                   <SymbolicTooth state={toothData} />
-                   <span className="text-xs font-mono">{toothNum}</span>
-                  {!isUpper && !isMissing && <AnatomicalTooth toothNumber={toothNum} state={toothData} />}
-                </div>
-            )
-        });
-
-        return (
-            <div className="flex justify-between w-full">
-                <div className="flex justify-end flex-1">{renderTeeth(rightQuadrant)}</div>
-                <div className="w-px bg-gray-300 mx-2"></div>
-                <div className="flex justify-start flex-1">{renderTeeth(leftQuadrant)}</div>
-            </div>
-        )
-    }
-
-    const { upperRight, upperLeft, lowerLeft, lowerRight } = FDI_NOTATION[dentitionType];
-    const allUpper = [...upperRight, ...upperLeft];
-    const allLower = [...lowerRight, ...lowerLeft];
-
-    return (
-        <div className="bg-white rounded-xl shadow-lg p-4">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Odontogram</h3>
-            <div className="flex flex-col items-center space-y-2">
-                <QuadrantRow teeth={allUpper} isUpper={true} />
-                <div className="w-full h-px bg-gray-300 my-2"></div>
-                <QuadrantRow teeth={allLower} isUpper={false} />
-            </div>
+        <div id="visor">
+            <canvas ref={canvasRef} id="canvas" width="820" height="600" style={{ border: '1px solid #000' }}>
+                El Navegador que estás utilizando no puede mostrar el Odontograma.
+            </canvas>
         </div>
     );
 };
+
+export default OdontogramComponent;
+
+    

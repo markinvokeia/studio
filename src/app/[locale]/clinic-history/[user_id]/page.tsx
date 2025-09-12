@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -17,7 +18,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { OdontogramComponent } from '@/components/odontogram';
+import OdontogramComponent from '@/components/odontogram';
 
 
 const initialPatient = {
@@ -1620,9 +1621,7 @@ const DentalClinicalSystem = () => {
 
             <div className="px-6 pb-8">
                 <div className="space-y-6">
-                    {activeView === 'odontogram' && (
-                        <OdontogramComponent />
-                    )}
+                    {activeView === 'odontogram' && <OdontogramComponent />}
 
                     {activeView === 'anamnesis' && <AnamnesisDashboard />}
                     {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} />}
@@ -1655,3 +1654,6 @@ const DentalClinicalSystem = () => {
 };
 
 export default DentalClinicalSystem;
+
+
+    
