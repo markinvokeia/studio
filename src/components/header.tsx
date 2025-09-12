@@ -70,30 +70,23 @@ export function Header() {
     }
     return undefined;
   };
-  
-  let currentPath = `/${locale}`;
-  let navConfig: NavItem[] = navItems;
 
   const breadcrumbItems = breadcrumbSegments.map((segment, index) => {
-      currentPath += `/${segment}`;
+      let currentPath = `/${locale}/${breadcrumbSegments.slice(0, index + 1).join('/')}`;
       const isLast = index === breadcrumbSegments.length - 1;
   
-      const navItem = findNavItemBySegment(navConfig, segment);
-      let title: string = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
-
-      if (navItem) {
+      const navItem = findNavItemBySegment(navItems, segment);
+      
+      let title: string;
+       if (navItem) {
         try {
           title = tNav(navItem.title as any);
         } catch (e) {
-            // Use formatted segment if translation key is invalid
+          title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
         }
-        if (navItem.items) {
-            navConfig = navItem.items;
-        }
-         // If it's a dynamic path segment, show the actual value
-        if (navItem.href.includes(`[${segment}]`)) {
-            title = segment;
-        }
+      } else {
+        // Handle dynamic segments like user_id
+        title = segment;
       }
 
       return (
@@ -139,11 +132,17 @@ export function Header() {
         </Button>
       <Breadcrumb className="hidden md:flex">
         <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-                <Link href={`/${locale}`}>{tNav('Dashboard')}</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
+          {breadcrumbSegments.length > 0 ? (
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                  <Link href={`/${locale}`}>{tNav('Dashboard')}</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+          ) : (
+             <BreadcrumbItem>
+                <BreadcrumbPage>{tNav('Dashboard')}</BreadcrumbPage>
+             </BreadcrumbItem>
+          )}
           {breadcrumbItems}
         </BreadcrumbList>
       </Breadcrumb>
