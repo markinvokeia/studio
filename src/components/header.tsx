@@ -85,7 +85,7 @@ export function Header() {
           title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
         }
       } else {
-        // Handle dynamic segments like user_id
+        // Handle dynamic segments like user_id by showing them as is
         title = segment;
       }
 
@@ -132,16 +132,16 @@ export function Header() {
         </Button>
       <Breadcrumb className="hidden md:flex">
         <BreadcrumbList>
-          {breadcrumbSegments.length > 0 ? (
+          {pathname === `/${locale}` ? (
             <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                  <Link href={`/${locale}`}>{tNav('Dashboard')}</Link>
-              </BreadcrumbLink>
+              <BreadcrumbPage>{tNav('Dashboard')}</BreadcrumbPage>
             </BreadcrumbItem>
           ) : (
-             <BreadcrumbItem>
-                <BreadcrumbPage>{tNav('Dashboard')}</BreadcrumbPage>
-             </BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href={`/${locale}`}>{tNav('Dashboard')}</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
           )}
           {breadcrumbItems}
         </BreadcrumbList>

@@ -24,14 +24,15 @@ import {
 } from '@/components/ui/tooltip';
 import type { NavItem } from '@/config/nav';
 import { useLocale, useTranslations } from 'next-intl';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 
 interface NavProps {
   items: NavItem[];
   isMinimized: boolean;
 }
 
-export function Nav({ items, isMinimized }: NavProps) {
+function NavContent({ items, isMinimized }: NavProps) {
   const pathname = usePathname();
   const t = useTranslations('Navigation');
   const locale = useLocale();
@@ -92,9 +93,7 @@ export function Nav({ items, isMinimized }: NavProps) {
     const [defaultValue, setDefaultValue] = React.useState<string | undefined>(undefined);
 
     React.useEffect(() => {
-        if (isActive) {
-            setDefaultValue(`item-${index}`);
-        }
+        setDefaultValue(isActive ? `item-${index}`: undefined);
     }, [isActive, index]);
 
     return (
@@ -204,7 +203,6 @@ export function Nav({ items, isMinimized }: NavProps) {
    }
 
   return (
-    <TooltipProvider>
       <nav className="grid items-start gap-1 p-2">
         {items.map((item, index) =>
           item.items 
@@ -212,6 +210,18 @@ export function Nav({ items, isMinimized }: NavProps) {
           : renderLink(item)
         )}
       </nav>
+  );
+}
+
+
+const DynamicNavContent = dynamic(() => Promise.resolve(NavContent), {
+  ssr: false,
+});
+
+export function Nav({ items, isMinimized }: NavProps) {
+  return (
+    <TooltipProvider>
+      <DynamicNavContent items={items} isMinimized={isMinimized} />
     </TooltipProvider>
   );
 }
