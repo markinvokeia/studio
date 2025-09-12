@@ -83,7 +83,10 @@ export function Nav({ items, isMinimized }: NavProps) {
     const effectivePathname = pathname.substring(3) || '/';
     
     const isActive = item.items?.some(subItem => {
-      const cleanSubItemHref = subItem.href.startsWith('/') ? subItem.href.substring(1) : subItem.href;
+      let cleanSubItemHref = subItem.href.startsWith('/') ? subItem.href.substring(1) : subItem.href;
+      if (cleanSubItemHref.includes('[')) {
+        cleanSubItemHref = cleanSubItemHref.split('/[')[0];
+      }
       return effectivePathname.startsWith(cleanSubItemHref);
     });
 
@@ -142,7 +145,10 @@ export function Nav({ items, isMinimized }: NavProps) {
     const title = t(item.title as any);
     const effectivePathname = pathname.substring(3) || '/';
     const isActive = item.items?.some(subItem => {
-        const cleanSubItemHref = subItem.href.startsWith('/') ? subItem.href.substring(1) : subItem.href;
+        let cleanSubItemHref = subItem.href.startsWith('/') ? subItem.href.substring(1) : subItem.href;
+        if (cleanSubItemHref.includes('[')) {
+          cleanSubItemHref = cleanSubItemHref.split('/[')[0];
+        }
         return effectivePathname.startsWith(cleanSubItemHref);
     });
      return (
@@ -192,7 +198,7 @@ export function Nav({ items, isMinimized }: NavProps) {
 
   return (
     <TooltipProvider>
-      <nav className="grid items-start gap-1 p-2 text-base">
+      <nav className="grid items-start gap-1 p-2 text-sm">
         {items.map((item, index) =>
           item.items 
           ? (isMinimized ? renderDropdown(item, index) : renderAccordion(item, index))
