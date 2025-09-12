@@ -51,8 +51,8 @@ export function FloatingActions() {
                 </Button>
              </>
         )}
-        <Button onClick={toggleMenu} size="icon" className="rounded-full h-14 w-14 bg-fuchsia-600 text-primary-foreground shadow-lg hover:bg-fuchsia-700">
-          {isMenuOpen ? <X className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
+        <Button onClick={toggleMenu} size="sm" className="rounded-full h-10 w-10 p-0 bg-black text-white shadow-lg hover:bg-gray-800">
+          {isMenuOpen ? <X className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
           <span className="sr-only">{isMenuOpen ? 'Close Menu' : 'Open Menu'}</span>
         </Button>
       </div>
