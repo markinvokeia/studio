@@ -27,17 +27,12 @@ class Engine {
     data_paciente: any = [];
 
     constructor() {
-        // Initialization logic that was in init()
         this.tipo_odontograma = 1;
         this.parts = [];
         this.adult_dientes_up = [];
         this.adult_dientes_down = [];
         this.child_dientes_up = [];
         this.child_dientes_down = [];
-
-        this.loadImages();
-        this.loadParts();
-        this.loadDientes();
 
         this.data_paciente = [];
         for (var i = 1; i < 53; i++) {
@@ -58,7 +53,10 @@ class Engine {
         }
     }
     
-    start() {
+    async start() {
+        await this.loadImages();
+        this.loadParts();
+        this.loadDientes();
         const intervalId = setInterval(() => this.draw(), 100);
         return () => clearInterval(intervalId);
     }
@@ -77,7 +75,7 @@ class Engine {
     draw() {
         if (!this.context) return;
         this.context.clearRect(0, 0, this.canvas_width, this.canvas_height);
-        this.context.fillStyle = '#f0f0f0';
+        this.context.fillStyle = '#ffffff';
         this.context.fillRect(0, 0, this.canvas_width, this.canvas_height);
 
         if (this.tipo_odontograma == 1) { // Adult
@@ -95,7 +93,7 @@ class Engine {
         this.drawInfo();
     }
 
-    loadImages() {
+    async loadImages() {
         this.properties = {
             'images': {
                 'numeros': new Array(),
@@ -112,26 +110,34 @@ class Engine {
                 'observaciones': 'No observations',
                 'especificaciones': 'No specifications'
             }
-        }
-        var path = '/odontograma/img/';
+        };
+
+        const loadImage = (src: string): Promise<HTMLImageElement> => {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = src;
+            });
+        };
+
+        const path = '/odontograma/img/';
+        const imagePromises: Promise<any>[] = [];
+        
         for (var i = 1; i < 6; i++) {
-            this.properties.images.numeros[i] = new Image();
-            this.properties.images.numeros[i].src = path + 'numero_' + i + '.png';
+            imagePromises.push(loadImage(path + 'numero_' + i + '.png').then(img => this.properties.images.numeros[i] = img));
         }
         for (var i = 1; i < 9; i++) {
-            this.properties.images.dientes[i] = new Image();
-            this.properties.images.dientes[i].src = path + 'adult_diente_' + i + '.png';
+            imagePromises.push(loadImage(path + 'adult_diente_' + i + '.png').then(img => this.properties.images.dientes[i] = img));
         }
         for (var i = 1; i < 6; i++) {
-            this.properties.images.dientes[i + 10] = new Image();
-            this.properties.images.dientes[i + 10].src = path + 'child_diente_' + i + '.png';
+            imagePromises.push(loadImage(path + 'child_diente_' + i + '.png').then(img => this.properties.images.dientes[i + 10] = img));
         }
-        this.properties.images.marcas[1] = new Image(); //ausente
-        this.properties.images.marcas[1].src = path + 'marca_1.png';
-        this.properties.images.marcas[2] = new Image(); //extraer
-        this.properties.images.marcas[2].src = path + 'marca_2.png';
-        this.properties.images.marcas[3] = new Image(); //corona
-        this.properties.images.marcas[3].src = path + 'marca_3.png';
+        imagePromises.push(loadImage(path + 'marca_1.png').then(img => this.properties.images.marcas[1] = img));
+        imagePromises.push(loadImage(path + 'marca_2.png').then(img => this.properties.images.marcas[2] = img));
+        imagePromises.push(loadImage(path + 'marca_3.png').then(img => this.properties.images.marcas[3] = img));
+
+        await Promise.all(imagePromises);
     }
 
     loadDientes() {
@@ -157,7 +163,7 @@ class Engine {
                    try {
                         ctx.drawImage(this.image_diente, this.x, this.y);
                    } catch (e) {
-                       // Image might not be loaded yet, ignore for now
+                       console.error("Error drawing tooth image:", e);
                    }
                 }
                 
@@ -194,7 +200,7 @@ class Engine {
             }
 
              isClicked(x: number, y: number) {
-                if (x > this.x && x < this.x + this.image_diente.width && y > this.y && y < this.y + this.image_diente.height) {
+                if (this.image_diente && x > this.x && x < this.x + this.image_diente.width && y > this.y && y < this.y + this.image_diente.height) {
                     for (var i = 0; i < this.parts.length; i++) {
                         if (isPointInPoly(this.parts[i], x - this.x, y - this.y)) {
                             return {
@@ -350,40 +356,54 @@ export const OdontogramComponent = () => {
     const engineRef = useRef<Engine | null>(null);
 
     useEffect(() => {
-        if (canvasRef.current && !engineRef.current) {
-            const engine = new Engine();
-            engine.setCanvas(canvasRef.current);
-            const cleanup = engine.start();
+        let cleanup: (() => void) | undefined;
+        
+        const initEngine = async () => {
+            if (canvasRef.current && !engineRef.current) {
+                const engine = new Engine();
+                engine.setCanvas(canvasRef.current);
+                
+                engine.loadPatientData(
+                    "InvokeAI Clinic",
+                    "Leon Macho",
+                    "1002",
+                    "hc 001",
+                    "26/02/2018",
+                    "Dr. Gemini",
+                    "Initial consultation. Patient reports sensitivity in upper right quadrant.",
+                    "Requires crown on tooth 16."
+                );
 
-            engine.loadPatientData(
-                "InvokeAI Clinic",
-                "Leon Macho",
-                "1002",
-                "hc 001",
-                "26/02/2018",
-                "Dr. Gemini",
-                "Initial consultation. Patient reports sensitivity in upper right quadrant.",
-                "Requires crown on tooth 16."
-            );
+                cleanup = await engine.start();
+                engineRef.current = engine;
 
-            engineRef.current = engine;
+                const canvas = canvasRef.current;
+                const handleClick = (event: MouseEvent) => engine.onMouseClick(event);
+                const handleMouseMove = (event: MouseEvent) => engine.onMouseMove(event);
+                const handleKeyDown = (event: KeyboardEvent) => engine.onButtonClick(event);
 
-            const canvas = canvasRef.current;
-            const handleClick = (event: MouseEvent) => engine.onMouseClick(event);
-            const handleMouseMove = (event: MouseEvent) => engine.onMouseMove(event);
-            const handleKeyDown = (event: KeyboardEvent) => engine.onButtonClick(event);
+                canvas.addEventListener('mousedown', handleClick);
+                canvas.addEventListener('mousemove', handleMouseMove);
+                window.addEventListener('keydown', handleKeyDown);
 
-            canvas.addEventListener('mousedown', handleClick);
-            canvas.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('keydown', handleKeyDown);
+                return () => {
+                    if (cleanup) cleanup();
+                    canvas.removeEventListener('mousedown', handleClick);
+                    canvas.removeEventListener('mousemove', handleMouseMove);
+                    window.removeEventListener('keydown', handleKeyDown);
+                };
+            }
+        };
 
-            return () => {
-                cleanup();
-                canvas.removeEventListener('mousedown', handleClick);
-                canvas.removeEventListener('mousemove', handleMouseMove);
-                window.removeEventListener('keydown', handleKeyDown);
-            };
-        }
+        const cleanupPromise = initEngine();
+
+        return () => {
+            cleanupPromise.then(cleanupFunc => {
+                if (cleanupFunc) {
+                    cleanupFunc();
+                }
+            });
+        };
     }, []);
 
     return (
