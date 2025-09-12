@@ -112,7 +112,7 @@ export function Nav({ items, isMinimized }: NavProps) {
                             'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold',
                             effectivePathname === subItem.href || (subItem.href !== '/' && effectivePathname.startsWith(subItem.href))
                             ? 'bg-black/20 text-white'
-                            : 'text-white/80 hover:text-white'
+                            : 'text-white hover:text-white'
                         )}
                         >
                         {t(subItem.title as any)}
@@ -172,7 +172,7 @@ export function Nav({ items, isMinimized }: NavProps) {
 
   return (
     <TooltipProvider>
-      <nav className="grid items-start gap-1 p-2 text-sm">
+      <nav className="grid items-start gap-1 p-2 text-base">
         {items.map((item, index) =>
           item.items 
           ? (isMinimized ? renderDropdown(item, index) : renderAccordion(item, index))
