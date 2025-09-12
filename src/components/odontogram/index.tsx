@@ -233,7 +233,7 @@ class Engine {
         const adult_teeth_sup_right = [18, 17, 16, 15, 14, 13, 12, 11];
         const adult_teeth_sup_left = [21, 22, 23, 24, 25, 26, 27, 28];
         const adult_teeth_inf_left = [31, 32, 33, 34, 35, 36, 37, 38];
-        const adult_teeth_inf_right = [41, 42, 43, 44, 45, 46, 47, 48];
+        const adult_teeth_inf_right = [48, 47, 46, 45, 44, 43, 42, 41];
         
         for (var i = 0; i < adult_teeth_sup_right.length; i++) {
             const toothNum = adult_teeth_sup_right[i];
@@ -257,26 +257,24 @@ class Engine {
 
         x_off = 325;
         y_off = 430;
-        for (var i = 0; i < adult_teeth_inf_left.length; i++) {
-            const toothNum = adult_teeth_inf_left[i];
-            var diente_info = this.parts[toothNum - 31 + 8] || this.parts[0];
-            var diente_img = this.properties.images.dientes[toothNum];
-            if(diente_img) {
-                this.adult_dientes_down[i] = new Diente(toothNum, x_off, y_off, diente_info, diente_img);
-                x_off += (diente_img.width + separacion);
-            }
-        }
-
-        x_off = 325;
-        const adult_teeth_inf_right_rev = [...adult_teeth_inf_right].reverse();
-         for (var i = 0; i < adult_teeth_inf_right_rev.length; i++) {
-            const toothNum = adult_teeth_inf_right_rev[i];
-            var diente_info = this.parts[48 - toothNum + 8] || this.parts[0];
+        for (var i = 0; i < adult_teeth_inf_right.length; i++) {
+            const toothNum = adult_teeth_inf_right[i];
+            var diente_info = this.parts[48 - toothNum + 8] || this.parts[8];
             var diente_img = this.properties.images.dientes[toothNum];
              if(diente_img) {
-                this.adult_dientes_down[i + 8] = new Diente(toothNum, x_off - diente_img.width, y_off, diente_info, diente_img);
+                this.adult_dientes_down[i] = new Diente(toothNum, x_off - diente_img.width, y_off, diente_info, diente_img);
                 x_off -= (diente_img.width + separacion);
              }
+        }
+        x_off = 325;
+        for (var i = 0; i < adult_teeth_inf_left.length; i++) {
+            const toothNum = adult_teeth_inf_left[i];
+            var diente_info = this.parts[toothNum-31 + 8] || this.parts[8];
+            var diente_img = this.properties.images.dientes[toothNum];
+            if(diente_img) {
+                this.adult_dientes_down[i+8] = new Diente(toothNum, x_off, y_off, diente_info, diente_img);
+                x_off += (diente_img.width + separacion);
+            }
         }
     }
 
@@ -474,7 +472,5 @@ export const OdontogramComponent = () => {
         </div>
     );
 };
-
-    
 
     
