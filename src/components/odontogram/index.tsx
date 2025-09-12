@@ -111,14 +111,11 @@ class Engine {
             }
         };
 
-        const loadImage = (src: string): Promise<HTMLImageElement | null> => {
+        const loadImage = (src: string): Promise<HTMLImageElement> => {
             return new Promise((resolve, reject) => {
                 const img = new Image();
                 img.onload = () => resolve(img);
-                img.onerror = (e) => {
-                    console.warn(`Could not load image: ${src}. It may be missing.`);
-                    resolve(null); // Resolve with null to not break the Promise.all
-                };
+                img.onerror = (e) => reject(new Error(`Failed to load image: ${src}. Error: ${e}`));
                 img.src = src;
             });
         };
@@ -144,6 +141,8 @@ class Engine {
                     if (img) {
                         this.properties.images.dientes[toothNum] = img;
                     }
+                }).catch(error => {
+                    console.warn(error.message); // Log missing image but don't crash
                 })
             );
         }
