@@ -35,20 +35,13 @@ export function Nav({ items, isMinimized }: NavProps) {
   const t = useTranslations('Navigation');
   const locale = useLocale();
 
-  const getParentPath = (path: string) => {
-    const parts = path.split('/').filter(Boolean);
-    if (parts.length > 2) { // Adjusted for locale
-      return `/${parts.slice(1, 2).join('/')}`;
-    }
-    return `/${parts[1] || ''}`;
-  };
-
-  const parentPath = getParentPath(pathname);
-  
   const renderLink = (item: NavItem) => {
     const title = t(item.title as any);
-    const effectivePathname = pathname.substring(3) || '/';
-    const linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
+    const effectivePathname = pathname.substring(locale.length + 1) || '/';
+    let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
+     if (item.href.includes('clinic-history')) {
+        linkHref = `/${locale}/clinic-history/1`; // Default user
+    }
     const isActive = item.href === '/' ? effectivePathname === item.href : effectivePathname.startsWith(item.href);
 
 
@@ -58,7 +51,7 @@ export function Nav({ items, isMinimized }: NavProps) {
             <Link
               href={linkHref}
               className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold',
+                'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold text-sm',
                 isActive
                   ? 'bg-black/20 text-white'
                   : 'text-white hover:bg-black/20 hover:text-white',
@@ -80,13 +73,16 @@ export function Nav({ items, isMinimized }: NavProps) {
 
   const renderAccordion = (item: NavItem, index: number) => {
     const title = t(item.title as any);
-    const effectivePathname = pathname.substring(3) || '/';
+    const effectivePathname = pathname.substring(locale.length + 1) || '/';
     
     const isActive = item.items?.some(subItem => {
       let cleanSubItemHref = subItem.href.startsWith('/') ? subItem.href.substring(1) : subItem.href;
-      if (cleanSubItemHref.includes('[')) {
-        cleanSubItemHref = cleanSubItemHref.split('/[')[0];
+      
+      const dynamicPathIndex = cleanSubItemHref.indexOf('/[');
+      if (dynamicPathIndex !== -1) {
+        cleanSubItemHref = cleanSubItemHref.substring(0, dynamicPathIndex);
       }
+      
       return effectivePathname.startsWith(cleanSubItemHref);
     });
 
@@ -100,7 +96,7 @@ export function Nav({ items, isMinimized }: NavProps) {
             <AccordionItem value={`item-${index}`} className="border-b-0">
               <AccordionTrigger
                 className={cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-white transition-all hover:bg-black/20 hover:text-white hover:no-underline font-semibold',
+                  'flex items-center gap-3 rounded-md px-3 py-2 text-white transition-all hover:bg-black/20 hover:text-white hover:no-underline font-semibold text-sm',
                    isActive && 'bg-black/20 text-white'
                 )}
               >
@@ -143,11 +139,12 @@ export function Nav({ items, isMinimized }: NavProps) {
   
    const renderDropdown = (item: NavItem, index: number) => {
     const title = t(item.title as any);
-    const effectivePathname = pathname.substring(3) || '/';
+    const effectivePathname = pathname.substring(locale.length + 1) || '/';
     const isActive = item.items?.some(subItem => {
         let cleanSubItemHref = subItem.href.startsWith('/') ? subItem.href.substring(1) : subItem.href;
-        if (cleanSubItemHref.includes('[')) {
-          cleanSubItemHref = cleanSubItemHref.split('/[')[0];
+         const dynamicPathIndex = cleanSubItemHref.indexOf('/[');
+        if (dynamicPathIndex !== -1) {
+            cleanSubItemHref = cleanSubItemHref.substring(0, dynamicPathIndex);
         }
         return effectivePathname.startsWith(cleanSubItemHref);
     });
@@ -157,7 +154,7 @@ export function Nav({ items, isMinimized }: NavProps) {
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger
                   className={cn(
-                    'flex w-full items-center justify-center gap-3 rounded-md px-3 py-2 text-white transition-all hover:bg-black/20 hover:text-white font-semibold',
+                    'flex w-full items-center justify-center gap-3 rounded-md px-3 py-2 text-white transition-all hover:bg-black/20 hover:text-white font-semibold text-sm',
                     isActive && 'bg-black/20 text-white'
                   )}
                 >
@@ -198,7 +195,7 @@ export function Nav({ items, isMinimized }: NavProps) {
 
   return (
     <TooltipProvider>
-      <nav className="grid items-start gap-1 p-2 text-sm">
+      <nav className="grid items-start gap-1 p-2">
         {items.map((item, index) =>
           item.items 
           ? (isMinimized ? renderDropdown(item, index) : renderAccordion(item, index))
