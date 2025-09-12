@@ -1570,9 +1570,9 @@ const DentalClinicalSystem = () => {
     );
 
     return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                <div className="bg-white rounded-xl shadow-lg p-6 xl:col-span-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-lg p-6">
                     <div className="flex items-center mb-4">
                         <User className="w-5 h-5 text-blue-600 mr-2" />
                         <h3 className="text-lg font-bold text-gray-800">Antecedentes Personales</h3>
@@ -1596,7 +1596,7 @@ const DentalClinicalSystem = () => {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6 xl:col-span-1">
+                <div className="bg-white rounded-xl shadow-lg p-6">
                     <div className="flex items-center mb-4">
                         <Heart className="w-5 h-5 text-red-600 mr-2" />
                         <h3 className="text-lg font-bold text-gray-800">Antecedentes Familiares</h3>
@@ -1618,9 +1618,11 @@ const DentalClinicalSystem = () => {
                     </div>
                 </div>
 
-                <HabitCard habits={patientHabits} isLoading={isLoadingPatientHabits} />
+                 <HabitCard habits={patientHabits} isLoading={isLoadingPatientHabits} />
+            </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6 xl:col-span-2">
+            <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-lg p-6">
                     <div className="flex items-center mb-4">
                         <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
                         <h3 className="text-lg font-bold text-gray-800">Alergias</h3>
@@ -1644,7 +1646,7 @@ const DentalClinicalSystem = () => {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6 xl:col-span-3">
+                <div className="bg-white rounded-xl shadow-lg p-6">
                     <div className="flex items-center mb-4">
                         <Pill className="w-5 h-5 text-green-600 mr-2" />
                         <h3 className="text-lg font-bold text-gray-800">Medicamentos Actuales</h3>
@@ -1953,3 +1955,4 @@ export default DentalClinicalSystem;
     
 
     
+
