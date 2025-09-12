@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Nav } from './nav';
-import { navItems } from '@/config/nav';
+import { navItems, NavItem } from '@/config/nav';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useSidebar } from '@/hooks/use-sidebar';
 import { useLocale, useTranslations } from 'next-intl';
@@ -44,7 +44,6 @@ export function Header() {
   const { setTheme } = useTheme();
   const { isMinimized, toggleSidebar } = useSidebar();
   const t = useTranslations('Header');
-  console.log('Translations for Header loaded.');
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -57,28 +56,41 @@ export function Header() {
   
   const breadcrumbSegments = pathname.split('/').filter(Boolean).slice(1);
   const tNav = useTranslations('Navigation');
-  console.log('Translations for Navigation loaded.');
   
-  const navItemMap: { [key: string]: string } = {};
-  navItems.forEach(item => {
-    if (item.href) navItemMap[item.href.replace('/', '')] = tNav(item.title as any);
-    if (item.items) {
-        item.items.forEach(subItem => {
-            if (subItem.href) navItemMap[subItem.href.replace('/', '')] = tNav(subItem.title as any);
-        });
+  const findNavItem = (path: string, items: NavItem[]): NavItem | undefined => {
+    for (const item of items) {
+      if (item.href === path) {
+        return item;
+      }
+      if (item.items) {
+        const found = findNavItem(path, item.items);
+        if (found) return found;
+      }
     }
-  });
+  };
 
   const breadcrumbItems = breadcrumbSegments.map((segment, index) => {
-    const href = `/${locale}/${breadcrumbSegments.slice(0, index + 1).join('/')}`;
+    const fullPath = `/${breadcrumbSegments.slice(0, index + 1).join('/')}`;
     const isLast = index === breadcrumbSegments.length - 1;
-    let title = navItemMap[segment] || segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
+    let title: string;
+
+    const navItem = findNavItem(fullPath.replace(`/${locale}`, '') || '/', navItems);
+    
+    if (navItem) {
+        title = tNav(navItem.title as any);
+    } else {
+        title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
+    }
 
     return (
-      <React.Fragment key={href}>
+      <React.Fragment key={fullPath}>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
-          <BreadcrumbPage className={isLast ? '' : "text-muted-foreground"}>{title}</BreadcrumbPage>
+          {isLast ? (
+             <BreadcrumbPage>{title}</BreadcrumbPage>
+          ) : (
+             <BreadcrumbPage className="text-muted-foreground">{title}</BreadcrumbPage>
+          )}
         </BreadcrumbItem>
       </React.Fragment>
     );
