@@ -56,10 +56,10 @@ export function Nav({ items, isMinimized }: NavProps) {
             <Link
               href={linkHref}
               className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 transition-all',
+                'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold',
                 effectivePathname === item.href
-                  ? 'bg-gray-700/50 text-white'
-                  : 'text-white/80 hover:bg-gray-700/50 hover:text-white',
+                  ? 'bg-black/20 text-white'
+                  : 'text-white/80 hover:bg-black/20 hover:text-white',
                 isMinimized && 'justify-center'
               )}
             >
@@ -91,8 +91,8 @@ export function Nav({ items, isMinimized }: NavProps) {
             <AccordionItem value={`item-${index}`} className="border-b-0">
               <AccordionTrigger
                 className={cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-white/80 transition-all hover:bg-gray-700/50 hover:text-white hover:no-underline',
-                   isActive && 'bg-gray-700/50 text-white'
+                  'flex items-center gap-3 rounded-md px-3 py-2 text-white/80 transition-all hover:bg-black/20 hover:text-white hover:no-underline font-semibold',
+                   isActive && 'bg-black/20 text-white'
                 )}
               >
                 <div className="flex items-center gap-3">
@@ -109,9 +109,9 @@ export function Nav({ items, isMinimized }: NavProps) {
                         key={subItem.href}
                         href={linkHref}
                         className={cn(
-                            'flex items-center gap-3 rounded-md px-3 py-2 transition-all',
+                            'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold',
                             effectivePathname === subItem.href || (subItem.href !== '/' && effectivePathname.startsWith(subItem.href))
-                            ? 'bg-gray-700/50 text-white'
+                            ? 'bg-black/20 text-white'
                             : 'text-white/70 hover:text-white'
                         )}
                         >
@@ -136,8 +136,8 @@ export function Nav({ items, isMinimized }: NavProps) {
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger
                   className={cn(
-                    'flex w-full items-center justify-center gap-3 rounded-md px-3 py-2 text-white/80 transition-all hover:bg-gray-700/50 hover:text-white',
-                    isActive && 'bg-gray-700/50 text-white'
+                    'flex w-full items-center justify-center gap-3 rounded-md px-3 py-2 text-white/80 transition-all hover:bg-black/20 hover:text-white font-semibold',
+                    isActive && 'bg-black/20 text-white'
                   )}
                 >
                   <item.icon className="h-4 w-4" />
@@ -154,7 +154,7 @@ export function Nav({ items, isMinimized }: NavProps) {
                     <Link
                         href={linkHref}
                         className={cn(
-                        'flex items-center gap-3 rounded-md px-3 py-2 transition-all',
+                        'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold',
                         effectivePathname.startsWith(subItem.href)
                             ? 'bg-muted text-primary'
                             : 'text-muted-foreground hover:text-primary'
@@ -172,7 +172,7 @@ export function Nav({ items, isMinimized }: NavProps) {
 
   return (
     <TooltipProvider>
-      <nav className="grid items-start gap-1 p-2 text-sm font-medium">
+      <nav className="grid items-start gap-1 p-2 text-sm">
         {items.map((item, index) =>
           item.items 
           ? (isMinimized ? renderDropdown(item, index) : renderAccordion(item, index))
