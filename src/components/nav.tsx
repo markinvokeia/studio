@@ -59,7 +59,7 @@ export function Nav({ items, isMinimized }: NavProps) {
                 'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold',
                 effectivePathname === item.href
                   ? 'bg-black/20 text-white'
-                  : 'text-white/80 hover:bg-black/20 hover:text-white',
+                  : 'text-white hover:bg-black/20 hover:text-white',
                 isMinimized && 'justify-center'
               )}
             >
@@ -91,7 +91,7 @@ export function Nav({ items, isMinimized }: NavProps) {
             <AccordionItem value={`item-${index}`} className="border-b-0">
               <AccordionTrigger
                 className={cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-white/80 transition-all hover:bg-black/20 hover:text-white hover:no-underline font-semibold',
+                  'flex items-center gap-3 rounded-md px-3 py-2 text-white transition-all hover:bg-black/20 hover:text-white hover:no-underline font-semibold',
                    isActive && 'bg-black/20 text-white'
                 )}
               >
@@ -112,7 +112,7 @@ export function Nav({ items, isMinimized }: NavProps) {
                             'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold',
                             effectivePathname === subItem.href || (subItem.href !== '/' && effectivePathname.startsWith(subItem.href))
                             ? 'bg-black/20 text-white'
-                            : 'text-white/70 hover:text-white'
+                            : 'text-white/80 hover:text-white'
                         )}
                         >
                         {t(subItem.title as any)}
@@ -136,7 +136,7 @@ export function Nav({ items, isMinimized }: NavProps) {
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger
                   className={cn(
-                    'flex w-full items-center justify-center gap-3 rounded-md px-3 py-2 text-white/80 transition-all hover:bg-black/20 hover:text-white font-semibold',
+                    'flex w-full items-center justify-center gap-3 rounded-md px-3 py-2 text-white transition-all hover:bg-black/20 hover:text-white font-semibold',
                     isActive && 'bg-black/20 text-white'
                   )}
                 >
