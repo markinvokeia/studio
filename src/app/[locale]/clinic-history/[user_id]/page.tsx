@@ -1617,7 +1617,7 @@ const DentalClinicalSystem = () => {
                         )}
                     </div>
                 </div>
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                 <div className="bg-white rounded-xl shadow-lg p-6">
                     <div className="flex items-center mb-4">
                         <Pill className="w-5 h-5 text-green-600 mr-2" />
                         <h3 className="text-lg font-bold text-gray-800">Medicamentos Actuales</h3>
@@ -1672,7 +1672,7 @@ const DentalClinicalSystem = () => {
                         )}
                     </div>
                 </div>
-                 <HabitCard habits={patientHabits} isLoading={isLoadingPatientHabits} />
+                <HabitCard habits={patientHabits} isLoading={isLoadingPatientHabits} />
             </div>
         </div>
     );
@@ -1710,7 +1710,17 @@ const DentalClinicalSystem = () => {
       <div className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Historial Clinico Digital</h1>
+            <div className="flex items-center gap-4">
+                <h1 className="text-2xl font-bold text-gray-800">Historial Clinico Digital</h1>
+                {selectedPatient && (
+                    <div className="flex items-center gap-2">
+                        <p className="text-2xl font-bold text-gray-900">{selectedPatient.name}</p>
+                        <Button variant="ghost" size="icon" onClick={refreshAllData}>
+                            <RefreshCw className="h-5 w-5" />
+                        </Button>
+                    </div>
+                )}
+            </div>
              <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
                 <PopoverTrigger asChild>
                     <div className="relative mt-1">
@@ -1748,14 +1758,6 @@ const DentalClinicalSystem = () => {
                     </Command>
                 </PopoverContent>
             </Popover>
-            {selectedPatient && (
-                <div className="mt-4 flex items-center gap-2">
-                    <p className="text-2xl font-bold text-gray-900">{selectedPatient.name}</p>
-                     <Button variant="ghost" size="icon" onClick={refreshAllData}>
-                        <RefreshCw className="h-5 w-5" />
-                    </Button>
-                 </div>
-            )}
           </div>
           <div className="flex items-center space-x-4">
             <button
