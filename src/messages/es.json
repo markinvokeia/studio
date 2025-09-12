@@ -5,7 +5,7 @@
     "UsersAndAccess": "Usuarios y Acceso",
     "Users": "Usuarios",
     "ClinicHistory": "Historial Clínico",
-    "SalesAndBilling": "Ventas y Facturación",
+    "SalesAndBilling": "Ventas",
     "Quotes": "Cotizaciones",
     "Orders": "Pedidos",
     "Invoices": "Facturas",
@@ -219,4 +219,3 @@
     "noResults": "No se encontraron resultados."
   }
 }
-    
