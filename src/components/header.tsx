@@ -73,48 +73,43 @@ export function Header() {
   
   let currentPath = `/${locale}`;
   let navConfig: NavItem[] = navItems;
-  let isDynamicPath = false;
 
   const breadcrumbItems = breadcrumbSegments.map((segment, index) => {
-    currentPath += `/${segment}`;
-    const isLast = index === breadcrumbSegments.length - 1;
+      currentPath += `/${segment}`;
+      const isLast = index === breadcrumbSegments.length - 1;
+  
+      const navItem = findNavItemBySegment(navConfig, segment);
+      let title: string = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
 
-    let title: string | undefined;
-    
-    if (isDynamicPath) {
-        title = segment;
-    } else {
-        const navItem = findNavItemBySegment(navConfig, segment);
-        if (navItem) {
-            try {
-                title = tNav(navItem.title as any);
-            } catch (e) {
-                title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
-            }
-            if (navItem.href.includes('[')) {
-                isDynamicPath = true;
-            }
-            if (navItem.items) {
-                navConfig = navItem.items;
-            }
-        } else {
-            // Fallback for segments that don't match (likely dynamic parts)
+      if (navItem) {
+        try {
+          title = tNav(navItem.title as any);
+        } catch (e) {
+            // Use formatted segment if translation key is invalid
+        }
+        if (navItem.items) {
+            navConfig = navItem.items;
+        }
+         // If it's a dynamic path segment, show the actual value
+        if (navItem.href.includes(`[${segment}]`)) {
             title = segment;
         }
-    }
+      }
 
-    return (
-      <React.Fragment key={currentPath}>
-        <BreadcrumbSeparator />
-        <BreadcrumbItem>
-          {isLast ? (
-            <BreadcrumbPage>{title}</BreadcrumbPage>
-          ) : (
-            <BreadcrumbPage className="text-muted-foreground">{title}</BreadcrumbPage>
-          )}
-        </BreadcrumbItem>
-      </React.Fragment>
-    );
+      return (
+        <React.Fragment key={currentPath}>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            {isLast ? (
+              <BreadcrumbPage>{title}</BreadcrumbPage>
+            ) : (
+              <BreadcrumbLink asChild>
+                 <Link href={currentPath}>{title}</Link>
+              </BreadcrumbLink>
+            )}
+          </BreadcrumbItem>
+        </React.Fragment>
+      );
   });
 
   return (
@@ -145,7 +140,9 @@ export function Header() {
       <Breadcrumb className="hidden md:flex">
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbPage className="text-muted-foreground">{tNav('Dashboard')}</BreadcrumbPage>
+            <BreadcrumbLink asChild>
+                <Link href={`/${locale}`}>{tNav('Dashboard')}</Link>
+            </BreadcrumbLink>
           </BreadcrumbItem>
           {breadcrumbItems}
         </BreadcrumbList>
