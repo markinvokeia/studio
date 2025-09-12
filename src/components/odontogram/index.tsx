@@ -112,18 +112,18 @@ class Engine {
         };
 
         const loadImage = (src: string): Promise<HTMLImageElement | null> => {
-            return new Promise((resolve) => {
+            return new Promise((resolve, reject) => {
                 const img = new Image();
                 img.onload = () => resolve(img);
                 img.onerror = (e) => {
                     console.warn(`Could not load image: ${src}. It may be missing.`);
-                    resolve(null); // Resolve with null instead of rejecting
+                    resolve(null); // Resolve with null to not break the Promise.all
                 };
                 img.src = src;
             });
         };
 
-        const path = '/odontograma/';
+        const path = '/odontograma/img/';
         const imagePromises: Promise<any>[] = [];
         
         const adult_teeth_sup = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
