@@ -7,11 +7,9 @@ import React, { useRef, useEffect } from 'react';
 
 const OdontogramComponent = () => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const engineRef = useRef<Engine | null>(null);
+    const engineRef = useRef<any | null>(null);
 
     useEffect(() => {
-        // The Engine class and all its logic are defined inside this useEffect
-        // to keep it self-contained and avoid polluting the global scope.
         class Engine {
             canvas: HTMLCanvasElement | null = null;
             context: CanvasRenderingContext2D | null = null;
@@ -25,18 +23,15 @@ const OdontogramComponent = () => {
             }
 
             async init() {
-                try {
-                    await this.loadImages();
-                    this.loadDientes();
-                    this.start();
-                    return () => this.stop(); // Return cleanup function
-                } catch (error) {
-                    console.error("Engine initialization failed:", error);
-                    // No cleanup needed if init fails
-                    return () => {};
-                }
+                 console.log("Engine init started");
+                await this.loadImages();
+                this.loadDientes();
+                this.loadPatientData("Clínica Dental Sonrisas", "Juan Pérez", "12345", "789", "2024-05-21", "Dr. Smith", "Paciente presenta sensibilidad en el cuadrante superior derecho.", "");
+                this.start();
+                console.log("Engine init finished");
+                return () => this.stop();
             }
-
+            
             loadPatientData(p_clinica: any, p_paciente: any, p_ficha: any, p_hc: any, p_fecha: any, p_doctor: any, p_observaciones: any, p_especificaciones: any) {
                 if (!this.properties.paciente) {
                     this.properties.paciente = {};
@@ -60,8 +55,7 @@ const OdontogramComponent = () => {
                         img.src = src;
                     });
                 };
-
-                // Initialize properties object here to ensure it exists
+                
                 this.properties = {
                     dientes: [],
                     paleta: {},
@@ -86,13 +80,18 @@ const OdontogramComponent = () => {
                 });
                 
                 const promises = Object.entries(imageSources).map(([name, src]) =>
-                    loadImage(src).then(img => ({ name, img }))
+                    loadImage(src).then(img => ({ name, img })).catch(error => {
+                        console.warn(error.message); // Log missing images as warnings
+                        return null; // Return null for failed images
+                    })
                 );
                 
                 const results = await Promise.all(promises);
 
                 results.forEach(result => {
-                    this.images[result.name] = result.img;
+                    if (result) { // Only add successfully loaded images
+                        this.images[result.name] = result.img;
+                    }
                 });
             }
 
@@ -114,7 +113,6 @@ const OdontogramComponent = () => {
                 if (!this.context || !this.images.odontograma) return;
                 this.context.drawImage(this.images.odontograma, 0, 0);
 
-                // Dibujar dientes
                 this.properties.dientes.forEach((diente: any) => {
                     if (this.images[diente.img]) {
                         this.context!.drawImage(this.images[diente.img], diente.x, diente.y);
@@ -222,32 +220,27 @@ const OdontogramComponent = () => {
                 clearInterval(this.interval);
             }
         }
-
+        
         let cleanup: (() => void) | null = null;
         
         const initEngine = async () => {
-            if (canvasRef.current && !engineRef.current) {
+             if (canvasRef.current && !engineRef.current) {
                 console.log("Odontogram component mounted, initializing engine...");
                 const engine = new Engine();
                 engineRef.current = engine;
                 engine.setCanvas(canvasRef.current);
-
                 try {
                     cleanup = await engine.init();
                     console.log("Engine initialized, starting draw loop.");
-                    // Mock patient data after successful initialization
-                    engine.loadPatientData("Clínica Dental Sonrisas", "Juan Pérez", "12345", "789", "2024-05-21", "Dr. Smith", "Paciente presenta sensibilidad en el cuadrante superior derecho.", "");
                     alert("Odontogram viewer has been initialized and should be visible.");
                 } catch (error) {
                     console.error("Failed to initialize engine:", error);
-                    alert(`Error initializing odontogram: ${error}`);
                 }
             }
         };
 
         initEngine();
 
-        // Cleanup function to stop the interval when the component unmounts.
         return () => {
             console.log("Unmounting odontogram component, stopping engine.");
             if (cleanup) {
@@ -258,7 +251,7 @@ const OdontogramComponent = () => {
                 engineRef.current = null;
             }
         };
-    }, []); // Empty dependency array ensures this effect runs only once.
+    }, []);
 
     return (
         <div id="visor">
