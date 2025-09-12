@@ -49,6 +49,8 @@ export function Nav({ items, isMinimized }: NavProps) {
     const title = t(item.title as any);
     const effectivePathname = pathname.substring(3) || '/';
     const linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
+    const isActive = item.href === '/' ? effectivePathname === item.href : effectivePathname.startsWith(item.href);
+
 
     return (
        <Tooltip key={item.href} delayDuration={0}>
@@ -57,7 +59,7 @@ export function Nav({ items, isMinimized }: NavProps) {
               href={linkHref}
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold',
-                effectivePathname === item.href
+                isActive
                   ? 'bg-black/20 text-white'
                   : 'text-white hover:bg-black/20 hover:text-white',
                 isMinimized && 'justify-center'
@@ -79,7 +81,7 @@ export function Nav({ items, isMinimized }: NavProps) {
   const renderAccordion = (item: NavItem, index: number) => {
     const title = t(item.title as any);
     const effectivePathname = pathname.substring(3);
-    const isActive = item.items?.some(subItem => effectivePathname.startsWith(subItem.href));
+    const isActive = item.items?.some(subItem => effectivePathname.startsWith(subItem.href.split('/')[1]));
 
     return (
         <Accordion
@@ -103,14 +105,19 @@ export function Nav({ items, isMinimized }: NavProps) {
               <AccordionContent className="pl-8 pt-1">
                 <div className="grid gap-1">
                   {item.items?.map((subItem) => {
-                    const linkHref = `/${locale}${subItem.href}`;
+                    let linkHref = `/${locale}${subItem.href}`;
+                    if (subItem.href.includes('clinic-history')) {
+                        linkHref = `/${locale}/clinic-history/1`; // Default user
+                    }
+                    const isSubItemActive = effectivePathname.startsWith(subItem.href.split('/')[1]);
+
                     return (
                         <Link
                         key={subItem.href}
                         href={linkHref}
                         className={cn(
                             'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold',
-                            effectivePathname === subItem.href || (subItem.href !== '/' && effectivePathname.startsWith(subItem.href))
+                            isSubItemActive
                             ? 'bg-black/20 text-white'
                             : 'text-white hover:text-white'
                         )}
@@ -129,7 +136,7 @@ export function Nav({ items, isMinimized }: NavProps) {
    const renderDropdown = (item: NavItem, index: number) => {
     const title = t(item.title as any);
     const effectivePathname = pathname.substring(3);
-    const isActive = item.items?.some(subItem => effectivePathname.startsWith(subItem.href));
+    const isActive = item.items?.some(subItem => effectivePathname.startsWith(subItem.href.split('/')[1]));
      return (
         <DropdownMenu key={index}>
             <Tooltip delayDuration={0}>
@@ -148,14 +155,18 @@ export function Nav({ items, isMinimized }: NavProps) {
             </Tooltip>
             <DropdownMenuContent side="right">
               {item.items?.map((subItem) => {
-                const linkHref = `/${locale}${subItem.href}`;
+                let linkHref = `/${locale}${subItem.href}`;
+                 if (subItem.href.includes('clinic-history')) {
+                    linkHref = `/${locale}/clinic-history/1`; // Default user
+                }
+                const isSubItemActive = effectivePathname.startsWith(subItem.href.split('/')[1]);
                 return (
                     <DropdownMenuItem key={subItem.href} asChild>
                     <Link
                         href={linkHref}
                         className={cn(
                         'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold',
-                        effectivePathname.startsWith(subItem.href)
+                        isSubItemActive
                             ? 'bg-muted text-primary'
                             : 'text-muted-foreground hover:text-primary'
                         )}

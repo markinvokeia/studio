@@ -55,7 +55,7 @@ export const navItems: NavItem[] = [
     icon: Users,
     items: [
       { title: 'Users', href: '/users', icon: Users, isChidren: true },
-      { title: 'ClinicHistory', href: '/clinic-history/1', icon: HeartPulse, isChidren: true },
+      { title: 'ClinicHistory', href: '/clinic-history', icon: HeartPulse, isChidren: true },
     ],
   },
   {
