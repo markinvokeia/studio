@@ -41,7 +41,7 @@ export default async function LocaleLayout({
                 <Sidebar />
                 <div className="flex flex-col">
                 <Header />
-                <main className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
+                <main className="flex flex-1 flex-col gap-4 p-4 lg:p-6 bg-gradient-to-b from-gray-200 to-gray-100 dark:from-gray-800 dark:to-gray-900">
                     {children}
                 </main>
                 </div>
