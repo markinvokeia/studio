@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useEffect, useRef } from 'react';
 
@@ -121,7 +122,7 @@ class Engine {
             });
         };
 
-        const path = '/odontograma/img/';
+        const path = '/odontograma/';
         const imagePromises: Promise<any>[] = [];
         
         for (var i = 1; i < 6; i++) {
