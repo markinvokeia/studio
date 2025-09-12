@@ -97,9 +97,7 @@ class Engine {
     async loadImages() {
         this.properties = {
             'images': {
-                'numeros': new Array(),
-                'dientes': new Array(),
-                'marcas': new Array()
+                'dientes': new Array()
             },
             'paciente': {
                 'clinica': 'Default Clinic',
@@ -113,11 +111,14 @@ class Engine {
             }
         };
 
-        const loadImage = (src: string): Promise<HTMLImageElement> => {
-            return new Promise((resolve, reject) => {
+        const loadImage = (src: string): Promise<HTMLImageElement | null> => {
+            return new Promise((resolve) => {
                 const img = new Image();
                 img.onload = () => resolve(img);
-                img.onerror = (e) => reject(new Error(`Failed to load image: ${src}. Error: ${e}`));
+                img.onerror = (e) => {
+                    console.warn(`Could not load image: ${src}. It may be missing.`);
+                    resolve(null); // Resolve with null instead of rejecting
+                };
                 img.src = src;
             });
         };
@@ -130,17 +131,21 @@ class Engine {
         const child_teeth_sup = [55, 54, 53, 52, 51, 61, 62, 63, 64, 65];
         const child_teeth_inf = [85, 84, 83, 82, 81, 71, 72, 73, 74, 75];
 
-        for (const toothNum of adult_teeth_sup) {
-            imagePromises.push(loadImage(`${path}dentadura-sup-${toothNum}.png`).then(img => this.properties.images.dientes[toothNum] = img));
-        }
-        for (const toothNum of adult_teeth_inf) {
-             imagePromises.push(loadImage(`${path}dentadura-inf-${toothNum}.png`).then(img => this.properties.images.dientes[toothNum] = img));
-        }
-        for (const toothNum of child_teeth_sup) {
-             imagePromises.push(loadImage(`${path}dentadura-sup-${toothNum}.png`).then(img => this.properties.images.dientes[toothNum] = img));
-        }
-        for (const toothNum of child_teeth_inf) {
-             imagePromises.push(loadImage(`${path}dentadura-inf-${toothNum}.png`).then(img => this.properties.images.dientes[toothNum] = img));
+        const all_teeth = [...adult_teeth_sup, ...adult_teeth_inf, ...child_teeth_sup, ...child_teeth_inf];
+        const unique_teeth = [...new Set(all_teeth)];
+
+        for (const toothNum of unique_teeth) {
+            const isUpper = (toothNum >= 11 && toothNum <= 28) || (toothNum >= 51 && toothNum <= 65);
+            const position = isUpper ? 'sup' : 'inf';
+            const imageUrl = `${path}dentadura-${position}-${toothNum}.png`;
+
+            imagePromises.push(
+                loadImage(imageUrl).then(img => {
+                    if (img) {
+                        this.properties.images.dientes[toothNum] = img;
+                    }
+                })
+            );
         }
 
         await Promise.all(imagePromises);
@@ -472,5 +477,3 @@ export const OdontogramComponent = () => {
         </div>
     );
 };
-
-    
