@@ -59,7 +59,8 @@ export function Header() {
   
   const findNavItem = (path: string, items: NavItem[]): NavItem | undefined => {
     for (const item of items) {
-      if (item.href === path) {
+      const itemPath = item.href === '/' ? '' : item.href;
+      if (itemPath === path) {
         return item;
       }
       if (item.items) {
@@ -70,15 +71,21 @@ export function Header() {
   };
 
   const breadcrumbItems = breadcrumbSegments.map((segment, index) => {
-    const fullPath = `/${breadcrumbSegments.slice(0, index + 1).join('/')}`;
+    const pathSegments = breadcrumbSegments.slice(0, index + 1);
+    const fullPath = `/${pathSegments.join('/')}`;
     const isLast = index === breadcrumbSegments.length - 1;
     let title: string;
 
-    const navItem = findNavItem(fullPath.replace(`/${locale}`, '') || '/', navItems);
+    const navItem = findNavItem(fullPath, navItems);
     
-    if (navItem) {
-        title = tNav(navItem.title as any);
+    if (navItem && navItem.title) {
+        try {
+            title = tNav(navItem.title as any);
+        } catch (e) {
+            title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
+        }
     } else {
+        // Fallback for dynamic segments or non-nav paths
         title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
     }
 
@@ -86,11 +93,7 @@ export function Header() {
       <React.Fragment key={fullPath}>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
-          {isLast ? (
-             <BreadcrumbPage>{title}</BreadcrumbPage>
-          ) : (
-             <BreadcrumbPage className="text-muted-foreground">{title}</BreadcrumbPage>
-          )}
+          <BreadcrumbPage className={isLast ? "text-foreground" : "text-muted-foreground"}>{title}</BreadcrumbPage>
         </BreadcrumbItem>
       </React.Fragment>
     );
@@ -109,7 +112,7 @@ export function Header() {
            <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
             <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold">
               <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={24} height={24} alt="InvokeIA Logo" />
-              <span className="">InvokeIA</span>
+              <span className="text-xl drop-shadow-[1px_1px_1px_rgba(0,0,0,0.4)]">InvokeIA</span>
             </Link>
           </div>
           <div className="flex-1 overflow-y-auto py-2">
