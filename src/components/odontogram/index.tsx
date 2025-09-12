@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useRef, useEffect } from 'react';
@@ -8,11 +7,11 @@ import React, { useRef, useEffect } from 'react';
 
 const OdontogramComponent = () => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const engineRef = useRef<Engine | null>(null);
 
     useEffect(() => {
         // The Engine class and all its logic are defined inside this useEffect
         // to keep it self-contained and avoid polluting the global scope.
-
         class Engine {
             canvas: HTMLCanvasElement | null = null;
             context: CanvasRenderingContext2D | null = null;
@@ -26,13 +25,22 @@ const OdontogramComponent = () => {
             }
 
             async init() {
-                await this.loadImages();
-                this.loadPatientData("Clínica Dental Sonrisas", "Juan Pérez", "12345", "789", "2024-05-21", "Dr. Smith", "Paciente presenta sensibilidad en el cuadrante superior derecho.", "");
-                this.start();
+                try {
+                    await this.loadImages();
+                    this.loadDientes();
+                    this.start();
+                    return () => this.stop(); // Return cleanup function
+                } catch (error) {
+                    console.error("Engine initialization failed:", error);
+                    // No cleanup needed if init fails
+                    return () => {};
+                }
             }
-            
+
             loadPatientData(p_clinica: any, p_paciente: any, p_ficha: any, p_hc: any, p_fecha: any, p_doctor: any, p_observaciones: any, p_especificaciones: any) {
-                if(!this.properties.paciente) this.properties.paciente = {};
+                if (!this.properties.paciente) {
+                    this.properties.paciente = {};
+                }
                 this.properties.paciente.clinica = p_clinica;
                 this.properties.paciente.paciente = p_paciente;
                 this.properties.paciente.ficha = p_ficha;
@@ -42,7 +50,6 @@ const OdontogramComponent = () => {
                 this.properties.paciente.observaciones = p_observaciones;
                 this.properties.paciente.especificaciones = p_especificaciones;
             }
-
 
             async loadImages() {
                 const loadImage = (src: string): Promise<HTMLImageElement> => {
@@ -54,44 +61,43 @@ const OdontogramComponent = () => {
                     });
                 };
 
-                try {
-                    const imageSources = [
-                        'odontograma', 'paleta', 'odontograma_over', 'paleta_over',
-                        'p_a', 'p_b', 'p_c', 'p_d', 'p_e', 'p_f', 'p_g', 'p_h', 'p_i', 'p_j',
-                        'p_k', 'p_l', 'p_m', 'p_n', 'p_o', 'p_p', 'p_q', 'p_r', 'p_s',
-                        'p_t', 'p_u', 'p_v', 'p_w', 'p_x', 'p_y', 'p_z', 'p_0', 'p_1',
-                        'p_2', 'p_3', 'p_4', 'p_5', 'p_6', 'p_7'
-                    ];
+                // Initialize properties object here to ensure it exists
+                this.properties = {
+                    dientes: [],
+                    paleta: {},
+                    paciente: {}
+                };
 
-                    const dienteSources: string[] = [];
-                    const sup = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
-                    const inf = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
+                const imageSources: { [key: string]: string } = {
+                    'odontograma': '/odontograma/img/odontograma.png',
+                    'paleta': '/odontograma/img/paleta.png',
+                    'odontograma_over': '/odontograma/img/odontograma_over.png',
+                    'paleta_over': '/odontograma/img/paleta_over.png',
+                };
+                
+                const sup = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
+                const inf = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 
-                    sup.forEach(d => dienteSources.push(`dentadura-sup-${d}`));
-                    inf.forEach(d => dienteSources.push(`dentadura-inf-${d}`));
+                sup.forEach(d => {
+                    imageSources[`dentadura-sup-${d}`] = `/odontograma/img/dentadura-sup-${d}.png`;
+                });
+                inf.forEach(d => {
+                    imageSources[`dentadura-inf-${d}`] = `/odontograma/img/dentadura-inf-${d}.png`;
+                });
+                
+                const promises = Object.entries(imageSources).map(([name, src]) =>
+                    loadImage(src).then(img => ({ name, img }))
+                );
+                
+                const results = await Promise.all(promises);
 
-                    const allSources = [...imageSources, ...dienteSources];
-
-                    const promises = allSources.map(name =>
-                        loadImage(`/odontograma/img/${name}.png`).then(img => ({ name, img }))
-                    );
-                    
-                    const results = await Promise.all(promises);
-
-                    results.forEach(result => {
-                        this.images[result.name] = result.img;
-                    });
-
-                } catch (error) {
-                    console.error("Error loading images:", error);
-                    // Stop further execution if images fail to load.
-                    throw error;
-                }
+                results.forEach(result => {
+                    this.images[result.name] = result.img;
+                });
             }
 
-
             start() {
-                this.loadDientes();
+                if (this.interval) clearInterval(this.interval);
                 this.interval = setInterval(() => this.draw(), 1000 / 30);
             }
 
@@ -115,12 +121,12 @@ const OdontogramComponent = () => {
                     }
                 });
             }
-            
+
             drawPaleta() {
                 if (!this.context || !this.images.paleta) return;
                 this.context.drawImage(this.images.paleta, this.properties.paleta.x, this.properties.paleta.y);
             }
-            
+
             drawInfo() {
                  if (!this.context || !this.properties.paciente) return;
                 const { paciente, clinica, ficha, hc, fecha, doctor } = this.properties.paciente;
@@ -128,67 +134,69 @@ const OdontogramComponent = () => {
                 this.context.fillStyle = "rgb(1, 1, 1)";
                 this.context.font = "12px courier";
 
-                this.context.fillText(paciente, 160, 52);
-                this.context.fillText(clinica, 160, 32);
-                this.context.fillText(ficha, 442, 32);
-                this.context.fillText(hc, 442, 52);
-                this.context.fillText(fecha, 630, 32);
-                this.context.fillText(doctor, 630, 52);
+                if (paciente) this.context.fillText(paciente, 160, 52);
+                if (clinica) this.context.fillText(clinica, 160, 32);
+                if (ficha) this.context.fillText(ficha, 442, 32);
+                if (hc) this.context.fillText(hc, 442, 52);
+                if (fecha) this.context.fillText(fecha, 630, 32);
+                if (doctor) this.context.fillText(doctor, 630, 52);
             }
-
 
             loadDientes() {
                 this.properties.dientes = [];
                 let x = 32;
                 let y = 100;
+                const x_start = 32;
+                const x_offset = 49;
 
-                const addDiente = (id: number, img: string, tipo: string) => {
-                    this.properties.dientes.push({ id, img, x, y, tipo, partes: this.getPartes(tipo) });
-                    x += 49;
+                const addDiente = (id: number, tipo: string) => {
+                    const region = id < 30 ? 'sup' : 'inf';
+                    this.properties.dientes.push({ id, img: `dentadura-${region}-${id}`, x, y, tipo, partes: this.getPartes(tipo) });
+                    x += x_offset;
                 };
 
                 // SUPERIOR DERECHA
-                addDiente(18, 'dentadura-sup-18', "M");
-                addDiente(17, 'dentadura-sup-17', "M");
-                addDiente(16, 'dentadura-sup-16', "M");
-                addDiente(15, 'dentadura-sup-15', "P");
-                addDiente(14, 'dentadura-sup-14', "P");
-                addDiente(13, 'dentadura-sup-13', "C");
-                addDiente(12, 'dentadura-sup-12', "I");
-                addDiente(11, 'dentadura-sup-11', "I");
+                addDiente(18, "M");
+                addDiente(17, "M");
+                addDiente(16, "M");
+                addDiente(15, "P");
+                addDiente(14, "P");
+                addDiente(13, "C");
+                addDiente(12, "I");
+                addDiente(11, "I");
                 
                 // SUPERIOR IZQUIERDA
-                addDiente(21, 'dentadura-sup-21', "I");
-                addDiente(22, 'dentadura-sup-22', "I");
-                addDiente(23, 'dentadura-sup-23', "C");
-                addDiente(24, 'dentadura-sup-24', "P");
-                addDiente(25, 'dentadura-sup-25', "P");
-                addDiente(26, 'dentadura-sup-26', "M");
-                addDiente(27, 'dentadura-sup-27', "M");
-                addDiente(28, 'dentadura-sup-28', "M");
+                addDiente(21, "I");
+                addDiente(22, "I");
+                addDiente(23, "C");
+                addDiente(24, "P");
+                addDiente(25, "P");
+                addDiente(26, "M");
+                addDiente(27, "M");
+                addDiente(28, "M");
                 
-                x = 32;
+                x = x_start;
                 y = 230;
 
                 // INFERIOR DERECHA
-                addDiente(48, 'dentadura-inf-48', "M");
-                addDiente(47, 'dentadura-inf-47', "M");
-                addDiente(46, 'dentadura-inf-46', "M");
-                addDiente(45, 'dentadura-inf-45', "P");
-                addDiente(44, 'dentadura-inf-44', "P");
-                addDiente(43, 'dentadura-inf-43', "C");
-                addDiente(42, 'dentadura-inf-42', "I");
-                addDiente(41, 'dentadura-inf-41', "I");
+                addDiente(48, "M");
+                addDiente(47, "M");
+                addDiente(46, "M");
+                addDiente(45, "P");
+                addDiente(44, "P");
+                addDiente(43, "C");
+                addDiente(42, "I");
+                addDiente(41, "I");
                 
                 // INFERIOR IZQUIERDA
-                addDiente(31, 'dentadura-inf-31', "I");
-                addDiente(32, 'dentadura-inf-32', "I");
-                addDiente(33, 'dentadura-inf-33', "C");
-                addDiente(34, 'dentadura-inf-34', "P");
-                addDiente(35, 'dentadura-inf-35', "P");
-                addDiente(36, 'dentadura-inf-36', "M");
-                addDiente(37, 'dentadura-inf-37', "M");
-                addDiente(38, 'dentadura-inf-38', "M");
+                addDiente(31, "I");
+                addDiente(32, "I");
+                addDiente(33, "C");
+                addDiente(34, "P");
+                addDiente(35, "P");
+                addDiente(36, "M");
+                addDiente(37, "M");
+                addDiente(38, "M");
 
                 // Posición de la paleta
                 this.properties.paleta = { x: 32, y: 390 };
@@ -214,26 +222,42 @@ const OdontogramComponent = () => {
                 clearInterval(this.interval);
             }
         }
-        
-        console.log("Odontogram component mounted, initializing engine...");
 
-        if (canvasRef.current) {
-            const engine = new Engine();
-            engine.setCanvas(canvasRef.current);
-            engine.init().then(() => {
-                console.log("Engine initialized and drawing started.");
-                alert("Odontogram viewer has been initialized and should be visible.");
-            }).catch(error => {
-                console.error("Engine failed to initialize:", error);
-                alert(`Error initializing odontogram: ${error.message}`);
-            });
-            
-            // Cleanup function to stop the interval when the component unmounts.
-            return () => {
-                console.log("Unmounting odontogram component, stopping engine.");
-                engine.stop();
-            };
-        }
+        let cleanup: (() => void) | null = null;
+        
+        const initEngine = async () => {
+            if (canvasRef.current && !engineRef.current) {
+                console.log("Odontogram component mounted, initializing engine...");
+                const engine = new Engine();
+                engineRef.current = engine;
+                engine.setCanvas(canvasRef.current);
+
+                try {
+                    cleanup = await engine.init();
+                    console.log("Engine initialized, starting draw loop.");
+                    // Mock patient data after successful initialization
+                    engine.loadPatientData("Clínica Dental Sonrisas", "Juan Pérez", "12345", "789", "2024-05-21", "Dr. Smith", "Paciente presenta sensibilidad en el cuadrante superior derecho.", "");
+                    alert("Odontogram viewer has been initialized and should be visible.");
+                } catch (error) {
+                    console.error("Failed to initialize engine:", error);
+                    alert(`Error initializing odontogram: ${error}`);
+                }
+            }
+        };
+
+        initEngine();
+
+        // Cleanup function to stop the interval when the component unmounts.
+        return () => {
+            console.log("Unmounting odontogram component, stopping engine.");
+            if (cleanup) {
+                cleanup();
+            }
+            if(engineRef.current) {
+                engineRef.current.stop();
+                engineRef.current = null;
+            }
+        };
     }, []); // Empty dependency array ensures this effect runs only once.
 
     return (
@@ -246,5 +270,3 @@ const OdontogramComponent = () => {
 };
 
 export default OdontogramComponent;
-
-    
