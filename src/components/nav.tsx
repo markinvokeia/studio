@@ -80,8 +80,12 @@ export function Nav({ items, isMinimized }: NavProps) {
 
   const renderAccordion = (item: NavItem, index: number) => {
     const title = t(item.title as any);
-    const effectivePathname = pathname.substring(3);
-    const isActive = item.items?.some(subItem => effectivePathname.startsWith(subItem.href.split('/')[1]));
+    const effectivePathname = pathname.substring(3) || '/';
+    
+    const isActive = item.items?.some(subItem => {
+      const cleanSubItemHref = subItem.href.startsWith('/') ? subItem.href.substring(1) : subItem.href;
+      return effectivePathname.startsWith(cleanSubItemHref);
+    });
 
     return (
         <Accordion
@@ -105,11 +109,12 @@ export function Nav({ items, isMinimized }: NavProps) {
               <AccordionContent className="pl-8 pt-1">
                 <div className="grid gap-1">
                   {item.items?.map((subItem) => {
+                    const cleanSubItemHref = subItem.href.startsWith('/') ? subItem.href.substring(1) : subItem.href;
                     let linkHref = `/${locale}${subItem.href}`;
                     if (subItem.href.includes('clinic-history')) {
                         linkHref = `/${locale}/clinic-history/1`; // Default user
                     }
-                    const isSubItemActive = effectivePathname.startsWith(subItem.href.split('/')[1]);
+                    const isSubItemActive = effectivePathname.startsWith(cleanSubItemHref);
 
                     return (
                         <Link
@@ -135,8 +140,11 @@ export function Nav({ items, isMinimized }: NavProps) {
   
    const renderDropdown = (item: NavItem, index: number) => {
     const title = t(item.title as any);
-    const effectivePathname = pathname.substring(3);
-    const isActive = item.items?.some(subItem => effectivePathname.startsWith(subItem.href.split('/')[1]));
+    const effectivePathname = pathname.substring(3) || '/';
+    const isActive = item.items?.some(subItem => {
+        const cleanSubItemHref = subItem.href.startsWith('/') ? subItem.href.substring(1) : subItem.href;
+        return effectivePathname.startsWith(cleanSubItemHref);
+    });
      return (
         <DropdownMenu key={index}>
             <Tooltip delayDuration={0}>
@@ -155,11 +163,12 @@ export function Nav({ items, isMinimized }: NavProps) {
             </Tooltip>
             <DropdownMenuContent side="right">
               {item.items?.map((subItem) => {
+                const cleanSubItemHref = subItem.href.startsWith('/') ? subItem.href.substring(1) : subItem.href;
                 let linkHref = `/${locale}${subItem.href}`;
                  if (subItem.href.includes('clinic-history')) {
                     linkHref = `/${locale}/clinic-history/1`; // Default user
                 }
-                const isSubItemActive = effectivePathname.startsWith(subItem.href.split('/')[1]);
+                const isSubItemActive = effectivePathname.startsWith(cleanSubItemHref);
                 return (
                     <DropdownMenuItem key={subItem.href} asChild>
                     <Link
