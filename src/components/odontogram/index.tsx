@@ -63,6 +63,9 @@ class Engine {
     }
 
     loadPatientData(p_clinica: any, p_paciente: any, p_ficha: any, p_hc: any, p_fecha: any, p_doctor: any, p_observaciones: any, p_especificaciones: any) {
+        if (!this.properties.paciente) {
+            this.properties.paciente = {};
+        }
         this.properties.paciente.clinica = p_clinica;
         this.properties.paciente.paciente = p_paciente;
         this.properties.paciente.ficha = p_ficha;
@@ -128,10 +131,9 @@ class Engine {
         const child_teeth_sup = [55, 54, 53, 52, 51, 61, 62, 63, 64, 65];
         const child_teeth_inf = [85, 84, 83, 82, 81, 71, 72, 73, 74, 75];
 
-        const all_teeth = [...adult_teeth_sup, ...adult_teeth_inf, ...child_teeth_sup, ...child_teeth_inf];
-        const unique_teeth = [...new Set(all_teeth)];
+        const all_teeth = [...new Set([...adult_teeth_sup, ...adult_teeth_inf, ...child_teeth_sup, ...child_teeth_inf])];
 
-        for (const toothNum of unique_teeth) {
+        for (const toothNum of all_teeth) {
             const isUpper = (toothNum >= 11 && toothNum <= 28) || (toothNum >= 51 && toothNum <= 65);
             const position = isUpper ? 'sup' : 'inf';
             const imageUrl = `${path}dentadura-${position}-${toothNum}.png`;
@@ -236,9 +238,9 @@ class Engine {
 
         const adult_teeth_sup_right = [18, 17, 16, 15, 14, 13, 12, 11];
         const adult_teeth_sup_left = [21, 22, 23, 24, 25, 26, 27, 28];
-        const adult_teeth_inf_left = [31, 32, 33, 34, 35, 36, 37, 38];
-        const adult_teeth_inf_right = [48, 47, 46, 45, 44, 43, 42, 41];
         
+        // Superior
+        x_off = 325;
         for (var i = 0; i < adult_teeth_sup_right.length; i++) {
             const toothNum = adult_teeth_sup_right[i];
             var diente_info = this.parts[18 - toothNum] || this.parts[0];
@@ -259,8 +261,12 @@ class Engine {
             }
         }
 
-        x_off = 325;
+        const adult_teeth_inf_right = [48, 47, 46, 45, 44, 43, 42, 41];
+        const adult_teeth_inf_left = [31, 32, 33, 34, 35, 36, 37, 38];
         y_off = 430;
+
+        // Inferior
+        x_off = 325;
         for (var i = 0; i < adult_teeth_inf_right.length; i++) {
             const toothNum = adult_teeth_inf_right[i];
             var diente_info = this.parts[48 - toothNum + 8] || this.parts[8];
@@ -270,6 +276,7 @@ class Engine {
                 x_off -= (diente_img.width + separacion);
              }
         }
+
         x_off = 325;
         for (var i = 0; i < adult_teeth_inf_left.length; i++) {
             const toothNum = adult_teeth_inf_left[i];
@@ -415,6 +422,7 @@ export const OdontogramComponent = () => {
         let cleanup: (() => void) | undefined;
         
         const initEngine = async () => {
+            console.log('Before loading viewer...');
             if (canvasRef.current && !engineRef.current) {
                 const engine = new Engine();
                 engineRef.current = engine;
@@ -444,6 +452,9 @@ export const OdontogramComponent = () => {
                     canvas.addEventListener('mousedown', handleClick);
                     canvas.addEventListener('mousemove', handleMouseMove);
                     window.addEventListener('keydown', handleKeyDown);
+
+                    console.log('Viewer loaded successfully.');
+                    alert('Odontogram component should be visible now.');
     
                     return () => {
                         if (cleanup) cleanup();
@@ -476,3 +487,5 @@ export const OdontogramComponent = () => {
         </div>
     );
 };
+
+    
