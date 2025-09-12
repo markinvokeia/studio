@@ -3,93 +3,100 @@ import React, { useEffect, useRef } from 'react';
 
 // All the code from engine.js is now part of this component.
 // I have adapted it to work within the React/Next.js environment.
-const Engine = function () {
-    var canvas,
-        context,
-        canvas_width,
-        canvas_height;
+class Engine {
+    canvas: HTMLCanvasElement | null = null;
+    context: CanvasRenderingContext2D | null = null;
+    canvas_width: number = 0;
+    canvas_height: number = 0;
 
-    var diente_seleccionado = 0,
-        parte_seleccionada = 0;
+    diente_seleccionado = 0;
+    parte_seleccionada = 0;
 
-    var color_seleccionado = "#FF8080"; // Default to caries color
+    color_seleccionado = "#FF8080"; // Default to caries color
 
-    var parts,
-        properties;
+    parts: any[][] = [];
+    properties: any = {};
 
-    var adult_dientes_up,
-        adult_dientes_down,
-        child_dientes_up,
-        child_dientes_down;
+    adult_dientes_up: any[] = [];
+    adult_dientes_down: any[] = [];
+    child_dientes_up: any[] = [];
+    child_dientes_down: any[] = [];
 
-    var tipo_odontograma; // 1=adult, 2=child
+    tipo_odontograma: number = 1; // 1=adult, 2=child
 
-    var data_paciente;
+    data_paciente: any = [];
 
-    this.setCanvas = function (canvas_object) {
-        canvas = canvas_object;
-        context = canvas.getContext('2d');
-        canvas_width = canvas.width;
-        canvas_height = canvas.height;
+    constructor() {
+        // Initialization logic that was in init()
+        this.tipo_odontograma = 1;
+        this.parts = [];
+        this.adult_dientes_up = [];
+        this.adult_dientes_down = [];
+        this.child_dientes_up = [];
+        this.child_dientes_down = [];
+
+        this.loadImages();
+        this.loadParts();
+        this.loadDientes();
+
+        this.data_paciente = [];
+        for (var i = 1; i < 53; i++) {
+            this.data_paciente[i] = [];
+            this.data_paciente[i]['completo'] = "#80FFFF";
+            for (var j = 1; j < 7; j++) {
+                this.data_paciente[i][j] = "#80FFFF";
+            }
+        }
     }
 
-    this.init = function () {
-        tipo_odontograma = 1;
-        parts = new Array();
-        adult_dientes_up = new Array();
-        adult_dientes_down = new Array();
-        child_dientes_up = new Array();
-        child_dientes_down = new Array();
-
-        loadImages();
-        loadParts();
-        loadDientes();
-
-        data_paciente = new Array();
-        for (var i = 1; i < 53; i++) {
-            data_paciente[i] = new Array();
-            data_paciente[i]['completo'] = "#80FFFF";
-            for (var j = 1; j < 7; j++) {
-                data_paciente[i][j] = "#80FFFF";
-            }
+    setCanvas(canvas_object: HTMLCanvasElement) {
+        this.canvas = canvas_object;
+        this.context = this.canvas.getContext('2d');
+        if (this.context) {
+            this.canvas_width = this.canvas.width;
+            this.canvas_height = this.canvas.height;
         }
     }
     
-    // Load patient data into the engine
-    this.loadPatientData = function (p_clinica, p_paciente, p_ficha, p_hc, p_fecha, p_doctor, p_observaciones, p_especificaciones) {
-        properties.paciente.clinica = p_clinica;
-        properties.paciente.paciente = p_paciente;
-        properties.paciente.ficha = p_ficha;
-        properties.paciente.hc = p_hc;
-        properties.paciente.fecha = p_fecha;
-        properties.paciente.doctor = p_doctor;
-        properties.paciente.observaciones = p_observaciones;
-        properties.paciente.especificaciones = p_especificaciones;
+    start() {
+        const intervalId = setInterval(() => this.draw(), 100);
+        return () => clearInterval(intervalId);
     }
 
-    function draw() {
-        if (!context) return;
-        context.clearRect(0, 0, canvas_width, canvas_height);
-        context.fillStyle = '#f0f0f0';
-        context.fillRect(0, 0, canvas_width, canvas_height);
+    loadPatientData(p_clinica: any, p_paciente: any, p_ficha: any, p_hc: any, p_fecha: any, p_doctor: any, p_observaciones: any, p_especificaciones: any) {
+        this.properties.paciente.clinica = p_clinica;
+        this.properties.paciente.paciente = p_paciente;
+        this.properties.paciente.ficha = p_ficha;
+        this.properties.paciente.hc = p_hc;
+        this.properties.paciente.fecha = p_fecha;
+        this.properties.paciente.doctor = p_doctor;
+        this.properties.paciente.observaciones = p_observaciones;
+        this.properties.paciente.especificaciones = p_especificaciones;
+    }
 
-        if (tipo_odontograma == 1) { // Adult
+    draw() {
+        if (!this.context) return;
+        this.context.clearRect(0, 0, this.canvas_width, this.canvas_height);
+        this.context.fillStyle = '#f0f0f0';
+        this.context.fillRect(0, 0, this.canvas_width, this.canvas_height);
+
+        if (this.tipo_odontograma == 1) { // Adult
             for (var i = 0; i < 16; i++) {
-                adult_dientes_up[i].draw(context, diente_seleccionado, parte_seleccionada, data_paciente);
-                adult_dientes_down[i].draw(context, diente_seleccionado, parte_seleccionada, data_paciente);
+                this.adult_dientes_up[i]?.draw(this.context, this.diente_seleccionado, this.parte_seleccionada, this.data_paciente);
+                this.adult_dientes_down[i]?.draw(this.context, this.diente_seleccionado, this.parte_seleccionada, this.data_paciente);
             }
         } else { // Child
              for (var i = 0; i < 10; i++) {
-                child_dientes_up[i].draw(context, diente_seleccionado, parte_seleccionada, data_paciente);
-                child_dientes_down[i].draw(context, diente_seleccionado, parte_seleccionada, data_paciente);
+                this.child_dientes_up[i]?.draw(this.context, this.diente_seleccionado, this.parte_seleccionada, this.data_paciente);
+                this.child_dientes_down[i]?.draw(this.context, this.diente_seleccionado, this.parte_seleccionada, this.data_paciente);
             }
         }
-        drawPaleta();
-        drawInfo();
+        this.drawPaleta();
+        this.drawInfo();
     }
 
-    function loadImages() {
-        properties = {
+    loadImages() {
+        this.properties = {
             'images': {
                 'numeros': new Array(),
                 'dientes': new Array(),
@@ -108,31 +115,35 @@ const Engine = function () {
         }
         var path = '/odontograma/img/';
         for (var i = 1; i < 6; i++) {
-            properties.images.numeros[i] = new Image();
-            properties.images.numeros[i].src = path + 'numero_' + i + '.png';
+            this.properties.images.numeros[i] = new Image();
+            this.properties.images.numeros[i].src = path + 'numero_' + i + '.png';
         }
         for (var i = 1; i < 9; i++) {
-            properties.images.dientes[i] = new Image();
-            properties.images.dientes[i].src = path + 'adult_diente_' + i + '.png';
+            this.properties.images.dientes[i] = new Image();
+            this.properties.images.dientes[i].src = path + 'adult_diente_' + i + '.png';
         }
         for (var i = 1; i < 6; i++) {
-            properties.images.dientes[i + 10] = new Image();
-            properties.images.dientes[i + 10].src = path + 'child_diente_' + i + '.png';
+            this.properties.images.dientes[i + 10] = new Image();
+            this.properties.images.dientes[i + 10].src = path + 'child_diente_' + i + '.png';
         }
-        properties.images.marcas[1] = new Image(); //ausente
-        properties.images.marcas[1].src = path + 'marca_1.png';
-        properties.images.marcas[2] = new Image(); //extraer
-        properties.images.marcas[2].src = path + 'marca_2.png';
-        properties.images.marcas[3] = new Image(); //corona
-        properties.images.marcas[3].src = path + 'marca_3.png';
+        this.properties.images.marcas[1] = new Image(); //ausente
+        this.properties.images.marcas[1].src = path + 'marca_1.png';
+        this.properties.images.marcas[2] = new Image(); //extraer
+        this.properties.images.marcas[2].src = path + 'marca_2.png';
+        this.properties.images.marcas[3] = new Image(); //corona
+        this.properties.images.marcas[3].src = path + 'marca_3.png';
     }
 
-    function loadDientes() {
-        // ... (The full implementation of Diente and its drawing logic is complex)
-        // This is a simplified version for demonstration. A full implementation
-        // would require porting the entire drawing logic.
+    loadDientes() {
         class Diente {
-            constructor(id, x, y, parts, image_diente, image_numero) {
+            id: any;
+            x: any;
+            y: any;
+            parts: any;
+            image_diente: any;
+            image_numero: any;
+
+            constructor(id: any, x: any, y: any, parts: any, image_diente: any, image_numero: any) {
                 this.id = id;
                 this.x = x;
                 this.y = y;
@@ -141,7 +152,7 @@ const Engine = function () {
                 this.image_numero = image_numero;
             }
 
-            draw(ctx, diente_sel, parte_sel, data) {
+            draw(ctx: { drawImage: (arg0: any, arg1: any, arg2: any) => void; lineWidth: number; strokeStyle: string; fillStyle: any; beginPath: () => void; moveTo: (arg0: any, arg1: any) => void; lineTo: (arg0: any, arg1: any) => void; closePath: () => void; fill: () => void; stroke: () => void; strokeRect: (arg0: any, arg1: any, arg2: any, arg3: any) => void; }, diente_sel: number, parte_sel: number, data: { [x: string]: { [x: string]: any; }; }) {
                 if (this.image_diente) {
                    try {
                         ctx.drawImage(this.image_diente, this.x, this.y);
@@ -150,7 +161,6 @@ const Engine = function () {
                    }
                 }
                 
-                // Draw colored parts based on patient data
                 ctx.lineWidth = 1;
                 ctx.strokeStyle = 'black';
                 for (var i = 0; i < this.parts.length; i++) {
@@ -182,7 +192,8 @@ const Engine = function () {
                     }
                 }
             }
-             isClicked(x, y) {
+
+             isClicked(x: number, y: number) {
                 if (x > this.x && x < this.x + this.image_diente.width && y > this.y && y < this.y + this.image_diente.height) {
                     for (var i = 0; i < this.parts.length; i++) {
                         if (isPointInPoly(this.parts[i], x - this.x, y - this.y)) {
@@ -205,101 +216,85 @@ const Engine = function () {
         var y_off = 170;
         var separacion = 4;
         
-        // Adult Up
         for (var i = 0; i < 8; i++) {
-            var diente_info = parts[8 - (i + 1)];
-            var diente_img = properties.images.dientes[8 - i];
-            adult_dientes_up[i] = new Diente(18 - i, x_off - diente_img.width, y_off, diente_info, diente_img, properties.images.numeros[1]);
+            var diente_info = this.parts[8 - (i + 1)];
+            var diente_img = this.properties.images.dientes[8 - i];
+            this.adult_dientes_up[i] = new Diente(18 - i, x_off - diente_img.width, y_off, diente_info, diente_img, this.properties.images.numeros[1]);
             x_off -= (diente_img.width + separacion);
         }
         x_off = 325;
         for (var i = 0; i < 8; i++) {
-            var diente_info = parts[i];
-            var diente_img = properties.images.dientes[i + 1];
-            adult_dientes_up[i + 8] = new Diente(21 + i, x_off, y_off, diente_info, diente_img, properties.images.numeros[2]);
+            var diente_info = this.parts[i];
+            var diente_img = this.properties.images.dientes[i + 1];
+            this.adult_dientes_up[i + 8] = new Diente(21 + i, x_off, y_off, diente_info, diente_img, this.properties.images.numeros[2]);
             x_off += (diente_img.width + separacion);
         }
 
-        // Adult Down
         x_off = 325;
         y_off = 430;
         for (var i = 0; i < 8; i++) {
-            var diente_info = parts[i + 8];
-            var diente_img = properties.images.dientes[i + 1];
-            adult_dientes_down[i] = new Diente(31 + i, x_off, y_off, diente_info, diente_img, properties.images.numeros[3]);
+            var diente_info = this.parts[i + 8];
+            var diente_img = this.properties.images.dientes[i + 1];
+            this.adult_dientes_down[i] = new Diente(31 + i, x_off, y_off, diente_info, diente_img, this.properties.images.numeros[3]);
             x_off += (diente_img.width + separacion);
         }
         x_off = 325;
         for (var i = 0; i < 8; i++) {
-            var diente_info = parts[15 - i];
-            var diente_img = properties.images.dientes[8 - i];
-            adult_dientes_down[i + 8] = new Diente(48 - i, x_off - diente_img.width, y_off, diente_info, diente_img, properties.images.numeros[4]);
+            var diente_info = this.parts[15 - i];
+            var diente_img = this.properties.images.dientes[8 - i];
+            this.adult_dientes_down[i + 8] = new Diente(48 - i, x_off - diente_img.width, y_off, diente_info, diente_img, this.properties.images.numeros[4]);
             x_off -= (diente_img.width + separacion);
         }
-        
-        // This is a complex part, I will simplify it by just loading adult teeth for now
     }
 
-    function loadParts() {
-        // This function loads the polygon coordinates for each tooth part.
-        // It's a large static data structure.
-        parts[0] = new Array(Array(3, 10), Array(13, 12), Array(13, 21), Array(3, 22)); //vestibular
-        parts[1] = new Array(Array(15, 12), Array(25, 10), Array(25, 22), Array(15, 21)); //distal
-        parts[2] = new Array(Array(3, 24), Array(13, 23), Array(13, 31), Array(3, 32)); //palatino
-        parts[3] = new Array(Array(3, 10), Array(13, 12), Array(13, 21), Array(3, 22)); //mesial..
-        parts[4] = new Array(Array(5, 14), Array(12, 13), Array(12, 22), Array(5, 21)); //oclusal..
-        // ... and so on for all 52 teeth parts. It's a lot of data.
-        // For brevity, I'm only showing a few. The real file has all of them.
+    loadParts() {
+        this.parts[0] = new Array(Array(3, 10), Array(13, 12), Array(13, 21), Array(3, 22)); //vestibular
+        this.parts[1] = new Array(Array(15, 12), Array(25, 10), Array(25, 22), Array(15, 21)); //distal
+        this.parts[2] = new Array(Array(3, 24), Array(13, 23), Array(13, 31), Array(3, 32)); //palatino
+        this.parts[3] = new Array(Array(3, 10), Array(13, 12), Array(13, 21), Array(3, 22)); //mesial..
+        this.parts[4] = new Array(Array(5, 14), Array(12, 13), Array(12, 22), Array(5, 21)); //oclusal..
         for(let i=5; i<53*5; i++) { // Mocking the rest
-            parts[i] = parts[0];
+            this.parts[i] = this.parts[0];
         }
     }
-    
-     function isPointInPoly(poly, x, y) {
-        var i, j, c = false;
-        for (i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-            if (((poly[i][1] > y) != (poly[j][1] > y)) && (x < (poly[j][0] - poly[i][0]) * (y - poly[i][1]) / (poly[j][1] - poly[i][1]) + poly[i][0])) {
-                c = !c;
-            }
-        }
-        return c;
-    }
 
-
-    function drawPaleta() {
-        context.font = '12px Arial';
-        context.fillStyle = 'black';
-        context.fillText('Palette', 10, 20);
+    drawPaleta() {
+        if (!this.context) return;
+        this.context.font = '12px Arial';
+        this.context.fillStyle = 'black';
+        this.context.fillText('Palette', 10, 20);
         
         const colors = ["#80FFFF", "#FF8080", "#FFFF80", "#80FF80", "#FF80FF", "#000000"];
         const labels = ["Healthy", "Caries", "Restoration", "Endodontics", "Extraction", "Absent"];
 
         for (var i = 0; i < colors.length; i++) {
-            context.fillStyle = colors[i];
-            context.fillRect(10, 30 + i * 25, 20, 20);
-            context.strokeStyle = "black";
-            context.strokeRect(10, 30 + i * 25, 20, 20);
-            context.fillStyle = 'black';
-            context.fillText(labels[i], 40, 45 + i * 25);
+            this.context.fillStyle = colors[i];
+            this.context.fillRect(10, 30 + i * 25, 20, 20);
+            this.context.strokeStyle = "black";
+            this.context.strokeRect(10, 30 + i * 25, 20, 20);
+            this.context.fillStyle = 'black';
+            this.context.fillText(labels[i], 40, 45 + i * 25);
         }
     }
 
-    function drawInfo() {
-        context.font = '14px Arial';
-        context.fillStyle = 'black';
-        context.fillText('Patient Info', 450, 20);
-        context.font = '12px Arial';
-        context.fillText(`Clinic: ${properties.paciente.clinica}`, 450, 40);
-        context.fillText(`Patient: ${properties.paciente.paciente}`, 450, 60);
-        context.fillText(`Record: ${properties.paciente.ficha}`, 450, 80);
+    drawInfo() {
+        if (!this.context) return;
+        this.context.font = '14px Arial';
+        this.context.fillStyle = 'black';
+        this.context.fillText('Patient Info', 450, 20);
+        this.context.font = '12px Arial';
+        this.context.fillText(`Clinic: ${this.properties.paciente.clinica}`, 450, 40);
+        this.context.fillText(`Patient: ${this.properties.paciente.paciente}`, 450, 60);
+        this.context.fillText(`Record: ${this.properties.paciente.ficha}`, 450, 80);
     }
     
-    this.onMouseClick = function (event) {
-        var x = event.pageX - canvas.offsetLeft;
-        var y = event.pageY - canvas.offsetTop;
-        var result = false;
+    onMouseClick(event: MouseEvent) {
+        if (!this.canvas) return;
+        var x = event.pageX - this.canvas.offsetLeft;
+        var y = event.pageY - this.canvas.offsetTop;
+        var result: any = false;
 
-        var collection = (tipo_odontograma == 1) ? [adult_dientes_up, adult_dientes_down] : [child_dientes_up, child_dientes_down];
+        var collection = (this.tipo_odontograma == 1) ? [this.adult_dientes_up, this.adult_dientes_down] : [this.child_dientes_up, this.child_dientes_down];
 
         for (var j = 0; j < collection.length; j++) {
             for (var i = 0; i < collection[j].length; i++) {
@@ -310,61 +305,56 @@ const Engine = function () {
         }
         
         if (result) {
-            diente_seleccionado = result.diente;
-            parte_seleccionada = result.parte;
+            this.diente_seleccionado = result.diente;
+            this.parte_seleccionada = result.parte;
             
-            if(parte_seleccionada > 0){
-                data_paciente[diente_seleccionado][parte_seleccionada] = color_seleccionado;
+            if(this.parte_seleccionada > 0){
+                this.data_paciente[this.diente_seleccionado][this.parte_seleccionada] = this.color_seleccionado;
             } else {
-                 data_paciente[diente_seleccionado]['completo'] = color_seleccionado;
+                 this.data_paciente[this.diente_seleccionado]['completo'] = this.color_seleccionado;
                  for(var i=1; i<7; i++){
-                    data_paciente[diente_seleccionado][i] = color_seleccionado;
+                    this.data_paciente[this.diente_seleccionado][i] = this.color_seleccionado;
                  }
             }
         } else {
-            // Check palette clicks
             if (x > 10 && x < 30) {
                  const colors = ["#80FFFF", "#FF8080", "#FFFF80", "#80FF80", "#FF80FF", "#000000"];
                  for (let i = 0; i < colors.length; i++) {
                      if(y > 30 + i * 25 && y < 50 + i * 25) {
-                         color_seleccionado = colors[i];
+                         this.color_seleccionado = colors[i];
                          break;
                      }
                  }
             }
         }
         
-        draw();
-    };
+        this.draw();
+    }
 
-    this.onMouseMove = function (event) {
-       // Could implement hovering logic here
-    };
-
-    this.onButtonClick = function (event) {
-        // Could implement keyboard shortcuts here
-    };
-    
-    // Start drawing loop
-    const intervalId = setInterval(draw, 100);
-    return () => clearInterval(intervalId);
+    onMouseMove(event: MouseEvent) {}
+    onButtonClick(event: KeyboardEvent) {}
 }
 
+function isPointInPoly(poly: string | any[], x: number, y: number) {
+    var i, j, c = false;
+    for (i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        if (((poly[i][1] > y) != (poly[j][1] > y)) && (x < (poly[j][0] - poly[i][0]) * (y - poly[i][1]) / (poly[j][1] - poly[i][1]) + poly[i][0])) {
+            c = !c;
+        }
+    }
+    return c;
+}
 
 export const OdontogramComponent = () => {
-    const canvasRef = useRef(null);
-    const engineRef = useRef(null);
-    const cleanupRef = useRef(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const engineRef = useRef<Engine | null>(null);
 
     useEffect(() => {
-        // This effect runs once when the component mounts.
         if (canvasRef.current && !engineRef.current) {
             const engine = new Engine();
             engine.setCanvas(canvasRef.current);
-            const cleanup = engine.init();
-            cleanupRef.current = cleanup;
+            const cleanup = engine.start();
 
-            // Load some sample data
             engine.loadPatientData(
                 "InvokeAI Clinic",
                 "Leon Macho",
@@ -379,19 +369,16 @@ export const OdontogramComponent = () => {
             engineRef.current = engine;
 
             const canvas = canvasRef.current;
-            const handleClick = (event) => engine.onMouseClick(event);
-            const handleMouseMove = (event) => engine.onMouseMove(event);
-            const handleKeyDown = (event) => engine.onButtonClick(event);
+            const handleClick = (event: MouseEvent) => engine.onMouseClick(event);
+            const handleMouseMove = (event: MouseEvent) => engine.onMouseMove(event);
+            const handleKeyDown = (event: KeyboardEvent) => engine.onButtonClick(event);
 
             canvas.addEventListener('mousedown', handleClick);
             canvas.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('keydown', handleKeyDown);
 
-            // Cleanup function to remove event listeners when the component unmounts
             return () => {
-                if (cleanupRef.current) {
-                    cleanupRef.current();
-                }
+                cleanup();
                 canvas.removeEventListener('mousedown', handleClick);
                 canvas.removeEventListener('mousemove', handleMouseMove);
                 window.removeEventListener('keydown', handleKeyDown);
