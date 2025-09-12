@@ -362,7 +362,9 @@ export const OdontogramComponent = () => {
             if (canvasRef.current && !engineRef.current) {
                 const engine = new Engine();
                 engine.setCanvas(canvasRef.current);
-                
+
+                cleanup = await engine.start();
+
                 engine.loadPatientData(
                     "InvokeAI Clinic",
                     "Leon Macho",
@@ -374,7 +376,6 @@ export const OdontogramComponent = () => {
                     "Requires crown on tooth 16."
                 );
 
-                cleanup = await engine.start();
                 engineRef.current = engine;
 
                 const canvas = canvasRef.current;
