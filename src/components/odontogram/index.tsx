@@ -116,7 +116,7 @@ class Engine {
             return new Promise((resolve, reject) => {
                 const img = new Image();
                 img.onload = () => resolve(img);
-                img.onerror = reject;
+                img.onerror = (e) => reject(new Error(`Failed to load image: ${src}. Error: ${e}`));
                 img.src = src;
             });
         };
@@ -361,38 +361,41 @@ export const OdontogramComponent = () => {
         const initEngine = async () => {
             if (canvasRef.current && !engineRef.current) {
                 const engine = new Engine();
-                engine.setCanvas(canvasRef.current);
-
-                cleanup = await engine.start();
-
-                engine.loadPatientData(
-                    "InvokeAI Clinic",
-                    "Leon Macho",
-                    "1002",
-                    "hc 001",
-                    "26/02/2018",
-                    "Dr. Gemini",
-                    "Initial consultation. Patient reports sensitivity in upper right quadrant.",
-                    "Requires crown on tooth 16."
-                );
-
                 engineRef.current = engine;
+                engine.setCanvas(canvasRef.current);
+                
+                try {
+                    cleanup = await engine.start();
 
-                const canvas = canvasRef.current;
-                const handleClick = (event: MouseEvent) => engine.onMouseClick(event);
-                const handleMouseMove = (event: MouseEvent) => engine.onMouseMove(event);
-                const handleKeyDown = (event: KeyboardEvent) => engine.onButtonClick(event);
-
-                canvas.addEventListener('mousedown', handleClick);
-                canvas.addEventListener('mousemove', handleMouseMove);
-                window.addEventListener('keydown', handleKeyDown);
-
-                return () => {
-                    if (cleanup) cleanup();
-                    canvas.removeEventListener('mousedown', handleClick);
-                    canvas.removeEventListener('mousemove', handleMouseMove);
-                    window.removeEventListener('keydown', handleKeyDown);
-                };
+                    engine.loadPatientData(
+                        "InvokeAI Clinic",
+                        "Leon Macho",
+                        "1002",
+                        "hc 001",
+                        "26/02/2018",
+                        "Dr. Gemini",
+                        "Initial consultation. Patient reports sensitivity in upper right quadrant.",
+                        "Requires crown on tooth 16."
+                    );
+    
+                    const canvas = canvasRef.current;
+                    const handleClick = (event: MouseEvent) => engine.onMouseClick(event);
+                    const handleMouseMove = (event: MouseEvent) => engine.onMouseMove(event);
+                    const handleKeyDown = (event: KeyboardEvent) => engine.onButtonClick(event);
+    
+                    canvas.addEventListener('mousedown', handleClick);
+                    canvas.addEventListener('mousemove', handleMouseMove);
+                    window.addEventListener('keydown', handleKeyDown);
+    
+                    return () => {
+                        if (cleanup) cleanup();
+                        canvas.removeEventListener('mousedown', handleClick);
+                        canvas.removeEventListener('mousemove', handleMouseMove);
+                        window.removeEventListener('keydown', handleKeyDown);
+                    };
+                } catch (error) {
+                    console.error("Failed to initialize odontogram engine:", error);
+                }
             }
         };
 
@@ -413,3 +416,5 @@ export const OdontogramComponent = () => {
         </div>
     );
 };
+
+    
