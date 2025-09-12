@@ -42,6 +42,7 @@ export function Nav({ items, isMinimized }: NavProps) {
      if (item.href.includes('clinic-history')) {
         linkHref = `/${locale}/clinic-history/1`; // Default user
     }
+    
     const cleanItemHref = item.href === '/' ? '' : item.href.substring(1);
     const isActive = item.href === '/' ? effectivePathname === '' : effectivePathname.startsWith(cleanItemHref);
 
@@ -52,7 +53,7 @@ export function Nav({ items, isMinimized }: NavProps) {
             <Link
               href={linkHref}
               className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold text-sm',
+                'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold',
                 isActive
                   ? 'bg-black/20 text-white'
                   : 'text-white hover:bg-black/20 hover:text-white',
@@ -98,7 +99,7 @@ export function Nav({ items, isMinimized }: NavProps) {
             <AccordionItem value={`item-${index}`} className="border-b-0">
               <AccordionTrigger
                 className={cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-white transition-all hover:bg-black/20 hover:text-white hover:no-underline font-semibold text-sm',
+                  'flex items-center gap-3 rounded-md px-3 py-2 text-white transition-all hover:bg-black/20 hover:text-white hover:no-underline font-semibold',
                    isActive && 'bg-black/20 text-white'
                 )}
               >
@@ -130,7 +131,7 @@ export function Nav({ items, isMinimized }: NavProps) {
                         key={subItem.href}
                         href={linkHref}
                         className={cn(
-                            'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold text-sm',
+                            'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold',
                             isSubItemActive
                             ? 'bg-black/20 text-white'
                             : 'text-white hover:text-white'
@@ -164,7 +165,7 @@ export function Nav({ items, isMinimized }: NavProps) {
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger
                   className={cn(
-                    'flex w-full items-center justify-center gap-3 rounded-md px-3 py-2 text-white transition-all hover:bg-black/20 hover:text-white font-semibold text-sm',
+                    'flex w-full items-center justify-center gap-3 rounded-md px-3 py-2 text-white transition-all hover:bg-black/20 hover:text-white font-semibold',
                     isActive && 'bg-black/20 text-white'
                   )}
                 >
@@ -195,7 +196,7 @@ export function Nav({ items, isMinimized }: NavProps) {
                     <Link
                         href={linkHref}
                         className={cn(
-                        'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold text-sm',
+                        'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold',
                         isSubItemActive
                             ? 'bg-muted text-primary'
                             : 'text-muted-foreground hover:text-primary'
@@ -213,7 +214,7 @@ export function Nav({ items, isMinimized }: NavProps) {
 
   return (
     <TooltipProvider>
-      <nav className="grid items-start gap-1 p-2 text-sm">
+      <nav className="grid items-start gap-1 p-2 text-base">
         {items.map((item, index) =>
           item.items 
           ? (isMinimized ? renderDropdown(item, index) : renderAccordion(item, index))
