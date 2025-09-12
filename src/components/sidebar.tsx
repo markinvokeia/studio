@@ -24,7 +24,7 @@ export function Sidebar() {
 
     if (!isMounted) {
         return (
-            <aside className="hidden w-64 flex-col border-r bg-gray-900 text-white sm:flex">
+            <aside className="hidden w-64 flex-col border-r bg-gradient-to-b from-[hsl(var(--primary))] to-[hsl(var(--accent))] text-white sm:flex">
                 <div className="flex h-14 items-center border-b border-gray-700 px-4 lg:h-[60px]">
                      <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold text-white">
                         <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={32} height={32} alt="InvokeIA Logo" />
@@ -46,11 +46,11 @@ export function Sidebar() {
     
     return (
         <aside className={cn(
-            "hidden flex-col border-r bg-gray-900 text-white transition-all duration-300 ease-in-out sm:flex",
+            "hidden flex-col border-r bg-gradient-to-b from-[hsl(var(--primary))] to-[hsl(var(--accent))] text-white transition-all duration-300 ease-in-out sm:flex",
             sidebarWidth
         )}>
             <div className={cn(
-                "flex h-14 items-center border-b border-gray-700 px-4 lg:h-[60px]",
+                "flex h-14 items-center border-b border-white/20 px-4 lg:h-[60px]",
                 isMinimized && "justify-center"
             )}>
                 <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold text-white">
