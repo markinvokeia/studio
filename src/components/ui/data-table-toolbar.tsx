@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table } from '@tanstack/react-table';
@@ -42,16 +43,14 @@ export function DataTableToolbar<TData>({
           }
           className="h-8 w-[150px] lg:w-[250px]"
         />
-         <div className="flex items-center space-x-2">
-          {onCreate && (
-            <Button size="icon" className="h-8 w-8" onClick={onCreate}>
+      </div>
+      <div className="flex items-center space-x-2">
+        {onCreate && (
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={onCreate}>
               <PlusCircle className="h-4 w-4" />
               <span className="sr-only">Create</span>
             </Button>
-          )}
-        </div>
-      </div>
-      <div className="flex items-center space-x-2">
+        )}
          {onRefresh && (
           <Button
             variant="outline"
