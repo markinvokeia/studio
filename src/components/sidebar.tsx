@@ -46,7 +46,7 @@ export function Sidebar() {
     
     return (
         <aside className={cn(
-            "hidden flex-col border-r bg-gradient-to-b from-[hsl(var(--primary))] to-[hsl(var(--accent))] text-white transition-all duration-300 ease-in-out sm:flex",
+            "hidden flex-col border-r text-white transition-all duration-300 ease-in-out sm:flex sidebar-bg-pattern",
             sidebarWidth
         )}>
             <div className={cn(
