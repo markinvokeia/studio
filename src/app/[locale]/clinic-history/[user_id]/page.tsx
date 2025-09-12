@@ -1617,8 +1617,6 @@ const DentalClinicalSystem = () => {
                         )}
                     </div>
                 </div>
-
-                 <HabitCard habits={patientHabits} isLoading={isLoadingPatientHabits} />
             </div>
 
             <div className="space-y-6">
@@ -1675,6 +1673,7 @@ const DentalClinicalSystem = () => {
                         )}
                     </div>
                 </div>
+                 <HabitCard habits={patientHabits} isLoading={isLoadingPatientHabits} />
             </div>
         </div>
     );
