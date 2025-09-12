@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -660,7 +661,7 @@ const DentalClinicalSystem = () => {
       modality: "IO",
       bodyPart: "TEETH",
       viewPosition: "ANTERIOR",
-      url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhkN2RhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IiM3MjE3NGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIEludHJhb3JhbCBBbnRlcmlvcjwvdGV4dD48L3N2Zz4=",
+      url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ-10PSIxMDAlIiBmaWxsPSIjZjhkN2RhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IiM3MjE3NGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIEludHJhb3JhbCBBbnRlcmlvcjwvdGV4dD48L3N2Zz4=",
       description: "Vista frontal de los dientes anteriores"
     },
     {
@@ -677,169 +678,6 @@ const DentalClinicalSystem = () => {
     }
   ];
 
-    const AnatomicalTooth = ({ toothNumber, state }) => {
-    const toothType = TOOTH_TYPES[toothNumber];
-    const condition = state.conditions[0];
-
-    // Basic paths for different tooth types
-    const paths = {
-      incisor_central: "M10 2 L20 2 L22 20 L8 20 Z",
-      incisor_lateral: "M11 2 L19 2 L21 20 L9 20 Z",
-      canine: "M10 2 L15 0 L20 2 L22 20 L8 20 Z",
-      premolar1: "M8 3 L22 3 L24 20 L6 20 Z",
-      premolar2: "M8 3 L22 3 L24 20 L6 20 Z",
-      molar1: "M5 4 L25 4 L28 20 L2 20 Z",
-      molar2: "M6 4 L24 4 L26 20 L4 20 Z",
-      molar3: "M7 4 L23 4 L25 20 L5 20 Z",
-    };
-
-    const SvgWrapper = ({ children, isUpper }) => (
-      <svg
-        viewBox="0 0 30 22"
-        className="w-full h-full"
-        style={{ transform: isUpper ? 'none' : 'scaleY(-1)' }}
-      >
-        {children}
-      </svg>
-    );
-
-    const isUpper = toothNumber < 30;
-
-    let toothFill = '#FFFFFF';
-    let strokeColor = '#6b7280'; // gray-500
-    let specialRender = null;
-    
-    if (condition === 'MISSING') {
-      return null; // Don't render missing teeth
-    }
-    
-    if (condition === 'ROOT_FILLED') {
-      toothFill = '#e5e7eb'; // gray-200
-      specialRender = <path d="M14 10 L16 10 L16 20 L14 20 Z" fill="black" />;
-    }
-    
-    if (condition === 'IMPLANT') {
-        toothFill = '#111827'; // gray-900
-        strokeColor = '#4b5563'; // gray-600
-    }
-
-    if (condition === 'CROWN') {
-        toothFill = '#fef08a'; // yellow-200
-    }
-    
-    if(Object.keys(state.surfaces).length > 0){
-        toothFill = '#9ca3af'; // gray-400
-    }
-
-
-    return (
-      <div className="w-6 h-8 flex items-center justify-center">
-        <SvgWrapper isUpper={isUpper}>
-          <g>
-            <path d={paths[toothType] || paths.premolar1} fill={toothFill} stroke={strokeColor} strokeWidth="0.5" />
-            {specialRender}
-          </g>
-        </SvgWrapper>
-      </div>
-    );
-  };
-
-  const SymbolicTooth = ({ state }) => {
-    const condition = state.conditions[0];
-    let symbolFill = 'white';
-    let strokeColor = '#9ca3af'; // gray-400
-
-    if (condition === 'MISSING') {
-        return (
-            <div className="w-6 h-6 flex items-center justify-center">
-                <X className="w-4 h-4 text-gray-400" />
-            </div>
-        );
-    }
-    
-    if(Object.keys(state.surfaces).length > 0){
-        symbolFill = '#9ca3af'; // gray-400
-    }
-
-    return (
-      <div className="w-6 h-6">
-        <svg viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10" fill={symbolFill} stroke={strokeColor} strokeWidth="1" />
-          <path d="M12 2 L12 22 M2 12 L22 12 M7 7 L17 17 M7 17 L17 7" stroke={strokeColor} strokeWidth="0.5" />
-        </svg>
-      </div>
-    );
-  };
-
-  // Componente Odontograma
-  const Odontogram = ({ data, onToothClick, selectedTooth, title }) => {
-    const { upperRight, upperLeft, lowerLeft, lowerRight } = FDI_NOTATION[dentitionType];
-    const allUpper = [...upperRight.slice().reverse(), ...upperLeft];
-    const allLower = [...lowerRight.slice().reverse(), ...lowerLeft];
-
-    const Quadrant = ({ teeth, isUpper }) => (
-      <div className="flex justify-center">
-        {teeth.map(toothNum => {
-          const toothData = data[toothNum] || { conditions: ['SOUND'], surfaces: {} };
-          return (
-            <div
-              key={toothNum}
-              className={`flex flex-col items-center cursor-pointer p-1 ${selectedTooth === toothNum ? 'bg-blue-100 rounded-md' : ''}`}
-              onClick={() => onToothClick(toothNum)}
-            >
-              {isUpper && <AnatomicalTooth toothNumber={toothNum} state={toothData} />}
-              <SymbolicTooth state={toothData} />
-              <span className="text-xs mt-1">{toothNum}</span>
-              {!isUpper && <AnatomicalTooth toothNumber={toothNum} state={toothData} />}
-            </div>
-          );
-        })}
-      </div>
-    );
-    
-     const QuadrantRow = ({ teeth, isUpper }) => {
-        const midPoint = teeth.length / 2;
-        const rightQuadrant = isUpper ? teeth.slice(0, midPoint).reverse() : teeth.slice(0, midPoint).reverse();
-        const leftQuadrant = isUpper ? teeth.slice(midPoint) : teeth.slice(midPoint);
-
-        const renderTeeth = (quadrantTeeth) => quadrantTeeth.map(toothNum => {
-            const toothData = data[toothNum] || { conditions: ['SOUND'], surfaces: {} };
-            const isMissing = toothData.conditions[0] === 'MISSING';
-            return (
-                <div
-                  key={toothNum}
-                  className={`flex flex-col items-center cursor-pointer p-1 space-y-1 ${selectedTooth === toothNum ? 'bg-blue-100 rounded-md' : ''}`}
-                  onClick={() => onToothClick(toothNum)}
-                >
-                  {isUpper && !isMissing && <AnatomicalTooth toothNumber={toothNum} state={toothData} />}
-                   <SymbolicTooth state={toothData} />
-                   <span className="text-xs font-mono">{toothNum}</span>
-                  {!isUpper && !isMissing && <AnatomicalTooth toothNumber={toothNum} state={toothData} />}
-                </div>
-            )
-        });
-
-        return (
-            <div className="flex justify-between w-full">
-                <div className="flex justify-end flex-1">{renderTeeth(rightQuadrant)}</div>
-                <div className="w-px bg-gray-300 mx-2"></div>
-                <div className="flex justify-start flex-1">{renderTeeth(leftQuadrant)}</div>
-            </div>
-        )
-    }
-
-
-    return (
-      <div className="bg-white rounded-xl shadow-lg p-4">
-        <h3 className="text-lg font-bold text-gray-800 mb-4">{title}</h3>
-        <div className="flex flex-col items-center space-y-2">
-            <QuadrantRow teeth={allUpper} isUpper={true} />
-            <div className="w-full h-px bg-gray-300 my-2"></div>
-            <QuadrantRow teeth={allLower} isUpper={false} />
-        </div>
-      </div>
-    );
-  };
   
   const SketchfabOdontogram = () => {
     return (
@@ -868,13 +706,13 @@ const DentalClinicalSystem = () => {
 
 
   // Periodontograma
-  const Periodontogram = ({ data, tooth, onPointClick, onPointHover }) => {
+  const Periodontogram = ({ data, tooth, onPointClick, onPointHover }: { data: any, tooth: any, onPointClick: any, onPointHover: any }) => {
     if (!data || !tooth || !data[tooth]) return null;
 
     const toothData = data[tooth];
     const points = ['MB', 'B', 'DB', 'ML', 'L', 'DL'];
     
-    const getPointColor = (point) => {
+    const getPointColor = (point: string) => {
       const depth = toothData.probing[point];
       const bleeding = toothData.bleeding[point];
       const suppuration = toothData.suppuration[point];
@@ -905,7 +743,7 @@ const DentalClinicalSystem = () => {
               <rect x="130" y="80" width="40" height="60" rx="8" fill="#f8f9fa" stroke="#dee2e6" strokeWidth="2" />
               
               {points.map((point, index) => {
-                const positions = {
+                const positions: Record<string, { x: number, y: number }> = {
                   'MB': { x: 120, y: 70 },
                   'B': { x: 150, y: 60 },
                   'DB': { x: 180, y: 70 },
@@ -1081,7 +919,7 @@ const DentalClinicalSystem = () => {
       return img.type === filter;
     });
 
-    const ImageModal = ({ image, onClose }) => (
+    const ImageModal = ({ image, onClose }: { image: any, onClose: any }) => (
       (<div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
         <div className="relative max-w-7xl max-h-full w-full h-full flex flex-col">
           <div className="bg-white p-4 flex justify-between items-center">
@@ -1207,14 +1045,14 @@ const DentalClinicalSystem = () => {
     const sendMessage = async () => {
       if (!message.trim() || !selectedPatient) return;
       const userMessage = { role: 'user', content: message, timestamp: new Date() };
-      setAiMessages([...aiMessages, userMessage]);
+      setAiMessages([...aiMessages, userMessage] as any);
       setMessage('');
       setIsLoading(true);
 
       setTimeout(() => {
         const response = `Análisis HL7 FHIR del historial de ${selectedPatient.name}: Sistema con codificación SNOMED-CT activo. ¿Qué aspecto clínico específico deseas consultar?`;
         const aiResponse = { role: 'assistant', content: response, timestamp: new Date() };
-        setAiMessages(prev => [...prev, aiResponse]);
+        setAiMessages(prev => [...prev, aiResponse] as any);
         setIsLoading(false);
       }, 1500);
     };
@@ -1241,7 +1079,7 @@ const DentalClinicalSystem = () => {
             </div>
           )}
           
-          {aiMessages.map((msg, index) => (
+          {aiMessages.map((msg: any, index) => (
             <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                 msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800'
@@ -1331,7 +1169,7 @@ const DentalClinicalSystem = () => {
     </div>
   );
 
-  const MedicalAlerts = ({ alerts }) => (
+  const MedicalAlerts = ({ alerts }: { alerts: any[] }) => (
     <div className="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 rounded-xl p-6 shadow-lg">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
@@ -1454,10 +1292,10 @@ const DentalClinicalSystem = () => {
     );
 };
 
-  const ToothDetails = ({ toothNumber, data }) => {
+  const ToothDetails = ({ toothNumber, data }: { toothNumber: any, data: any }) => {
     if (!toothNumber || !data[toothNumber]) return null;
     const toothData = data[toothNumber];
-    const condition = ISO_1942_SYMBOLS[toothData.conditions[0]] || ISO_1942_SYMBOLS.SOUND;
+    const condition = ISO_1942_SYMBOLS[toothData.conditions[0] as keyof typeof ISO_1942_SYMBOLS] || ISO_1942_SYMBOLS.SOUND;
 
     return (
       <div className="bg-white rounded-xl shadow-lg p-6">
@@ -1482,7 +1320,7 @@ const DentalClinicalSystem = () => {
               <div className="flex flex-wrap gap-2 mt-2">
                 {Object.entries(toothData.surfaces).map(([surface, condition]) => (
                   <span key={surface} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
-                    {surface}: {condition}
+                    {surface}: {condition as string}
                   </span>
                 ))}
               </div>
@@ -1519,7 +1357,7 @@ const DentalClinicalSystem = () => {
         }
     };
 
-    const ToothIcon = (props) => (
+    const ToothIcon = (props: React.SVGProps<SVGSVGElement>) => (
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
@@ -1530,7 +1368,7 @@ const DentalClinicalSystem = () => {
       </svg>
     );
 
-    const HabitCard = ({ habits, isLoading }) => (
+    const HabitCard = ({ habits, isLoading }: { habits: PatientHabits | null, isLoading: boolean }) => (
       <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex items-center mb-4">
           <User className="w-5 h-5 text-blue-600 mr-2" />
