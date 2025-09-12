@@ -33,7 +33,6 @@ interface NavProps {
 export function Nav({ items, isMinimized }: NavProps) {
   const pathname = usePathname();
   const t = useTranslations('Navigation');
-  console.log('Translations for Navigation loaded.');
   const locale = useLocale();
 
   const getParentPath = (path: string) => {
@@ -59,8 +58,8 @@ export function Nav({ items, isMinimized }: NavProps) {
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 transition-all',
                 effectivePathname === item.href
-                  ? 'bg-gray-700 text-white'
-                  : 'text-gray-300 hover:bg-gray-700 hover:text-white',
+                  ? 'bg-gray-700/50 text-white'
+                  : 'text-white/80 hover:bg-gray-700/50 hover:text-white',
                 isMinimized && 'justify-center'
               )}
             >
@@ -92,8 +91,8 @@ export function Nav({ items, isMinimized }: NavProps) {
             <AccordionItem value={`item-${index}`} className="border-b-0">
               <AccordionTrigger
                 className={cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-gray-300 transition-all hover:bg-gray-700 hover:text-white hover:no-underline',
-                   isActive && 'bg-gray-700 text-white'
+                  'flex items-center gap-3 rounded-md px-3 py-2 text-white/80 transition-all hover:bg-gray-700/50 hover:text-white hover:no-underline',
+                   isActive && 'bg-gray-700/50 text-white'
                 )}
               >
                 <div className="flex items-center gap-3">
@@ -112,8 +111,8 @@ export function Nav({ items, isMinimized }: NavProps) {
                         className={cn(
                             'flex items-center gap-3 rounded-md px-3 py-2 transition-all',
                             effectivePathname === subItem.href || (subItem.href !== '/' && effectivePathname.startsWith(subItem.href))
-                            ? 'bg-gray-700 text-white'
-                            : 'text-gray-400 hover:text-white'
+                            ? 'bg-gray-700/50 text-white'
+                            : 'text-white/70 hover:text-white'
                         )}
                         >
                         {t(subItem.title as any)}
@@ -137,8 +136,8 @@ export function Nav({ items, isMinimized }: NavProps) {
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger
                   className={cn(
-                    'flex w-full items-center justify-center gap-3 rounded-md px-3 py-2 text-gray-300 transition-all hover:bg-gray-700 hover:text-white',
-                    isActive && 'bg-gray-700 text-white'
+                    'flex w-full items-center justify-center gap-3 rounded-md px-3 py-2 text-white/80 transition-all hover:bg-gray-700/50 hover:text-white',
+                    isActive && 'bg-gray-700/50 text-white'
                   )}
                 >
                   <item.icon className="h-4 w-4" />
