@@ -17,13 +17,6 @@ const columns: ColumnDef<User>[] = [
     header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
-        <Image
-          src={row.original.avatar}
-          width={32}
-          height={32}
-          alt={row.original.name}
-          className="rounded-full"
-        />
         <span className="font-medium">{row.getValue('name')}</span>
       </div>
     ),

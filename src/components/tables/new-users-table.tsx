@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
@@ -24,13 +25,6 @@ const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
     ),
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
-        <Image
-          src={row.original.avatar}
-          width={32}
-          height={32}
-          alt={row.original.name}
-          className="rounded-full"
-        />
         <span className="font-medium">{row.getValue('name')}</span>
       </div>
     ),
