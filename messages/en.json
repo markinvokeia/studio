@@ -1,10 +1,11 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
     "Appointments": "Appointments",
     "UsersAndAccess": "Users & Access",
     "Users": "Users",
-    "ClinicHistory": "Clinic History",
+    "Clinic-History": "Clinic History",
     "SalesAndBilling": "Sales & Billing",
     "Quotes": "Quotes",
     "Orders": "Orders",

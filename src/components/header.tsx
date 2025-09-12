@@ -57,43 +57,71 @@ export function Header() {
   const breadcrumbSegments = pathname.split('/').filter(Boolean).slice(1);
   const tNav = useTranslations('Navigation');
   
-  const findNavItem = (path: string, items: NavItem[]): NavItem | undefined => {
+  const findNavItemByTitle = (title: string, items: NavItem[]): NavItem | undefined => {
     for (const item of items) {
-      const itemPath = item.href === '/' ? '' : item.href;
-      if (itemPath === path) {
+      if (item.title === title) {
         return item;
       }
       if (item.items) {
-        const found = findNavItem(path, item.items);
+        const found = findNavItemByTitle(title, item.items);
         if (found) return found;
       }
     }
+    return undefined;
   };
 
   const breadcrumbItems = breadcrumbSegments.map((segment, index) => {
-    const pathSegments = breadcrumbSegments.slice(0, index + 1);
-    const fullPath = `/${pathSegments.join('/')}`;
     const isLast = index === breadcrumbSegments.length - 1;
     let title: string;
+    let navItem : NavItem | undefined;
 
-    const navItem = findNavItem(fullPath, navItems);
+    // A bit of a hack to match URL segment to nav title
+    const searchTitle = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
+    const navItemByTitle = findNavItemByTitle(searchTitle, navItems);
     
-    if (navItem && navItem.title) {
-        try {
-            title = tNav(navItem.title as any);
-        } catch (e) {
-            title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
-        }
-    } else {
-        // Fallback for dynamic segments or non-nav paths
-        title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
+    // Check if segment is a known nav item title in any language
+    try {
+        const translatedTitle = tNav(segment as any);
+        if(translatedTitle) title = translatedTitle;
+    } catch (e) {
+      // it's not a direct key
     }
 
+    try {
+        const capitalizedSegment = segment.charAt(0).toUpperCase() + segment.slice(1);
+        const translatedTitle = tNav(capitalizedSegment as any);
+        if(translatedTitle) title = translatedTitle;
+    } catch (e) {
+      // it's not a direct key
+    }
+
+    if (tNav.raw('Clinic-History') && segment === 'clinic-history') {
+      title = tNav('Clinic-History');
+      navItem = findNavItemByTitle('Clinic-History', navItems);
+    }
+
+    if (!title) {
+      const isDynamicSegment = navItems.some(item => item.href.includes('['));
+      if (index > 0 && /^[a-zA-Z0-9-]+$/.test(segment) && breadcrumbSegments.length > index) {
+        // It's likely a dynamic segment, like an ID
+        title = "Details";
+      } else {
+        title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
+      }
+    }
+
+
+    const fullPath = `/${locale}/${breadcrumbSegments.slice(0, index + 1).join('/')}`;
+    
     return (
       <React.Fragment key={fullPath}>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
-          <BreadcrumbPage className={isLast ? "text-foreground" : "text-muted-foreground"}>{title}</BreadcrumbPage>
+          {isLast ? (
+            <BreadcrumbPage>{title}</BreadcrumbPage>
+          ) : (
+             <BreadcrumbPage className="text-muted-foreground">{title}</BreadcrumbPage>
+          )}
         </BreadcrumbItem>
       </React.Fragment>
     );

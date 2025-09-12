@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 
 export interface NavItem {
-  title: keyof IntlMessages['Navigation'];
+  title: keyof IntlMessages['Navigation'] | string;
   href: string;
   icon: LucideIcon;
   label?: string;
@@ -55,7 +55,7 @@ export const navItems: NavItem[] = [
     icon: Users,
     items: [
       { title: 'Users', href: '/users', icon: Users, isChidren: true },
-      { title: 'ClinicHistory', href: '/clinic-history', icon: HeartPulse, isChidren: true },
+      { title: 'Clinic-History', href: '/clinic-history', icon: HeartPulse, isChidren: true },
     ],
   },
   {

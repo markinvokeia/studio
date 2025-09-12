@@ -1,11 +1,12 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
     "Appointments": "Citas",
     "UsersAndAccess": "Usuarios y Acceso",
     "Users": "Usuarios",
-    "ClinicHistory": "Historial Clínico",
-    "SalesAndBilling": "Ventas-Facturación",
+    "Clinic-History": "Historial Clínico",
+    "SalesAndBilling": "Ventas",
     "Quotes": "Cotizaciones",
     "Orders": "Pedidos",
     "Invoices": "Facturas",
