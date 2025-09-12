@@ -57,59 +57,52 @@ export function Header() {
   const breadcrumbSegments = pathname.split('/').filter(Boolean).slice(1);
   const tNav = useTranslations('Navigation');
   
-  const findNavItemBySegment = (items: NavItem[], segment: string, currentPath: string): NavItem | undefined => {
+  const findNavItemBySegment = (items: NavItem[], segment: string): NavItem | undefined => {
     for (const item of items) {
-      const itemPath = item.href.startsWith('/') ? item.href : `/${item.href}`;
-      const itemBase = itemPath.split('/')[1];
-
+      const itemBase = item.href.split('/').pop() || '';
       if (itemBase === segment) {
         return item;
       }
       if (item.items) {
-        const found = findNavItemBySegment(item.items, segment, currentPath);
+        const found = findNavItemBySegment(item.items, segment);
         if (found) return found;
       }
     }
     return undefined;
   };
-
-  let currentPath = '';
+  
+  let currentPath = `/${locale}`;
+  let navConfig: NavItem[] = navItems;
   let isDynamicPath = false;
 
   const breadcrumbItems = breadcrumbSegments.map((segment, index) => {
     currentPath += `/${segment}`;
     const isLast = index === breadcrumbSegments.length - 1;
 
-    if (isDynamicPath) {
-       return (
-        <React.Fragment key={segment}>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-                <BreadcrumbPage>{segment}</BreadcrumbPage>
-            </BreadcrumbItem>
-        </React.Fragment>
-       );
-    }
-    
-    const navItem = findNavItemBySegment(navItems, segment, `/${breadcrumbSegments.slice(0, index + 1).join('/')}`);
-    
     let title: string | undefined;
     
-    if (navItem) {
-        try {
-            title = tNav(navItem.title as any);
-        } catch (e) {
-            // translation not found, fallback
-            title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
-        }
-        if (navItem.href.includes('[')) {
-          isDynamicPath = true;
-        }
+    if (isDynamicPath) {
+        title = segment;
     } else {
-        // Fallback for segments that don't match a nav item (likely dynamic parts)
-        title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
+        const navItem = findNavItemBySegment(navConfig, segment);
+        if (navItem) {
+            try {
+                title = tNav(navItem.title as any);
+            } catch (e) {
+                title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
+            }
+            if (navItem.href.includes('[')) {
+                isDynamicPath = true;
+            }
+            if (navItem.items) {
+                navConfig = navItem.items;
+            }
+        } else {
+            // Fallback for segments that don't match (likely dynamic parts)
+            title = segment;
+        }
     }
-    
+
     return (
       <React.Fragment key={currentPath}>
         <BreadcrumbSeparator />
@@ -117,7 +110,7 @@ export function Header() {
           {isLast ? (
             <BreadcrumbPage>{title}</BreadcrumbPage>
           ) : (
-             <BreadcrumbPage className="text-muted-foreground">{title}</BreadcrumbPage>
+            <BreadcrumbPage className="text-muted-foreground">{title}</BreadcrumbPage>
           )}
         </BreadcrumbItem>
       </React.Fragment>
