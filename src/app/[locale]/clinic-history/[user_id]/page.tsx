@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -8,7 +7,7 @@ import {
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
   BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw,
-  Wind, GlassWater
+  Wind, GlassWater, Smile
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -440,6 +439,134 @@ const DentalClinicalSystem = () => {
       description: "Radiografía periapical del diente 24 post-endodoncia"
     }
   ];
+
+  const ImageGallery = () => {
+    const [filter, setFilter] = useState('all');
+    const [zoomLevel, setZoomLevel] = useState(1);
+
+    const filteredImages = imageGallery.filter(img => {
+      if (filter === 'all') return true;
+      if (filter === 'tooth' && selectedTooth) return img.tooth === selectedTooth.toString();
+      return img.type === filter;
+    });
+
+    const ImageModal = ({ image, onClose }: { image: any, onClose: any }) => (
+      (<div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
+        <div className="relative max-w-7xl max-h-full w-full h-full flex flex-col">
+          <div className="bg-white p-4 flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">{image.name}</h3>
+              <p className="text-gray-600">{image.date} • {image.description}</p>
+              <div className="text-xs text-gray-500 mt-1">
+                DICOM: {image.modality} | {image.viewPosition} | {image.bodyPart}
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.25))}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded"
+              >
+                <ZoomOut className="w-5 h-5" />
+              </button>
+              <span className="text-sm text-gray-600">{Math.round(zoomLevel * 100)}%</span>
+              <button
+                onClick={() => setZoomLevel(Math.min(3, zoomLevel + 0.25))}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded"
+              >
+                <ZoomIn className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setZoomLevel(1)}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded"
+              >
+                <RotateCcw className="w-5 h-5" />
+              </button>
+              <button
+                onClick={onClose}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex-1 flex items-center justify-center overflow-hidden bg-gray-900">
+            <img
+              src={image.url}
+              alt={image.name}
+              className="max-w-none transition-transform duration-200"
+              style={{ transform: `scale(${zoomLevel})` }}
+              draggable={false}
+            />
+          </div>
+        </div>
+      </div>)
+    );
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-gray-800">Galería de Imágenes</h3>
+            <div className="flex items-center space-x-2">
+              <Shield className="w-4 h-4 text-blue-600" />
+              <span className="text-sm text-gray-600">DICOM Compliant</span>
+              <Filter className="w-5 h-5 text-gray-500 ml-4" />
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="all">Todas las imágenes</option>
+                <option value="radiografia">Radiografías</option>
+                <option value="foto">Fotografías</option>
+                {selectedTooth && <option value="tooth">Diente {selectedTooth}</option>}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredImages.map((image) => (
+              <div
+                key={image.id}
+                className="bg-gray-100 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer border"
+                onClick={() => setSelectedImage(image)}
+              >
+                <div className="aspect-w-16 aspect-h-12">
+                  <img
+                    src={image.url}
+                    alt={image.name}
+                    className="w-full h-48 object-cover"
+                  />
+                </div>
+                <div className="p-3">
+                  <h4 className="font-semibold text-gray-800 text-sm">{image.name}</h4>
+                  <p className="text-gray-600 text-xs">{image.date}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      image.type === 'radiografia' 
+                        ? 'bg-gray-200 text-gray-800' 
+                        : 'bg-blue-200 text-blue-800'
+                    }`}>
+                      {image.modality}
+                    </span>
+                    <span className="text-xs text-gray-500">{image.tooth}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {selectedImage && (
+          <ImageModal
+            image={selectedImage}
+            onClose={() => setSelectedImage(null)}
+          />
+        )}
+      </div>
+    );
+  };
 
   // Componentes simplificados
   const AIChat = () => {
@@ -874,140 +1001,13 @@ const DentalClinicalSystem = () => {
     );
     };
 
-    const ImageGallery = () => {
-        const [filter, setFilter] = useState('all');
-        const [zoomLevel, setZoomLevel] = useState(1);
-    
-        const filteredImages = imageGallery.filter(img => {
-          if (filter === 'all') return true;
-          if (filter === 'tooth' && selectedTooth) return img.tooth === selectedTooth.toString();
-          return img.type === filter;
-        });
-    
-        const ImageModal = ({ image, onClose }: { image: any, onClose: any }) => (
-          (<div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
-            <div className="relative max-w-7xl max-h-full w-full h-full flex flex-col">
-              <div className="bg-white p-4 flex justify-between items-center">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-800">{image.name}</h3>
-                  <p className="text-gray-600">{image.date} • {image.description}</p>
-                  <div className="text-xs text-gray-500 mt-1">
-                    DICOM: {image.modality} | {image.viewPosition} | {image.bodyPart}
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.25))}
-                    className="p-2 text-gray-600 hover:bg-gray-100 rounded"
-                  >
-                    <ZoomOut className="w-5 h-5" />
-                  </button>
-                  <span className="text-sm text-gray-600">{Math.round(zoomLevel * 100)}%</span>
-                  <button
-                    onClick={() => setZoomLevel(Math.min(3, zoomLevel + 0.25))}
-                    className="p-2 text-gray-600 hover:bg-gray-100 rounded"
-                  >
-                    <ZoomIn className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => setZoomLevel(1)}
-                    className="p-2 text-gray-600 hover:bg-gray-100 rounded"
-                  >
-                    <RotateCcw className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={onClose}
-                    className="p-2 text-gray-600 hover:bg-gray-100 rounded"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="flex-1 flex items-center justify-center overflow-hidden bg-gray-900">
-                <img
-                  src={image.url}
-                  alt={image.name}
-                  className="max-w-none transition-transform duration-200"
-                  style={{ transform: `scale(${zoomLevel})` }}
-                  draggable={false}
-                />
-              </div>
-            </div>
-          </div>)
-        );
-    
-        return (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-gray-800">Galería de Imágenes</h3>
-                <div className="flex items-center space-x-2">
-                  <Shield className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm text-gray-600">DICOM Compliant</span>
-                  <Filter className="w-5 h-5 text-gray-500 ml-4" />
-                  <select
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                  >
-                    <option value="all">Todas las imágenes</option>
-                    <option value="radiografia">Radiografías</option>
-                    <option value="foto">Fotografías</option>
-                    {selectedTooth && <option value="tooth">Diente {selectedTooth}</option>}
-                  </select>
-                </div>
-              </div>
-    
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredImages.map((image) => (
-                  <div
-                    key={image.id}
-                    className="bg-gray-100 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer border"
-                    onClick={() => setSelectedImage(image)}
-                  >
-                    <div className="aspect-w-16 aspect-h-12">
-                      <img
-                        src={image.url}
-                        alt={image.name}
-                        className="w-full h-48 object-cover"
-                      />
-                    </div>
-                    <div className="p-3">
-                      <h4 className="font-semibold text-gray-800 text-sm">{image.name}</h4>
-                      <p className="text-gray-600 text-xs">{image.date}</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          image.type === 'radiografia' 
-                            ? 'bg-gray-200 text-gray-800' 
-                            : 'bg-blue-200 text-blue-800'
-                        }`}>
-                          {image.modality}
-                        </span>
-                        <span className="text-xs text-gray-500">{image.tooth}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-    
-            {selectedImage && (
-              <ImageModal
-                image={selectedImage}
-                onClose={() => setSelectedImage(null)}
-              />
-            )}
-          </div>
-        );
-      };
-
   const Navigation = () => (
-    <div className="bg-white shadow-sm border-b border-gray-200">
+    <div className="bg-white shadow-sm border-b border-gray-200 mb-8">
       <div className="flex space-x-8 px-6 overflow-x-auto">
         {[
           { id: 'anamnesis', label: 'Anamnesis', icon: FileText },
           { id: 'timeline', label: 'Timeline', icon: Clock },
+          { id: 'odontogram', label: 'Odontograma', icon: Smile },
           { id: 'images', label: 'Imágenes', icon: Camera },
           { id: 'voice', label: 'Voz', icon: Mic },
           { id: 'reports', label: 'Reportes', icon: FileDown }
@@ -1096,12 +1096,26 @@ const DentalClinicalSystem = () => {
       {selectedPatient ? (
         <>
             <Navigation />
+            <div className="px-6 pb-4">
+                 <button
+                    onClick={() => setShowAIChat(!showAIChat)}
+                    className="mb-6 bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 flex items-center space-x-2 transition-colors"
+                    >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Habla con el historial</span>
+                </button>
+            </div>
             
             <div className="px-6 pb-8">
                 <div className="space-y-6">
 
                     {activeView === 'anamnesis' && <AnamnesisDashboard />}
                     {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} />}
+                    {activeView === 'odontogram' && (
+                        <div className="h-[800px] w-full">
+                            <iframe src="http://localhost:5175/" className="w-full h-full border-0 rounded-xl shadow-lg" title="Odontograma"></iframe>
+                        </div>
+                    )}
                     {activeView === 'images' && <ImageGallery />}
                     {activeView === 'voice' && <VoiceCapture />}
                     {activeView === 'reports' && (
