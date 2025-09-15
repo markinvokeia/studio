@@ -25,17 +25,22 @@ import {
 import type { NavItem } from '@/config/nav';
 import { useLocale, useTranslations } from 'next-intl';
 import React, { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
 
 interface NavProps {
   items: NavItem[];
   isMinimized: boolean;
 }
 
-function NavContent({ items, isMinimized }: NavProps) {
+export function Nav({ items, isMinimized }: NavProps) {
   const pathname = usePathname();
   const t = useTranslations('Navigation');
   const locale = useLocale();
+  const [activeAccordionItem, setActiveAccordionItem] = useState<string | undefined>(undefined);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const getEffectivePathname = (p: string, l: string) => {
     const localePrefix = `/${l}`;
@@ -45,11 +50,28 @@ function NavContent({ items, isMinimized }: NavProps) {
     return p;
   };
 
+  useEffect(() => {
+    if (isClient) {
+      const effectivePathname = getEffectivePathname(pathname, locale);
+      const activeItemIndex = items.findIndex(item => 
+        item.items?.some(subItem => {
+          if (subItem.href === '/') return effectivePathname === '/';
+          return effectivePathname.startsWith(subItem.href);
+        })
+      );
+      if (activeItemIndex !== -1) {
+        setActiveAccordionItem(`item-${activeItemIndex}`);
+      } else {
+        setActiveAccordionItem(undefined);
+      }
+    }
+  }, [pathname, locale, items, isClient]);
+
   const renderLink = (item: NavItem) => {
     const title = t(item.title as any);
     const effectivePathname = getEffectivePathname(pathname, locale);
-    let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
     
+    let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
     if (item.href.includes('/clinic-history')) {
         linkHref = `/${locale}/clinic-history/1`; // Default user
     }
@@ -59,7 +81,7 @@ function NavContent({ items, isMinimized }: NavProps) {
       : effectivePathname.startsWith(item.href);
 
     return (
-       <Tooltip key={item.href} delayDuration={0}>
+      <Tooltip key={item.href} delayDuration={0}>
         <TooltipTrigger asChild>
             <Link
               href={linkHref}
@@ -89,20 +111,17 @@ function NavContent({ items, isMinimized }: NavProps) {
     const title = t(item.title as any);
     const effectivePathname = getEffectivePathname(pathname, locale);
     
-    const isActive = item.items?.some(subItem => effectivePathname.startsWith(subItem.href));
-    const [defaultValue, setDefaultValue] = React.useState<string | undefined>(undefined);
-
-    React.useEffect(() => {
-        setDefaultValue(isActive ? `item-${index}`: undefined);
-    }, [isActive, index]);
+    const isActive = item.items?.some(subItem => {
+        if (subItem.href === '/') return effectivePathname === '/';
+        return effectivePathname.startsWith(subItem.href);
+    });
 
     return (
         <Accordion
             type="single"
             collapsible
             key={index}
-            value={defaultValue}
-            onValueChange={setDefaultValue}
+            value={isActive ? `item-${index}` : undefined}
           >
             <AccordionItem value={`item-${index}`} className="border-b-0">
               <AccordionTrigger
@@ -202,7 +221,18 @@ function NavContent({ items, isMinimized }: NavProps) {
      );
    }
 
+  if (!isClient) {
+    return (
+       <nav className="grid items-start gap-1 p-2">
+        {items.map((item, index) =>
+          <div key={index} className="h-10" />
+        )}
+      </nav>
+    );
+  }
+
   return (
+    <TooltipProvider>
       <nav className="grid items-start gap-1 p-2">
         {items.map((item, index) =>
           item.items 
@@ -210,18 +240,6 @@ function NavContent({ items, isMinimized }: NavProps) {
           : renderLink(item)
         )}
       </nav>
-  );
-}
-
-
-const DynamicNavContent = dynamic(() => Promise.resolve(NavContent), {
-  ssr: false,
-});
-
-export function Nav({ items, isMinimized }: NavProps) {
-  return (
-    <TooltipProvider>
-      <DynamicNavContent items={items} isMinimized={isMinimized} />
     </TooltipProvider>
   );
 }
