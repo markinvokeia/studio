@@ -1097,16 +1097,6 @@ const DentalClinicalSystem = () => {
         <>
             <Navigation />
             
-            <div className="px-6 pb-4">
-                 <button
-                    onClick={() => setShowAIChat(!showAIChat)}
-                    className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 flex items-center space-x-2 transition-colors"
-                    >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>Habla con el historial</span>
-                </button>
-            </div>
-
             <div className="px-6 pb-8">
                 <div className="space-y-6">
 
@@ -1140,4 +1130,5 @@ const DentalClinicalSystem = () => {
 };
 
 export default DentalClinicalSystem;
+
 
