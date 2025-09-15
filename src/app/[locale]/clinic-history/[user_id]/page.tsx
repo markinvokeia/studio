@@ -565,52 +565,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     );
   };
 
-  // Componentes simplificados
-  const VoiceCapture = () => (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <div className="flex items-center mb-4">
-        <Mic className="w-5 h-5 text-purple-600 mr-2" />
-        <h3 className="text-lg font-bold text-gray-800">Captura por Voz</h3>
-        <Shield className="w-4 h-4 text-green-600 ml-auto" />
-      </div>
-      <div className="text-center">
-        <p className="text-gray-600 mb-4">Captura de sesiones con transcripción automática y codificación SNOMED-CT</p>
-        <button className="w-20 h-20 rounded-full bg-purple-500 text-white flex items-center justify-center hover:bg-purple-600">
-          <Mic className="w-8 h-8" />
-        </button>
-      </div>
-    </div>
-  );
-
-  const ReportExport = () => (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <div className="flex items-center mb-4">
-        <FileDown className="w-5 h-5 text-green-600 mr-2" />
-        <h3 className="text-lg font-bold text-gray-800">Exportar Reportes</h3>
-        <Shield className="w-4 h-4 text-green-600 ml-auto" />
-      </div>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Reporte HL7 FHIR</label>
-          <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-            <option>Bundle FHIR Completo</option>
-            <option>Observation SNOMED-CT</option>
-            <option>Procedure ISO/ICD-10</option>
-            <option>DiagnosticReport DICOM</option>
-          </select>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <button className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-600 flex items-center justify-center">
-            <FileDown className="w-4 h-4 mr-2" />PDF
-          </button>
-          <button className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600 flex items-center justify-center">
-            <FileDown className="w-4 h-4 mr-2" />HL7
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
   const MedicalAlerts = ({ alerts }: { alerts: any[] }) => (
     <div className="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 rounded-xl p-6 shadow-lg">
       <div className="flex items-center justify-between mb-4">
@@ -920,8 +874,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
           { id: 'timeline', label: 'Timeline', icon: Clock },
           { id: 'odontogram', label: 'Odontograma', icon: Smile },
           { id: 'images', label: 'Imágenes', icon: Camera },
-          { id: 'voice', label: 'Voz', icon: Mic },
-          { id: 'reports', label: 'Reportes', icon: FileDown }
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -1019,12 +971,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                         </div>
                     )}
                     {activeView === 'images' && <ImageGallery />}
-                    {activeView === 'voice' && <VoiceCapture />}
-                    {activeView === 'reports' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <ReportExport />
-                    </div>
-                    )}
                 </div>
             </div>
         </>
@@ -1042,3 +988,5 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 export default function DentalClinicalSystemPage({ params }: { params: { user_id: string } }) {
   return <DentalClinicalSystem userId={params.user_id} />;
 }
+
+    
