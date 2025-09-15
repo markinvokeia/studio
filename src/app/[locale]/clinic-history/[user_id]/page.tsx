@@ -85,10 +85,8 @@ type PatientHabits = {
   bruxismo: string | null;
 };
 
-const DentalClinicalSystem = () => {
+const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const router = useRouter();
-  const params = useParams();
-  const userId = params.user_id as string;
 
   const [activeView, setActiveView] = useState('anamnesis');
   const [selectedTooth, setSelectedTooth] = useState(null);
@@ -1133,9 +1131,7 @@ const DentalClinicalSystem = () => {
   );
 };
 
-export default DentalClinicalSystem;
-
-
-
-
-    
+export default function DentalClinicalSystemPage({ params }: { params: { user_id: string } }) {
+  const { user_id } = params;
+  return <DentalClinicalSystem userId={user_id} />;
+}
