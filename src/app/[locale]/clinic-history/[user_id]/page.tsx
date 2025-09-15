@@ -18,7 +18,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import OdontogramComponent from '@/components/odontogram';
 
 
 const initialPatient = {
@@ -92,7 +91,7 @@ const DentalClinicalSystem = () => {
   const params = useParams();
   const userId = params.user_id as string;
 
-  const [activeView, setActiveView] = useState('odontogram');
+  const [activeView, setActiveView] = useState('anamnesis');
   const [selectedTooth, setSelectedTooth] = useState(null);
   const [selectedDate, setSelectedDate] = useState('2024-11-15');
   const [hoveredTooth, setHoveredTooth] = useState(null);
@@ -662,7 +661,7 @@ const DentalClinicalSystem = () => {
       modality: "IO",
       bodyPart: "TEETH",
       viewPosition: "ANTERIOR",
-      url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ-10PSIxMDAlIiBmaWxsPSIjZjhkN2RhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IiM3MjE3NGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIEludHJhb3JhbCBBbnRlcmlvcjwvdGV4dD48L3N2Zz4=",
+      url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhkN2RhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IiM3MjE3NGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIEludHJhb3JhbCBBbnRlcmlvcjwvdGV4dD48L3N2Zz4=",
       description: "Vista frontal de los dientes anteriores"
     },
     {
@@ -678,32 +677,6 @@ const DentalClinicalSystem = () => {
       description: "Radiografía periapical del diente 24 post-endodoncia"
     }
   ];
-
-  
-  const SketchfabOdontogram = () => {
-    return (
-        <div className="bg-white rounded-xl shadow-lg p-4">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Interactive 3D Odontogram</h3>
-            <div className="sketchfab-embed-wrapper rounded-lg overflow-hidden h-[400px] md:h-[500px]">
-                <iframe
-                    style={{width: '100%', height: '100%'}}
-                    title="Photorealistic human mouth"
-                    frameBorder="0"
-                    allowFullScreen
-                    mozallowfullscreen="true"
-                    webkitallowfullscreen="true"
-                    allow="autoplay; fullscreen; xr-spatial-tracking"
-                    src="https://sketchfab.com/models/d92cfd5873ac43299c7b64cdf9725526/embed?autostart=1&preload=1"
-                ></iframe>
-                <p style={{ fontSize: '13px', fontWeight: 'normal', margin: '5px', color: '#4A4A4A' }}>
-                    <a href="https://sketchfab.com/3d-models/photorealistic-human-mouth-d92cfd5873ac43299c7b64cdf9725526?utm_medium=embed&utm_campaign=share-popup&utm_content=d92cfd5873ac43299c7b64cdf9725526" target="_blank" rel="nofollow" style={{ fontWeight: 'bold', color: '#1CAAD9' }}> Photorealistic human mouth </a>
-                    by <a href="https://sketchfab.com/cesar_salcedo?utm_medium=embed&utm_campaign=share-popup&utm_content=d92cfd5873ac43299c7b64cdf9725526" target="_blank" rel="nofollow" style={{ fontWeight: 'bold', color: '#1CAAD9' }}> Cesar Salcedo CG </a>
-                    on <a href="https://sketchfab.com?utm_medium=embed&utm_campaign=share-popup&utm_content=d92cfd5873ac43299c7b64cdf9725526" target="_blank" rel="nofollow" style={{ fontWeight: 'bold', color: '#1CAAD9' }}>Sketchfab</a>
-                </p>
-            </div>
-        </div>
-    );
-  };
 
 
   // Periodontograma
@@ -1522,7 +1495,6 @@ const DentalClinicalSystem = () => {
         {[
           { id: 'anamnesis', label: 'Anamnesis HL7', icon: FileText },
           { id: 'timeline', label: 'Timeline FHIR', icon: Clock },
-          { id: 'odontogram', label: 'Odontograma ISO', icon: Search },
           { id: 'images', label: 'Imágenes DICOM', icon: Camera },
           { id: 'voice', label: 'Voz SNOMED', icon: Mic },
           { id: 'reports', label: 'Reportes HL7', icon: FileDown }
@@ -1621,7 +1593,6 @@ const DentalClinicalSystem = () => {
 
             <div className="px-6 pb-8">
                 <div className="space-y-6">
-                    {activeView === 'odontogram' && <OdontogramComponent />}
 
                     {activeView === 'anamnesis' && <AnamnesisDashboard />}
                     {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} />}
@@ -1655,5 +1626,7 @@ const DentalClinicalSystem = () => {
 
 export default DentalClinicalSystem;
 
+
+    
 
     
