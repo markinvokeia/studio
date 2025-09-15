@@ -98,8 +98,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const [compareDate, setCompareDate] = useState('2024-01-15');
   const [isRecording, setIsRecording] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [showAIChat, setShowAIChat] = useState(false);
-  const [aiMessages, setAiMessages] = useState([]);
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [dentitionType, setDentitionType] = useState('permanent');
@@ -568,92 +566,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   };
 
   // Componentes simplificados
-  const AIChat = () => {
-    const [message, setMessage] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-
-    const sendMessage = async () => {
-      if (!message.trim() || !selectedPatient) return;
-      const userMessage = { role: 'user', content: message, timestamp: new Date() };
-      setAiMessages([...aiMessages, userMessage] as any);
-      setMessage('');
-      setIsLoading(true);
-
-      setTimeout(() => {
-        const response = `Análisis HL7 FHIR del historial de ${selectedPatient.name}: Sistema con codificación SNOMED-CT activo. ¿Qué aspecto clínico específico deseas consultar?`;
-        const aiResponse = { role: 'assistant', content: response, timestamp: new Date() };
-        setAiMessages(prev => [...prev, aiResponse] as any);
-        setIsLoading(false);
-      }, 1500);
-    };
-
-    return (
-      <div className="bg-white rounded-xl shadow-lg p-6 h-96 flex flex-col">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <MessageSquare className="w-5 h-5 text-blue-600 mr-2" />
-            <h3 className="text-lg font-bold text-gray-800">Asistente IA Clínico</h3>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Shield className="w-4 h-4 text-green-600" />
-            <span className="text-xs text-gray-600">HL7 FHIR</span>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto space-y-3 mb-4">
-          {aiMessages.length === 0 && (
-            <div className="text-center text-gray-500 py-8">
-              <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p className="font-medium">Asistente IA con Estándares Médicos</p>
-              <p className="text-sm">Consulta sobre análisis HL7 FHIR, códigos SNOMED-CT, clasificación AAP 2017</p>
-            </div>
-          )}
-          
-          {aiMessages.map((msg: any, index) => (
-            <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800'
-              }`}>
-                <p className="text-sm">{msg.content}</p>
-                <p className="text-xs opacity-70 mt-1">{msg.timestamp.toLocaleTimeString()}</p>
-              </div>
-            </div>
-          ))}
-          
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder="Consulta sobre estándares médicos..."
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!message.trim() || isLoading}
-            className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 disabled:opacity-50"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    );
-  };
-
   const VoiceCapture = () => (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <div className="flex items-center mb-4">
@@ -1097,15 +1009,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             <Navigation />
             
             <div className="px-6 pb-8">
-                 <div className="px-6 pb-4">
-                    <button
-                    onClick={() => setShowAIChat(!showAIChat)}
-                    className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 flex items-center space-x-2 transition-colors"
-                    >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>Habla con el historial</span>
-                    </button>
-                </div>
                 <div className="space-y-6">
 
                     {activeView === 'anamnesis' && <AnamnesisDashboard />}
@@ -1120,12 +1023,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                     {activeView === 'reports' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <ReportExport />
-                    </div>
-                    )}
-                    
-                    {showAIChat && (
-                    <div className="mt-6">
-                        <AIChat />
                     </div>
                     )}
                 </div>
@@ -1146,3 +1043,4 @@ export default function DentalClinicalSystemPage({ params }: { params: { user_id
   const { user_id } = params;
   return <DentalClinicalSystem userId={user_id} />;
 }
+
