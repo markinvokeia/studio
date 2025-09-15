@@ -159,22 +159,8 @@ export function MedicalHistory({ user }: MedicalHistoryProps) {
                 </div>
             )}
         </ScrollArea>
-        <CardFooter className="p-4 border-t flex-col items-start space-y-4">
-             <div>
-                <h4 className="text-sm font-semibold flex items-center gap-2">
-                    <Bot className="w-5 h-5" />
-                    AI Assistant
-                </h4>
-                 <Textarea 
-                    placeholder="Ask AI to summarize patient history, explain a procedure, or draft a follow-up message... e.g., 'Summarize the last 3 events for this patient.'"
-                    className="min-h-[80px] mt-2"
-                />
-                 <Button className="mt-2">
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Generate
-                </Button>
-            </div>
-             <div className="w-full pt-4 border-t">
+        <CardFooter className="p-4 border-t">
+             <div className="w-full">
                  <Link href={`/${locale}/clinic-history/${user.id}`} passHref>
                     <Button variant="outline" className="w-full">
                         View Full Clinical History
