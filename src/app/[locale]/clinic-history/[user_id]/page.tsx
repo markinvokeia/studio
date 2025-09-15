@@ -1493,11 +1493,11 @@ const DentalClinicalSystem = () => {
     <div className="bg-white shadow-sm border-b border-gray-200 mb-8">
       <div className="flex space-x-8 px-6 overflow-x-auto">
         {[
-          { id: 'anamnesis', label: 'Anamnesis HL7', icon: FileText },
-          { id: 'timeline', label: 'Timeline FHIR', icon: Clock },
-          { id: 'images', label: 'Imágenes DICOM', icon: Camera },
-          { id: 'voice', label: 'Voz SNOMED', icon: Mic },
-          { id: 'reports', label: 'Reportes HL7', icon: FileDown }
+          { id: 'anamnesis', label: 'Anamnesis', icon: FileText },
+          { id: 'timeline', label: 'Timeline', icon: Clock },
+          { id: 'images', label: 'Imágenes', icon: Camera },
+          { id: 'voice', label: 'Voz', icon: Mic },
+          { id: 'reports', label: 'Reportes', icon: FileDown }
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -1626,6 +1626,8 @@ const DentalClinicalSystem = () => {
 
 export default DentalClinicalSystem;
 
+
+    
 
     
 
