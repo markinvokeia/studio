@@ -401,48 +401,47 @@ const DentalClinicalSystem = () => {
 
 
   // Galería de imágenes
-  const imageGallery = [
-    {
-      id: 1,
-      name: "Radiografía Panorámica",
-      date: "2024-11-15",
-      type: "radiografia",
-      tooth: "General",
-      modality: "DX",
-      bodyPart: "JAW",
-      viewPosition: "PA",
-      url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+UmFkaW9ncmFmw61hIFBhbm9yw6FtaWNhPC90ZXh0Pjwvc3ZnPg==",
-      description: "Radiografía panorámica mostrando estado general de la dentadura"
-    },
-    {
-      id: 2,
-      name: "Foto Intraoral Anterior",
-      date: "2024-11-15",
-      type: "foto",
-      tooth: "Anteriores",
-      modality: "IO",
-      bodyPart: "TEETH",
-      viewPosition: "ANTERIOR",
-      url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhkN2RhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IiM3MjE3NGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIEludHJhb3JhbCBBbnRlcmlvcjwvdGV4dD48L3N2Zz4=",
-      description: "Vista frontal de los dientes anteriores"
-    },
-    {
-      id: 3,
-      name: "Radiografía Periapical 24",
-      date: "2024-11-15",
-      type: "radiografia",
-      tooth: "24",
-      modality: "DX",
-      bodyPart: "TOOTH",
-      viewPosition: "PER",
-      url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+UmFkaW9ncmFmw61hIDI0PC90ZXh0Pjwvc3ZnPg==",
-      description: "Radiografía periapical del diente 24 post-endodoncia"
-    }
-  ];
-
   const ImageGallery = () => {
     const [filter, setFilter] = useState('all');
     const [zoomLevel, setZoomLevel] = useState(1);
+    const imageGallery = [
+        {
+          id: 1,
+          name: "Radiografía Panorámica",
+          date: "2024-11-15",
+          type: "radiografia",
+          tooth: "General",
+          modality: "DX",
+          bodyPart: "JAW",
+          viewPosition: "PA",
+          url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+UmFkaW9ncmFmw61hIFBhbm9yw6FtaWNhPC90ZXh0Pjwvc3ZnPg==",
+          description: "Radiografía panorámica mostrando estado general de la dentadura"
+        },
+        {
+          id: 2,
+          name: "Foto Intraoral Anterior",
+          date: "2024-11-15",
+          type: "foto",
+          tooth: "Anteriores",
+          modality: "IO",
+          bodyPart: "TEETH",
+          viewPosition: "ANTERIOR",
+          url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhkN2RhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IiM3MjE3NGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIEludHJhb3JhbCBBbnRlcmlvcjwvdGV4dD48L3N2Zz4=",
+          description: "Vista frontal de los dientes anteriores"
+        },
+        {
+          id: 3,
+          name: "Radiografía Periapical 24",
+          date: "2024-11-15",
+          type: "radiografia",
+          tooth: "24",
+          modality: "DX",
+          bodyPart: "TOOTH",
+          viewPosition: "PER",
+          url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+UmFkaW9ncmFmw61hIDI0PC90ZXh0Pjwvc3ZnPg==",
+          description: "Radiografía periapical del diente 24 post-endodoncia"
+        }
+    ];
 
     const filteredImages = imageGallery.filter(img => {
       if (filter === 'all') return true;
@@ -1096,15 +1095,6 @@ const DentalClinicalSystem = () => {
       {selectedPatient ? (
         <>
             <Navigation />
-            <div className="px-6 pb-4">
-                 <button
-                    onClick={() => setShowAIChat(!showAIChat)}
-                    className="mb-6 bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 flex items-center space-x-2 transition-colors"
-                    >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>Habla con el historial</span>
-                </button>
-            </div>
             
             <div className="px-6 pb-8">
                 <div className="space-y-6">
@@ -1146,3 +1136,6 @@ const DentalClinicalSystem = () => {
 export default DentalClinicalSystem;
 
 
+
+
+    
