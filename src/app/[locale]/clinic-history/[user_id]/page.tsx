@@ -395,7 +395,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     if (userId) {
         fetchPatientData(userId);
     }
-  }, [userId, refreshAllData]);
+  }, [userId, refreshAllData, router]);
 
 
   // Galería de imágenes
@@ -1040,7 +1040,5 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 };
 
 export default function DentalClinicalSystemPage({ params }: { params: { user_id: string } }) {
-  const { user_id } = params;
-  return <DentalClinicalSystem userId={user_id} />;
+  return <DentalClinicalSystem userId={params.user_id} />;
 }
-
