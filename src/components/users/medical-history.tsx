@@ -2,10 +2,10 @@
 'use client';
 
 import * as React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { User, PatientSession } from '@/lib/types';
 import { Timeline, TimelineItem, TimelineConnector, TimelineHeader, TimelineTitle, TimelineIcon, TimelineContent } from '@/components/ui/timeline';
-import { Stethoscope, Pill, Microscope, FileText, UserPlus, Bot, Sparkles, ChevronDown } from 'lucide-react';
+import { Stethoscope, Pill, Microscope, FileText, UserPlus, Bot, Sparkles, ChevronDown, ArrowRight } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { Textarea } from '../ui/textarea';
 import { Button } from '../ui/button';
@@ -13,6 +13,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
+import Link from 'next/link';
+import { useLocale } from 'next-intl';
 
 interface MedicalHistoryProps {
   user: User;
@@ -50,13 +52,14 @@ export function MedicalHistory({ user }: MedicalHistoryProps) {
   const [openItems, setOpenItems] = React.useState<string[]>([]);
   const [sessions, setSessions] = React.useState<PatientSession[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const locale = useLocale();
 
   React.useEffect(() => {
     const fetchSessions = async () => {
         if (user?.id) {
             setIsLoading(true);
             const fetchedSessions = await getPatientSessions(user.id);
-            setSessions(fetchedSessions);
+            setSessions(fetchedSessions.slice(0, 5)); // show only latest 5 for summary
             setIsLoading(false);
         }
     };
@@ -156,20 +159,30 @@ export function MedicalHistory({ user }: MedicalHistoryProps) {
                 </div>
             )}
         </ScrollArea>
-        <div className="p-4 border-t space-y-4">
-            <h4 className="text-sm font-semibold flex items-center gap-2">
-                <Bot className="w-5 h-5" />
-                AI Assistant
-            </h4>
-            <Textarea 
-                placeholder="Ask AI to summarize patient history, explain a procedure, or draft a follow-up message... e.g., 'Summarize the last 3 events for this patient.'"
-                className="min-h-[80px]"
-            />
-             <Button>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Generate
-            </Button>
-        </div>
+        <CardFooter className="p-4 border-t flex-col items-start space-y-4">
+             <div>
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <Bot className="w-5 h-5" />
+                    AI Assistant
+                </h4>
+                 <Textarea 
+                    placeholder="Ask AI to summarize patient history, explain a procedure, or draft a follow-up message... e.g., 'Summarize the last 3 events for this patient.'"
+                    className="min-h-[80px] mt-2"
+                />
+                 <Button className="mt-2">
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Generate
+                </Button>
+            </div>
+             <div className="w-full pt-4 border-t">
+                 <Link href={`/${locale}/clinic-history/${user.id}`} passHref>
+                    <Button variant="outline" className="w-full">
+                        View Full Clinical History
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                </Link>
+            </div>
+        </CardFooter>
       </CardContent>
     </Card>
   );
