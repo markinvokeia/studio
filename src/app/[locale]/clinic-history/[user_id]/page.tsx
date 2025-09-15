@@ -17,6 +17,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { useLocale } from 'next-intl';
 
 
 const initialPatient = {
@@ -87,6 +88,7 @@ type PatientHabits = {
 
 const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const router = useRouter();
+  const locale = useLocale();
 
   const [activeView, setActiveView] = useState('anamnesis');
   const [selectedTooth, setSelectedTooth] = useState(null);
@@ -1095,13 +1097,22 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             <Navigation />
             
             <div className="px-6 pb-8">
+                 <div className="px-6 pb-4">
+                    <button
+                    onClick={() => setShowAIChat(!showAIChat)}
+                    className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 flex items-center space-x-2 transition-colors"
+                    >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Habla con el historial</span>
+                    </button>
+                </div>
                 <div className="space-y-6">
 
                     {activeView === 'anamnesis' && <AnamnesisDashboard />}
                     {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} />}
                     {activeView === 'odontogram' && (
                         <div className="h-[800px] w-full">
-                            <iframe src="http://localhost:5175/" className="w-full h-full border-0 rounded-xl shadow-lg" title="Odontograma"></iframe>
+                            <iframe src={`http://localhost:5175/?lang=${locale}`} className="w-full h-full border-0 rounded-xl shadow-lg" title="Odontograma"></iframe>
                         </div>
                     )}
                     {activeView === 'images' && <ImageGallery />}
