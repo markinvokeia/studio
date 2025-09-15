@@ -985,8 +985,11 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   );
 };
 
-export default function DentalClinicalSystemPage({ params }: { params: { user_id: string } }) {
-  return <DentalClinicalSystem userId={params.user_id} />;
+export default function DentalClinicalSystemPage() {
+    const params = useParams();
+    const userId = params.user_id as string;
+    return <DentalClinicalSystem userId={userId} />;
 }
+    
 
     
