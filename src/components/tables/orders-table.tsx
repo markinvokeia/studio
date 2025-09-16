@@ -39,12 +39,6 @@ const columns: ColumnDef<Order>[] = [
     ),
   },
   {
-    accessorKey: 'user_name',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="User" />
-    ),
-  },
-  {
     accessorKey: 'status',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Status" />
