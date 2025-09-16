@@ -7,7 +7,7 @@ import {
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
   BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw,
-  Wind, GlassWater, Smile
+  Wind, GlassWater, Smile, Maximize, Minimize
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -101,6 +101,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [dentitionType, setDentitionType] = useState('permanent');
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Patient Search State
   const [patientSearchOpen, setPatientSearchOpen] = useState(false);
@@ -891,8 +892,9 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className={cn("min-h-screen", !isFullscreen && "bg-gradient-to-br from-blue-50 via-white to-indigo-50")}>
       {/* Header */}
+      {!isFullscreen && (
       <div className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
         <div className="flex justify-between items-center">
           <div>
@@ -955,19 +957,28 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
           </div>
         </div>
       </div>
+      )}
     
       {selectedPatient ? (
         <>
-            <Navigation />
+            {!isFullscreen && <Navigation />}
             
-            <div className="px-6 pb-8">
-                <div className="space-y-6">
+            <div className={cn(!isFullscreen && "px-6 pb-8")}>
+                <div className={cn(!isFullscreen && "space-y-6")}>
 
                     {activeView === 'anamnesis' && <AnamnesisDashboard />}
                     {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} />}
                     {activeView === 'odontogram' && (
-                        <div className="h-[800px] w-full">
-                            <iframe src={`http://localhost:5175/?lang=${locale}`} className="w-full h-full border-0 rounded-xl shadow-lg" title="Odontograma"></iframe>
+                        <div className={cn("relative", isFullscreen ? "fixed inset-0 z-50 bg-background" : "h-[800px] w-full")}>
+                           <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="absolute top-2 right-2 z-10 bg-background/50 hover:bg-background/80"
+                              onClick={() => setIsFullscreen(!isFullscreen)}
+                            >
+                              {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+                           </Button>
+                            <iframe src={`http://localhost:5175/?lang=${locale}`} className="w-full h-full border-0" title="Odontograma"></iframe>
                         </div>
                     )}
                     {activeView === 'images' && <ImageGallery />}
@@ -975,11 +986,13 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             </div>
         </>
       ) : (
-        <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
+        !isFullscreen && (
+          <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
             <SearchCheck className="w-24 h-24 text-gray-300 mb-4" />
             <h2 className="text-2xl font-semibold text-gray-700">Seleccione un paciente</h2>
             <p className="text-gray-500 mt-2">Utilice la barra de búsqueda de arriba para encontrar y cargar el historial clínico de un paciente.</p>
-        </div>
+          </div>
+        )
       )}
     </div>
   );
@@ -990,6 +1003,8 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
+    
+
     
 
     
