@@ -94,8 +94,8 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
         <DataTable
           columns={columns}
           data={orders}
-          filterColumnId="user_name"
-          filterPlaceholder="Filter by user..."
+          filterColumnId="id"
+          filterPlaceholder="Filter by order ID..."
           onRowSelectionChange={onRowSelectionChange}
           enableSingleRowSelection={onRowSelectionChange ? true : false}
           onRefresh={onRefresh}
