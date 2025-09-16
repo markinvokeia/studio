@@ -18,12 +18,6 @@ const getColumns = (
       <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />
     ),
   },
-   {
-    accessorKey: 'user_name',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('UserColumns.name')} />
-    ),
-  },
   {
     accessorKey: 'createdAt',
     header: ({ column }) => (
