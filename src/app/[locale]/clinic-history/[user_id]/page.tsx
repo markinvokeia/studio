@@ -7,7 +7,7 @@ import {
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
   BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw,
-  Wind, GlassWater, Smile, Maximize, Minimize
+  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -18,6 +18,11 @@ import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useLocale } from 'next-intl';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 
 const initialPatient = {
@@ -595,6 +600,27 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     </div>
   );
 
+  const CollapsibleList = ({ title, items }: { title: string, items: React.ReactNode[] }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    if (!items || items.length === 0) return null;
+    
+    const visibleItems = isOpen ? items : items.slice(0, 3);
+
+    return (
+        <div>
+            <strong className="text-gray-600">{title}:</strong>
+            <ul className="list-disc pl-5 mt-1">
+                {visibleItems}
+            </ul>
+            {items.length > 3 && (
+                <Button variant="link" onClick={() => setIsOpen(!isOpen)} className="p-0 h-auto text-xs">
+                    {isOpen ? 'Show Less' : `Show ${items.length - 3} more...`}
+                </Button>
+            )}
+        </div>
+    );
+  };
+
   const TreatmentTimeline = ({ sessions }: { sessions: PatientSession[] }) => {
     const conditionLabels: { [key: string]: string } = {
         caries: "Caries",
@@ -610,6 +636,12 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         bolt: "Perno",
         diastema: "Diastema",
         rotation: "Rotación",
+        worn: "Desgastado",
+        supernumerary: "Supernumerario",
+        fusion: "Fusión",
+        prosthesis: "Prótesis",
+        edentulism: "Edentulismo",
+        eruption: "Erupción",
     };
 
     const surfaceLabels: { [key: string]: string } = {
@@ -722,48 +754,42 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                         {session.diagnostico && <p><strong className="text-gray-600">Diagnóstico:</strong> {session.diagnostico}</p>}
                                         {session.notas_clinicas && <p><strong className="text-gray-600">Notas:</strong> {session.notas_clinicas}</p>}
                                         
-                                        {odontogramSummary && odontogramSummary.length > 0 && (
-                                            <div>
-                                                <strong className="text-gray-600">Actualización Odontograma:</strong>
-                                                <ul className="list-disc pl-5 mt-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4">
-                                                    {odontogramSummary.map(item => (
-                                                        <li key={item.toothId}>
-                                                            <strong className="font-medium">Diente {item.toothId}:</strong> {item.conditions.join(', ')}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
+                                        {odontogramSummary && (
+                                            <CollapsibleList
+                                                title="Actualización Odontograma"
+                                                items={odontogramSummary.map(item => (
+                                                    <li key={item.toothId}>
+                                                        <strong className="font-medium">Diente {item.toothId}:</strong> {item.conditions.join(', ')}
+                                                    </li>
+                                                ))}
+                                            />
                                         )}
 
-                                        {session.tratamientos && session.tratamientos.length > 0 && (
-                                        <div>
-                                            <strong className="text-gray-600">Tratamientos:</strong>
-                                            <ul className="list-disc pl-5 mt-1">
-                                                {session.tratamientos.map((t, i) => (
+                                        {session.tratamientos && (
+                                           <CollapsibleList
+                                                title="Tratamientos"
+                                                items={session.tratamientos.map((t, i) => (
                                                     <li key={i}>{t.descripcion} {t.numero_diente && `(Diente ${t.numero_diente})`}</li>
                                                 ))}
-                                            </ul>
-                                        </div>
+                                            />
                                         )}
-                                        {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
-                                            <div>
-                                                <strong className="text-gray-600">Archivos Adjuntos:</strong>
-                                                <ul className="list-disc pl-5 mt-1">
-                                                    {session.archivos_adjuntos.map((file, i) => (
-                                                        <li key={i}>
-                                                            <a 
-                                                                href={file.ruta} 
-                                                                target="_blank" 
-                                                                rel="noopener noreferrer" 
-                                                                className="text-blue-600 hover:underline flex items-center gap-1"
-                                                            >
-                                                                <Paperclip className="w-3 h-3" />
-                                                                {file.tipo} {file.diente_asociado && `(Diente ${file.diente_asociado})`}
-                                                            </a>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
+                                        {session.archivos_adjuntos && (
+                                            <CollapsibleList
+                                                title="Archivos Adjuntos"
+                                                items={session.archivos_adjuntos.map((file, i) => (
+                                                    <li key={i}>
+                                                        <a 
+                                                            href={file.ruta} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer" 
+                                                            className="text-blue-600 hover:underline flex items-center gap-1"
+                                                        >
+                                                            <Paperclip className="w-3 h-3" />
+                                                            {file.tipo} {file.diente_asociado && `(Diente ${file.diente_asociado})`}
+                                                        </a>
+                                                    </li>
+                                                ))}
+                                            />
                                         )}
                                     </div>
                                 </div>
