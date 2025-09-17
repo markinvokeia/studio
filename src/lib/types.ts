@@ -63,8 +63,6 @@ export type Order = {
   quote_id: string;
   user_name?: string;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
-  payment_status: 'unpaid' | 'paid' | 'partial';
-  billing_status: 'not_invoiced' | 'partially_invoiced' | 'invoiced';
   createdAt: string;
   updatedAt: string;
 };
@@ -334,11 +332,13 @@ export type AttachedFile = {
 
 export type PatientSession = {
   sesion_id: number;
+  tipo_sesion?: 'odontograma' | 'clinica';
   fecha_sesion: string;
-  diagnostico: string;
+  diagnostico: string | null;
   procedimiento_realizado: string;
   notas_clinicas: string;
-  doctor_id: string;
+  doctor_id: string | null;
+  estado_odontograma?: any;
   tratamientos: TreatmentDetail[];
   archivos_adjuntos: AttachedFile[];
 };

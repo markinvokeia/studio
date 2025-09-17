@@ -348,7 +348,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   }, [searchQuery]);
   
   const handleSelectPatient = (user: UserType) => {
-    router.push(`/clinic-history/${user.id}`);
+    router.push(`/${locale}/clinic-history/${user.id}`);
     setPatientSearchOpen(false);
   };
   
@@ -396,7 +396,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     if (userId) {
         fetchPatientData(userId);
     }
-  }, [userId, refreshAllData, router]);
+  }, [userId, refreshAllData, router, locale]);
 
 
   // Galería de imágenes
@@ -646,10 +646,12 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                     <span className="text-sm text-gray-500">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</span>
                                 </div>
                                 <div className="space-y-3 text-sm text-gray-700">
-                                    <p><strong className="text-gray-600">Diagnóstico:</strong> {session.diagnostico}</p>
-                                    <p><strong className="text-gray-600">Procedimiento:</strong> {session.procedimiento_realizado}</p>
-                                    <p><strong className="text-gray-600">Notas:</strong> {session.notas_clinicas}</p>
-                                    {session.tratamientos && (
+                                    {session.tipo_sesion && <p><strong className="text-gray-600">Tipo de Sesión:</strong> <span className="capitalize bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full">{session.tipo_sesion}</span></p>}
+                                    {session.diagnostico && <p><strong className="text-gray-600">Diagnóstico:</strong> {session.diagnostico}</p>}
+                                    {session.procedimiento_realizado && <p><strong className="text-gray-600">Procedimiento:</strong> {session.procedimiento_realizado}</p>}
+                                    {session.notas_clinicas && <p><strong className="text-gray-600">Notas:</strong> {session.notas_clinicas}</p>}
+                                    
+                                    {session.tratamientos && session.tratamientos.length > 0 && (
                                     <div>
                                         <strong className="text-gray-600">Tratamientos:</strong>
                                         <ul className="list-disc pl-5 mt-1">
@@ -678,6 +680,14 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                                 ))}
                                             </ul>
                                         </div>
+                                    )}
+                                    {session.estado_odontograma && (
+                                      <div>
+                                        <strong className="text-gray-600">Actualización Odontograma:</strong>
+                                        <pre className="text-xs bg-gray-200 p-2 rounded-md mt-1 overflow-auto max-h-40">
+                                          {JSON.stringify(session.estado_odontograma, null, 2)}
+                                        </pre>
+                                      </div>
                                     )}
                                 </div>
                             </div>
