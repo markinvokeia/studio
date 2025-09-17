@@ -752,7 +752,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                                     {session.archivos_adjuntos.map((file, i) => (
                                                         <li key={i}>
                                                             <a 
-                                                                href={`https://n8n-project-n8n.7ig1i3.easypanel.host${file.ruta}`} 
+                                                                href={file.ruta} 
                                                                 target="_blank" 
                                                                 rel="noopener noreferrer" 
                                                                 className="text-blue-600 hover:underline flex items-center gap-1"
