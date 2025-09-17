@@ -1005,7 +1005,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   );
 
   return (
-    <div className={cn("min-h-screen", !isFullscreen && "bg-gradient-to-br from-blue-50 via-white to-indigo-50")}>
+    <div className={cn("min-h-screen", !isFullscreen && "bg-background")}>
       {/* Header */}
       {!isFullscreen && (
       <div className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
@@ -1116,6 +1116,8 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
+    
+
     
 
     
