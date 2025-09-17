@@ -596,30 +596,100 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   );
 
   const TreatmentTimeline = ({ sessions }: { sessions: PatientSession[] }) => {
+    const conditionLabels: { [key: string]: string } = {
+        caries: "Caries",
+        filling: "Restauración",
+        crown: "Corona",
+        missing: "Ausente",
+        fracture: "Fractura",
+        'fixed-ortho': "Orto Fija",
+        implant: "Implante",
+        endodontics: "Endodoncia",
+        pulp: "Pulpitis",
+        'crown-tmp': "Corona Temporal",
+        bolt: "Perno",
+        diastema: "Diastema",
+        rotation: "Rotación",
+    };
+
+    const surfaceLabels: { [key: string]: string } = {
+        center: 'Oclusal',
+        top: 'Vestibular',
+        bottom: 'Lingual',
+        left: 'Mesial',
+        right: 'Distal',
+    };
+
+    const getDescriptionsForTooth = (toothState: any) => {
+        if (!toothState) return [];
+
+        const descriptions = [];
+        if (toothState.whole) {
+            const conditionLabel = conditionLabels[toothState.whole] || toothState.whole;
+            descriptions.push(conditionLabel);
+        }
+
+        const surfaceGroups: { [key: string]: string[] } = {};
+        for (const surface in surfaceLabels) {
+            const conditionId = toothState[surface];
+            if (conditionId) {
+                if (!surfaceGroups[conditionId]) {
+                    surfaceGroups[conditionId] = [];
+                }
+                surfaceGroups[conditionId].push(surfaceLabels[surface]);
+            }
+        }
+
+        for (const conditionId in surfaceGroups) {
+            const conditionLabel = conditionLabels[conditionId] || conditionId;
+            const affectedSurfaces = surfaceGroups[conditionId].join(', ');
+            descriptions.push(`${conditionLabel} (${affectedSurfaces})`);
+        }
+
+        if (toothState.overlays && Array.isArray(toothState.overlays)) {
+            toothState.overlays.forEach((overlayId: string) => {
+                const conditionLabel = conditionLabels[overlayId] || overlayId;
+                descriptions.push(conditionLabel);
+            });
+        }
+
+        return descriptions;
+    };
+
+    const generateOdontogramSummary = (odontogramState: any) => {
+        if (!odontogramState) return null;
+        const summary: { toothId: string, conditions: string[] }[] = [];
+        const toothIds = Object.keys(odontogramState).sort((a, b) => Number(a) - Number(b));
+        
+        toothIds.forEach(toothId => {
+            const toothState = odontogramState[toothId];
+            const conditions = getDescriptionsForTooth(toothState);
+            if(conditions.length > 0) {
+               summary.push({ toothId, conditions });
+            }
+        });
+
+        return summary;
+    };
+
+
     if (isLoadingPatientSessions) {
         return (
             <div className="bg-white rounded-xl shadow-lg p-6">
                 <h3 className="text-xl font-bold text-gray-800 mb-6">Historial de Tratamientos</h3>
                 <div className="space-y-4">
-                    <div className="flex gap-4">
-                        <div className="flex flex-col items-center">
-                           <div className="w-6 h-6 rounded-full bg-gray-200 animate-pulse"></div>
-                           <div className="w-0.5 h-20 bg-gray-200 animate-pulse mt-2"></div>
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="flex gap-4">
+                            <div className="flex flex-col items-center">
+                               <div className="w-6 h-6 rounded-full bg-gray-200 animate-pulse"></div>
+                               <div className="w-0.5 h-20 bg-gray-200 animate-pulse mt-2"></div>
+                            </div>
+                            <div className="flex-1 space-y-2">
+                                <div className="h-5 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                                <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                            </div>
                         </div>
-                        <div className="flex-1 space-y-2">
-                            <div className="h-5 w-3/4 bg-gray-200 rounded animate-pulse"></div>
-                            <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
-                        </div>
-                    </div>
-                     <div className="flex gap-4">
-                        <div className="flex flex-col items-center">
-                           <div className="w-6 h-6 rounded-full bg-gray-200 animate-pulse"></div>
-                        </div>
-                        <div className="flex-1 space-y-2">
-                            <div className="h-5 w-3/4 bg-gray-200 rounded animate-pulse"></div>
-                            <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
-                        </div>
-                    </div>
+                    ))}
                 </div>
             </div>
         );
@@ -636,64 +706,71 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             </div>
             <div className="relative">
                 <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-400 to-blue-600"></div>
-                {sessions.map((session, index) => (
-                    <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
-                        <div className={`absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-4 border-white shadow-lg bg-blue-500`}></div>
-                        <div className="flex-1">
-                            <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
-                                <div className="flex justify-between items-start mb-2">
-                                    <h4 className="font-semibold text-gray-800">{session.procedimiento_realizado}</h4>
-                                    <span className="text-sm text-gray-500">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</span>
-                                </div>
-                                <div className="space-y-3 text-sm text-gray-700">
-                                    {session.tipo_sesion && <p><strong className="text-gray-600">Tipo de Sesión:</strong> <span className="capitalize bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full">{session.tipo_sesion}</span></p>}
-                                    {session.diagnostico && <p><strong className="text-gray-600">Diagnóstico:</strong> {session.diagnostico}</p>}
-                                    {session.procedimiento_realizado && <p><strong className="text-gray-600">Procedimiento:</strong> {session.procedimiento_realizado}</p>}
-                                    {session.notas_clinicas && <p><strong className="text-gray-600">Notas:</strong> {session.notas_clinicas}</p>}
-                                    
-                                    {session.tratamientos && session.tratamientos.length > 0 && (
-                                    <div>
-                                        <strong className="text-gray-600">Tratamientos:</strong>
-                                        <ul className="list-disc pl-5 mt-1">
-                                            {session.tratamientos.map((t, i) => (
-                                                <li key={i}>{t.descripcion} {t.numero_diente && `(Diente ${t.numero_diente})`}</li>
-                                            ))}
-                                        </ul>
+                {sessions.map((session, index) => {
+                    const odontogramSummary = session.tipo_sesion === 'odontograma' ? generateOdontogramSummary(session.estado_odontograma) : null;
+                    return (
+                        <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
+                            <div className={`absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-4 border-white shadow-lg bg-blue-500`}></div>
+                            <div className="flex-1">
+                                <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h4 className="font-semibold text-gray-800">{session.procedimiento_realizado}</h4>
+                                        <span className="text-sm text-gray-500">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</span>
                                     </div>
-                                    )}
-                                    {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
+                                    <div className="space-y-3 text-sm text-gray-700">
+                                        {session.tipo_sesion && <p><strong className="text-gray-600">Tipo de Sesión:</strong> <span className="capitalize bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full">{session.tipo_sesion}</span></p>}
+                                        {session.diagnostico && <p><strong className="text-gray-600">Diagnóstico:</strong> {session.diagnostico}</p>}
+                                        {session.notas_clinicas && <p><strong className="text-gray-600">Notas:</strong> {session.notas_clinicas}</p>}
+                                        
+                                        {odontogramSummary && odontogramSummary.length > 0 && (
+                                            <div>
+                                                <strong className="text-gray-600">Actualización Odontograma:</strong>
+                                                <ul className="list-disc pl-5 mt-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4">
+                                                    {odontogramSummary.map(item => (
+                                                        <li key={item.toothId}>
+                                                            <strong className="font-medium">Diente {item.toothId}:</strong> {item.conditions.join(', ')}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+
+                                        {session.tratamientos && session.tratamientos.length > 0 && (
                                         <div>
-                                            <strong className="text-gray-600">Archivos Adjuntos:</strong>
+                                            <strong className="text-gray-600">Tratamientos:</strong>
                                             <ul className="list-disc pl-5 mt-1">
-                                                {session.archivos_adjuntos.map((file, i) => (
-                                                    <li key={i}>
-                                                        <a 
-                                                            href={`https://n8n-project-n8n.7ig1i3.easypanel.host${file.ruta}`} 
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer" 
-                                                            className="text-blue-600 hover:underline flex items-center gap-1"
-                                                        >
-                                                            <Paperclip className="w-3 h-3" />
-                                                            {file.tipo} {file.diente_asociado && `(Diente ${file.diente_asociado})`}
-                                                        </a>
-                                                    </li>
+                                                {session.tratamientos.map((t, i) => (
+                                                    <li key={i}>{t.descripcion} {t.numero_diente && `(Diente ${t.numero_diente})`}</li>
                                                 ))}
                                             </ul>
                                         </div>
-                                    )}
-                                    {session.estado_odontograma && (
-                                      <div>
-                                        <strong className="text-gray-600">Actualización Odontograma:</strong>
-                                        <pre className="text-xs bg-gray-200 p-2 rounded-md mt-1 overflow-auto max-h-40">
-                                          {JSON.stringify(session.estado_odontograma, null, 2)}
-                                        </pre>
-                                      </div>
-                                    )}
+                                        )}
+                                        {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
+                                            <div>
+                                                <strong className="text-gray-600">Archivos Adjuntos:</strong>
+                                                <ul className="list-disc pl-5 mt-1">
+                                                    {session.archivos_adjuntos.map((file, i) => (
+                                                        <li key={i}>
+                                                            <a 
+                                                                href={`https://n8n-project-n8n.7ig1i3.easypanel.host${file.ruta}`} 
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer" 
+                                                                className="text-blue-600 hover:underline flex items-center gap-1"
+                                                            >
+                                                                <Paperclip className="w-3 h-3" />
+                                                                {file.tipo} {file.diente_asociado && `(Diente ${file.diente_asociado})`}
+                                                            </a>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    )
+                })}
             </div>
         </div>
     );
