@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { addMonths, format, parseISO, isSameDay, isToday, isThisMonth, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { addMonths, format, parseISO, isSameDay, isToday, isThisMonth, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -22,17 +22,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTable } from '@/components/ui/data-table';
-import { AppointmentColumnsWrapper } from './columns';
+import { getAppointmentColumns } from './columns';
 import { cn } from '@/lib/utils';
-import { SortingState } from '@tanstack/react-table';
+import { SortingState, ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslations } from 'next-intl';
 
-async function getAppointments(calendarIds: string[]): Promise<Appointment[]> {
-    const now = new Date();
-    const startDate = addMonths(now, -6);
-    const endDate = addMonths(now, 6);
+async function getAppointments(calendarIds: string[], startDate: Date, endDate: Date): Promise<Appointment[]> {
     const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
     
     const params = new URLSearchParams({
@@ -80,7 +77,7 @@ async function getAppointments(calendarIds: string[]): Promise<Appointment[]> {
 
             return {
                 id: apiAppt.id ? String(apiAppt.id) : `appt_${Math.random().toString(36).substr(2, 9)}`,
-                user_name: apiAppt.patientName || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a:any) => a.email).join(', ') : 'N/A'),
+                patientName: apiAppt.patientName || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a:any) => a.email).join(', ') : 'N/A'),
                 service_name: apiAppt.summary || 'No Service Name',
                 date: format(appointmentDateTime, 'yyyy-MM-dd'),
                 time: format(appointmentDateTime, 'HH:mm'),
@@ -123,8 +120,9 @@ async function getCalendars(): Promise<CalendarType[]> {
 
 export default function AppointmentsPage() {
   const t = useTranslations('AppointmentsPage');
-  console.log('Translations for AppointmentsPage loaded.');
-  const appointmentColumns = AppointmentColumnsWrapper();
+  const tColumns = useTranslations('AppointmentsColumns');
+  const appointmentColumns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns(tColumns), [tColumns]);
+
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
   const [selectedCalendarIds, setSelectedCalendarIds] = React.useState<string[]>([]);
@@ -137,6 +135,10 @@ export default function AppointmentsPage() {
   ]);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [calendarColors, setCalendarColors] = React.useState<{[key: string]: string}>({});
+  const [fetchRange, setFetchRange] = React.useState<{ from: Date; to: Date }>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  });
 
   const generateColor = (str: string) => {
     let hash = 0;
@@ -161,10 +163,10 @@ export default function AppointmentsPage() {
         return;
     };
     setIsRefreshing(true);
-    const fetchedAppointments = await getAppointments(selectedCalendarIds);
+    const fetchedAppointments = await getAppointments(selectedCalendarIds, fetchRange.from, fetchRange.to);
     setAppointments(fetchedAppointments);
     setIsRefreshing(false);
-  }, [selectedCalendarIds]);
+  }, [selectedCalendarIds, fetchRange]);
   
   const loadCalendars = React.useCallback(async () => {
     setIsCalendarsLoading(true);
@@ -181,6 +183,20 @@ export default function AppointmentsPage() {
   React.useEffect(() => {
     loadAppointments();
   }, [loadAppointments]);
+  
+  React.useEffect(() => {
+    if (selectedDate) {
+        const newFrom = startOfMonth(selectedDate);
+        const newTo = endOfMonth(selectedDate);
+
+        if (newFrom < fetchRange.from) {
+            setFetchRange(prev => ({ from: newFrom, to: prev.to }));
+        }
+        if (newTo > fetchRange.to) {
+            setFetchRange(prev => ({ from: prev.from, to: newTo }));
+        }
+    }
+  }, [selectedDate, fetchRange.from, fetchRange.to]);
 
 
   const selectedDayAppointments = React.useMemo(() => {
@@ -340,7 +356,7 @@ export default function AppointmentsPage() {
                                         <div className="text-sm text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1">
                                         <div className="flex items-center gap-2">
                                             <User className="w-4 h-4" />
-                                            <span>{apt.user_name}</span>
+                                            <span>{apt.patientName}</span>
                                         </div>
                                         {apt.patientPhone && (
                                             <div className="flex items-center gap-2">
@@ -413,8 +429,8 @@ export default function AppointmentsPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="user_name" className="text-right">{t('createDialog.userName')}</Label>
-              <Input id="user_name" className="col-span-3" />
+              <Label htmlFor="patientName" className="text-right">{t('createDialog.userName')}</Label>
+              <Input id="patientName" className="col-span-3" />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="service_name" className="text-right">{t('createDialog.serviceName')}</Label>
@@ -437,3 +453,5 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    

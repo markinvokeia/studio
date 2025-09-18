@@ -221,7 +221,7 @@ export type Message = {
 
 export type Appointment = {
   id: string;
-  user_name?: string;
+  patientName: string;
   service_name: string;
   date: string;
   time: string;
@@ -229,7 +229,7 @@ export type Appointment = {
   patientPhone?: string;
   doctorName?: string;
   calendar_id: string;
-  calendar_name: string;
+  calendar_name?: string;
 };
 
 export type UserLog = {
@@ -346,3 +346,5 @@ export type PatientSession = {
   tratamientos: TreatmentDetail[];
   archivos_adjuntos: AttachedFile[];
 };
+
+    
