@@ -321,7 +321,7 @@ export default function AppointmentsPage() {
                         {selectedDayAppointments.length > 0 ? (
                           <div className="space-y-4">
                             {selectedDayAppointments.map((apt) => (
-                              <div key={apt.id} className="flex items-start space-x-3 rounded-lg border bg-card text-card-foreground shadow-sm p-4 relative overflow-hidden">
+                              <div key={apt.id} className="flex items-start space-x-4 rounded-lg border bg-card text-card-foreground shadow-sm p-4 relative overflow-hidden">
                                   <div className="absolute left-0 top-0 h-full w-1.5" style={{ backgroundColor: calendarColors[apt.calendar_id] }}></div>
                                   <div className="pl-2 w-full">
                                     <div className="flex justify-between items-start">
@@ -438,3 +438,4 @@ export default function AppointmentsPage() {
 }
 
     
+
