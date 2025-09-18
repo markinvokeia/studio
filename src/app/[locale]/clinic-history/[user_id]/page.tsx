@@ -1091,7 +1091,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                             >
                               {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
                            </Button>
-                            <iframe src={`http://localhost:5176/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
+                            <iframe src={`http://localhost:5173/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
                         </div>
                     )}
                     {activeView === 'images' && <ImageGallery />}
@@ -1116,6 +1116,8 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
+    
+
     
 
     
