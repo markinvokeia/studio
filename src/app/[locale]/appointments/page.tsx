@@ -59,7 +59,7 @@ async function getAppointments(calendarIds: string[]): Promise<Appointment[]> {
 
         const data = await response.json();
         let appointmentsData: any[] = [];
-
+        
         if (Array.isArray(data) && data.length > 0 && 'json' in data[0]) {
             appointmentsData = data.map(item => item.json);
         } else if (Array.isArray(data)) {
@@ -88,7 +88,7 @@ async function getAppointments(calendarIds: string[]): Promise<Appointment[]> {
                 patientPhone: apiAppt.patientPhone,
                 doctorName: apiAppt.doctorName,
                 calendar_id: apiAppt.organizer?.email,
-                calendar_name: apiAppt.organizer?.displayName || '',
+                calendar_name: apiAppt.organizer?.displayName || apiAppt.organizer?.email || '',
             };
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
