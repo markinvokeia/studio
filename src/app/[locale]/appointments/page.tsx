@@ -253,8 +253,8 @@ export default function AppointmentsPage() {
               <TabsTrigger value="list">{t('listView')}</TabsTrigger>
             </TabsList>
             <TabsContent value="calendar" className="pt-4">
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                <div className="md:col-span-1 space-y-4">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr]">
+                <div className="space-y-4">
                   <Card>
                     <CardContent className="p-0 flex justify-center">
                         <Calendar
@@ -309,8 +309,8 @@ export default function AppointmentsPage() {
                       </CardContent>
                     </Card>
                 </div>
-                <div className="md:col-span-2">
-                  <Card className="flex flex-col h-full">
+                <div className="flex flex-col">
+                  <Card className="flex-1 flex flex-col">
                     <CardHeader>
                       <CardTitle>
                         {t('appointmentsFor', {date: selectedDate ? format(selectedDate, 'PPP') : '...'})}
