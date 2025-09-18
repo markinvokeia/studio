@@ -58,7 +58,18 @@ async function getAppointments(calendarIds: string[]): Promise<Appointment[]> {
         }
 
         const data = await response.json();
-        const appointmentsData = (Array.isArray(data) && data.length > 0 && data[0].filteredEvents) ? data[0].filteredEvents : [];
+        let appointmentsData = [];
+
+        if (Array.isArray(data)) {
+            // New structure: [{ json: event1 }, { json: event2 }, ...]
+            appointmentsData = data.map(item => item.json);
+        } else if (data && Array.isArray(data.filteredEvents)) {
+            // Old structure support
+             appointmentsData = data.filteredEvents;
+        } else if (data && Array.isArray(data.data) && data.data[0]?.filteredEvents) {
+            // Another old structure
+            appointmentsData = data.data[0].filteredEvents;
+        }
         
         if (!Array.isArray(appointmentsData)) {
             console.error("Fetched data is not an array:", appointmentsData);
