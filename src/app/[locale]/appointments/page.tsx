@@ -316,49 +316,49 @@ export default function AppointmentsPage() {
                         {t('appointmentsFor', {date: selectedDate ? format(selectedDate, 'PPP') : '...'})}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="flex-1">
+                    <CardContent className="flex-1 p-0">
                       <ScrollArea className="h-full">
-                        {selectedDayAppointments.length > 0 ? (
-                          <div className="space-y-4">
-                            {selectedDayAppointments.map((apt) => (
-                              <div key={apt.id} className="flex items-start space-x-4 rounded-lg border bg-card text-card-foreground shadow-sm p-4 relative overflow-hidden">
-                                  <div className="absolute left-0 top-0 h-full w-2" style={{ backgroundColor: calendarColors[apt.calendar_id] }} />
-                                  <div className="pl-4 w-full">
-                                    <div className="flex justify-between items-start">
-                                      <div className="flex items-center gap-2">
-                                          <Badge variant={getStatusVariant(apt.status) as any} className="capitalize text-xs">{apt.status}</Badge>
-                                          <p className="font-semibold">{apt.service_name}</p>
-                                      </div>
-                                      <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">{apt.time}</p>
-                                    </div>
-                                    <Separator className="my-2" />
-                                    <div className="text-sm text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1">
-                                      <div className="flex items-center gap-2">
-                                        <User className="w-4 h-4" />
-                                        <span>{apt.user_name}</span>
-                                      </div>
-                                      {apt.patientPhone && (
+                         <div className="p-6 space-y-4">
+                            {selectedDayAppointments.length > 0 ? (
+                            selectedDayAppointments.map((apt) => (
+                                <div key={apt.id} className="flex items-start space-x-4 rounded-lg border bg-card text-card-foreground shadow-sm p-4 relative overflow-hidden">
+                                    <div className="absolute left-0 top-0 h-full w-2" style={{ backgroundColor: calendarColors[apt.calendar_id] }} />
+                                    <div className="pl-4 w-full">
+                                        <div className="flex justify-between items-start">
                                         <div className="flex items-center gap-2">
-                                          <Phone className="w-4 h-4" />
-                                          <span>{apt.patientPhone}</span>
+                                            <Badge variant={getStatusVariant(apt.status) as any} className="capitalize text-xs">{apt.status}</Badge>
+                                            <p className="font-semibold">{apt.service_name}</p>
                                         </div>
-                                      )}
-                                      <div className="col-span-2 flex items-center gap-2">
-                                        <Stethoscope className="w-4 h-4" />
-                                        <span>Dr. {apt.doctorName || 'N/A'}</span>
-                                      </div>
-                                      <div className="col-span-2 flex items-center gap-2">
-                                        <CalendarIcon className="w-4 h-4" />
-                                        <span>{apt.calendar_name || 'N/A'}</span>
-                                      </div>
+                                        <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">{apt.time}</p>
+                                        </div>
+                                        <Separator className="my-2" />
+                                        <div className="text-sm text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <User className="w-4 h-4" />
+                                            <span>{apt.user_name}</span>
+                                        </div>
+                                        {apt.patientPhone && (
+                                            <div className="flex items-center gap-2">
+                                            <Phone className="w-4 h-4" />
+                                            <span>{apt.patientPhone}</span>
+                                            </div>
+                                        )}
+                                        <div className="col-span-2 flex items-center gap-2">
+                                            <Stethoscope className="w-4 h-4" />
+                                            <span>Dr. {apt.doctorName || 'N/A'}</span>
+                                        </div>
+                                        <div className="col-span-2 flex items-center gap-2">
+                                            <CalendarIcon className="w-4 h-4" />
+                                            <span>{apt.calendar_name || 'N/A'}</span>
+                                        </div>
+                                        </div>
                                     </div>
-                                  </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-center text-muted-foreground">{t('noAppointments')}</p>
-                        )}
+                                </div>
+                                ))
+                            ) : (
+                            <p className="text-center text-muted-foreground h-full flex items-center justify-center">{t('noAppointments')}</p>
+                            )}
+                         </div>
                       </ScrollArea>
                     </CardContent>
                   </Card>
