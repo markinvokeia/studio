@@ -6,7 +6,7 @@ import { addMonths, format, parseISO, isSameDay, isToday, isThisMonth, startOfWe
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Calendar as CalendarIcon } from 'lucide-react';
+import { PlusCircle, Calendar as CalendarIcon, User, Phone, Stethoscope } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -58,7 +58,7 @@ async function getAppointments(calendarIds: string[]): Promise<Appointment[]> {
         }
 
         const data = await response.json();
-        let appointmentsData = [];
+        let appointmentsData: any[] = [];
 
         if (Array.isArray(data) && data.length > 0 && 'json' in data[0]) {
             appointmentsData = data.map(item => item.json);
@@ -83,10 +83,12 @@ async function getAppointments(calendarIds: string[]): Promise<Appointment[]> {
                 user_name: apiAppt.patientName || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a:any) => a.email).join(', ') : 'N/A'),
                 service_name: apiAppt.summary || 'No Service Name',
                 date: format(appointmentDateTime, 'yyyy-MM-dd'),
-                time: format(appointmentDateTime, 'HH:mm:ss'),
+                time: format(appointmentDateTime, 'HH:mm'),
                 status: apiAppt.status || 'confirmed',
                 patientPhone: apiAppt.patientPhone,
                 doctorName: apiAppt.doctorName,
+                calendar_id: apiAppt.calendarId,
+                calendar_name: apiAppt.calendar_name || '',
             };
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
@@ -134,6 +136,24 @@ export default function AppointmentsPage() {
     { id: 'date', desc: false },
   ]);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [calendarColors, setCalendarColors] = React.useState<{[key: string]: string}>({});
+
+  const generateColor = (str: string) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+    return `#${"00000".substring(0, 6 - c.length)}${c}`;
+  };
+
+  React.useEffect(() => {
+    const colors: {[key: string]: string} = {};
+    calendars.forEach(cal => {
+        colors[cal.id] = generateColor(cal.id);
+    });
+    setCalendarColors(colors);
+  }, [calendars]);
 
   const loadAppointments = React.useCallback(async () => {
     if (selectedCalendarIds.length === 0) {
@@ -279,6 +299,7 @@ export default function AppointmentsPage() {
                                         checked={selectedCalendarIds.includes(calendar.id)}
                                         onCheckedChange={(checked) => handleCalendarSelection(calendar.id, !!checked)}
                                     />
+                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: calendarColors[calendar.id] }} />
                                     <Label htmlFor={calendar.id}>{calendar.name}</Label>
                                 </div>
                                 ))}
@@ -299,22 +320,44 @@ export default function AppointmentsPage() {
                       <ScrollArea className="h-[calc(100vh-400px)]">
                         {selectedDayAppointments.length > 0 ? (
                           <div className="space-y-4">
-                            {selectedDayAppointments.map((apt, index) => (
-                              <React.Fragment key={apt.id}>
-                                <div className="flex items-start justify-between space-x-4">
-                                    <div className="flex items-center space-x-4">
-                                        <Badge variant={getStatusVariant(apt.status) as any} className="h-fit capitalize">{apt.status}</Badge>
-                                        <div>
-                                            <p className="font-semibold">{apt.service_name}</p>
-                                            <p className="text-sm text-muted-foreground">{apt.user_name}</p>
-                                            {apt.patientPhone && <p className="text-sm text-muted-foreground">{apt.patientPhone}</p>}
-                                            {apt.doctorName && <p className="text-sm text-muted-foreground">Dr. {apt.doctorName}</p>}
-                                        </div>
+                            {selectedDayAppointments.map((apt) => (
+                              <div key={apt.id} className="flex items-start space-x-3 rounded-lg border bg-card text-card-foreground shadow-sm p-4 relative overflow-hidden">
+                                  <div className="absolute left-0 top-0 h-full w-1.5" style={{ backgroundColor: calendarColors[apt.calendar_id] }}></div>
+                                  <div className="pl-2 w-full">
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                          <Badge variant={getStatusVariant(apt.status) as any} className="capitalize text-xs mb-1">{apt.status}</Badge>
+                                          <p className="font-semibold">{apt.service_name}</p>
+                                      </div>
+                                      <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">{apt.time}</p>
                                     </div>
-                                    <p className="text-sm font-medium text-muted-foreground">{format(parseISO(`${apt.date}T${apt.time}`), 'p')}</p>
-                                </div>
-                                {index < selectedDayAppointments.length - 1 && <Separator />}
-                              </React.Fragment>
+                                    <Separator className="my-2" />
+                                    <div className="text-sm text-muted-foreground space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <User className="w-4 h-4" />
+                                        <span>{apt.user_name}</span>
+                                      </div>
+                                      {apt.patientPhone && (
+                                        <div className="flex items-center gap-2">
+                                          <Phone className="w-4 h-4" />
+                                          <span>{apt.patientPhone}</span>
+                                        </div>
+                                      )}
+                                      {apt.doctorName && (
+                                        <div className="flex items-center gap-2">
+                                          <Stethoscope className="w-4 h-4" />
+                                          <span>Dr. {apt.doctorName}</span>
+                                        </div>
+                                      )}
+                                      {apt.calendar_name && (
+                                        <div className="flex items-center gap-2">
+                                          <CalendarIcon className="w-4 h-4" />
+                                          <span>{apt.calendar_name}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                              </div>
                             ))}
                           </div>
                         ) : (

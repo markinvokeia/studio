@@ -228,6 +228,8 @@ export type Appointment = {
   status: 'confirmed' | 'completed' | 'cancelled' | 'pending';
   patientPhone?: string;
   doctorName?: string;
+  calendar_id: string;
+  calendar_name: string;
 };
 
 export type UserLog = {
