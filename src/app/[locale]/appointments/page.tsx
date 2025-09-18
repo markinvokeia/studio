@@ -256,12 +256,12 @@ export default function AppointmentsPage() {
               <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <div className="md:col-span-1 space-y-4">
                   <Card>
-                    <CardContent className="p-0">
+                    <CardContent className="p-0 flex justify-center">
                         <Calendar
                             mode="single"
                             selected={selectedDate}
                             onSelect={setSelectedDate}
-                            className="rounded-md"
+                            className="rounded-md w-auto"
                             initialFocus
                         />
                     </CardContent>
@@ -310,14 +310,14 @@ export default function AppointmentsPage() {
                     </Card>
                 </div>
                 <div className="md:col-span-2">
-                  <Card>
+                  <Card className="flex flex-col h-full">
                     <CardHeader>
                       <CardTitle>
                         {t('appointmentsFor', {date: selectedDate ? format(selectedDate, 'PPP') : '...'})}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <ScrollArea className="h-[calc(100vh-400px)]">
+                    <CardContent className="flex-1">
+                      <ScrollArea className="h-full">
                         {selectedDayAppointments.length > 0 ? (
                           <div className="space-y-4">
                             {selectedDayAppointments.map((apt) => (
