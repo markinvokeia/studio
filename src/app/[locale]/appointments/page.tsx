@@ -60,18 +60,9 @@ async function getAppointments(calendarIds: string[]): Promise<Appointment[]> {
         const data = await response.json();
         let appointmentsData = [];
 
-        // This handles [{ json: event1 }, { json: event2 }, ...]
         if (Array.isArray(data) && data.length > 0 && 'json' in data[0]) {
             appointmentsData = data.map(item => item.json);
-        }
-        // This handles cases where data might be nested, e.g., { "data": [{...}]}
-        else if (data && Array.isArray(data.filteredEvents)) {
-             appointmentsData = data.filteredEvents;
-        } else if (data && Array.isArray(data.data) && data.data[0]?.filteredEvents) {
-            appointmentsData = data.data[0].filteredEvents;
-        } 
-        // This handles a flat array of events
-        else if (Array.isArray(data)) {
+        } else if (Array.isArray(data)) {
             appointmentsData = data;
         }
         
@@ -89,11 +80,13 @@ async function getAppointments(calendarIds: string[]): Promise<Appointment[]> {
 
             return {
                 id: apiAppt.id ? String(apiAppt.id) : `appt_${Math.random().toString(36).substr(2, 9)}`,
-                user_name: apiAppt.user_name || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a:any) => a.email).join(', ') : 'N/A'),
+                user_name: apiAppt.patientName || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a:any) => a.email).join(', ') : 'N/A'),
                 service_name: apiAppt.summary || 'No Service Name',
                 date: format(appointmentDateTime, 'yyyy-MM-dd'),
                 time: format(appointmentDateTime, 'HH:mm:ss'),
                 status: apiAppt.status || 'confirmed',
+                patientPhone: apiAppt.patientPhone,
+                doctorName: apiAppt.doctorName,
             };
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
@@ -314,6 +307,8 @@ export default function AppointmentsPage() {
                                         <div>
                                             <p className="font-semibold">{apt.service_name}</p>
                                             <p className="text-sm text-muted-foreground">{apt.user_name}</p>
+                                            {apt.patientPhone && <p className="text-sm text-muted-foreground">{apt.patientPhone}</p>}
+                                            {apt.doctorName && <p className="text-sm text-muted-foreground">Dr. {apt.doctorName}</p>}
                                         </div>
                                     </div>
                                     <p className="text-sm font-medium text-muted-foreground">{format(parseISO(`${apt.date}T${apt.time}`), 'p')}</p>
