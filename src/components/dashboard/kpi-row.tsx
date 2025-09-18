@@ -166,7 +166,7 @@ export function AppointmentAttendanceCard({ data, isLoading }: AppointmentAttend
           <CardTitle>{t('attendanceRate')}</CardTitle>
         </CardHeader>
         <CardContent className="py-4">
-          <div className="text-4xl font-bold">{value}%</div>
+          <div className="text-4xl font-bold">{value.toFixed(2)}%</div>
           <div className={cn("text-xs flex items-center mt-2", trendColor)}>
             <TrendIcon className="h-4 w-4 mr-1" />
             {change.toFixed(1)}% {t('vsPreviousPeriod')}
