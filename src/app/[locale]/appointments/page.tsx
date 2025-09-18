@@ -88,7 +88,7 @@ async function getAppointments(calendarIds: string[]): Promise<Appointment[]> {
                 patientPhone: apiAppt.patientPhone,
                 doctorName: apiAppt.doctorName,
                 calendar_id: apiAppt.calendarId,
-                calendar_name: apiAppt.calendar_name || '',
+                calendar_name: apiAppt.organizer?.displayName || '',
             };
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
