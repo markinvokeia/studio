@@ -6,7 +6,7 @@ import { addMonths, format, parseISO, isSameDay, isToday, isThisMonth, startOfWe
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Calendar as CalendarIcon, User, Phone, Stethoscope } from 'lucide-react';
+import { PlusCircle, Calendar as CalendarIcon, User, Phone, Stethoscope, RefreshCw } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -241,10 +241,15 @@ export default function AppointmentsPage() {
             <CardTitle>{t('title')}</CardTitle>
             <CardDescription>{t('description')}</CardDescription>
           </div>
-          <Button onClick={() => setCreateOpen(true)} className="flex items-center gap-2">
-            <PlusCircle className="h-5 w-5" />
-            <span>{t('newAppointment')}</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={() => setCreateOpen(true)} className="flex items-center gap-2">
+              <PlusCircle className="h-5 w-5" />
+              <span>{t('newAppointment')}</span>
+            </Button>
+            <Button variant="outline" size="icon" onClick={loadAppointments} disabled={isRefreshing}>
+              <RefreshCw className={cn("h-5 w-5", isRefreshing && "animate-spin")} />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="calendar">
