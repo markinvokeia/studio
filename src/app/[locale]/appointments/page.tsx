@@ -332,7 +332,7 @@ export default function AppointmentsPage() {
                                       <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">{apt.time}</p>
                                     </div>
                                     <Separator className="my-2" />
-                                    <div className="text-sm text-muted-foreground space-y-1">
+                                    <div className="text-sm text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1">
                                       <div className="flex items-center gap-2">
                                         <User className="w-4 h-4" />
                                         <span>{apt.user_name}</span>
@@ -343,18 +343,14 @@ export default function AppointmentsPage() {
                                           <span>{apt.patientPhone}</span>
                                         </div>
                                       )}
-                                      {apt.doctorName && (
-                                        <div className="flex items-center gap-2">
-                                          <Stethoscope className="w-4 h-4" />
-                                          <span>Dr. {apt.doctorName}</span>
-                                        </div>
-                                      )}
-                                      {apt.calendar_name && (
-                                        <div className="flex items-center gap-2">
-                                          <CalendarIcon className="w-4 h-4" />
-                                          <span>{apt.calendar_name}</span>
-                                        </div>
-                                      )}
+                                      <div className="col-span-2 flex items-center gap-2">
+                                        <Stethoscope className="w-4 h-4" />
+                                        <span>Dr. {apt.doctorName || 'N/A'}</span>
+                                      </div>
+                                      <div className="col-span-2 flex items-center gap-2">
+                                        <CalendarIcon className="w-4 h-4" />
+                                        <span>{apt.calendar_name || 'N/A'}</span>
+                                      </div>
                                     </div>
                                   </div>
                               </div>
