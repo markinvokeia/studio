@@ -322,11 +322,11 @@ export default function AppointmentsPage() {
                           <div className="space-y-4">
                             {selectedDayAppointments.map((apt) => (
                               <div key={apt.id} className="flex items-start space-x-4 rounded-lg border bg-card text-card-foreground shadow-sm p-4 relative overflow-hidden">
-                                  <div className="absolute left-0 top-0 h-full w-1.5" style={{ backgroundColor: calendarColors[apt.calendar_id] }}></div>
-                                  <div className="pl-2 w-full">
+                                  <div className="absolute left-0 top-0 h-full w-2" style={{ backgroundColor: calendarColors[apt.calendar_id] }}></div>
+                                  <div className="pl-4 w-full">
                                     <div className="flex justify-between items-start">
-                                      <div>
-                                          <Badge variant={getStatusVariant(apt.status) as any} className="capitalize text-xs mb-1">{apt.status}</Badge>
+                                      <div className="flex items-center gap-2">
+                                          <Badge variant={getStatusVariant(apt.status) as any} className="capitalize text-xs">{apt.status}</Badge>
                                           <p className="font-semibold">{apt.service_name}</p>
                                       </div>
                                       <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">{apt.time}</p>
@@ -439,3 +439,6 @@ export default function AppointmentsPage() {
 
     
 
+
+
+    
