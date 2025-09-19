@@ -19,7 +19,9 @@ import React from 'react';
 
 export const getAppointmentColumns = (t: (key: string) => string): ColumnDef<Appointment>[] => [
     { accessorKey: 'service_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('service')} /> },
-    { accessorKey: 'user_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('user')} /> },
+    { accessorKey: 'patientName', header: ({column}) => <DataTableColumnHeader column={column} title={t('patient')} /> },
+    { accessorKey: 'doctorName', header: ({column}) => <DataTableColumnHeader column={column} title={t('doctor')} /> },
+    { accessorKey: 'calendar_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('calendar')} /> },
     { 
       accessorKey: 'date', 
       header: ({column}) => <DataTableColumnHeader column={column} title={t('date')} />,
@@ -68,7 +70,6 @@ export const getAppointmentColumns = (t: (key: string) => string): ColumnDef<App
 
 export function AppointmentColumnsWrapper() {
     const t = useTranslations('AppointmentsColumns');
-    console.log('Translations for AppointmentsColumns loaded.');
     const columns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns(t), [t]);
     return columns;
 }
