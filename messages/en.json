@@ -129,6 +129,9 @@
   "AppointmentsColumns": {
     "service": "Service",
     "user": "User",
+    "patient": "Patient",
+    "doctor": "Doctor",
+    "calendar": "Calendar",
     "date": "Date",
     "time": "Time",
     "status": "Status",
