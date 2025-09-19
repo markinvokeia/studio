@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -127,7 +128,6 @@
   },
   "AppointmentsColumns": {
     "service": "Service",
-    "user": "User",
     "patient": "Patient",
     "doctor": "Doctor",
     "calendar": "Calendar",
