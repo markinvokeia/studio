@@ -5,6 +5,7 @@
     "UsersAndAccess": "Usuarios y Acceso",
     "Users": "Usuarios",
     "ClinicHistory": "Historial Clínico",
+    "Studies": "Estudios",
     "SalesAndBilling": "Ventas",
     "Quotes": "Cotizaciones",
     "Orders": "Pedidos",
@@ -127,7 +128,6 @@
   },
   "AppointmentsColumns": {
     "service": "Servicio",
-    "user": "Usuario",
     "patient": "Paciente",
     "doctor": "Doctor",
     "calendar": "Calendario",
