@@ -28,6 +28,7 @@ import {
   Receipt,
   CreditCard,
   Radiation,
+  Share2,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -58,6 +59,7 @@ export const navItems: NavItem[] = [
       { title: 'Users', href: '/users', icon: Users, isChidren: true },
       { title: 'ClinicHistory', href: '/clinic-history', icon: HeartPulse, isChidren: true },
       { title: 'Studies', href: '/studies', icon: Radiation, isChidren: true },
+      { title: 'SharedStudies', href: '/shared-studies', icon: Share2, isChidren: true },
     ],
   },
   {

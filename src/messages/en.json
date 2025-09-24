@@ -7,6 +7,7 @@
     "Users": "Users",
     "ClinicHistory": "Clinic History",
     "Studies": "Studies",
+    "SharedStudies": "Shared Studies",
     "SalesAndBilling": "Sales & Billing",
     "Quotes": "Quotes",
     "Orders": "Orders",
@@ -129,6 +130,7 @@
   },
   "AppointmentsColumns": {
     "service": "Service",
+    "user": "User",
     "patient": "Patient",
     "doctor": "Doctor",
     "calendar": "Calendar",
@@ -223,4 +225,3 @@
     "noResults": "No results."
   }
 }
-    
