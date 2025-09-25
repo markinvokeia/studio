@@ -50,6 +50,8 @@ interface DataTableProps<TData, TValue> {
   onColumnVisibilityChange?: React.Dispatch<React.SetStateAction<VisibilityState>>;
   sorting?: SortingState;
   onSortingChange?: React.Dispatch<React.SetStateAction<SortingState>>;
+  columnFilters?: ColumnFiltersState;
+  onColumnFiltersChange?: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
 }
 
 export function DataTable<TData, TValue>({
@@ -72,13 +74,15 @@ export function DataTable<TData, TValue>({
   onColumnVisibilityChange,
   sorting: controlledSorting,
   onSortingChange: setControlledSorting,
+  columnFilters: controlledColumnFilters,
+  onColumnFiltersChange: setControlledColumnFilters,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   console.log('Translations for General loaded.');
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
   const [internalColumnVisibility, setInternalColumnVisibility] =
     React.useState<VisibilityState>({});
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+  const [internalColumnFilters, setInternalColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
   const [internalSorting, setInternalSorting] = React.useState<SortingState>([]);
@@ -87,6 +91,8 @@ export function DataTable<TData, TValue>({
   
   const sorting = controlledSorting ?? internalSorting;
   const setSorting = setControlledSorting ?? setInternalSorting;
+  const columnFilters = controlledColumnFilters ?? internalColumnFilters;
+  const setColumnFilters = setControlledColumnFilters ?? setInternalColumnFilters;
 
   const table = useReactTable({
     data,

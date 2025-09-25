@@ -28,7 +28,7 @@ import { UserMessages } from '@/components/users/user-messages';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserLogs } from '@/components/users/user-logs';
 import { X } from 'lucide-react';
-import { RowSelectionState, PaginationState } from '@tanstack/react-table';
+import { RowSelectionState, PaginationState, ColumnFiltersState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 
 type GetUsersResponse = {
@@ -36,11 +36,12 @@ type GetUsersResponse = {
   total: number;
 };
 
-async function getUsers(pagination: PaginationState): Promise<GetUsersResponse> {
+async function getUsers(pagination: PaginationState, searchQuery: string = ''): Promise<GetUsersResponse> {
   try {
     const params = new URLSearchParams({
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
+      search: searchQuery,
     });
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?${params.toString()}`, {
       method: 'GET',
@@ -92,18 +93,23 @@ export default function UsersPage() {
     pageIndex: 0,
     pageSize: 10,
   });
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
 
   const loadUsers = React.useCallback(async () => {
     setIsRefreshing(true);
-    const { users: fetchedUsers, total } = await getUsers(pagination);
+    const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
+    const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery);
     setUsers(fetchedUsers);
     setUserCount(total);
     setIsRefreshing(false);
-  }, [pagination]);
+  }, [pagination, columnFilters]);
 
   React.useEffect(() => {
-    loadUsers();
+    const debounce = setTimeout(() => {
+        loadUsers();
+    }, 500);
+    return () => clearTimeout(debounce);
   }, [loadUsers]);
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
@@ -142,6 +148,8 @@ export default function UsersPage() {
               pagination={pagination}
               onPaginationChange={setPagination}
               manualPagination={true}
+              columnFilters={columnFilters}
+              onColumnFiltersChange={setColumnFilters}
             />
           </CardContent>
         </Card>
