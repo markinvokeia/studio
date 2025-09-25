@@ -36,12 +36,12 @@ type GetUsersResponse = {
   total: number;
 };
 
-async function getUsers(pagination: PaginationState, searchQuery: string = ''): Promise<GetUsersResponse> {
+async function getUsers(pagination: PaginationState, searchQuery: string): Promise<GetUsersResponse> {
   try {
     const params = new URLSearchParams({
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
-      search: searchQuery,
+      search: searchQuery || '',
     });
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?${params.toString()}`, {
       method: 'GET',
