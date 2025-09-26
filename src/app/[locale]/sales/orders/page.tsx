@@ -231,7 +231,7 @@ export default function OrdersPage() {
                                 <CardTitle>Details for Order</CardTitle>
                                 <CardDescription>Order ID: {selectedOrder.id}</CardDescription>
                             </div>
-                            <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                            <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
                                 <X className="h-5 w-5" />
                                 <span className="sr-only">Close details</span>
                             </Button>

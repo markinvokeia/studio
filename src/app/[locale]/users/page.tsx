@@ -176,7 +176,7 @@ export default function UsersPage() {
                 <div>
                     <CardTitle>{t('detailsFor', {name: selectedUser.name})}</CardTitle>
                 </div>
-                <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
                     <X className="h-5 w-5" />
                     <span className="sr-only">{t('close')}</span>
                 </Button>

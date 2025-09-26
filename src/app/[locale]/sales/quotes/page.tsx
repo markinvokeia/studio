@@ -391,7 +391,7 @@ export default function QuotesPage() {
                                 <CardTitle>Details for Quote</CardTitle>
                                 <CardDescription>Quote ID: {selectedQuote.id}</CardDescription>
                             </div>
-                            <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                            <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
                                 <X className="h-5 w-5" />
                                 <span className="sr-only">Close details</span>
                             </Button>
@@ -542,3 +542,4 @@ export default function QuotesPage() {
     
 
     
+

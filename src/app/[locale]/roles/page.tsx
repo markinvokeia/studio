@@ -114,7 +114,7 @@ export default function RolesPage() {
                             <CardTitle>Details for {selectedRole.name}</CardTitle>
                             <CardDescription>Role ID: {selectedRole.id}</CardDescription>
                         </div>
-                         <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                         <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
                             <X className="h-5 w-5" />
                             <span className="sr-only">Close details</span>
                         </Button>
