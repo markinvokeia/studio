@@ -55,12 +55,24 @@ async function getUsers(pagination: PaginationState, searchQuery: string): Promi
     if (!response.ok) {
       throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
     }
-
-    const responseData = await response.json();
-    const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
     
-    const usersData = Array.isArray(data.data) ? data.data : [];
-    const total = Number(data.total) || usersData.length;
+    const responseData = await response.json();
+    
+    let usersData = [];
+    let total = 0;
+
+    if (Array.isArray(responseData) && responseData.length > 0) {
+      if (responseData[0].json && responseData[0].json.data) {
+        usersData = responseData[0].json.data;
+        total = Number(responseData[0].json.total) || usersData.length;
+      } else if (responseData[0].data) {
+        usersData = responseData[0].data;
+        total = Number(responseData[0].total) || usersData.length;
+      }
+    } else if (typeof responseData === 'object' && responseData !== null && responseData.data) {
+      usersData = responseData.data;
+      total = Number(responseData.total) || usersData.length;
+    }
 
     const mappedUsers = usersData.map((apiUser: any) => ({
       id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
@@ -124,8 +136,8 @@ export default function UsersPage() {
   
   return (
     <>
-    <div className={cn("grid grid-cols-1 gap-4", selectedUser ? "lg:grid-cols-2" : "lg:grid-cols-1")}>
-      <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-1" : "lg:col-span-2")}>
+    <div className={cn("grid grid-cols-1 gap-4", selectedUser ? "lg:grid-cols-4" : "lg:grid-cols-1")}>
+      <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-1" : "lg:col-span-4")}>
         <Card>
           <CardHeader>
             <CardTitle>{t('title')}</CardTitle>
@@ -156,7 +168,7 @@ export default function UsersPage() {
       </div>
       
       {selectedUser && (
-        <div className="col-span-1">
+        <div className="lg:col-span-3">
             <Card>
                <CardHeader className="flex flex-row items-start justify-between">
                 <div>
