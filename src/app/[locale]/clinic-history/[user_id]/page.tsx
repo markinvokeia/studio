@@ -981,26 +981,23 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     };
 
   const Navigation = () => (
-    <div className="bg-white shadow-sm border-b border-gray-200 mb-8">
-      <div className="flex space-x-8 px-6 overflow-x-auto">
-        {[
-          { id: 'anamnesis', label: 'Anamnesis', icon: FileText },
-          { id: 'timeline', label: 'Timeline', icon: Clock },
-          { id: 'odontogram', label: 'Odontograma', icon: Smile },
-          { id: 'images', label: 'Imágenes', icon: Camera },
-        ].map(({ id, label, icon: Icon }) => (
-          <button
+    <div className="flex space-x-1">
+      {[
+        { id: 'anamnesis', label: 'Anamnesis', icon: FileText },
+        { id: 'timeline', label: 'Timeline', icon: Clock },
+        { id: 'odontogram', label: 'Odontograma', icon: Smile },
+        { id: 'images', label: 'Imágenes', icon: Camera },
+      ].map(({ id, label, icon: Icon }) => (
+        <Button
             key={id}
+            variant={activeView === id ? 'default' : 'ghost'}
             onClick={() => setActiveView(id)}
-            className={`flex items-center space-x-2 py-4 px-2 border-b-2 transition-colors duration-200 whitespace-nowrap ${
-              activeView === id ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
+            className="flex items-center space-x-2"
+        >
             <Icon className="w-4 h-4" />
             <span className="font-medium">{label}</span>
-          </button>
-        ))}
-      </div>
+        </Button>
+      ))}
     </div>
   );
 
@@ -1010,21 +1007,22 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
       {!isFullscreen && (
       <div className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
         <div className="flex justify-between items-center">
-          <div>
-            <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-bold text-gray-800">Historial Clinico Digital</h1>
-                {selectedPatient && (
-                    <div className="flex items-center gap-2">
-                        <p className="text-2xl font-bold text-gray-900">{selectedPatient.name}</p>
-                        <Button variant="ghost" size="icon" onClick={refreshAllData}>
-                            <RefreshCw className="h-5 w-5" />
-                        </Button>
-                    </div>
-                )}
-            </div>
-             <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-gray-800">Historial Clinico Digital</h1>
+            {selectedPatient && (
+                <div className="flex items-center gap-2">
+                    <p className="text-2xl font-bold text-gray-900">{selectedPatient.name}</p>
+                    <Button variant="ghost" size="icon" onClick={refreshAllData}>
+                        <RefreshCw className="h-5 w-5" />
+                    </Button>
+                </div>
+            )}
+          </div>
+        </div>
+        <div className="flex justify-between items-center mt-4">
+            <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
                 <PopoverTrigger asChild>
-                    <div className="relative mt-1">
+                    <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                         <Input
                             value={searchQuery}
@@ -1059,24 +1057,14 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                     </Command>
                 </PopoverContent>
             </Popover>
-          </div>
-          <div className="flex items-center space-x-4">
-            {selectedPatient && (
-                <div className="text-right">
-                <div className="text-sm text-gray-500">Última visita</div>
-                <div className="font-semibold text-gray-800">{selectedPatient.lastVisit}</div>
-                </div>
-            )}
-          </div>
+            <Navigation />
         </div>
       </div>
       )}
     
       {selectedPatient ? (
         <>
-            {!isFullscreen && <Navigation />}
-            
-            <div className={cn(!isFullscreen && "px-6 pb-8")}>
+            <div className={cn(!isFullscreen && "px-6 py-8")}>
                 <div className={cn(!isFullscreen && "space-y-6")}>
 
                     {activeView === 'anamnesis' && <AnamnesisDashboard />}
@@ -1116,6 +1104,8 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
+    
+
     
 
     
