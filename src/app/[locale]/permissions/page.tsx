@@ -91,8 +91,8 @@ export default function PermissionsPage() {
 
   return (
     <>
-    <div className={cn("grid grid-cols-1 gap-4", selectedPermission ? "lg:grid-cols-2" : "lg:grid-cols-1")}>
-        <div className={cn("transition-all duration-300", selectedPermission ? "lg:col-span-1" : "lg:col-span-2")}>
+    <div className={cn("grid grid-cols-1 gap-4", selectedPermission ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
+        <div className={cn("transition-all duration-300", selectedPermission ? "lg:col-span-2" : "lg:col-span-5")}>
             <Card>
                 <CardHeader>
                     <CardTitle>Permissions</CardTitle>
@@ -116,7 +116,7 @@ export default function PermissionsPage() {
             </Card>
         </div>
         {selectedPermission && (
-             <div className="lg:col-span-1">
+             <div className="lg:col-span-3">
                  <Card>
                     <CardHeader className="flex flex-row items-start justify-between">
                         <div>

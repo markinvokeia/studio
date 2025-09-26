@@ -195,8 +195,8 @@ export default function OrdersPage() {
     };
 
     return (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div className={cn("transition-all duration-300", selectedOrder ? "lg:col-span-1" : "lg:col-span-2")}>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+            <div className={cn("transition-all duration-300", selectedOrder ? "lg:col-span-2" : "lg:col-span-5")}>
                  <Card>
                     <CardHeader>
                         <CardTitle>Orders</CardTitle>
@@ -215,7 +215,7 @@ export default function OrdersPage() {
             </div>
 
             {selectedOrder && (
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-3">
                     <Card>
                         <CardHeader>
                             <CardTitle>Details for Order</CardTitle>
