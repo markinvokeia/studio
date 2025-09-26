@@ -456,44 +456,44 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     const ImageModal = ({ image, onClose }: { image: any, onClose: any }) => (
       (<div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
         <div className="relative max-w-7xl max-h-full w-full h-full flex flex-col">
-          <div className="bg-white p-4 flex justify-between items-center">
+          <div className="bg-card p-4 flex justify-between items-center">
             <div>
-              <h3 className="text-lg font-bold text-gray-800">{image.name}</h3>
-              <p className="text-gray-600">{image.date} • {image.description}</p>
-              <div className="text-xs text-gray-500 mt-1">
+              <h3 className="text-lg font-bold text-card-foreground">{image.name}</h3>
+              <p className="text-muted-foreground">{image.date} • {image.description}</p>
+              <div className="text-xs text-muted-foreground mt-1">
                 DICOM: {image.modality} | {image.viewPosition} | {image.bodyPart}
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.25))}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded"
+                className="p-2 text-muted-foreground hover:bg-muted rounded"
               >
                 <ZoomOut className="w-5 h-5" />
               </button>
-              <span className="text-sm text-gray-600">{Math.round(zoomLevel * 100)}%</span>
+              <span className="text-sm text-muted-foreground">{Math.round(zoomLevel * 100)}%</span>
               <button
                 onClick={() => setZoomLevel(Math.min(3, zoomLevel + 0.25))}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded"
+                className="p-2 text-muted-foreground hover:bg-muted rounded"
               >
                 <ZoomIn className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setZoomLevel(1)}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded"
+                className="p-2 text-muted-foreground hover:bg-muted rounded"
               >
                 <RotateCcw className="w-5 h-5" />
               </button>
               <button
                 onClick={onClose}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded"
+                className="p-2 text-muted-foreground hover:bg-muted rounded"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
           </div>
           
-          <div className="flex-1 flex items-center justify-center overflow-hidden bg-gray-900">
+          <div className="flex-1 flex items-center justify-center overflow-hidden bg-background">
             <img
               src={image.url}
               alt={image.name}
@@ -508,17 +508,17 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
     return (
       <div className="space-y-6">
-        <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="bg-card rounded-xl shadow-lg p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-gray-800">Galería de Imágenes</h3>
+            <h3 className="text-xl font-bold text-card-foreground">Galería de Imágenes</h3>
             <div className="flex items-center space-x-2">
               <Shield className="w-4 h-4 text-blue-600" />
-              <span className="text-sm text-gray-600">DICOM Compliant</span>
-              <Filter className="w-5 h-5 text-gray-500 ml-4" />
+              <span className="text-sm text-muted-foreground">DICOM Compliant</span>
+              <Filter className="w-5 h-5 text-muted-foreground ml-4" />
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                className="border border-input rounded-lg px-3 py-2 text-sm bg-background text-foreground"
               >
                 <option value="all">Todas las imágenes</option>
                 <option value="radiografia">Radiografías</option>
@@ -532,7 +532,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             {filteredImages.map((image) => (
               <div
                 key={image.id}
-                className="bg-gray-100 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer border"
+                className="bg-muted/50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer border"
                 onClick={() => setSelectedImage(image)}
               >
                 <div className="aspect-w-16 aspect-h-12">
@@ -543,17 +543,17 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                   />
                 </div>
                 <div className="p-3">
-                  <h4 className="font-semibold text-gray-800 text-sm">{image.name}</h4>
-                  <p className="text-gray-600 text-xs">{image.date}</p>
+                  <h4 className="font-semibold text-foreground text-sm">{image.name}</h4>
+                  <p className="text-muted-foreground text-xs">{image.date}</p>
                   <div className="flex items-center justify-between mt-2">
                     <span className={`px-2 py-1 rounded-full text-xs ${
                       image.type === 'radiografia' 
-                        ? 'bg-gray-200 text-gray-800' 
+                        ? 'bg-secondary text-secondary-foreground' 
                         : 'bg-blue-200 text-blue-800'
                     }`}>
                       {image.modality}
                     </span>
-                    <span className="text-xs text-gray-500">{image.tooth}</span>
+                    <span className="text-xs text-muted-foreground">{image.tooth}</span>
                   </div>
                 </div>
               </div>
@@ -572,27 +572,27 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   };
 
   const MedicalAlerts = ({ alerts }: { alerts: any[] }) => (
-    <div className="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 rounded-xl p-6 shadow-lg">
+    <div className="bg-destructive/10 border-l-4 border-destructive rounded-xl p-6 shadow-lg">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
-          <AlertTriangle className="w-6 h-6 text-red-600 mr-3" />
-          <h3 className="text-lg font-bold text-red-800">Alertas Médicas Críticas</h3>
+          <AlertTriangle className="w-6 h-6 text-destructive mr-3" />
+          <h3 className="text-lg font-bold text-destructive-foreground">Alertas Médicas Críticas</h3>
         </div>
         <div className="flex items-center space-x-2">
           <Shield className="w-4 h-4 text-blue-600" />
-          <span className="text-xs text-gray-600">SNOMED-CT</span>
+          <span className="text-xs text-muted-foreground">SNOMED-CT</span>
         </div>
       </div>
       <div className="space-y-3">
         {alerts.map((alert, index) => (
           <div key={index} className={`p-3 rounded-lg ${
-            alert.severity === 'high' ? 'bg-red-100 border border-red-300' : 'bg-yellow-100 border border-yellow-300'
+            alert.severity === 'high' ? 'bg-destructive/20 border border-destructive/50' : 'bg-yellow-500/20 border border-yellow-500/50'
           }`}>
             <div className="flex justify-between items-center">
-              <span className={`font-semibold ${alert.severity === 'high' ? 'text-red-800' : 'text-yellow-800'}`}>
+              <span className={`font-semibold ${alert.severity === 'high' ? 'text-destructive-foreground' : 'text-yellow-800 dark:text-yellow-300'}`}>
                 🔴 {alert.text}
               </span>
-              <span className="text-xs text-gray-500">{alert.code}</span>
+              <span className="text-xs text-muted-foreground">{alert.code}</span>
             </div>
           </div>
         ))}
@@ -608,7 +608,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
     return (
         <div>
-            <strong className="text-gray-600">{title}:</strong>
+            <strong className="text-foreground/80">{title}:</strong>
             <ul className="list-disc pl-5 mt-1">
                 {visibleItems}
             </ul>
@@ -707,18 +707,18 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
     if (isLoadingPatientSessions) {
         return (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-6">Historial de Tratamientos</h3>
+            <div className="bg-card rounded-xl shadow-lg p-6">
+                <h3 className="text-xl font-bold text-card-foreground mb-6">Historial de Tratamientos</h3>
                 <div className="space-y-4">
                     {[...Array(3)].map((_, i) => (
                         <div key={i} className="flex gap-4">
                             <div className="flex flex-col items-center">
-                               <div className="w-6 h-6 rounded-full bg-gray-200 animate-pulse"></div>
-                               <div className="w-0.5 h-20 bg-gray-200 animate-pulse mt-2"></div>
+                               <div className="w-6 h-6 rounded-full bg-muted animate-pulse"></div>
+                               <div className="w-0.5 h-20 bg-muted animate-pulse mt-2"></div>
                             </div>
                             <div className="flex-1 space-y-2">
-                                <div className="h-5 w-3/4 bg-gray-200 rounded animate-pulse"></div>
-                                <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                                <div className="h-5 w-3/4 bg-muted rounded animate-pulse"></div>
+                                <div className="h-4 w-1/2 bg-muted rounded animate-pulse"></div>
                             </div>
                         </div>
                     ))}
@@ -728,31 +728,31 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     }
     
     return (
-        <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="bg-card rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-800">Historial de Tratamientos</h3>
+                <h3 className="text-xl font-bold text-card-foreground">Historial de Tratamientos</h3>
                 <div className="flex items-center space-x-2">
                     <Shield className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm text-gray-600">HL7 FHIR</span>
+                    <span className="text-sm text-muted-foreground">HL7 FHIR</span>
                 </div>
             </div>
             <div className="relative">
-                <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-400 to-blue-600"></div>
+                <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 to-primary"></div>
                 {sessions.map((session, index) => {
                     const odontogramSummary = session.tipo_sesion === 'odontograma' ? generateOdontogramSummary(session.estado_odontograma) : null;
                     return (
                         <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
-                            <div className={`absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-4 border-white shadow-lg bg-blue-500`}></div>
+                            <div className={`absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-4 border-background shadow-lg bg-primary`}></div>
                             <div className="flex-1">
-                                <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
+                                <div className="bg-muted/50 rounded-lg p-4 hover:bg-muted transition-colors duration-200">
                                     <div className="flex justify-between items-start mb-2">
-                                        <h4 className="font-semibold text-gray-800">{session.procedimiento_realizado}</h4>
-                                        <span className="text-sm text-gray-500">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</span>
+                                        <h4 className="font-semibold text-foreground">{session.procedimiento_realizado}</h4>
+                                        <span className="text-sm text-muted-foreground">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</span>
                                     </div>
-                                    <div className="space-y-3 text-sm text-gray-700">
-                                        {session.tipo_sesion && <p><strong className="text-gray-600">Tipo de Sesión:</strong> <span className="capitalize bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full">{session.tipo_sesion}</span></p>}
-                                        {session.diagnostico && <p><strong className="text-gray-600">Diagnóstico:</strong> {session.diagnostico}</p>}
-                                        {session.notas_clinicas && <p><strong className="text-gray-600">Notas:</strong> {session.notas_clinicas}</p>}
+                                    <div className="space-y-3 text-sm text-foreground/80">
+                                        {session.tipo_sesion && <p><strong className="text-foreground/90">Tipo de Sesión:</strong> <span className="capitalize bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-300">{session.tipo_sesion}</span></p>}
+                                        {session.diagnostico && <p><strong className="text-foreground/90">Diagnóstico:</strong> {session.diagnostico}</p>}
+                                        {session.notas_clinicas && <p><strong className="text-foreground/90">Notas:</strong> {session.notas_clinicas}</p>}
                                         
                                         {odontogramSummary && (
                                             <CollapsibleList
@@ -782,7 +782,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                                             href={file.ruta} 
                                                             target="_blank" 
                                                             rel="noopener noreferrer" 
-                                                            className="text-blue-600 hover:underline flex items-center gap-1"
+                                                            className="text-primary hover:underline flex items-center gap-1"
                                                         >
                                                             <Paperclip className="w-3 h-3" />
                                                             {file.tipo} {file.diente_asociado && `(Diente ${file.diente_asociado})`}
@@ -805,10 +805,10 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const AnamnesisDashboard = () => {
     const getAlertBorderColor = (level: number) => {
         switch (level) {
-            case 1: return 'border-blue-300';
-            case 2: return 'border-yellow-400';
-            case 3: return 'border-red-500';
-            default: return 'border-gray-200';
+            case 1: return 'border-blue-400 dark:border-blue-600';
+            case 2: return 'border-yellow-400 dark:border-yellow-600';
+            case 3: return 'border-red-500 dark:border-red-700';
+            default: return 'border-border';
         }
     };
 
@@ -834,39 +834,39 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     );
 
     const HabitCard = ({ habits, isLoading }: { habits: PatientHabits | null, isLoading: boolean }) => (
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="bg-card rounded-xl shadow-lg p-6">
         <div className="flex items-center mb-4">
-          <User className="w-5 h-5 text-blue-600 mr-2" />
-          <h3 className="text-lg font-bold text-gray-800">Hábitos del Paciente</h3>
+          <User className="w-5 h-5 text-primary mr-2" />
+          <h3 className="text-lg font-bold text-card-foreground">Hábitos del Paciente</h3>
         </div>
         {isLoading ? (
-          <p>Loading patient habits...</p>
+          <p className="text-muted-foreground">Loading patient habits...</p>
         ) : habits ? (
           <div className="space-y-4">
             <div className="flex items-start gap-4">
-              <Wind className="w-5 h-5 text-gray-500 mt-1" />
+              <Wind className="w-5 h-5 text-muted-foreground mt-1" />
               <div>
-                <h4 className="font-semibold">Tabaquismo</h4>
-                <p className="text-sm text-gray-700">{habits.tabaquismo || 'No especificado'}</p>
+                <h4 className="font-semibold text-foreground">Tabaquismo</h4>
+                <p className="text-sm text-muted-foreground">{habits.tabaquismo || 'No especificado'}</p>
               </div>
             </div>
             <div className="flex items-start gap-4">
-              <GlassWater className="w-5 h-5 text-gray-500 mt-1" />
+              <GlassWater className="w-5 h-5 text-muted-foreground mt-1" />
               <div>
-                <h4 className="font-semibold">Alcohol</h4>
-                <p className="text-sm text-gray-700">{habits.alcohol || 'No especificado'}</p>
+                <h4 className="font-semibold text-foreground">Alcohol</h4>
+                <p className="text-sm text-muted-foreground">{habits.alcohol || 'No especificado'}</p>
               </div>
             </div>
             <div className="flex items-start gap-4">
-              <ToothIcon className="w-5 h-5 text-gray-500 mt-1" />
+              <ToothIcon className="w-5 h-5 text-muted-foreground mt-1" />
               <div>
-                <h4 className="font-semibold">Bruxismo</h4>
-                <p className="text-sm text-gray-700">{habits.bruxismo || 'No especificado'}</p>
+                <h4 className="font-semibold text-foreground">Bruxismo</h4>
+                <p className="text-sm text-muted-foreground">{habits.bruxismo || 'No especificado'}</p>
               </div>
             </div>
           </div>
         ) : (
-          <p>No patient habits found.</p>
+          <p className="text-muted-foreground">No patient habits found.</p>
         )}
       </div>
     );
@@ -874,103 +874,103 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="bg-card rounded-xl shadow-lg p-6">
                     <div className="flex items-center mb-4">
-                        <User className="w-5 h-5 text-blue-600 mr-2" />
-                        <h3 className="text-lg font-bold text-gray-800">Antecedentes Personales</h3>
+                        <User className="w-5 h-5 text-primary mr-2" />
+                        <h3 className="text-lg font-bold text-card-foreground">Antecedentes Personales</h3>
                     </div>
                     <div className="space-y-3">
                         {isLoadingPersonalHistory ? (
-                            <p>Loading personal history...</p>
+                            <p className="text-muted-foreground">Loading personal history...</p>
                         ) : personalHistory.length > 0 ? (
                             personalHistory.map((item, index) => (
                                 <div key={index} className={`border-l-4 ${getAlertBorderColor(item.nivel_alerta)} pl-4 py-2`}>
                                     <div className="flex justify-between items-center">
-                                        <div className="font-semibold text-gray-800">{item.nombre}</div>
-                                        <div className="text-xs text-gray-500">{item.categoria}</div>
+                                        <div className="font-semibold text-foreground">{item.nombre}</div>
+                                        <div className="text-xs text-muted-foreground">{item.categoria}</div>
                                     </div>
-                                    <div className="text-sm text-gray-700">{item.comentarios}</div>
+                                    <div className="text-sm text-muted-foreground">{item.comentarios}</div>
                                 </div>
                             ))
                         ) : (
-                            <p>No personal history found.</p>
+                            <p className="text-muted-foreground">No personal history found.</p>
                         )}
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="bg-card rounded-xl shadow-lg p-6">
                     <div className="flex items-center mb-4">
-                        <Heart className="w-5 h-5 text-red-600 mr-2" />
-                        <h3 className="text-lg font-bold text-gray-800">Antecedentes Familiares</h3>
+                        <Heart className="w-5 h-5 text-red-500 mr-2" />
+                        <h3 className="text-lg font-bold text-card-foreground">Antecedentes Familiares</h3>
                     </div>
                     <div className="space-y-3">
                         {isLoadingFamilyHistory ? (
-                            <p>Loading family history...</p>
+                            <p className="text-muted-foreground">Loading family history...</p>
                         ) : familyHistory.length > 0 ? (
                             familyHistory.map((item, index) => (
-                                <div key={index} className="border-l-4 border-red-200 pl-4 py-2">
-                                    <div className="font-semibold text-gray-800">{item.condition}</div>
-                                    <div className="text-sm text-gray-600">Familiar: {item.relative}</div>
-                                    <div className="text-sm text-gray-700">{item.comments}</div>
+                                <div key={index} className="border-l-4 border-red-300 dark:border-red-700 pl-4 py-2">
+                                    <div className="font-semibold text-foreground">{item.condition}</div>
+                                    <div className="text-sm text-muted-foreground">Familiar: {item.relative}</div>
+                                    <div className="text-sm text-muted-foreground">{item.comments}</div>
                                 </div>
                             ))
                         ) : (
-                           <p>No family history found.</p>
+                           <p className="text-muted-foreground">No family history found.</p>
                         )}
                     </div>
                 </div>
-                 <div className="bg-white rounded-xl shadow-lg p-6">
+                 <div className="bg-card rounded-xl shadow-lg p-6">
                     <div className="flex items-center mb-4">
-                        <Pill className="w-5 h-5 text-green-600 mr-2" />
-                        <h3 className="text-lg font-bold text-gray-800">Medicamentos Actuales</h3>
+                        <Pill className="w-5 h-5 text-green-500 mr-2" />
+                        <h3 className="text-lg font-bold text-card-foreground">Medicamentos Actuales</h3>
                     </div>
                     <div className="space-y-3">
                         {isLoadingMedications ? (
-                            <p>Loading medications...</p>
+                            <p className="text-muted-foreground">Loading medications...</p>
                         ) : medications.length > 0 ? (
                             medications.map((item, index) => (
-                                <div key={index} className="border-l-4 border-green-200 pl-4 py-2">
+                                <div key={index} className="border-l-4 border-green-300 dark:border-green-700 pl-4 py-2">
                                     <div className="flex justify-between items-start">
-                                        <div className="font-semibold text-gray-800">{item.name}</div>
-                                        <div className="text-right text-xs text-gray-500">
+                                        <div className="font-semibold text-foreground">{item.name}</div>
+                                        <div className="text-right text-xs text-muted-foreground">
                                             <div>{item.dose}</div>
                                             <div>{item.frequency}</div>
                                         </div>
                                     </div>
-                                    <div className="text-sm text-gray-600 mt-1">
+                                    <div className="text-sm text-muted-foreground mt-1">
                                         {formatDate(item.since)} - {item.endDate ? formatDate(item.endDate) : 'Presente'}
                                     </div>
-                                    <div className="text-sm text-gray-700 mt-1">{item.reason}</div>
+                                    <div className="text-sm text-muted-foreground mt-1">{item.reason}</div>
                                 </div>
                             ))
                         ) : (
-                           <p>No medications found.</p>
+                           <p className="text-muted-foreground">No medications found.</p>
                         )}
                     </div>
                 </div>
             </div>
 
             <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="bg-card rounded-xl shadow-lg p-6">
                     <div className="flex items-center mb-4">
-                        <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
-                        <h3 className="text-lg font-bold text-gray-800">Alergias</h3>
+                        <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
+                        <h3 className="text-lg font-bold text-card-foreground">Alergias</h3>
                     </div>
                     <div className="space-y-3">
                         {isLoadingAllergies ? (
-                            <p>Loading allergies...</p>
+                            <p className="text-muted-foreground">Loading allergies...</p>
                         ) : allergies.length > 0 ? (
                             allergies.map((item, index) => (
-                                <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <div key={index} className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
                                     <div className="flex justify-between items-center">
-                                        <div className="font-semibold text-red-800">{item.allergen}</div>
-                                        {item.snomed && <span className="text-xs font-mono text-gray-500">{item.snomed}</span>}
+                                        <div className="font-semibold text-destructive-foreground">{item.allergen}</div>
+                                        {item.snomed && <span className="text-xs font-mono text-muted-foreground">{item.snomed}</span>}
                                     </div>
-                                    {item.reaction && <div className="text-sm text-red-700">{item.reaction}</div>}
+                                    {item.reaction && <div className="text-sm text-destructive-foreground/80">{item.reaction}</div>}
                                 </div>
                             ))
                         ) : (
-                            <p>No allergies found.</p>
+                            <p className="text-muted-foreground">No allergies found.</p>
                         )}
                     </div>
                 </div>
@@ -1005,13 +1005,13 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     <div className={cn("min-h-screen", !isFullscreen && "bg-background")}>
       {/* Header */}
       {!isFullscreen && (
-      <div className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+      <div className="bg-card shadow-sm border-b border-border px-6 py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-gray-800">Historial Clinico Digital</h1>
+            <h1 className="text-2xl font-bold text-card-foreground">Historial Clinico Digital</h1>
             {selectedPatient && (
                 <div className="flex items-center gap-2">
-                    <p className="text-2xl font-bold text-gray-900">{selectedPatient.name}</p>
+                    <p className="text-2xl font-bold text-foreground">{selectedPatient.name}</p>
                     <Button variant="ghost" size="icon" onClick={refreshAllData}>
                         <RefreshCw className="h-5 w-5" />
                     </Button>
@@ -1023,7 +1023,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
                 <PopoverTrigger asChild>
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                             value={searchQuery}
                             onChange={(e) => {
@@ -1089,9 +1089,9 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
       ) : (
         !isFullscreen && (
           <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
-            <SearchCheck className="w-24 h-24 text-gray-300 mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-700">Seleccione un paciente</h2>
-            <p className="text-gray-500 mt-2">Utilice la barra de búsqueda de arriba para encontrar y cargar el historial clínico de un paciente.</p>
+            <SearchCheck className="w-24 h-24 text-muted-foreground/30 mb-4" />
+            <h2 className="text-2xl font-semibold text-foreground/80">Seleccione un paciente</h2>
+            <p className="text-muted-foreground mt-2">Utilice la barra de búsqueda de arriba para encontrar y cargar el historial clínico de un paciente.</p>
           </div>
         )
       )}
@@ -1104,6 +1104,8 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
+    
+
     
 
     
