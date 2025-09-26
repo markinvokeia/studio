@@ -41,7 +41,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string): Promi
     const params = new URLSearchParams({
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
-      search: searchQuery || '',
+      search: searchQuery,
     });
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?${params.toString()}`, {
       method: 'GET',
@@ -62,17 +62,19 @@ async function getUsers(pagination: PaginationState, searchQuery: string): Promi
     let total = 0;
 
     if (Array.isArray(responseData) && responseData.length > 0) {
-      if (responseData[0].json && responseData[0].json.data) {
-        usersData = responseData[0].json.data;
-        total = Number(responseData[0].json.total) || usersData.length;
-      } else if (responseData[0].data) {
-        usersData = responseData[0].data;
-        total = Number(responseData[0].total) || usersData.length;
-      }
+        const firstElement = responseData[0];
+        if (firstElement.json && typeof firstElement.json === 'object') {
+            usersData = firstElement.json.data || [];
+            total = Number(firstElement.json.total) || usersData.length;
+        } else if (firstElement.data) {
+            usersData = firstElement.data;
+            total = Number(firstElement.total) || usersData.length;
+        }
     } else if (typeof responseData === 'object' && responseData !== null && responseData.data) {
-      usersData = responseData.data;
-      total = Number(responseData.total) || usersData.length;
+        usersData = responseData.data;
+        total = Number(responseData.total) || usersData.length;
     }
+
 
     const mappedUsers = usersData.map((apiUser: any) => ({
       id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
@@ -136,8 +138,8 @@ export default function UsersPage() {
   
   return (
     <>
-    <div className={cn("grid grid-cols-1 gap-4", selectedUser ? "lg:grid-cols-4" : "lg:grid-cols-1")}>
-      <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-1" : "lg:col-span-4")}>
+    <div className={cn("grid grid-cols-1 gap-4", selectedUser ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
+      <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-2" : "lg:col-span-5")}>
         <Card>
           <CardHeader>
             <CardTitle>{t('title')}</CardTitle>
