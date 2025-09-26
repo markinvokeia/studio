@@ -11,7 +11,8 @@ import { OrdersTable } from '@/components/tables/orders-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, X } from 'lucide-react';
+import { RowSelectionState } from '@tanstack/react-table';
 
 async function getOrders(): Promise<Order[]> {
     try {
@@ -134,6 +135,7 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
 export default function OrdersPage() {
     const [orders, setOrders] = React.useState<Order[]>([]);
     const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
+    const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
     const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
@@ -193,6 +195,11 @@ export default function OrdersPage() {
         const order = selectedRows.length > 0 ? selectedRows[0] : null;
         setSelectedOrder(order);
     };
+    
+    const handleCloseDetails = () => {
+        setSelectedOrder(null);
+        setRowSelection({});
+    };
 
     return (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
@@ -209,6 +216,8 @@ export default function OrdersPage() {
                             onRowSelectionChange={handleRowSelectionChange}
                             onRefresh={loadOrders}
                             isRefreshing={isLoadingOrders}
+                            rowSelection={rowSelection}
+                            setRowSelection={setRowSelection}
                         />
                     </CardContent>
                 </Card>
@@ -217,9 +226,15 @@ export default function OrdersPage() {
             {selectedOrder && (
                 <div className="lg:col-span-3">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Details for Order</CardTitle>
-                            <CardDescription>Order ID: {selectedOrder.id}</CardDescription>
+                        <CardHeader className="flex flex-row items-start justify-between">
+                            <div>
+                                <CardTitle>Details for Order</CardTitle>
+                                <CardDescription>Order ID: {selectedOrder.id}</CardDescription>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                                <X className="h-5 w-5" />
+                                <span className="sr-only">Close details</span>
+                            </Button>
                         </CardHeader>
                         <CardContent>
                             <Tabs defaultValue="items" className="w-full">

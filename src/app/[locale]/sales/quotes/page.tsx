@@ -31,7 +31,8 @@ import { InvoicesTable } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, X } from 'lucide-react';
+import { RowSelectionState } from '@tanstack/react-table';
 
 
 async function getQuotes(): Promise<Quote[]> {
@@ -259,6 +260,7 @@ export default function QuotesPage() {
     
     const [isCreateOpen, setCreateOpen] = React.useState(false);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
+    const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
     const loadQuotes = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -360,6 +362,11 @@ export default function QuotesPage() {
         const invoice = selectedRows.length > 0 ? selectedRows[0] : null;
         setSelectedInvoice(invoice);
     };
+
+    const handleCloseDetails = () => {
+        setSelectedQuote(null);
+        setRowSelection({});
+    };
     
     return (
         <>
@@ -371,15 +378,23 @@ export default function QuotesPage() {
                     onCreate={() => setCreateOpen(true)}
                     onRefresh={loadQuotes}
                     isRefreshing={isRefreshing}
+                    rowSelection={rowSelection}
+                    setRowSelection={setRowSelection}
                 />
             </div>
 
             {selectedQuote && (
                 <div className="lg:col-span-3">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Details for Quote</CardTitle>
-                            <CardDescription>Quote ID: {selectedQuote.id}</CardDescription>
+                        <CardHeader className="flex flex-row items-start justify-between">
+                            <div>
+                                <CardTitle>Details for Quote</CardTitle>
+                                <CardDescription>Quote ID: {selectedQuote.id}</CardDescription>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                                <X className="h-5 w-5" />
+                                <span className="sr-only">Close details</span>
+                            </Button>
                         </CardHeader>
                         <CardContent>
                             <Tabs defaultValue="items" className="w-full">

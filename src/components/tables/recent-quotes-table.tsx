@@ -1,7 +1,8 @@
+
 'use client';
 
 import * as React from 'react';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { DataTable } from '@/components/ui/data-table';
@@ -173,9 +174,11 @@ interface RecentQuotesTableProps {
   onCreate?: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  rowSelection?: RowSelectionState;
+  setRowSelection?: (selection: RowSelectionState) => void;
 }
 
-export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRefresh, isRefreshing }: RecentQuotesTableProps) {
+export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRefresh, isRefreshing, rowSelection, setRowSelection }: RecentQuotesTableProps) {
   const t = useTranslations();
   console.log('Translations for RecentQuotesTable loaded.');
   const columns = React.useMemo(() => getColumns(t), [t]);
@@ -199,6 +202,8 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
           onCreate={onCreate}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
+          rowSelection={rowSelection}
+          setRowSelection={setRowSelection}
         />
       </CardContent>
     </Card>

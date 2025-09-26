@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { InvoicesTable } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, X } from 'lucide-react';
+import { RowSelectionState } from '@tanstack/react-table';
 
 async function getInvoices(): Promise<Invoice[]> {
     try {
@@ -99,6 +100,7 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
 export default function InvoicesPage() {
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
+    const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
     const [payments, setPayments] = React.useState<Payment[]>([]);
@@ -147,6 +149,11 @@ export default function InvoicesPage() {
         setSelectedInvoice(invoice);
     };
 
+    const handleCloseDetails = () => {
+        setSelectedInvoice(null);
+        setRowSelection({});
+    };
+
     return (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
             <div className={cn("transition-all duration-300", selectedInvoice ? "lg:col-span-2" : "lg:col-span-5")}>
@@ -162,6 +169,8 @@ export default function InvoicesPage() {
                             onRowSelectionChange={handleRowSelectionChange}
                             onRefresh={loadInvoices}
                             isRefreshing={isLoadingInvoices}
+                            rowSelection={rowSelection}
+                            setRowSelection={setRowSelection}
                         />
                     </CardContent>
                 </Card>
@@ -170,9 +179,15 @@ export default function InvoicesPage() {
             {selectedInvoice && (
                 <div className="lg:col-span-3">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Details for Invoice</CardTitle>
-                            <CardDescription>Invoice ID: {selectedInvoice.id}</CardDescription>
+                        <CardHeader className="flex flex-row items-start justify-between">
+                            <div>
+                                <CardTitle>Details for Invoice</CardTitle>
+                                <CardDescription>Invoice ID: {selectedInvoice.id}</CardDescription>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                                <X className="h-5 w-5" />
+                                <span className="sr-only">Close details</span>
+                            </Button>
                         </CardHeader>
                         <CardContent>
                             <Tabs defaultValue="items" className="w-full">

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Order } from '@/lib/types';
@@ -75,9 +75,11 @@ interface OrdersTableProps {
   isRefreshing?: boolean;
   title?: string;
   description?: string;
+  rowSelection?: RowSelectionState;
+  setRowSelection?: (selection: RowSelectionState) => void;
 }
 
-export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, title, description }: OrdersTableProps) {
+export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, title, description, rowSelection, setRowSelection }: OrdersTableProps) {
     if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
@@ -100,6 +102,8 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
           enableSingleRowSelection={onRowSelectionChange ? true : false}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
+          rowSelection={rowSelection}
+          setRowSelection={setRowSelection}
         />
       </CardContent>
     </Card>

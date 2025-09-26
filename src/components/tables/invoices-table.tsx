@@ -1,7 +1,7 @@
 
 'use client';
 
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Invoice } from '@/lib/types';
@@ -99,9 +99,11 @@ interface InvoicesTableProps {
   onRowSelectionChange?: (selectedRows: Invoice[]) => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  rowSelection?: RowSelectionState;
+  setRowSelection?: (selection: RowSelectionState) => void;
 }
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, rowSelection, setRowSelection }: InvoicesTableProps) {
     if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
@@ -124,6 +126,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           enableSingleRowSelection={!!onRowSelectionChange}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
+          rowSelection={rowSelection}
+          setRowSelection={setRowSelection}
         />
       </CardContent>
     </Card>
