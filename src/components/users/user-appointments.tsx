@@ -9,7 +9,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Appointment, User } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
-import { format, addMonths } from 'date-fns';
+import { format, parseISO, addMonths } from 'date-fns';
 
 const columns: ColumnDef<Appointment>[] = [
   {
@@ -75,23 +75,24 @@ async function getAppointmentsForUser(user: User | null): Promise<Appointment[]>
         }
 
         const data = await response.json();
-        const appointmentsData = (Array.isArray(data) && data.length > 0 && data[0].filteredEvents) ? data[0].filteredEvents : [];
+        const appointmentsData = Array.isArray(data) ? data : (data.events || []);
 
         
         return appointmentsData.map((apiAppt: any) => {
-            const appointmentDateTimeStr = apiAppt.start_time || (apiAppt.start && apiAppt.start.dateTime);
+            const appointmentDateTimeStr = apiAppt.start?.dateTime;
             if (!appointmentDateTimeStr) return null;
 
-            const appointmentDateTime = new Date(appointmentDateTimeStr);
+            const appointmentDateTime = parseISO(appointmentDateTimeStr);
             if (isNaN(appointmentDateTime.getTime())) return null;
 
             return {
                 id: apiAppt.id ? String(apiAppt.id) : `appt_${Math.random().toString(36).substr(2, 9)}`,
-                user_name: apiAppt.user_name || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees[0].email : 'N/A'),
+                patientName: user.name,
                 service_name: apiAppt.summary || 'No Service Name',
                 date: format(appointmentDateTime, 'yyyy-MM-dd'),
-                time: format(appointmentDateTime, 'HH:mm:ss'),
+                time: format(appointmentDateTime, 'HH:mm'),
                 status: apiAppt.status || 'confirmed',
+                calendar_id: apiAppt.organizer?.email || '',
             };
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
