@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -963,10 +964,10 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                             allergies.map((item, index) => (
                                 <div key={index} className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
                                     <div className="flex justify-between items-center">
-                                        <div className="font-semibold text-destructive-foreground">{item.allergen}</div>
+                                        <div className="font-semibold text-destructive">{item.allergen}</div>
                                         {item.snomed && <span className="text-xs font-mono text-muted-foreground">{item.snomed}</span>}
                                     </div>
-                                    {item.reaction && <div className="text-sm text-destructive-foreground/80">{item.reaction}</div>}
+                                    {item.reaction && <div className="text-sm text-destructive/80">{item.reaction}</div>}
                                 </div>
                             ))
                         ) : (
