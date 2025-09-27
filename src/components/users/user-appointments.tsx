@@ -60,7 +60,7 @@ async function getAppointmentsForUser(user: User | null): Promise<Appointment[]>
     });
 
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_events?${params.toString()}`, {
             method: 'GET',
             mode: 'cors',
             headers: {
