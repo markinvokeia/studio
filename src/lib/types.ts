@@ -120,6 +120,8 @@ export type Service = {
   category: string;
   price: number;
   duration_minutes: number;
+  description?: string;
+  indications?: string;
 };
 
 export type Clinic = {
