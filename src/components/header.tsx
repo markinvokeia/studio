@@ -37,6 +37,8 @@ import { navItems, NavItem } from '@/config/nav';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useSidebar } from '@/hooks/use-sidebar';
 import { useLocale, useTranslations } from 'next-intl';
+import { UyFlagIcon } from './icons/uy-flag-icon';
+import { UsFlagIcon } from './icons/us-flag-icon';
 
 
 export function Header() {
@@ -157,13 +159,19 @@ export function Header() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={() => onSelectLocale('es')} disabled={locale === 'es'}>
                  <span className="flex items-center justify-between w-full">
-                    {t('spanish')}
+                    <div className="flex items-center gap-2">
+                        <UyFlagIcon className="h-4 w-4" />
+                        {t('spanish')}
+                    </div>
                     {locale === 'es' && <Check className="h-4 w-4 ml-2" />}
                 </span>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => onSelectLocale('en')} disabled={locale === 'en'}>
                 <span className="flex items-center justify-between w-full">
-                    {t('english')}
+                    <div className="flex items-center gap-2">
+                        <UsFlagIcon className="h-4 w-4" />
+                        {t('english')}
+                    </div>
                     {locale === 'en' && <Check className="h-4 w-4 ml-2" />}
                 </span>
             </DropdownMenuItem>
