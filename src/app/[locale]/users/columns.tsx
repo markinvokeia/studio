@@ -79,7 +79,6 @@ export const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
     id: 'actions',
     cell: function Cell({ row }) {
       const t = useTranslations('UserColumns');
-      console.log('Translations for UserColumns loaded in cell.');
       const user = row.original;
       return (
         <DropdownMenu>
@@ -99,7 +98,9 @@ export const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
             <DropdownMenuSeparator />
             <DropdownMenuItem>{t('viewDetails')}</DropdownMenuItem>
             <DropdownMenuItem>{t('edit')}</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">{t('delete')}</DropdownMenuItem>
+            <DropdownMenuItem>
+              {user.is_active ? t('deactivate') : t('activate')}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -110,7 +111,6 @@ export const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
 
 export function UserColumnsWrapper() {
     const t = useTranslations();
-    console.log('Translations for UserColumns loaded.');
     const columns = React.useMemo(() => getColumns(t), [t]);
     return columns;
 }
