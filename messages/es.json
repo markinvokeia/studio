@@ -210,7 +210,9 @@
     "copyId": "Copiar ID de usuario",
     "viewDetails": "Ver detalles",
     "edit": "Editar usuario",
-    "delete": "Eliminar usuario"
+    "delete": "Eliminar usuario",
+    "activate": "Activar",
+    "deactivate": "Desactivar"
   },
   "QuoteColumns": {
     "quoteId": "ID Cotización",

@@ -20,7 +20,7 @@ import type { User } from '@/lib/types';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 
-export const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
+export const getColumns = (t: (key: string) => string, onToggleActivate: (user: User) => void): ColumnDef<User>[] => [
   {
     id: 'select',
     header: () => null,
@@ -98,7 +98,7 @@ export const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
             <DropdownMenuSeparator />
             <DropdownMenuItem>{t('viewDetails')}</DropdownMenuItem>
             <DropdownMenuItem>{t('edit')}</DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onToggleActivate(user)}>
               {user.is_active ? t('deactivate') : t('activate')}
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -109,8 +109,8 @@ export const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
 ];
 
 
-export function UserColumnsWrapper() {
+export function UserColumnsWrapper({ onToggleActivate }: { onToggleActivate: (user: User) => void }) {
     const t = useTranslations();
-    const columns = React.useMemo(() => getColumns(t), [t]);
+    const columns = React.useMemo(() => getColumns(t, onToggleActivate), [t, onToggleActivate]);
     return columns;
 }

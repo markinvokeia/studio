@@ -30,6 +30,7 @@ import { UserLogs } from '@/components/users/user-logs';
 import { X } from 'lucide-react';
 import { RowSelectionState, PaginationState, ColumnFiltersState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
+import { useToast } from '@/hooks/use-toast';
 
 type GetUsersResponse = {
   users: User[];
@@ -96,7 +97,8 @@ async function getUsers(pagination: PaginationState, searchQuery: string): Promi
 export default function UsersPage() {
   const t = useTranslations('UsersPage');
   console.log('Translations for UsersPage loaded.');
-  const userColumns = UserColumnsWrapper();
+  
+  const { toast } = useToast();
   const [users, setUsers] = React.useState<User[]>([]);
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
@@ -125,6 +127,40 @@ export default function UsersPage() {
     }, 500);
     return () => clearTimeout(debounce);
   }, [loadUsers]);
+
+  const handleToggleActivate = async (user: User) => {
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/activate', {
+            method: 'PUT',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: user.id,
+                is_active: !user.is_active,
+            }),
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to update user status');
+        }
+
+        toast({
+            title: 'Success',
+            description: `User ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
+        });
+
+        loadUsers();
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Could not update user status.',
+        });
+        console.error(error);
+    }
+  };
+  
+  const userColumns = UserColumnsWrapper({ onToggleActivate: handleToggleActivate });
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;

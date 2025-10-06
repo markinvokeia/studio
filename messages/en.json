@@ -210,7 +210,9 @@
     "copyId": "Copy user ID",
     "viewDetails": "View details",
     "edit": "Edit user",
-    "delete": "Delete user"
+    "delete": "Delete user",
+    "activate": "Activate",
+    "deactivate": "Deactivate"
   },
   "QuoteColumns": {
     "quoteId": "Quote ID",
