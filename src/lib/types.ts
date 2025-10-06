@@ -6,6 +6,7 @@ export type User = {
   phone_number: string;
   is_active: boolean;
   avatar: string;
+  identity_document?: string;
 };
 
 export type Role = {
@@ -348,5 +349,3 @@ export type PatientSession = {
   tratamientos: TreatmentDetail[];
   archivos_adjuntos: AttachedFile[];
 };
-
-    

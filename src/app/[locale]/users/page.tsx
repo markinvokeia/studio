@@ -2,6 +2,9 @@
 'use client';
 
 import * as React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { UserColumnsWrapper } from './columns';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -14,8 +17,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -31,6 +34,16 @@ import { X } from 'lucide-react';
 import { RowSelectionState, PaginationState, ColumnFiltersState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
+
+const userFormSchema = z.object({
+  name: z.string().min(1, { message: 'Name is required' }),
+  email: z.string().email({ message: 'Invalid email address' }),
+  phone: z.string().min(1, { message: 'Phone is required' }),
+  identity_document: z.string().min(1, { message: 'Identity document is required' }),
+  is_active: z.boolean().default(false),
+});
+
+type UserFormValues = z.infer<typeof userFormSchema>;
 
 type GetUsersResponse = {
   users: User[];
@@ -94,9 +107,24 @@ async function getUsers(pagination: PaginationState, searchQuery: string): Promi
   }
 }
 
+async function upsertUser(userData: UserFormValues) {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/upsert', {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create user: ${errorText}`);
+    }
+
+    return response.json();
+}
+
 export default function UsersPage() {
   const t = useTranslations('UsersPage');
-  console.log('Translations for UsersPage loaded.');
   
   const { toast } = useToast();
   const [users, setUsers] = React.useState<User[]>([]);
@@ -110,6 +138,17 @@ export default function UsersPage() {
     pageSize: 10,
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+
+  const form = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      identity_document: '',
+      is_active: true,
+    },
+  });
 
 
   const loadUsers = React.useCallback(async () => {
@@ -170,6 +209,25 @@ export default function UsersPage() {
   const handleCloseDetails = () => {
     setSelectedUser(null);
     setRowSelection({});
+  };
+
+  const onSubmit = async (data: UserFormValues) => {
+    try {
+        await upsertUser(data);
+        toast({
+            title: 'User created',
+            description: 'The new user has been added successfully.',
+        });
+        setCreateOpen(false);
+        form.reset();
+        loadUsers();
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Error creating user',
+            description: error instanceof Error ? error.message : 'An unknown error occurred.',
+        });
+    }
   };
   
   return (
@@ -262,32 +320,78 @@ export default function UsersPage() {
           <DialogTitle>{t('createDialog.title')}</DialogTitle>
           <DialogDescription>{t('createDialog.description')}</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">{t('createDialog.name')}</Label>
-            <Input id="name" placeholder={t('createDialog.namePlaceholder')} className="col-span-3" />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="email" className="text-right">{t('createDialog.email')}</Label>
-            <Input id="email" type="email" placeholder={t('createDialog.emailPlaceholder')} className="col-span-3" />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="phone" className="text-right">{t('createDialog.phone')}</Label>
-            <Input id="phone" placeholder={t('createDialog.phonePlaceholder')} className="col-span-3" />
-          </div>
-           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="avatar" className="text-right">{t('createDialog.avatarUrl')}</Label>
-            <Input id="avatar" placeholder={t('createDialog.avatarUrlPlaceholder')} className="col-span-3" />
-          </div>
-          <div className="flex items-center space-x-2 justify-end">
-             <Checkbox id="is_active" />
-            <Label htmlFor="is_active">{t('createDialog.isActive')}</Label>
-          </div>
-        </div>
-         <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>{t('createDialog.cancel')}</Button>
-            <Button type="submit">{t('createDialog.save')}</Button>
-        </div>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('createDialog.name')}</FormLabel>
+                            <FormControl>
+                                <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('createDialog.email')}</FormLabel>
+                            <FormControl>
+                                <Input type="email" placeholder={t('createDialog.emailPlaceholder')} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('createDialog.phone')}</FormLabel>
+                            <FormControl>
+                                <Input placeholder={t('createDialog.phonePlaceholder')} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="identity_document"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('createDialog.identity_document')}</FormLabel>
+                            <FormControl>
+                                <Input placeholder={t('createDialog.identity_document_placeholder')} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="is_active"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                            <FormControl>
+                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            <FormLabel>{t('createDialog.isActive')}</FormLabel>
+                        </FormItem>
+                    )}
+                />
+                 <div className="flex justify-end space-x-2 pt-4">
+                    <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t('createDialog.cancel')}</Button>
+                    <Button type="submit">{t('createDialog.save')}</Button>
+                </div>
+            </form>
+        </Form>
       </DialogContent>
     </Dialog>
     </>

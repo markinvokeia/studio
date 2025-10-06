@@ -194,8 +194,8 @@
       "emailPlaceholder": "john.doe@example.com",
       "phone": "Phone",
       "phonePlaceholder": "123-456-7890",
-      "avatarUrl": "Avatar URL",
-      "avatarUrlPlaceholder": "https://example.com/avatar.png",
+      "identity_document": "Identity Document",
+      "identity_document_placeholder": "e.g., 1234567-8",
       "isActive": "Is Active",
       "cancel": "Cancel",
       "save": "Create User"
