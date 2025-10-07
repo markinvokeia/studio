@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -23,7 +24,7 @@ import { useTranslations } from 'next-intl';
 async function getRolesForUser(userId: string): Promise<UserRole[]> {
   if (!userId) return [];
   try {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_roles?user_id=${userId}`, {
+    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/roles/user_roles?user_id=${userId}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -222,8 +223,7 @@ export function UserRoles({ userId }: UserRolesProps) {
 ];
 
   const handleAddRole = () => {
-    const initialSelectedRoles = userRoles.map(ur => ({ role_id: ur.role_id, is_active: ur.is_active }));
-    setSelectedRoles(initialSelectedRoles);
+    setSelectedRoles([]);
     setIsDialogOpen(true);
   };
   
