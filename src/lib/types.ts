@@ -29,6 +29,11 @@ export type UserRole = {
   name: string;
 };
 
+export type UserRoleAssignment = {
+    user_id: string;
+    role_id: string;
+};
+
 export type UserClinic = {
   user_id: string;
   clinic_id: string;
