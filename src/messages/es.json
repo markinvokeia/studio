@@ -188,6 +188,8 @@
     "createDialog": {
       "title": "Crear Nuevo Usuario",
       "description": "Completa los detalles a continuación para agregar un nuevo usuario.",
+      "editTitle": "Editar Usuario",
+      "editDescription": "Actualiza los detalles de este usuario.",
       "name": "Nombre",
       "namePlaceholder": "John Doe",
       "email": "Email",
@@ -199,6 +201,7 @@
       "isActive": "Está Activo",
       "cancel": "Cancelar",
       "save": "Crear Usuario",
+      "editSave": "Guardar Cambios",
       "validation": {
         "nameRequired": "El nombre es obligatorio",
         "emailInvalid": "Dirección de correo electrónico no válida",

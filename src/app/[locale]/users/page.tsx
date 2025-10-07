@@ -35,6 +35,7 @@ import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 
 const userFormSchema = (t: (key: string) => string) => z.object({
+  id: z.string().optional(),
   name: z.string().min(1, { message: t('UsersPage.createDialog.validation.nameRequired') }),
   email: z.string().email({ message: t('UsersPage.createDialog.validation.emailInvalid') }),
   phone: z.string().min(1, { message: t('UsersPage.createDialog.validation.phoneRequired') }),
@@ -126,7 +127,9 @@ export default function UsersPage() {
   const [users, setUsers] = React.useState<User[]>([]);
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
-  const [isCreateOpen, setCreateOpen] = React.useState(false);
+  const [editingUser, setEditingUser] = React.useState<User | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [pagination, setPagination] = React.useState<PaginationState>({
@@ -145,7 +148,6 @@ export default function UsersPage() {
       is_active: true,
     },
   });
-
 
   const loadUsers = React.useCallback(async () => {
     setIsRefreshing(true);
@@ -194,8 +196,33 @@ export default function UsersPage() {
         console.error(error);
     }
   };
+
+  const handleCreate = () => {
+    setEditingUser(null);
+    form.reset({
+      name: '',
+      email: '',
+      phone: '',
+      identity_document: '',
+      is_active: true,
+    });
+    setIsDialogOpen(true);
+  };
   
-  const userColumns = UserColumnsWrapper({ onToggleActivate: handleToggleActivate });
+  const handleEdit = (user: User) => {
+    setEditingUser(user);
+    form.reset({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone_number,
+      identity_document: user.identity_document,
+      is_active: user.is_active,
+    });
+    setIsDialogOpen(true);
+  };
+  
+  const userColumns = UserColumnsWrapper({ onToggleActivate: handleToggleActivate, onEdit: handleEdit });
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
@@ -210,19 +237,19 @@ export default function UsersPage() {
   const onSubmit = async (data: UserFormValues) => {
     try {
         const { status, data: responseData } = await upsertUser(data);
+        const isEditing = !!editingUser;
 
         if (status === 200) {
             toast({
-                title: 'User created',
-                description: 'The new user has been added successfully.',
+                title: isEditing ? t('UsersPage.createDialog.editTitle') : t('UsersPage.createDialog.title'),
+                description: isEditing ? 'The user has been updated successfully.' : 'The new user has been added successfully.',
             });
-            setCreateOpen(false);
-            form.reset();
+            setIsDialogOpen(false);
             loadUsers();
         } else if (status === 400) {
             toast({
                 variant: 'destructive',
-                title: 'Error creating user',
+                title: isEditing ? 'Error updating user' : 'Error creating user',
                 description: responseData.error_message || 'An unknown error occurred.',
             });
         } else {
@@ -231,7 +258,7 @@ export default function UsersPage() {
     } catch (error) {
         toast({
             variant: 'destructive',
-            title: 'Error creating user',
+            title: 'Error',
             description: error instanceof Error ? error.message : 'An unknown error occurred.',
         });
     }
@@ -254,7 +281,7 @@ export default function UsersPage() {
               filterPlaceholder={t('UsersPage.filterPlaceholder')}
               onRowSelectionChange={handleRowSelectionChange}
               enableSingleRowSelection={true}
-              onCreate={() => setCreateOpen(true)}
+              onCreate={handleCreate}
               onRefresh={loadUsers}
               isRefreshing={isRefreshing}
               rowSelection={rowSelection}
@@ -321,11 +348,11 @@ export default function UsersPage() {
       )}
     </div>
 
-    <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t('UsersPage.createDialog.title')}</DialogTitle>
-          <DialogDescription>{t('UsersPage.createDialog.description')}</DialogDescription>
+          <DialogTitle>{editingUser ? t('UsersPage.createDialog.editTitle') : t('UsersPage.createDialog.title')}</DialogTitle>
+          <DialogDescription>{editingUser ? t('UsersPage.createDialog.editDescription') : t('UsersPage.createDialog.description')}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -394,8 +421,8 @@ export default function UsersPage() {
                     )}
                 />
                  <div className="flex justify-end space-x-2 pt-4">
-                    <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t('UsersPage.createDialog.cancel')}</Button>
-                    <Button type="submit">{t('UsersPage.createDialog.save')}</Button>
+                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('UsersPage.createDialog.cancel')}</Button>
+                    <Button type="submit">{editingUser ? t('UsersPage.createDialog.editSave') : t('UsersPage.createDialog.save')}</Button>
                 </div>
             </form>
         </Form>
