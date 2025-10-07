@@ -98,14 +98,21 @@ async function updateUserRoleStatus(userRoleId: string, isActive: boolean): Prom
     return response.json();
 }
 
-async function deleteUserRole(userRoleId: string): Promise<any> {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_roles/delete?user_role_id=${userRoleId}`, {
-        method: 'DELETE',
+async function deleteUserRole(userId: string, roleId: string): Promise<any> {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/roles/unassign', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ user_id: userId, role_id: roleId }),
     });
     if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Unassign role error:", errorText);
         throw new Error('Failed to delete role assignment');
     }
-    return response.json();
+    const responseText = await response.text();
+    return responseText ? JSON.parse(responseText) : {};
 }
 
 
@@ -161,7 +168,7 @@ export function UserRoles({ userId }: UserRolesProps) {
   const handleDelete = async () => {
     if (!roleToDelete) return;
     try {
-        await deleteUserRole(roleToDelete.user_role_id);
+        await deleteUserRole(userId, roleToDelete.role_id);
         toast({
             title: t('toast.success'),
             description: t('toast.roleRemoved', { roleName: roleToDelete.name }),
