@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MedicalHistory } from '@/components/users/medical-history';
@@ -96,6 +95,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string): Promi
       email: apiUser.email || 'no-email@example.com',
       phone_number: apiUser.phone_number || '000-000-0000',
       is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+      identity_document: apiUser.identity_document,
       avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
     }));
 
@@ -115,12 +115,8 @@ async function upsertUser(userData: UserFormValues) {
         body: JSON.stringify(userData),
     });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to create user: ${errorText}`);
-    }
-
-    return response.json();
+    const responseData = await response.json();
+    return { status: response.status, data: responseData };
 }
 
 export default function UsersPage() {
@@ -213,14 +209,25 @@ export default function UsersPage() {
 
   const onSubmit = async (data: UserFormValues) => {
     try {
-        await upsertUser(data);
-        toast({
-            title: 'User created',
-            description: 'The new user has been added successfully.',
-        });
-        setCreateOpen(false);
-        form.reset();
-        loadUsers();
+        const { status, data: responseData } = await upsertUser(data);
+
+        if (status === 200) {
+            toast({
+                title: 'User created',
+                description: 'The new user has been added successfully.',
+            });
+            setCreateOpen(false);
+            form.reset();
+            loadUsers();
+        } else if (status === 400) {
+            toast({
+                variant: 'destructive',
+                title: 'Error creating user',
+                description: responseData.error_message || 'An unknown error occurred.',
+            });
+        } else {
+            throw new Error(`Server responded with status ${status}`);
+        }
     } catch (error) {
         toast({
             variant: 'destructive',
