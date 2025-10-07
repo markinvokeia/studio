@@ -46,7 +46,7 @@ const columns: ColumnDef<Appointment>[] = [
 ];
 
 async function getAppointmentsForUser(user: User | null): Promise<Appointment[]> {
-    if (!user || !user.email) return [];
+    if (!user || !user.id) return [];
 
     const now = new Date();
     const startDate = addMonths(now, -6);
@@ -56,11 +56,11 @@ async function getAppointmentsForUser(user: User | null): Promise<Appointment[]>
     const params = new URLSearchParams({
         startingDateAndTime: formatDateForAPI(startDate),
         endingDateAndTime: formatDateForAPI(endDate),
-        attendeesEmails: user.email,
+        user_id: user.id,
     });
 
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_events?${params.toString()}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
             method: 'GET',
             mode: 'cors',
             headers: {
@@ -75,11 +75,21 @@ async function getAppointmentsForUser(user: User | null): Promise<Appointment[]>
         }
 
         const data = await response.json();
-        const appointmentsData = Array.isArray(data) ? data : (data.events || []);
+        let appointmentsData: any[] = [];
+        
+        if (Array.isArray(data) && data.length > 0 && 'json' in data[0]) {
+            appointmentsData = data.map(item => item.json);
+        } else if (Array.isArray(data)) {
+            appointmentsData = data;
+        }
 
+        if (!Array.isArray(appointmentsData)) {
+            console.error("Fetched data could not be resolved to an array:", data);
+            return [];
+        }
         
         return appointmentsData.map((apiAppt: any) => {
-            const appointmentDateTimeStr = apiAppt.start?.dateTime;
+            const appointmentDateTimeStr = apiAppt.start_time || (apiAppt.start && apiAppt.start.dateTime);
             if (!appointmentDateTimeStr) return null;
 
             const appointmentDateTime = parseISO(appointmentDateTimeStr);
@@ -92,7 +102,10 @@ async function getAppointmentsForUser(user: User | null): Promise<Appointment[]>
                 date: format(appointmentDateTime, 'yyyy-MM-dd'),
                 time: format(appointmentDateTime, 'HH:mm'),
                 status: apiAppt.status || 'confirmed',
-                calendar_id: apiAppt.organizer?.email || '',
+                patientPhone: apiAppt.patientPhone,
+                doctorName: apiAppt.doctorName,
+                calendar_id: apiAppt.organizer?.email,
+                calendar_name: apiAppt.organizer?.displayName || apiAppt.organizer?.email || '',
             };
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
