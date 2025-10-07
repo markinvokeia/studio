@@ -1,4 +1,3 @@
-
 export type User = {
   id: string;
   name: string;
@@ -23,10 +22,10 @@ export type Permission = {
 };
 
 export type UserRole = {
-  user_id: string;
+  user_role_id: string;
   role_id: string;
-  is_active: boolean;
   name: string;
+  is_active: boolean;
 };
 
 export type UserRoleAssignment = {
