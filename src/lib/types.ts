@@ -30,8 +30,8 @@ export type UserRole = {
 };
 
 export type UserRoleAssignment = {
-    user_id: string;
-    role_ids: string[];
+    role_id: string;
+    is_active: boolean;
 };
 
 export type UserClinic = {

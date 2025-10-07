@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -15,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Role, UserRoleAssignment } from '@/lib/types';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
+import { Switch } from '../ui/switch';
 
 type UserRole = {
   role_id: string;
@@ -89,12 +89,12 @@ async function getAllRoles(): Promise<Role[]> {
 }
 
 
-async function assignRolesToUser(userId: string, roleIds: string[]): Promise<any> {
+async function assignRolesToUser(userId: string, roles: UserRoleAssignment[]): Promise<any> {
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/roles/assign?user_id=${userId}`, {
         method: 'PATCH',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role_ids: roleIds }),
+        body: JSON.stringify({ roles: roles }),
     });
 
     const responseText = await response.text();
@@ -115,7 +115,7 @@ export function UserRoles({ userId }: UserRolesProps) {
   const [allRoles, setAllRoles] = React.useState<Role[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [selectedRoleIds, setSelectedRoleIds] = React.useState<string[]>([]);
+  const [selectedRoles, setSelectedRoles] = React.useState<UserRoleAssignment[]>([]);
   const { toast } = useToast();
 
   const loadUserRoles = React.useCallback(async () => {
@@ -137,12 +137,12 @@ export function UserRoles({ userId }: UserRolesProps) {
   }, [isDialogOpen]);
 
   const handleAddRole = () => {
-    setSelectedRoleIds([]);
+    setSelectedRoles([]);
     setIsDialogOpen(true);
   };
   
   const handleAssignRoles = async () => {
-    if (selectedRoleIds.length === 0) {
+    if (selectedRoles.length === 0) {
         toast({
             variant: "destructive",
             title: "Error",
@@ -151,13 +151,13 @@ export function UserRoles({ userId }: UserRolesProps) {
         return;
     }
     try {
-        await assignRolesToUser(userId, selectedRoleIds);
+        await assignRolesToUser(userId, selectedRoles);
         toast({
             title: "Success",
             description: "Roles assigned successfully.",
         });
         setIsDialogOpen(false);
-        setSelectedRoleIds([]);
+        setSelectedRoles([]);
         loadUserRoles();
     } catch (error) {
          toast({
@@ -169,12 +169,21 @@ export function UserRoles({ userId }: UserRolesProps) {
   };
 
   const handleRoleSelection = (roleId: string, checked: boolean | 'indeterminate') => {
-      if (checked) {
-          setSelectedRoleIds(prev => [...prev, roleId]);
-      } else {
-          setSelectedRoleIds(prev => prev.filter(id => id !== roleId));
-      }
+      setSelectedRoles(prev => {
+          if (checked) {
+              return [...prev, { role_id: roleId, is_active: true }];
+          } else {
+              return prev.filter(role => role.role_id !== roleId);
+          }
+      });
   };
+  
+  const handleRoleActiveChange = (roleId: string, active: boolean) => {
+    setSelectedRoles(prev => prev.map(role => 
+        role.role_id === roleId ? { ...role, is_active: active } : role
+    ));
+  };
+
 
   if (isLoading) {
     return (
@@ -209,22 +218,38 @@ export function UserRoles({ userId }: UserRolesProps) {
                 <Label>Available Roles</Label>
                 <ScrollArea className="h-64 mt-2 border rounded-md p-4">
                    <div className="space-y-2">
-                        {allRoles.map(role => (
-                            <div key={role.id} className="flex items-center space-x-2">
-                                <Checkbox 
-                                    id={`role-${role.id}`}
-                                    onCheckedChange={(checked) => handleRoleSelection(role.id, checked)}
-                                    checked={selectedRoleIds.includes(role.id)}
-                                />
-                                <Label htmlFor={`role-${role.id}`}>{role.name}</Label>
-                            </div>
-                        ))}
+                        {allRoles.map(role => {
+                            const isSelected = selectedRoles.some(r => r.role_id === role.id);
+                            const roleData = selectedRoles.find(r => r.role_id === role.id);
+                            return (
+                                <div key={role.id} className="flex items-center justify-between space-x-2">
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox 
+                                            id={`role-${role.id}`}
+                                            onCheckedChange={(checked) => handleRoleSelection(role.id, checked)}
+                                            checked={isSelected}
+                                        />
+                                        <Label htmlFor={`role-${role.id}`}>{role.name}</Label>
+                                    </div>
+                                    {isSelected && (
+                                        <div className="flex items-center space-x-2">
+                                            <Label htmlFor={`active-switch-${role.id}`} className="text-sm">Active</Label>
+                                            <Switch
+                                                id={`active-switch-${role.id}`}
+                                                checked={roleData?.is_active}
+                                                onCheckedChange={(checked) => handleRoleActiveChange(role.id, checked)}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 </ScrollArea>
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleAssignRoles} disabled={selectedRoleIds.length === 0}>Assign Roles</Button>
+                <Button onClick={handleAssignRoles} disabled={selectedRoles.length === 0}>Assign Roles</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
