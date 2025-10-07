@@ -198,7 +198,14 @@
       "identity_document_placeholder": "ej., 1234567-8",
       "isActive": "Está Activo",
       "cancel": "Cancelar",
-      "save": "Crear Usuario"
+      "save": "Crear Usuario",
+      "validation": {
+        "nameRequired": "El nombre es obligatorio",
+        "emailInvalid": "Dirección de correo electrónico no válida",
+        "phoneRequired": "El teléfono es obligatorio",
+        "identityRequired": "El documento de identidad es obligatorio",
+        "identityInvalid": "El documento de identidad debe ser un número de 10 dígitos."
+      }
     }
   },
   "UserColumns": {

@@ -198,7 +198,14 @@
       "identity_document_placeholder": "e.g., 1234567-8",
       "isActive": "Is Active",
       "cancel": "Cancel",
-      "save": "Create User"
+      "save": "Create User",
+      "validation": {
+        "nameRequired": "Name is required",
+        "emailInvalid": "Invalid email address",
+        "phoneRequired": "Phone is required",
+        "identityRequired": "Identity document is required",
+        "identityInvalid": "Identity document must be a 10-digit number."
+      }
     }
   },
   "UserColumns": {

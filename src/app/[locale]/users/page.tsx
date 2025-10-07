@@ -35,15 +35,15 @@ import { RowSelectionState, PaginationState, ColumnFiltersState } from '@tanstac
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 
-const userFormSchema = z.object({
-  name: z.string().min(1, { message: 'Name is required' }),
-  email: z.string().email({ message: 'Invalid email address' }),
-  phone: z.string().min(1, { message: 'Phone is required' }),
-  identity_document: z.string().min(1, { message: 'Identity document is required' }),
+const userFormSchema = (t: (key: string) => string) => z.object({
+  name: z.string().min(1, { message: t('UsersPage.createDialog.validation.nameRequired') }),
+  email: z.string().email({ message: t('UsersPage.createDialog.validation.emailInvalid') }),
+  phone: z.string().min(1, { message: t('UsersPage.createDialog.validation.phoneRequired') }),
+  identity_document: z.string().length(10, { message: t('UsersPage.createDialog.validation.identityInvalid') }).regex(/^\d+$/, { message: t('UsersPage.createDialog.validation.identityInvalid') }),
   is_active: z.boolean().default(false),
 });
 
-type UserFormValues = z.infer<typeof userFormSchema>;
+type UserFormValues = z.infer<ReturnType<typeof userFormSchema>>;
 
 type GetUsersResponse = {
   users: User[];
@@ -125,6 +125,7 @@ async function upsertUser(userData: UserFormValues) {
 
 export default function UsersPage() {
   const t = useTranslations('UsersPage');
+  const tValidation = useTranslations('UsersPage.createDialog.validation');
   
   const { toast } = useToast();
   const [users, setUsers] = React.useState<User[]>([]);
@@ -140,7 +141,7 @@ export default function UsersPage() {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
   const form = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema),
+    resolver: zodResolver(userFormSchema(tValidation)),
     defaultValues: {
       name: '',
       email: '',
