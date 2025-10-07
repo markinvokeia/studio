@@ -222,7 +222,8 @@
     "edit": "Edit user",
     "delete": "Delete user",
     "activate": "Activate",
-    "deactivate": "Deactivate"
+    "deactivate": "Deactivate",
+    "identity_document": "Identity Document"
   },
   "QuoteColumns": {
     "quoteId": "Quote ID",

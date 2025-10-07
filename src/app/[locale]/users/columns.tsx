@@ -58,6 +58,12 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
       <DataTableColumnHeader column={column} title={t('UserColumns.email')} />
     ),
   },
+    {
+    accessorKey: 'identity_document',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('UserColumns.identity_document')} />
+    ),
+  },
   {
     accessorKey: 'phone_number',
     header: ({ column }) => (
@@ -96,7 +102,6 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
               {t('copyId')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>{t('viewDetails')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onEdit(user)}>{t('edit')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onToggleActivate(user)}>
               {user.is_active ? t('deactivate') : t('activate')}

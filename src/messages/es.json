@@ -222,7 +222,8 @@
     "edit": "Editar usuario",
     "delete": "Eliminar usuario",
     "activate": "Activar",
-    "deactivate": "Desactivar"
+    "deactivate": "Desactivar",
+    "identity_document": "Documento de Identidad"
   },
   "QuoteColumns": {
     "quoteId": "ID Cotización",
