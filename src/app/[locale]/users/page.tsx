@@ -121,7 +121,7 @@ async function upsertUser(userData: UserFormValues) {
     const responseText = await response.text();
     const responseData = responseText ? JSON.parse(responseText) : {};
     
-    return { status: response.status, data: responseData };
+    return responseData;
 }
 
 export default function UsersPage() {
@@ -245,10 +245,14 @@ export default function UsersPage() {
   const onSubmit = async (data: UserFormValues) => {
     setSubmissionError(null);
     try {
-        const { status, data: responseData } = await upsertUser(data);
+        const responseData = await upsertUser(data);
         const isEditing = !!editingUser;
 
-        if (status === 200) {
+        const result = Array.isArray(responseData) ? responseData[0] : responseData;
+        const code = result?.code;
+        const errorMessage = result?.error_message || result?.message;
+
+        if (code === 200 || (result.id && !errorMessage)) {
             toast({
                 title: isEditing ? t('UsersPage.createDialog.editTitle') : t('UsersPage.createDialog.title'),
                 description: isEditing ? 'The user has been updated successfully.' : 'The new user has been added successfully.',
@@ -256,8 +260,7 @@ export default function UsersPage() {
             setIsDialogOpen(false);
             loadUsers();
         } else {
-            const errorMessage = responseData.error_message || responseData.message || t('UsersPage.createDialog.validation.genericError');
-            setSubmissionError(errorMessage);
+            setSubmissionError(errorMessage || t('UsersPage.createDialog.validation.genericError'));
         }
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : t('UsersPage.createDialog.validation.genericError');
