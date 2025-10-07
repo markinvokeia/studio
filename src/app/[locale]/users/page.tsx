@@ -124,8 +124,7 @@ async function upsertUser(userData: UserFormValues) {
 }
 
 export default function UsersPage() {
-  const t = useTranslations('UsersPage');
-  const tValidation = useTranslations('UsersPage.createDialog.validation');
+  const t = useTranslations();
   
   const { toast } = useToast();
   const [users, setUsers] = React.useState<User[]>([]);
@@ -141,7 +140,7 @@ export default function UsersPage() {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
   const form = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema(tValidation)),
+    resolver: zodResolver(userFormSchema(t)),
     defaultValues: {
       name: '',
       email: '',
@@ -237,15 +236,15 @@ export default function UsersPage() {
       <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-2" : "lg:col-span-5")}>
         <Card>
           <CardHeader>
-            <CardTitle>{t('title')}</CardTitle>
-            <CardDescription>{t('description')}</CardDescription>
+            <CardTitle>{t('UsersPage.title')}</CardTitle>
+            <CardDescription>{t('UsersPage.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <DataTable 
               columns={userColumns} 
               data={users} 
               filterColumnId="email" 
-              filterPlaceholder={t('filterPlaceholder')}
+              filterPlaceholder={t('UsersPage.filterPlaceholder')}
               onRowSelectionChange={handleRowSelectionChange}
               enableSingleRowSelection={true}
               onCreate={() => setCreateOpen(true)}
@@ -269,23 +268,23 @@ export default function UsersPage() {
             <Card>
                <CardHeader className="flex flex-row items-start justify-between">
                 <div>
-                    <CardTitle>{t('detailsFor', {name: selectedUser.name})}</CardTitle>
+                    <CardTitle>{t('UsersPage.detailsFor', {name: selectedUser.name})}</CardTitle>
                 </div>
                 <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
                     <X className="h-5 w-5" />
-                    <span className="sr-only">{t('close')}</span>
+                    <span className="sr-only">{t('UsersPage.close')}</span>
                 </Button>
             </CardHeader>
               <CardContent>
                 <Tabs defaultValue="roles" className="w-full">
                    <TabsList className="h-auto items-center justify-start flex-wrap">
-                    <TabsTrigger value="roles">{t('tabs.roles')}</TabsTrigger>
-                    <TabsTrigger value="services">{t('tabs.services')}</TabsTrigger>
-                    <TabsTrigger value="quotes">{t('tabs.quotes')}</TabsTrigger>
-                    <TabsTrigger value="appointments">{t('tabs.appointments')}</TabsTrigger>
-                    <TabsTrigger value="messages">{t('tabs.messages')}</TabsTrigger>
-                    <TabsTrigger value="logs">{t('tabs.logs')}</TabsTrigger>
-                    <TabsTrigger value="history">{t('tabs.history')}</TabsTrigger>
+                    <TabsTrigger value="roles">{t('UsersPage.tabs.roles')}</TabsTrigger>
+                    <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
+                    <TabsTrigger value="quotes">{t('UsersPage.tabs.quotes')}</TabsTrigger>
+                    <TabsTrigger value="appointments">{t('UsersPage.tabs.appointments')}</TabsTrigger>
+                    <TabsTrigger value="messages">{t('UsersPage.tabs.messages')}</TabsTrigger>
+                    <TabsTrigger value="logs">{t('UsersPage.tabs.logs')}</TabsTrigger>
+                    <TabsTrigger value="history">{t('UsersPage.tabs.history')}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="roles">
                     <UserRoles userId={selectedUser.id} />
@@ -318,8 +317,8 @@ export default function UsersPage() {
     <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t('createDialog.title')}</DialogTitle>
-          <DialogDescription>{t('createDialog.description')}</DialogDescription>
+          <DialogTitle>{t('UsersPage.createDialog.title')}</DialogTitle>
+          <DialogDescription>{t('UsersPage.createDialog.description')}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -328,9 +327,9 @@ export default function UsersPage() {
                     name="name"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>{t('createDialog.name')}</FormLabel>
+                            <FormLabel>{t('UsersPage.createDialog.name')}</FormLabel>
                             <FormControl>
-                                <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
+                                <Input placeholder={t('UsersPage.createDialog.namePlaceholder')} {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -341,9 +340,9 @@ export default function UsersPage() {
                     name="email"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>{t('createDialog.email')}</FormLabel>
+                            <FormLabel>{t('UsersPage.createDialog.email')}</FormLabel>
                             <FormControl>
-                                <Input type="email" placeholder={t('createDialog.emailPlaceholder')} {...field} />
+                                <Input type="email" placeholder={t('UsersPage.createDialog.emailPlaceholder')} {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -354,9 +353,9 @@ export default function UsersPage() {
                     name="phone"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>{t('createDialog.phone')}</FormLabel>
+                            <FormLabel>{t('UsersPage.createDialog.phone')}</FormLabel>
                             <FormControl>
-                                <Input placeholder={t('createDialog.phonePlaceholder')} {...field} />
+                                <Input placeholder={t('UsersPage.createDialog.phonePlaceholder')} {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -367,9 +366,9 @@ export default function UsersPage() {
                     name="identity_document"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>{t('createDialog.identity_document')}</FormLabel>
+                            <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
                             <FormControl>
-                                <Input placeholder={t('createDialog.identity_document_placeholder')} {...field} />
+                                <Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -383,13 +382,13 @@ export default function UsersPage() {
                             <FormControl>
                                 <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                             </FormControl>
-                            <FormLabel>{t('createDialog.isActive')}</FormLabel>
+                            <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
                         </FormItem>
                     )}
                 />
                  <div className="flex justify-end space-x-2 pt-4">
-                    <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t('createDialog.cancel')}</Button>
-                    <Button type="submit">{t('createDialog.save')}</Button>
+                    <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t('UsersPage.createDialog.cancel')}</Button>
+                    <Button type="submit">{t('UsersPage.createDialog.save')}</Button>
                 </div>
             </form>
         </Form>
