@@ -1,4 +1,3 @@
-
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -224,6 +223,48 @@
     "activate": "Activar",
     "deactivate": "Desactivar",
     "identity_document": "Documento de Identidad"
+  },
+  "UserRoles": {
+    "columns": {
+      "role": "Rol",
+      "status": "Estado"
+    },
+    "status": {
+      "active": "Activo",
+      "inactive": "Inactivo"
+    },
+    "actions": {
+      "openMenu": "Abrir menú",
+      "title": "Acciones",
+      "activate": "Activar",
+      "deactivate": "Desactivar",
+      "delete": "Eliminar"
+    },
+    "filterPlaceholder": "Filtrar por rol...",
+    "dialog": {
+      "title": "Añadir Roles al Usuario",
+      "description": "Selecciona los roles a asignar a este usuario.",
+      "availableRoles": "Roles Disponibles",
+      "activeLabel": "Activo",
+      "cancel": "Cancelar",
+      "assign": "Asignar Roles"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esta acción eliminará el rol \"{roleName}\" del usuario. Esto no se puede deshacer.",
+      "cancel": "Cancelar",
+      "continue": "Continuar"
+    },
+    "toast": {
+      "success": "Éxito",
+      "error": "Error",
+      "statusUpdated": "El rol {roleName} ha sido {status}.",
+      "statusUpdateFailed": "No se pudo actualizar el estado del rol.",
+      "roleRemoved": "El rol \"{roleName}\" ha sido eliminado del usuario.",
+      "roleRemoveFailed": "No se pudo eliminar el rol \"{roleName}\".",
+      "rolesAssigned": "Roles asignados correctamente.",
+      "rolesAssignFailed": "No se pudieron asignar los roles."
+    }
   },
   "QuoteColumns": {
     "quoteId": "ID Cotización",

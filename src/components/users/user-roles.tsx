@@ -18,6 +18,7 @@ import { Switch } from '../ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+import { useTranslations } from 'next-intl';
 
 async function getRolesForUser(userId: string): Promise<UserRole[]> {
   if (!userId) return [];
@@ -112,6 +113,7 @@ interface UserRolesProps {
 }
 
 export function UserRoles({ userId }: UserRolesProps) {
+  const t = useTranslations('UserRoles');
   const [userRoles, setUserRoles] = React.useState<UserRole[]>([]);
   const [allRoles, setAllRoles] = React.useState<Role[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -142,15 +144,15 @@ export function UserRoles({ userId }: UserRolesProps) {
     try {
         await updateUserRoleStatus(role.user_role_id, !role.is_active);
         toast({
-            title: 'Success',
-            description: `Role ${role.name} has been ${role.is_active ? 'deactivated' : 'activated'}.`,
+            title: t('toast.success'),
+            description: t('toast.statusUpdated', { roleName: role.name, status: role.is_active ? t('status.inactive') : t('status.active') }),
         });
         loadUserRoles();
     } catch (error) {
         toast({
             variant: 'destructive',
-            title: 'Error',
-            description: error instanceof Error ? error.message : 'Could not update role status.',
+            title: t('toast.error'),
+            description: error instanceof Error ? error.message : t('toast.statusUpdateFailed'),
         });
     }
   };
@@ -160,16 +162,16 @@ export function UserRoles({ userId }: UserRolesProps) {
     try {
         await deleteUserRole(roleToDelete.user_role_id);
         toast({
-            title: 'Success',
-            description: `Role "${roleToDelete.name}" has been removed from the user.`,
+            title: t('toast.success'),
+            description: t('toast.roleRemoved', { roleName: roleToDelete.name }),
         });
         setRoleToDelete(null);
         loadUserRoles();
     } catch (error) {
         toast({
             variant: 'destructive',
-            title: 'Error',
-            description: error instanceof Error ? error.message : `Could not remove role "${roleToDelete.name}".`,
+            title: t('toast.error'),
+            description: error instanceof Error ? error.message : t('toast.roleRemoveFailed', { roleName: roleToDelete.name }),
         });
         setRoleToDelete(null);
     }
@@ -178,16 +180,16 @@ export function UserRoles({ userId }: UserRolesProps) {
   const columns: ColumnDef<UserRole>[] = [
     {
         accessorKey: 'name',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Role" />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.role')} />,
     },
     {
         accessorKey: 'is_active',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
         cell: ({ row }) => {
             const isActive = row.getValue('is_active');
             return (
                 <Badge variant={isActive ? 'success' : 'outline'}>
-                    {isActive ? 'Active' : 'Inactive'}
+                    {isActive ? t('status.active') : t('status.inactive')}
                 </Badge>
             );
         }
@@ -200,17 +202,17 @@ export function UserRoles({ userId }: UserRolesProps) {
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
+                            <span className="sr-only">{t('actions.openMenu')}</span>
                             <MoreHorizontal className="h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuLabel>{t('actions.title')}</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleToggleActivate(role)}>
-                            {role.is_active ? 'Deactivate' : 'Activate'}
+                            {role.is_active ? t('actions.deactivate') : t('actions.activate')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setRoleToDelete(role)} className="text-destructive">
-                            Delete
+                            {t('actions.delete')}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -229,8 +231,8 @@ export function UserRoles({ userId }: UserRolesProps) {
     try {
         await assignRolesToUser(userId, selectedRoles);
         toast({
-            title: "Success",
-            description: "Roles assigned successfully.",
+            title: t('toast.success'),
+            description: t('toast.rolesAssigned'),
         });
         setIsDialogOpen(false);
         setSelectedRoles([]);
@@ -238,8 +240,8 @@ export function UserRoles({ userId }: UserRolesProps) {
     } catch (error) {
          toast({
             variant: "destructive",
-            title: "Error",
-            description: error instanceof Error ? error.message : "Could not assign roles.",
+            title: t('toast.error'),
+            description: error instanceof Error ? error.message : t('toast.rolesAssignFailed'),
         });
     }
   };
@@ -279,7 +281,7 @@ export function UserRoles({ userId }: UserRolesProps) {
           columns={columns}
           data={userRoles}
           filterColumnId='name'
-          filterPlaceholder='Filter by role...'
+          filterPlaceholder={t('filterPlaceholder')}
           onCreate={handleAddRole}
         />
       </CardContent>
@@ -287,11 +289,11 @@ export function UserRoles({ userId }: UserRolesProps) {
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>Add Roles to User</DialogTitle>
-                <DialogDescription>Select the roles to assign to this user.</DialogDescription>
+                <DialogTitle>{t('dialog.title')}</DialogTitle>
+                <DialogDescription>{t('dialog.description')}</DialogDescription>
             </DialogHeader>
             <div className="py-4">
-                <Label>Available Roles</Label>
+                <Label>{t('dialog.availableRoles')}</Label>
                 <ScrollArea className="h-64 mt-2 border rounded-md p-4">
                    <div className="space-y-2">
                         {allRoles.map(role => {
@@ -309,7 +311,7 @@ export function UserRoles({ userId }: UserRolesProps) {
                                     </div>
                                     {isSelected && (
                                         <div className="flex items-center space-x-2">
-                                            <Label htmlFor={`active-switch-${role.id}`} className="text-sm">Active</Label>
+                                            <Label htmlFor={`active-switch-${role.id}`} className="text-sm">{t('dialog.activeLabel')}</Label>
                                             <Switch
                                                 id={`active-switch-${role.id}`}
                                                 checked={roleData?.is_active}
@@ -324,22 +326,22 @@ export function UserRoles({ userId }: UserRolesProps) {
                 </ScrollArea>
             </div>
             <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleAssignRoles}>Assign Roles</Button>
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                <Button onClick={handleAssignRoles}>{t('dialog.assign')}</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
     <AlertDialog open={!!roleToDelete} onOpenChange={() => setRoleToDelete(null)}>
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                    This action will remove the role "{roleToDelete?.name}" from the user. This cannot be undone.
+                    {t('deleteDialog.description', { roleName: roleToDelete?.name })}
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete}>Continue</AlertDialogAction>
+                <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete}>{t('deleteDialog.continue')}</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
