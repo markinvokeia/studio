@@ -33,6 +33,8 @@ import { X } from 'lucide-react';
 import { RowSelectionState, PaginationState, ColumnFiltersState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 const userFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -131,6 +133,8 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
   const [editingUser, setEditingUser] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -208,6 +212,7 @@ export default function UsersPage() {
       identity_document: '',
       is_active: true,
     });
+    setSubmissionError(null);
     setIsDialogOpen(true);
   };
   
@@ -221,6 +226,7 @@ export default function UsersPage() {
       identity_document: user.identity_document,
       is_active: user.is_active,
     });
+    setSubmissionError(null);
     setIsDialogOpen(true);
   };
   
@@ -237,6 +243,7 @@ export default function UsersPage() {
   };
 
   const onSubmit = async (data: UserFormValues) => {
+    setSubmissionError(null);
     try {
         const { status, data: responseData } = await upsertUser(data);
         const isEditing = !!editingUser;
@@ -248,21 +255,13 @@ export default function UsersPage() {
             });
             setIsDialogOpen(false);
             loadUsers();
-        } else if (status === 400) {
-            toast({
-                variant: 'destructive',
-                title: isEditing ? 'Error updating user' : 'Error creating user',
-                description: responseData.error_message || 'An unknown error occurred.',
-            });
         } else {
-            throw new Error(`Server responded with status ${status}`);
+            const errorMessage = responseData.error_message || responseData.message || t('UsersPage.createDialog.validation.genericError');
+            setSubmissionError(errorMessage);
         }
     } catch (error) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: error instanceof Error ? error.message : 'An unknown error occurred.',
-        });
+        const errorMessage = error instanceof Error ? error.message : t('UsersPage.createDialog.validation.genericError');
+        setSubmissionError(errorMessage);
     }
   };
   
@@ -358,6 +357,13 @@ export default function UsersPage() {
         </DialogHeader>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {submissionError && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{submissionError}</AlertDescription>
+                  </Alert>
+                )}
                 <FormField
                     control={form.control}
                     name="name"

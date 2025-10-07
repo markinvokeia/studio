@@ -99,8 +99,9 @@ async function updateUserRoleStatus(userRoleId: string, isActive: boolean): Prom
 }
 
 async function deleteUserRole(userId: string, roleId: string): Promise<any> {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/roles/unassign', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook-test/roles/unassign', {
         method: 'POST',
+        mode: 'cors',
         headers: {
             'Content-Type': 'application/json',
         },

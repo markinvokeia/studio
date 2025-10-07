@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -206,7 +207,8 @@
         "emailInvalid": "Dirección de correo electrónico no válida",
         "phoneRequired": "El teléfono es obligatorio",
         "identityRequired": "El documento de identidad es obligatorio",
-        "identityInvalid": "El documento de identidad debe ser un número de 10 dígitos."
+        "identityInvalid": "El documento de identidad debe ser un número de 10 dígitos.",
+        "genericError": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo."
       }
     }
   },
