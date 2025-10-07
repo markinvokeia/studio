@@ -46,7 +46,7 @@ const columns: ColumnDef<Appointment>[] = [
 ];
 
 async function getAppointmentsForUser(user: User | null): Promise<Appointment[]> {
-    if (!user || !user.id) return [];
+    if (!user || !user.email) return [];
 
     const now = new Date();
     const startDate = addMonths(now, -6);
@@ -56,7 +56,7 @@ async function getAppointmentsForUser(user: User | null): Promise<Appointment[]>
     const params = new URLSearchParams({
         startingDateAndTime: formatDateForAPI(startDate),
         endingDateAndTime: formatDateForAPI(endDate),
-        user_id: user.id,
+        attendeesEmails: user.email,
     });
 
     try {
