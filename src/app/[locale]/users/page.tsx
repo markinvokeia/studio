@@ -264,7 +264,11 @@ export default function UsersPage() {
         }
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : t('UsersPage.createDialog.validation.genericError');
-        setSubmissionError(errorMessage);
+        if (typeof errorMessage === 'object') {
+            setSubmissionError(JSON.stringify(errorMessage));
+        } else {
+            setSubmissionError(errorMessage);
+        }
     }
   };
   
