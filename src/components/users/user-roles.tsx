@@ -138,7 +138,8 @@ export function UserRoles({ userId }: UserRolesProps) {
   }, [isDialogOpen]);
 
   const handleAddRole = () => {
-    setSelectedRoles([]);
+    const initialSelectedRoles = userRoles.map(ur => ({ role_id: ur.role_id, is_active: ur.is_active }));
+    setSelectedRoles(initialSelectedRoles);
     setIsDialogOpen(true);
   };
   
