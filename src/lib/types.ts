@@ -31,7 +31,7 @@ export type UserRole = {
 
 export type UserRoleAssignment = {
     user_id: string;
-    role_id: string;
+    role_ids: string[];
 };
 
 export type UserClinic = {
