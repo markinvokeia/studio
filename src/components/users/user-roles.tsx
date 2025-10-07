@@ -99,7 +99,7 @@ async function updateUserRoleStatus(userRoleId: string, isActive: boolean): Prom
 }
 
 async function deleteUserRole(userId: string, roleId: string): Promise<any> {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook-test/roles/unassign', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/roles/unassign', {
         method: 'POST',
         mode: 'cors',
         headers: {
@@ -231,7 +231,11 @@ export function UserRoles({ userId }: UserRolesProps) {
 ];
 
   const handleAddRole = () => {
-    setSelectedRoles([]);
+    const assignedRoles: UserRoleAssignment[] = userRoles.map(role => ({
+        role_id: role.role_id,
+        is_active: role.is_active,
+    }));
+    setSelectedRoles(assignedRoles);
     setIsDialogOpen(true);
   };
   
@@ -356,3 +360,5 @@ export function UserRoles({ userId }: UserRolesProps) {
     </>
   );
 }
+
+    
