@@ -116,7 +116,9 @@ async function upsertUser(userData: UserFormValues) {
         body: JSON.stringify(userData),
     });
 
-    const responseData = await response.json();
+    const responseText = await response.text();
+    const responseData = responseText ? JSON.parse(responseText) : {};
+    
     return { status: response.status, data: responseData };
 }
 
