@@ -282,13 +282,14 @@
       "rolesAssignFailed": "Could not assign roles."
     }
   },
-    "UserServices": {
+  "UserServices": {
     "dialog": {
       "title": "Add Services to User",
       "description": "Select the services to assign to this user.",
       "availableServices": "Available Services",
       "cancel": "Cancel",
-      "assign": "Accept"
+      "assign": "Accept",
+      "activeLabel": "Active"
     },
     "toast": {
       "success": "Success",

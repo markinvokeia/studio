@@ -282,13 +282,14 @@
       "rolesAssignFailed": "No se pudieron asignar los roles."
     }
   },
-    "UserServices": {
+  "UserServices": {
     "dialog": {
       "title": "Añadir Servicios al Usuario",
       "description": "Selecciona los servicios a asignar a este usuario.",
       "availableServices": "Servicios Disponibles",
       "cancel": "Cancelar",
-      "assign": "Aceptar"
+      "assign": "Aceptar",
+      "activeLabel": "Activo"
     },
     "toast": {
       "success": "Éxito",

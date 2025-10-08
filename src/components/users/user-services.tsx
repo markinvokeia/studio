@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -6,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Service, UserRoleAssignment } from '@/lib/types';
+import { Service } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslations } from 'next-intl';
+import { Switch } from '../ui/switch';
+
+type UserServiceAssignment = {
+  service_id: string;
+  is_active: boolean;
+};
+
 
 const columns: ColumnDef<Service>[] = [
   {
@@ -94,12 +102,12 @@ async function getAllServices(): Promise<Service[]> {
   }
 }
 
-async function assignServicesToUser(userId: string, serviceIds: string[]): Promise<any> {
+async function assignServicesToUser(userId: string, services: UserServiceAssignment[]): Promise<any> {
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services/assign`, {
         method: 'PATCH',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, services: serviceIds }),
+        body: JSON.stringify({ user_id: userId, services: services }),
     });
 
 
@@ -120,7 +128,7 @@ export function UserServices({ userId }: UserServicesProps) {
   const [allServices, setAllServices] = React.useState<Service[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [selectedServiceIds, setSelectedServiceIds] = React.useState<string[]>([]);
+  const [selectedServices, setSelectedServices] = React.useState<UserServiceAssignment[]>([]);
   const { toast } = useToast();
 
   const loadUserServices = React.useCallback(async () => {
@@ -138,13 +146,17 @@ export function UserServices({ userId }: UserServicesProps) {
   const handleAddService = async () => {
     const services = await getAllServices();
     setAllServices(services);
-    setSelectedServiceIds(userServices.map(s => s.id));
+    const assignedServices: UserServiceAssignment[] = userServices.map(service => ({
+        service_id: service.id,
+        is_active: true, // Assuming existing services are active, backend doesn't provide this
+    }));
+    setSelectedServices(assignedServices);
     setIsDialogOpen(true);
   };
   
   const handleAssignServices = async () => {
     try {
-        await assignServicesToUser(userId, selectedServiceIds);
+        await assignServicesToUser(userId, selectedServices);
         toast({
             title: t('toast.success'),
             description: t('toast.servicesAssigned'),
@@ -161,14 +173,21 @@ export function UserServices({ userId }: UserServicesProps) {
   };
 
   const handleServiceSelection = (serviceId: string, checked: boolean | 'indeterminate') => {
-      setSelectedServiceIds(prev => {
+      setSelectedServices(prev => {
           if (checked) {
-              return [...prev, serviceId];
+              return [...prev, { service_id: serviceId, is_active: true }];
           } else {
-              return prev.filter(id => id !== serviceId);
+              return prev.filter(s => s.service_id !== serviceId);
           }
       });
   };
+  
+  const handleServiceActiveChange = (serviceId: string, active: boolean) => {
+    setSelectedServices(prev => prev.map(s => 
+        s.service_id === serviceId ? { ...s, is_active: active } : s
+    ));
+  };
+
 
   if (isLoading) {
     return (
@@ -204,7 +223,8 @@ export function UserServices({ userId }: UserServicesProps) {
                 <ScrollArea className="h-64 mt-2 border rounded-md p-4">
                    <div className="space-y-2">
                         {allServices.map(service => {
-                            const isSelected = selectedServiceIds.includes(service.id);
+                            const isSelected = selectedServices.some(s => s.service_id === service.id);
+                            const serviceData = selectedServices.find(s => s.service_id === service.id);
                             return (
                                 <div key={service.id} className="flex items-center justify-between space-x-2">
                                     <div className="flex items-center space-x-2">
@@ -215,6 +235,16 @@ export function UserServices({ userId }: UserServicesProps) {
                                         />
                                         <Label htmlFor={`service-${service.id}`}>{service.name}</Label>
                                     </div>
+                                    {isSelected && (
+                                        <div className="flex items-center space-x-2">
+                                            <Label htmlFor={`active-switch-${service.id}`} className="text-sm">{t('dialog.activeLabel')}</Label>
+                                            <Switch
+                                                id={`active-switch-${service.id}`}
+                                                checked={serviceData?.is_active}
+                                                onCheckedChange={(checked) => handleServiceActiveChange(service.id, checked)}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
