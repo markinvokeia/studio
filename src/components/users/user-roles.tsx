@@ -19,36 +19,6 @@ import { Switch } from '../ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { useTranslations } from 'next-intl';
 
-async function getRolesForUser(userId: string): Promise<UserRole[]> {
-  if (!userId) return [];
-  try {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/roles/user_roles?user_id=${userId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    // const userRolesData = Array.isArray(data) ? data : (data.user_roles || data.data || data.result || []);
-    const userRolesData = Array.isArray(data) ? (Object.keys(data[0]).length === 0? [] : data) : (data.user_roles || data.data || data.result || []);
-    return userRolesData.map((apiRole: any) => ({
-      user_role_id: apiRole.user_role_id,
-      role_id: apiRole.role_id,
-      name: apiRole.name || 'Unknown Role',
-      is_active: apiRole.is_active,
-    }));
-  } catch (error) {
-    console.error("Failed to fetch user roles:", error);
-    return [];
-  }
-}
-
 async function getAllRoles(): Promise<Role[]> {
   try {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/roles', {
@@ -67,7 +37,6 @@ async function getAllRoles(): Promise<Role[]> {
   }
 }
 
-
 async function assignRolesToUser(userId: string, roles: UserRoleAssignment[]): Promise<any> {
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/roles/assign`, {
         method: 'PATCH',
@@ -84,62 +53,19 @@ async function assignRolesToUser(userId: string, roles: UserRoleAssignment[]): P
     return responseText ? JSON.parse(responseText) : {};
 }
 
-async function updateUserRoleStatus(userRoleId: string, isActive: boolean): Promise<any> {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_roles/status', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_role_id: userRoleId, is_active: isActive }),
-    });
-    if (!response.ok) {
-        throw new Error('Failed to update role status');
-    }
-    return response.json();
-}
-
-async function deleteUserRole(userId: string, roleId: string): Promise<any> {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/roles/unassign', {
-        method: 'POST',
-        mode: 'cors',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ user_id: userId, role_id: roleId }),
-    });
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Unassign role error:", errorText);
-        throw new Error('Failed to delete role assignment');
-    }
-    const responseText = await response.text();
-    return responseText ? JSON.parse(responseText) : {};
-}
-
-
 interface UserRolesProps {
   userId: string;
+  initialUserRoles: UserRole[];
+  isLoading: boolean;
+  onRolesChange: () => void;
 }
 
-export function UserRoles({ userId }: UserRolesProps) {
+export function UserRoles({ userId, initialUserRoles, isLoading, onRolesChange }: UserRolesProps) {
   const t = useTranslations('UserRoles');
-  const [userRoles, setUserRoles] = React.useState<UserRole[]>([]);
   const [allRoles, setAllRoles] = React.useState<Role[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedRoles, setSelectedRoles] = React.useState<UserRoleAssignment[]>([]);
-  const [roleToDelete, setRoleToDelete] = React.useState<UserRole | null>(null);
   const { toast } = useToast();
-
-  const loadUserRoles = React.useCallback(async () => {
-    if (!userId) return;
-    setIsLoading(true);
-    const fetchedUserRoles = await getRolesForUser(userId);
-    setUserRoles(fetchedUserRoles);
-    setIsLoading(false);
-  }, [userId]);
-
-  React.useEffect(() => {
-    loadUserRoles();
-  }, [loadUserRoles]);
 
   React.useEffect(() => {
     if (isDialogOpen) {
@@ -167,7 +93,7 @@ export function UserRoles({ userId }: UserRolesProps) {
 ];
 
   const handleAddRole = () => {
-    const assignedRoles: UserRoleAssignment[] = userRoles.map(role => ({
+    const assignedRoles: UserRoleAssignment[] = initialUserRoles.map(role => ({
         role_id: String(role.role_id),
         is_active: role.is_active,
     }));
@@ -184,7 +110,7 @@ export function UserRoles({ userId }: UserRolesProps) {
         });
         setIsDialogOpen(false);
         setSelectedRoles([]);
-        loadUserRoles();
+        onRolesChange(); // Notify parent to re-fetch roles
     } catch (error) {
          toast({
             variant: "destructive",
@@ -227,7 +153,7 @@ export function UserRoles({ userId }: UserRolesProps) {
       <CardContent className="p-4">
         <DataTable
           columns={columns}
-          data={userRoles}
+          data={initialUserRoles}
           filterColumnId='name'
           filterPlaceholder={t('filterPlaceholder')}
           onCreate={handleAddRole}
@@ -279,20 +205,6 @@ export function UserRoles({ userId }: UserRolesProps) {
             </DialogFooter>
         </DialogContent>
     </Dialog>
-    <AlertDialog open={!!roleToDelete} onOpenChange={() => setRoleToDelete(null)}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                <AlertDialogDescription>
-                    {t('deleteDialog.description', { roleName: roleToDelete?.name })}
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                <AlertDialogAction onClick={() => {}}>{t('deleteDialog.continue')}</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
     </>
   );
 }

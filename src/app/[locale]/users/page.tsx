@@ -9,7 +9,7 @@ import { UserColumnsWrapper } from './columns';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, UserRole } from '@/lib/types';
+import { User, UserRole, UserRoleAssignment } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -29,7 +29,7 @@ import { UserQuotes } from '@/components/users/user-quotes';
 import { UserMessages } from '@/components/users/user-messages';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserLogs } from '@/components/users/user-logs';
-import { X } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
 import { RowSelectionState, PaginationState, ColumnFiltersState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
@@ -122,7 +122,7 @@ async function upsertUser(userData: UserFormValues) {
     
     const responseData = await response.json();
 
-    if (response.status >= 400 || (responseData.error && (responseData.error.error || responseData.code > 200))) {
+    if (responseData.error && (responseData.error.error || responseData.code > 200)) {
         const error = new Error('API Error') as any;
         error.status = responseData.code || response.status;
         error.data = responseData;
@@ -169,6 +169,7 @@ export default function UsersPage() {
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
   const [selectedUserRoles, setSelectedUserRoles] = React.useState<UserRole[]>([]);
+  const [isRolesLoading, setIsRolesLoading] = React.useState(false);
   const [editingUser, setEditingUser] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
@@ -201,6 +202,14 @@ export default function UsersPage() {
     setUserCount(total);
     setIsRefreshing(false);
   }, [pagination, columnFilters]);
+
+  const loadUserRoles = React.useCallback(async (userId: string) => {
+    setIsRolesLoading(true);
+    const roles = await getRolesForUser(userId);
+    setSelectedUserRoles(roles);
+    setIsRolesLoading(false);
+  }, []);
+
 
   React.useEffect(() => {
     const debounce = setTimeout(() => {
@@ -277,11 +286,11 @@ export default function UsersPage() {
 
   React.useEffect(() => {
     if (selectedUser) {
-      getRolesForUser(selectedUser.id).then(setSelectedUserRoles);
+      loadUserRoles(selectedUser.id);
     } else {
       setSelectedUserRoles([]);
     }
-  }, [selectedUser]);
+  }, [selectedUser, loadUserRoles]);
   
   const handleCloseDetails = () => {
     setSelectedUser(null);
@@ -304,8 +313,7 @@ export default function UsersPage() {
         loadUsers();
 
     } catch (error: any) {
-        const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]);
-
+        const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
         if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
             const fields = errorData.conflictedFields.map((f:string) => t(`UsersPage.createDialog.validation.fields.${f}`)).join(', ');
             setSubmissionError(t('UsersPage.createDialog.validation.uniqueConflict', { fields }));
@@ -395,7 +403,12 @@ export default function UsersPage() {
                     <TabsTrigger value="history">{t('UsersPage.tabs.history')}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="roles">
-                    <UserRoles userId={selectedUser.id} />
+                    <UserRoles
+                        userId={selectedUser.id}
+                        initialUserRoles={selectedUserRoles}
+                        isLoading={isRolesLoading}
+                        onRolesChange={() => loadUserRoles(selectedUser.id)}
+                    />
                   </TabsContent>
                   {userHasMedicoRole && (
                     <TabsContent value="services">
