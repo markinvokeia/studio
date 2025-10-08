@@ -35,12 +35,15 @@ import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { isValidPhoneNumber } from 'react-phone-number-input';
+import { PhoneInput } from '@/components/ui/phone-input';
+
 
 const userFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   name: z.string().min(1, { message: t('UsersPage.createDialog.validation.nameRequired') }),
   email: z.string().email({ message: t('UsersPage.createDialog.validation.emailInvalid') }),
-  phone: z.string().min(1, { message: t('UsersPage.createDialog.validation.phoneRequired') }),
+  phone: z.string().refine(isValidPhoneNumber, { message: t('UsersPage.createDialog.validation.phoneInvalid') }),
   identity_document: z.string().regex(/^\d+$/, { message: t('UsersPage.createDialog.validation.identityInvalid') }),
   is_active: z.boolean().default(false),
 });
@@ -120,16 +123,9 @@ async function upsertUser(userData: UserFormValues) {
     
     const responseData = await response.json();
 
-    if (!response.ok) {
+    if (response.status >= 400 || (responseData.error && responseData.error.error)) {
         const error = new Error('API Error') as any;
-        error.status = response.status;
-        error.data = responseData;
-        throw error;
-    }
-    
-    if (responseData.error && typeof responseData.error === 'object') {
-        const error = new Error('Business Logic Error') as any;
-        error.status = responseData.code || 409; 
+        error.status = responseData.code || response.status;
         error.data = responseData;
         throw error;
     }
@@ -271,7 +267,8 @@ export default function UsersPage() {
         loadUsers();
 
     } catch (error: any) {
-        const errorData = error.data?.error;
+        const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]);
+
         if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
             const fields = errorData.conflictedFields.map((f:string) => t(`UsersPage.createDialog.validation.fields.${f}`)).join(', ');
             setSubmissionError(t('UsersPage.createDialog.validation.uniqueConflict', { fields }));
@@ -430,7 +427,11 @@ export default function UsersPage() {
                         <FormItem>
                             <FormLabel>{t('UsersPage.createDialog.phone')}</FormLabel>
                             <FormControl>
-                                <Input placeholder={t('UsersPage.createDialog.phonePlaceholder')} {...field} />
+                               <PhoneInput
+                                    {...field}
+                                    defaultCountry="UY"
+                                    placeholder={t('UsersPage.createDialog.phonePlaceholder')}
+                                />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
