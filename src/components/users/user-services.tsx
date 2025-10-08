@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslations } from 'next-intl';
 import { Switch } from '../ui/switch';
+import { Badge } from '../ui/badge';
 
 type UserServiceAssignment = {
   service_id: string;
@@ -30,7 +31,7 @@ type UserServiceAssignment = {
 };
 
 
-const columns: ColumnDef<Service>[] = [
+const getColumns = (t: (key: string) => string): ColumnDef<Service>[] => [
   {
     accessorKey: 'name',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Service" />,
@@ -51,12 +52,24 @@ const columns: ColumnDef<Service>[] = [
       return <div className="font-medium">{formatted}</div>;
     },
   },
+  {
+    accessorKey: 'is_active',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserRoles.columns.status')} />,
+    cell: ({ row }) => {
+        const isActive = row.getValue('is_active');
+        return (
+            <Badge variant={isActive ? 'success' : 'outline'}>
+                {isActive ? t('UserRoles.status.active') : t('UserRoles.status.inactive')}
+            </Badge>
+        );
+    }
+  },
 ];
 
 async function getServicesForUser(userId: string): Promise<Service[]> {
   if (!userId) return [];
   try {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_services?user_id=${userId}`, {
+    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services/user_services?user_id=${userId}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -77,7 +90,7 @@ async function getServicesForUser(userId: string): Promise<Service[]> {
       category: apiService.category || 'N/A',
       price: apiService.price || 0,
       duration_minutes: apiService.duration_minutes || 0,
-      is_active: apiService.is_active,
+      is_active: apiService.enabled,
     }));
   } catch (error) {
     console.error("Failed to fetch user services:", error);
@@ -124,13 +137,14 @@ interface UserServicesProps {
 }
 
 export function UserServices({ userId }: UserServicesProps) {
-  const t = useTranslations('UserServices');
+  const t = useTranslations();
   const [userServices, setUserServices] = React.useState<Service[]>([]);
   const [allServices, setAllServices] = React.useState<Service[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedServices, setSelectedServices] = React.useState<UserServiceAssignment[]>([]);
   const { toast } = useToast();
+  const columns = React.useMemo(() => getColumns(t), [t]);
 
   const loadUserServices = React.useCallback(async () => {
     if (!userId) return;
@@ -159,16 +173,16 @@ export function UserServices({ userId }: UserServicesProps) {
     try {
         await assignServicesToUser(userId, selectedServices);
         toast({
-            title: t('toast.success'),
-            description: t('toast.servicesAssigned'),
+            title: t('UserServices.toast.success'),
+            description: t('UserServices.toast.servicesAssigned'),
         });
         setIsDialogOpen(false);
         loadUserServices();
     } catch (error) {
          toast({
             variant: "destructive",
-            title: t('toast.error'),
-            description: error instanceof Error ? error.message : t('toast.servicesAssignFailed'),
+            title: t('UserServices.toast.error'),
+            description: error instanceof Error ? error.message : t('UserServices.toast.servicesAssignFailed'),
         });
     }
   };
@@ -217,11 +231,11 @@ export function UserServices({ userId }: UserServicesProps) {
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>{t('dialog.title')}</DialogTitle>
-                <DialogDescription>{t('dialog.description')}</DialogDescription>
+                <DialogTitle>{t('UserServices.dialog.title')}</DialogTitle>
+                <DialogDescription>{t('UserServices.dialog.description')}</DialogDescription>
             </DialogHeader>
             <div className="py-4">
-                <Label>{t('dialog.availableServices')}</Label>
+                <Label>{t('UserServices.dialog.availableServices')}</Label>
                 <ScrollArea className="h-64 mt-2 border rounded-md p-4">
                    <div className="space-y-2">
                         {allServices.map(service => {
@@ -239,7 +253,7 @@ export function UserServices({ userId }: UserServicesProps) {
                                     </div>
                                     {isSelected && (
                                         <div className="flex items-center space-x-2">
-                                            <Label htmlFor={`active-switch-${service.id}`} className="text-sm">{t('dialog.activeLabel')}</Label>
+                                            <Label htmlFor={`active-switch-${service.id}`} className="text-sm">{t('UserServices.dialog.activeLabel')}</Label>
                                             <Switch
                                                 id={`active-switch-${service.id}`}
                                                 checked={serviceData?.is_active}
@@ -254,8 +268,8 @@ export function UserServices({ userId }: UserServicesProps) {
                 </ScrollArea>
             </div>
             <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
-                <Button onClick={handleAssignServices}>{t('dialog.assign')}</Button>
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{t('UserServices.dialog.cancel')}</Button>
+                <Button onClick={handleAssignServices}>{t('UserServices.dialog.assign')}</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
