@@ -3,7 +3,9 @@
 
 import { Check, ChevronsUpDown } from 'lucide-react';
 import * as React from 'react';
-import { AsYouType, CountryCode, getCountryCallingCode } from 'libphonenumber-js/min';
+import { AsYouType, CountryCode, getCountryCallingCode, getExampleNumber } from 'libphonenumber-js/min';
+import { examples } from 'libphonenumber-js/examples.mobile.json';
+
 import {
   Button,
   Command,
@@ -31,7 +33,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   className,
   value: valueProp,
   onChange,
-  defaultCountry = 'US',
+  defaultCountry = 'UY',
   ...rest
 }) => {
   const [open, setOpen] = React.useState(false);
@@ -40,25 +42,27 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
 
   React.useEffect(() => {
     if (valueProp) {
-      const asYouType = new AsYouType(country);
+      const asYouType = new AsYouType();
       asYouType.input(valueProp);
       if (asYouType.country) {
         setCountry(asYouType.country);
+        setInputValue(asYouType.getNumber()?.formatNational() || '');
+      } else {
+        setInputValue(valueProp);
       }
-      setInputValue(asYouType.getNumber()?.format('NATIONAL') || '');
     } else {
-        setInputValue('');
-        setCountry(defaultCountry);
+      setInputValue('');
+      setCountry(defaultCountry);
     }
-  }, [valueProp, country, defaultCountry]);
+  }, [valueProp, defaultCountry]);
 
   const handleCountryChange = (countryCode: CountryCode) => {
+    setCountry(countryCode);
     const callingCode = getCountryCallingCode(countryCode);
-    const newPhoneNumber = `+${callingCode} ${inputValue.split(' ').slice(1).join(' ')}`;
+    const newPhoneNumber = `+${callingCode} ${inputValue.replace(/^\+\d+\s/, '')}`;
     const asYouType = new AsYouType(countryCode);
     asYouType.input(newPhoneNumber);
-    setCountry(countryCode);
-    onChange(asYouType.getNumber()?.format('E.164') || '');
+    onChange(asYouType.getNumber()?.format('E.164') || newPhoneNumber);
     setOpen(false);
   };
 
@@ -68,6 +72,12 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
     setInputValue(e.target.value);
     onChange(asYouType.getNumber()?.format('E.164') || '');
   };
+
+  const placeholder = React.useMemo(() => {
+    const example = getExampleNumber(country, examples);
+    return example ? example.formatNational() : 'Phone number';
+  }, [country]);
+
 
   return (
     <div className={cn('flex', className)}>
@@ -110,7 +120,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
       </Popover>
       <Input
         className="rounded-s-none"
-        placeholder="Phone number"
+        placeholder={placeholder}
         value={inputValue}
         onChange={handleInputChange}
         {...rest}

@@ -123,7 +123,7 @@ async function upsertUser(userData: UserFormValues) {
     
     const responseData = await response.json();
 
-    if (response.status >= 400 || (responseData.error && responseData.error.error)) {
+    if (response.status >= 400 || (responseData.error && (responseData.error.error || responseData.code > 200))) {
         const error = new Error('API Error') as any;
         error.status = responseData.code || response.status;
         error.data = responseData;
@@ -289,7 +289,7 @@ export default function UsersPage() {
         } else if (error.status >= 500) {
             setSubmissionError(t('UsersPage.createDialog.validation.serverError'));
         } else {
-             const errorMessage = errorData?.message || (error instanceof Error ? error.message : t('UsersPage.createDialog.validation.genericError'));
+             const errorMessage = typeof error.data === 'string' ? error.data : errorData?.message || (error instanceof Error ? error.message : t('UsersPage.createDialog.validation.genericError'));
              setSubmissionError(errorMessage);
         }
     }
