@@ -214,6 +214,7 @@
         "phoneInvalid": "Número de teléfono no válido",
         "identityRequired": "El documento de identidad es obligatorio",
         "identityInvalid": "El documento de identidad debe ser un número.",
+        "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
         "genericError": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
         "serverError": "Error del servidor, por favor inténtelo más tarde.",
         "uniqueConflict": "Los siguientes campos ya se encuentran registrados: {fields}",
@@ -309,3 +310,5 @@
     "noResults": "No se encontraron resultados."
   }
 }
+
+    

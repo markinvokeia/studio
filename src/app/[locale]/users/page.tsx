@@ -43,7 +43,9 @@ const userFormSchema = (t: (key: string) => string) => z.object({
   name: z.string().min(1, { message: t('UsersPage.createDialog.validation.nameRequired') }),
   email: z.string().email({ message: t('UsersPage.createDialog.validation.emailInvalid') }),
   phone: z.string().refine(isValidPhoneNumber, { message: t('UsersPage.createDialog.validation.phoneInvalid') }),
-  identity_document: z.string().regex(/^\d+$/, { message: t('UsersPage.createDialog.validation.identityInvalid') }),
+  identity_document: z.string()
+    .regex(/^\d+$/, { message: t('UsersPage.createDialog.validation.identityInvalid') })
+    .max(10, { message: t('UsersPage.createDialog.validation.identityMaxLength') }),
   is_active: z.boolean().default(false),
 });
 
@@ -489,6 +491,8 @@ export default function UsersPage() {
                                     {...field}
                                     defaultCountry="UY"
                                     placeholder={t('UsersPage.createDialog.phonePlaceholder')}
+                                    onChange={field.onChange}
+                                    value={field.value}
                                 />
                             </FormControl>
                             <FormMessage />
@@ -531,3 +535,5 @@ export default function UsersPage() {
     </>
   );
 }
+
+    

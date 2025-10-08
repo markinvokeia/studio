@@ -210,10 +210,11 @@
         "errorTitle": "Error",
         "nameRequired": "Name is required",
         "emailInvalid": "Invalid email address",
-        "phoneRequired": "Phone is required",
         "phoneInvalid": "Invalid phone number",
+        "phoneRequired": "Phone is required",
         "identityRequired": "Identity document is required",
         "identityInvalid": "Identity document must be a number.",
+        "identityMaxLength": "Identity document must be 10 characters or less.",
         "genericError": "An unexpected error occurred. Please try again.",
         "serverError": "Server error, please try again later.",
         "uniqueConflict": "The following fields are already registered: {fields}",
@@ -309,3 +310,5 @@
     "noResults": "No results."
   }
 }
+
+    
