@@ -212,7 +212,7 @@
         "emailInvalid": "Invalid email address",
         "phoneRequired": "Phone is required",
         "identityRequired": "Identity document is required",
-        "identityInvalid": "Identity document must be a 10-digit number.",
+        "identityInvalid": "Identity document must be a number.",
         "genericError": "An unexpected error occurred. Please try again.",
         "serverError": "Server error, please try again later.",
         "uniqueConflict": "The following fields are already registered: {fields}",

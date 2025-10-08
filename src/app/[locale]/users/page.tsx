@@ -41,7 +41,7 @@ const userFormSchema = (t: (key: string) => string) => z.object({
   name: z.string().min(1, { message: t('UsersPage.createDialog.validation.nameRequired') }),
   email: z.string().email({ message: t('UsersPage.createDialog.validation.emailInvalid') }),
   phone: z.string().min(1, { message: t('UsersPage.createDialog.validation.phoneRequired') }),
-  identity_document: z.string().length(10, { message: t('UsersPage.createDialog.validation.identityInvalid') }).regex(/^\d+$/, { message: t('UsersPage.createDialog.validation.identityInvalid') }),
+  identity_document: z.string().regex(/^\d+$/, { message: t('UsersPage.createDialog.validation.identityInvalid') }),
   is_active: z.boolean().default(false),
 });
 

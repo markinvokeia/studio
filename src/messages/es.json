@@ -212,7 +212,7 @@
         "emailInvalid": "Dirección de correo electrónico no válida",
         "phoneRequired": "El teléfono es obligatorio",
         "identityRequired": "El documento de identidad es obligatorio",
-        "identityInvalid": "El documento de identidad debe ser un número de 10 dígitos.",
+        "identityInvalid": "El documento de identidad debe ser un número.",
         "genericError": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
         "serverError": "Error del servidor, por favor inténtelo más tarde.",
         "uniqueConflict": "Los siguientes campos ya se encuentran registrados: {fields}",
