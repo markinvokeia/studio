@@ -126,12 +126,11 @@ async function upsertUser(userData: UserFormValues) {
         error.data = responseData;
         throw error;
     }
-
-    // Handle business logic errors returned with a 200 OK status
+    
     if (responseData.error && typeof responseData.error === 'object') {
         const error = new Error('Business Logic Error') as any;
         error.status = responseData.code || 409; 
-        error.data = responseData.error;
+        error.data = responseData;
         throw error;
     }
     
@@ -272,13 +271,16 @@ export default function UsersPage() {
         loadUsers();
 
     } catch (error: any) {
-        const errorData = error.data;
-        if (error.status === 400 || error.status === 409) {
-             const errors = errorData?.errors;
-            if (Array.isArray(errors) && errors.length > 0) {
+        const errorData = error.data?.error;
+        if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
+            const fields = errorData.conflictedFields.map((f:string) => t(`UsersPage.createDialog.validation.fields.${f}`)).join(', ');
+            setSubmissionError(t('UsersPage.createDialog.validation.uniqueConflict', { fields }));
+        } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
+            const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
+            if (errors.length > 0) {
                 errors.forEach((err: { field: any; message: string }) => {
                     if (err.field) {
-                        form.setError(err.field, {
+                        form.setError(err.field as keyof UserFormValues, {
                             type: 'manual',
                             message: err.message,
                         });

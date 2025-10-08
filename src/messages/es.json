@@ -214,7 +214,13 @@
         "identityRequired": "El documento de identidad es obligatorio",
         "identityInvalid": "El documento de identidad debe ser un número de 10 dígitos.",
         "genericError": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
-        "serverError": "Error del servidor, por favor inténtelo más tarde."
+        "serverError": "Error del servidor, por favor inténtelo más tarde.",
+        "uniqueConflict": "Los siguientes campos ya se encuentran registrados: {fields}",
+        "fields": {
+          "email": "Correo electrónico",
+          "phone": "Teléfono",
+          "identity_document": "Documento de identidad"
+        }
       }
     }
   },
@@ -287,5 +293,3 @@
     "noResults": "No se encontraron resultados."
   }
 }
-
-    

@@ -214,7 +214,13 @@
         "identityRequired": "Identity document is required",
         "identityInvalid": "Identity document must be a 10-digit number.",
         "genericError": "An unexpected error occurred. Please try again.",
-        "serverError": "Server error, please try again later."
+        "serverError": "Server error, please try again later.",
+        "uniqueConflict": "The following fields are already registered: {fields}",
+        "fields": {
+          "email": "Email",
+          "phone": "Phone",
+          "identity_document": "Identity Document"
+        }
       }
     }
   },
@@ -287,5 +293,3 @@
     "noResults": "No results."
   }
 }
-
-    
