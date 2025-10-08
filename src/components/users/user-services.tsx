@@ -96,11 +96,12 @@ async function getAllServices(): Promise<Service[]> {
 
 async function assignServicesToUser(userId: string, serviceIds: string[]): Promise<any> {
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services/assign`, {
-        method: 'POST',
+        method: 'PATCH',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, service_ids: serviceIds }),
+        body: JSON.stringify({ user_id: userId, services: serviceIds }),
     });
+
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to assign services' }));

@@ -9,7 +9,7 @@ import { UserColumnsWrapper } from './columns';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User } from '@/lib/types';
+import { User, UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -34,8 +34,7 @@ import { RowSelectionState, PaginationState, ColumnFiltersState } from '@tanstac
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
-import { isValidPhoneNumber } from 'react-phone-number-input';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 import { PhoneInput } from '@/components/ui/phone-input';
 
 
@@ -133,6 +132,35 @@ async function upsertUser(userData: UserFormValues) {
     return responseData;
 }
 
+async function getRolesForUser(userId: string): Promise<UserRole[]> {
+  if (!userId) return [];
+  try {
+    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/roles/user_roles?user_id=${userId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const userRolesData = Array.isArray(data) ? (Object.keys(data[0]).length === 0? [] : data) : (data.user_roles || data.data || data.result || []);
+    return userRolesData.map((apiRole: any) => ({
+      user_role_id: apiRole.user_role_id,
+      role_id: apiRole.role_id,
+      name: apiRole.name || 'Unknown Role',
+      is_active: apiRole.is_active,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch user roles:", error);
+    return [];
+  }
+}
+
 export default function UsersPage() {
   const t = useTranslations();
   
@@ -140,6 +168,7 @@ export default function UsersPage() {
   const [users, setUsers] = React.useState<User[]>([]);
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
+  const [selectedUserRoles, setSelectedUserRoles] = React.useState<UserRole[]>([]);
   const [editingUser, setEditingUser] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
@@ -245,6 +274,14 @@ export default function UsersPage() {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
     setSelectedUser(user);
   };
+
+  React.useEffect(() => {
+    if (selectedUser) {
+      getRolesForUser(selectedUser.id).then(setSelectedUserRoles);
+    } else {
+      setSelectedUserRoles([]);
+    }
+  }, [selectedUser]);
   
   const handleCloseDetails = () => {
     setSelectedUser(null);
@@ -294,6 +331,10 @@ export default function UsersPage() {
         }
     }
   };
+
+  const userHasMedicoRole = React.useMemo(() => {
+    return selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active);
+  }, [selectedUserRoles]);
   
   return (
     <>
@@ -344,7 +385,9 @@ export default function UsersPage() {
                 <Tabs defaultValue="roles" className="w-full">
                    <TabsList className="h-auto items-center justify-start flex-wrap">
                     <TabsTrigger value="roles">{t('UsersPage.tabs.roles')}</TabsTrigger>
-                    <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
+                    {userHasMedicoRole && (
+                        <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
+                    )}
                     <TabsTrigger value="quotes">{t('UsersPage.tabs.quotes')}</TabsTrigger>
                     <TabsTrigger value="appointments">{t('UsersPage.tabs.appointments')}</TabsTrigger>
                     <TabsTrigger value="messages">{t('UsersPage.tabs.messages')}</TabsTrigger>
@@ -354,9 +397,11 @@ export default function UsersPage() {
                   <TabsContent value="roles">
                     <UserRoles userId={selectedUser.id} />
                   </TabsContent>
-                  <TabsContent value="services">
-                    <UserServices userId={selectedUser.id} />
-                  </TabsContent>
+                  {userHasMedicoRole && (
+                    <TabsContent value="services">
+                      <UserServices userId={selectedUser.id} />
+                    </TabsContent>
+                  )}
                   <TabsContent value="quotes">
                     <UserQuotes userId={selectedUser.id} />
                   </TabsContent>
