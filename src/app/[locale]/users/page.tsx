@@ -111,19 +111,27 @@ async function getUsers(pagination: PaginationState, searchQuery: string): Promi
 }
 
 async function upsertUser(userData: UserFormValues) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook-test/users/upsert', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/upsert', {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
     });
     
-    const responseData = await response.json().catch(() => ({}));
+    const responseData = await response.json();
 
     if (!response.ok) {
         const error = new Error('API Error') as any;
         error.status = response.status;
         error.data = responseData;
+        throw error;
+    }
+
+    // Handle business logic errors returned with a 200 OK status
+    if (responseData.error && typeof responseData.error === 'object') {
+        const error = new Error('Business Logic Error') as any;
+        error.status = responseData.code || 409; 
+        error.data = responseData.error;
         throw error;
     }
     
@@ -264,9 +272,10 @@ export default function UsersPage() {
         loadUsers();
 
     } catch (error: any) {
+        const errorData = error.data;
         if (error.status === 400 || error.status === 409) {
-            const errors = error.data?.errors || [];
-            if (errors.length > 0) {
+             const errors = errorData?.errors;
+            if (Array.isArray(errors) && errors.length > 0) {
                 errors.forEach((err: { field: any; message: string }) => {
                     if (err.field) {
                         form.setError(err.field, {
@@ -276,13 +285,13 @@ export default function UsersPage() {
                     }
                 });
             } else {
-                 setSubmissionError(t('UsersPage.createDialog.validation.genericError'));
+                 setSubmissionError(errorData?.message || t('UsersPage.createDialog.validation.genericError'));
             }
-        } else if (error.status && error.status >= 500) {
+        } else if (error.status >= 500) {
             setSubmissionError(t('UsersPage.createDialog.validation.serverError'));
         } else {
-            const errorMessage = error instanceof Error ? error.message : t('UsersPage.createDialog.validation.genericError');
-            setSubmissionError(errorMessage);
+             const errorMessage = errorData?.message || (error instanceof Error ? error.message : t('UsersPage.createDialog.validation.genericError'));
+             setSubmissionError(errorMessage);
         }
     }
   };
@@ -461,5 +470,3 @@ export default function UsersPage() {
     </>
   );
 }
-
-    
