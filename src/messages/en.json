@@ -190,6 +190,10 @@
       "description": "Fill in the details below to add a new user.",
       "editTitle": "Edit User",
       "editDescription": "Update the details for this user.",
+      "createSuccessTitle": "User Created",
+      "createSuccessDescription": "The new user has been added successfully.",
+      "editSuccessTitle": "User Updated",
+      "editSuccessDescription": "The user has been updated successfully.",
       "name": "Name",
       "namePlaceholder": "John Doe",
       "email": "Email",
@@ -203,12 +207,14 @@
       "save": "Create User",
       "editSave": "Save Changes",
       "validation": {
+        "errorTitle": "Error",
         "nameRequired": "Name is required",
         "emailInvalid": "Invalid email address",
         "phoneRequired": "Phone is required",
         "identityRequired": "Identity document is required",
         "identityInvalid": "Identity document must be a 10-digit number.",
-        "genericError": "An unexpected error occurred. Please try again."
+        "genericError": "An unexpected error occurred. Please try again.",
+        "serverError": "Server error, please try again later."
       }
     }
   },
@@ -281,3 +287,5 @@
     "noResults": "No results."
   }
 }
+
+    

@@ -190,6 +190,10 @@
       "description": "Completa los detalles a continuación para agregar un nuevo usuario.",
       "editTitle": "Editar Usuario",
       "editDescription": "Actualiza los detalles de este usuario.",
+      "createSuccessTitle": "Usuario Creado",
+      "createSuccessDescription": "El nuevo usuario ha sido añadido exitosamente.",
+      "editSuccessTitle": "Usuario Actualizado",
+      "editSuccessDescription": "El usuario ha sido actualizado exitosamente.",
       "name": "Nombre",
       "namePlaceholder": "John Doe",
       "email": "Email",
@@ -203,12 +207,14 @@
       "save": "Crear Usuario",
       "editSave": "Guardar Cambios",
       "validation": {
+        "errorTitle": "Error",
         "nameRequired": "El nombre es obligatorio",
         "emailInvalid": "Dirección de correo electrónico no válida",
         "phoneRequired": "El teléfono es obligatorio",
         "identityRequired": "El documento de identidad es obligatorio",
         "identityInvalid": "El documento de identidad debe ser un número de 10 dígitos.",
-        "genericError": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo."
+        "genericError": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
+        "serverError": "Error del servidor, por favor inténtelo más tarde."
       }
     }
   },
@@ -281,3 +287,5 @@
     "noResults": "No se encontraron resultados."
   }
 }
+
+    

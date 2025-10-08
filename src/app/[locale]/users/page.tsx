@@ -111,15 +111,21 @@ async function getUsers(pagination: PaginationState, searchQuery: string): Promi
 }
 
 async function upsertUser(userData: UserFormValues) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/upsert', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook-test/users/upsert', {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
     });
+    
+    const responseData = await response.json().catch(() => ({}));
 
-    const responseText = await response.text();
-    const responseData = responseText ? JSON.parse(responseText) : {};
+    if (!response.ok) {
+        const error = new Error('API Error') as any;
+        error.status = response.status;
+        error.data = responseData;
+        throw error;
+    }
     
     return responseData;
 }
@@ -244,29 +250,38 @@ export default function UsersPage() {
 
   const onSubmit = async (data: UserFormValues) => {
     setSubmissionError(null);
+    form.clearErrors();
+
     try {
-        const responseData = await upsertUser(data);
+        await upsertUser(data);
         const isEditing = !!editingUser;
 
-        const result = Array.isArray(responseData) ? responseData[0] : responseData;
-        const code = result?.code;
-        const errorMessage = result?.error_message || result?.message;
+        toast({
+            title: isEditing ? t('UsersPage.createDialog.editSuccessTitle') : t('UsersPage.createDialog.createSuccessTitle'),
+            description: isEditing ? t('UsersPage.createDialog.editSuccessDescription') : t('UsersPage.createDialog.createSuccessDescription'),
+        });
+        setIsDialogOpen(false);
+        loadUsers();
 
-        if (code === 200 || (result.id && !errorMessage)) {
-            toast({
-                title: isEditing ? t('UsersPage.createDialog.editTitle') : t('UsersPage.createDialog.title'),
-                description: isEditing ? 'The user has been updated successfully.' : 'The new user has been added successfully.',
-            });
-            setIsDialogOpen(false);
-            loadUsers();
+    } catch (error: any) {
+        if (error.status === 400 || error.status === 409) {
+            const errors = error.data?.errors || [];
+            if (errors.length > 0) {
+                errors.forEach((err: { field: any; message: string }) => {
+                    if (err.field) {
+                        form.setError(err.field, {
+                            type: 'manual',
+                            message: err.message,
+                        });
+                    }
+                });
+            } else {
+                 setSubmissionError(t('UsersPage.createDialog.validation.genericError'));
+            }
+        } else if (error.status && error.status >= 500) {
+            setSubmissionError(t('UsersPage.createDialog.validation.serverError'));
         } else {
-            setSubmissionError(errorMessage || t('UsersPage.createDialog.validation.genericError'));
-        }
-    } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : t('UsersPage.createDialog.validation.genericError');
-        if (typeof errorMessage === 'object') {
-            setSubmissionError(JSON.stringify(errorMessage));
-        } else {
+            const errorMessage = error instanceof Error ? error.message : t('UsersPage.createDialog.validation.genericError');
             setSubmissionError(errorMessage);
         }
     }
@@ -367,7 +382,7 @@ export default function UsersPage() {
                 {submissionError && (
                   <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
+                    <AlertTitle>{t('UsersPage.createDialog.validation.errorTitle')}</AlertTitle>
                     <AlertDescription>{submissionError}</AlertDescription>
                   </Alert>
                 )}
@@ -446,3 +461,5 @@ export default function UsersPage() {
     </>
   );
 }
+
+    
