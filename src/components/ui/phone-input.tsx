@@ -3,8 +3,8 @@
 
 import { Check, ChevronsUpDown } from 'lucide-react';
 import * as React from 'react';
-import { AsYouType, CountryCode, getCountryCallingCode, getExampleNumber } from 'libphonenumber-js/min';
-import { examples } from 'libphonenumber-js/examples.mobile.json';
+import { AsYouType, CountryCode, getCountryCallingCode, getExampleNumber, Examples } from 'libphonenumber-js/min';
+import examples from 'libphonenumber-js/examples.mobile.json';
 
 import {
   Button,
@@ -74,8 +74,13 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   };
 
   const placeholder = React.useMemo(() => {
-    const example = getExampleNumber(country, examples);
-    return example ? example.formatNational() : 'Phone number';
+    if (country && examples) {
+        const example = getExampleNumber(country, examples as Examples);
+        if (example) {
+            return example.formatNational();
+        }
+    }
+    return 'Phone number';
   }, [country]);
 
 
