@@ -249,7 +249,7 @@
       "availableRoles": "Available Roles",
       "activeLabel": "Active",
       "cancel": "Cancel",
-      "assign": "Assign Roles"
+      "assign": "Accept"
     },
     "deleteDialog": {
       "title": "Are you sure?",
