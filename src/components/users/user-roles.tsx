@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -16,8 +16,6 @@ import { Role, UserRoleAssignment, UserRole } from '@/lib/types';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import { Switch } from '../ui/switch';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { useTranslations } from 'next-intl';
 
@@ -149,43 +147,6 @@ export function UserRoles({ userId }: UserRolesProps) {
     }
   }, [isDialogOpen]);
 
-  const handleToggleActivate = async (role: UserRole) => {
-    try {
-        await updateUserRoleStatus(role.user_role_id, !role.is_active);
-        toast({
-            title: t('toast.success'),
-            description: t('toast.statusUpdated', { roleName: role.name, status: role.is_active ? t('status.inactive') : t('status.active') }),
-        });
-        loadUserRoles();
-    } catch (error) {
-        toast({
-            variant: 'destructive',
-            title: t('toast.error'),
-            description: error instanceof Error ? error.message : t('toast.statusUpdateFailed'),
-        });
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!roleToDelete) return;
-    try {
-        await deleteUserRole(userId, roleToDelete.role_id);
-        toast({
-            title: t('toast.success'),
-            description: t('toast.roleRemoved', { roleName: roleToDelete.name }),
-        });
-        setRoleToDelete(null);
-        loadUserRoles();
-    } catch (error) {
-        toast({
-            variant: 'destructive',
-            title: t('toast.error'),
-            description: error instanceof Error ? error.message : t('toast.roleRemoveFailed', { roleName: roleToDelete.name }),
-        });
-        setRoleToDelete(null);
-    }
-  };
-
   const columns: ColumnDef<UserRole>[] = [
     {
         accessorKey: 'name',
@@ -202,31 +163,6 @@ export function UserRoles({ userId }: UserRolesProps) {
                 </Badge>
             );
         }
-    },
-    {
-        id: 'actions',
-        cell: ({ row }) => {
-            const role = row.original;
-            return (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">{t('actions.openMenu')}</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>{t('actions.title')}</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleToggleActivate(role)}>
-                            {role.is_active ? t('actions.deactivate') : t('actions.activate')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setRoleToDelete(role)} className="text-destructive">
-                            {t('actions.delete')}
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            );
-        },
     },
 ];
 
@@ -353,12 +289,10 @@ export function UserRoles({ userId }: UserRolesProps) {
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete}>{t('deleteDialog.continue')}</AlertDialogAction>
+                <AlertDialogAction onClick={() => {}}>{t('deleteDialog.continue')}</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
     </>
   );
 }
-
-    
