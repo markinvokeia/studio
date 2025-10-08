@@ -281,6 +281,21 @@
       "rolesAssignFailed": "Could not assign roles."
     }
   },
+    "UserServices": {
+    "dialog": {
+      "title": "Add Services to User",
+      "description": "Select the services to assign to this user.",
+      "availableServices": "Available Services",
+      "cancel": "Cancel",
+      "assign": "Assign"
+    },
+    "toast": {
+      "success": "Success",
+      "error": "Error",
+      "servicesAssigned": "Services assigned successfully.",
+      "servicesAssignFailed": "Could not assign services."
+    }
+  },
   "QuoteColumns": {
     "quoteId": "Quote ID",
     "total": "Total",

@@ -281,6 +281,21 @@
       "rolesAssignFailed": "No se pudieron asignar los roles."
     }
   },
+    "UserServices": {
+    "dialog": {
+      "title": "Añadir Servicios al Usuario",
+      "description": "Selecciona los servicios a asignar a este usuario.",
+      "availableServices": "Servicios Disponibles",
+      "cancel": "Cancelar",
+      "assign": "Asignar"
+    },
+    "toast": {
+      "success": "Éxito",
+      "error": "Error",
+      "servicesAssigned": "Servicios asignados correctamente.",
+      "servicesAssignFailed": "No se pudieron asignar los servicios."
+    }
+  },
   "QuoteColumns": {
     "quoteId": "ID Cotización",
     "total": "Total",
