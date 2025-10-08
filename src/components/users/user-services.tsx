@@ -77,6 +77,7 @@ async function getServicesForUser(userId: string): Promise<Service[]> {
       category: apiService.category || 'N/A',
       price: apiService.price || 0,
       duration_minutes: apiService.duration_minutes || 0,
+      is_active: apiService.is_active,
     }));
   } catch (error) {
     console.error("Failed to fetch user services:", error);
@@ -95,7 +96,7 @@ async function getAllServices(): Promise<Service[]> {
     if (!response.ok) throw new Error('Failed to fetch services');
     const data = await response.json();
     const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
-    return servicesData.map((service: any) => ({ id: String(service.id), name: service.name, category: service.category, price: service.price, duration_minutes: service.duration_minutes }));
+    return servicesData.map((service: any) => ({ id: String(service.id), name: service.name, category: service.category, price: service.price, duration_minutes: service.duration_minutes, is_active: service.is_active }));
   } catch (error) {
     console.error("Failed to fetch all services:", error);
     return [];
@@ -148,7 +149,7 @@ export function UserServices({ userId }: UserServicesProps) {
     setAllServices(services);
     const assignedServices: UserServiceAssignment[] = userServices.map(service => ({
         service_id: service.id,
-        is_active: true, // Assuming existing services are active, backend doesn't provide this
+        is_active: service.is_active, 
     }));
     setSelectedServices(assignedServices);
     setIsDialogOpen(true);
@@ -175,7 +176,8 @@ export function UserServices({ userId }: UserServicesProps) {
   const handleServiceSelection = (serviceId: string, checked: boolean | 'indeterminate') => {
       setSelectedServices(prev => {
           if (checked) {
-              return [...prev, { service_id: serviceId, is_active: true }];
+              const service = allServices.find(s => s.id === serviceId);
+              return [...prev, { service_id: serviceId, is_active: service?.is_active ?? true }];
           } else {
               return prev.filter(s => s.service_id !== serviceId);
           }

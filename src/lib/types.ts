@@ -127,6 +127,7 @@ export type Service = {
   duration_minutes: number;
   description?: string;
   indications?: string;
+  is_active: boolean;
 };
 
 export type Clinic = {
