@@ -287,7 +287,7 @@
       "description": "Select the services to assign to this user.",
       "availableServices": "Available Services",
       "cancel": "Cancel",
-      "assign": "Assign"
+      "assign": "Accept"
     },
     "toast": {
       "success": "Success",

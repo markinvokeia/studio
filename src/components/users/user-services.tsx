@@ -95,7 +95,7 @@ async function getAllServices(): Promise<Service[]> {
 }
 
 async function assignServicesToUser(userId: string, serviceIds: string[]): Promise<any> {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_services/assign`, {
+    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services/assign`, {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
