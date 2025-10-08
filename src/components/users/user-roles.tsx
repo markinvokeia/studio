@@ -35,8 +35,8 @@ async function getRolesForUser(userId: string): Promise<UserRole[]> {
     }
 
     const data = await response.json();
-    const userRolesData = Array.isArray(data) ? data : (data.user_roles || data.data || data.result || []);
-
+    // const userRolesData = Array.isArray(data) ? data : (data.user_roles || data.data || data.result || []);
+    const userRolesData = Array.isArray(data) ? (Object.keys(data[0]).length === 0? [] : data) : (data.user_roles || data.data || data.result || []);
     return userRolesData.map((apiRole: any) => ({
       user_role_id: apiRole.user_role_id,
       role_id: apiRole.role_id,
@@ -168,7 +168,7 @@ export function UserRoles({ userId }: UserRolesProps) {
 
   const handleAddRole = () => {
     const assignedRoles: UserRoleAssignment[] = userRoles.map(role => ({
-        role_id: role.role_id,
+        role_id: String(role.role_id),
         is_active: role.is_active,
     }));
     setSelectedRoles(assignedRoles);
