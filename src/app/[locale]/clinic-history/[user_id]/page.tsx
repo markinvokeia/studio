@@ -8,7 +8,7 @@ import {
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
   BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw,
-  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown, ChevronsUpDown, Check
+  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown, ChevronsUpDown, Check, Trash2
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -989,12 +989,22 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                 <p className="text-muted-foreground">Loading personal history...</p>
                             ) : personalHistory.length > 0 ? (
                                 personalHistory.map((item, index) => (
-                                    <div key={index} className={`border-l-4 ${getAlertBorderColor(item.nivel_alerta)} pl-4 py-2`}>
-                                        <div className="flex justify-between items-center">
-                                            <div className="font-semibold text-foreground">{item.nombre}</div>
-                                            <div className="text-xs text-muted-foreground">{item.categoria}</div>
+                                    <div key={index} className={`border-l-4 ${getAlertBorderColor(item.nivel_alerta)} pl-4 py-2 flex justify-between items-center`}>
+                                        <div>
+                                            <div className="flex justify-between items-center">
+                                                <div className="font-semibold text-foreground">{item.nombre}</div>
+                                                <div className="text-xs text-muted-foreground ml-4">{item.categoria}</div>
+                                            </div>
+                                            <div className="text-sm text-muted-foreground">{item.comentarios}</div>
                                         </div>
-                                        <div className="text-sm text-muted-foreground">{item.comentarios}</div>
+                                        <div className="flex items-center space-x-1">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                <Edit3 className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 ))
                             ) : (
@@ -1316,5 +1326,6 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
 
 
