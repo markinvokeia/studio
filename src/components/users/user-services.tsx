@@ -90,7 +90,7 @@ async function getServicesForUser(userId: string): Promise<Service[]> {
       category: apiService.category || 'N/A',
       price: apiService.price || 0,
       duration_minutes: apiService.duration_minutes || 0,
-      is_active: apiService.enabled,
+      is_active: apiService.is_active,
     }));
   } catch (error) {
     console.error("Failed to fetch user services:", error);

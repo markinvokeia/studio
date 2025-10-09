@@ -24,6 +24,17 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from '@/components/ui/textarea';
 
 
 const initialPatient = {
@@ -127,7 +138,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const [isLoadingPatientSessions, setIsLoadingPatientSessions] = useState(false);
   const [patientHabits, setPatientHabits] = useState<PatientHabits | null>(null);
   const [isLoadingPatientHabits, setIsLoadingPatientHabits] = useState(false);
-
+  const [isPersonalHistoryDialogOpen, setIsPersonalHistoryDialogOpen] = useState(false);
   
     const fetchPersonalHistory = useCallback(async (currentUserId: string) => {
         if (!currentUserId) return;
@@ -873,111 +884,159 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     );
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-6">
-                <div className="bg-card rounded-xl shadow-lg p-6">
-                    <div className="flex items-center mb-4">
-                        <User className="w-5 h-5 text-primary mr-2" />
-                        <h3 className="text-lg font-bold text-card-foreground">Antecedentes Personales</h3>
-                    </div>
-                    <div className="space-y-3">
-                        {isLoadingPersonalHistory ? (
-                            <p className="text-muted-foreground">Loading personal history...</p>
-                        ) : personalHistory.length > 0 ? (
-                            personalHistory.map((item, index) => (
-                                <div key={index} className={`border-l-4 ${getAlertBorderColor(item.nivel_alerta)} pl-4 py-2`}>
-                                    <div className="flex justify-between items-center">
-                                        <div className="font-semibold text-foreground">{item.nombre}</div>
-                                        <div className="text-xs text-muted-foreground">{item.categoria}</div>
-                                    </div>
-                                    <div className="text-sm text-muted-foreground">{item.comentarios}</div>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-muted-foreground">No personal history found.</p>
-                        )}
-                    </div>
-                </div>
-
-                <div className="bg-card rounded-xl shadow-lg p-6">
-                    <div className="flex items-center mb-4">
-                        <Heart className="w-5 h-5 text-red-500 mr-2" />
-                        <h3 className="text-lg font-bold text-card-foreground">Antecedentes Familiares</h3>
-                    </div>
-                    <div className="space-y-3">
-                        {isLoadingFamilyHistory ? (
-                            <p className="text-muted-foreground">Loading family history...</p>
-                        ) : familyHistory.length > 0 ? (
-                            familyHistory.map((item, index) => (
-                                <div key={index} className="border-l-4 border-red-300 dark:border-red-700 pl-4 py-2">
-                                    <div className="font-semibold text-foreground">{item.condition}</div>
-                                    <div className="text-sm text-muted-foreground">Familiar: {item.relative}</div>
-                                    <div className="text-sm text-muted-foreground">{item.comments}</div>
-                                </div>
-                            ))
-                        ) : (
-                           <p className="text-muted-foreground">No family history found.</p>
-                        )}
-                    </div>
-                </div>
-                 <div className="bg-card rounded-xl shadow-lg p-6">
-                    <div className="flex items-center mb-4">
-                        <Pill className="w-5 h-5 text-green-500 mr-2" />
-                        <h3 className="text-lg font-bold text-card-foreground">Medicamentos Actuales</h3>
-                    </div>
-                    <div className="space-y-3">
-                        {isLoadingMedications ? (
-                            <p className="text-muted-foreground">Loading medications...</p>
-                        ) : medications.length > 0 ? (
-                            medications.map((item, index) => (
-                                <div key={index} className="border-l-4 border-green-300 dark:border-green-700 pl-4 py-2">
-                                    <div className="flex justify-between items-start">
-                                        <div className="font-semibold text-foreground">{item.name}</div>
-                                        <div className="text-right text-xs text-muted-foreground">
-                                            <div>{item.dose}</div>
-                                            <div>{item.frequency}</div>
+        <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-6">
+                    <div className="bg-card rounded-xl shadow-lg p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center">
+                                <User className="w-5 h-5 text-primary mr-2" />
+                                <h3 className="text-lg font-bold text-card-foreground">Antecedentes Personales</h3>
+                            </div>
+                            <Button variant="outline" size="icon" onClick={() => setIsPersonalHistoryDialogOpen(true)}>
+                                <Plus className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <div className="space-y-3">
+                            {isLoadingPersonalHistory ? (
+                                <p className="text-muted-foreground">Loading personal history...</p>
+                            ) : personalHistory.length > 0 ? (
+                                personalHistory.map((item, index) => (
+                                    <div key={index} className={`border-l-4 ${getAlertBorderColor(item.nivel_alerta)} pl-4 py-2`}>
+                                        <div className="flex justify-between items-center">
+                                            <div className="font-semibold text-foreground">{item.nombre}</div>
+                                            <div className="text-xs text-muted-foreground">{item.categoria}</div>
                                         </div>
+                                        <div className="text-sm text-muted-foreground">{item.comentarios}</div>
                                     </div>
-                                    <div className="text-sm text-muted-foreground mt-1">
-                                        {formatDate(item.since)} - {item.endDate ? formatDate(item.endDate) : 'Presente'}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground mt-1">{item.reason}</div>
-                                </div>
-                            ))
-                        ) : (
-                           <p className="text-muted-foreground">No medications found.</p>
-                        )}
+                                ))
+                            ) : (
+                                <p className="text-muted-foreground">No personal history found.</p>
+                            )}
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <div className="space-y-6">
-                <div className="bg-card rounded-xl shadow-lg p-6">
-                    <div className="flex items-center mb-4">
-                        <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
-                        <h3 className="text-lg font-bold text-card-foreground">Alergias</h3>
-                    </div>
-                    <div className="space-y-3">
-                        {isLoadingAllergies ? (
-                            <p className="text-muted-foreground">Loading allergies...</p>
-                        ) : allergies.length > 0 ? (
-                            allergies.map((item, index) => (
-                                <div key={index} className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
-                                    <div className="flex justify-between items-center">
-                                        <div className="font-semibold text-destructive">{item.allergen}</div>
-                                        {item.snomed && <span className="text-xs font-mono text-muted-foreground">{item.snomed}</span>}
+                    <div className="bg-card rounded-xl shadow-lg p-6">
+                        <div className="flex items-center mb-4">
+                            <Heart className="w-5 h-5 text-red-500 mr-2" />
+                            <h3 className="text-lg font-bold text-card-foreground">Antecedentes Familiares</h3>
+                        </div>
+                        <div className="space-y-3">
+                            {isLoadingFamilyHistory ? (
+                                <p className="text-muted-foreground">Loading family history...</p>
+                            ) : familyHistory.length > 0 ? (
+                                familyHistory.map((item, index) => (
+                                    <div key={index} className="border-l-4 border-red-300 dark:border-red-700 pl-4 py-2">
+                                        <div className="font-semibold text-foreground">{item.condition}</div>
+                                        <div className="text-sm text-muted-foreground">Familiar: {item.relative}</div>
+                                        <div className="text-sm text-muted-foreground">{item.comments}</div>
                                     </div>
-                                    {item.reaction && <div className="text-sm text-destructive/80">{item.reaction}</div>}
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-muted-foreground">No allergies found.</p>
-                        )}
+                                ))
+                            ) : (
+                            <p className="text-muted-foreground">No family history found.</p>
+                            )}
+                        </div>
+                    </div>
+                    <div className="bg-card rounded-xl shadow-lg p-6">
+                        <div className="flex items-center mb-4">
+                            <Pill className="w-5 h-5 text-green-500 mr-2" />
+                            <h3 className="text-lg font-bold text-card-foreground">Medicamentos Actuales</h3>
+                        </div>
+                        <div className="space-y-3">
+                            {isLoadingMedications ? (
+                                <p className="text-muted-foreground">Loading medications...</p>
+                            ) : medications.length > 0 ? (
+                                medications.map((item, index) => (
+                                    <div key={index} className="border-l-4 border-green-300 dark:border-green-700 pl-4 py-2">
+                                        <div className="flex justify-between items-start">
+                                            <div className="font-semibold text-foreground">{item.name}</div>
+                                            <div className="text-right text-xs text-muted-foreground">
+                                                <div>{item.dose}</div>
+                                                <div>{item.frequency}</div>
+                                            </div>
+                                        </div>
+                                        <div className="text-sm text-muted-foreground mt-1">
+                                            {formatDate(item.since)} - {item.endDate ? formatDate(item.endDate) : 'Presente'}
+                                        </div>
+                                        <div className="text-sm text-muted-foreground mt-1">{item.reason}</div>
+                                    </div>
+                                ))
+                            ) : (
+                            <p className="text-muted-foreground">No medications found.</p>
+                            )}
+                        </div>
                     </div>
                 </div>
-                <HabitCard habits={patientHabits} isLoading={isLoadingPatientHabits} />
+
+                <div className="space-y-6">
+                    <div className="bg-card rounded-xl shadow-lg p-6">
+                        <div className="flex items-center mb-4">
+                            <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
+                            <h3 className="text-lg font-bold text-card-foreground">Alergias</h3>
+                        </div>
+                        <div className="space-y-3">
+                            {isLoadingAllergies ? (
+                                <p className="text-muted-foreground">Loading allergies...</p>
+                            ) : allergies.length > 0 ? (
+                                allergies.map((item, index) => (
+                                    <div key={index} className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                                        <div className="flex justify-between items-center">
+                                            <div className="font-semibold text-destructive">{item.allergen}</div>
+                                            {item.snomed && <span className="text-xs font-mono text-muted-foreground">{item.snomed}</span>}
+                                        </div>
+                                        {item.reaction && <div className="text-sm text-destructive/80">{item.reaction}</div>}
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-muted-foreground">No allergies found.</p>
+                            )}
+                        </div>
+                    </div>
+                    <HabitCard habits={patientHabits} isLoading={isLoadingPatientHabits} />
+                </div>
             </div>
-        </div>
+            <Dialog open={isPersonalHistoryDialogOpen} onOpenChange={setIsPersonalHistoryDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Añadir Antecedente Personal</DialogTitle>
+                        <DialogDescription>
+                            Complete el formulario para añadir un nuevo antecedente personal.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="nombre" className="text-right">Nombre</Label>
+                            <Input id="nombre" placeholder="e.g., Hipertensión Arterial" className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="categoria" className="text-right">Categoría</Label>
+                            <Input id="categoria" placeholder="e.g., Cardiovascular" className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="nivel_alerta" className="text-right">Nivel de Alerta</Label>
+                            <Select>
+                                <SelectTrigger className="col-span-3">
+                                    <SelectValue placeholder="Seleccione un nivel" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="1">1 (Normal)</SelectItem>
+                                    <SelectItem value="2">2 (Advertencia)</SelectItem>
+                                    <SelectItem value="3">3 (Crítico)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <Label htmlFor="comentarios" className="text-right pt-2">Comentarios</Label>
+                            <Textarea id="comentarios" placeholder="e.g., Medicación diaria" className="col-span-3" />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsPersonalHistoryDialogOpen(false)}>Cancelar</Button>
+                        <Button type="submit">Guardar</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
     };
 
