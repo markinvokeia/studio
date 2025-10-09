@@ -159,8 +159,8 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             const data = await response.json();
             const historyData = Array.isArray(data) ? data : (data.antecedentes_personales || data.data || []);
             
-            const mappedHistory = historyData.map((item: any): PersonalHistoryItem => ({
-                id: item.id,
+            const mappedHistory = historyData.map((item: any, index: number): PersonalHistoryItem => ({
+                id: item.id || index,
                 padecimiento_id: item.padecimiento_id,
                 nombre: item.nombre || 'N/A',
                 categoria: item.categoria || 'N/A',
@@ -1354,6 +1354,7 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
 
 
 
