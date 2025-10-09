@@ -35,6 +35,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 
 const initialPatient = {
@@ -815,9 +816,12 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 };
 
   const AnamnesisDashboard = () => {
+    const { toast } = useToast();
     const [ailmentsCatalog, setAilmentsCatalog] = useState<Ailment[]>([]);
     const [selectedAilment, setSelectedAilment] = useState<Ailment | null>(null);
     const [isComboboxOpen, setIsComboboxOpen] = useState(false);
+    const [comentarios, setComentarios] = useState('');
+    const [nivelAlerta, setNivelAlerta] = useState<string | undefined>(undefined);
 
     useEffect(() => {
         const fetchAilments = async () => {
@@ -838,8 +842,65 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     useEffect(() => {
         if (!isPersonalHistoryDialogOpen) {
             setSelectedAilment(null);
+            setComentarios('');
+            setNivelAlerta(undefined);
         }
     }, [isPersonalHistoryDialogOpen]);
+
+    const handleAilmentSelect = (ailment: Ailment | null) => {
+        setSelectedAilment(ailment);
+        setNivelAlerta(ailment ? String(ailment.nivel_alerta) : undefined);
+        setIsComboboxOpen(false);
+    };
+
+    const handleSubmit = async (event: React.FormEvent) => {
+        event.preventDefault();
+        if (!selectedAilment || !userId) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Por favor, seleccione un padecimiento.',
+            });
+            return;
+        }
+
+        const payload = {
+            user_id: userId,
+            padecimiento_id: selectedAilment.id,
+            comentarios: comentarios,
+            nivel_alerta: nivelAlerta ? parseInt(nivelAlerta, 10) : selectedAilment.nivel_alerta,
+        };
+
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales/upsert', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to save personal history');
+            }
+
+            toast({
+                title: 'Éxito',
+                description: 'El antecedente personal ha sido guardado.',
+            });
+
+            setIsPersonalHistoryDialogOpen(false);
+            fetchPersonalHistory(userId); // Refresh the list
+        } catch (error) {
+            console.error('Error saving personal history:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'No se pudo guardar el antecedente. Por favor, intente de nuevo.',
+            });
+        }
+    };
+
 
     const getAlertBorderColor = (level: number) => {
         switch (level) {
@@ -1029,78 +1090,82 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                             Complete el formulario para añadir un nuevo antecedente personal.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="nombre" className="text-right">Nombre</Label>
-                            <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                                <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    role="combobox"
-                                    aria-expanded={isComboboxOpen}
-                                    className="w-[300px] justify-between col-span-3"
-                                >
-                                    {selectedAilment
-                                    ? selectedAilment.nombre
-                                    : "Seleccione un padecimiento..."}
-                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[300px] p-0">
-                                <Command>
-                                    <CommandInput placeholder="Buscar padecimiento..." />
-                                    <CommandEmpty>No se encontró el padecimiento.</CommandEmpty>
-                                    <CommandGroup>
-                                    {ailmentsCatalog.map((ailment) => (
-                                        <CommandItem
-                                        key={ailment.id}
-                                        value={ailment.nombre}
-                                        onSelect={(currentValue) => {
-                                            const selected = ailmentsCatalog.find(a => a.nombre.toLowerCase() === currentValue.toLowerCase());
-                                            setSelectedAilment(selected || null);
-                                            setIsComboboxOpen(false);
-                                        }}
-                                        >
-                                        <Check
-                                            className={cn(
-                                            "mr-2 h-4 w-4",
-                                            selectedAilment?.id === ailment.id ? "opacity-100" : "opacity-0"
-                                            )}
-                                        />
-                                        {ailment.nombre}
-                                        </CommandItem>
-                                    ))}
-                                    </CommandGroup>
-                                </Command>
-                                </PopoverContent>
-                            </Popover>
+                    <form onSubmit={handleSubmit}>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="nombre" className="text-right">Nombre</Label>
+                                <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                                    <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={isComboboxOpen}
+                                        className="w-[300px] justify-between col-span-3"
+                                    >
+                                        {selectedAilment
+                                        ? selectedAilment.nombre
+                                        : "Seleccione un padecimiento..."}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[300px] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Buscar padecimiento..." />
+                                        <CommandEmpty>No se encontró el padecimiento.</CommandEmpty>
+                                        <CommandGroup>
+                                        {ailmentsCatalog.map((ailment) => (
+                                            <CommandItem
+                                            key={ailment.id}
+                                            value={ailment.nombre}
+                                            onSelect={() => handleAilmentSelect(ailment)}
+                                            >
+                                            <Check
+                                                className={cn(
+                                                "mr-2 h-4 w-4",
+                                                selectedAilment?.id === ailment.id ? "opacity-100" : "opacity-0"
+                                                )}
+                                            />
+                                            {ailment.nombre}
+                                            </CommandItem>
+                                        ))}
+                                        </CommandGroup>
+                                    </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="categoria" className="text-right">Categoría</Label>
+                                <Input id="categoria" value={selectedAilment?.categoria || ''} placeholder="e.g., Cardiovascular" className="col-span-3" disabled />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="nivel_alerta" className="text-right">Nivel de Alerta</Label>
+                                <Select value={nivelAlerta} onValueChange={setNivelAlerta}>
+                                    <SelectTrigger className="col-span-3">
+                                        <SelectValue placeholder="Seleccione un nivel" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="1">1 (Normal)</SelectItem>
+                                        <SelectItem value="2">2 (Advertencia)</SelectItem>
+                                        <SelectItem value="3">3 (Crítico)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid grid-cols-4 items-start gap-4">
+                                <Label htmlFor="comentarios" className="text-right pt-2">Comentarios</Label>
+                                <Textarea 
+                                    id="comentarios" 
+                                    placeholder="e.g., Medicación diaria" 
+                                    className="col-span-3" 
+                                    value={comentarios} 
+                                    onChange={(e) => setComentarios(e.target.value)} 
+                                />
+                            </div>
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="categoria" className="text-right">Categoría</Label>
-                            <Input id="categoria" value={selectedAilment?.categoria || ''} placeholder="e.g., Cardiovascular" className="col-span-3" disabled />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="nivel_alerta" className="text-right">Nivel de Alerta</Label>
-                            <Select defaultValue={selectedAilment?.nivel_alerta.toString()}>
-                                <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Seleccione un nivel" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="1">1 (Normal)</SelectItem>
-                                    <SelectItem value="2">2 (Advertencia)</SelectItem>
-                                    <SelectItem value="3">3 (Crítico)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="grid grid-cols-4 items-start gap-4">
-                            <Label htmlFor="comentarios" className="text-right pt-2">Comentarios</Label>
-                            <Textarea id="comentarios" placeholder="e.g., Medicación diaria" className="col-span-3" />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsPersonalHistoryDialogOpen(false)}>Cancelar</Button>
-                        <Button type="submit">Guardar</Button>
-                    </DialogFooter>
+                        <DialogFooter>
+                            <Button variant="outline" type="button" onClick={() => setIsPersonalHistoryDialogOpen(false)}>Cancelar</Button>
+                            <Button type="submit">Guardar</Button>
+                        </DialogFooter>
+                    </form>
                 </DialogContent>
             </Dialog>
         </>
@@ -1228,6 +1293,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
 export default function DentalClinicalSystemPage() {
     const params = useParams();
+    const { toast } = useToast();
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
@@ -1250,4 +1316,5 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
 
