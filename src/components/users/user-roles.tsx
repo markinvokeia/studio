@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef, ColumnFiltersState } from '@tanstack/react-table';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -66,6 +66,7 @@ export function UserRoles({ userId, initialUserRoles, isLoading, onRolesChange }
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedRoles, setSelectedRoles] = React.useState<UserRoleAssignment[]>([]);
   const { toast } = useToast();
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
   React.useEffect(() => {
     if (isDialogOpen) {
@@ -157,6 +158,8 @@ export function UserRoles({ userId, initialUserRoles, isLoading, onRolesChange }
           filterColumnId='name'
           filterPlaceholder={t('filterPlaceholder')}
           onCreate={handleAddRole}
+          columnFilters={columnFilters}
+          onColumnFiltersChange={setColumnFilters}
         />
       </CardContent>
     </Card>

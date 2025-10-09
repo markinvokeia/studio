@@ -154,7 +154,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales?user_id=${currentUserId}`, {
                 method: 'GET',
                 mode: 'cors',
-                headers: { 'Accept': 'application/json' },
+                headers: { 'Content-Type': 'application/json' },
             });
             if (!response.ok) {
                 throw new Error('Network response was not ok for personal history');
