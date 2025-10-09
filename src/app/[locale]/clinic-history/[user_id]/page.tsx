@@ -8,12 +8,12 @@ import {
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
   BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw,
-  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown
+  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown, ChevronsUpDown
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import type { User as UserType, PatientSession, TreatmentDetail, AttachedFile } from '@/lib/types';
+import type { User as UserType, PatientSession, TreatmentDetail, AttachedFile, Ailment } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -815,6 +815,32 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 };
 
   const AnamnesisDashboard = () => {
+    const [ailmentsCatalog, setAilmentsCatalog] = useState<Ailment[]>([]);
+    const [selectedAilment, setSelectedAilment] = useState<Ailment | null>(null);
+    const [isComboboxOpen, setIsComboboxOpen] = useState(false);
+
+    useEffect(() => {
+        const fetchAilments = async () => {
+            if (isPersonalHistoryDialogOpen) {
+                try {
+                    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogo_padecimientos');
+                    const data = await response.json();
+                    const ailmentsData = Array.isArray(data) ? data : (data.catalogo_padecimientos || data.data || data.result || []);
+                    setAilmentsCatalog(ailmentsData.map((a: any) => ({ ...a, id: String(a.id) })));
+                } catch (error) {
+                    console.error("Failed to fetch ailments catalog", error);
+                }
+            }
+        };
+        fetchAilments();
+    }, [isPersonalHistoryDialogOpen]);
+    
+    useEffect(() => {
+        if (!isPersonalHistoryDialogOpen) {
+            setSelectedAilment(null);
+        }
+    }, [isPersonalHistoryDialogOpen]);
+
     const getAlertBorderColor = (level: number) => {
         switch (level) {
             case 1: return 'border-blue-400 dark:border-blue-600';
@@ -1006,15 +1032,56 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="nombre" className="text-right">Nombre</Label>
-                            <Input id="nombre" placeholder="e.g., Hipertensión Arterial" className="col-span-3" />
+                            <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                                <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={isComboboxOpen}
+                                    className="w-[300px] justify-between col-span-3"
+                                >
+                                    {selectedAilment
+                                    ? selectedAilment.nombre
+                                    : "Seleccione un padecimiento..."}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[300px] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Buscar padecimiento..." />
+                                    <CommandEmpty>No se encontró el padecimiento.</CommandEmpty>
+                                    <CommandGroup>
+                                    {ailmentsCatalog.map((ailment) => (
+                                        <CommandItem
+                                        key={ailment.id}
+                                        value={ailment.nombre}
+                                        onSelect={(currentValue) => {
+                                            const selected = ailmentsCatalog.find(a => a.nombre.toLowerCase() === currentValue.toLowerCase());
+                                            setSelectedAilment(selected || null);
+                                            setIsComboboxOpen(false);
+                                        }}
+                                        >
+                                        <Check
+                                            className={cn(
+                                            "mr-2 h-4 w-4",
+                                            selectedAilment?.id === ailment.id ? "opacity-100" : "opacity-0"
+                                            )}
+                                        />
+                                        {ailment.nombre}
+                                        </CommandItem>
+                                    ))}
+                                    </CommandGroup>
+                                </Command>
+                                </PopoverContent>
+                            </Popover>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="categoria" className="text-right">Categoría</Label>
-                            <Input id="categoria" placeholder="e.g., Cardiovascular" className="col-span-3" />
+                            <Input id="categoria" value={selectedAilment?.categoria || ''} placeholder="e.g., Cardiovascular" className="col-span-3" disabled />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="nivel_alerta" className="text-right">Nivel de Alerta</Label>
-                            <Select>
+                            <Select defaultValue={selectedAilment?.nivel_alerta.toString()}>
                                 <SelectTrigger className="col-span-3">
                                     <SelectValue placeholder="Seleccione un nivel" />
                                 </SelectTrigger>
