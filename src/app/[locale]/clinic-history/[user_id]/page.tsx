@@ -36,6 +36,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 
 const initialPatient = {
@@ -143,6 +144,8 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const [isLoadingPatientHabits, setIsLoadingPatientHabits] = useState(false);
   const [isPersonalHistoryDialogOpen, setIsPersonalHistoryDialogOpen] = useState(false);
   const [editingPersonalHistory, setEditingPersonalHistory] = useState<PersonalHistoryItem | null>(null);
+  const [deletingPersonalHistory, setDeletingPersonalHistory] = useState<PersonalHistoryItem | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
     const fetchPersonalHistory = useCallback(async (currentUserId: string) => {
         if (!currentUserId) return;
@@ -929,6 +932,42 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         setIsPersonalHistoryDialogOpen(true);
     };
 
+    const handleDeleteClick = (item: PersonalHistoryItem) => {
+      setDeletingPersonalHistory(item);
+      setIsDeleteDialogOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+      if (!deletingPersonalHistory) return;
+
+      try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: deletingPersonalHistory.id }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to delete personal history');
+        }
+
+        toast({
+          title: 'Éxito',
+          description: 'El antecedente personal ha sido eliminado.',
+        });
+
+        setIsDeleteDialogOpen(false);
+        setDeletingPersonalHistory(null);
+        fetchPersonalHistory(userId);
+      } catch (error) {
+        console.error('Error deleting personal history:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'No se pudo eliminar el antecedente. Por favor, intente de nuevo.',
+        });
+      }
+    };
 
     const getAlertBorderColor = (level: number) => {
         switch (level) {
@@ -1029,7 +1068,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditClick(item)}>
                                                 <Edit3 className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item)}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>
@@ -1206,6 +1245,20 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                     </form>
                 </DialogContent>
             </Dialog>
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete this personal history item.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setDeletingPersonalHistory(null)}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmDelete}>Continue</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
     };
@@ -1354,6 +1407,7 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
 
 
 
