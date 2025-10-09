@@ -70,6 +70,8 @@ const initialPatient = {
   };
   
 type PersonalHistoryItem = {
+    id?: number;
+    padecimiento_id: number;
     nombre: string;
     categoria: string;
     nivel_alerta: number;
@@ -140,6 +142,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const [patientHabits, setPatientHabits] = useState<PatientHabits | null>(null);
   const [isLoadingPatientHabits, setIsLoadingPatientHabits] = useState(false);
   const [isPersonalHistoryDialogOpen, setIsPersonalHistoryDialogOpen] = useState(false);
+  const [editingPersonalHistory, setEditingPersonalHistory] = useState<PersonalHistoryItem | null>(null);
   
     const fetchPersonalHistory = useCallback(async (currentUserId: string) => {
         if (!currentUserId) return;
@@ -157,6 +160,8 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             const historyData = Array.isArray(data) ? data : (data.antecedentes_personales || data.data || []);
             
             const mappedHistory = historyData.map((item: any): PersonalHistoryItem => ({
+                id: item.id,
+                padecimiento_id: item.padecimiento_id,
                 nombre: item.nombre || 'N/A',
                 categoria: item.categoria || 'N/A',
                 nivel_alerta: Number(item.nivel_alerta) || 1,
@@ -844,6 +849,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             setSelectedAilment(null);
             setComentarios('');
             setNivelAlerta(undefined);
+            setEditingPersonalHistory(null);
         }
     }, [isPersonalHistoryDialogOpen]);
 
@@ -899,6 +905,28 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                 description: 'No se pudo guardar el antecedente. Por favor, intente de nuevo.',
             });
         }
+    };
+    
+    const handleAddClick = () => {
+        setEditingPersonalHistory(null);
+        setSelectedAilment(null);
+        setComentarios('');
+        setNivelAlerta(undefined);
+        setIsPersonalHistoryDialogOpen(true);
+    };
+
+    const handleEditClick = (item: PersonalHistoryItem) => {
+        setEditingPersonalHistory(item);
+        const ailment = ailmentsCatalog.find(a => a.id === String(item.padecimiento_id)) || null;
+        if (!ailment && item.padecimiento_id) {
+             const mockAilment = {id: String(item.padecimiento_id), nombre: item.nombre, categoria: item.categoria, nivel_alerta: item.nivel_alerta};
+             setSelectedAilment(mockAilment);
+        } else {
+            setSelectedAilment(ailment);
+        }
+        setComentarios(item.comentarios);
+        setNivelAlerta(String(item.nivel_alerta));
+        setIsPersonalHistoryDialogOpen(true);
     };
 
 
@@ -980,7 +1008,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                 <User className="w-5 h-5 text-primary mr-2" />
                                 <h3 className="text-lg font-bold text-card-foreground">Antecedentes Personales</h3>
                             </div>
-                            <Button variant="outline" size="icon" onClick={() => setIsPersonalHistoryDialogOpen(true)}>
+                            <Button variant="outline" size="icon" onClick={handleAddClick}>
                                 <Plus className="h-4 w-4" />
                             </Button>
                         </div>
@@ -988,8 +1016,8 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                             {isLoadingPersonalHistory ? (
                                 <p className="text-muted-foreground">Loading personal history...</p>
                             ) : personalHistory.length > 0 ? (
-                                personalHistory.map((item, index) => (
-                                    <div key={index} className={`border-l-4 ${getAlertBorderColor(item.nivel_alerta)} pl-4 py-2 flex justify-between items-center`}>
+                                personalHistory.map((item) => (
+                                    <div key={item.id} className={`border-l-4 ${getAlertBorderColor(item.nivel_alerta)} pl-4 py-2 flex justify-between items-center`}>
                                         <div>
                                             <div className="flex justify-between items-center">
                                                 <div className="font-semibold text-foreground">{item.nombre}</div>
@@ -998,7 +1026,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                             <div className="text-sm text-muted-foreground">{item.comentarios}</div>
                                         </div>
                                         <div className="flex items-center space-x-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditClick(item)}>
                                                 <Edit3 className="h-4 w-4" />
                                             </Button>
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
@@ -1095,9 +1123,9 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             <Dialog open={isPersonalHistoryDialogOpen} onOpenChange={setIsPersonalHistoryDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Añadir Antecedente Personal</DialogTitle>
+                        <DialogTitle>{editingPersonalHistory ? 'Editar Antecedente Personal' : 'Añadir Antecedente Personal'}</DialogTitle>
                         <DialogDescription>
-                            Complete el formulario para añadir un nuevo antecedente personal.
+                            {editingPersonalHistory ? 'Actualice los detalles del antecedente.' : 'Complete el formulario para añadir un nuevo antecedente personal.'}
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmit}>
@@ -1173,7 +1201,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                         </div>
                         <DialogFooter>
                             <Button variant="outline" type="button" onClick={() => setIsPersonalHistoryDialogOpen(false)}>Cancelar</Button>
-                            <Button type="submit">Guardar</Button>
+                            <Button type="submit">{editingPersonalHistory ? 'Guardar Cambios' : 'Guardar'}</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
@@ -1326,6 +1354,7 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
 
 
 
