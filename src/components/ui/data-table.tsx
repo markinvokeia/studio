@@ -11,6 +11,7 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  getFilteredRowModel,
   useReactTable,
   Row,
   RowSelectionState,
@@ -113,8 +114,9 @@ export function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     manualPagination: isControlledPagination,
-    manualFiltering: true,
+    manualFiltering: !!controlledColumnFilters,
     ...(isControlledPagination && { onPaginationChange: onPaginationChange }),
   });
   
