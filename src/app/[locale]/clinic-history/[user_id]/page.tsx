@@ -142,9 +142,25 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const [isLoadingPatientSessions, setIsLoadingPatientSessions] = useState(false);
   const [patientHabits, setPatientHabits] = useState<PatientHabits | null>(null);
   const [isLoadingPatientHabits, setIsLoadingPatientHabits] = useState(false);
+  
+  // Dialog states
   const [isPersonalHistoryDialogOpen, setIsPersonalHistoryDialogOpen] = useState(false);
+  const [isFamilyHistoryDialogOpen, setIsFamilyHistoryDialogOpen] = useState(false);
+  const [isAllergyDialogOpen, setIsAllergyDialogOpen] = useState(false);
+  const [isMedicationDialogOpen, setIsMedicationDialogOpen] = useState(false);
+
+  // Editing states
   const [editingPersonalHistory, setEditingPersonalHistory] = useState<PersonalHistoryItem | null>(null);
+  const [editingFamilyHistory, setEditingFamilyHistory] = useState<FamilyHistoryItem | null>(null);
+  const [editingAllergy, setEditingAllergy] = useState<AllergyItem | null>(null);
+  const [editingMedication, setEditingMedication] = useState<MedicationItem | null>(null);
+
+  // Deleting states
   const [deletingPersonalHistory, setDeletingPersonalHistory] = useState<PersonalHistoryItem | null>(null);
+  const [deletingFamilyHistory, setDeletingFamilyHistory] = useState<FamilyHistoryItem | null>(null);
+  const [deletingAllergy, setDeletingAllergy] = useState<AllergyItem | null>(null);
+  const [deletingMedication, setDeletingMedication] = useState<MedicationItem | null>(null);
+
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
     const fetchPersonalHistory = useCallback(async (currentUserId: string) => {
@@ -932,43 +948,45 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         setIsPersonalHistoryDialogOpen(true);
     };
 
-    const handleDeleteClick = (item: PersonalHistoryItem) => {
-      setDeletingPersonalHistory(item);
-      setIsDeleteDialogOpen(true);
+    const handleDeleteClick = (item: any, type: string) => {
+        setDeletingPersonalHistory({ item, type });
+        setIsDeleteDialogOpen(true);
     };
-
+    
     const handleConfirmDelete = async () => {
       if (!deletingPersonalHistory) return;
-
+    
       try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales/delete', {
-          method: 'POST',
-          mode:'cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: deletingPersonalHistory.id }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to delete personal history');
-        }
-
+        // This is a placeholder, will be replaced with specific endpoints
+        // const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales/delete`, {
+        //   method: 'POST',
+        //   mode:'cors',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify({ id: deletingPersonalHistory.item.id }),
+        // });
+    
+        // if (!response.ok) {
+        //   throw new Error(`Failed to delete ${deletingPersonalHistory.type}`);
+        // }
+    
         toast({
           title: 'Éxito',
-          description: 'El antecedente personal ha sido eliminado.',
+          description: `El ${deletingPersonalHistory.type} ha sido eliminado.`,
         });
-
+    
         setIsDeleteDialogOpen(false);
         setDeletingPersonalHistory(null);
-        fetchPersonalHistory(userId);
+        // Here you would refresh the specific list, e.g., fetchPersonalHistory(userId);
       } catch (error) {
-        console.error('Error deleting personal history:', error);
+        console.error(`Error deleting ${deletingPersonalHistory.type}:`, error);
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: 'No se pudo eliminar el antecedente. Por favor, intente de nuevo.',
+          description: `No se pudo eliminar el ${deletingPersonalHistory.type}. Por favor, intente de nuevo.`,
         });
       }
     };
+
 
     const getAlertBorderColor = (level: number) => {
         switch (level) {
@@ -1048,7 +1066,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                 <User className="w-5 h-5 text-primary mr-2" />
                                 <h3 className="text-lg font-bold text-card-foreground">Antecedentes Personales</h3>
                             </div>
-                            <Button variant="outline" size="icon" onClick={handleAddClick}>
+                            <Button variant="outline" size="icon" onClick={() => setIsPersonalHistoryDialogOpen(true)}>
                                 <Plus className="h-4 w-4" />
                             </Button>
                         </div>
@@ -1069,7 +1087,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditClick(item)}>
                                                 <Edit3 className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item)}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'antecedente personal')}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>
@@ -1082,19 +1100,34 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                     </div>
 
                     <div className="bg-card rounded-xl shadow-lg p-6">
-                        <div className="flex items-center mb-4">
-                            <Heart className="w-5 h-5 text-red-500 mr-2" />
-                            <h3 className="text-lg font-bold text-card-foreground">Antecedentes Familiares</h3>
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center">
+                                <Heart className="w-5 h-5 text-red-500 mr-2" />
+                                <h3 className="text-lg font-bold text-card-foreground">Antecedentes Familiares</h3>
+                            </div>
+                             <Button variant="outline" size="icon" onClick={() => setIsFamilyHistoryDialogOpen(true)}>
+                                <Plus className="h-4 w-4" />
+                            </Button>
                         </div>
                         <div className="space-y-3">
                             {isLoadingFamilyHistory ? (
                                 <p className="text-muted-foreground">Loading family history...</p>
                             ) : familyHistory.length > 0 ? (
                                 familyHistory.map((item, index) => (
-                                    <div key={index} className="border-l-4 border-red-300 dark:border-red-700 pl-4 py-2">
-                                        <div className="font-semibold text-foreground">{item.condition}</div>
-                                        <div className="text-sm text-muted-foreground">Familiar: {item.relative}</div>
-                                        <div className="text-sm text-muted-foreground">{item.comments}</div>
+                                    <div key={index} className="border-l-4 border-red-300 dark:border-red-700 pl-4 py-2 flex justify-between items-center">
+                                        <div>
+                                            <div className="font-semibold text-foreground">{item.condition}</div>
+                                            <div className="text-sm text-muted-foreground">Familiar: {item.relative}</div>
+                                            <div className="text-sm text-muted-foreground">{item.comments}</div>
+                                        </div>
+                                        <div className="flex items-center space-x-1">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingFamilyHistory(item)}>
+                                                <Edit3 className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'antecedente familiar')}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 ))
                             ) : (
@@ -1103,27 +1136,42 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                         </div>
                     </div>
                     <div className="bg-card rounded-xl shadow-lg p-6">
-                        <div className="flex items-center mb-4">
-                            <Pill className="w-5 h-5 text-green-500 mr-2" />
-                            <h3 className="text-lg font-bold text-card-foreground">Medicamentos Actuales</h3>
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center">
+                                <Pill className="w-5 h-5 text-green-500 mr-2" />
+                                <h3 className="text-lg font-bold text-card-foreground">Medicamentos Actuales</h3>
+                            </div>
+                            <Button variant="outline" size="icon" onClick={() => setIsMedicationDialogOpen(true)}>
+                                <Plus className="h-4 w-4" />
+                            </Button>
                         </div>
                         <div className="space-y-3">
                             {isLoadingMedications ? (
                                 <p className="text-muted-foreground">Loading medications...</p>
                             ) : medications.length > 0 ? (
                                 medications.map((item, index) => (
-                                    <div key={index} className="border-l-4 border-green-300 dark:border-green-700 pl-4 py-2">
-                                        <div className="flex justify-between items-start">
-                                            <div className="font-semibold text-foreground">{item.name}</div>
-                                            <div className="text-right text-xs text-muted-foreground">
-                                                <div>{item.dose}</div>
-                                                <div>{item.frequency}</div>
+                                    <div key={index} className="border-l-4 border-green-300 dark:border-green-700 pl-4 py-2 flex justify-between items-center">
+                                        <div>
+                                            <div className="flex justify-between items-start">
+                                                <div className="font-semibold text-foreground">{item.name}</div>
+                                                <div className="text-right text-xs text-muted-foreground">
+                                                    <div>{item.dose}</div>
+                                                    <div>{item.frequency}</div>
+                                                </div>
                                             </div>
+                                            <div className="text-sm text-muted-foreground mt-1">
+                                                {formatDate(item.since)} - {item.endDate ? formatDate(item.endDate) : 'Presente'}
+                                            </div>
+                                            <div className="text-sm text-muted-foreground mt-1">{item.reason}</div>
                                         </div>
-                                        <div className="text-sm text-muted-foreground mt-1">
-                                            {formatDate(item.since)} - {item.endDate ? formatDate(item.endDate) : 'Presente'}
+                                         <div className="flex items-center space-x-1">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingMedication(item)}>
+                                                <Edit3 className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'medicamento')}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
                                         </div>
-                                        <div className="text-sm text-muted-foreground mt-1">{item.reason}</div>
                                     </div>
                                 ))
                             ) : (
@@ -1135,21 +1183,36 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
                 <div className="space-y-6">
                     <div className="bg-card rounded-xl shadow-lg p-6">
-                        <div className="flex items-center mb-4">
-                            <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
-                            <h3 className="text-lg font-bold text-card-foreground">Alergias</h3>
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center">
+                                <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
+                                <h3 className="text-lg font-bold text-card-foreground">Alergias</h3>
+                            </div>
+                           <Button variant="outline" size="icon" onClick={() => setIsAllergyDialogOpen(true)}>
+                                <Plus className="h-4 w-4" />
+                            </Button>
                         </div>
                         <div className="space-y-3">
                             {isLoadingAllergies ? (
                                 <p className="text-muted-foreground">Loading allergies...</p>
                             ) : allergies.length > 0 ? (
                                 allergies.map((item, index) => (
-                                    <div key={index} className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
-                                        <div className="flex justify-between items-center">
-                                            <div className="font-semibold text-destructive">{item.allergen}</div>
-                                            {item.snomed && <span className="text-xs font-mono text-muted-foreground">{item.snomed}</span>}
+                                    <div key={index} className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex justify-between items-center">
+                                        <div>
+                                            <div className="flex justify-between items-center">
+                                                <div className="font-semibold text-destructive">{item.allergen}</div>
+                                                {item.snomed && <span className="text-xs font-mono text-muted-foreground">{item.snomed}</span>}
+                                            </div>
+                                            {item.reaction && <div className="text-sm text-destructive/80">{item.reaction}</div>}
                                         </div>
-                                        {item.reaction && <div className="text-sm text-destructive/80">{item.reaction}</div>}
+                                        <div className="flex items-center space-x-1">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingAllergy(item)}>
+                                                <Edit3 className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'alergia')}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 ))
                             ) : (
@@ -1251,7 +1314,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete this personal history item.
+                            This action cannot be undone. This will permanently delete this item.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -1408,6 +1471,7 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
 
 
 
