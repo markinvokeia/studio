@@ -892,7 +892,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
         const payload: any = {
             paciente_id: userId,
-            padecimiento_id: selectedAilment.nombre, // Sending name as requested
+            padecimiento_id: selectedAilment.id, 
             comentarios: comentarios,
         };
 
@@ -939,13 +939,21 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
     const handleEditClick = (item: PersonalHistoryItem) => {
         setEditingPersonalHistory(item);
-        const ailmentInCatalog = ailmentsCatalog.find(a => a.id === String(item.padecimiento_id));
+        
+        const ailmentInCatalog = ailmentsCatalog.find(
+          (a) => String(a.padecimiento_id) === String(item.padecimiento_id) || a.nombre === item.nombre
+        );
 
         if (ailmentInCatalog) {
           setSelectedAilment(ailmentInCatalog);
         } else {
-          // If not in catalog (e.g. catalog still loading), create a temporary one
-          const mockAilment = {id: String(item.padecimiento_id), nombre: item.nombre, categoria: item.categoria, nivel_alerta: item.nivel_alerta};
+          // If not in catalog (e.g., still loading or not present), create a temporary object for display
+          const mockAilment: Ailment = {
+            id: String(item.padecimiento_id),
+            nombre: item.nombre,
+            categoria: item.categoria,
+            nivel_alerta: item.nivel_alerta,
+          };
           setSelectedAilment(mockAilment);
         }
 
