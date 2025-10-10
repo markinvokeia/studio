@@ -157,9 +157,9 @@ export function UserRoles({ userId, initialUserRoles, isLoading, onRolesChange }
           data={initialUserRoles}
           filterColumnId="name"
           filterPlaceholder={t('filterPlaceholder')}
+          onCreate={handleAddRole}
           columnFilters={columnFilters}
           onColumnFiltersChange={setColumnFilters}
-          onCreate={handleAddRole}
         />
       </CardContent>
     </Card>
