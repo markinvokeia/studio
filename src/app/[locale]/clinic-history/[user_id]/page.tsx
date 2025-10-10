@@ -18,7 +18,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   Collapsible,
   CollapsibleContent,
@@ -37,6 +37,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 const initialPatient = {
@@ -128,7 +129,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const [patientSearchOpen, setPatientSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserType[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [isSearching, setIsSearching] = useState(isSearching);
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [personalHistory, setPersonalHistory] = useState<PersonalHistoryItem[]>([]);
   const [isLoadingPersonalHistory, setIsLoadingPersonalHistory] = useState(false);
@@ -156,18 +157,14 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const [editingMedication, setEditingMedication] = useState<MedicationItem | null>(null);
 
   // Deleting states
-  const [deletingPersonalHistory, setDeletingPersonalHistory] = useState<PersonalHistoryItem | null>(null);
-  const [deletingFamilyHistory, setDeletingFamilyHistory] = useState<FamilyHistoryItem | null>(null);
-  const [deletingAllergy, setDeletingAllergy] = useState<AllergyItem | null>(null);
-  const [deletingMedication, setDeletingMedication] = useState<MedicationItem | null>(null);
-
+  const [deletingItem, setDeletingItem] = useState<{ item: any, type: string } | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
     const fetchPersonalHistory = useCallback(async (currentUserId: string) => {
         if (!currentUserId) return;
         setIsLoadingPersonalHistory(true);
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user/antecedentes_personales?user_id=${currentUserId}`, {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales?user_id=${currentUserId}`, {
                 method: 'GET',
                 mode: 'cors',
                 headers: { 'Content-Type': 'application/json' },
@@ -845,7 +842,8 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     const [selectedAilment, setSelectedAilment] = useState<Ailment | null>(null);
     const [isComboboxOpen, setIsComboboxOpen] = useState(false);
     const [comentarios, setComentarios] = useState('');
-    const [nivelAlerta, setNivelAlerta] = useState<string | undefined>(undefined);
+    const [submissionError, setSubmissionError] = useState<string | null>(null);
+
 
     useEffect(() => {
         const fetchAilments = async () => {
@@ -867,18 +865,17 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         if (!isPersonalHistoryDialogOpen) {
             setSelectedAilment(null);
             setComentarios('');
-            setNivelAlerta(undefined);
             setEditingPersonalHistory(null);
+            setSubmissionError(null);
         }
     }, [isPersonalHistoryDialogOpen]);
 
     const handleAilmentSelect = (ailment: Ailment | null) => {
         setSelectedAilment(ailment);
-        setNivelAlerta(ailment ? String(ailment.nivel_alerta) : undefined);
         setIsComboboxOpen(false);
     };
 
-    const handleSubmit = async (event: React.FormEvent) => {
+    const handleSubmitPersonalHistory = async (event: React.FormEvent) => {
         event.preventDefault();
         if (!selectedAilment || !userId) {
             toast({
@@ -889,12 +886,16 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             return;
         }
 
-        const payload = {
+        const payload: any = {
             user_id: userId,
-            padecimiento_id: selectedAilment.id,
+            padecimiento_id: selectedAilment.nombre, // Sending name as requested
             comentarios: comentarios,
-            nivel_alerta: nivelAlerta ? parseInt(nivelAlerta, 10) : selectedAilment.nivel_alerta,
         };
+
+        if (editingPersonalHistory) {
+            payload.id = editingPersonalHistory.id;
+        }
+
 
         try {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales/upsert', {
@@ -905,8 +906,9 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                 body: JSON.stringify(payload),
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to save personal history');
+            if (response.status > 299) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Server error');
             }
 
             toast({
@@ -916,13 +918,9 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
             setIsPersonalHistoryDialogOpen(false);
             fetchPersonalHistory(userId); // Refresh the list
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving personal history:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'No se pudo guardar el antecedente. Por favor, intente de nuevo.',
-            });
+            setSubmissionError(error.message || 'No se pudo guardar el antecedente. Por favor, intente de nuevo.');
         }
     };
     
@@ -930,59 +928,81 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         setEditingPersonalHistory(null);
         setSelectedAilment(null);
         setComentarios('');
-        setNivelAlerta(undefined);
         setIsPersonalHistoryDialogOpen(true);
     };
 
     const handleEditClick = (item: PersonalHistoryItem) => {
         setEditingPersonalHistory(item);
-        const ailment = ailmentsCatalog.find(a => a.id === String(item.padecimiento_id)) || null;
-        if (!ailment && item.padecimiento_id) {
-             const mockAilment = {id: String(item.padecimiento_id), nombre: item.nombre, categoria: item.categoria, nivel_alerta: item.nivel_alerta};
-             setSelectedAilment(mockAilment);
+        const ailmentInCatalog = ailmentsCatalog.find(a => a.id === String(item.padecimiento_id)) || null;
+
+        if (ailmentInCatalog) {
+          setSelectedAilment(ailmentInCatalog);
         } else {
-            setSelectedAilment(ailment);
+          // If not in catalog (e.g. catalog still loading), create a temporary one
+          const mockAilment = {id: String(item.padecimiento_id), nombre: item.nombre, categoria: item.categoria, nivel_alerta: item.nivel_alerta};
+          setSelectedAilment(mockAilment);
         }
+
         setComentarios(item.comentarios);
-        setNivelAlerta(String(item.nivel_alerta));
         setIsPersonalHistoryDialogOpen(true);
     };
 
     const handleDeleteClick = (item: any, type: string) => {
-        setDeletingPersonalHistory({ item, type });
+        setDeletingItem({ item, type });
         setIsDeleteDialogOpen(true);
     };
     
     const handleConfirmDelete = async () => {
-      if (!deletingPersonalHistory) return;
+      if (!deletingItem) return;
+    
+      let endpoint = '';
+      let body: any = {};
+
+      switch (deletingItem.type) {
+        case 'antecedente personal':
+            endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales/delete';
+            body = { id: deletingItem.item.id };
+            break;
+        // Cases for other types can be added here
+      }
+
+      if (!endpoint) {
+          setIsDeleteDialogOpen(false);
+          return;
+      }
     
       try {
-        // This is a placeholder, will be replaced with specific endpoints
-        // const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales/delete`, {
-        //   method: 'POST',
-        //   mode:'cors',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ id: deletingPersonalHistory.item.id }),
-        // });
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          mode:'cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
     
-        // if (!response.ok) {
-        //   throw new Error(`Failed to delete ${deletingPersonalHistory.type}`);
-        // }
+        if (!response.ok) {
+          throw new Error(`Failed to delete ${deletingItem.type}`);
+        }
     
         toast({
           title: 'Éxito',
-          description: `El ${deletingPersonalHistory.type} ha sido eliminado.`,
+          description: `El ${deletingItem.type} ha sido eliminado.`,
         });
     
         setIsDeleteDialogOpen(false);
-        setDeletingPersonalHistory(null);
-        // Here you would refresh the specific list, e.g., fetchPersonalHistory(userId);
+        setDeletingItem(null);
+        
+        switch (deletingItem.type) {
+            case 'antecedente personal':
+                fetchPersonalHistory(userId);
+                break;
+        }
+
       } catch (error) {
-        console.error(`Error deleting ${deletingPersonalHistory.type}:`, error);
+        console.error(`Error deleting ${deletingItem.type}:`, error);
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: `No se pudo eliminar el ${deletingPersonalHistory.type}. Por favor, intente de nuevo.`,
+          description: `No se pudo eliminar el ${deletingItem.type}. Por favor, intente de nuevo.`,
         });
       }
     };
@@ -1066,7 +1086,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                 <User className="w-5 h-5 text-primary mr-2" />
                                 <h3 className="text-lg font-bold text-card-foreground">Antecedentes Personales</h3>
                             </div>
-                            <Button variant="outline" size="icon" onClick={() => setIsPersonalHistoryDialogOpen(true)}>
+                            <Button variant="outline" size="icon" onClick={handleAddClick}>
                                 <Plus className="h-4 w-4" />
                             </Button>
                         </div>
@@ -1231,10 +1251,17 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                             {editingPersonalHistory ? 'Actualice los detalles del antecedente.' : 'Complete el formulario para añadir un nuevo antecedente personal.'}
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmitPersonalHistory}>
                         <div className="grid gap-4 py-4">
+                            {submissionError && (
+                                <Alert variant="destructive">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>Error</AlertTitle>
+                                    <AlertDescription>{submissionError}</AlertDescription>
+                                </Alert>
+                            )}
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="nombre" className="text-right">Nombre</Label>
+                                <Label htmlFor="padecimiento" className="text-right">Padecimiento</Label>
                                 <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                                     <PopoverTrigger asChild>
                                     <Button
@@ -1274,23 +1301,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                     </PopoverContent>
                                 </Popover>
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="categoria" className="text-right">Categoría</Label>
-                                <Input id="categoria" value={selectedAilment?.categoria || ''} placeholder="e.g., Cardiovascular" className="col-span-3" disabled />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="nivel_alerta" className="text-right">Nivel de Alerta</Label>
-                                <Select value={nivelAlerta} onValueChange={setNivelAlerta}>
-                                    <SelectTrigger className="col-span-3">
-                                        <SelectValue placeholder="Seleccione un nivel" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="1">1 (Normal)</SelectItem>
-                                        <SelectItem value="2">2 (Advertencia)</SelectItem>
-                                        <SelectItem value="3">3 (Crítico)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
                             <div className="grid grid-cols-4 items-start gap-4">
                                 <Label htmlFor="comentarios" className="text-right pt-2">Comentarios</Label>
                                 <Textarea 
@@ -1304,7 +1314,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                         </div>
                         <DialogFooter>
                             <Button variant="outline" type="button" onClick={() => setIsPersonalHistoryDialogOpen(false)}>Cancelar</Button>
-                            <Button type="submit">{editingPersonalHistory ? 'Guardar Cambios' : 'Guardar'}</Button>
+                            <Button type="submit">Guardar</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
@@ -1318,7 +1328,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setDeletingPersonalHistory(null)}>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel onClick={() => setDeletingItem(null)}>Cancel</AlertDialogCancel>
                         <AlertDialogAction onClick={handleConfirmDelete}>Continue</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -1478,3 +1488,6 @@ export default function DentalClinicalSystemPage() {
 
 
 
+
+
+    
