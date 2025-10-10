@@ -74,8 +74,6 @@ type PersonalHistoryItem = {
     id?: number;
     padecimiento_id: number;
     nombre: string;
-    categoria: string;
-    nivel_alerta: number;
     comentarios: string;
 };
 
@@ -178,8 +176,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                 id: item.id || index,
                 padecimiento_id: item.padecimiento_id,
                 nombre: item.nombre || 'N/A',
-                categoria: item.categoria || 'N/A',
-                nivel_alerta: Number(item.nivel_alerta) || 1,
                 comentarios: item.comentarios || '',
             }));
             setPersonalHistory(mappedHistory);
@@ -862,13 +858,16 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     }, [isPersonalHistoryDialogOpen]);
     
     useEffect(() => {
-        if (!isPersonalHistoryDialogOpen) {
+        if (isPersonalHistoryDialogOpen && editingPersonalHistory) {
+            setSelectedAilmentName(editingPersonalHistory.nombre);
+            setComentarios(editingPersonalHistory.comentarios);
+        } else if (!isPersonalHistoryDialogOpen) {
+            setEditingPersonalHistory(null);
             setSelectedAilmentName('');
             setComentarios('');
-            setEditingPersonalHistory(null);
             setSubmissionError(null);
         }
-    }, [isPersonalHistoryDialogOpen]);
+    }, [isPersonalHistoryDialogOpen, editingPersonalHistory]);
 
     const handleAilmentSelect = (ailmentName: string) => {
         setSelectedAilmentName(ailmentName);
@@ -889,6 +888,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         }
         
         setIsSubmitting(true);
+        setSubmissionError(null);
 
         const payload: any = {
             paciente_id: userId,
@@ -939,19 +939,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
     const handleEditClick = (item: PersonalHistoryItem) => {
         setEditingPersonalHistory(item);
-        
-        let ailmentNameToSelect = '';
-        if (ailmentsCatalog.length > 0) {
-            const foundAilment = ailmentsCatalog.find(a => String(a.id) === String(item.padecimiento_id) || a.nombre === item.nombre);
-            ailmentNameToSelect = foundAilment ? foundAilment.nombre : item.nombre;
-        } else {
-             // If catalog is not loaded, temporarily create an entry to show
-             setAilmentsCatalog(prev => [...prev, {id: String(item.padecimiento_id), nombre: item.nombre, categoria: item.categoria, nivel_alerta: item.nivel_alerta }]);
-             ailmentNameToSelect = item.nombre;
-        }
-
-        setSelectedAilmentName(ailmentNameToSelect);
-        setComentarios(item.comentarios);
         setIsPersonalHistoryDialogOpen(true);
     };
 
@@ -1104,7 +1091,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                 <p className="text-muted-foreground">Loading personal history...</p>
                             ) : personalHistory.length > 0 ? (
                                 personalHistory.map((item) => (
-                                    <div key={item.id} className={`border-l-4 ${getAlertBorderColor(item.nivel_alerta)} pl-4 py-2 flex justify-between items-center`}>
+                                    <div key={item.id} className={`pl-4 py-2 flex justify-between items-center`}>
                                         <div>
                                             <div className="flex justify-between items-center">
                                                 <div className="font-semibold text-foreground">{item.nombre}</div>
