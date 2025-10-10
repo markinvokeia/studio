@@ -842,6 +842,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     const [isComboboxOpen, setIsComboboxOpen] = useState(false);
     const [comentarios, setComentarios] = useState('');
     const [submissionError, setSubmissionError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
 
     useEffect(() => {
@@ -876,6 +877,8 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
     const handleSubmitPersonalHistory = async (event: React.FormEvent) => {
         event.preventDefault();
+        if (isSubmitting) return;
+
         if (!selectedAilment || !userId) {
             toast({
                 variant: 'destructive',
@@ -884,6 +887,8 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             });
             return;
         }
+
+        setIsSubmitting(true);
 
         const payload: any = {
             paciente_id: userId,
@@ -920,6 +925,8 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         } catch (error: any) {
             console.error('Error saving personal history:', error);
             setSubmissionError(error.message || 'No se pudo guardar el antecedente. Por favor, intente de nuevo.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
     
@@ -1313,7 +1320,9 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                         </div>
                         <DialogFooter>
                             <Button variant="outline" type="button" onClick={() => setIsPersonalHistoryDialogOpen(false)}>Cancelar</Button>
-                            <Button type="submit">Guardar</Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? 'Guardando...' : 'Guardar'}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
