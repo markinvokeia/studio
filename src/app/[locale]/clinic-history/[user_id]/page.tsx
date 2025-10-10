@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -129,7 +128,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const [patientSearchOpen, setPatientSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserType[]>([]);
-  const [isSearching, setIsSearching] = useState(isSearching);
+  const [isSearching, setIsSearching] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [personalHistory, setPersonalHistory] = useState<PersonalHistoryItem[]>([]);
   const [isLoadingPersonalHistory, setIsLoadingPersonalHistory] = useState(false);
@@ -1489,5 +1488,7 @@ export default function DentalClinicalSystemPage() {
 
 
 
+
+    
 
     
