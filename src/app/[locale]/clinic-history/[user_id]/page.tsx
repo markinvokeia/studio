@@ -78,9 +78,11 @@ type PersonalHistoryItem = {
 };
 
 type FamilyHistoryItem = {
-    condition: string;
-    relative: string;
-    comments: string;
+    id?: number;
+    padecimiento_id: number;
+    nombre: string;
+    parentesco: string;
+    comentarios: string;
 };
 
 type AllergyItem = {
@@ -203,9 +205,11 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             const historyData = Array.isArray(data) ? data : (data.antecedentes_familiares || data.data || []);
             
             const mappedHistory = historyData.map((item: any): FamilyHistoryItem => ({
-                condition: item.nombre || 'N/A',
-                relative: item.parentesco || 'N/A',
-                comments: item.comentarios || '',
+                id: item.id,
+                padecimiento_id: item.padecimiento_id,
+                nombre: item.nombre || 'N/A',
+                parentesco: item.parentesco || 'N/A',
+                comentarios: item.comentarios || '',
             }));
             setFamilyHistory(mappedHistory);
         } catch (error) {
@@ -834,16 +838,26 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const AnamnesisDashboard = () => {
     const { toast } = useToast();
     const [ailmentsCatalog, setAilmentsCatalog] = useState<Ailment[]>([]);
-    const [selectedAilmentName, setSelectedAilmentName] = useState<string>('');
-    const [isComboboxOpen, setIsComboboxOpen] = useState(false);
-    const [comentarios, setComentarios] = useState('');
-    const [submissionError, setSubmissionError] = useState<string | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Personal History State
+    const [isPersonalHistoryComboboxOpen, setIsPersonalHistoryComboboxOpen] = useState(false);
+    const [selectedPersonalAilmentName, setSelectedPersonalAilmentName] = useState<string>('');
+    const [personalComentarios, setPersonalComentarios] = useState('');
+    const [isSubmittingPersonal, setIsSubmittingPersonal] = useState(false);
+    const [personalSubmissionError, setPersonalSubmissionError] = useState<string | null>(null);
+
+    // Family History State
+    const [isFamilyHistoryComboboxOpen, setIsFamilyHistoryComboboxOpen] = useState(false);
+    const [selectedFamilyAilmentName, setSelectedFamilyAilmentName] = useState<string>('');
+    const [familyParentesco, setFamilyParentesco] = useState('');
+    const [familyComentarios, setFamilyComentarios] = useState('');
+    const [isSubmittingFamily, setIsSubmittingFamily] = useState(false);
+    const [familySubmissionError, setFamilySubmissionError] = useState<string | null>(null);
 
 
     useEffect(() => {
         const fetchAilments = async () => {
-            if (isPersonalHistoryDialogOpen) {
+            if (isPersonalHistoryDialogOpen || isFamilyHistoryDialogOpen) {
                 try {
                     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogo_padecimientos');
                     const data = await response.json();
@@ -855,7 +869,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             }
         };
         fetchAilments();
-    }, [isPersonalHistoryDialogOpen]);
+    }, [isPersonalHistoryDialogOpen, isFamilyHistoryDialogOpen]);
     
     useEffect(() => {
         if (isPersonalHistoryDialogOpen) {
@@ -863,30 +877,48 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                 const ailmentInCatalog = ailmentsCatalog.find(
                     (a) => a.id === String(editingPersonalHistory.padecimiento_id) || a.nombre === editingPersonalHistory.nombre
                 );
-                setSelectedAilmentName(ailmentInCatalog?.nombre || editingPersonalHistory.nombre);
-                setComentarios(editingPersonalHistory.comentarios);
+                setSelectedPersonalAilmentName(ailmentInCatalog?.nombre || editingPersonalHistory.nombre);
+                setPersonalComentarios(editingPersonalHistory.comentarios);
             } else {
-                setSelectedAilmentName('');
-                setComentarios('');
+                setSelectedPersonalAilmentName('');
+                setPersonalComentarios('');
             }
         } else {
             setEditingPersonalHistory(null);
-            setSelectedAilmentName('');
-            setComentarios('');
-            setSubmissionError(null);
+            setSelectedPersonalAilmentName('');
+            setPersonalComentarios('');
+            setPersonalSubmissionError(null);
         }
     }, [isPersonalHistoryDialogOpen, editingPersonalHistory, ailmentsCatalog]);
 
-    const handleAilmentSelect = (ailmentName: string) => {
-        setSelectedAilmentName(ailmentName);
-        setIsComboboxOpen(false);
-    };
+    useEffect(() => {
+        if (isFamilyHistoryDialogOpen) {
+            if (editingFamilyHistory) {
+                const ailmentInCatalog = ailmentsCatalog.find(
+                    (a) => a.id === String(editingFamilyHistory.padecimiento_id) || a.nombre === editingFamilyHistory.nombre
+                );
+                setSelectedFamilyAilmentName(ailmentInCatalog?.nombre || editingFamilyHistory.nombre);
+                setFamilyParentesco(editingFamilyHistory.parentesco);
+                setFamilyComentarios(editingFamilyHistory.comentarios);
+            } else {
+                setSelectedFamilyAilmentName('');
+                setFamilyParentesco('');
+                setFamilyComentarios('');
+            }
+        } else {
+            setEditingFamilyHistory(null);
+            setSelectedFamilyAilmentName('');
+            setFamilyParentesco('');
+            setFamilyComentarios('');
+            setFamilySubmissionError(null);
+        }
+    }, [isFamilyHistoryDialogOpen, editingFamilyHistory, ailmentsCatalog]);
 
     const handleSubmitPersonalHistory = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (isSubmitting) return;
+        if (isSubmittingPersonal) return;
 
-        if (!selectedAilmentName || !userId) {
+        if (!selectedPersonalAilmentName || !userId) {
             toast({
                 variant: 'destructive',
                 title: 'Error',
@@ -895,13 +927,13 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             return;
         }
         
-        setIsSubmitting(true);
-        setSubmissionError(null);
+        setIsSubmittingPersonal(true);
+        setPersonalSubmissionError(null);
 
         const payload: any = {
             paciente_id: userId,
-            padecimiento_id: selectedAilmentName,
-            comentarios: comentarios,
+            padecimiento_id: selectedPersonalAilmentName,
+            comentarios: personalComentarios,
         };
         
         if (editingPersonalHistory && editingPersonalHistory.id) {
@@ -932,22 +964,84 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             fetchPersonalHistory(userId); // Refresh the list
         } catch (error: any) {
             console.error('Error saving personal history:', error);
-            setSubmissionError(error.message || 'No se pudo guardar el antecedente. Por favor, intente de nuevo.');
+            setPersonalSubmissionError(error.message || 'No se pudo guardar el antecedente. Por favor, intente de nuevo.');
         } finally {
-            setIsSubmitting(false);
+            setIsSubmittingPersonal(false);
+        }
+    };
+
+    const handleSubmitFamilyHistory = async (event: React.FormEvent) => {
+        event.preventDefault();
+        if (isSubmittingFamily) return;
+
+        if (!selectedFamilyAilmentName || !familyParentesco || !userId) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Por favor, complete todos los campos requeridos.',
+            });
+            return;
+        }
+        
+        setIsSubmittingFamily(true);
+        setFamilySubmissionError(null);
+
+        const payload: any = {
+            paciente_id: userId,
+            padecimiento_id: selectedFamilyAilmentName,
+            parentesco: familyParentesco,
+            comentarios: familyComentarios,
+        };
+        
+        if (editingFamilyHistory && editingFamilyHistory.id) {
+            payload.id = editingFamilyHistory.id;
+        }
+
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_familiares/upsert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (response.status > 299) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Server error');
+            }
+
+            toast({
+                title: 'Éxito',
+                description: 'El antecedente familiar ha sido guardado.',
+            });
+
+            setIsFamilyHistoryDialogOpen(false);
+            fetchFamilyHistory(userId); // Refresh the list
+        } catch (error: any) {
+            console.error('Error saving family history:', error);
+            setFamilySubmissionError(error.message || 'No se pudo guardar el antecedente. Por favor, intente de nuevo.');
+        } finally {
+            setIsSubmittingFamily(false);
         }
     };
     
-    const handleAddClick = () => {
+    const handleAddPersonalClick = () => {
         setEditingPersonalHistory(null);
-        setSelectedAilmentName('');
-        setComentarios('');
         setIsPersonalHistoryDialogOpen(true);
     };
 
-    const handleEditClick = (item: PersonalHistoryItem) => {
+    const handleEditPersonalClick = (item: PersonalHistoryItem) => {
         setEditingPersonalHistory(item);
         setIsPersonalHistoryDialogOpen(true);
+    };
+
+    const handleAddFamilyClick = () => {
+        setEditingFamilyHistory(null);
+        setIsFamilyHistoryDialogOpen(true);
+    };
+
+    const handleEditFamilyClick = (item: FamilyHistoryItem) => {
+        setEditingFamilyHistory(item);
+        setIsFamilyHistoryDialogOpen(true);
     };
 
     const handleDeleteClick = (item: any, type: string) => {
@@ -957,50 +1051,56 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     
     const handleConfirmDelete = async () => {
         if (!deletingItem) return;
-
+    
         let endpoint = '';
         let body: any = {};
-        let method: string = 'POST'; // Changed to POST as per many n8n webhook configurations for delete
-
+    
         switch (deletingItem.type) {
             case 'antecedente personal':
                 endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales/delete';
                 body = { id: deletingItem.item.id };
                 break;
+            case 'antecedente familiar':
+                endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_familiares/delete';
+                body = { id: deletingItem.item.id };
+                break;
             // Cases for other types can be added here
         }
-
+    
         if (!endpoint) {
             setIsDeleteDialogOpen(false);
             return;
         }
-
+    
         try {
             const response = await fetch(endpoint, {
-                method: method,
+                method: 'DELETE',
                 mode: 'cors',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
-
+    
             if (!response.ok) {
                 throw new Error(`Failed to delete ${deletingItem.type}`);
             }
-
+    
             toast({
                 title: 'Éxito',
                 description: `El ${deletingItem.type} ha sido eliminado.`,
             });
-
+    
             setIsDeleteDialogOpen(false);
             setDeletingItem(null);
-
+    
             switch (deletingItem.type) {
                 case 'antecedente personal':
                     fetchPersonalHistory(userId);
                     break;
+                case 'antecedente familiar':
+                    fetchFamilyHistory(userId);
+                    break;
             }
-
+    
         } catch (error) {
             console.error(`Error deleting ${deletingItem.type}:`, error);
             toast({
@@ -1011,15 +1111,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         }
     };
 
-
-    const getAlertBorderColor = (level: number) => {
-        switch (level) {
-            case 1: return 'border-blue-400 dark:border-blue-600';
-            case 2: return 'border-yellow-400 dark:border-yellow-600';
-            case 3: return 'border-red-500 dark:border-red-700';
-            default: return 'border-border';
-        }
-    };
 
     const formatDate = (dateString: string | null) => {
         if (!dateString) return '-';
@@ -1090,7 +1181,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                 <User className="w-5 h-5 text-primary mr-2" />
                                 <h3 className="text-lg font-bold text-card-foreground">Antecedentes Personales</h3>
                             </div>
-                            <Button variant="outline" size="icon" onClick={handleAddClick}>
+                            <Button variant="outline" size="icon" onClick={handleAddPersonalClick}>
                                 <Plus className="h-4 w-4" />
                             </Button>
                         </div>
@@ -1105,7 +1196,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                             <div className="text-sm text-muted-foreground">{item.comentarios}</div>
                                         </div>
                                         <div className="flex items-center space-x-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditClick(item)}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditPersonalClick(item)}>
                                                 <Edit3 className="h-4 w-4" />
                                             </Button>
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'antecedente personal')}>
@@ -1126,7 +1217,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                 <Heart className="w-5 h-5 text-red-500 mr-2" />
                                 <h3 className="text-lg font-bold text-card-foreground">Antecedentes Familiares</h3>
                             </div>
-                             <Button variant="outline" size="icon" onClick={() => setIsFamilyHistoryDialogOpen(true)}>
+                             <Button variant="outline" size="icon" onClick={handleAddFamilyClick}>
                                 <Plus className="h-4 w-4" />
                             </Button>
                         </div>
@@ -1137,12 +1228,12 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                 familyHistory.map((item, index) => (
                                     <div key={index} className="border-l-4 border-red-300 dark:border-red-700 pl-4 py-2 flex justify-between items-center">
                                         <div>
-                                            <div className="font-semibold text-foreground">{item.condition}</div>
-                                            <div className="text-sm text-muted-foreground">Familiar: {item.relative}</div>
-                                            <div className="text-sm text-muted-foreground">{item.comments}</div>
+                                            <div className="font-semibold text-foreground">{item.nombre}</div>
+                                            <div className="text-sm text-muted-foreground">Familiar: {item.parentesco}</div>
+                                            <div className="text-sm text-muted-foreground">{item.comentarios}</div>
                                         </div>
                                         <div className="flex items-center space-x-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingFamilyHistory(item)}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditFamilyClick(item)}>
                                                 <Edit3 className="h-4 w-4" />
                                             </Button>
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'antecedente familiar')}>
@@ -1254,26 +1345,26 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                     </DialogHeader>
                     <form onSubmit={handleSubmitPersonalHistory}>
                         <div className="grid gap-4 py-4">
-                            {submissionError && (
+                            {personalSubmissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
                                     <AlertTitle>Error</AlertTitle>
-                                    <AlertDescription>{submissionError}</AlertDescription>
+                                    <AlertDescription>{personalSubmissionError}</AlertDescription>
                                 </Alert>
                             )}
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="padecimiento" className="text-right">Padecimiento</Label>
-                                <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                                <Popover open={isPersonalHistoryComboboxOpen} onOpenChange={setIsPersonalHistoryComboboxOpen}>
                                     <PopoverTrigger asChild>
                                     <Button
                                         variant="outline"
                                         role="combobox"
-                                        aria-expanded={isComboboxOpen}
+                                        aria-expanded={isPersonalHistoryComboboxOpen}
                                         className="w-[300px] justify-between col-span-3"
                                         type="button"
                                     >
-                                        {selectedAilmentName
-                                        ? selectedAilmentName
+                                        {selectedPersonalAilmentName
+                                        ? selectedPersonalAilmentName
                                         : "Seleccione un padecimiento..."}
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
@@ -1287,12 +1378,15 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                             <CommandItem
                                             key={ailment.nombre}
                                             value={ailment.nombre}
-                                            onSelect={() => handleAilmentSelect(ailment.nombre)}
+                                            onSelect={(currentValue) => {
+                                                setSelectedPersonalAilmentName(currentValue === selectedPersonalAilmentName ? "" : currentValue)
+                                                setIsPersonalHistoryComboboxOpen(false)
+                                            }}
                                             >
                                             <Check
                                                 className={cn(
                                                 "mr-2 h-4 w-4",
-                                                selectedAilmentName === ailment.nombre ? "opacity-100" : "opacity-0"
+                                                selectedPersonalAilmentName === ailment.nombre ? "opacity-100" : "opacity-0"
                                                 )}
                                             />
                                             {ailment.nombre}
@@ -1309,20 +1403,100 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                     id="comentarios" 
                                     placeholder="e.g., Medicación diaria" 
                                     className="col-span-3" 
-                                    value={comentarios} 
-                                    onChange={(e) => setComentarios(e.target.value)} 
+                                    value={personalComentarios} 
+                                    onChange={(e) => setPersonalComentarios(e.target.value)} 
                                 />
                             </div>
                         </div>
                         <DialogFooter>
                             <Button variant="outline" type="button" onClick={() => setIsPersonalHistoryDialogOpen(false)}>Cancelar</Button>
-                            <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting ? 'Guardando...' : 'Guardar'}
+                            <Button type="submit" disabled={isSubmittingPersonal}>
+                                {isSubmittingPersonal ? 'Guardando...' : 'Guardar'}
                             </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
+
+            <Dialog open={isFamilyHistoryDialogOpen} onOpenChange={setIsFamilyHistoryDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingFamilyHistory ? 'Editar Antecedente Familiar' : 'Añadir Antecedente Familiar'}</DialogTitle>
+                        <DialogDescription>
+                            {editingFamilyHistory ? 'Actualice los detalles del antecedente.' : 'Complete el formulario para añadir un nuevo antecedente familiar.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmitFamilyHistory}>
+                        <div className="grid gap-4 py-4">
+                            {familySubmissionError && (
+                                <Alert variant="destructive">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>Error</AlertTitle>
+                                    <AlertDescription>{familySubmissionError}</AlertDescription>
+                                </Alert>
+                            )}
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="family-padecimiento" className="text-right">Padecimiento</Label>
+                                <Popover open={isFamilyHistoryComboboxOpen} onOpenChange={setIsFamilyHistoryComboboxOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" role="combobox" aria-expanded={isFamilyHistoryComboboxOpen} className="w-[300px] justify-between col-span-3" type="button">
+                                            {selectedFamilyAilmentName || "Seleccione un padecimiento..."}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[300px] p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar padecimiento..." />
+                                            <CommandEmpty>No se encontró el padecimiento.</CommandEmpty>
+                                            <CommandGroup>
+                                                {ailmentsCatalog.map((ailment) => (
+                                                    <CommandItem
+                                                        key={ailment.nombre}
+                                                        value={ailment.nombre}
+                                                        onSelect={(currentValue) => {
+                                                            setSelectedFamilyAilmentName(currentValue === selectedFamilyAilmentName ? "" : currentValue);
+                                                            setIsFamilyHistoryComboboxOpen(false);
+                                                        }}>
+                                                        <Check className={cn("mr-2 h-4 w-4", selectedFamilyAilmentName === ailment.nombre ? "opacity-100" : "opacity-0")} />
+                                                        {ailment.nombre}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                             <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="parentesco" className="text-right">Parentesco</Label>
+                                <Input 
+                                    id="parentesco" 
+                                    placeholder="e.g., Madre, Padre" 
+                                    className="col-span-3" 
+                                    value={familyParentesco} 
+                                    onChange={(e) => setFamilyParentesco(e.target.value)} 
+                                />
+                            </div>
+                            <div className="grid grid-cols-4 items-start gap-4">
+                                <Label htmlFor="family-comentarios" className="text-right pt-2">Comentarios</Label>
+                                <Textarea 
+                                    id="family-comentarios" 
+                                    placeholder="e.g., Diagnosticada a los 45 años" 
+                                    className="col-span-3" 
+                                    value={familyComentarios} 
+                                    onChange={(e) => setFamilyComentarios(e.target.value)} 
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" type="button" onClick={() => setIsFamilyHistoryDialogOpen(false)}>Cancelar</Button>
+                            <Button type="submit" disabled={isSubmittingFamily}>
+                                {isSubmittingFamily ? 'Guardando...' : 'Guardar'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -1499,4 +1673,5 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
 
