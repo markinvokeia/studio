@@ -896,7 +896,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             comentarios: comentarios,
         };
 
-        if (editingPersonalHistory) {
+        if (editingPersonalHistory && editingPersonalHistory.id) {
             payload.id = editingPersonalHistory.id;
         }
 
@@ -937,34 +937,10 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         setIsPersonalHistoryDialogOpen(true);
     };
 
-    const handleEditClick = async (item: PersonalHistoryItem) => {
+    const handleEditClick = (item: PersonalHistoryItem) => {
         setEditingPersonalHistory(item);
         setComentarios(item.comentarios);
-        
-        // Ensure catalog is loaded before setting selected ailment
-        if (ailmentsCatalog.length === 0) {
-            try {
-                const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogo_padecimientos');
-                const data = await response.json();
-                const ailmentsData = Array.isArray(data) ? data : (data.catalogo_padecimientos || data.data || data.result || []);
-                const catalog = ailmentsData.map((a: any) => ({ ...a, id: String(a.id) }));
-                setAilmentsCatalog(catalog);
-                 const ailmentInCatalog = catalog.find(
-                  (a) => String(a.id) === String(item.padecimiento_id) || a.nombre === item.nombre
-                );
-                setSelectedAilmentName(ailmentInCatalog?.nombre || item.nombre);
-
-            } catch (error) {
-                console.error("Failed to fetch ailments catalog on edit", error);
-                setSelectedAilmentName(item.nombre); // Fallback to current name
-            }
-        } else {
-             const ailmentInCatalog = ailmentsCatalog.find(
-              (a) => String(a.id) === String(item.padecimiento_id) || a.nombre === item.nombre
-            );
-            setSelectedAilmentName(ailmentInCatalog?.nombre || item.nombre);
-        }
-        
+        setSelectedAilmentName(item.nombre); // This assumes `item.nombre` matches a value in the catalog
         setIsPersonalHistoryDialogOpen(true);
     };
 
