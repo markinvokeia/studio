@@ -852,7 +852,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogo_padecimientos');
                     const data = await response.json();
                     const ailmentsData = Array.isArray(data) ? data : (data.catalogo_padecimientos || data.data || data.result || []);
-                    setAilmentsCatalog(ailmentsData.map((a: any) => ({ ...a, id: String(a.id) })));
+                    setAilmentsCatalog(ailmentsData.map((a: any) => ({ ...a, id: String(a.id), nombre: a.nombre })));
                 } catch (error) {
                     console.error("Failed to fetch ailments catalog", error);
                 }
@@ -892,10 +892,10 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
         const payload: any = {
             paciente_id: userId,
-            padecimiento_id: selectedAilmentName, 
+            padecimiento_id: selectedAilmentName,
             comentarios: comentarios,
         };
-
+        
         if (editingPersonalHistory && editingPersonalHistory.id) {
             payload.id = editingPersonalHistory.id;
         }
@@ -939,8 +939,19 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
     const handleEditClick = (item: PersonalHistoryItem) => {
         setEditingPersonalHistory(item);
+        
+        let ailmentNameToSelect = '';
+        if (ailmentsCatalog.length > 0) {
+            const foundAilment = ailmentsCatalog.find(a => String(a.id) === String(item.padecimiento_id) || a.nombre === item.nombre);
+            ailmentNameToSelect = foundAilment ? foundAilment.nombre : item.nombre;
+        } else {
+             // If catalog is not loaded, temporarily create an entry to show
+             setAilmentsCatalog(prev => [...prev, {id: String(item.padecimiento_id), nombre: item.nombre, categoria: item.categoria, nivel_alerta: item.nivel_alerta }]);
+             ailmentNameToSelect = item.nombre;
+        }
+
+        setSelectedAilmentName(ailmentNameToSelect);
         setComentarios(item.comentarios);
-        setSelectedAilmentName(item.nombre); // This assumes `item.nombre` matches a value in the catalog
         setIsPersonalHistoryDialogOpen(true);
     };
 
@@ -1097,7 +1108,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                         <div>
                                             <div className="flex justify-between items-center">
                                                 <div className="font-semibold text-foreground">{item.nombre}</div>
-                                                <div className="text-xs text-muted-foreground ml-4">{item.categoria}</div>
                                             </div>
                                             <div className="text-sm text-muted-foreground">{item.comentarios}</div>
                                         </div>
