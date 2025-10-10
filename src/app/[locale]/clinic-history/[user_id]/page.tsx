@@ -87,12 +87,14 @@ type FamilyHistoryItem = {
 };
 
 type AllergyItem = {
+    id?: number;
     allergen: string;
     reaction: string;
     snomed: string;
 };
 
 type MedicationItem = {
+    id?: number;
     name: string;
     dose: string;
     frequency: string;
@@ -237,6 +239,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             const allergyData = Array.isArray(data) ? data : (data.antecedentes_alergias || data.data || []);
             
             const mappedAllergies = allergyData.map((item: any): AllergyItem => ({
+                id: item.id,
                 allergen: item.alergeno || 'N/A',
                 reaction: item.reaccion_descrita || '',
                 snomed: item.snomed_ct_id || '',
@@ -266,6 +269,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             const medicationData = Array.isArray(data) ? data : (data.antecedentes_medicamentos || data.data || []);
             
             const mappedMedications = medicationData.map((item: any): MedicationItem => ({
+                id: item.id,
                 name: item.nombre_medicamento || 'N/A',
                 dose: item.dosis || 'N/A',
                 frequency: item.frecuencia || 'N/A',
@@ -855,6 +859,16 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     const [isSubmittingFamily, setIsSubmittingFamily] = useState(false);
     const [familySubmissionError, setFamilySubmissionError] = useState<string | null>(null);
 
+    // Allergy state
+    const [isSubmittingAllergy, setIsSubmittingAllergy] = useState(false);
+    const [allergySubmissionError, setAllergySubmissionError] = useState<string | null>(null);
+    const [allergyData, setAllergyData] = useState({ allergen: '', reaction: '', snomed: '' });
+
+    // Medication state
+    const [isSubmittingMedication, setIsSubmittingMedication] = useState(false);
+    const [medicationSubmissionError, setMedicationSubmissionError] = useState<string | null>(null);
+    const [medicationData, setMedicationData] = useState({ name: '', dose: '', frequency: '', since: '', endDate: '', reason: '', code: '' });
+
 
     useEffect(() => {
         const fetchAilments = async () => {
@@ -875,45 +889,72 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     useEffect(() => {
         if (isPersonalHistoryDialogOpen) {
             if (editingPersonalHistory) {
-                const ailmentInCatalog = ailmentsCatalog.find(
-                    (a) => String(a.id) === String(editingPersonalHistory.padecimiento_id) || a.nombre === editingPersonalHistory.nombre
-                );
-                setSelectedPersonalAilmentName(ailmentInCatalog?.nombre || editingPersonalHistory.nombre);
-                setPersonalComentarios(editingPersonalHistory.comentarios);
+                setSelectedPersonalAilmentName(editingPersonalHistory.nombre || '');
+                setPersonalComentarios(editingPersonalHistory.comentarios || '');
             } else {
                 setSelectedPersonalAilmentName('');
                 setPersonalComentarios('');
             }
-        } else {
-            setEditingPersonalHistory(null);
-            setSelectedPersonalAilmentName('');
-            setPersonalComentarios('');
             setPersonalSubmissionError(null);
+        } else {
+             setEditingPersonalHistory(null);
         }
-    }, [isPersonalHistoryDialogOpen, editingPersonalHistory, ailmentsCatalog]);
+    }, [isPersonalHistoryDialogOpen, editingPersonalHistory]);
 
     useEffect(() => {
         if (isFamilyHistoryDialogOpen) {
             if (editingFamilyHistory) {
-                const ailmentInCatalog = ailmentsCatalog.find(
-                    (a) => String(a.id) === String(editingFamilyHistory.padecimiento_id) || a.nombre === editingFamilyHistory.nombre
-                );
-                setSelectedFamilyAilmentName(ailmentInCatalog?.nombre || editingFamilyHistory.nombre);
-                setFamilyParentesco(editingFamilyHistory.parentesco);
-                setFamilyComentarios(editingFamilyHistory.comentarios);
+                setSelectedFamilyAilmentName(editingFamilyHistory.nombre || '');
+                setFamilyParentesco(editingFamilyHistory.parentesco || '');
+                setFamilyComentarios(editingFamilyHistory.comentarios || '');
             } else {
                 setSelectedFamilyAilmentName('');
                 setFamilyParentesco('');
                 setFamilyComentarios('');
             }
+            setFamilySubmissionError(null);
         } else {
             setEditingFamilyHistory(null);
-            setSelectedFamilyAilmentName('');
-            setFamilyParentesco('');
-            setFamilyComentarios('');
-            setFamilySubmissionError(null);
         }
-    }, [isFamilyHistoryDialogOpen, editingFamilyHistory, ailmentsCatalog]);
+    }, [isFamilyHistoryDialogOpen, editingFamilyHistory]);
+    
+    useEffect(() => {
+        if (isAllergyDialogOpen) {
+            if (editingAllergy) {
+                setAllergyData({
+                    allergen: editingAllergy.allergen,
+                    reaction: editingAllergy.reaction,
+                    snomed: editingAllergy.snomed,
+                });
+            } else {
+                setAllergyData({ allergen: '', reaction: '', snomed: '' });
+            }
+            setAllergySubmissionError(null);
+        } else {
+            setEditingAllergy(null);
+        }
+    }, [isAllergyDialogOpen, editingAllergy]);
+
+    useEffect(() => {
+        if (isMedicationDialogOpen) {
+            if (editingMedication) {
+                setMedicationData({
+                    name: editingMedication.name,
+                    dose: editingMedication.dose,
+                    frequency: editingMedication.frequency,
+                    since: editingMedication.since || '',
+                    endDate: editingMedication.endDate || '',
+                    reason: editingMedication.reason,
+                    code: editingMedication.code,
+                });
+            } else {
+                setMedicationData({ name: '', dose: '', frequency: '', since: '', endDate: '', reason: '', code: '' });
+            }
+            setMedicationSubmissionError(null);
+        } else {
+            setEditingMedication(null);
+        }
+    }, [isMedicationDialogOpen, editingMedication]);
 
     const handleSubmitPersonalHistory = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -1025,6 +1066,82 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         }
     };
     
+     const handleSubmitAllergy = async (event: React.FormEvent) => {
+        event.preventDefault();
+        if (isSubmittingAllergy || !userId) return;
+
+        setIsSubmittingAllergy(true);
+        setAllergySubmissionError(null);
+
+        const payload: any = {
+            user_id: userId,
+            alergeno: allergyData.allergen,
+            reaccion_descrita: allergyData.reaction,
+            snomed_ct_id: allergyData.snomed,
+        };
+
+        if (editingAllergy && editingAllergy.id) {
+            payload.id = editingAllergy.id;
+        }
+        
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/alergias/upsert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (response.status > 299) throw new Error((await response.json()).message || 'Server error');
+
+            toast({ title: 'Éxito', description: 'La alergia ha sido guardada.' });
+            setIsAllergyDialogOpen(false);
+            fetchAllergies(userId);
+        } catch (error: any) {
+            setAllergySubmissionError(error.message || 'No se pudo guardar la alergia.');
+        } finally {
+            setIsSubmittingAllergy(false);
+        }
+    };
+
+    const handleSubmitMedication = async (event: React.FormEvent) => {
+        event.preventDefault();
+        if (isSubmittingMedication || !userId) return;
+        
+        setIsSubmittingMedication(true);
+        setMedicationSubmissionError(null);
+
+        const payload: any = {
+            user_id: userId,
+            nombre_medicamento: medicationData.name,
+            dosis: medicationData.dose,
+            frecuencia: medicationData.frequency,
+            fecha_inicio: medicationData.since || null,
+            fecha_fin: medicationData.endDate || null,
+            motivo: medicationData.reason,
+            snomed_ct_id: medicationData.code,
+        };
+
+        if (editingMedication && editingMedication.id) {
+            payload.id = editingMedication.id;
+        }
+
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/medicamentos/upsert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (response.status > 299) throw new Error((await response.json()).message || 'Server error');
+
+            toast({ title: 'Éxito', description: 'El medicamento ha sido guardado.' });
+            setIsMedicationDialogOpen(false);
+            fetchMedications(userId);
+        } catch (error: any) {
+            setMedicationSubmissionError(error.message || 'No se pudo guardar el medicamento.');
+        } finally {
+            setIsSubmittingMedication(false);
+        }
+    };
+
     const handleAddPersonalClick = () => {
         setEditingPersonalHistory(null);
         setIsPersonalHistoryDialogOpen(true);
@@ -1032,8 +1149,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
     const handleEditPersonalClick = (item: PersonalHistoryItem) => {
         setEditingPersonalHistory(item);
-        setSelectedPersonalAilmentName(item.nombre);
-        setPersonalComentarios(item.comentarios);
         setIsPersonalHistoryDialogOpen(true);
     };
 
@@ -1046,6 +1161,26 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         setEditingFamilyHistory(item);
         setIsFamilyHistoryDialogOpen(true);
     };
+    
+    const handleAddAllergyClick = () => {
+        setEditingAllergy(null);
+        setIsAllergyDialogOpen(true);
+    };
+
+    const handleEditAllergyClick = (item: AllergyItem) => {
+        setEditingAllergy(item);
+        setIsAllergyDialogOpen(true);
+    };
+    
+    const handleAddMedicationClick = () => {
+        setEditingMedication(null);
+        setIsMedicationDialogOpen(true);
+    };
+
+    const handleEditMedicationClick = (item: MedicationItem) => {
+        setEditingMedication(item);
+        setIsMedicationDialogOpen(true);
+    };
 
     const handleDeleteClick = (item: any, type: string) => {
         setDeletingItem({ item, type });
@@ -1057,17 +1192,29 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     
         let endpoint = '';
         let body: any = {};
+        let fetchCallback: Function | null = null;
     
         switch (deletingItem.type) {
             case 'antecedente personal':
                 endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales/delete';
                 body = { id: deletingItem.item.id };
+                fetchCallback = fetchPersonalHistory;
                 break;
             case 'antecedente familiar':
                 endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_familiares/delete';
                 body = { id: deletingItem.item.id };
+                fetchCallback = fetchFamilyHistory;
                 break;
-            // Cases for other types can be added here
+            case 'alergia':
+                endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/alergias/delete';
+                body = { id: deletingItem.item.id };
+                fetchCallback = fetchAllergies;
+                break;
+            case 'medicamento':
+                endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/medicamentos/delete';
+                body = { id: deletingItem.item.id };
+                fetchCallback = fetchMedications;
+                break;
         }
     
         if (!endpoint) {
@@ -1095,13 +1242,8 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             setIsDeleteDialogOpen(false);
             setDeletingItem(null);
     
-            switch (deletingItem.type) {
-                case 'antecedente personal':
-                    fetchPersonalHistory(userId);
-                    break;
-                case 'antecedente familiar':
-                    fetchFamilyHistory(userId);
-                    break;
+            if (fetchCallback) {
+                fetchCallback(userId);
             }
     
         } catch (error) {
@@ -1256,7 +1398,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                 <Pill className="w-5 h-5 text-green-500 mr-2" />
                                 <h3 className="text-lg font-bold text-card-foreground">Medicamentos Actuales</h3>
                             </div>
-                            <Button variant="outline" size="icon" onClick={() => setIsMedicationDialogOpen(true)}>
+                            <Button variant="outline" size="icon" onClick={handleAddMedicationClick}>
                                 <Plus className="h-4 w-4" />
                             </Button>
                         </div>
@@ -1280,7 +1422,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                             <div className="text-sm text-muted-foreground mt-1">{item.reason}</div>
                                         </div>
                                          <div className="flex items-center space-x-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingMedication(item)}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditMedicationClick(item)}>
                                                 <Edit3 className="h-4 w-4" />
                                             </Button>
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'medicamento')}>
@@ -1303,7 +1445,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                 <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
                                 <h3 className="text-lg font-bold text-card-foreground">Alergias</h3>
                             </div>
-                           <Button variant="outline" size="icon" onClick={() => setIsAllergyDialogOpen(true)}>
+                           <Button variant="outline" size="icon" onClick={handleAddAllergyClick}>
                                 <Plus className="h-4 w-4" />
                             </Button>
                         </div>
@@ -1321,7 +1463,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                             {item.reaction && <div className="text-sm text-destructive/80">{item.reaction}</div>}
                                         </div>
                                         <div className="flex items-center space-x-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingAllergy(item)}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAllergyClick(item)}>
                                                 <Edit3 className="h-4 w-4" />
                                             </Button>
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'alergia')}>
@@ -1506,6 +1648,80 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                 </DialogContent>
             </Dialog>
 
+            <Dialog open={isAllergyDialogOpen} onOpenChange={setIsAllergyDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingAllergy ? 'Editar Alergia' : 'Añadir Alergia'}</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmitAllergy}>
+                        <div className="grid gap-4 py-4">
+                            {allergySubmissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{allergySubmissionError}</AlertDescription></Alert>}
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="allergen" className="text-right">Alérgeno</Label>
+                                <Input id="allergen" value={allergyData.allergen} onChange={(e) => setAllergyData({ ...allergyData, allergen: e.target.value })} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="reaction" className="text-right">Reacción</Label>
+                                <Input id="reaction" value={allergyData.reaction} onChange={(e) => setAllergyData({ ...allergyData, reaction: e.target.value })} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="snomed" className="text-right">SNOMED CT</Label>
+                                <Input id="snomed" value={allergyData.snomed} onChange={(e) => setAllergyData({ ...allergyData, snomed: e.target.value })} className="col-span-3" />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" type="button" onClick={() => setIsAllergyDialogOpen(false)}>Cancelar</Button>
+                            <Button type="submit" disabled={isSubmittingAllergy}>{isSubmittingAllergy ? 'Guardando...' : 'Guardar'}</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isMedicationDialogOpen} onOpenChange={setIsMedicationDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>{editingMedication ? 'Editar Medicamento' : 'Añadir Medicamento'}</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmitMedication}>
+                        <div className="grid gap-4 py-4">
+                            {medicationSubmissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{medicationSubmissionError}</AlertDescription></Alert>}
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="med-name" className="text-right">Nombre</Label>
+                                <Input id="med-name" value={medicationData.name} onChange={e => setMedicationData({ ...medicationData, name: e.target.value })} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="med-dose" className="text-right">Dosis</Label>
+                                <Input id="med-dose" value={medicationData.dose} onChange={e => setMedicationData({ ...medicationData, dose: e.target.value })} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="med-frequency" className="text-right">Frecuencia</Label>
+                                <Input id="med-frequency" value={medicationData.frequency} onChange={e => setMedicationData({ ...medicationData, frequency: e.target.value })} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="med-since" className="text-right">Desde</Label>
+                                <Input id="med-since" type="date" value={medicationData.since || ''} onChange={e => setMedicationData({ ...medicationData, since: e.target.value })} className="col-span-3" />
+                            </div>
+                             <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="med-endDate" className="text-right">Hasta</Label>
+                                <Input id="med-endDate" type="date" value={medicationData.endDate || ''} onChange={e => setMedicationData({ ...medicationData, endDate: e.target.value })} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="med-reason" className="text-right">Motivo</Label>
+                                <Input id="med-reason" value={medicationData.reason} onChange={e => setMedicationData({ ...medicationData, reason: e.target.value })} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="med-code" className="text-right">SNOMED CT</Label>
+                                <Input id="med-code" value={medicationData.code} onChange={e => setMedicationData({ ...medicationData, code: e.target.value })} className="col-span-3" />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" type="button" onClick={() => setIsMedicationDialogOpen(false)}>Cancelar</Button>
+                            <Button type="submit" disabled={isSubmittingMedication}>{isSubmittingMedication ? 'Guardando...' : 'Guardar'}</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -1682,6 +1898,7 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
 
 
 
