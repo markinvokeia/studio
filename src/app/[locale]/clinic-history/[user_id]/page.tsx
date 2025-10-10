@@ -838,7 +838,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const AnamnesisDashboard = () => {
     const { toast } = useToast();
     const [ailmentsCatalog, setAilmentsCatalog] = useState<Ailment[]>([]);
-    const [selectedAilment, setSelectedAilment] = useState<Ailment | null>(null);
+    const [selectedAilmentName, setSelectedAilmentName] = useState<string>('');
     const [isComboboxOpen, setIsComboboxOpen] = useState(false);
     const [comentarios, setComentarios] = useState('');
     const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -852,7 +852,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogo_padecimientos');
                     const data = await response.json();
                     const ailmentsData = Array.isArray(data) ? data : (data.catalogo_padecimientos || data.data || data.result || []);
-                    setAilmentsCatalog(ailmentsData.map((a: any) => ({ ...a, id: String(a.id), padecimiento_id: a.id })));
+                    setAilmentsCatalog(ailmentsData.map((a: any) => ({ ...a, id: String(a.id) })));
                 } catch (error) {
                     console.error("Failed to fetch ailments catalog", error);
                 }
@@ -863,15 +863,15 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     
     useEffect(() => {
         if (!isPersonalHistoryDialogOpen) {
-            setSelectedAilment(null);
+            setSelectedAilmentName('');
             setComentarios('');
             setEditingPersonalHistory(null);
             setSubmissionError(null);
         }
     }, [isPersonalHistoryDialogOpen]);
 
-    const handleAilmentSelect = (ailment: Ailment | null) => {
-        setSelectedAilment(ailment);
+    const handleAilmentSelect = (ailmentName: string) => {
+        setSelectedAilmentName(ailmentName);
         setIsComboboxOpen(false);
     };
 
@@ -879,7 +879,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         event.preventDefault();
         if (isSubmitting) return;
 
-        if (!selectedAilment || !userId) {
+        if (!selectedAilmentName || !userId) {
             toast({
                 variant: 'destructive',
                 title: 'Error',
@@ -887,12 +887,12 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             });
             return;
         }
-
+        
         setIsSubmitting(true);
 
         const payload: any = {
             paciente_id: userId,
-            padecimiento_id: selectedAilment.id, 
+            padecimiento_id: selectedAilmentName, 
             comentarios: comentarios,
         };
 
@@ -932,32 +932,39 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     
     const handleAddClick = () => {
         setEditingPersonalHistory(null);
-        setSelectedAilment(null);
+        setSelectedAilmentName('');
         setComentarios('');
         setIsPersonalHistoryDialogOpen(true);
     };
 
-    const handleEditClick = (item: PersonalHistoryItem) => {
+    const handleEditClick = async (item: PersonalHistoryItem) => {
         setEditingPersonalHistory(item);
-        
-        const ailmentInCatalog = ailmentsCatalog.find(
-          (a) => String(a.padecimiento_id) === String(item.padecimiento_id) || a.nombre === item.nombre
-        );
-
-        if (ailmentInCatalog) {
-          setSelectedAilment(ailmentInCatalog);
-        } else {
-          // If not in catalog (e.g., still loading or not present), create a temporary object for display
-          const mockAilment: Ailment = {
-            id: String(item.padecimiento_id),
-            nombre: item.nombre,
-            categoria: item.categoria,
-            nivel_alerta: item.nivel_alerta,
-          };
-          setSelectedAilment(mockAilment);
-        }
-
         setComentarios(item.comentarios);
+        
+        // Ensure catalog is loaded before setting selected ailment
+        if (ailmentsCatalog.length === 0) {
+            try {
+                const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogo_padecimientos');
+                const data = await response.json();
+                const ailmentsData = Array.isArray(data) ? data : (data.catalogo_padecimientos || data.data || data.result || []);
+                const catalog = ailmentsData.map((a: any) => ({ ...a, id: String(a.id) }));
+                setAilmentsCatalog(catalog);
+                 const ailmentInCatalog = catalog.find(
+                  (a) => String(a.id) === String(item.padecimiento_id) || a.nombre === item.nombre
+                );
+                setSelectedAilmentName(ailmentInCatalog?.nombre || item.nombre);
+
+            } catch (error) {
+                console.error("Failed to fetch ailments catalog on edit", error);
+                setSelectedAilmentName(item.nombre); // Fallback to current name
+            }
+        } else {
+             const ailmentInCatalog = ailmentsCatalog.find(
+              (a) => String(a.id) === String(item.padecimiento_id) || a.nombre === item.nombre
+            );
+            setSelectedAilmentName(ailmentInCatalog?.nombre || item.nombre);
+        }
+        
         setIsPersonalHistoryDialogOpen(true);
     };
 
@@ -1285,8 +1292,8 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                         aria-expanded={isComboboxOpen}
                                         className="w-[300px] justify-between col-span-3"
                                     >
-                                        {selectedAilment
-                                        ? selectedAilment.nombre
+                                        {selectedAilmentName
+                                        ? selectedAilmentName
                                         : "Seleccione un padecimiento..."}
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
@@ -1300,12 +1307,12 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                             <CommandItem
                                             key={ailment.id}
                                             value={ailment.nombre}
-                                            onSelect={() => handleAilmentSelect(ailment)}
+                                            onSelect={() => handleAilmentSelect(ailment.nombre)}
                                             >
                                             <Check
                                                 className={cn(
                                                 "mr-2 h-4 w-4",
-                                                selectedAilment?.id === ailment.id ? "opacity-100" : "opacity-0"
+                                                selectedAilmentName === ailment.nombre ? "opacity-100" : "opacity-0"
                                                 )}
                                             />
                                             {ailment.nombre}
@@ -1506,6 +1513,8 @@ export default function DentalClinicalSystemPage() {
 
 
 
+
+    
 
     
 
