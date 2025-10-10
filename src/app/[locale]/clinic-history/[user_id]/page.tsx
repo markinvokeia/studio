@@ -852,7 +852,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogo_padecimientos');
                     const data = await response.json();
                     const ailmentsData = Array.isArray(data) ? data : (data.catalogo_padecimientos || data.data || data.result || []);
-                    setAilmentsCatalog(ailmentsData.map((a: any) => ({ ...a, id: String(a.id) })));
+                    setAilmentsCatalog(ailmentsData.map((a: any) => ({ ...a, id: String(a.id), padecimiento_id: a.id })));
                 } catch (error) {
                     console.error("Failed to fetch ailments catalog", error);
                 }
@@ -939,7 +939,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
     const handleEditClick = (item: PersonalHistoryItem) => {
         setEditingPersonalHistory(item);
-        const ailmentInCatalog = ailmentsCatalog.find(a => a.id === String(item.padecimiento_id)) || null;
+        const ailmentInCatalog = ailmentsCatalog.find(a => a.id === String(item.padecimiento_id));
 
         if (ailmentInCatalog) {
           setSelectedAilment(ailmentInCatalog);
@@ -963,13 +963,12 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
         let endpoint = '';
         let body: any = {};
-        let method: string = 'POST';
+        let method: string = 'DELETE';
 
         switch (deletingItem.type) {
             case 'antecedente personal':
                 endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales/delete';
                 body = { id: deletingItem.item.id };
-                method = 'DELETE';
                 break;
             // Cases for other types can be added here
         }
