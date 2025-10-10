@@ -959,58 +959,60 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     };
     
     const handleConfirmDelete = async () => {
-      if (!deletingItem) return;
-    
-      let endpoint = '';
-      let body: any = {};
+        if (!deletingItem) return;
 
-      switch (deletingItem.type) {
-        case 'antecedente personal':
-            endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales/delete';
-            body = { id: deletingItem.item.id };
-            break;
-        // Cases for other types can be added here
-      }
+        let endpoint = '';
+        let body: any = {};
+        let method: string = 'POST';
 
-      if (!endpoint) {
-          setIsDeleteDialogOpen(false);
-          return;
-      }
-    
-      try {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          mode:'cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-    
-        if (!response.ok) {
-          throw new Error(`Failed to delete ${deletingItem.type}`);
-        }
-    
-        toast({
-          title: 'Éxito',
-          description: `El ${deletingItem.type} ha sido eliminado.`,
-        });
-    
-        setIsDeleteDialogOpen(false);
-        setDeletingItem(null);
-        
         switch (deletingItem.type) {
             case 'antecedente personal':
-                fetchPersonalHistory(userId);
+                endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales/delete';
+                body = { id: deletingItem.item.id };
+                method = 'DELETE';
                 break;
+            // Cases for other types can be added here
         }
 
-      } catch (error) {
-        console.error(`Error deleting ${deletingItem.type}:`, error);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: `No se pudo eliminar el ${deletingItem.type}. Por favor, intente de nuevo.`,
-        });
-      }
+        if (!endpoint) {
+            setIsDeleteDialogOpen(false);
+            return;
+        }
+
+        try {
+            const response = await fetch(endpoint, {
+                method: method,
+                mode: 'cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to delete ${deletingItem.type}`);
+            }
+
+            toast({
+                title: 'Éxito',
+                description: `El ${deletingItem.type} ha sido eliminado.`,
+            });
+
+            setIsDeleteDialogOpen(false);
+            setDeletingItem(null);
+
+            switch (deletingItem.type) {
+                case 'antecedente personal':
+                    fetchPersonalHistory(userId);
+                    break;
+            }
+
+        } catch (error) {
+            console.error(`Error deleting ${deletingItem.type}:`, error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: `No se pudo eliminar el ${deletingItem.type}. Por favor, intente de nuevo.`,
+            });
+        }
     };
 
 
