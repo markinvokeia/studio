@@ -858,16 +858,24 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     }, [isPersonalHistoryDialogOpen]);
     
     useEffect(() => {
-        if (isPersonalHistoryDialogOpen && editingPersonalHistory) {
-            setSelectedAilmentName(editingPersonalHistory.nombre);
-            setComentarios(editingPersonalHistory.comentarios);
-        } else if (!isPersonalHistoryDialogOpen) {
+        if (isPersonalHistoryDialogOpen) {
+            if (editingPersonalHistory) {
+                const ailmentInCatalog = ailmentsCatalog.find(
+                    (a) => a.id === String(editingPersonalHistory.padecimiento_id) || a.nombre === editingPersonalHistory.nombre
+                );
+                setSelectedAilmentName(ailmentInCatalog?.nombre || editingPersonalHistory.nombre);
+                setComentarios(editingPersonalHistory.comentarios);
+            } else {
+                setSelectedAilmentName('');
+                setComentarios('');
+            }
+        } else {
             setEditingPersonalHistory(null);
             setSelectedAilmentName('');
             setComentarios('');
             setSubmissionError(null);
         }
-    }, [isPersonalHistoryDialogOpen, editingPersonalHistory]);
+    }, [isPersonalHistoryDialogOpen, editingPersonalHistory, ailmentsCatalog]);
 
     const handleAilmentSelect = (ailmentName: string) => {
         setSelectedAilmentName(ailmentName);
@@ -952,7 +960,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
         let endpoint = '';
         let body: any = {};
-        let method: string = 'DELETE';
+        let method: string = 'POST'; // Changed to POST as per many n8n webhook configurations for delete
 
         switch (deletingItem.type) {
             case 'antecedente personal':
@@ -1091,11 +1099,9 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                 <p className="text-muted-foreground">Loading personal history...</p>
                             ) : personalHistory.length > 0 ? (
                                 personalHistory.map((item) => (
-                                    <div key={item.id} className={`pl-4 py-2 flex justify-between items-center`}>
+                                    <div key={item.id} className="border-l-4 border-blue-300 dark:border-blue-700 pl-4 py-2 flex justify-between items-center">
                                         <div>
-                                            <div className="flex justify-between items-center">
-                                                <div className="font-semibold text-foreground">{item.nombre}</div>
-                                            </div>
+                                            <div className="font-semibold text-foreground">{item.nombre}</div>
                                             <div className="text-sm text-muted-foreground">{item.comentarios}</div>
                                         </div>
                                         <div className="flex items-center space-x-1">
@@ -1264,6 +1270,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                         role="combobox"
                                         aria-expanded={isComboboxOpen}
                                         className="w-[300px] justify-between col-span-3"
+                                        type="button"
                                     >
                                         {selectedAilmentName
                                         ? selectedAilmentName
@@ -1278,7 +1285,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                         <CommandGroup>
                                         {ailmentsCatalog.map((ailment) => (
                                             <CommandItem
-                                            key={ailment.id}
+                                            key={ailment.nombre}
                                             value={ailment.nombre}
                                             onSelect={() => handleAilmentSelect(ailment.nombre)}
                                             >
@@ -1492,3 +1499,4 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
