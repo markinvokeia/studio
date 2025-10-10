@@ -886,7 +886,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         }
 
         const payload: any = {
-            user_id: userId,
+            paciente_id: userId,
             padecimiento_id: selectedAilment.nombre, // Sending name as requested
             comentarios: comentarios,
         };
