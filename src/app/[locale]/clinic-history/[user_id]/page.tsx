@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -875,7 +876,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         if (isPersonalHistoryDialogOpen) {
             if (editingPersonalHistory) {
                 const ailmentInCatalog = ailmentsCatalog.find(
-                    (a) => a.id === String(editingPersonalHistory.padecimiento_id) || a.nombre === editingPersonalHistory.nombre
+                    (a) => String(a.id) === String(editingPersonalHistory.padecimiento_id) || a.nombre === editingPersonalHistory.nombre
                 );
                 setSelectedPersonalAilmentName(ailmentInCatalog?.nombre || editingPersonalHistory.nombre);
                 setPersonalComentarios(editingPersonalHistory.comentarios);
@@ -895,7 +896,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         if (isFamilyHistoryDialogOpen) {
             if (editingFamilyHistory) {
                 const ailmentInCatalog = ailmentsCatalog.find(
-                    (a) => a.id === String(editingFamilyHistory.padecimiento_id) || a.nombre === editingFamilyHistory.nombre
+                    (a) => String(a.id) === String(editingFamilyHistory.padecimiento_id) || a.nombre === editingFamilyHistory.nombre
                 );
                 setSelectedFamilyAilmentName(ailmentInCatalog?.nombre || editingFamilyHistory.nombre);
                 setFamilyParentesco(editingFamilyHistory.parentesco);
@@ -1031,6 +1032,8 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
     const handleEditPersonalClick = (item: PersonalHistoryItem) => {
         setEditingPersonalHistory(item);
+        setSelectedPersonalAilmentName(item.nombre);
+        setPersonalComentarios(item.comentarios);
         setIsPersonalHistoryDialogOpen(true);
     };
 
@@ -1468,13 +1471,19 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                             </div>
                              <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="parentesco" className="text-right">Parentesco</Label>
-                                <Input 
-                                    id="parentesco" 
-                                    placeholder="e.g., Madre, Padre" 
-                                    className="col-span-3" 
-                                    value={familyParentesco} 
-                                    onChange={(e) => setFamilyParentesco(e.target.value)} 
-                                />
+                                <Select onValueChange={setFamilyParentesco} value={familyParentesco}>
+                                    <SelectTrigger className="col-span-3">
+                                        <SelectValue placeholder="Seleccione un parentesco" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Padre">Padre</SelectItem>
+                                        <SelectItem value="Madre">Madre</SelectItem>
+                                        <SelectItem value="Abuelo Materno">Abuelo Materno</SelectItem>
+                                        <SelectItem value="Abuela Materna">Abuela Materna</SelectItem>
+                                        <SelectItem value="Abuelo Paterno">Abuelo Paterno</SelectItem>
+                                        <SelectItem value="Abuela Paterna">Abuela Paterna</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <div className="grid grid-cols-4 items-start gap-4">
                                 <Label htmlFor="family-comentarios" className="text-right pt-2">Comentarios</Label>
@@ -1673,5 +1682,6 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
 
 
