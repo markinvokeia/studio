@@ -33,8 +33,8 @@ import { useTranslations } from 'next-intl';
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  filterColumnId: string;
-  filterPlaceholder: string;
+  filterColumnId?: string;
+  filterPlaceholder?: string;
   onRowSelectionChange?: (selectedRows: TData[]) => void;
   enableSingleRowSelection?: boolean;
   onCreate?: () => void;
@@ -130,14 +130,16 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      <DataTableToolbar 
-        table={table}
-        filterColumnId={filterColumnId}
-        filterPlaceholder={filterPlaceholder}
-        onCreate={onCreate}
-        onRefresh={onRefresh}
-        isRefreshing={isRefreshing}
-      />
+      {(filterColumnId && filterPlaceholder) && (
+        <DataTableToolbar 
+          table={table}
+          filterColumnId={filterColumnId}
+          filterPlaceholder={filterPlaceholder}
+          onCreate={onCreate}
+          onRefresh={onRefresh}
+          isRefreshing={isRefreshing}
+        />
+      )}
       <div className="rounded-md border">
         <Table>
           <TableHeader>

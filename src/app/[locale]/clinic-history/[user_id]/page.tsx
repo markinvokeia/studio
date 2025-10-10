@@ -151,7 +151,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         if (!currentUserId) return;
         setIsLoadingPersonalHistory(true);
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales?user_id=${currentUserId}`, {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user/antecedentes_personales?user_id=${currentUserId}`, {
                 method: 'GET',
                 mode: 'cors',
                 headers: { 'Content-Type': 'application/json' },
@@ -943,6 +943,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
       try {
         const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales/delete', {
           method: 'POST',
+          mode:'cors',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: deletingPersonalHistory.id }),
         });

@@ -66,8 +66,7 @@ export function UserRoles({ userId, initialUserRoles, isLoading, onRolesChange }
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedRoles, setSelectedRoles] = React.useState<UserRoleAssignment[]>([]);
   const { toast } = useToast();
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-
+  
   React.useEffect(() => {
     if (isDialogOpen) {
       getAllRoles().then(setAllRoles);
@@ -155,11 +154,7 @@ export function UserRoles({ userId, initialUserRoles, isLoading, onRolesChange }
         <DataTable
           columns={columns}
           data={initialUserRoles}
-          filterColumnId='name'
-          filterPlaceholder={t('filterPlaceholder')}
           onCreate={handleAddRole}
-          columnFilters={columnFilters}
-          onColumnFiltersChange={setColumnFilters}
         />
       </CardContent>
     </Card>
