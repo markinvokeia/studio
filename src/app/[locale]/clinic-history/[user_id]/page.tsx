@@ -2215,15 +2215,19 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
 
   const handleSave = async () => {
     setIsSubmitting(true);
-    const endpoint = session ? 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sessions/update' : 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sessions/create';
-    const method = session ? 'PUT' : 'POST';
+    const endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert';
+    const method = 'POST';
 
-    const payload = {
+    const payload: any = {
         ...formData,
         paciente_id: userId,
         tipo_sesion: sessionType,
-        sesion_id: session?.sesion_id,
     };
+
+    if (session) {
+        payload.sesion_id = session.sesion_id;
+    }
+
 
     try {
         const response = await fetch(endpoint, {
@@ -2233,7 +2237,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         });
 
         if (!response.ok) {
-            throw new Error('Failed to save session');
+            const errorText = await response.text();
+            throw new Error(`Failed to save session: ${errorText}`);
         }
         toast({ title: 'Éxito', description: 'La sesión ha sido guardada.' });
         onSave();
