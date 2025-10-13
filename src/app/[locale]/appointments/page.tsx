@@ -258,19 +258,26 @@ export default function AppointmentsPage() {
                 <CardTitle>{t('title')}</CardTitle>
                 <CardDescription>{t('description')}</CardDescription>
             </div>
-            <TabsList>
-                <TabsTrigger value="calendar">{t('calendarView')}</TabsTrigger>
-                <TabsTrigger value="list">{t('listView')}</TabsTrigger>
-            </TabsList>
+            <div className="flex items-center gap-2">
+                 <Button
+                    variant="outline"
+                    onClick={() => setCreateOpen(true)}
+                    className="flex items-center gap-2"
+                >
+                    <PlusCircle className="h-5 w-5" />
+                    <span>{t('newAppointment')}</span>
+                </Button>
+                <TabsList>
+                    <TabsTrigger value="calendar">{t('calendarView')}</TabsTrigger>
+                    <TabsTrigger value="list">{t('listView')}</TabsTrigger>
+                </TabsList>
+            </div>
             </CardHeader>
             <CardContent>
                 <TabsContent value="calendar" className="pt-4">
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr]">
                     <div className="space-y-4">
-                    <Button onClick={() => setCreateOpen(true)} className="w-full flex items-center gap-2">
-                        <PlusCircle className="h-5 w-5" />
-                        <span>{t('newAppointment')}</span>
-                    </Button>
+                    
                     <Card>
                         <CardContent className="p-0 flex justify-center">
                             <Calendar
