@@ -1540,10 +1540,10 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     if (!deletingSession) return;
     try {
         const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/delete', {
-            method: 'POST',
+            method: 'DELETE',
             mode: 'cors',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sesion_id: deletingSession.sesion_id })
+            body: JSON.stringify({ id: deletingSession.sesion_id })
         });
         if (!response.ok) throw new Error('Failed to delete session');
         toast({ title: 'Éxito', description: 'La sesión ha sido eliminada.' });
