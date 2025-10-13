@@ -262,9 +262,6 @@ export default function AppointmentsPage() {
               <PlusCircle className="h-5 w-5" />
               <span>{t('newAppointment')}</span>
             </Button>
-            <Button variant="outline" size="icon" onClick={loadAppointments} disabled={isRefreshing}>
-              <RefreshCw className={cn("h-5 w-5", isRefreshing && "animate-spin")} />
-            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -416,6 +413,7 @@ export default function AppointmentsPage() {
                 onSortingChange={setSorting}
                 onRefresh={loadAppointments}
                 isRefreshing={isRefreshing}
+                onCreate={() => setCreateOpen(true)}
               />
             </TabsContent>
           </Tabs>
