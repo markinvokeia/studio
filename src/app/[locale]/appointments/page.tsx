@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { addMonths, format, parseISO, isSameDay, isToday, isThisMonth, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Appointment, Calendar as CalendarType, User as UserType } from '@/lib/types';
+import { Appointment, Calendar as CalendarType, User as UserType, Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Calendar as CalendarIcon, User, Phone, Stethoscope, RefreshCw, CalendarDays, List, Search, ChevronsUpDown, Check } from 'lucide-react';
 import {
@@ -149,6 +149,14 @@ export default function AppointmentsPage() {
   const [userSearchResults, setUserSearchResults] = React.useState<UserType[]>([]);
   const [isSearchingUsers, setIsSearchingUsers] = React.useState(false);
   const [selectedUser, setSelectedUser] = React.useState<UserType | null>(null);
+
+  // Service Search State
+  const [isServiceSearchOpen, setServiceSearchOpen] = React.useState(false);
+  const [serviceSearchQuery, setServiceSearchQuery] = React.useState('');
+  const [serviceSearchResults, setServiceSearchResults] = React.useState<Service[]>([]);
+  const [isSearchingServices, setIsSearchingServices] = React.useState(false);
+  const [selectedService, setSelectedService] = React.useState<Service | null>(null);
+
 
   const generateColor = (str: string) => {
     let hash = 0;
@@ -302,6 +310,49 @@ export default function AppointmentsPage() {
         clearTimeout(handler);
     };
   }, [userSearchQuery]);
+
+  // Debounced search effect for services
+  React.useEffect(() => {
+    const handler = setTimeout(async () => {
+        if (serviceSearchQuery.length < 2) {
+            setServiceSearchResults([]);
+            return;
+        };
+        setIsSearchingServices(true);
+        try {
+          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?search=${serviceSearchQuery}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+          });
+          if (!response.ok) {
+            throw new Error('Network response was not ok for services');
+          }
+          const data = await response.json();
+          const servicesData = Array.isArray(data) ? data : (data.services || data.data || data.result || []);
+          
+          const mappedServices = servicesData.map((apiService: any): Service => ({
+            id: apiService.id ? String(apiService.id) : `srv_${Math.random().toString(36).substr(2, 9)}`,
+            name: apiService.name || 'No Name',
+            category: apiService.category || 'No Category',
+            price: apiService.price || 0,
+            duration_minutes: apiService.duration_minutes || 0,
+            is_active: apiService.is_active,
+          }));
+          setServiceSearchResults(mappedServices);
+        } catch (error) {
+          console.error("Failed to fetch services:", error);
+          setServiceSearchResults([]);
+        } finally {
+          setIsSearchingServices(false);
+        }
+    }, 300);
+
+    return () => {
+        clearTimeout(handler);
+    };
+  }, [serviceSearchQuery]);
+
 
   return (
     <>
@@ -557,9 +608,56 @@ export default function AppointmentsPage() {
                 </PopoverContent>
               </Popover>
             </div>
-             <div className="grid grid-cols-4 items-center gap-4">
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="service_name" className="text-right">{t('createDialog.serviceName')}</Label>
-              <Input id="service_name" className="col-span-3" />
+                <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={isServiceSearchOpen}
+                      className="w-[300px] justify-between col-span-3"
+                    >
+                      {selectedService ? selectedService.name : "Select service..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search service by name..."
+                        value={serviceSearchQuery}
+                        onValueChange={setServiceSearchQuery}
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          {isSearchingServices ? 'Searching...' : 'No service found.'}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {serviceSearchResults.map((service) => (
+                            <CommandItem
+                              key={service.id}
+                              value={service.name}
+                              onSelect={() => {
+                                setSelectedService(service);
+                                setServiceSearchQuery(service.name);
+                                setServiceSearchOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedService?.id === service.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {service.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="date" className="text-right">{t('createDialog.date')}</Label>
@@ -578,3 +676,5 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
