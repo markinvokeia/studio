@@ -2161,236 +2161,208 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 };
 
 const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOpen: boolean, onOpenChange: (open: boolean) => void, session: PatientSession | null, userId: string, onSave: () => void }) => {
-  const [sessionType, setSessionType] = useState<'odontograma' | 'clinica'>('clinica');
-  const [formData, setFormData] = useState<Partial<PatientSession>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [doctors, setDoctors] = useState<UserType[]>([]);
-  const { toast } = useToast();
+    const [sessionType, setSessionType] = useState<'odontograma' | 'clinica'>('clinica');
+    const [formData, setFormData] = useState<Partial<PatientSession>>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [doctors, setDoctors] = useState<UserType[]>([]);
+    const { toast } = useToast();
 
-  // State for new treatment
-  const [newTreatmentDescription, setNewTreatmentDescription] = useState('');
-  const [newTreatmentTooth, setNewTreatmentTooth] = useState('');
+    const [newTreatmentDescription, setNewTreatmentDescription] = useState('');
+    const [newTreatmentTooth, setNewTreatmentTooth] = useState('');
 
-  useEffect(() => {
-    async function fetchDoctors() {
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
-            if (response.ok) {
-                const data = await response.json();
-                const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || data.result || []);
-                setDoctors(doctorsData);
+    useEffect(() => {
+        async function fetchDoctors() {
+            try {
+                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || data.result || []);
+                    setDoctors(doctorsData);
+                }
+            } catch (error) {
+                console.error("Failed to fetch doctors:", error);
             }
-        } catch (error) {
-            console.error("Failed to fetch doctors:", error);
         }
-    }
-    if (isOpen) {
-        fetchDoctors();
-    }
-  }, [isOpen]);
+        if (isOpen) {
+            fetchDoctors();
+        }
+    }, [isOpen]);
 
-  useEffect(() => {
-    if (isOpen) {
+    useEffect(() => {
+        if (isOpen) {
+            if (session) {
+                setSessionType(session.tipo_sesion || 'clinica');
+                setFormData({
+                    ...session,
+                    fecha_sesion: session.fecha_sesion ? format(parseISO(session.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : '',
+                    tratamientos: session.tratamientos || [],
+                });
+            } else {
+                setSessionType('clinica');
+                setFormData({
+                    fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+                    diagnostico: '',
+                    procedimiento_realizado: '',
+                    notas_clinicas: '',
+                    tratamientos: [],
+                });
+            }
+        }
+    }, [session, isOpen]);
+  
+    const handleInputChange = (field: keyof PatientSession, value: any) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
+  
+    const handleAddTreatment = () => {
+        if (!newTreatmentDescription) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'La descripción del tratamiento no puede estar vacía.',
+            });
+            return;
+        }
+        const newTreatment: TreatmentDetail = {
+            descripcion: newTreatmentDescription,
+            numero_diente: newTreatmentTooth ? parseInt(newTreatmentTooth) : null,
+        };
+        setFormData(prev => ({
+            ...prev,
+            tratamientos: [...(prev.tratamientos || []), newTreatment]
+        }));
+        setNewTreatmentDescription('');
+        setNewTreatmentTooth('');
+    };
+  
+    const handleRemoveTreatment = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            tratamientos: prev.tratamientos?.filter((_, i) => i !== index)
+        }));
+    };
+
+    const handleSave = async () => {
+        setIsSubmitting(true);
+        const endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert';
+
+        const payload: any = {
+            ...formData,
+            paciente_id: userId,
+            tipo_sesion: 'clinica', // Hardcode to 'clinica'
+        };
+
+        // Don't send estado_odontograma for clinical sessions
+        delete payload.estado_odontograma;
+
         if (session) {
-            setSessionType(session.tipo_sesion || 'clinica');
-            setFormData({
-                ...session,
-                fecha_sesion: session.fecha_sesion ? format(parseISO(session.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : '',
-                tratamientos: session.tratamientos || [],
-            });
-        } else {
-            setSessionType('clinica');
-            setFormData({
-                fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-                diagnostico: '',
-                procedimiento_realizado: '',
-                notas_clinicas: '',
-                tratamientos: [],
-                estado_odontograma: {},
-            });
+            payload.sesion_id = session.sesion_id;
         }
-    }
-  }, [session, isOpen]);
-  
-  const handleInputChange = (field: keyof PatientSession, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-  
-  const handleAddTreatment = () => {
-    if (!newTreatmentDescription) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'La descripción del tratamiento no puede estar vacía.',
-        });
-        return;
-    }
-    const newTreatment: TreatmentDetail = {
-        descripcion: newTreatmentDescription,
-        numero_diente: newTreatmentTooth ? parseInt(newTreatmentTooth) : null,
-    };
-    setFormData(prev => ({
-        ...prev,
-        tratamientos: [...(prev.tratamientos || []), newTreatment]
-    }));
-    setNewTreatmentDescription('');
-    setNewTreatmentTooth('');
-  };
-  
-  const handleRemoveTreatment = (index: number) => {
-      setFormData(prev => ({
-          ...prev,
-          tratamientos: prev.tratamientos?.filter((_, i) => i !== index)
-      }));
-  };
 
-  const handleSave = async () => {
-    setIsSubmitting(true);
-    const endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert';
 
-    const payload: any = {
-        ...formData,
-        paciente_id: userId,
-        tipo_sesion: sessionType,
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                mode: 'cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to save session: ${errorText}`);
+            }
+            toast({ title: 'Éxito', description: 'La sesión ha sido guardada.' });
+            onSave();
+            onOpenChange(false);
+        } catch (error) {
+            console.error('Save error', error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la sesión.' });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
-    if (session) {
-        payload.sesion_id = session.sesion_id;
-    }
-
-
-    try {
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            mode: 'cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Failed to save session: ${errorText}`);
-        }
-        toast({ title: 'Éxito', description: 'La sesión ha sido guardada.' });
-        onSave();
-        onOpenChange(false);
-    } catch (error) {
-        console.error('Save error', error);
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la sesión.' });
-    } finally {
-        setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
-        <DialogHeader>
-          <DialogTitle>{session ? 'Edit Session' : 'Create New Session'}</DialogTitle>
-        </DialogHeader>
-        <div className="py-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                  <Label>Session Type</Label>
-                  <Select value={sessionType} onValueChange={(value) => setSessionType(value as 'odontograma' | 'clinica')}>
-                      <SelectTrigger><SelectValue/></SelectTrigger>
-                      <SelectContent>
-                          <SelectItem value="clinica">Clinical Session</SelectItem>
-                          <SelectItem value="odontograma">Odontogram</SelectItem>
-                      </SelectContent>
-                  </Select>
-              </div>
-               <div className="space-y-2">
-                  <Label>Session Date</Label>
-                  <Input type="datetime-local" value={formData.fecha_sesion || ''} onChange={e => handleInputChange('fecha_sesion', e.target.value)} />
-              </div>
-            </div>
-            
-            {sessionType === 'clinica' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-4">
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                    <DialogTitle>{session ? 'Edit Clinical Session' : 'Create New Clinical Session'}</DialogTitle>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
                     <div className="space-y-2">
-                        <Label>Doctor</Label>
-                        <Select value={formData.doctor_id || ''} onValueChange={(value) => handleInputChange('doctor_id', value)}>
-                            <SelectTrigger><SelectValue placeholder="Select a doctor..."/></SelectTrigger>
-                            <SelectContent>
-                                {doctors.map(doc => (
-                                    <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>
+                        <Label>Session Date</Label>
+                        <Input type="datetime-local" value={formData.fecha_sesion || ''} onChange={e => handleInputChange('fecha_sesion', e.target.value)} />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Doctor</Label>
+                                <Select value={formData.doctor_id || ''} onValueChange={(value) => handleInputChange('doctor_id', value)}>
+                                    <SelectTrigger><SelectValue placeholder="Select a doctor..."/></SelectTrigger>
+                                    <SelectContent>
+                                        {doctors.map(doc => (
+                                            <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Procedure</Label>
+                                <Input value={formData.procedimiento_realizado || ''} onChange={e => handleInputChange('procedimiento_realizado', e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Diagnosis</Label>
+                                <Textarea value={formData.diagnostico || ''} onChange={e => handleInputChange('diagnostico', e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Clinical Notes</Label>
+                                <Textarea value={formData.notas_clinicas || ''} onChange={e => handleInputChange('notas_clinicas', e.target.value)} />
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            <h4 className="font-semibold">Session Treatments</h4>
+                            <div className="space-y-2 p-2 border rounded-md">
+                                <div className="flex gap-2">
+                                    <Input 
+                                        type="number"
+                                        placeholder="Tooth #" 
+                                        value={newTreatmentTooth}
+                                        onChange={(e) => setNewTreatmentTooth(e.target.value)}
+                                        className="w-24"
+                                    />
+                                    <Input 
+                                        placeholder="Treatment description" 
+                                        value={newTreatmentDescription}
+                                        onChange={(e) => setNewTreatmentDescription(e.target.value)}
+                                    />
+                                    <Button type="button" onClick={handleAddTreatment} size="icon"><Plus className="h-4 w-4" /></Button>
+                                </div>
+                            </div>
+                            <div className="max-h-60 overflow-y-auto space-y-2">
+                                {formData.tratamientos && formData.tratamientos.map((treatment, index) => (
+                                    <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-md">
+                                        <div>
+                                            <p className="text-sm font-medium">{treatment.descripcion}</p>
+                                            {treatment.numero_diente && <p className="text-xs text-muted-foreground">Tooth: {treatment.numero_diente}</p>}
+                                        </div>
+                                        <Button type="button" variant="destructive-ghost" size="icon" onClick={() => handleRemoveTreatment(index)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
                                 ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                     <div className="space-y-2">
-                      <Label>Procedure</Label>
-                      <Input value={formData.procedimiento_realizado || ''} onChange={e => handleInputChange('procedimiento_realizado', e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Diagnosis</Label>
-                      <Textarea value={formData.diagnostico || ''} onChange={e => handleInputChange('diagnostico', e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Clinical Notes</Label>
-                      <Textarea value={formData.notas_clinicas || ''} onChange={e => handleInputChange('notas_clinicas', e.target.value)} />
-                    </div>
-                </div>
-                <div className="space-y-4">
-                    <h4 className="font-semibold">Session Treatments</h4>
-                    <div className="space-y-2 p-2 border rounded-md">
-                        <div className="flex gap-2">
-                            <Input 
-                                type="number"
-                                placeholder="Tooth #" 
-                                value={newTreatmentTooth}
-                                onChange={(e) => setNewTreatmentTooth(e.target.value)}
-                                className="w-24"
-                            />
-                            <Input 
-                                placeholder="Treatment description" 
-                                value={newTreatmentDescription}
-                                onChange={(e) => setNewTreatmentDescription(e.target.value)}
-                            />
-                            <Button type="button" onClick={handleAddTreatment} size="icon"><Plus className="h-4 w-4" /></Button>
+                            </div>
                         </div>
                     </div>
-                     <div className="max-h-60 overflow-y-auto space-y-2">
-                        {formData.tratamientos && formData.tratamientos.map((treatment, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-md">
-                                <div>
-                                    <p className="text-sm font-medium">{treatment.descripcion}</p>
-                                    {treatment.numero_diente && <p className="text-xs text-muted-foreground">Tooth: {treatment.numero_diente}</p>}
-                                </div>
-                                <Button type="button" variant="destructive-ghost" size="icon" onClick={() => handleRemoveTreatment(index)}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        ))}
-                    </div>
                 </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label>Odontogram State (JSON)</Label>
-                <Textarea 
-                  value={formData.estado_odontograma ? JSON.stringify(formData.estado_odontograma, null, 2) : ''}
-                  onChange={e => {
-                    try {
-                      handleInputChange('estado_odontograma', JSON.parse(e.target.value));
-                    } catch {
-                      // ignore parse error while typing
-                    }
-                  }}
-                  rows={10}
-                />
-              </div>
-            )}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button onClick={handleSave} disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
 };
 
 
