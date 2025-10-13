@@ -37,6 +37,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const initialPatient = {
@@ -1766,7 +1767,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                         <SelectItem value="Abuelo Materno">Abuelo Materno</SelectItem>
                                         <SelectItem value="Abuela Materna">Abuela Materna</SelectItem>
                                         <SelectItem value="Abuelo Paterno">Abuelo Paterno</SelectItem>
-                                        <SelectItem value="Abuela Paterna">Abuela Paterna</SelectItem>
+                                        <SelectItem value="Abuela Materna">Abuela Materna</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
