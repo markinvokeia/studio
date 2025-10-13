@@ -252,172 +252,170 @@ export default function AppointmentsPage() {
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>{t('title')}</CardTitle>
-            <CardDescription>{t('description')}</CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={() => setCreateOpen(true)} className="flex items-center gap-2">
-              <PlusCircle className="h-5 w-5" />
-              <span>{t('newAppointment')}</span>
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="calendar">
+        <Tabs defaultValue="calendar">
+            <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+                <CardTitle>{t('title')}</CardTitle>
+                <CardDescription>{t('description')}</CardDescription>
+            </div>
             <TabsList>
-              <TabsTrigger value="calendar">{t('calendarView')}</TabsTrigger>
-              <TabsTrigger value="list">{t('listView')}</TabsTrigger>
+                <TabsTrigger value="calendar">{t('calendarView')}</TabsTrigger>
+                <TabsTrigger value="list">{t('listView')}</TabsTrigger>
             </TabsList>
-            <TabsContent value="calendar" className="pt-4">
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr]">
-                <div className="space-y-4">
-                  <Card>
-                    <CardContent className="p-0 flex justify-center">
-                        <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={setSelectedDate}
-                            className="rounded-md w-auto"
-                            initialFocus
-                        />
-                    </CardContent>
-                  </Card>
-                   <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <CalendarIcon className="h-5 w-5"/>
-                          {t('calendars')}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {isCalendarsLoading ? (
-                          <div className="space-y-2">
-                            <Skeleton className="h-5 w-full" />
-                            <Skeleton className="h-5 w-full" />
-                            <Skeleton className="h-5 w-full" />
-                          </div>
-                        ) : (
-                           <div className="space-y-2">
-                             <div className="flex items-center space-x-2">
-                                <Checkbox 
-                                    id="select-all"
-                                    checked={selectedCalendarIds.length === calendars.length}
-                                    onCheckedChange={handleSelectAllCalendars}
-                                />
-                                <Label htmlFor="select-all" className="font-semibold">{t('selectAll')}</Label>
-                            </div>
-                            <Separator />
-                            <ScrollArea className="h-32">
-                                {calendars.map(calendar => (
-                                <div key={calendar.id} className="flex items-center space-x-2 py-1">
-                                    <Checkbox 
-                                        id={calendar.id}
-                                        checked={selectedCalendarIds.includes(calendar.id)}
-                                        onCheckedChange={(checked) => handleCalendarSelection(calendar.id, !!checked)}
-                                    />
-                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: calendarColors[calendar.id] }} />
-                                    <Label htmlFor={calendar.id}>{calendar.name}</Label>
-                                </div>
-                                ))}
-                            </ScrollArea>
-                           </div>
-                        )}
-                      </CardContent>
+            </CardHeader>
+            <CardContent>
+                <TabsContent value="calendar" className="pt-4">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr]">
+                    <div className="space-y-4">
+                    <Button onClick={() => setCreateOpen(true)} className="w-full flex items-center gap-2">
+                        <PlusCircle className="h-5 w-5" />
+                        <span>{t('newAppointment')}</span>
+                    </Button>
+                    <Card>
+                        <CardContent className="p-0 flex justify-center">
+                            <Calendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={setSelectedDate}
+                                className="rounded-md w-auto"
+                                initialFocus
+                            />
+                        </CardContent>
                     </Card>
-                </div>
-                <div className="flex flex-col">
-                  <Card className="flex-1 flex flex-col">
-                    <CardHeader>
-                      <CardTitle>
-                        {t('appointmentsFor', {date: selectedDate ? format(selectedDate, 'PPP') : '...'})}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1 p-0">
-                      <ScrollArea className="h-full">
-                         <div className="p-6 space-y-4">
-                            {selectedDayAppointments.length > 0 ? (
-                            selectedDayAppointments.map((apt) => (
-                                <div key={apt.id} className="flex items-start space-x-4 rounded-lg border bg-card text-card-foreground shadow-sm p-4 relative overflow-hidden">
-                                    <div className="absolute left-0 top-0 h-full w-2" style={{ backgroundColor: calendarColors[apt.calendar_id] }} />
-                                    <div className="pl-4 w-full">
-                                        <div className="flex justify-between items-start">
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant={getStatusVariant(apt.status) as any} className="capitalize text-xs">{apt.status}</Badge>
-                                            <p className="font-semibold">{apt.service_name}</p>
-                                        </div>
-                                        <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">{apt.time}</p>
-                                        </div>
-                                        <Separator className="my-2" />
-                                        <div className="text-sm text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1">
-                                        <div className="flex items-center gap-2">
-                                            <User className="w-4 h-4" />
-                                            <span>{apt.patientName}</span>
-                                        </div>
-                                        {apt.patientPhone && (
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base flex items-center gap-2">
+                            <CalendarIcon className="h-5 w-5"/>
+                            {t('calendars')}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {isCalendarsLoading ? (
+                            <div className="space-y-2">
+                                <Skeleton className="h-5 w-full" />
+                                <Skeleton className="h-5 w-full" />
+                                <Skeleton className="h-5 w-full" />
+                            </div>
+                            ) : (
+                            <div className="space-y-2">
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox 
+                                        id="select-all"
+                                        checked={selectedCalendarIds.length === calendars.length}
+                                        onCheckedChange={handleSelectAllCalendars}
+                                    />
+                                    <Label htmlFor="select-all" className="font-semibold">{t('selectAll')}</Label>
+                                </div>
+                                <Separator />
+                                <ScrollArea className="h-32">
+                                    {calendars.map(calendar => (
+                                    <div key={calendar.id} className="flex items-center space-x-2 py-1">
+                                        <Checkbox 
+                                            id={calendar.id}
+                                            checked={selectedCalendarIds.includes(calendar.id)}
+                                            onCheckedChange={(checked) => handleCalendarSelection(calendar.id, !!checked)}
+                                        />
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: calendarColors[calendar.id] }} />
+                                        <Label htmlFor={calendar.id}>{calendar.name}</Label>
+                                    </div>
+                                    ))}
+                                </ScrollArea>
+                            </div>
+                            )}
+                        </CardContent>
+                        </Card>
+                    </div>
+                    <div className="flex flex-col">
+                    <Card className="flex-1 flex flex-col">
+                        <CardHeader>
+                        <CardTitle>
+                            {t('appointmentsFor', {date: selectedDate ? format(selectedDate, 'PPP') : '...'})}
+                        </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex-1 p-0">
+                        <ScrollArea className="h-full">
+                            <div className="p-6 space-y-4">
+                                {selectedDayAppointments.length > 0 ? (
+                                selectedDayAppointments.map((apt) => (
+                                    <div key={apt.id} className="flex items-start space-x-4 rounded-lg border bg-card text-card-foreground shadow-sm p-4 relative overflow-hidden">
+                                        <div className="absolute left-0 top-0 h-full w-2" style={{ backgroundColor: calendarColors[apt.calendar_id] }} />
+                                        <div className="pl-4 w-full">
+                                            <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-2">
-                                            <Phone className="w-4 h-4" />
-                                            <span>{apt.patientPhone}</span>
+                                                <Badge variant={getStatusVariant(apt.status) as any} className="capitalize text-xs">{apt.status}</Badge>
+                                                <p className="font-semibold">{apt.service_name}</p>
                                             </div>
-                                        )}
-                                        <div className="col-span-2 flex items-center gap-2">
-                                            <Stethoscope className="w-4 h-4" />
-                                            <span>Dr. {apt.doctorName || 'N/A'}</span>
-                                        </div>
-                                        <div className="col-span-2 flex items-center gap-2">
-                                            <CalendarIcon className="w-4 h-4" />
-                                            <span>{apt.calendar_name || 'N/A'}</span>
-                                        </div>
+                                            <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">{apt.time}</p>
+                                            </div>
+                                            <Separator className="my-2" />
+                                            <div className="text-sm text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <User className="w-4 h-4" />
+                                                <span>{apt.patientName}</span>
+                                            </div>
+                                            {apt.patientPhone && (
+                                                <div className="flex items-center gap-2">
+                                                <Phone className="w-4 h-4" />
+                                                <span>{apt.patientPhone}</span>
+                                                </div>
+                                            )}
+                                            <div className="col-span-2 flex items-center gap-2">
+                                                <Stethoscope className="w-4 h-4" />
+                                                <span>Dr. {apt.doctorName || 'N/A'}</span>
+                                            </div>
+                                            <div className="col-span-2 flex items-center gap-2">
+                                                <CalendarIcon className="w-4 h-4" />
+                                                <span>{apt.calendar_name || 'N/A'}</span>
+                                            </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                ))
-                            ) : (
-                            <p className="text-center text-muted-foreground h-full flex items-center justify-center">{t('noAppointments')}</p>
-                            )}
-                         </div>
-                      </ScrollArea>
-                    </CardContent>
-                  </Card>
+                                    ))
+                                ) : (
+                                <p className="text-center text-muted-foreground h-full flex items-center justify-center">{t('noAppointments')}</p>
+                                )}
+                            </div>
+                        </ScrollArea>
+                        </CardContent>
+                    </Card>
+                    </div>
                 </div>
-              </div>
-            </TabsContent>
-            <TabsContent value="list" className="pt-4 space-y-4">
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant={dateFilter === 'today' ? 'default' : 'outline'}
-                        onClick={() => setDateFilter('today')}
-                    >
-                        {t('today')}
-                    </Button>
-                    <Button
-                        variant={dateFilter === 'this_week' ? 'default' : 'outline'}
-                        onClick={() => setDateFilter('this_week')}
-                    >
-                        {t('thisWeek')}
-                    </Button>
-                    <Button
-                        variant={dateFilter === 'this_month' ? 'default' : 'outline'}
-                        onClick={() => setDateFilter('this_month')}
-                    >
-                        {t('thisMonth')}
-                    </Button>
-                </div>
-               <DataTable 
-                columns={appointmentColumns} 
-                data={filteredAppointments} 
-                filterColumnId='service_name'
-                filterPlaceholder={t('filterByService')}
-                sorting={sorting}
-                onSortingChange={setSorting}
-                onRefresh={loadAppointments}
-                isRefreshing={isRefreshing}
-                onCreate={() => setCreateOpen(true)}
-              />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
+                </TabsContent>
+                <TabsContent value="list" className="pt-4 space-y-4">
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant={dateFilter === 'today' ? 'default' : 'outline'}
+                            onClick={() => setDateFilter('today')}
+                        >
+                            {t('today')}
+                        </Button>
+                        <Button
+                            variant={dateFilter === 'this_week' ? 'default' : 'outline'}
+                            onClick={() => setDateFilter('this_week')}
+                        >
+                            {t('thisWeek')}
+                        </Button>
+                        <Button
+                            variant={dateFilter === 'this_month' ? 'default' : 'outline'}
+                            onClick={() => setDateFilter('this_month')}
+                        >
+                            {t('thisMonth')}
+                        </Button>
+                    </div>
+                <DataTable 
+                    columns={appointmentColumns} 
+                    data={filteredAppointments} 
+                    filterColumnId='service_name'
+                    filterPlaceholder={t('filterByService')}
+                    sorting={sorting}
+                    onSortingChange={setSorting}
+                    onRefresh={loadAppointments}
+                    isRefreshing={isRefreshing}
+                    onCreate={() => setCreateOpen(true)}
+                />
+                </TabsContent>
+            </CardContent>
+        </Tabs>
       </Card>
       <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
