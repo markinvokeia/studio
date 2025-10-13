@@ -259,14 +259,6 @@ export default function AppointmentsPage() {
                 <CardDescription>{t('description')}</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-                 <Button
-                    variant="outline"
-                    onClick={() => setCreateOpen(true)}
-                    className="flex items-center gap-2"
-                >
-                    <PlusCircle className="h-5 w-5" />
-                    <span>{t('newAppointment')}</span>
-                </Button>
                 <TabsList>
                     <TabsTrigger value="calendar">{t('calendarView')}</TabsTrigger>
                     <TabsTrigger value="list">{t('listView')}</TabsTrigger>
@@ -334,10 +326,31 @@ export default function AppointmentsPage() {
                     </div>
                     <div className="flex flex-col">
                     <Card className="flex-1 flex flex-col">
-                        <CardHeader>
-                        <CardTitle>
-                            {t('appointmentsFor', {date: selectedDate ? format(selectedDate, 'PPP') : '...'})}
-                        </CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle>
+                                {t('appointmentsFor', {date: selectedDate ? format(selectedDate, 'PPP') : '...'})}
+                            </CardTitle>
+                             <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setCreateOpen(true)}
+                                >
+                                    <PlusCircle className="h-4 w-4" />
+                                    <span className="sr-only">{t('newAppointment')}</span>
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={loadAppointments}
+                                    disabled={isRefreshing}
+                                >
+                                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                    <span className="sr-only">Refresh</span>
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent className="flex-1 p-0">
                         <ScrollArea className="h-full">
