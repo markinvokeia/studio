@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { addMonths, format, parseISO, isSameDay, isToday, isThisMonth, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { addDays, addMonths, format, parseISO, isSameDay, isToday, isThisMonth, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType, User as UserType, Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -148,20 +148,23 @@ export default function AppointmentsPage() {
   const [userSearchQuery, setUserSearchQuery] = React.useState('');
   const [userSearchResults, setUserSearchResults] = React.useState<UserType[]>([]);
   const [isSearchingUsers, setIsSearchingUsers] = React.useState(false);
-  const [selectedUser, setSelectedUser] = React.useState<UserType | null>(null);
 
   // Service Search State
   const [isServiceSearchOpen, setServiceSearchOpen] = React.useState(false);
   const [serviceSearchQuery, setServiceSearchQuery] = React.useState('');
   const [serviceSearchResults, setServiceSearchResults] = React.useState<Service[]>([]);
   const [isSearchingServices, setIsSearchingServices] = React.useState(false);
-  const [selectedService, setSelectedService] = React.useState<Service | null>(null);
 
   // New Appointment Dialog State
+  const [newAppointment, setNewAppointment] = React.useState({
+    user: null as UserType | null,
+    service: null as Service | null,
+    calendar: null as CalendarType | null,
+    date: '',
+    time: '',
+    showSuggestions: true,
+  });
   const [isCalendarSearchOpen, setCalendarSearchOpen] = React.useState(false);
-  const [selectedCalendarForNewAppt, setSelectedCalendarForNewAppt] = React.useState<CalendarType | null>(null);
-  const [showSuggestions, setShowSuggestions] = React.useState(true);
-
 
   const generateColor = (str: string) => {
     let hash = 0;
@@ -197,7 +200,7 @@ export default function AppointmentsPage() {
     setCalendars(fetchedCalendars);
     setSelectedCalendarIds(fetchedCalendars.map(c => c.id));
     if (fetchedCalendars.length > 0) {
-        setSelectedCalendarForNewAppt(fetchedCalendars[0]);
+      setNewAppointment(prev => ({ ...prev, calendar: fetchedCalendars[0] }));
     }
     setIsCalendarsLoading(false);
   }, []);
@@ -358,6 +361,16 @@ export default function AppointmentsPage() {
     };
   }, [serviceSearchQuery, isServiceSearchOpen]);
 
+  React.useEffect(() => {
+    if (isCreateOpen) {
+      const tomorrow = addDays(new Date(), 1);
+      setNewAppointment(prev => ({
+        ...prev,
+        date: format(tomorrow, 'yyyy-MM-dd'),
+        time: '09:00',
+      }));
+    }
+  }, [isCreateOpen]);
 
   return (
     <>
@@ -570,8 +583,8 @@ export default function AppointmentsPage() {
                         aria-expanded={isUserSearchOpen}
                         className="w-[300px] justify-between col-span-3"
                     >
-                        {selectedUser
-                        ? selectedUser.name
+                        {newAppointment.user
+                        ? newAppointment.user.name
                         : "Select user..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -593,7 +606,7 @@ export default function AppointmentsPage() {
                                     key={user.id}
                                     value={user.name}
                                     onSelect={() => {
-                                        setSelectedUser(user);
+                                        setNewAppointment(prev => ({...prev, user}));
                                         setUserSearchQuery(user.name);
                                         setUserSearchOpen(false);
                                     }}
@@ -601,7 +614,7 @@ export default function AppointmentsPage() {
                                     <Check
                                         className={cn(
                                         "mr-2 h-4 w-4",
-                                        selectedUser?.id === user.id ? "opacity-100" : "opacity-0"
+                                        newAppointment.user?.id === user.id ? "opacity-100" : "opacity-0"
                                         )}
                                     />
                                     {user.name}
@@ -623,7 +636,7 @@ export default function AppointmentsPage() {
                       aria-expanded={isServiceSearchOpen}
                       className="w-[300px] justify-between col-span-3"
                     >
-                      {selectedService ? selectedService.name : "Select service..."}
+                      {newAppointment.service ? newAppointment.service.name : "Select service..."}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -644,7 +657,7 @@ export default function AppointmentsPage() {
                               key={service.id}
                               value={service.name}
                               onSelect={() => {
-                                setSelectedService(service);
+                                setNewAppointment(prev => ({...prev, service}));
                                 setServiceSearchQuery(service.name);
                                 setServiceSearchOpen(false);
                               }}
@@ -652,7 +665,7 @@ export default function AppointmentsPage() {
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  selectedService?.id === service.id ? "opacity-100" : "opacity-0"
+                                  newAppointment.service?.id === service.id ? "opacity-100" : "opacity-0"
                                 )}
                               />
                               {service.name}
@@ -674,7 +687,7 @@ export default function AppointmentsPage() {
                         aria-expanded={isCalendarSearchOpen}
                         className="w-[300px] justify-between col-span-3"
                     >
-                        {selectedCalendarForNewAppt ? selectedCalendarForNewAppt.name : "Select calendar..."}
+                        {newAppointment.calendar ? newAppointment.calendar.name : "Select calendar..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                 </PopoverTrigger>
@@ -688,14 +701,14 @@ export default function AppointmentsPage() {
                                     key={calendar.id}
                                     value={calendar.name}
                                     onSelect={() => {
-                                        setSelectedCalendarForNewAppt(calendar);
+                                        setNewAppointment(prev => ({...prev, calendar}));
                                         setCalendarSearchOpen(false);
                                     }}
                                 >
                                     <Check
                                         className={cn(
                                         "mr-2 h-4 w-4",
-                                        selectedCalendarForNewAppt?.id === calendar.id ? "opacity-100" : "opacity-0"
+                                        newAppointment.calendar?.id === calendar.id ? "opacity-100" : "opacity-0"
                                         )}
                                     />
                                     {calendar.name}
@@ -709,16 +722,16 @@ export default function AppointmentsPage() {
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="date" className="text-right">{t('createDialog.date')}</Label>
-              <Input id="date" type="date" className="col-span-3" />
+              <Input id="date" type="date" className="col-span-3" value={newAppointment.date} onChange={e => setNewAppointment(prev => ({...prev, date: e.target.value}))} />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="time" className="text-right">{t('createDialog.time')}</Label>
-              <Input id="time" type="time" className="col-span-3" />
+              <Input id="time" type="time" className="col-span-3" value={newAppointment.time} onChange={e => setNewAppointment(prev => ({...prev, time: e.target.value}))}/>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="show-suggestions" className="text-right">{t('createDialog.showSuggestions')}</Label>
                 <div className="col-span-3 flex items-center">
-                    <Checkbox id="show-suggestions" checked={showSuggestions} onCheckedChange={(checked) => setShowSuggestions(!!checked)} />
+                    <Checkbox id="show-suggestions" checked={newAppointment.showSuggestions} onCheckedChange={(checked) => setNewAppointment(prev => ({...prev, showSuggestions: !!checked}))} />
                 </div>
             </div>
           </div>
@@ -730,5 +743,3 @@ export default function AppointmentsPage() {
     </>
   );
 }
-
-    
