@@ -44,6 +44,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type PersonalHistoryItem = {
     id: number;
@@ -1889,8 +1890,10 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             </div>
             <div className="relative">
                 <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 to-primary"></div>
+                <TooltipProvider>
                 {sessions.map((session, index) => {
                     const odontogramSummary = session.tipo_sesion === 'odontograma' ? generateOdontogramSummary(session.estado_odontograma) : null;
+                    const isOdontogramSession = session.tipo_sesion === 'odontograma';
                     return (
                         <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
                             <div className={`absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-4 border-background shadow-lg bg-primary`}></div>
@@ -1908,14 +1911,37 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
-                                                <DropdownMenuItem onClick={() => onAction('edit', session)}>
-                                                    <Edit3 className="mr-2 h-4 w-4" />
-                                                    <span>Editar</span>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => onAction('delete', session)} className="text-destructive">
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    <span>Eliminar</span>
-                                                </DropdownMenuItem>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className={cn('w-full', isOdontogramSession && 'cursor-not-allowed')}>
+                                                            <DropdownMenuItem 
+                                                                onSelect={(e) => isOdontogramSession && e.preventDefault()}
+                                                                onClick={() => !isOdontogramSession && onAction('edit', session)} 
+                                                                disabled={isOdontogramSession}
+                                                            >
+                                                                <Edit3 className="mr-2 h-4 w-4" />
+                                                                <span>Editar</span>
+                                                            </DropdownMenuItem>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    {isOdontogramSession && <TooltipContent>Las sesiones de odontograma se gestionan desde el odontograma.</TooltipContent>}
+                                                </Tooltip>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className={cn('w-full', isOdontogramSession && 'cursor-not-allowed')}>
+                                                            <DropdownMenuItem
+                                                                onSelect={(e) => isOdontogramSession && e.preventDefault()}
+                                                                onClick={() => !isOdontogramSession && onAction('delete', session)}
+                                                                disabled={isOdontogramSession}
+                                                                className="text-destructive"
+                                                            >
+                                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                                <span>Eliminar</span>
+                                                            </DropdownMenuItem>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                     {isOdontogramSession && <TooltipContent>Las sesiones de odontograma se gestionan desde el odontograma.</TooltipContent>}
+                                                </Tooltip>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>
@@ -1967,6 +1993,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                         </div>
                     )
                 })}
+                </TooltipProvider>
             </div>
         </div>
     );
