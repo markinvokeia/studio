@@ -759,7 +759,7 @@ export default function AppointmentsPage() {
             </div>
             {newAppointment.showSuggestions && (
                 <div className="border-l pl-8">
-                    <h4 className="font-semibold mb-4">Suggested Times</h4>
+                    <h4 className="font-semibold mb-4">{t('createDialog.suggestedTimes')}</h4>
                     <RadioGroup onValueChange={(value) => {
                       const suggestion = suggestedTimes.find(s => s.id === value);
                       if (suggestion) {
@@ -775,9 +775,9 @@ export default function AppointmentsPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead></TableHead>
-                          <TableHead>Calendar</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Time</TableHead>
+                          <TableHead>{t('createDialog.suggested.calendar')}</TableHead>
+                          <TableHead>{t('createDialog.suggested.date')}</TableHead>
+                          <TableHead>{t('createDialog.suggested.time')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>

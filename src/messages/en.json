@@ -127,7 +127,13 @@
       "time": "Time",
       "save": "Save Appointment",
       "calendar": "Calendar",
-      "showSuggestions": "Show Suggestions"
+      "showSuggestions": "Show Suggestions",
+      "suggestedTimes": "Suggested Times",
+      "suggested": {
+        "calendar": "Calendar",
+        "date": "Date",
+        "time": "Time"
+      }
     }
   },
   "AppointmentsColumns": {
@@ -319,5 +325,3 @@
     "noResults": "No results."
   }
 }
-
-    

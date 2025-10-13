@@ -127,7 +127,13 @@
       "time": "Hora",
       "save": "Guardar Cita",
       "calendar": "Calendario",
-      "showSuggestions": "Mostrar Sugerencias"
+      "showSuggestions": "Mostrar Sugerencias",
+      "suggestedTimes": "Horarios Sugeridos",
+      "suggested": {
+        "calendar": "Calendario",
+        "date": "Fecha",
+        "time": "Hora"
+      }
     }
   },
   "AppointmentsColumns": {
@@ -319,5 +325,3 @@
     "noResults": "No se encontraron resultados."
   }
 }
-
-    
