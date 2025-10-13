@@ -482,8 +482,22 @@ export default function AppointmentsPage() {
             mode: 'cors',
         });
         const data = await response.json();
-        setAvailabilityStatus(data.isAvailable ? 'available' : 'unavailable');
-        setSuggestedTimes(data.suggestions || []);
+        
+        let isAvailable = false;
+        let suggestions: any[] = [];
+
+        if (Array.isArray(data) && data.length > 0) {
+            isAvailable = data[0].isAvailable === true;
+            suggestions = (data[0].suggestions || []).map((s: any, index: number) => ({
+                id: `sugg-${index}`,
+                calendar: s.availableCalendarName,
+                date: format(parseISO(s.availableStartingTime), 'yyyy-MM-dd'),
+                time: format(parseISO(s.availableStartingTime), 'HH:mm'),
+            }));
+        }
+
+        setAvailabilityStatus(isAvailable ? 'available' : 'unavailable');
+        setSuggestedTimes(suggestions);
     } catch (error) {
         console.error("Failed to check availability:", error);
         setAvailabilityStatus('idle');
@@ -993,7 +1007,3 @@ export default function AppointmentsPage() {
     </>
   );
 }
-
-    
-
-    
