@@ -30,6 +30,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslations } from 'next-intl';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+
 
 async function getAppointments(calendarIds: string[], startDate: Date, endDate: Date): Promise<Appointment[]> {
     const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
@@ -165,6 +168,24 @@ export default function AppointmentsPage() {
     showSuggestions: true,
   });
   const [isCalendarSearchOpen, setCalendarSearchOpen] = React.useState(false);
+
+  const suggestionColumns: ColumnDef<any>[] = [
+    {
+      id: 'select',
+      cell: ({ row }) => (
+        <RadioGroupItem value={row.id} id={row.id} />
+      ),
+    },
+    { accessorKey: 'calendar', header: 'Calendar' },
+    { accessorKey: 'date', header: 'Date' },
+    { accessorKey: 'time', header: 'Time' },
+  ];
+
+  const suggestedTimes = [
+    { id: '1', calendar: 'Consultorio 1', date: '2024-07-25', time: '10:00' },
+    { id: '2', calendar: 'Consultorio 1', date: '2024-07-25', time: '11:00' },
+    { id: '3', calendar: 'Consultorio 2', date: '2024-07-26', time: '14:00' },
+  ];
 
   const generateColor = (str: string) => {
     let hash = 0;
@@ -347,7 +368,7 @@ export default function AppointmentsPage() {
             duration_minutes: apiService.duration_minutes || 0,
             is_active: apiService.is_active,
           }));
-          setServiceSearchResults(mappedServices);
+          setServiceSearchResults(mappedServices.slice(0, 10));
         } catch (error) {
           console.error("Failed to fetch services:", error);
           setServiceSearchResults([]);
@@ -567,173 +588,212 @@ export default function AppointmentsPage() {
         </Tabs>
       </Card>
       <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
+        <DialogContent className={cn("sm:max-w-md", newAppointment.showSuggestions && "sm:max-w-4xl")}>
           <DialogHeader>
             <DialogTitle>{t('createDialog.title')}</DialogTitle>
             <DialogDescription>{t('createDialog.description')}</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="patientName" className="text-right">{t('createDialog.userName')}</Label>
-              <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
-                <PopoverTrigger asChild>
-                    <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={isUserSearchOpen}
-                        className="w-[300px] justify-between col-span-3"
-                    >
-                        {newAppointment.user
-                        ? newAppointment.user.name
-                        : "Select user..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-0">
-                    <Command>
-                        <CommandInput 
-                            placeholder="Search user by name..." 
-                            value={userSearchQuery}
-                            onValueChange={setUserSearchQuery}
-                        />
-                        <CommandList>
-                            <CommandEmpty>
-                                {isSearchingUsers ? 'Searching...' : 'No user found.'}
-                            </CommandEmpty>
-                            <CommandGroup>
-                                {userSearchResults.map((user) => (
-                                <CommandItem
-                                    key={user.id}
-                                    value={user.name}
-                                    onSelect={() => {
-                                        setNewAppointment(prev => ({...prev, user}));
-                                        setUserSearchQuery(user.name);
-                                        setUserSearchOpen(false);
-                                    }}
-                                >
-                                    <Check
-                                        className={cn(
-                                        "mr-2 h-4 w-4",
-                                        newAppointment.user?.id === user.id ? "opacity-100" : "opacity-0"
-                                        )}
-                                    />
-                                    {user.name}
-                                </CommandItem>
-                                ))}
-                            </CommandGroup>
-                        </CommandList>
-                    </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="service_name" className="text-right">{t('createDialog.serviceName')}</Label>
-                <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
+          <div className={cn("grid gap-8 py-4", newAppointment.showSuggestions && "grid-cols-2")}>
+            <div className="grid gap-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="patientName" className="text-right">{t('createDialog.userName')}</Label>
+                <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={isServiceSearchOpen}
-                      className="w-[300px] justify-between col-span-3"
-                    >
-                      {newAppointment.service ? newAppointment.service.name : "Select service..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
+                      <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={isUserSearchOpen}
+                          className="w-[300px] justify-between col-span-3"
+                      >
+                          {newAppointment.user
+                          ? newAppointment.user.name
+                          : "Select user..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0">
-                    <Command>
-                      <CommandInput
-                        placeholder="Search service by name..."
-                        value={serviceSearchQuery}
-                        onValueChange={setServiceSearchQuery}
-                      />
-                      <CommandList>
-                        <CommandEmpty>
-                          {isSearchingServices ? 'Searching...' : 'No service found.'}
-                        </CommandEmpty>
-                        <CommandGroup>
-                          {serviceSearchResults.map((service) => (
-                            <CommandItem
-                              key={service.id}
-                              value={service.name}
-                              onSelect={() => {
-                                setNewAppointment(prev => ({...prev, service}));
-                                setServiceSearchQuery(service.name);
-                                setServiceSearchOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  newAppointment.service?.id === service.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {service.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
+                      <Command>
+                          <CommandInput 
+                              placeholder="Search user by name..." 
+                              value={userSearchQuery}
+                              onValueChange={setUserSearchQuery}
+                          />
+                          <CommandList>
+                              <CommandEmpty>
+                                  {isSearchingUsers ? 'Searching...' : 'No user found.'}
+                              </CommandEmpty>
+                              <CommandGroup>
+                                  {userSearchResults.map((user) => (
+                                  <CommandItem
+                                      key={user.id}
+                                      value={user.name}
+                                      onSelect={() => {
+                                          setNewAppointment(prev => ({...prev, user}));
+                                          setUserSearchQuery(user.name);
+                                          setUserSearchOpen(false);
+                                      }}
+                                  >
+                                      <Check
+                                          className={cn(
+                                          "mr-2 h-4 w-4",
+                                          newAppointment.user?.id === user.id ? "opacity-100" : "opacity-0"
+                                          )}
+                                      />
+                                      {user.name}
+                                  </CommandItem>
+                                  ))}
+                              </CommandGroup>
+                          </CommandList>
+                      </Command>
                   </PopoverContent>
                 </Popover>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="calendar" className="text-right">{t('createDialog.calendar')}</Label>
-              <Popover open={isCalendarSearchOpen} onOpenChange={setCalendarSearchOpen}>
-                <PopoverTrigger asChild>
-                    <Button
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="service_name" className="text-right">{t('createDialog.serviceName')}</Label>
+                  <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
                         variant="outline"
                         role="combobox"
-                        aria-expanded={isCalendarSearchOpen}
+                        aria-expanded={isServiceSearchOpen}
                         className="w-[300px] justify-between col-span-3"
-                    >
-                        {newAppointment.calendar ? newAppointment.calendar.name : "Select calendar..."}
+                      >
+                        {newAppointment.service ? newAppointment.service.name : "Select service..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-0">
-                    <Command>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search service by name..."
+                          value={serviceSearchQuery}
+                          onValueChange={setServiceSearchQuery}
+                        />
                         <CommandList>
-                            <CommandEmpty>No calendars found.</CommandEmpty>
-                            <CommandGroup>
-                                {calendars.map((calendar) => (
-                                <CommandItem
-                                    key={calendar.id}
-                                    value={calendar.name}
-                                    onSelect={() => {
-                                        setNewAppointment(prev => ({...prev, calendar}));
-                                        setCalendarSearchOpen(false);
-                                    }}
-                                >
-                                    <Check
-                                        className={cn(
-                                        "mr-2 h-4 w-4",
-                                        newAppointment.calendar?.id === calendar.id ? "opacity-100" : "opacity-0"
-                                        )}
-                                    />
-                                    {calendar.name}
-                                </CommandItem>
-                                ))}
-                            </CommandGroup>
+                          <CommandEmpty>
+                            {isSearchingServices ? 'Searching...' : 'No service found.'}
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {serviceSearchResults.map((service) => (
+                              <CommandItem
+                                key={service.id}
+                                value={service.name}
+                                onSelect={() => {
+                                  setNewAppointment(prev => ({...prev, service}));
+                                  setServiceSearchQuery(service.name);
+                                  setServiceSearchOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    newAppointment.service?.id === service.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {service.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
                         </CommandList>
-                    </Command>
-                </PopoverContent>
-              </Popover>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="calendar" className="text-right">{t('createDialog.calendar')}</Label>
+                <Popover open={isCalendarSearchOpen} onOpenChange={setCalendarSearchOpen}>
+                  <PopoverTrigger asChild>
+                      <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={isCalendarSearchOpen}
+                          className="w-[300px] justify-between col-span-3"
+                      >
+                          {newAppointment.calendar ? newAppointment.calendar.name : "Select calendar..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0">
+                      <Command>
+                          <CommandList>
+                              <CommandEmpty>No calendars found.</CommandEmpty>
+                              <CommandGroup>
+                                  {calendars.map((calendar) => (
+                                  <CommandItem
+                                      key={calendar.id}
+                                      value={calendar.name}
+                                      onSelect={() => {
+                                          setNewAppointment(prev => ({...prev, calendar}));
+                                          setCalendarSearchOpen(false);
+                                      }}
+                                  >
+                                      <Check
+                                          className={cn(
+                                          "mr-2 h-4 w-4",
+                                          newAppointment.calendar?.id === calendar.id ? "opacity-100" : "opacity-0"
+                                          )}
+                                      />
+                                      {calendar.name}
+                                  </CommandItem>
+                                  ))}
+                              </CommandGroup>
+                          </CommandList>
+                      </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="date" className="text-right">{t('createDialog.date')}</Label>
+                <Input id="date" type="date" className="col-span-3" value={newAppointment.date} onChange={e => setNewAppointment(prev => ({...prev, date: e.target.value}))} />
+              </div>
+               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="time" className="text-right">{t('createDialog.time')}</Label>
+                <Input id="time" type="time" className="col-span-3" value={newAppointment.time} onChange={e => setNewAppointment(prev => ({...prev, time: e.target.value}))}/>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="show-suggestions" className="text-right">{t('createDialog.showSuggestions')}</Label>
+                  <div className="col-span-3 flex items-center">
+                      <Checkbox id="show-suggestions" checked={newAppointment.showSuggestions} onCheckedChange={(checked) => setNewAppointment(prev => ({...prev, showSuggestions: !!checked}))} />
+                  </div>
+              </div>
             </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="date" className="text-right">{t('createDialog.date')}</Label>
-              <Input id="date" type="date" className="col-span-3" value={newAppointment.date} onChange={e => setNewAppointment(prev => ({...prev, date: e.target.value}))} />
-            </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="time" className="text-right">{t('createDialog.time')}</Label>
-              <Input id="time" type="time" className="col-span-3" value={newAppointment.time} onChange={e => setNewAppointment(prev => ({...prev, time: e.target.value}))}/>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="show-suggestions" className="text-right">{t('createDialog.showSuggestions')}</Label>
-                <div className="col-span-3 flex items-center">
-                    <Checkbox id="show-suggestions" checked={newAppointment.showSuggestions} onCheckedChange={(checked) => setNewAppointment(prev => ({...prev, showSuggestions: !!checked}))} />
+            {newAppointment.showSuggestions && (
+                <div className="border-l pl-8">
+                    <h4 className="font-semibold mb-4">Suggested Times</h4>
+                    <RadioGroup onValueChange={(value) => {
+                      const suggestion = suggestedTimes.find(s => s.id === value);
+                      if (suggestion) {
+                          setNewAppointment(prev => ({
+                              ...prev,
+                              date: suggestion.date,
+                              time: suggestion.time,
+                              calendar: calendars.find(c => c.name === suggestion.calendar) || prev.calendar,
+                          }))
+                      }
+                    }}>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead></TableHead>
+                          <TableHead>Calendar</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Time</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {suggestedTimes.map((suggestion) => (
+                          <TableRow key={suggestion.id}>
+                            <TableCell><RadioGroupItem value={suggestion.id} id={suggestion.id} /></TableCell>
+                            <TableCell>{suggestion.calendar}</TableCell>
+                            <TableCell>{suggestion.date}</TableCell>
+                            <TableCell>{suggestion.time}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    </RadioGroup>
                 </div>
-            </div>
+            )}
           </div>
           <div className="flex justify-end">
             <Button>{t('createDialog.save')}</Button>
@@ -743,3 +803,5 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
