@@ -45,6 +45,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type PersonalHistoryItem = {
     id: number;
@@ -1881,120 +1882,122 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     }
     
     return (
-        <div className="bg-card rounded-xl shadow-lg p-6">
+        <div className="bg-card rounded-xl shadow-lg p-6 flex flex-col h-full">
             <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold text-card-foreground">Historial de Tratamientos</h3>
                 <Button variant="outline" size="icon" onClick={() => onAction('add')}>
                     <Plus className="h-4 w-4" />
                 </Button>
             </div>
-            <div className="relative">
-                <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 to-primary"></div>
-                <TooltipProvider>
-                {sessions.map((session, index) => {
-                    const odontogramSummary = session.tipo_sesion === 'odontograma' ? generateOdontogramSummary(session.estado_odontograma) : null;
-                    const isOdontogramSession = session.tipo_sesion === 'odontograma';
-                    return (
-                        <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
-                            <div className={`absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-4 border-background shadow-lg bg-primary`}></div>
-                            <div className="flex-1">
-                                <div className="bg-muted/50 rounded-lg p-4 hover:bg-muted transition-colors duration-200">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <h4 className="font-semibold text-foreground">{session.procedimiento_realizado}</h4>
-                                            <span className="text-sm text-muted-foreground">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</span>
+            <ScrollArea className="flex-1 -mr-6">
+                <div className="relative pr-6">
+                    <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 to-primary"></div>
+                    <TooltipProvider>
+                    {sessions.map((session, index) => {
+                        const odontogramSummary = session.tipo_sesion === 'odontograma' ? generateOdontogramSummary(session.estado_odontograma) : null;
+                        const isOdontogramSession = session.tipo_sesion === 'odontograma';
+                        return (
+                            <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
+                                <div className={`absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-4 border-background shadow-lg bg-primary`}></div>
+                                <div className="flex-1">
+                                    <div className="bg-muted/50 rounded-lg p-4 hover:bg-muted transition-colors duration-200">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <h4 className="font-semibold text-foreground">{session.procedimiento_realizado}</h4>
+                                                <span className="text-sm text-muted-foreground">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</span>
+                                            </div>
+                                             <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <div className={cn('w-full', isOdontogramSession && 'cursor-not-allowed')}>
+                                                                <DropdownMenuItem 
+                                                                    onSelect={(e) => isOdontogramSession && e.preventDefault()}
+                                                                    onClick={() => !isOdontogramSession && onAction('edit', session)} 
+                                                                    disabled={isOdontogramSession}
+                                                                >
+                                                                    <Edit3 className="mr-2 h-4 w-4" />
+                                                                    <span>Editar</span>
+                                                                </DropdownMenuItem>
+                                                            </div>
+                                                        </TooltipTrigger>
+                                                        {isOdontogramSession && <TooltipContent>Las sesiones de odontograma se gestionan desde el odontograma.</TooltipContent>}
+                                                    </Tooltip>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <div className={cn('w-full', isOdontogramSession && 'cursor-not-allowed')}>
+                                                                <DropdownMenuItem
+                                                                    onSelect={(e) => isOdontogramSession && e.preventDefault()}
+                                                                    onClick={() => !isOdontogramSession && onAction('delete', session)}
+                                                                    disabled={isOdontogramSession}
+                                                                    className="text-destructive"
+                                                                >
+                                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                                    <span>Eliminar</span>
+                                                                </DropdownMenuItem>
+                                                            </div>
+                                                        </TooltipTrigger>
+                                                         {isOdontogramSession && <TooltipContent>Las sesiones de odontograma se gestionan desde el odontograma.</TooltipContent>}
+                                                    </Tooltip>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
-                                         <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <MoreVertical className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <div className={cn('w-full', isOdontogramSession && 'cursor-not-allowed')}>
-                                                            <DropdownMenuItem 
-                                                                onSelect={(e) => isOdontogramSession && e.preventDefault()}
-                                                                onClick={() => !isOdontogramSession && onAction('edit', session)} 
-                                                                disabled={isOdontogramSession}
-                                                            >
-                                                                <Edit3 className="mr-2 h-4 w-4" />
-                                                                <span>Editar</span>
-                                                            </DropdownMenuItem>
-                                                        </div>
-                                                    </TooltipTrigger>
-                                                    {isOdontogramSession && <TooltipContent>Las sesiones de odontograma se gestionan desde el odontograma.</TooltipContent>}
-                                                </Tooltip>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <div className={cn('w-full', isOdontogramSession && 'cursor-not-allowed')}>
-                                                            <DropdownMenuItem
-                                                                onSelect={(e) => isOdontogramSession && e.preventDefault()}
-                                                                onClick={() => !isOdontogramSession && onAction('delete', session)}
-                                                                disabled={isOdontogramSession}
-                                                                className="text-destructive"
-                                                            >
-                                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                                <span>Eliminar</span>
-                                                            </DropdownMenuItem>
-                                                        </div>
-                                                    </TooltipTrigger>
-                                                     {isOdontogramSession && <TooltipContent>Las sesiones de odontograma se gestionan desde el odontograma.</TooltipContent>}
-                                                </Tooltip>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-                                    <div className="space-y-3 text-sm text-foreground/80">
-                                        {session.tipo_sesion && <p><strong className="text-foreground/90">Tipo de Sesión:</strong> <span className="capitalize bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-300">{session.tipo_sesion}</span></p>}
-                                        {session.diagnostico && <p><strong className="text-foreground/90">Diagnóstico:</strong> {session.diagnostico}</p>}
-                                        {session.notas_clinicas && <p><strong className="text-foreground/90">Notas:</strong> {session.notas_clinicas}</p>}
-                                        
-                                        {odontogramSummary && (
-                                            <CollapsibleList
-                                                title="Actualización Odontograma"
-                                                items={odontogramSummary.map(item => (
-                                                    <li key={item.toothId}>
-                                                        <strong className="font-medium">Diente {item.toothId}:</strong> {item.conditions.join(', ')}
-                                                    </li>
-                                                ))}
-                                            />
-                                        )}
+                                        <div className="space-y-3 text-sm text-foreground/80">
+                                            {session.tipo_sesion && <p><strong className="text-foreground/90">Tipo de Sesión:</strong> <span className="capitalize bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-300">{session.tipo_sesion}</span></p>}
+                                            {session.diagnostico && <p><strong className="text-foreground/90">Diagnóstico:</strong> {session.diagnostico}</p>}
+                                            {session.notas_clinicas && <p><strong className="text-foreground/90">Notas:</strong> {session.notas_clinicas}</p>}
+                                            
+                                            {odontogramSummary && (
+                                                <CollapsibleList
+                                                    title="Actualización Odontograma"
+                                                    items={odontogramSummary.map(item => (
+                                                        <li key={item.toothId}>
+                                                            <strong className="font-medium">Diente {item.toothId}:</strong> {item.conditions.join(', ')}
+                                                        </li>
+                                                    ))}
+                                                />
+                                            )}
 
-                                        {session.tratamientos && (
-                                           <CollapsibleList
-                                                title="Tratamientos"
-                                                items={session.tratamientos.map((t, i) => (
-                                                    <li key={i}>{t.descripcion} {t.numero_diente && `(Diente ${t.numero_diente})`}</li>
-                                                ))}
-                                            />
-                                        )}
-                                        {session.archivos_adjuntos && (
-                                            <CollapsibleList
-                                                title="Archivos Adjuntos"
-                                                items={session.archivos_adjuntos.map((file, i) => (
-                                                    <li key={i}>
-                                                        <a 
-                                                            href={file.ruta} 
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer" 
-                                                            className="text-primary hover:underline flex items-center gap-1"
-                                                        >
-                                                            <Paperclip className="w-3 h-3" />
-                                                            {file.tipo} {file.diente_asociado && `(Diente ${file.diente_asociado})`}
-                                                        </a>
-                                                    </li>
-                                                ))}
-                                            />
-                                        )}
+                                            {session.tratamientos && (
+                                               <CollapsibleList
+                                                    title="Tratamientos"
+                                                    items={session.tratamientos.map((t, i) => (
+                                                        <li key={i}>{t.descripcion} {t.numero_diente && `(Diente ${t.numero_diente})`}</li>
+                                                    ))}
+                                                />
+                                            )}
+                                            {session.archivos_adjuntos && (
+                                                <CollapsibleList
+                                                    title="Archivos Adjuntos"
+                                                    items={session.archivos_adjuntos.map((file, i) => (
+                                                        <li key={i}>
+                                                            <a 
+                                                                href={file.ruta} 
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer" 
+                                                                className="text-primary hover:underline flex items-center gap-1"
+                                                            >
+                                                                <Paperclip className="w-3 h-3" />
+                                                                {file.tipo} {file.diente_asociado && `(Diente ${file.diente_asociado})`}
+                                                            </a>
+                                                        </li>
+                                                    ))}
+                                                />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    )
-                })}
-                </TooltipProvider>
-            </div>
+                        )
+                    })}
+                    </TooltipProvider>
+                </div>
+            </ScrollArea>
         </div>
     );
 };
@@ -2084,7 +2087,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
       {selectedPatient ? (
         <>
             <div className={cn(!isFullscreen && "px-6 py-8")}>
-                <div className={cn(!isFullscreen && "space-y-6")}>
+                <div className={cn("space-y-6 h-[calc(100vh-230px)]", activeView === 'timeline' && 'flex flex-col')}>
 
                     {activeView === 'anamnesis' && 
                         <AnamnesisDashboard
@@ -2161,7 +2164,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 };
 
 const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOpen: boolean, onOpenChange: (open: boolean) => void, session: PatientSession | null, userId: string, onSave: () => void }) => {
-    const [sessionType, setSessionType] = useState<'odontograma' | 'clinica'>('clinica');
     const [formData, setFormData] = useState<Partial<PatientSession>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [doctors, setDoctors] = useState<UserType[]>([]);
@@ -2191,14 +2193,12 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
     useEffect(() => {
         if (isOpen) {
             if (session) {
-                setSessionType(session.tipo_sesion || 'clinica');
                 setFormData({
                     ...session,
                     fecha_sesion: session.fecha_sesion ? format(parseISO(session.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : '',
                     tratamientos: session.tratamientos || [],
                 });
             } else {
-                setSessionType('clinica');
                 setFormData({
                     fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
                     diagnostico: '',
@@ -2249,16 +2249,16 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         const payload: any = {
             ...formData,
             paciente_id: userId,
-            tipo_sesion: 'clinica', // Hardcode to 'clinica'
+            tipo_sesion: 'clinica', 
         };
 
-        // Don't send estado_odontograma for clinical sessions
         delete payload.estado_odontograma;
 
         if (session) {
-            payload.sesion_id = session.sesion_id;
+            payload.id = session.sesion_id;
+        } else {
+            delete payload.sesion_id;
         }
-
 
         try {
             const response = await fetch(endpoint, {
