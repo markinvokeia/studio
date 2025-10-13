@@ -889,9 +889,9 @@ const AnamnesisDashboard = ({
                                         <SelectItem value="Padre">Padre</SelectItem>
                                         <SelectItem value="Madre">Madre</SelectItem>
                                         <SelectItem value="Abuelo Materno">Abuelo Materno</SelectItem>
-                                        <SelectItem value="Abuela Materna">Abuela Materna</SelectItem>
-                                        <SelectItem value="Abuelo Paterno">Abuelo Paterno</SelectItem>
                                         <SelectItem value="Abuela Paterna">Abuela Paterna</SelectItem>
+                                        <SelectItem value="Abuelo Paterno">Abuelo Paterno</SelectItem>
+                                        <SelectItem value="Abuela Materna">Abuela Materna</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -1522,6 +1522,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const [isSessionDialogOpen, setIsSessionDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<PatientSession | null>(null);
   const [deletingSession, setDeletingSession] = useState<PatientSession | null>(null);
+  const { toast } = useToast();
 
   const handleSessionAction = (action: 'add' | 'edit' | 'delete', session?: PatientSession) => {
     if (action === 'add') {
@@ -1538,15 +1539,18 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const handleConfirmDeleteSession = async () => {
     if (!deletingSession) return;
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sessions/delete', {
-            method: 'DELETE',
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/delete', {
+            method: 'POST',
+            mode: 'cors',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sesion_id: deletingSession.sesion_id, tipo_sesion: deletingSession.tipo_sesion })
+            body: JSON.stringify({ sesion_id: deletingSession.sesion_id })
         });
         if (!response.ok) throw new Error('Failed to delete session');
+        toast({ title: 'Éxito', description: 'La sesión ha sido eliminada.' });
         refreshAllData();
     } catch (error) {
         console.error('Delete error', error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar la sesión.' });
     } finally {
         setDeletingSession(null);
     }
@@ -2216,7 +2220,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
   const handleSave = async () => {
     setIsSubmitting(true);
     const endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert';
-    const method = 'POST';
 
     const payload: any = {
         ...formData,
@@ -2231,7 +2234,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
 
     try {
         const response = await fetch(endpoint, {
-            method,
+            method: 'POST',
+            mode: 'cors',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
@@ -2368,4 +2372,6 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
+    
+
     
