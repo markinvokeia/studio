@@ -17,7 +17,7 @@ import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 
-export const getAppointmentColumns = (t: (key: string) => string): ColumnDef<Appointment>[] => [
+export const getAppointmentColumns = (t: (key: string) => string, tStatus: (key: string) => string): ColumnDef<Appointment>[] => [
     { accessorKey: 'service_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('service')} /> },
     { accessorKey: 'patientName', header: ({column}) => <DataTableColumnHeader column={column} title={t('patient')} /> },
     { accessorKey: 'doctorName', header: ({column}) => <DataTableColumnHeader column={column} title={t('doctor')} /> },
@@ -41,7 +41,7 @@ export const getAppointmentColumns = (t: (key: string) => string): ColumnDef<App
         }[status.toLowerCase()] || 'default';
 
         return (
-            <Badge variant={variant as any} className="capitalize">{status}</Badge>
+            <Badge variant={variant as any} className="capitalize">{tStatus(status.toLowerCase())}</Badge>
         );
       }
     },
@@ -70,6 +70,7 @@ export const getAppointmentColumns = (t: (key: string) => string): ColumnDef<App
 
 export function AppointmentColumnsWrapper() {
     const t = useTranslations('AppointmentsColumns');
-    const columns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns(t), [t]);
+    const tStatus = useTranslations('AppointmentStatus');
+    const columns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns(t, tStatus), [t, tStatus]);
     return columns;
 }

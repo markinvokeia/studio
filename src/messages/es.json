@@ -141,6 +141,12 @@
     "edit": "Editar Cita",
     "cancel": "Cancelar Cita"
   },
+  "AppointmentStatus": {
+    "completed": "Completada",
+    "confirmed": "Confirmada",
+    "pending": "Pendiente",
+    "cancelled": "Cancelada"
+  },
   "AilmentsPage": {
     "title": "Padecimientos",
     "description": "Gestiona condiciones médicas y enfermedades estandarizadas.",

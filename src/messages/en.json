@@ -141,6 +141,12 @@
     "edit": "Edit Appointment",
     "cancel": "Cancel Appointment"
   },
+  "AppointmentStatus": {
+    "completed": "Completed",
+    "confirmed": "Confirmed",
+    "pending": "Pending",
+    "cancelled": "Cancelled"
+  },
   "AilmentsPage": {
     "title": "Ailments",
     "description": "Manage standardized medical conditions and diseases.",

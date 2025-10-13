@@ -121,7 +121,8 @@ async function getCalendars(): Promise<CalendarType[]> {
 export default function AppointmentsPage() {
   const t = useTranslations('AppointmentsPage');
   const tColumns = useTranslations('AppointmentsColumns');
-  const appointmentColumns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns(tColumns), [tColumns]);
+  const tStatus = useTranslations('AppointmentStatus');
+  const appointmentColumns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns(tColumns, tStatus), [tColumns, tStatus]);
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
@@ -368,7 +369,7 @@ export default function AppointmentsPage() {
                                         <div className="pl-4 w-full">
                                             <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-2">
-                                                <Badge variant={getStatusVariant(apt.status) as any} className="capitalize text-xs">{apt.status}</Badge>
+                                                <Badge variant={getStatusVariant(apt.status) as any} className="capitalize text-xs">{tStatus(apt.status.toLowerCase())}</Badge>
                                                 <p className="font-semibold">{apt.service_name}</p>
                                             </div>
                                             <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">{apt.time}</p>
