@@ -1446,7 +1446,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                 if (usersData.length > 0) {
                     const apiUser = usersData[0];
                     setSelectedPatient({
-                        ...initialPatient, // keep other mocked data for now
                         id: apiUser.user_id,
                         name: apiUser.name || "Unknown Patient",
                         age: 30 + Math.floor(Math.random() * 10), // Mocked age
@@ -2322,3 +2321,4 @@ export default function DentalClinicalSystemPage() {
 
 
     
+
