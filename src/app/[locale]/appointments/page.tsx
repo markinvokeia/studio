@@ -4,9 +4,9 @@
 import * as React from 'react';
 import { addMonths, format, parseISO, isSameDay, isToday, isThisMonth, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Appointment, Calendar as CalendarType } from '@/lib/types';
+import { Appointment, Calendar as CalendarType, User as UserType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Calendar as CalendarIcon, User, Phone, Stethoscope, RefreshCw, CalendarDays, List } from 'lucide-react';
+import { PlusCircle, Calendar as CalendarIcon, User, Phone, Stethoscope, RefreshCw, CalendarDays, List, Search, ChevronsUpDown, Check } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,8 @@ import { SortingState, ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslations } from 'next-intl';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 
 async function getAppointments(calendarIds: string[], startDate: Date, endDate: Date): Promise<Appointment[]> {
     const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
@@ -140,6 +142,13 @@ export default function AppointmentsPage() {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
+  
+  // User Search State
+  const [isUserSearchOpen, setUserSearchOpen] = React.useState(false);
+  const [userSearchQuery, setUserSearchQuery] = React.useState('');
+  const [userSearchResults, setUserSearchResults] = React.useState<UserType[]>([]);
+  const [isSearchingUsers, setIsSearchingUsers] = React.useState(false);
+  const [selectedUser, setSelectedUser] = React.useState<UserType | null>(null);
 
   const generateColor = (str: string) => {
     let hash = 0;
@@ -249,6 +258,50 @@ export default function AppointmentsPage() {
         checked ? [...prev, calendarId] : prev.filter(id => id !== calendarId)
     );
   };
+  
+  // Debounced search effect for users
+  React.useEffect(() => {
+    const handler = setTimeout(async () => {
+        if (userSearchQuery.length < 2) {
+            setUserSearchResults([]);
+            return;
+        };
+        setIsSearchingUsers(true);
+        try {
+          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/filter_users?search=${userSearchQuery}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+              'Accept': 'application/json',
+            },
+          });
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          const data = await response.json();
+          const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
+          
+          const mappedUsers = usersData.map((apiUser: any): UserType => ({
+            id: apiUser.user_id ? String(apiUser.user_id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+            name: apiUser.name || 'No Name',
+            email: apiUser.email || 'no-email@example.com',
+            phone_number: apiUser.phone_number || '000-000-0000',
+            is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+            avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
+          }));
+          setUserSearchResults(mappedUsers);
+        } catch (error) {
+          console.error("Failed to fetch users:", error);
+          setUserSearchResults([]);
+        } finally {
+          setIsSearchingUsers(false);
+        }
+    }, 300);
+
+    return () => {
+        clearTimeout(handler);
+    };
+  }, [userSearchQuery]);
 
   return (
     <>
@@ -453,7 +506,56 @@ export default function AppointmentsPage() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="patientName" className="text-right">{t('createDialog.userName')}</Label>
-              <Input id="patientName" className="col-span-3" />
+              <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
+                <PopoverTrigger asChild>
+                    <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isUserSearchOpen}
+                        className="w-[300px] justify-between col-span-3"
+                    >
+                        {selectedUser
+                        ? selectedUser.name
+                        : "Select user..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0">
+                    <Command>
+                        <CommandInput 
+                            placeholder="Search user by name..." 
+                            value={userSearchQuery}
+                            onValueChange={setUserSearchQuery}
+                        />
+                        <CommandList>
+                            <CommandEmpty>
+                                {isSearchingUsers ? 'Searching...' : 'No user found.'}
+                            </CommandEmpty>
+                            <CommandGroup>
+                                {userSearchResults.map((user) => (
+                                <CommandItem
+                                    key={user.id}
+                                    value={user.name}
+                                    onSelect={() => {
+                                        setSelectedUser(user);
+                                        setUserSearchQuery(user.name);
+                                        setUserSearchOpen(false);
+                                    }}
+                                >
+                                    <Check
+                                        className={cn(
+                                        "mr-2 h-4 w-4",
+                                        selectedUser?.id === user.id ? "opacity-100" : "opacity-0"
+                                        )}
+                                    />
+                                    {user.name}
+                                </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+              </Popover>
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="service_name" className="text-right">{t('createDialog.serviceName')}</Label>
