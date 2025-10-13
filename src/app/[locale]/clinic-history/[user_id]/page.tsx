@@ -24,6 +24,12 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -38,7 +44,6 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const initialPatient = {
     id: '1',
@@ -2142,7 +2147,25 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
   const [sessionType, setSessionType] = useState<'odontograma' | 'clinica'>('clinica');
   const [formData, setFormData] = useState<Partial<PatientSession>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [doctors, setDoctors] = useState<UserType[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    async function fetchDoctors() {
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_by_role?role_name=Medico`);
+            if (response.ok) {
+                const data = await response.json();
+                setDoctors(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch doctors:", error);
+        }
+    }
+    if (isOpen) {
+        fetchDoctors();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (session) {
@@ -2198,14 +2221,24 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                   <Input type="datetime-local" value={formData.fecha_sesion || ''} onChange={e => handleInputChange('fecha_sesion', e.target.value)} />
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label>Procedure</Label>
-              <Input value={formData.procedimiento_realizado || ''} onChange={e => handleInputChange('procedimiento_realizado', e.target.value)} />
-            </div>
-
+            
             {sessionType === 'clinica' && (
               <>
+                <div className="space-y-2">
+                    <Label>Doctor</Label>
+                    <Select value={formData.doctor_id || ''} onValueChange={(value) => handleInputChange('doctor_id', value)}>
+                        <SelectTrigger><SelectValue placeholder="Select a doctor..."/></SelectTrigger>
+                        <SelectContent>
+                            {doctors.map(doc => (
+                                <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                 <div className="space-y-2">
+                  <Label>Procedure</Label>
+                  <Input value={formData.procedimiento_realizado || ''} onChange={e => handleInputChange('procedimiento_realizado', e.target.value)} />
+                </div>
                 <div className="space-y-2">
                   <Label>Diagnosis</Label>
                   <Textarea value={formData.diagnostico || ''} onChange={e => handleInputChange('diagnostico', e.target.value)} />
@@ -2252,3 +2285,6 @@ export default function DentalClinicalSystemPage() {
 
     
 
+
+
+    
