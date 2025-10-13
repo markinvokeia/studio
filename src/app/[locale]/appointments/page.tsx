@@ -6,7 +6,7 @@ import { addDays, addMonths, format, parseISO, isSameDay, isToday, isThisMonth, 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType, User as UserType, Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Calendar as CalendarIcon, User, Phone, Stethoscope, RefreshCw, CalendarDays, List, Search, ChevronsUpDown, Check } from 'lucide-react';
+import { PlusCircle, Calendar as CalendarIcon, User, Phone, Stethoscope, RefreshCw, CalendarDays, List, Search, ChevronsUpDown, Check, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -168,7 +168,7 @@ export default function AppointmentsPage() {
   // New Appointment Dialog State
   const [newAppointment, setNewAppointment] = React.useState({
     user: null as UserType | null,
-    service: null as Service | null,
+    services: [] as Service[],
     doctor: null as UserType | null,
     calendar: null as CalendarType | null,
     date: '',
@@ -448,8 +448,8 @@ export default function AppointmentsPage() {
         time: newAppointment.time,
         calendar_id: newAppointment.calendar.id,
     });
-    if (newAppointment.service) {
-        params.append('service_id', newAppointment.service.id);
+    if (newAppointment.services.length > 0) {
+        params.append('service_id', newAppointment.services[0].id);
     }
     if (newAppointment.doctor) {
         params.append('doctor_id', newAppointment.doctor.id);
@@ -467,7 +467,7 @@ export default function AppointmentsPage() {
         console.error("Failed to check availability:", error);
         setAvailabilityStatus('idle');
     }
-  }, [newAppointment.date, newAppointment.time, newAppointment.calendar, newAppointment.service, newAppointment.doctor]);
+  }, [newAppointment.date, newAppointment.time, newAppointment.calendar, newAppointment.services, newAppointment.doctor]);
 
   React.useEffect(() => {
       const handler = setTimeout(() => {
@@ -732,17 +732,18 @@ export default function AppointmentsPage() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="service_name" className="text-right">{t('createDialog.serviceName')}</Label>
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label htmlFor="service_name" className="text-right pt-2">{t('createDialog.serviceName')}</Label>
+                <div className="col-span-3">
                   <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         role="combobox"
                         aria-expanded={isServiceSearchOpen}
-                        className="w-[300px] justify-between col-span-3"
+                        className="w-full justify-between"
                       >
-                        {newAppointment.service ? newAppointment.service.name : "Select service..."}
+                        {newAppointment.services.length > 0 ? `${newAppointment.services.length} selected` : "Select services..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -763,15 +764,21 @@ export default function AppointmentsPage() {
                                 key={service.id}
                                 value={service.name}
                                 onSelect={() => {
-                                  setNewAppointment(prev => ({...prev, service}));
-                                  setServiceSearchQuery(service.name);
-                                  setServiceSearchOpen(false);
+                                  setNewAppointment(prev => {
+                                    const isSelected = prev.services.some(s => s.id === service.id);
+                                    if (isSelected) {
+                                      return { ...prev, services: prev.services.filter(s => s.id !== service.id) };
+                                    } else {
+                                      return { ...prev, services: [...prev.services, service] };
+                                    }
+                                  });
+                                  setServiceSearchQuery('');
                                 }}
                               >
                                 <Check
                                   className={cn(
                                     "mr-2 h-4 w-4",
-                                    newAppointment.service?.id === service.id ? "opacity-100" : "opacity-0"
+                                    newAppointment.services.some(s => s.id === service.id) ? "opacity-100" : "opacity-0"
                                   )}
                                 />
                                 {service.name}
@@ -782,6 +789,23 @@ export default function AppointmentsPage() {
                       </Command>
                     </PopoverContent>
                   </Popover>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {newAppointment.services.map((service) => (
+                      <Badge key={service.id} variant="secondary" className="flex items-center gap-1">
+                        {service.name}
+                        <button
+                          onClick={() => setNewAppointment(prev => ({
+                            ...prev,
+                            services: prev.services.filter(s => s.id !== service.id)
+                          }))}
+                          className="rounded-full hover:bg-background"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="doctorName" className="text-right">{tColumns('doctor')}</Label>
@@ -948,3 +972,5 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
