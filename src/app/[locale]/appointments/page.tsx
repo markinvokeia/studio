@@ -157,6 +157,11 @@ export default function AppointmentsPage() {
   const [isSearchingServices, setIsSearchingServices] = React.useState(false);
   const [selectedService, setSelectedService] = React.useState<Service | null>(null);
 
+  // New Appointment Dialog State
+  const [isCalendarSearchOpen, setCalendarSearchOpen] = React.useState(false);
+  const [selectedCalendarForNewAppt, setSelectedCalendarForNewAppt] = React.useState<CalendarType | null>(null);
+  const [showSuggestions, setShowSuggestions] = React.useState(true);
+
 
   const generateColor = (str: string) => {
     let hash = 0;
@@ -191,6 +196,9 @@ export default function AppointmentsPage() {
     const fetchedCalendars = await getCalendars();
     setCalendars(fetchedCalendars);
     setSelectedCalendarIds(fetchedCalendars.map(c => c.id));
+    if (fetchedCalendars.length > 0) {
+        setSelectedCalendarForNewAppt(fetchedCalendars[0]);
+    }
     setIsCalendarsLoading(false);
   }, []);
 
@@ -656,6 +664,49 @@ export default function AppointmentsPage() {
                   </PopoverContent>
                 </Popover>
             </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="calendar" className="text-right">{t('createDialog.calendar')}</Label>
+              <Popover open={isCalendarSearchOpen} onOpenChange={setCalendarSearchOpen}>
+                <PopoverTrigger asChild>
+                    <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isCalendarSearchOpen}
+                        className="w-[300px] justify-between col-span-3"
+                    >
+                        {selectedCalendarForNewAppt ? selectedCalendarForNewAppt.name : "Select calendar..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0">
+                    <Command>
+                        <CommandList>
+                            <CommandEmpty>No calendars found.</CommandEmpty>
+                            <CommandGroup>
+                                {calendars.map((calendar) => (
+                                <CommandItem
+                                    key={calendar.id}
+                                    value={calendar.name}
+                                    onSelect={() => {
+                                        setSelectedCalendarForNewAppt(calendar);
+                                        setCalendarSearchOpen(false);
+                                    }}
+                                >
+                                    <Check
+                                        className={cn(
+                                        "mr-2 h-4 w-4",
+                                        selectedCalendarForNewAppt?.id === calendar.id ? "opacity-100" : "opacity-0"
+                                        )}
+                                    />
+                                    {calendar.name}
+                                </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="date" className="text-right">{t('createDialog.date')}</Label>
               <Input id="date" type="date" className="col-span-3" />
@@ -663,6 +714,12 @@ export default function AppointmentsPage() {
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="time" className="text-right">{t('createDialog.time')}</Label>
               <Input id="time" type="time" className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="show-suggestions" className="text-right">{t('createDialog.showSuggestions')}</Label>
+                <div className="col-span-3 flex items-center">
+                    <Checkbox id="show-suggestions" checked={showSuggestions} onCheckedChange={(checked) => setShowSuggestions(!!checked)} />
+                </div>
             </div>
           </div>
           <div className="flex justify-end">

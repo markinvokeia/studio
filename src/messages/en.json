@@ -125,7 +125,9 @@
       "serviceName": "Service Name",
       "date": "Date",
       "time": "Time",
-      "save": "Save Appointment"
+      "save": "Save Appointment",
+      "calendar": "Calendar",
+      "showSuggestions": "Show Suggestions"
     }
   },
   "AppointmentsColumns": {
@@ -317,3 +319,5 @@
     "noResults": "No results."
   }
 }
+
+    

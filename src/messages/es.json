@@ -125,7 +125,9 @@
       "serviceName": "Nombre del Servicio",
       "date": "Fecha",
       "time": "Hora",
-      "save": "Guardar Cita"
+      "save": "Guardar Cita",
+      "calendar": "Calendario",
+      "showSuggestions": "Mostrar Sugerencias"
     }
   },
   "AppointmentsColumns": {
@@ -317,3 +319,5 @@
     "noResults": "No se encontraron resultados."
   }
 }
+
+    
