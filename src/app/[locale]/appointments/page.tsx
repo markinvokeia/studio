@@ -168,6 +168,8 @@ export default function AppointmentsPage() {
     showSuggestions: true,
   });
   const [isCalendarSearchOpen, setCalendarSearchOpen] = React.useState(false);
+  const [availabilityStatus, setAvailabilityStatus] = React.useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
+  const [suggestedTimes, setSuggestedTimes] = React.useState<any[]>([]);
 
   const suggestionColumns: ColumnDef<any>[] = [
     {
@@ -179,12 +181,6 @@ export default function AppointmentsPage() {
     { accessorKey: 'calendar', header: 'Calendar' },
     { accessorKey: 'date', header: 'Date' },
     { accessorKey: 'time', header: 'Time' },
-  ];
-
-  const suggestedTimes = [
-    { id: '1', calendar: 'Consultorio 1', date: '2024-07-25', time: '10:00' },
-    { id: '2', calendar: 'Consultorio 1', date: '2024-07-25', time: '11:00' },
-    { id: '3', calendar: 'Consultorio 2', date: '2024-07-26', time: '14:00' },
   ];
 
   const generateColor = (str: string) => {
@@ -392,6 +388,41 @@ export default function AppointmentsPage() {
       }));
     }
   }, [isCreateOpen]);
+
+  const checkAvailability = React.useCallback(async () => {
+    if (!newAppointment.date || !newAppointment.time || !newAppointment.calendar) return;
+    
+    setAvailabilityStatus('checking');
+    const params = new URLSearchParams({
+        date: newAppointment.date,
+        time: newAppointment.time,
+        calendar_id: newAppointment.calendar.id,
+    });
+    if (newAppointment.service) {
+        params.append('service_id', newAppointment.service.id);
+    }
+
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments_availability?${params.toString()}`, {
+            method: 'GET',
+            mode: 'cors',
+        });
+        const data = await response.json();
+        setAvailabilityStatus(data.isAvailable ? 'available' : 'unavailable');
+        setSuggestedTimes(data.suggestions || []);
+    } catch (error) {
+        console.error("Failed to check availability:", error);
+        setAvailabilityStatus('idle');
+    }
+  }, [newAppointment.date, newAppointment.time, newAppointment.calendar, newAppointment.service]);
+
+  React.useEffect(() => {
+      const handler = setTimeout(() => {
+          checkAvailability();
+      }, 500);
+      return () => clearTimeout(handler);
+  }, [checkAvailability]);
+
 
   return (
     <>
@@ -748,7 +779,17 @@ export default function AppointmentsPage() {
               </div>
                <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="time" className="text-right">{t('createDialog.time')}</Label>
-                <Input id="time" type="time" className="col-span-3" value={newAppointment.time} onChange={e => setNewAppointment(prev => ({...prev, time: e.target.value}))}/>
+                <Input 
+                    id="time" 
+                    type="time" 
+                    className={cn(
+                        "col-span-3",
+                        availabilityStatus === 'unavailable' && 'border-destructive focus-visible:ring-destructive',
+                        availabilityStatus === 'checking' && 'animate-pulse'
+                    )}
+                    value={newAppointment.time} 
+                    onChange={e => setNewAppointment(prev => ({...prev, time: e.target.value}))}
+                />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="show-suggestions" className="text-right">{t('createDialog.showSuggestions')}</Label>
