@@ -488,12 +488,23 @@ export default function AppointmentsPage() {
 
         if (Array.isArray(data) && data.length > 0) {
             isAvailable = data[0].isAvailable === true;
-            suggestions = (data[0].suggestions || []).map((s: any, index: number) => ({
+            suggestions = (data[0].suggestions || []).map((s: any, index: number) => {
+              let parsedDoctor = {};
+              try {
+                if (s.availableDoctor) {
+                  parsedDoctor = JSON.parse(s.availableDoctor);
+                }
+              } catch(e) {
+                console.error("Failed to parse doctor data from suggestion", e);
+              }
+              return {
                 id: `sugg-${index}`,
                 calendar: s.availableCalendarName,
                 date: format(parseISO(s.availableStartingTime), 'yyyy-MM-dd'),
                 time: format(parseISO(s.availableStartingTime), 'HH:mm'),
-            }));
+                doctor: parsedDoctor,
+              };
+            });
         }
 
         setAvailabilityStatus(isAvailable ? 'available' : 'unavailable');
@@ -1007,3 +1018,5 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
