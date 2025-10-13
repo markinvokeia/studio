@@ -919,7 +919,7 @@ const AnamnesisDashboard = ({
                                         <SelectItem value="Abuelo Materno">Abuelo Materno</SelectItem>
                                         <SelectItem value="Abuela Materna">Abuela Materna</SelectItem>
                                         <SelectItem value="Abuelo Paterno">Abuelo Paterno</SelectItem>
-                                        <SelectItem value="Abuela Materna">Abuela Materna</SelectItem>
+                                        <SelectItem value="Abuela Paterna">Abuela Paterna</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -1055,20 +1055,22 @@ const AnamnesisDashboard = ({
     );
 };
 
-const HabitCard = ({ habits, isLoading, userId, fetchPatientHabits }: { habits: PatientHabits | null, isLoading: boolean, userId: string, fetchPatientHabits: (userId: string) => void }) => {
+const HabitCard = ({ habits: initialHabits, isLoading: isLoadingProp, userId, fetchPatientHabits }: { habits: PatientHabits | null, isLoading: boolean, userId: string, fetchPatientHabits: (userId: string) => void }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedHabits, setEditedHabits] = useState<PatientHabits>({ tabaquismo: '', alcohol: '', bruxismo: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submissionError, setSubmissionError] = useState<string | null>(null);
     const { toast } = useToast();
+    const [isLoading, setIsLoading] = useState(isLoadingProp);
 
     useEffect(() => {
-        if (habits) {
-            setEditedHabits(habits);
+        setIsLoading(isLoadingProp);
+        if (initialHabits) {
+            setEditedHabits(initialHabits);
         } else {
-             setEditedHabits({ tabaquismo: '', alcohol: '', bruxismo: '' });
+            setEditedHabits({ tabaquismo: '', alcohol: '', bruxismo: '' });
         }
-    }, [habits]);
+    }, [initialHabits, isLoadingProp]);
 
     const handleEdit = () => {
         setIsEditing(true);
@@ -1076,8 +1078,8 @@ const HabitCard = ({ habits, isLoading, userId, fetchPatientHabits }: { habits: 
 
     const handleCancel = () => {
         setIsEditing(false);
-        if (habits) {
-            setEditedHabits(habits);
+        if (initialHabits) {
+            setEditedHabits(initialHabits);
         }
     };
 
@@ -1094,8 +1096,8 @@ const HabitCard = ({ habits, isLoading, userId, fetchPatientHabits }: { habits: 
                 paciente_id: userId,
                 ...editedHabits
             };
-            if(habits?.id) {
-                payload.id = habits.id;
+            if(initialHabits?.id) {
+                payload.id = initialHabits.id;
             }
 
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/habitos/upsert', {
@@ -1175,27 +1177,27 @@ const HabitCard = ({ habits, isLoading, userId, fetchPatientHabits }: { habits: 
                         </Button>
                     </div>
                 </div>
-            ) : habits ? (
+            ) : initialHabits ? (
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
                   <Wind className="w-5 h-5 text-muted-foreground mt-1" />
                   <div>
                     <h4 className="font-semibold text-foreground">Tabaquismo</h4>
-                    <p className="text-sm text-muted-foreground">{habits.tabaquismo || 'No especificado'}</p>
+                    <p className="text-sm text-muted-foreground">{initialHabits.tabaquismo || 'No especificado'}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
                   <GlassWater className="w-5 h-5 text-muted-foreground mt-1" />
                   <div>
                     <h4 className="font-semibold text-foreground">Alcohol</h4>
-                    <p className="text-sm text-muted-foreground">{habits.alcohol || 'No especificado'}</p>
+                    <p className="text-sm text-muted-foreground">{initialHabits.alcohol || 'No especificado'}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
                   <Smile className="w-5 h-5 text-muted-foreground mt-1" />
                   <div>
                     <h4 className="font-semibold text-foreground">Bruxismo</h4>
-                    <p className="text-sm text-muted-foreground">{habits.bruxismo || 'No especificado'}</p>
+                    <p className="text-sm text-muted-foreground">{initialHabits.bruxismo || 'No especificado'}</p>
                   </div>
                 </div>
               </div>
@@ -1217,7 +1219,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const [compareMode, setCompareMode] = useState(false);
   const [compareDate, setCompareDate] = useState('2024-01-15');
   const [isRecording, setIsRecording] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImage, setSelectedImage] = useState<any>(null);
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [dentitionType, setDentitionType] = useState('permanent');
