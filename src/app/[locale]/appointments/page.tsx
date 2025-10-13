@@ -314,10 +314,7 @@ export default function AppointmentsPage() {
   // Debounced search effect for services
   React.useEffect(() => {
     const handler = setTimeout(async () => {
-        if (serviceSearchQuery.length < 2) {
-            setServiceSearchResults([]);
-            return;
-        };
+        if (!isServiceSearchOpen && !serviceSearchQuery) return;
         setIsSearchingServices(true);
         try {
           const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?search=${serviceSearchQuery}`, {
@@ -351,7 +348,7 @@ export default function AppointmentsPage() {
     return () => {
         clearTimeout(handler);
     };
-  }, [serviceSearchQuery]);
+  }, [serviceSearchQuery, isServiceSearchOpen]);
 
 
   return (
