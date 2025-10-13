@@ -6,7 +6,7 @@ import { addMonths, format, parseISO, isSameDay, isToday, isThisMonth, startOfWe
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Calendar as CalendarIcon, User, Phone, Stethoscope, RefreshCw } from 'lucide-react';
+import { PlusCircle, Calendar as CalendarIcon, User, Phone, Stethoscope, RefreshCw, CalendarDays, List } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -260,8 +260,14 @@ export default function AppointmentsPage() {
             </div>
             <div className="flex items-center gap-2">
                 <TabsList>
-                    <TabsTrigger value="calendar">{t('calendarView')}</TabsTrigger>
-                    <TabsTrigger value="list">{t('listView')}</TabsTrigger>
+                    <TabsTrigger value="calendar" className="flex items-center gap-2">
+                        <CalendarDays className="h-4 w-4" />
+                        {t('calendarView')}
+                    </TabsTrigger>
+                    <TabsTrigger value="list" className="flex items-center gap-2">
+                        <List className="h-4 w-4" />
+                        {t('listView')}
+                    </TabsTrigger>
                 </TabsList>
             </div>
             </CardHeader>
