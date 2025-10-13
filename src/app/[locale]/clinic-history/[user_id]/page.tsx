@@ -1436,20 +1436,20 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                             ) : medications.length > 0 ? (
                                 medications.map((item, index) => (
                                     <div key={index} className="border-l-4 border-green-300 dark:border-green-700 pl-4 py-2 flex justify-between items-center">
-                                        <div>
-                                            <div className="flex justify-between items-start">
+                                        <div className="flex-1 grid grid-cols-3 gap-4 items-start">
+                                            <div className="col-span-2">
                                                 <div className="font-semibold text-foreground">{item.medicamento_nombre}</div>
-                                                <div className="text-right text-xs text-muted-foreground">
-                                                    <div>{item.dosis}</div>
-                                                    <div>{item.frecuencia}</div>
+                                                <div className="text-sm text-muted-foreground mt-1">
+                                                    {formatDate(item.fecha_inicio)} - {item.fecha_fin ? formatDate(item.fecha_fin) : 'Presente'}
                                                 </div>
+                                                <div className="text-sm text-muted-foreground mt-1">{item.motivo}</div>
                                             </div>
-                                            <div className="text-sm text-muted-foreground mt-1">
-                                                {formatDate(item.fecha_inicio)} - {item.fecha_fin ? formatDate(item.fecha_fin) : 'Presente'}
+                                            <div className="text-right text-xs text-muted-foreground">
+                                                <div>{item.dosis}</div>
+                                                <div>{item.frecuencia}</div>
                                             </div>
-                                            <div className="text-sm text-muted-foreground mt-1">{item.motivo}</div>
                                         </div>
-                                         <div className="flex items-center space-x-1">
+                                         <div className="flex items-center space-x-1 pl-4">
                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditMedicationClick(item)}>
                                                 <Edit3 className="h-4 w-4" />
                                             </Button>
