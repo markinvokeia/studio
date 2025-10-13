@@ -480,7 +480,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
           modality: "DX",
           bodyPart: "TOOTH",
           viewPosition: "PER",
-          url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ'h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+UmFkaW9ncmFmw61hIDI0PC90ZXh0Pjwvc3ZnPg==",
+          url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+UmFkaW9ncmFmw61hIDI0PC90ZXh0Pjwvc3ZnPg==",
           description: "Radiografía periapical del diente 24 post-endodoncia"
         }
     ];
@@ -517,7 +517,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                 <ZoomIn className="w-5 h-5" />
               </button>
               <button
-                onClick={() => setZoomLevel(1)}
+                onClick={()={() => setZoomLevel(1)}
                 className="p-2 text-muted-foreground hover:bg-muted rounded"
               >
                 <RotateCcw className="w-5 h-5" />
@@ -1365,78 +1365,86 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     };
 
 
-    const HabitCard = ({ habits, isLoading }: { habits: PatientHabits | null, isLoading: boolean }) => (
-      <div className="bg-card rounded-xl shadow-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-                <User className="w-5 h-5 text-primary mr-2" />
-                <h3 className="text-lg font-bold text-card-foreground">Hábitos del Paciente</h3>
-            </div>
-            {!isEditingHabits && (
-                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleEditHabits}>
-                    <Edit3 className="h-4 w-4" />
-                </Button>
-            )}
-        </div>
-        {isLoading ? (
-          <p className="text-muted-foreground">Loading patient habits...</p>
-        ) : isEditingHabits && editedHabits ? (
-            <div className="space-y-4">
-                <div className="space-y-1">
-                    <Label htmlFor="tabaquismo">Tabaquismo</Label>
-                    <Input id="tabaquismo" value={editedHabits.tabaquismo || ''} onChange={(e) => setEditedHabits({...editedHabits, tabaquismo: e.target.value})} />
+    const HabitCard = ({ habits, isLoading }: { habits: PatientHabits | null, isLoading: boolean }) => {
+        const handleHabitChange = (field: keyof PatientHabits, value: string) => {
+            if (editedHabits) {
+                setEditedHabits({ ...editedHabits, [field]: value });
+            }
+        };
+
+        return (
+            <div className="bg-card rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                        <User className="w-5 h-5 text-primary mr-2" />
+                        <h3 className="text-lg font-bold text-card-foreground">Hábitos del Paciente</h3>
+                    </div>
+                    {!isEditingHabits && (
+                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleEditHabits}>
+                            <Edit3 className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
-                 <div className="space-y-1">
-                    <Label htmlFor="alcohol">Alcohol</Label>
-                    <Input id="alcohol" value={editedHabits.alcohol || ''} onChange={(e) => setEditedHabits({...editedHabits, alcohol: e.target.value})} />
-                </div>
-                 <div className="space-y-1">
-                    <Label htmlFor="bruxismo">Bruxismo</Label>
-                    <Input id="bruxismo" value={editedHabits.bruxismo || ''} onChange={(e) => setEditedHabits({...editedHabits, bruxismo: e.target.value})} />
-                </div>
-                 {habitsSubmissionError && (
-                    <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Error</AlertTitle>
-                        <AlertDescription>{habitsSubmissionError}</AlertDescription>
-                    </Alert>
+                {isLoading ? (
+                  <p className="text-muted-foreground">Loading patient habits...</p>
+                ) : isEditingHabits && editedHabits ? (
+                    <div className="space-y-4">
+                        <div className="space-y-1">
+                            <Label htmlFor="tabaquismo">Tabaquismo</Label>
+                            <Input id="tabaquismo" value={editedHabits.tabaquismo || ''} onChange={(e) => handleHabitChange('tabaquismo', e.target.value)} />
+                        </div>
+                         <div className="space-y-1">
+                            <Label htmlFor="alcohol">Alcohol</Label>
+                            <Input id="alcohol" value={editedHabits.alcohol || ''} onChange={(e) => handleHabitChange('alcohol', e.target.value)} />
+                        </div>
+                         <div className="space-y-1">
+                            <Label htmlFor="bruxismo">Bruxismo</Label>
+                            <Input id="bruxismo" value={editedHabits.bruxismo || ''} onChange={(e) => handleHabitChange('bruxismo', e.target.value)} />
+                        </div>
+                         {habitsSubmissionError && (
+                            <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>Error</AlertTitle>
+                                <AlertDescription>{habitsSubmissionError}</AlertDescription>
+                            </Alert>
+                        )}
+                        <div className="flex justify-end gap-2 mt-4">
+                            <Button variant="outline" onClick={handleCancelEditHabits}>Cancelar</Button>
+                            <Button onClick={handleSaveHabits} disabled={!habitsChanged || isSubmittingHabits}>
+                                {isSubmittingHabits ? 'Guardando...' : 'Guardar'}
+                            </Button>
+                        </div>
+                    </div>
+                ) : habits ? (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-4">
+                      <Wind className="w-5 h-5 text-muted-foreground mt-1" />
+                      <div>
+                        <h4 className="font-semibold text-foreground">Tabaquismo</h4>
+                        <p className="text-sm text-muted-foreground">{habits.tabaquismo || 'No especificado'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <GlassWater className="w-5 h-5 text-muted-foreground mt-1" />
+                      <div>
+                        <h4 className="font-semibold text-foreground">Alcohol</h4>
+                        <p className="text-sm text-muted-foreground">{habits.alcohol || 'No especificado'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <ToothIcon className="w-5 h-5 text-muted-foreground mt-1" />
+                      <div>
+                        <h4 className="font-semibold text-foreground">Bruxismo</h4>
+                        <p className="text-sm text-muted-foreground">{habits.bruxismo || 'No especificado'}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No patient habits found.</p>
                 )}
-                <div className="flex justify-end gap-2 mt-4">
-                    <Button variant="outline" onClick={handleCancelEditHabits}>Cancelar</Button>
-                    <Button onClick={handleSaveHabits} disabled={!habitsChanged || isSubmittingHabits}>
-                        {isSubmittingHabits ? 'Guardando...' : 'Guardar'}
-                    </Button>
-                </div>
             </div>
-        ) : habits ? (
-          <div className="space-y-4">
-            <div className="flex items-start gap-4">
-              <Wind className="w-5 h-5 text-muted-foreground mt-1" />
-              <div>
-                <h4 className="font-semibold text-foreground">Tabaquismo</h4>
-                <p className="text-sm text-muted-foreground">{habits.tabaquismo || 'No especificado'}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-4">
-              <GlassWater className="w-5 h-5 text-muted-foreground mt-1" />
-              <div>
-                <h4 className="font-semibold text-foreground">Alcohol</h4>
-                <p className="text-sm text-muted-foreground">{habits.alcohol || 'No especificado'}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-4">
-              <ToothIcon className="w-5 h-5 text-muted-foreground mt-1" />
-              <div>
-                <h4 className="font-semibold text-foreground">Bruxismo</h4>
-                <p className="text-sm text-muted-foreground">{habits.bruxismo || 'No especificado'}</p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <p className="text-muted-foreground">No patient habits found.</p>
-        )}
-      </div>
-    );
+        );
+    };
 
     return (
         <>
@@ -1885,7 +1893,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
       {[
         { id: 'anamnesis', label: 'Anamnesis', icon: FileText },
         { id: 'timeline', label: 'Timeline', icon: Clock },
-        { id: 'odontogram', label: 'Odontograma', icon: Smile },
+        { id: 'odontogram', label: 'Odontogram', icon: Smile },
         { id: 'images', label: 'Imágenes', icon: Camera },
       ].map(({ id, label, icon: Icon }) => (
         <Button
