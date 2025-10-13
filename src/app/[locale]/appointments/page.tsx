@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { addDays, addMonths, format, parseISO, isSameDay, isToday, isThisMonth, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { addDays, addMinutes, addMonths, format, parse, parseISO, isSameDay, isToday, isThisMonth, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType, User as UserType, Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -390,9 +390,22 @@ export default function AppointmentsPage() {
   React.useEffect(() => {
     const handler = setTimeout(async () => {
         if (!isDoctorSearchOpen && doctorSearchQuery.length === 0) {
-            setDoctorSearchResults([]);
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
+            if (response.ok) {
+                const data = await response.json();
+                const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || []);
+                const mappedDoctors = doctorsData.map((apiUser: any): UserType => ({
+                    id: apiUser.user_id ? String(apiUser.user_id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+                    name: apiUser.name || 'No Name',
+                    email: apiUser.email || 'no-email@example.com',
+                    phone_number: apiUser.phone_number || '000-000-0000',
+                    is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+                    avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
+                }));
+                setDoctorSearchResults(mappedDoctors.slice(0, 10));
+            }
             return;
-        };
+        }
         setIsSearchingDoctors(true);
         try {
           const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors?search=${doctorSearchQuery}`, {
@@ -440,20 +453,28 @@ export default function AppointmentsPage() {
   }, [isCreateOpen]);
 
   const checkAvailability = React.useCallback(async () => {
-    if (!newAppointment.date || !newAppointment.time || !newAppointment.calendar) return;
-    
+    const { date, time, services, user, doctor } = newAppointment;
+    if (!date || !time || !user) {
+      return;
+    }
+
     setAvailabilityStatus('checking');
+
+    const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
+    const totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
+    const endDateTime = addMinutes(startDateTime, totalDuration);
+
+    const attendeesEmails = [user.email];
+    if (doctor?.email) {
+        attendeesEmails.push(doctor.email);
+    }
+    
     const params = new URLSearchParams({
-        date: newAppointment.date,
-        time: newAppointment.time,
-        calendar_id: newAppointment.calendar.id,
+        startingDateAndTime: startDateTime.toISOString(),
+        endingDateAndTime: endDateTime.toISOString(),
+        mode: 'checkAvailability',
     });
-    if (newAppointment.services.length > 0) {
-        params.append('service_id', newAppointment.services[0].id);
-    }
-    if (newAppointment.doctor) {
-        params.append('doctor_id', newAppointment.doctor.id);
-    }
+    attendeesEmails.forEach(email => params.append('attendeesEmails', email));
 
     try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments_availability?${params.toString()}`, {
@@ -467,7 +488,7 @@ export default function AppointmentsPage() {
         console.error("Failed to check availability:", error);
         setAvailabilityStatus('idle');
     }
-  }, [newAppointment.date, newAppointment.time, newAppointment.calendar, newAppointment.services, newAppointment.doctor]);
+  }, [newAppointment]);
 
   React.useEffect(() => {
       const handler = setTimeout(() => {
@@ -972,5 +993,7 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
 
     
