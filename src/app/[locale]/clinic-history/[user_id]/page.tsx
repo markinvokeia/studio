@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -872,13 +873,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     const [medicationSubmissionError, setMedicationSubmissionError] = useState<string | null>(null);
     const [medicationData, setMedicationData] = useState({ dosis: '', frecuencia: '', fecha_inicio: '', fecha_fin: '', motivo: '' });
 
-    // Habits state
-    const [isEditingHabits, setIsEditingHabits] = useState(false);
-    const [editedHabits, setEditedHabits] = useState<PatientHabits>({ tabaquismo: '', alcohol: '', bruxismo: '' });
-    const [isSubmittingHabits, setIsSubmittingHabits] = useState(false);
-    const [habitsSubmissionError, setHabitsSubmissionError] = useState<string | null>(null);
-
-
     useEffect(() => {
         const fetchAilments = async () => {
             if (isPersonalHistoryDialogOpen || isFamilyHistoryDialogOpen) {
@@ -961,16 +955,17 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
     useEffect(() => {
         if (isMedicationDialogOpen) {
+            const formatDate = (dateString: string | null) => {
+                if (!dateString) return '';
+                try {
+                    return format(parseISO(dateString), 'yyyy-MM-dd');
+                } catch (e) {
+                    return '';
+                }
+            };
+
             if (editingMedication) {
                 setSelectedMedication({ id: String(editingMedication.medicamento_id), name: editingMedication.medicamento_nombre });
-                const formatDate = (dateString: string | null) => {
-                    if (!dateString) return '';
-                    try {
-                        return format(parseISO(dateString), 'yyyy-MM-dd');
-                    } catch (e) {
-                        return '';
-                    }
-                };
                 setMedicationData({
                     dosis: editingMedication.dosis,
                     frecuencia: editingMedication.frecuencia,
@@ -1313,58 +1308,64 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
       </svg>
     );
 
-    const handleEditHabits = () => {
-        setEditedHabits({
-            tabaquismo: patientHabits?.tabaquismo || '',
-            alcohol: patientHabits?.alcohol || '',
-            bruxismo: patientHabits?.bruxismo || '',
-        });
-        setIsEditingHabits(true);
-    };
-
-    const handleCancelEditHabits = () => {
-        setEditedHabits({ tabaquismo: '', alcohol: '', bruxismo: '' });
-        setIsEditingHabits(false);
-    };
-
-    const handleSaveHabits = async () => {
-        if (!editedHabits || !userId) return;
-        setIsSubmittingHabits(true);
-        setHabitsSubmissionError(null);
-        try {
-            const payload: any = {
-                paciente_id: userId,
-                ...editedHabits
-            };
-            if(patientHabits?.id) {
-                payload.id = patientHabits.id;
-            }
-
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/habitos/upsert', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-            if (response.status > 299) throw new Error((await response.json()).message || 'Server error');
-            
-            toast({ title: 'Éxito', description: 'Los hábitos del paciente han sido guardados.' });
-            setIsEditingHabits(false);
-            fetchPatientHabits(userId);
-
-        } catch (error: any) {
-            setHabitsSubmissionError(error.message || 'No se pudo guardar los hábitos.');
-            toast({ variant: 'destructive', title: 'Error', description: error.message || 'No se pudo guardar los hábitos.' });
-        } finally {
-            setIsSubmittingHabits(false);
-        }
-    };
-
-
     const HabitCard = ({ habits, isLoading }: { habits: PatientHabits | null, isLoading: boolean }) => {
-        const handleHabitChange = (field: keyof PatientHabits, value: string) => {
-            setEditedHabits(prev => ({ ...prev, [field]: value }));
+        const [isEditing, setIsEditing] = useState(false);
+        const [editedHabits, setEditedHabits] = useState<PatientHabits>({ tabaquismo: '', alcohol: '', bruxismo: '' });
+        const [isSubmitting, setIsSubmitting] = useState(false);
+        const [submissionError, setSubmissionError] = useState<string | null>(null);
+
+        useEffect(() => {
+            if (habits) {
+                setEditedHabits(habits);
+            }
+        }, [habits]);
+
+        const handleEdit = () => {
+            setEditedHabits(habits || { tabaquismo: '', alcohol: '', bruxismo: '' });
+            setIsEditing(true);
         };
     
+        const handleCancel = () => {
+            setIsEditing(false);
+        };
+
+        const handleInputChange = (field: keyof PatientHabits, value: string) => {
+            setEditedHabits(prev => ({ ...prev, [field]: value }));
+        };
+
+        const handleSave = async () => {
+            if (!userId) return;
+            setIsSubmitting(true);
+            setSubmissionError(null);
+            try {
+                const payload: any = {
+                    paciente_id: userId,
+                    ...editedHabits
+                };
+                if(habits?.id) {
+                    payload.id = habits.id;
+                }
+    
+                const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/habitos/upsert', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                if (response.status > 299) throw new Error((await response.json()).message || 'Server error');
+                
+                toast({ title: 'Éxito', description: 'Los hábitos del paciente han sido guardados.' });
+                setIsEditing(false);
+                fetchPatientHabits(userId);
+    
+            } catch (error: any) {
+                setSubmissionError(error.message || 'No se pudo guardar los hábitos.');
+                toast({ variant: 'destructive', title: 'Error', description: error.message || 'No se pudo guardar los hábitos.' });
+            } finally {
+                setIsSubmitting(false);
+            }
+        };
+
         if (isLoading) {
             return (
                 <div className="bg-card rounded-xl shadow-lg p-6">
@@ -1388,37 +1389,37 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                         <User className="w-5 h-5 text-primary mr-2" />
                         <h3 className="text-lg font-bold text-card-foreground">Hábitos del Paciente</h3>
                     </div>
-                    {!isEditingHabits && (
-                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleEditHabits}>
+                    {!isEditing && (
+                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleEdit}>
                             <Edit3 className="h-4 w-4" />
                         </Button>
                     )}
                 </div>
-                {isEditingHabits ? (
+                {isEditing ? (
                     <div className="space-y-4">
                         <div className="space-y-1">
                             <Label htmlFor="tabaquismo">Tabaquismo</Label>
-                            <Input id="tabaquismo" placeholder="e.g., 10 cigarrillos al día" value={editedHabits.tabaquismo || ''} onChange={(e) => handleHabitChange('tabaquismo', e.target.value)} />
+                            <Input id="tabaquismo" placeholder="e.g., 10 cigarrillos al día" value={editedHabits.tabaquismo || ''} onChange={(e) => handleInputChange('tabaquismo', e.target.value)} />
                         </div>
                          <div className="space-y-1">
                             <Label htmlFor="alcohol">Alcohol</Label>
-                            <Input id="alcohol" placeholder="e.g., 2 cervezas los fines de semana" value={editedHabits.alcohol || ''} onChange={(e) => handleHabitChange('alcohol', e.target.value)} />
+                            <Input id="alcohol" placeholder="e.g., 2 cervezas los fines de semana" value={editedHabits.alcohol || ''} onChange={(e) => handleInputChange('alcohol', e.target.value)} />
                         </div>
                          <div className="space-y-1">
                             <Label htmlFor="bruxismo">Bruxismo</Label>
-                            <Input id="bruxismo" placeholder="e.g., Nocturno, utiliza placa" value={editedHabits.bruxismo || ''} onChange={(e) => handleHabitChange('bruxismo', e.target.value)} />
+                            <Input id="bruxismo" placeholder="e.g., Nocturno, utiliza placa" value={editedHabits.bruxismo || ''} onChange={(e) => handleInputChange('bruxismo', e.target.value)} />
                         </div>
-                         {habitsSubmissionError && (
+                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
                                 <AlertTitle>Error</AlertTitle>
-                                <AlertDescription>{habitsSubmissionError}</AlertDescription>
+                                <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
                         <div className="flex justify-end gap-2 mt-4">
-                            <Button variant="outline" onClick={handleCancelEditHabits}>Cancelar</Button>
-                            <Button onClick={handleSaveHabits} disabled={isSubmittingHabits}>
-                                {isSubmittingHabits ? 'Guardando...' : 'Guardar'}
+                            <Button variant="outline" onClick={handleCancel}>Cancelar</Button>
+                            <Button onClick={handleSave} disabled={isSubmitting}>
+                                {isSubmitting ? 'Guardando...' : 'Guardar'}
                             </Button>
                         </div>
                     </div>
@@ -2020,49 +2021,3 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-
-
-
-
-
-
-
-
-    
-
-    
-
-    
-
-
-
-
-
-
-    
-
-
-      
-
-
-    
