@@ -7,7 +7,7 @@ import {
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
   BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw,
-  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown, ChevronsUpDown, Check, Trash2
+  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown, ChevronsUpDown, Check, Trash2, MoreVertical
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -38,6 +38,13 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const initialPatient = {
     id: '1',
@@ -1739,7 +1746,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     );
   };
 
-  const TreatmentTimeline = ({ sessions }: { sessions: PatientSession[] }) => {
+  const TreatmentTimeline = ({ sessions, onAction }: { sessions: PatientSession[], onAction: (action: 'add' | 'edit' | 'delete', session?: PatientSession) => void }) => {
     const conditionLabels: { [key: string]: string } = {
         caries: "Caries",
         filling: "Restauración",
@@ -1849,10 +1856,9 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         <div className="bg-card rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold text-card-foreground">Historial de Tratamientos</h3>
-                <div className="flex items-center space-x-2">
-                    <Shield className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm text-muted-foreground">HL7 FHIR</span>
-                </div>
+                <Button variant="outline" size="icon" onClick={() => onAction('add')}>
+                    <Plus className="h-4 w-4" />
+                </Button>
             </div>
             <div className="relative">
                 <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 to-primary"></div>
@@ -1864,8 +1870,27 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                             <div className="flex-1">
                                 <div className="bg-muted/50 rounded-lg p-4 hover:bg-muted transition-colors duration-200">
                                     <div className="flex justify-between items-start mb-2">
-                                        <h4 className="font-semibold text-foreground">{session.procedimiento_realizado}</h4>
-                                        <span className="text-sm text-muted-foreground">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</span>
+                                        <div>
+                                            <h4 className="font-semibold text-foreground">{session.procedimiento_realizado}</h4>
+                                            <span className="text-sm text-muted-foreground">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</span>
+                                        </div>
+                                         <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                    <MoreVertical className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuItem onClick={() => onAction('edit', session)}>
+                                                    <Edit3 className="mr-2 h-4 w-4" />
+                                                    <span>Editar</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => onAction('delete', session)} className="text-destructive">
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    <span>Eliminar</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </div>
                                     <div className="space-y-3 text-sm text-foreground/80">
                                         {session.tipo_sesion && <p><strong className="text-foreground/90">Tipo de Sesión:</strong> <span className="capitalize bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-300">{session.tipo_sesion}</span></p>}
@@ -1919,7 +1944,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         </div>
     );
 };
-
+  
   const Navigation = () => (
     <div className="flex space-x-1">
       {[
@@ -2027,7 +2052,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                             userId={userId}
                         />
                     }
-                    {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} />}
+                    {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} onAction={() => {}} />}
                     {activeView === 'odontogram' && (
                         <div className={cn("relative", isFullscreen ? "fixed inset-0 z-50 bg-background" : "h-[800px] w-full")}>
                            <Button 
