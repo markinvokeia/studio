@@ -862,7 +862,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     // Allergy state
     const [isSubmittingAllergy, setIsSubmittingAllergy] = useState(false);
     const [allergySubmissionError, setAllergySubmissionError] = useState<string | null>(null);
-    const [allergyData, setAllergyData] = useState({ alergeno: '', reaccion_descrita: '', snomed_ct_id: '' });
+    const [allergyData, setAllergyData] = useState({ alergeno: '', reaccion_descrita: ''});
 
     // Medication state
     const [isMedicationComboboxOpen, setIsMedicationComboboxOpen] = useState(false);
@@ -942,10 +942,9 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                 setAllergyData({
                     alergeno: editingAllergy.alergeno,
                     reaccion_descrita: editingAllergy.reaccion_descrita,
-                    snomed_ct_id: editingAllergy.snomed_ct_id,
                 });
             } else {
-                setAllergyData({ alergeno: '', reaccion_descrita: '', snomed_ct_id: '' });
+                setAllergyData({ alergeno: '', reaccion_descrita: ''});
             }
             setAllergySubmissionError(null);
         } else {
@@ -957,11 +956,19 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         if (isMedicationDialogOpen) {
             if (editingMedication) {
                 setSelectedMedication({ id: String(editingMedication.medicamento_id), name: editingMedication.medicamento_nombre });
+                const formatDate = (dateString: string | null) => {
+                    if (!dateString) return '';
+                    try {
+                        return format(parseISO(dateString), 'yyyy-MM-dd');
+                    } catch (e) {
+                        return '';
+                    }
+                };
                 setMedicationData({
                     dosis: editingMedication.dosis,
                     frecuencia: editingMedication.frecuencia,
-                    fecha_inicio: editingMedication.fecha_inicio || '',
-                    fecha_fin: editingMedication.fecha_fin || '',
+                    fecha_inicio: formatDate(editingMedication.fecha_inicio),
+                    fecha_fin: formatDate(editingMedication.fecha_fin),
                     motivo: editingMedication.motivo,
                 });
             } else {
@@ -978,11 +985,13 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         event.preventDefault();
         if (isSubmittingPersonal) return;
 
-        if (!selectedPersonalAilmentName || !userId) {
+        const selectedAilment = ailmentsCatalog.find(a => a.nombre.toLowerCase() === selectedPersonalAilmentName.toLowerCase());
+
+        if (!selectedAilment || !userId) {
             toast({
                 variant: 'destructive',
                 title: 'Error',
-                description: 'Por favor, seleccione un padecimiento.',
+                description: 'Por favor, seleccione un padecimiento válido.',
             });
             return;
         }
@@ -992,7 +1001,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
         const payload: any = {
             paciente_id: userId,
-            padecimiento_id: selectedPersonalAilmentName,
+            padecimiento_id: selectedAilment.nombre,
             comentarios: personalComentarios,
         };
         
@@ -1034,7 +1043,9 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         event.preventDefault();
         if (isSubmittingFamily) return;
 
-        if (!selectedFamilyAilmentName || !familyParentesco || !userId) {
+        const selectedAilment = ailmentsCatalog.find(a => a.nombre.toLowerCase() === selectedFamilyAilmentName.toLowerCase());
+
+        if (!selectedAilment || !familyParentesco || !userId) {
             toast({
                 variant: 'destructive',
                 title: 'Error',
@@ -1048,7 +1059,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
         const payload: any = {
             paciente_id: userId,
-            padecimiento_id: selectedFamilyAilmentName,
+            padecimiento_id: selectedAilment.nombre,
             parentesco: familyParentesco,
             comentarios: familyComentarios,
         };
