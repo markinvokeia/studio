@@ -38,6 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const initialPatient = {
     id: '1',
@@ -1055,22 +1056,38 @@ const AnamnesisDashboard = ({
     );
 };
 
-const HabitCard = ({ habits: initialHabits, isLoading: isLoadingProp, userId, fetchPatientHabits }: { habits: PatientHabits | null, isLoading: boolean, userId: string, fetchPatientHabits: (userId: string) => void }) => {
+const HabitCard = ({ userId, fetchPatientHabits }: { userId: string, fetchPatientHabits: (userId: string) => void }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedHabits, setEditedHabits] = useState<PatientHabits>({ tabaquismo: '', alcohol: '', bruxismo: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submissionError, setSubmissionError] = useState<string | null>(null);
     const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(isLoadingProp);
-
+    const [isLoading, setIsLoading] = useState(true);
+    const [initialHabits, setInitialHabits] = useState<PatientHabits | null>(null);
+    
     useEffect(() => {
-        setIsLoading(isLoadingProp);
-        if (initialHabits) {
-            setEditedHabits(initialHabits);
-        } else {
-            setEditedHabits({ tabaquismo: '', alcohol: '', bruxismo: '' });
-        }
-    }, [initialHabits, isLoadingProp]);
+        const loadHabits = async () => {
+            if (!userId) return;
+            setIsLoading(true);
+            try {
+                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/habitos_paciente?user_id=${userId}`);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok for patient habits');
+                }
+                const data = await response.json();
+                const habitsData = Array.isArray(data) && data.length > 0 ? data[0] : (data.habitos_paciente || data.data || null);
+                setInitialHabits(habitsData);
+                setEditedHabits(habitsData || { tabaquismo: '', alcohol: '', bruxismo: '' });
+            } catch (error) {
+                console.error("Failed to fetch patient habits:", error);
+                setInitialHabits(null);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadHabits();
+    }, [userId]);
+
 
     const handleEdit = () => {
         setIsEditing(true);
@@ -1081,10 +1098,6 @@ const HabitCard = ({ habits: initialHabits, isLoading: isLoadingProp, userId, fe
         if (initialHabits) {
             setEditedHabits(initialHabits);
         }
-    };
-
-    const handleInputChange = (field: keyof PatientHabits, value: string) => {
-        setEditedHabits(prev => ({ ...prev, [field]: value }));
     };
 
     const handleSave = async () => {
@@ -1111,6 +1124,7 @@ const HabitCard = ({ habits: initialHabits, isLoading: isLoadingProp, userId, fe
             toast({ title: 'Éxito', description: 'Los hábitos del paciente han sido guardados.' });
             setIsEditing(false);
             fetchPatientHabits(userId);
+            setInitialHabits(editedHabits);
 
         } catch (error: any) {
             setSubmissionError(error.message || 'No se pudo guardar los hábitos.');
@@ -1153,15 +1167,15 @@ const HabitCard = ({ habits: initialHabits, isLoading: isLoadingProp, userId, fe
                 <div className="space-y-4">
                     <div className="space-y-1">
                         <Label htmlFor="tabaquismo">Tabaquismo</Label>
-                        <Input id="tabaquismo" placeholder="e.g., 10 cigarrillos al día" value={editedHabits.tabaquismo || ''} onChange={(e) => handleInputChange('tabaquismo', e.target.value)} />
+                        <Input id="tabaquismo" placeholder="e.g., 10 cigarrillos al día" value={editedHabits.tabaquismo || ''} onChange={(e) => setEditedHabits(p => ({...p, tabaquismo: e.target.value}))} />
                     </div>
                      <div className="space-y-1">
                         <Label htmlFor="alcohol">Alcohol</Label>
-                        <Input id="alcohol" placeholder="e.g., 2 cervezas los fines de semana" value={editedHabits.alcohol || ''} onChange={(e) => handleInputChange('alcohol', e.target.value)} />
+                        <Input id="alcohol" placeholder="e.g., 2 cervezas los fines de semana" value={editedHabits.alcohol || ''} onChange={(e) => setEditedHabits(p => ({...p, alcohol: e.target.value}))} />
                     </div>
                      <div className="space-y-1">
                         <Label htmlFor="bruxismo">Bruxismo</Label>
-                        <Input id="bruxismo" placeholder="e.g., Nocturno, utiliza placa" value={editedHabits.bruxismo || ''} onChange={(e) => handleInputChange('bruxismo', e.target.value)} />
+                        <Input id="bruxismo" placeholder="e.g., Nocturno, utiliza placa" value={editedHabits.bruxismo || ''} onChange={(e) => setEditedHabits(p => ({...p, bruxismo: e.target.value}))} />
                     </div>
                      {submissionError && (
                         <Alert variant="destructive">
@@ -2237,3 +2251,4 @@ export default function DentalClinicalSystemPage() {
 }
 
     
+
