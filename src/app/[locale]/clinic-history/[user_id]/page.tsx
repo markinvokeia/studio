@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -13,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import type { User as UserType, PatientSession, TreatmentDetail, AttachedFile, Ailment } from '@/lib/types';
+import type { User as UserType, PatientSession, TreatmentDetail, AttachedFile, Ailment, Medication } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -88,20 +87,20 @@ type FamilyHistoryItem = {
 
 type AllergyItem = {
     id?: number;
-    allergen: string;
-    reaction: string;
-    snomed: string;
+    alergeno: string;
+    reaccion_descrita: string;
+    snomed_ct_id: string;
 };
 
 type MedicationItem = {
     id?: number;
-    name: string;
-    dose: string;
-    frequency: string;
-    since: string | null;
-    endDate: string | null;
-    reason: string;
-    code: string;
+    medicamento_id: number;
+    medicamento_nombre: string;
+    dosis: string;
+    frecuencia: string;
+    fecha_inicio: string | null;
+    fecha_fin: string | null;
+    motivo: string;
 };
 
 type PatientHabits = {
@@ -240,9 +239,9 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             
             const mappedAllergies = allergyData.map((item: any): AllergyItem => ({
                 id: item.id,
-                allergen: item.alergeno || 'N/A',
-                reaction: item.reaccion_descrita || '',
-                snomed: item.snomed_ct_id || '',
+                alergeno: item.alergeno || 'N/A',
+                reaccion_descrita: item.reaccion_descrita || '',
+                snomed_ct_id: item.snomed_ct_id || '',
             }));
             setAllergies(mappedAllergies);
         } catch (error) {
@@ -270,13 +269,13 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             
             const mappedMedications = medicationData.map((item: any): MedicationItem => ({
                 id: item.id,
-                name: item.nombre_medicamento || 'N/A',
-                dose: item.dosis || 'N/A',
-                frequency: item.frecuencia || 'N/A',
-                since: item.fecha_inicio || null,
-                endDate: item.fecha_fin || null,
-                reason: item.motivo || '',
-                code: item.snomed_ct_id || '',
+                medicamento_id: item.medicamento_id,
+                medicamento_nombre: item.medicamento_nombre || 'N/A',
+                dosis: item.dosis || 'N/A',
+                frecuencia: item.frecuencia || 'N/A',
+                fecha_inicio: item.fecha_inicio || null,
+                fecha_fin: item.fecha_fin || null,
+                motivo: item.motivo || '',
             }));
             setMedications(mappedMedications);
         } catch (error) {
@@ -843,6 +842,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const AnamnesisDashboard = () => {
     const { toast } = useToast();
     const [ailmentsCatalog, setAilmentsCatalog] = useState<Ailment[]>([]);
+    const [medicationsCatalog, setMedicationsCatalog] = useState<Medication[]>([]);
     
     // Personal History State
     const [isPersonalHistoryComboboxOpen, setIsPersonalHistoryComboboxOpen] = useState(false);
@@ -862,12 +862,14 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     // Allergy state
     const [isSubmittingAllergy, setIsSubmittingAllergy] = useState(false);
     const [allergySubmissionError, setAllergySubmissionError] = useState<string | null>(null);
-    const [allergyData, setAllergyData] = useState({ allergen: '', reaction: '', snomed: '' });
+    const [allergyData, setAllergyData] = useState({ alergeno: '', reaccion_descrita: '', snomed_ct_id: '' });
 
     // Medication state
+    const [isMedicationComboboxOpen, setIsMedicationComboboxOpen] = useState(false);
+    const [selectedMedication, setSelectedMedication] = useState<{id: string, name: string} | null>(null);
     const [isSubmittingMedication, setIsSubmittingMedication] = useState(false);
     const [medicationSubmissionError, setMedicationSubmissionError] = useState<string | null>(null);
-    const [medicationData, setMedicationData] = useState({ name: '', dose: '', frequency: '', since: '', endDate: '', reason: '', code: '' });
+    const [medicationData, setMedicationData] = useState({ dosis: '', frecuencia: '', fecha_inicio: '', fecha_fin: '', motivo: '' });
 
 
     useEffect(() => {
@@ -885,6 +887,22 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         };
         fetchAilments();
     }, [isPersonalHistoryDialogOpen, isFamilyHistoryDialogOpen]);
+
+    useEffect(() => {
+        const fetchMedications = async () => {
+            if (isMedicationDialogOpen) {
+                try {
+                    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogo_medicamentos');
+                    const data = await response.json();
+                    const medicationsData = Array.isArray(data) ? data : (data.catalogo_medicamentos || data.data || data.result || []);
+                    setMedicationsCatalog(medicationsData.map((m: any) => ({ ...m, id: String(m.id), nombre_generico: m.nombre_generico })));
+                } catch (error) {
+                    console.error("Failed to fetch medications catalog", error);
+                }
+            }
+        };
+        fetchMedications();
+    }, [isMedicationDialogOpen]);
     
     useEffect(() => {
         if (isPersonalHistoryDialogOpen) {
@@ -922,12 +940,12 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         if (isAllergyDialogOpen) {
             if (editingAllergy) {
                 setAllergyData({
-                    allergen: editingAllergy.allergen,
-                    reaction: editingAllergy.reaction,
-                    snomed: editingAllergy.snomed,
+                    alergeno: editingAllergy.alergeno,
+                    reaccion_descrita: editingAllergy.reaccion_descrita,
+                    snomed_ct_id: editingAllergy.snomed_ct_id,
                 });
             } else {
-                setAllergyData({ allergen: '', reaction: '', snomed: '' });
+                setAllergyData({ alergeno: '', reaccion_descrita: '', snomed_ct_id: '' });
             }
             setAllergySubmissionError(null);
         } else {
@@ -938,17 +956,17 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     useEffect(() => {
         if (isMedicationDialogOpen) {
             if (editingMedication) {
+                setSelectedMedication({ id: String(editingMedication.medicamento_id), name: editingMedication.medicamento_nombre });
                 setMedicationData({
-                    name: editingMedication.name,
-                    dose: editingMedication.dose,
-                    frequency: editingMedication.frequency,
-                    since: editingMedication.since || '',
-                    endDate: editingMedication.endDate || '',
-                    reason: editingMedication.reason,
-                    code: editingMedication.code,
+                    dosis: editingMedication.dosis,
+                    frecuencia: editingMedication.frecuencia,
+                    fecha_inicio: editingMedication.fecha_inicio || '',
+                    fecha_fin: editingMedication.fecha_fin || '',
+                    motivo: editingMedication.motivo,
                 });
             } else {
-                setMedicationData({ name: '', dose: '', frequency: '', since: '', endDate: '', reason: '', code: '' });
+                setSelectedMedication(null);
+                setMedicationData({ dosis: '', frecuencia: '', fecha_inicio: '', fecha_fin: '', motivo: '' });
             }
             setMedicationSubmissionError(null);
         } else {
@@ -1074,10 +1092,9 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         setAllergySubmissionError(null);
 
         const payload: any = {
-            user_id: userId,
-            alergeno: allergyData.allergen,
-            reaccion_descrita: allergyData.reaction,
-            snomed_ct_id: allergyData.snomed,
+            paciente_id: userId,
+            alergeno: allergyData.alergeno,
+            reaccion_descrita: allergyData.reaccion_descrita,
         };
 
         if (editingAllergy && editingAllergy.id) {
@@ -1104,20 +1121,20 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
     const handleSubmitMedication = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (isSubmittingMedication || !userId) return;
+        if (isSubmittingMedication || !userId || !selectedMedication) return;
         
         setIsSubmittingMedication(true);
         setMedicationSubmissionError(null);
 
         const payload: any = {
-            user_id: userId,
-            nombre_medicamento: medicationData.name,
-            dosis: medicationData.dose,
-            frecuencia: medicationData.frequency,
-            fecha_inicio: medicationData.since || null,
-            fecha_fin: medicationData.endDate || null,
-            motivo: medicationData.reason,
-            snomed_ct_id: medicationData.code,
+            paciente_id: userId,
+            medicamento_id: selectedMedication.id,
+            medicamento_nombre: selectedMedication.name,
+            dosis: medicationData.dosis,
+            frecuencia: medicationData.frecuencia,
+            fecha_inicio: medicationData.fecha_inicio || null,
+            fecha_fin: medicationData.fecha_fin || null,
+            motivo: medicationData.motivo,
         };
 
         if (editingMedication && editingMedication.id) {
@@ -1410,16 +1427,16 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                     <div key={index} className="border-l-4 border-green-300 dark:border-green-700 pl-4 py-2 flex justify-between items-center">
                                         <div>
                                             <div className="flex justify-between items-start">
-                                                <div className="font-semibold text-foreground">{item.name}</div>
+                                                <div className="font-semibold text-foreground">{item.medicamento_nombre}</div>
                                                 <div className="text-right text-xs text-muted-foreground">
-                                                    <div>{item.dose}</div>
-                                                    <div>{item.frequency}</div>
+                                                    <div>{item.dosis}</div>
+                                                    <div>{item.frecuencia}</div>
                                                 </div>
                                             </div>
                                             <div className="text-sm text-muted-foreground mt-1">
-                                                {formatDate(item.since)} - {item.endDate ? formatDate(item.endDate) : 'Presente'}
+                                                {formatDate(item.fecha_inicio)} - {item.fecha_fin ? formatDate(item.fecha_fin) : 'Presente'}
                                             </div>
-                                            <div className="text-sm text-muted-foreground mt-1">{item.reason}</div>
+                                            <div className="text-sm text-muted-foreground mt-1">{item.motivo}</div>
                                         </div>
                                          <div className="flex items-center space-x-1">
                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditMedicationClick(item)}>
@@ -1457,10 +1474,9 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                     <div key={index} className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex justify-between items-center">
                                         <div>
                                             <div className="flex justify-between items-center">
-                                                <div className="font-semibold text-destructive">{item.allergen}</div>
-                                                {item.snomed && <span className="text-xs font-mono text-muted-foreground">{item.snomed}</span>}
+                                                <div className="font-semibold text-destructive">{item.alergeno}</div>
                                             </div>
-                                            {item.reaction && <div className="text-sm text-destructive/80">{item.reaction}</div>}
+                                            {item.reaccion_descrita && <div className="text-sm text-destructive/80">{item.reaccion_descrita}</div>}
                                         </div>
                                         <div className="flex items-center space-x-1">
                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAllergyClick(item)}>
@@ -1657,16 +1673,12 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                         <div className="grid gap-4 py-4">
                             {allergySubmissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{allergySubmissionError}</AlertDescription></Alert>}
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="allergen" className="text-right">Alérgeno</Label>
-                                <Input id="allergen" value={allergyData.allergen} onChange={(e) => setAllergyData({ ...allergyData, allergen: e.target.value })} className="col-span-3" />
+                                <Label htmlFor="alergeno" className="text-right">Alérgeno</Label>
+                                <Input id="alergeno" value={allergyData.alergeno} onChange={(e) => setAllergyData({ ...allergyData, alergeno: e.target.value })} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="reaction" className="text-right">Reacción</Label>
-                                <Input id="reaction" value={allergyData.reaction} onChange={(e) => setAllergyData({ ...allergyData, reaction: e.target.value })} className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="snomed" className="text-right">SNOMED CT</Label>
-                                <Input id="snomed" value={allergyData.snomed} onChange={(e) => setAllergyData({ ...allergyData, snomed: e.target.value })} className="col-span-3" />
+                                <Label htmlFor="reaccion_descrita" className="text-right">Reacción</Label>
+                                <Input id="reaccion_descrita" value={allergyData.reaccion_descrita} onChange={(e) => setAllergyData({ ...allergyData, reaccion_descrita: e.target.value })} className="col-span-3" />
                             </div>
                         </div>
                         <DialogFooter>
@@ -1687,31 +1699,54 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                             {medicationSubmissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{medicationSubmissionError}</AlertDescription></Alert>}
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="med-name" className="text-right">Nombre</Label>
-                                <Input id="med-name" value={medicationData.name} onChange={e => setMedicationData({ ...medicationData, name: e.target.value })} className="col-span-3" />
+                                 <Popover open={isMedicationComboboxOpen} onOpenChange={setIsMedicationComboboxOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" role="combobox" aria-expanded={isMedicationComboboxOpen} className="w-[300px] justify-between col-span-3" type="button">
+                                            {selectedMedication?.name || "Seleccione un medicamento..."}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[300px] p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar medicamento..." />
+                                            <CommandEmpty>No se encontró el medicamento.</CommandEmpty>
+                                            <CommandGroup>
+                                                {medicationsCatalog.map((med) => (
+                                                    <CommandItem
+                                                        key={med.id}
+                                                        value={med.nombre_generico}
+                                                        onSelect={() => {
+                                                            setSelectedMedication({ id: med.id, name: med.nombre_generico });
+                                                            setIsMedicationComboboxOpen(false);
+                                                        }}>
+                                                        <Check className={cn("mr-2 h-4 w-4", selectedMedication?.id === med.id ? "opacity-100" : "opacity-0")} />
+                                                        {med.nombre_generico}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="med-dose" className="text-right">Dosis</Label>
-                                <Input id="med-dose" value={medicationData.dose} onChange={e => setMedicationData({ ...medicationData, dose: e.target.value })} className="col-span-3" />
+                                <Input id="med-dose" value={medicationData.dosis} onChange={e => setMedicationData({ ...medicationData, dosis: e.target.value })} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="med-frequency" className="text-right">Frecuencia</Label>
-                                <Input id="med-frequency" value={medicationData.frequency} onChange={e => setMedicationData({ ...medicationData, frequency: e.target.value })} className="col-span-3" />
+                                <Input id="med-frequency" value={medicationData.frecuencia} onChange={e => setMedicationData({ ...medicationData, frecuencia: e.target.value })} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="med-since" className="text-right">Desde</Label>
-                                <Input id="med-since" type="date" value={medicationData.since || ''} onChange={e => setMedicationData({ ...medicationData, since: e.target.value })} className="col-span-3" />
+                                <Input id="med-since" type="date" value={medicationData.fecha_inicio || ''} onChange={e => setMedicationData({ ...medicationData, fecha_inicio: e.target.value })} className="col-span-3" />
                             </div>
                              <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="med-endDate" className="text-right">Hasta</Label>
-                                <Input id="med-endDate" type="date" value={medicationData.endDate || ''} onChange={e => setMedicationData({ ...medicationData, endDate: e.target.value })} className="col-span-3" />
+                                <Input id="med-endDate" type="date" value={medicationData.fecha_fin || ''} onChange={e => setMedicationData({ ...medicationData, fecha_fin: e.target.value })} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="med-reason" className="text-right">Motivo</Label>
-                                <Input id="med-reason" value={medicationData.reason} onChange={e => setMedicationData({ ...medicationData, reason: e.target.value })} className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="med-code" className="text-right">SNOMED CT</Label>
-                                <Input id="med-code" value={medicationData.code} onChange={e => setMedicationData({ ...medicationData, code: e.target.value })} className="col-span-3" />
+                                <Input id="med-reason" value={medicationData.motivo} onChange={e => setMedicationData({ ...medicationData, motivo: e.target.value })} className="col-span-3" />
                             </div>
                         </div>
                         <DialogFooter>
@@ -1902,3 +1937,6 @@ export default function DentalClinicalSystemPage() {
 
 
 
+
+
+    
