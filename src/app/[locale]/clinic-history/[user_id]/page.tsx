@@ -38,13 +38,6 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 const initialPatient = {
     id: '1',
@@ -1530,6 +1523,28 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     }
   }, [userId, refreshAllData, router, locale]);
 
+  const [isSessionDialogOpen, setIsSessionDialogOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<PatientSession | null>(null);
+  const [deletingSession, setDeletingSession] = useState<PatientSession | null>(null);
+
+  const handleSessionAction = (action: 'add' | 'edit' | 'delete', session?: PatientSession) => {
+    if (action === 'add') {
+      setEditingSession(null);
+      setIsSessionDialogOpen(true);
+    } else if (action === 'edit' && session) {
+      setEditingSession(session);
+      setIsSessionDialogOpen(true);
+    } else if (action === 'delete' && session) {
+      setDeletingSession(session);
+    }
+  };
+
+  const handleConfirmDeleteSession = async () => {
+    // API call to delete session
+    setDeletingSession(null);
+  };
+
+
   const ImageGallery = () => {
     const [filter, setFilter] = useState('all');
     const [zoomLevel, setZoomLevel] = useState(1);
@@ -1967,124 +1982,258 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   );
 
   return (
-    <div className={cn("min-h-screen", !isFullscreen && "bg-background")}>
-      {/* Header */}
-      {!isFullscreen && (
-      <div className="bg-card shadow-sm border-b border-border px-6 py-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-card-foreground">Historial Clinico Digital</h1>
-            {selectedPatient && (
-                <div className="flex items-center gap-2">
-                    <p className="text-2xl font-bold text-foreground">{selectedPatient.name}</p>
-                    <Button variant="ghost" size="icon" onClick={refreshAllData}>
-                        <RefreshCw className="h-5 w-5" />
-                    </Button>
-                </div>
-            )}
-          </div>
-        </div>
-        <div className="flex justify-between items-center mt-4">
-            <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
-                <PopoverTrigger asChild>
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            value={searchQuery}
-                            onChange={(e) => {
-                                setSearchQuery(e.target.value)
-                                if(!patientSearchOpen) setPatientSearchOpen(true)
-                            }}
-                            placeholder="Buscar paciente..."
-                            className="pl-9 w-96"
-                        />
-                    </div>
-                </PopoverTrigger>
-                <PopoverContent className="p-0 w-96" align="start">
-                    <Command>
-                        <CommandInput placeholder="Buscar por nombre o ID..." value={searchQuery} onValueChange={setSearchQuery}/>
-                        <CommandList>
-                            <CommandEmpty>
-                                {isSearching ? 'Buscando...' : 'No se encontraron pacientes.'}
-                            </CommandEmpty>
-                            <CommandGroup>
-                                {searchResults.map((user) => (
-                                    <CommandItem
-                                        key={user.id}
-                                        value={user.name}
-                                        onSelect={() => handleSelectPatient(user)}
-                                    >
-                                        {user.name}
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
-                        </CommandList>
-                    </Command>
-                </PopoverContent>
-            </Popover>
-            <Navigation />
-        </div>
-      </div>
-      )}
-    
-      {selectedPatient ? (
-        <>
-            <div className={cn(!isFullscreen && "px-6 py-8")}>
-                <div className={cn(!isFullscreen && "space-y-6")}>
-
-                    {activeView === 'anamnesis' && 
-                        <AnamnesisDashboard
-                            personalHistory={personalHistory}
-                            isLoadingPersonalHistory={isLoadingPersonalHistory}
-                            fetchPersonalHistory={fetchPersonalHistory}
-                            familyHistory={familyHistory}
-                            isLoadingFamilyHistory={isLoadingFamilyHistory}
-                            fetchFamilyHistory={fetchFamilyHistory}
-                            allergies={allergies}
-                            isLoadingAllergies={isLoadingAllergies}
-                            fetchAllergies={fetchAllergies}
-                            medications={medications}
-                            isLoadingMedications={isLoadingMedications}
-                            fetchMedications={fetchMedications}
-                            patientHabits={patientHabits}
-                            isLoadingPatientHabits={isLoadingPatientHabits}
-                            fetchPatientHabits={fetchPatientHabits}
-                            userId={userId}
-                        />
-                    }
-                    {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} onAction={() => {}} />}
-                    {activeView === 'odontogram' && (
-                        <div className={cn("relative", isFullscreen ? "fixed inset-0 z-50 bg-background" : "h-[800px] w-full")}>
-                           <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="absolute top-2 right-2 z-10 bg-background/50 hover:bg-background/80"
-                              onClick={() => setIsFullscreen(!isFullscreen)}
-                            >
-                              {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
-                           </Button>
-                            <iframe src={`https://2eb9dbc586e5.ngrok-free.app/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
-                        </div>
-                    )}
-                    {activeView === 'images' && <ImageGallery />}
-                </div>
+    <>
+      <div className={cn("min-h-screen", !isFullscreen && "bg-background")}>
+        {/* Header */}
+        {!isFullscreen && (
+        <div className="bg-card shadow-sm border-b border-border px-6 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-bold text-card-foreground">Historial Clinico Digital</h1>
+              {selectedPatient && (
+                  <div className="flex items-center gap-2">
+                      <p className="text-2xl font-bold text-foreground">{selectedPatient.name}</p>
+                      <Button variant="ghost" size="icon" onClick={refreshAllData}>
+                          <RefreshCw className="h-5 w-5" />
+                      </Button>
+                  </div>
+              )}
             </div>
-        </>
-      ) : (
-        !isFullscreen && (
-          <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
-            <SearchCheck className="w-24 h-24 text-muted-foreground/30 mb-4" />
-            <h2 className="text-2xl font-semibold text-foreground/80">Seleccione un paciente</h2>
-            <p className="text-muted-foreground mt-2">Utilice la barra de búsqueda de arriba para encontrar y cargar el historial clínico de un paciente.</p>
           </div>
-        )
-      )}
-    </div>
+          <div className="flex justify-between items-center mt-4">
+              <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
+                  <PopoverTrigger asChild>
+                      <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                              value={searchQuery}
+                              onChange={(e) => {
+                                  setSearchQuery(e.target.value)
+                                  if(!patientSearchOpen) setPatientSearchOpen(true)
+                              }}
+                              placeholder="Buscar paciente..."
+                              className="pl-9 w-96"
+                          />
+                      </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-96" align="start">
+                      <Command>
+                          <CommandInput placeholder="Buscar por nombre o ID..." value={searchQuery} onValueChange={setSearchQuery}/>
+                          <CommandList>
+                              <CommandEmpty>
+                                  {isSearching ? 'Buscando...' : 'No se encontraron pacientes.'}
+                              </CommandEmpty>
+                              <CommandGroup>
+                                  {searchResults.map((user) => (
+                                      <CommandItem
+                                          key={user.id}
+                                          value={user.name}
+                                          onSelect={() => handleSelectPatient(user)}
+                                      >
+                                          {user.name}
+                                      </CommandItem>
+                                  ))}
+                              </CommandGroup>
+                          </CommandList>
+                      </Command>
+                  </PopoverContent>
+              </Popover>
+              <Navigation />
+          </div>
+        </div>
+        )}
+      
+        {selectedPatient ? (
+          <>
+              <div className={cn(!isFullscreen && "px-6 py-8")}>
+                  <div className={cn(!isFullscreen && "space-y-6")}>
+
+                      {activeView === 'anamnesis' && 
+                          <AnamnesisDashboard
+                              personalHistory={personalHistory}
+                              isLoadingPersonalHistory={isLoadingPersonalHistory}
+                              fetchPersonalHistory={fetchPersonalHistory}
+                              familyHistory={familyHistory}
+                              isLoadingFamilyHistory={isLoadingFamilyHistory}
+                              fetchFamilyHistory={fetchFamilyHistory}
+                              allergies={allergies}
+                              isLoadingAllergies={isLoadingAllergies}
+                              fetchAllergies={fetchAllergies}
+                              medications={medications}
+                              isLoadingMedications={isLoadingMedications}
+                              fetchMedications={fetchMedications}
+                              patientHabits={patientHabits}
+                              isLoadingPatientHabits={isLoadingPatientHabits}
+                              fetchPatientHabits={fetchPatientHabits}
+                              userId={userId}
+                          />
+                      }
+                      {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} onAction={handleSessionAction} />}
+                      {activeView === 'odontogram' && (
+                          <div className={cn("relative", isFullscreen ? "fixed inset-0 z-50 bg-background" : "h-[800px] w-full")}>
+                             <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="absolute top-2 right-2 z-10 bg-background/50 hover:bg-background/80"
+                                onClick={() => setIsFullscreen(!isFullscreen)}
+                              >
+                                {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+                             </Button>
+                              <iframe src={`https://2eb9dbc586e5.ngrok-free.app/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
+                          </div>
+                      )}
+                      {activeView === 'images' && <ImageGallery />}
+                  </div>
+              </div>
+          </>
+        ) : (
+          !isFullscreen && (
+            <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
+              <SearchCheck className="w-24 h-24 text-muted-foreground/30 mb-4" />
+              <h2 className="text-2xl font-semibold text-foreground/80">Seleccione un paciente</h2>
+              <p className="text-muted-foreground mt-2">Utilice la barra de búsqueda de arriba para encontrar y cargar el historial clínico de un paciente.</p>
+            </div>
+          )
+        )}
+      </div>
+
+       <SessionDialog 
+            isOpen={isSessionDialogOpen} 
+            onOpenChange={setIsSessionDialogOpen} 
+            session={editingSession} 
+            userId={userId} 
+            onSave={refreshAllData} 
+        />
+
+        <AlertDialog open={!!deletingSession} onOpenChange={() => setDeletingSession(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will permanently delete the session. This action cannot be undone.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmDeleteSession}>Continue</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    </>
   );
 };
+
+
+const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOpen: boolean, onOpenChange: (open: boolean) => void, session: PatientSession | null, userId: string, onSave: () => void }) => {
+  const [sessionType, setSessionType] = useState<'odontograma' | 'clinica'>('clinica');
+  const [formData, setFormData] = useState<Partial<PatientSession>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (session) {
+      setSessionType(session.tipo_sesion || 'clinica');
+      setFormData({
+        ...session,
+        fecha_sesion: session.fecha_sesion ? format(parseISO(session.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : '',
+      });
+    } else {
+      setSessionType('clinica');
+      setFormData({
+        fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+        diagnostico: '',
+        procedimiento_realizado: '',
+        notas_clinicas: '',
+        tratamientos: [],
+        estado_odontograma: {},
+      });
+    }
+  }, [session, isOpen]);
+  
+  const handleInputChange = (field: keyof PatientSession, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = async () => {
+    // API call to save session
+    console.log('Saving session...', { ...formData, tipo_sesion: sessionType, paciente_id: userId, sesion_id: session?.sesion_id });
+    onSave();
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{session ? 'Edit Session' : 'Create New Session'}</DialogTitle>
+        </DialogHeader>
+        <div className="py-4 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                  <Label>Session Type</Label>
+                  <Select value={sessionType} onValueChange={(value) => setSessionType(value as 'odontograma' | 'clinica')}>
+                      <SelectTrigger><SelectValue/></SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="clinica">Clinical Session</SelectItem>
+                          <SelectItem value="odontograma">Odontogram</SelectItem>
+                      </SelectContent>
+                  </Select>
+              </div>
+               <div className="space-y-2">
+                  <Label>Session Date</Label>
+                  <Input type="datetime-local" value={formData.fecha_sesion || ''} onChange={e => handleInputChange('fecha_sesion', e.target.value)} />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Procedure</Label>
+              <Input value={formData.procedimiento_realizado || ''} onChange={e => handleInputChange('procedimiento_realizado', e.target.value)} />
+            </div>
+
+            {sessionType === 'clinica' && (
+              <>
+                <div className="space-y-2">
+                  <Label>Diagnosis</Label>
+                  <Textarea value={formData.diagnostico || ''} onChange={e => handleInputChange('diagnostico', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Clinical Notes</Label>
+                  <Textarea value={formData.notas_clinicas || ''} onChange={e => handleInputChange('notas_clinicas', e.target.value)} />
+                </div>
+              </>
+            )}
+
+            {sessionType === 'odontograma' && (
+              <div className="space-y-2">
+                <Label>Odontogram State (JSON)</Label>
+                <Textarea 
+                  value={formData.estado_odontograma ? JSON.stringify(formData.estado_odontograma, null, 2) : ''}
+                  onChange={e => {
+                    try {
+                      handleInputChange('estado_odontograma', JSON.parse(e.target.value));
+                    } catch {
+                      // ignore parse error while typing
+                    }
+                  }}
+                  rows={10}
+                />
+              </div>
+            )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSave}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 
 export default function DentalClinicalSystemPage() {
     const params = useParams();
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
+
+    
