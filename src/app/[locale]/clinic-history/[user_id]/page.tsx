@@ -875,16 +875,21 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
     // Habits state
     const [isEditingHabits, setIsEditingHabits] = useState(false);
-    const [editedHabits, setEditedHabits] = useState<PatientHabits | null>(null);
+    const [editedHabits, setEditedHabits] = useState<PatientHabits>({ tabaquismo: '', alcohol: '', bruxismo: '' });
     const [isSubmittingHabits, setIsSubmittingHabits] = useState(false);
     const [habitsSubmissionError, setHabitsSubmissionError] = useState<string | null>(null);
 
     const habitsChanged = React.useMemo(() => {
-        if (!isEditingHabits || !patientHabits || !editedHabits) return false;
+        if (!isEditingHabits || !patientHabits) return false;
+        // Handles case where patientHabits is null initially
+        const originalTabaquismo = patientHabits.tabaquismo || '';
+        const originalAlcohol = patientHabits.alcohol || '';
+        const originalBruxismo = patientHabits.bruxismo || '';
+
         return (
-            patientHabits.tabaquismo !== editedHabits.tabaquismo ||
-            patientHabits.alcohol !== editedHabits.alcohol ||
-            patientHabits.bruxismo !== editedHabits.bruxismo
+            originalTabaquismo !== editedHabits.tabaquismo ||
+            originalAlcohol !== editedHabits.alcohol ||
+            originalBruxismo !== editedHabits.bruxismo
         );
     }, [isEditingHabits, patientHabits, editedHabits]);
 
@@ -1324,12 +1329,16 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     );
 
     const handleEditHabits = () => {
-        setEditedHabits({ ...patientHabits, tabaquismo: patientHabits?.tabaquismo || '', alcohol: patientHabits?.alcohol || '', bruxismo: patientHabits?.bruxismo || '' });
+        setEditedHabits({
+            tabaquismo: patientHabits?.tabaquismo || '',
+            alcohol: patientHabits?.alcohol || '',
+            bruxismo: patientHabits?.bruxismo || '',
+        });
         setIsEditingHabits(true);
     };
 
     const handleCancelEditHabits = () => {
-        setEditedHabits(null);
+        setEditedHabits({ tabaquismo: '', alcohol: '', bruxismo: '' });
         setIsEditingHabits(false);
     };
 
@@ -1368,10 +1377,8 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
     const HabitCard = ({ habits, isLoading }: { habits: PatientHabits | null, isLoading: boolean }) => {
         const handleHabitChange = (field: keyof PatientHabits, value: string) => {
-            setEditedHabits(prev => prev ? { ...prev, [field]: value } : null);
+            setEditedHabits(prev => ({ ...prev, [field]: value }));
         };
-    
-        const currentHabits = isEditingHabits ? editedHabits : habits;
     
         if (isLoading) {
             return (
@@ -1406,15 +1413,15 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                     <div className="space-y-4">
                         <div className="space-y-1">
                             <Label htmlFor="tabaquismo">Tabaquismo</Label>
-                            <Input id="tabaquismo" value={currentHabits?.tabaquismo || ''} onChange={(e) => handleHabitChange('tabaquismo', e.target.value)} />
+                            <Input id="tabaquismo" placeholder="e.g., 10 cigarrillos al día" value={editedHabits.tabaquismo || ''} onChange={(e) => handleHabitChange('tabaquismo', e.target.value)} />
                         </div>
                          <div className="space-y-1">
                             <Label htmlFor="alcohol">Alcohol</Label>
-                            <Input id="alcohol" value={currentHabits?.alcohol || ''} onChange={(e) => handleHabitChange('alcohol', e.target.value)} />
+                            <Input id="alcohol" placeholder="e.g., 2 cervezas los fines de semana" value={editedHabits.alcohol || ''} onChange={(e) => handleHabitChange('alcohol', e.target.value)} />
                         </div>
                          <div className="space-y-1">
                             <Label htmlFor="bruxismo">Bruxismo</Label>
-                            <Input id="bruxismo" value={currentHabits?.bruxismo || ''} onChange={(e) => handleHabitChange('bruxismo', e.target.value)} />
+                            <Input id="bruxismo" placeholder="e.g., Nocturno, utiliza placa" value={editedHabits.bruxismo || ''} onChange={(e) => handleHabitChange('bruxismo', e.target.value)} />
                         </div>
                          {habitsSubmissionError && (
                             <Alert variant="destructive">
@@ -1553,8 +1560,8 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                             ) : medications.length > 0 ? (
                                 medications.map((item, index) => (
                                     <div key={index} className="border-l-4 border-green-300 dark:border-green-700 pl-4 py-2 flex justify-between items-center">
-                                        <div className="flex-1 grid grid-cols-3 gap-4 items-start">
-                                            <div className="col-span-2">
+                                        <div className="flex-1 grid grid-cols-2 gap-4 items-start">
+                                            <div>
                                                 <div className="font-semibold text-foreground">{item.medicamento_nombre}</div>
                                                 <div className="text-sm text-muted-foreground mt-1">
                                                     {formatDate(item.fecha_inicio)} - {item.fecha_fin ? formatDate(item.fecha_fin) : 'Presente'}
