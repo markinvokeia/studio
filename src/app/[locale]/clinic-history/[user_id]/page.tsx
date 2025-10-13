@@ -2087,27 +2087,33 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
       {selectedPatient ? (
         <>
             <div className={cn(!isFullscreen && "px-6 py-8")}>
-                <div className={cn("space-y-6 h-[calc(100vh-230px)]", activeView === 'timeline' && 'flex flex-col')}>
+                <div className={cn("h-[calc(100vh-230px)]", 
+                    activeView === 'timeline' && 'flex flex-col',
+                    activeView !== 'odontogram' && 'space-y-6')}>
 
                     {activeView === 'anamnesis' && 
-                        <AnamnesisDashboard
-                            personalHistory={personalHistory}
-                            isLoadingPersonalHistory={isLoadingPersonalHistory}
-                            fetchPersonalHistory={fetchPersonalHistory}
-                            familyHistory={familyHistory}
-                            isLoadingFamilyHistory={isLoadingFamilyHistory}
-                            fetchFamilyHistory={fetchFamilyHistory}
-                            allergies={allergies}
-                            isLoadingAllergies={isLoadingAllergies}
-                            fetchAllergies={fetchAllergies}
-                            medications={medications}
-                            isLoadingMedications={isLoadingMedications}
-                            fetchMedications={fetchMedications}
-                            patientHabits={patientHabits}
-                            isLoadingPatientHabits={isLoadingPatientHabits}
-                            fetchPatientHabits={fetchPatientHabits}
-                            userId={userId}
-                        />
+                      <ScrollArea className='flex-1'>
+                        <div className="pr-4">
+                            <AnamnesisDashboard
+                                personalHistory={personalHistory}
+                                isLoadingPersonalHistory={isLoadingPersonalHistory}
+                                fetchPersonalHistory={fetchPersonalHistory}
+                                familyHistory={familyHistory}
+                                isLoadingFamilyHistory={isLoadingFamilyHistory}
+                                fetchFamilyHistory={fetchFamilyHistory}
+                                allergies={allergies}
+                                isLoadingAllergies={isLoadingAllergies}
+                                fetchAllergies={fetchAllergies}
+                                medications={medications}
+                                isLoadingMedications={isLoadingMedications}
+                                fetchMedications={fetchMedications}
+                                patientHabits={patientHabits}
+                                isLoadingPatientHabits={isLoadingPatientHabits}
+                                fetchPatientHabits={fetchPatientHabits}
+                                userId={userId}
+                            />
+                          </div>
+                      </ScrollArea>
                     }
                     {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} onAction={handleSessionAction} />}
                     {activeView === 'odontogram' && (
