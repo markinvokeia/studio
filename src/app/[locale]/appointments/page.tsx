@@ -157,11 +157,19 @@ export default function AppointmentsPage() {
   const [serviceSearchQuery, setServiceSearchQuery] = React.useState('');
   const [serviceSearchResults, setServiceSearchResults] = React.useState<Service[]>([]);
   const [isSearchingServices, setIsSearchingServices] = React.useState(false);
+  
+  // Doctor Search State
+  const [isDoctorSearchOpen, setDoctorSearchOpen] = React.useState(false);
+  const [doctorSearchQuery, setDoctorSearchQuery] = React.useState('');
+  const [doctorSearchResults, setDoctorSearchResults] = React.useState<UserType[]>([]);
+  const [isSearchingDoctors, setIsSearchingDoctors] = React.useState(false);
+
 
   // New Appointment Dialog State
   const [newAppointment, setNewAppointment] = React.useState({
     user: null as UserType | null,
     service: null as Service | null,
+    doctor: null as UserType | null,
     calendar: null as CalendarType | null,
     date: '',
     time: '',
@@ -377,6 +385,48 @@ export default function AppointmentsPage() {
         clearTimeout(handler);
     };
   }, [serviceSearchQuery, isServiceSearchOpen]);
+  
+  // Debounced search effect for doctors
+  React.useEffect(() => {
+    const handler = setTimeout(async () => {
+        if (doctorSearchQuery.length < 2) {
+            setDoctorSearchResults([]);
+            return;
+        };
+        setIsSearchingDoctors(true);
+        try {
+          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors?search=${doctorSearchQuery}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+          });
+          if (!response.ok) {
+            throw new Error('Network response was not ok for doctors');
+          }
+          const data = await response.json();
+          const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || []);
+          
+          const mappedDoctors = doctorsData.map((apiUser: any): UserType => ({
+            id: apiUser.user_id ? String(apiUser.user_id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+            name: apiUser.name || 'No Name',
+            email: apiUser.email || 'no-email@example.com',
+            phone_number: apiUser.phone_number || '000-000-0000',
+            is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+            avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
+          }));
+          setDoctorSearchResults(mappedDoctors);
+        } catch (error) {
+          console.error("Failed to fetch doctors:", error);
+          setDoctorSearchResults([]);
+        } finally {
+          setIsSearchingDoctors(false);
+        }
+    }, 300);
+
+    return () => {
+        clearTimeout(handler);
+    };
+  }, [doctorSearchQuery]);
 
   React.useEffect(() => {
     if (isCreateOpen) {
@@ -401,6 +451,9 @@ export default function AppointmentsPage() {
     if (newAppointment.service) {
         params.append('service_id', newAppointment.service.id);
     }
+    if (newAppointment.doctor) {
+        params.append('doctor_id', newAppointment.doctor.id);
+    }
 
     try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments_availability?${params.toString()}`, {
@@ -414,7 +467,7 @@ export default function AppointmentsPage() {
         console.error("Failed to check availability:", error);
         setAvailabilityStatus('idle');
     }
-  }, [newAppointment.date, newAppointment.time, newAppointment.calendar, newAppointment.service]);
+  }, [newAppointment.date, newAppointment.time, newAppointment.calendar, newAppointment.service, newAppointment.doctor]);
 
   React.useEffect(() => {
       const handler = setTimeout(() => {
@@ -731,6 +784,57 @@ export default function AppointmentsPage() {
                   </Popover>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="doctorName" className="text-right">{tColumns('doctor')}</Label>
+                <Popover open={isDoctorSearchOpen} onOpenChange={setDoctorSearchOpen}>
+                  <PopoverTrigger asChild>
+                      <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={isDoctorSearchOpen}
+                          className="w-[300px] justify-between col-span-3"
+                      >
+                          {newAppointment.doctor ? newAppointment.doctor.name : "Select doctor..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0">
+                      <Command>
+                          <CommandInput 
+                              placeholder="Search doctor by name..." 
+                              value={doctorSearchQuery}
+                              onValueChange={setDoctorSearchQuery}
+                          />
+                          <CommandList>
+                              <CommandEmpty>
+                                  {isSearchingDoctors ? 'Searching...' : 'No doctor found.'}
+                              </CommandEmpty>
+                              <CommandGroup>
+                                  {doctorSearchResults.map((doctor) => (
+                                  <CommandItem
+                                      key={doctor.id}
+                                      value={doctor.name}
+                                      onSelect={() => {
+                                          setNewAppointment(prev => ({...prev, doctor}));
+                                          setDoctorSearchQuery(doctor.name);
+                                          setDoctorSearchOpen(false);
+                                      }}
+                                  >
+                                      <Check
+                                          className={cn(
+                                          "mr-2 h-4 w-4",
+                                          newAppointment.doctor?.id === doctor.id ? "opacity-100" : "opacity-0"
+                                          )}
+                                      />
+                                      {doctor.name}
+                                  </CommandItem>
+                                  ))}
+                              </CommandGroup>
+                          </CommandList>
+                      </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="calendar" className="text-right">{t('createDialog.calendar')}</Label>
                 <Popover open={isCalendarSearchOpen} onOpenChange={setCalendarSearchOpen}>
                   <PopoverTrigger asChild>
@@ -844,5 +948,3 @@ export default function AppointmentsPage() {
     </>
   );
 }
-
-    
