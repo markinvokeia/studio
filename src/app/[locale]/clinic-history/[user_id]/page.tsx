@@ -104,6 +104,7 @@ type MedicationItem = {
 };
 
 type PatientHabits = {
+  id?: number;
   tabaquismo: string | null;
   alcohol: string | null;
   bruxismo: string | null;
@@ -479,7 +480,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
           modality: "DX",
           bodyPart: "TOOTH",
           viewPosition: "PER",
-          url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+UmFkaW9ncmFmw61hIDI0PC90ZXh0Pjwvc3ZnPg==",
+          url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ'h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+UmFkaW9ncmFmw61hIDI0PC90ZXh0Pjwvc3ZnPg==",
           description: "Radiografía periapical del diente 24 post-endodoncia"
         }
     ];
@@ -870,6 +871,21 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     const [isSubmittingMedication, setIsSubmittingMedication] = useState(false);
     const [medicationSubmissionError, setMedicationSubmissionError] = useState<string | null>(null);
     const [medicationData, setMedicationData] = useState({ dosis: '', frecuencia: '', fecha_inicio: '', fecha_fin: '', motivo: '' });
+
+    // Habits state
+    const [isEditingHabits, setIsEditingHabits] = useState(false);
+    const [editedHabits, setEditedHabits] = useState<PatientHabits | null>(null);
+    const [isSubmittingHabits, setIsSubmittingHabits] = useState(false);
+    const [habitsSubmissionError, setHabitsSubmissionError] = useState<string | null>(null);
+
+    const habitsChanged = React.useMemo(() => {
+        if (!isEditingHabits || !patientHabits || !editedHabits) return false;
+        return (
+            patientHabits.tabaquismo !== editedHabits.tabaquismo ||
+            patientHabits.alcohol !== editedHabits.alcohol ||
+            patientHabits.bruxismo !== editedHabits.bruxismo
+        );
+    }, [isEditingHabits, patientHabits, editedHabits]);
 
 
     useEffect(() => {
@@ -1306,14 +1322,92 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
       </svg>
     );
 
+    const handleEditHabits = () => {
+        setEditedHabits({ ...patientHabits, tabaquismo: patientHabits?.tabaquismo || '', alcohol: patientHabits?.alcohol || '', bruxismo: patientHabits?.bruxismo || '' });
+        setIsEditingHabits(true);
+    };
+
+    const handleCancelEditHabits = () => {
+        setEditedHabits(null);
+        setIsEditingHabits(false);
+    };
+
+    const handleSaveHabits = async () => {
+        if (!editedHabits || !userId) return;
+        setIsSubmittingHabits(true);
+        setHabitsSubmissionError(null);
+        try {
+            const payload: any = {
+                paciente_id: userId,
+                ...editedHabits
+            };
+            if(patientHabits?.id) {
+                payload.id = patientHabits.id;
+            }
+
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/habitos/upsert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (response.status > 299) throw new Error((await response.json()).message || 'Server error');
+            
+            toast({ title: 'Éxito', description: 'Los hábitos del paciente han sido guardados.' });
+            setIsEditingHabits(false);
+            fetchPatientHabits(userId);
+
+        } catch (error: any) {
+            setHabitsSubmissionError(error.message || 'No se pudo guardar los hábitos.');
+            toast({ variant: 'destructive', title: 'Error', description: error.message || 'No se pudo guardar los hábitos.' });
+        } finally {
+            setIsSubmittingHabits(false);
+        }
+    };
+
+
     const HabitCard = ({ habits, isLoading }: { habits: PatientHabits | null, isLoading: boolean }) => (
       <div className="bg-card rounded-xl shadow-lg p-6">
-        <div className="flex items-center mb-4">
-          <User className="w-5 h-5 text-primary mr-2" />
-          <h3 className="text-lg font-bold text-card-foreground">Hábitos del Paciente</h3>
+        <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+                <User className="w-5 h-5 text-primary mr-2" />
+                <h3 className="text-lg font-bold text-card-foreground">Hábitos del Paciente</h3>
+            </div>
+            {!isEditingHabits && (
+                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleEditHabits}>
+                    <Edit3 className="h-4 w-4" />
+                </Button>
+            )}
         </div>
         {isLoading ? (
           <p className="text-muted-foreground">Loading patient habits...</p>
+        ) : isEditingHabits && editedHabits ? (
+            <div className="space-y-4">
+                <div className="space-y-1">
+                    <Label htmlFor="tabaquismo">Tabaquismo</Label>
+                    <Input id="tabaquismo" value={editedHabits.tabaquismo || ''} onChange={(e) => setEditedHabits({...editedHabits, tabaquismo: e.target.value})} />
+                </div>
+                 <div className="space-y-1">
+                    <Label htmlFor="alcohol">Alcohol</Label>
+                    <Input id="alcohol" value={editedHabits.alcohol || ''} onChange={(e) => setEditedHabits({...editedHabits, alcohol: e.target.value})} />
+                </div>
+                 <div className="space-y-1">
+                    <Label htmlFor="bruxismo">Bruxismo</Label>
+                    <Input id="bruxismo" value={editedHabits.bruxismo || ''} onChange={(e) => setEditedHabits({...editedHabits, bruxismo: e.target.value})} />
+                </div>
+                 {habitsSubmissionError && (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>{habitsSubmissionError}</AlertDescription>
+                    </Alert>
+                )}
+                <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={handleCancelEditHabits}>Cancelar</Button>
+                    <Button onClick={handleSaveHabits} disabled={!habitsChanged || isSubmittingHabits}>
+                        {isSubmittingHabits ? 'Guardando...' : 'Guardar'}
+                    </Button>
+                </div>
+            </div>
         ) : habits ? (
           <div className="space-y-4">
             <div className="flex items-start gap-4">
@@ -1951,3 +2045,6 @@ export default function DentalClinicalSystemPage() {
 
 
     
+
+
+      
