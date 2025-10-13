@@ -325,7 +325,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                 throw new Error('Network response was not ok for patient habits');
             }
             const data = await response.json();
-            const habitsData = Array.isArray(data) && data.length > 0 ? data[0] : (data.patient_habits || data.data || null);
+            const habitsData = Array.isArray(data) && data.length > 0 ? data[0] : (data.habitos_paciente || data.data || null);
             setPatientHabits(habitsData);
         } catch (error) {
             console.error("Failed to fetch patient habits:", error);
@@ -492,7 +492,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     });
 
     const ImageModal = ({ image, onClose }: { image: any, onClose: any }) => (
-      (<div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
         <div className="relative max-w-7xl max-h-full w-full h-full flex flex-col">
           <div className="bg-card p-4 flex justify-between items-center">
             <div>
@@ -517,7 +517,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                 <ZoomIn className="w-5 h-5" />
               </button>
               <button
-                onClick={()={() => setZoomLevel(1)}
+                onClick={() => setZoomLevel(1)}
                 className="p-2 text-muted-foreground hover:bg-muted rounded"
               >
                 <RotateCcw className="w-5 h-5" />
@@ -541,7 +541,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             />
           </div>
         </div>
-      </div>)
+      </div>
     );
 
     return (
@@ -1367,11 +1367,27 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
     const HabitCard = ({ habits, isLoading }: { habits: PatientHabits | null, isLoading: boolean }) => {
         const handleHabitChange = (field: keyof PatientHabits, value: string) => {
-            if (editedHabits) {
-                setEditedHabits({ ...editedHabits, [field]: value });
-            }
+            setEditedHabits(prev => prev ? { ...prev, [field]: value } : null);
         };
-
+    
+        const currentHabits = isEditingHabits ? editedHabits : habits;
+    
+        if (isLoading) {
+            return (
+                <div className="bg-card rounded-xl shadow-lg p-6">
+                     <div className="flex items-center justify-between mb-4">
+                        <Skeleton className="h-6 w-1/2" />
+                        <Skeleton className="h-8 w-8" />
+                    </div>
+                    <div className="space-y-4">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                </div>
+            );
+        }
+    
         return (
             <div className="bg-card rounded-xl shadow-lg p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -1385,21 +1401,19 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                         </Button>
                     )}
                 </div>
-                {isLoading ? (
-                  <p className="text-muted-foreground">Loading patient habits...</p>
-                ) : isEditingHabits && editedHabits ? (
+                {isEditingHabits ? (
                     <div className="space-y-4">
                         <div className="space-y-1">
                             <Label htmlFor="tabaquismo">Tabaquismo</Label>
-                            <Input id="tabaquismo" value={editedHabits.tabaquismo || ''} onChange={(e) => handleHabitChange('tabaquismo', e.target.value)} />
+                            <Input id="tabaquismo" value={currentHabits?.tabaquismo || ''} onChange={(e) => handleHabitChange('tabaquismo', e.target.value)} />
                         </div>
                          <div className="space-y-1">
                             <Label htmlFor="alcohol">Alcohol</Label>
-                            <Input id="alcohol" value={editedHabits.alcohol || ''} onChange={(e) => handleHabitChange('alcohol', e.target.value)} />
+                            <Input id="alcohol" value={currentHabits?.alcohol || ''} onChange={(e) => handleHabitChange('alcohol', e.target.value)} />
                         </div>
                          <div className="space-y-1">
                             <Label htmlFor="bruxismo">Bruxismo</Label>
-                            <Input id="bruxismo" value={editedHabits.bruxismo || ''} onChange={(e) => handleHabitChange('bruxismo', e.target.value)} />
+                            <Input id="bruxismo" value={currentHabits?.bruxismo || ''} onChange={(e) => handleHabitChange('bruxismo', e.target.value)} />
                         </div>
                          {habitsSubmissionError && (
                             <Alert variant="destructive">
@@ -2056,3 +2070,6 @@ export default function DentalClinicalSystemPage() {
 
 
       
+
+
+    
