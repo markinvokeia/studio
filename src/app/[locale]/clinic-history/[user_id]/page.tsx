@@ -45,6 +45,43 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 
+type PersonalHistoryItem = {
+    id: number;
+    padecimiento_id: string;
+    nombre: string;
+    comentarios: string;
+};
+type FamilyHistoryItem = {
+    id: number;
+    padecimiento_id: string;
+    nombre: string;
+    parentesco: string;
+    comentarios: string;
+};
+type AllergyItem = {
+    id: number;
+    alergeno: string;
+    reaccion_descrita: string;
+    snomed_ct_id: string;
+};
+type MedicationItem = {
+    id: number;
+    medicamento_id: string;
+    medicamento_nombre: string;
+    dosis: string;
+    frecuencia: string;
+    fecha_inicio: string | null;
+    fecha_fin: string | null;
+    motivo: string;
+};
+
+type PatientHabits = {
+  id?: number;
+  tabaquismo: string | null;
+  alcohol: string | null;
+  bruxismo: string | null;
+};
+
 const AnamnesisDashboard = ({
     personalHistory,
     isLoadingPersonalHistory,
@@ -998,31 +1035,38 @@ const HabitCard = ({ userId, fetchPatientHabits }: { userId: string, fetchPatien
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(true);
     const [initialHabits, setInitialHabits] = useState<PatientHabits | null>(null);
+
+    const loadHabits = useCallback(async () => {
+        if (!userId) return;
+        setIsLoading(true);
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/habitos_paciente?user_id=${userId}`);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                if (response.status === 404) {
+                    setInitialHabits(null);
+                    setEditedHabits({ tabaquismo: '', alcohol: '', bruxismo: '' });
+                    return;
+                }
+                throw new Error(errorData?.message || 'Network response was not ok for patient habits');
+            }
+            const data = await response.json();
+            const habitsData = Array.isArray(data) && data.length > 0 ? data[0] : (data.habitos_paciente || data.data || null);
+            setInitialHabits(habitsData);
+            setEditedHabits(habitsData || { tabaquismo: '', alcohol: '', bruxismo: '' });
+        } catch (error) {
+            console.error("Failed to fetch patient habits:", error);
+            setInitialHabits(null);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [userId]);
     
     useEffect(() => {
-        const loadHabits = async () => {
-            if (!userId) return;
-            setIsLoading(true);
-            try {
-                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/habitos_paciente?user_id=${userId}`);
-                if (!response.ok) {
-                    throw new Error('Network response was not ok for patient habits');
-                }
-                const data = await response.json();
-                const habitsData = Array.isArray(data) && data.length > 0 ? data[0] : (data.habitos_paciente || data.data || null);
-                setInitialHabits(habitsData);
-                setEditedHabits(habitsData || { tabaquismo: '', alcohol: '', bruxismo: '' });
-            } catch (error) {
-                console.error("Failed to fetch patient habits:", error);
-                setInitialHabits(null);
-            } finally {
-                setIsLoading(false);
-            }
-        };
         loadHabits();
-    }, [userId]);
+    }, [loadHabits]);
 
-    const handleInputChange = (field: keyof PatientHabits, value: string) => {
+    const handleInputChange = (field: keyof Omit<PatientHabits, 'id'>, value: string) => {
         setEditedHabits(prev => ({ ...prev, [field]: value }));
     };
 
@@ -1059,7 +1103,7 @@ const HabitCard = ({ userId, fetchPatientHabits }: { userId: string, fetchPatien
             
             toast({ title: 'Éxito', description: 'Los hábitos del paciente han sido guardados.' });
             setIsEditing(false);
-            setInitialHabits(editedHabits);
+            loadHabits(); // Re-fetch to update initialHabits
 
         } catch (error: any) {
             setSubmissionError(error.message || 'No se pudo guardar los hábitos.');
@@ -1353,6 +1397,10 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                 headers: { 'Accept': 'application/json' },
             });
             if (!response.ok) {
+                if (response.status === 404) {
+                    setPatientHabits(null);
+                    return;
+                }
                 throw new Error('Network response was not ok for patient habits');
             }
             const data = await response.json();
@@ -1942,120 +1990,118 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   );
 
   return (
-    <>
-      <div className={cn("min-h-screen", !isFullscreen && "bg-background")}>
-        {/* Header */}
-        {!isFullscreen && (
-        <div className="bg-card shadow-sm border-b border-border px-6 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-card-foreground">Historial Clinico Digital</h1>
-              {selectedPatient && (
-                  <div className="flex items-center gap-2">
-                      <p className="text-2xl font-bold text-foreground">{selectedPatient.name}</p>
-                      <Button variant="ghost" size="icon" onClick={refreshAllData}>
-                          <RefreshCw className="h-5 w-5" />
-                      </Button>
-                  </div>
-              )}
-            </div>
-          </div>
-          <div className="flex justify-between items-center mt-4">
-              <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
-                  <PopoverTrigger asChild>
-                      <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                              value={searchQuery}
-                              onChange={(e) => {
-                                  setSearchQuery(e.target.value)
-                                  if(!patientSearchOpen) setPatientSearchOpen(true)
-                              }}
-                              placeholder="Buscar paciente..."
-                              className="pl-9 w-96"
-                          />
-                      </div>
-                  </PopoverTrigger>
-                  <PopoverContent className="p-0 w-96" align="start">
-                      <Command>
-                          <CommandInput placeholder="Buscar por nombre o ID..." value={searchQuery} onValueChange={setSearchQuery}/>
-                          <CommandList>
-                              <CommandEmpty>
-                                  {isSearching ? 'Buscando...' : 'No se encontraron pacientes.'}
-                              </CommandEmpty>
-                              <CommandGroup>
-                                  {searchResults.map((user) => (
-                                      <CommandItem
-                                          key={user.id}
-                                          value={user.name}
-                                          onSelect={() => handleSelectPatient(user)}
-                                      >
-                                          {user.name}
-                                      </CommandItem>
-                                  ))}
-                              </CommandGroup>
-                          </CommandList>
-                      </Command>
-                  </PopoverContent>
-              </Popover>
-              <Navigation />
+    <div className={cn("min-h-screen", !isFullscreen && "bg-background")}>
+      {/* Header */}
+      {!isFullscreen && (
+      <div className="bg-card shadow-sm border-b border-border px-6 py-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-card-foreground">Historial Clinico Digital</h1>
+            {selectedPatient && (
+                <div className="flex items-center gap-2">
+                    <p className="text-2xl font-bold text-foreground">{selectedPatient.name}</p>
+                    <Button variant="ghost" size="icon" onClick={refreshAllData}>
+                        <RefreshCw className="h-5 w-5" />
+                    </Button>
+                </div>
+            )}
           </div>
         </div>
-        )}
-      
-        {selectedPatient ? (
-          <>
-              <div className={cn(!isFullscreen && "px-6 py-8")}>
-                  <div className={cn(!isFullscreen && "space-y-6")}>
-
-                      {activeView === 'anamnesis' && 
-                          <AnamnesisDashboard
-                              personalHistory={personalHistory}
-                              isLoadingPersonalHistory={isLoadingPersonalHistory}
-                              fetchPersonalHistory={fetchPersonalHistory}
-                              familyHistory={familyHistory}
-                              isLoadingFamilyHistory={isLoadingFamilyHistory}
-                              fetchFamilyHistory={fetchFamilyHistory}
-                              allergies={allergies}
-                              isLoadingAllergies={isLoadingAllergies}
-                              fetchAllergies={fetchAllergies}
-                              medications={medications}
-                              isLoadingMedications={isLoadingMedications}
-                              fetchMedications={fetchMedications}
-                              patientHabits={patientHabits}
-                              isLoadingPatientHabits={isLoadingPatientHabits}
-                              fetchPatientHabits={fetchPatientHabits}
-                              userId={userId}
-                          />
-                      }
-                      {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} onAction={handleSessionAction} />}
-                      {activeView === 'odontogram' && (
-                          <div className={cn("relative", isFullscreen ? "fixed inset-0 z-50 bg-background" : "h-[800px] w-full")}>
-                             <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="absolute top-2 right-2 z-10 bg-background/50 hover:bg-background/80"
-                                onClick={() => setIsFullscreen(!isFullscreen)}
-                              >
-                                {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
-                             </Button>
-                              <iframe src={`https://2eb9dbc586e5.ngrok-free.app/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
-                          </div>
-                      )}
-                      {activeView === 'images' && <ImageGallery />}
-                  </div>
-              </div>
-          </>
-        ) : (
-          !isFullscreen && (
-            <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
-              <SearchCheck className="w-24 h-24 text-muted-foreground/30 mb-4" />
-              <h2 className="text-2xl font-semibold text-foreground/80">Seleccione un paciente</h2>
-              <p className="text-muted-foreground mt-2">Utilice la barra de búsqueda de arriba para encontrar y cargar el historial clínico de un paciente.</p>
-            </div>
-          )
-        )}
+        <div className="flex justify-between items-center mt-4">
+            <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
+                <PopoverTrigger asChild>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value)
+                                if(!patientSearchOpen) setPatientSearchOpen(true)
+                            }}
+                            placeholder="Buscar paciente..."
+                            className="pl-9 w-96"
+                        />
+                    </div>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-96" align="start">
+                    <Command>
+                        <CommandInput placeholder="Buscar por nombre o ID..." value={searchQuery} onValueChange={setSearchQuery}/>
+                        <CommandList>
+                            <CommandEmpty>
+                                {isSearching ? 'Buscando...' : 'No se encontraron pacientes.'}
+                            </CommandEmpty>
+                            <CommandGroup>
+                                {searchResults.map((user) => (
+                                    <CommandItem
+                                        key={user.id}
+                                        value={user.name}
+                                        onSelect={() => handleSelectPatient(user)}
+                                    >
+                                        {user.name}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+            <Navigation />
+        </div>
       </div>
+      )}
+    
+      {selectedPatient ? (
+        <>
+            <div className={cn(!isFullscreen && "px-6 py-8")}>
+                <div className={cn(!isFullscreen && "space-y-6")}>
+
+                    {activeView === 'anamnesis' && 
+                        <AnamnesisDashboard
+                            personalHistory={personalHistory}
+                            isLoadingPersonalHistory={isLoadingPersonalHistory}
+                            fetchPersonalHistory={fetchPersonalHistory}
+                            familyHistory={familyHistory}
+                            isLoadingFamilyHistory={isLoadingFamilyHistory}
+                            fetchFamilyHistory={fetchFamilyHistory}
+                            allergies={allergies}
+                            isLoadingAllergies={isLoadingAllergies}
+                            fetchAllergies={fetchAllergies}
+                            medications={medications}
+                            isLoadingMedications={isLoadingMedications}
+                            fetchMedications={fetchMedications}
+                            patientHabits={patientHabits}
+                            isLoadingPatientHabits={isLoadingPatientHabits}
+                            fetchPatientHabits={fetchPatientHabits}
+                            userId={userId}
+                        />
+                    }
+                    {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} onAction={handleSessionAction} />}
+                    {activeView === 'odontogram' && (
+                        <div className={cn("relative", isFullscreen ? "fixed inset-0 z-50 bg-background" : "h-[800px] w-full")}>
+                           <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="absolute top-2 right-2 z-10 bg-background/50 hover:bg-background/80"
+                              onClick={() => setIsFullscreen(!isFullscreen)}
+                            >
+                              {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+                           </Button>
+                            <iframe src={`https://2eb9dbc586e5.ngrok-free.app/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
+                        </div>
+                    )}
+                    {activeView === 'images' && <ImageGallery />}
+                </div>
+            </div>
+        </>
+      ) : (
+        !isFullscreen && (
+          <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
+            <SearchCheck className="w-24 h-24 text-muted-foreground/30 mb-4" />
+            <h2 className="text-2xl font-semibold text-foreground/80">Seleccione un paciente</h2>
+            <p className="text-muted-foreground mt-2">Utilice la barra de búsqueda de arriba para encontrar y cargar el historial clínico de un paciente.</p>
+          </div>
+        )
+      )}
 
        <SessionDialog 
             isOpen={isSessionDialogOpen} 
@@ -2079,7 +2125,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
-    </>
+    </div>
   );
 };
 
@@ -2097,10 +2143,11 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
   useEffect(() => {
     async function fetchDoctors() {
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_by_role?role_name=Medico`);
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
             if (response.ok) {
                 const data = await response.json();
-                setDoctors(data);
+                const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || data.result || []);
+                setDoctors(doctorsData);
             }
         } catch (error) {
             console.error("Failed to fetch doctors:", error);
@@ -2317,8 +2364,3 @@ export default function DentalClinicalSystemPage() {
     return <DentalClinicalSystem userId={userId} />;
 }
     
-
-
-
-    
-
