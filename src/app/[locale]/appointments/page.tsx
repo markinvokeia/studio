@@ -389,7 +389,7 @@ export default function AppointmentsPage() {
   // Debounced search effect for doctors
   React.useEffect(() => {
     const handler = setTimeout(async () => {
-        if (doctorSearchQuery.length < 2) {
+        if (!isDoctorSearchOpen && doctorSearchQuery.length === 0) {
             setDoctorSearchResults([]);
             return;
         };
@@ -414,7 +414,7 @@ export default function AppointmentsPage() {
             is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
             avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
           }));
-          setDoctorSearchResults(mappedDoctors);
+          setDoctorSearchResults(mappedDoctors.slice(0, 10));
         } catch (error) {
           console.error("Failed to fetch doctors:", error);
           setDoctorSearchResults([]);
@@ -426,7 +426,7 @@ export default function AppointmentsPage() {
     return () => {
         clearTimeout(handler);
     };
-  }, [doctorSearchQuery]);
+  }, [doctorSearchQuery, isDoctorSearchOpen]);
 
   React.useEffect(() => {
     if (isCreateOpen) {
