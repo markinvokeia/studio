@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -879,20 +878,6 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     const [isSubmittingHabits, setIsSubmittingHabits] = useState(false);
     const [habitsSubmissionError, setHabitsSubmissionError] = useState<string | null>(null);
 
-    const habitsChanged = React.useMemo(() => {
-        if (!isEditingHabits || !patientHabits) return false;
-        // Handles case where patientHabits is null initially
-        const originalTabaquismo = patientHabits.tabaquismo || '';
-        const originalAlcohol = patientHabits.alcohol || '';
-        const originalBruxismo = patientHabits.bruxismo || '';
-
-        return (
-            originalTabaquismo !== editedHabits.tabaquismo ||
-            originalAlcohol !== editedHabits.alcohol ||
-            originalBruxismo !== editedHabits.bruxismo
-        );
-    }, [isEditingHabits, patientHabits, editedHabits]);
-
 
     useEffect(() => {
         const fetchAilments = async () => {
@@ -1432,7 +1417,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                         )}
                         <div className="flex justify-end gap-2 mt-4">
                             <Button variant="outline" onClick={handleCancelEditHabits}>Cancelar</Button>
-                            <Button onClick={handleSaveHabits} disabled={!habitsChanged || isSubmittingHabits}>
+                            <Button onClick={handleSaveHabits} disabled={isSubmittingHabits}>
                                 {isSubmittingHabits ? 'Guardando...' : 'Guardar'}
                             </Button>
                         </div>
