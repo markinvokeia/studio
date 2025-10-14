@@ -186,9 +186,9 @@ export default function AppointmentsPage() {
         <RadioGroupItem value={row.id} id={row.id} />
       ),
     },
-    { accessorKey: 'calendar', header: 'Calendar' },
-    { accessorKey: 'date', header: 'Date' },
-    { accessorKey: 'time', header: 'Time' },
+    { accessorKey: 'calendar', header: t('createDialog.suggested.calendar') },
+    { accessorKey: 'date', header: t('createDialog.suggested.date') },
+    { accessorKey: 'time', header: t('createDialog.suggested.time') },
   ];
 
   const generateColor = (str: string) => {
@@ -459,19 +459,19 @@ export default function AppointmentsPage() {
         attendeesEmails.push(doctor.email);
     }
     
-    const params = new URLSearchParams({
+    const params: Record<string, string> = {
         startingDateAndTime: startDateTime.toISOString(),
         endingDateAndTime: endDateTime.toISOString(),
         mode: 'checkAvailability',
-    });
-    attendeesEmails.forEach(email => params.append('attendeesEmails', email));
+        attendeesEmails: attendeesEmails.join(','),
+    };
     
     if (calendar?.id) {
-        params.append('calendarIds', calendar.id);
+        params.calendarIds = calendar.id;
     }
 
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments_availability?${params.toString()}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments_availability?${new URLSearchParams(params).toString()}`, {
             method: 'GET',
             mode: 'cors',
         });
