@@ -350,7 +350,10 @@ export default function AppointmentsPage() {
   // Debounced search effect for services
   React.useEffect(() => {
     const handler = setTimeout(async () => {
-        if (!isServiceSearchOpen && !serviceSearchQuery) return;
+        if (serviceSearchQuery.length < 2) {
+            setServiceSearchResults([]);
+            return;
+        };
         setIsSearchingServices(true);
         try {
           const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?search=${serviceSearchQuery}`, {
@@ -384,7 +387,7 @@ export default function AppointmentsPage() {
     return () => {
         clearTimeout(handler);
     };
-  }, [serviceSearchQuery, isServiceSearchOpen]);
+  }, [serviceSearchQuery]);
   
   // Debounced search effect for doctors
   React.useEffect(() => {
@@ -1018,5 +1021,7 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
 
     
