@@ -125,7 +125,16 @@
       "serviceName": "Service Name",
       "date": "Date",
       "time": "Time",
-      "save": "Save Appointment"
+      "save": "Save",
+      "cancel": "Cancel",
+      "calendar": "Calendar",
+      "showSuggestions": "Show Suggestions",
+      "suggestedTimes": "Suggested Times",
+      "suggested": {
+        "calendar": "Calendar",
+        "date": "Date",
+        "time": "Time"
+      }
     }
   },
   "AppointmentsColumns": {
@@ -141,6 +150,12 @@
     "edit": "Edit Appointment",
     "cancel": "Cancel Appointment"
   },
+  "AppointmentStatus": {
+    "completed": "Completed",
+    "confirmed": "Confirmed",
+    "pending": "Pending",
+    "cancelled": "Cancelled"
+  },
   "AilmentsPage": {
     "title": "Ailments",
     "description": "Manage standardized medical conditions and diseases.",
@@ -148,6 +163,8 @@
     "createDialog": {
       "title": "Create New Ailment",
       "description": "Fill in the details below to add a new ailment.",
+      "editTitle": "Edit Ailment",
+      "editDescription": "Update the details for this ailment.",
       "name": "Name",
       "namePlaceholder": "e.g., Arterial Hypertension",
       "category": "Category",
@@ -158,7 +175,29 @@
       "level2": "2 (Warning)",
       "level3": "3 (Critical)",
       "cancel": "Cancel",
-      "save": "Create Ailment"
+      "save": "Create Ailment",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the ailment \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Ailment Created",
+      "editSuccessTitle": "Ailment Updated",
+      "successDescription": "Ailment \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Ailment Deleted",
+      "deleteSuccessDescription": "Ailment \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the ailment."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "categoryRequired": "Category is required.",
+      "alertLevelRequired": "Alert level is required."
     }
   },
   "AilmentsColumns": {
@@ -166,6 +205,146 @@
     "name": "Name",
     "category": "Category",
     "alertLevel": "Alert Level",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "MedicationsPage": {
+    "title": "Medications",
+    "description": "Manage the catalog of medications for auto-completion.",
+    "filterPlaceholder": "Filter by generic name...",
+    "createDialog": {
+      "title": "Create New Medication",
+      "description": "Fill in the details below to add a new medication.",
+      "editTitle": "Edit Medication",
+      "editDescription": "Update the details for this medication.",
+      "genericName": "Generic Name",
+      "genericNamePlaceholder": "e.g., Ibuprofen",
+      "commercialName": "Commercial Name",
+      "commercialNamePlaceholder": "e.g., Advil",
+      "cancel": "Cancel",
+      "save": "Create Medication",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the medication \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Medication Created",
+      "editSuccessTitle": "Medication Updated",
+      "successDescription": "Medication \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Medication Deleted",
+      "deleteSuccessDescription": "Medication \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the medication."
+    },
+    "validation": {
+      "nameRequired": "Generic name is required."
+    }
+  },
+  "MedicationsColumns": {
+    "id": "ID",
+    "genericName": "Generic Name",
+    "commercialName": "Commercial Name",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "DentalConditionsPage": {
+    "title": "Dental Conditions",
+    "description": "Manage possible findings in an odontogram.",
+    "filterPlaceholder": "Filter by name...",
+    "createDialog": {
+      "title": "Create New Dental Condition",
+      "description": "Fill in the details below to add a new dental condition.",
+      "editTitle": "Edit Dental Condition",
+      "editDescription": "Update the details for this dental condition.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Caries",
+      "visualCode": "Visual Code",
+      "visualCodePlaceholder": "e.g., CARIES",
+      "color": "Color",
+      "cancel": "Cancel",
+      "save": "Create Condition",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the condition \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Condition Created",
+      "editSuccessTitle": "Condition Updated",
+      "successDescription": "Condition \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Condition Deleted",
+      "deleteSuccessDescription": "Condition \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the condition."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "codeRequired": "Visual code is required.",
+      "colorInvalid": "Invalid hex color format."
+    }
+  },
+  "DentalConditionsColumns": {
+    "id": "ID",
+    "name": "Name",
+    "visualCode": "Visual Code",
+    "color": "Color",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "DentalSurfacesPage": {
+    "title": "Dental Surfaces",
+    "description": "Manage the surfaces of a tooth.",
+    "filterPlaceholder": "Filter by name...",
+    "createDialog": {
+      "title": "Create New Dental Surface",
+      "description": "Fill in the details below to add a new dental surface.",
+      "editTitle": "Edit Dental Surface",
+      "editDescription": "Update the details for this dental surface.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Occlusal",
+      "code": "Code",
+      "codePlaceholder": "e.g., O",
+      "cancel": "Cancel",
+      "save": "Create Surface",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the surface \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Surface Created",
+      "editSuccessTitle": "Surface Updated",
+      "successDescription": "Surface \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Surface Deleted",
+      "deleteSuccessDescription": "Surface \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the surface."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "codeRequired": "Code is required."
+    }
+  },
+  "DentalSurfacesColumns": {
+    "id": "ID",
+    "name": "Name",
+    "code": "Code",
     "actions": "Actions",
     "edit": "Edit",
     "delete": "Delete"
@@ -188,6 +367,12 @@
     "createDialog": {
       "title": "Create New User",
       "description": "Fill in the details below to add a new user.",
+      "editTitle": "Edit User",
+      "editDescription": "Update the details for this user.",
+      "createSuccessTitle": "User Created",
+      "createSuccessDescription": "The new user has been added successfully.",
+      "editSuccessTitle": "User Updated",
+      "editSuccessDescription": "The user has been updated successfully.",
       "name": "Name",
       "namePlaceholder": "John Doe",
       "email": "Email",
@@ -195,10 +380,29 @@
       "phone": "Phone",
       "phonePlaceholder": "123-456-7890",
       "identity_document": "Identity Document",
-      "identity_document_placeholder": "e.g., 1234567-8",
+      "identity_document_placeholder": "e.g., 12345678",
       "isActive": "Is Active",
       "cancel": "Cancel",
-      "save": "Create User"
+      "save": "Create User",
+      "editSave": "Save Changes",
+      "validation": {
+        "errorTitle": "Error",
+        "nameRequired": "Name is required",
+        "emailInvalid": "Invalid email address",
+        "phoneInvalid": "Invalid phone number",
+        "phoneRequired": "Phone is required",
+        "identityRequired": "Identity document is required",
+        "identityInvalid": "Identity document must be a number.",
+        "identityMaxLength": "Identity document must be 10 characters or less.",
+        "genericError": "An unexpected error occurred. Please try again.",
+        "serverError": "Server error, please try again later.",
+        "uniqueConflict": "The following fields are already registered: {fields}",
+        "fields": {
+          "email": "Email",
+          "phone": "Phone",
+          "identity_document": "Identity Document"
+        }
+      }
     }
   },
   "UserColumns": {
@@ -212,7 +416,66 @@
     "edit": "Edit user",
     "delete": "Delete user",
     "activate": "Activate",
-    "deactivate": "Deactivate"
+    "deactivate": "Deactivate",
+    "identity_document": "Identity Document"
+  },
+  "UserRoles": {
+    "columns": {
+      "role": "Role",
+      "status": "Status"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "openMenu": "Open menu",
+      "title": "Actions",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "delete": "Delete"
+    },
+    "filterPlaceholder": "Filter by role...",
+    "dialog": {
+      "title": "Add Roles to User",
+      "description": "Select the roles to assign to this user.",
+      "availableRoles": "Available Roles",
+      "activeLabel": "Active",
+      "cancel": "Cancel",
+      "assign": "Accept"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This action will remove the role \"{roleName}\" from the user. This cannot be undone.",
+      "cancel": "Cancel",
+      "continue": "Continue"
+    },
+    "toast": {
+      "success": "Success",
+      "error": "Error",
+      "statusUpdated": "Role {roleName} has been {status}.",
+      "statusUpdateFailed": "Could not update role status.",
+      "roleRemoved": "Role \"{roleName}\" has been removed from the user.",
+      "roleRemoveFailed": "Could not remove role \"{roleName}\".",
+      "rolesAssigned": "Roles assigned successfully.",
+      "rolesAssignFailed": "Could not assign roles."
+    }
+  },
+  "UserServices": {
+    "dialog": {
+      "title": "Add Services to User",
+      "description": "Select the services to assign to this user.",
+      "availableServices": "Available Services",
+      "cancel": "Cancel",
+      "assign": "Accept",
+      "activeLabel": "Active"
+    },
+    "toast": {
+      "success": "Success",
+      "error": "Error",
+      "servicesAssigned": "Services assigned successfully.",
+      "servicesAssignFailed": "Could not assign services."
+    }
   },
   "QuoteColumns": {
     "quoteId": "Quote ID",
