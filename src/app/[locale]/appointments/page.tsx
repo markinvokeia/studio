@@ -32,6 +32,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useToast } from '@/hooks/use-toast';
 
 
 async function getAppointments(calendarIds: string[], startDate: Date, endDate: Date): Promise<Appointment[]> {
@@ -128,6 +129,7 @@ export default function AppointmentsPage() {
   const tColumns = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
   const appointmentColumns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns(tColumns, tStatus), [tColumns, tStatus]);
+  const { toast } = useToast();
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
@@ -527,6 +529,65 @@ export default function AppointmentsPage() {
       }, 500);
       return () => clearTimeout(handler);
   }, [checkAvailability]);
+
+  const handleSaveAppointment = async () => {
+    const { user, doctor, services, calendar, date, time } = newAppointment;
+    if (!user || services.length === 0 || !calendar || !date || !time) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please fill out all required fields.",
+      });
+      return;
+    }
+
+    const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
+    const totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
+    const endDateTime = addMinutes(startDateTime, totalDuration);
+
+    const payload = {
+      startingDateAndTime: startDateTime.toISOString(),
+      endingDateAndTime: endDateTime.toISOString(),
+      calendarId: calendar.id,
+      doctorId: doctor?.id,
+      doctorEmail: doctor?.email,
+      userId: user.id,
+      userEmail: user.email,
+      userName: user.name,
+      serviceName: services.map(s => s.name).join(', '),
+    };
+
+    try {
+      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments/upsert', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create appointment");
+      }
+
+      toast({
+        title: "Appointment Created",
+        description: "The new appointment has been successfully saved.",
+      });
+
+      setCreateOpen(false);
+      loadAppointments();
+
+    } catch (error) {
+      console.error("Error creating appointment:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+      });
+    }
+  };
 
 
   return (
@@ -1018,7 +1079,7 @@ export default function AppointmentsPage() {
           </div>
           <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={() => setCreateOpen(false)}>{t('createDialog.cancel')}</Button>
-            <Button>{t('createDialog.save')}</Button>
+            <Button onClick={handleSaveAppointment}>{t('createDialog.save')}</Button>
           </div>
         </DialogContent>
       </Dialog>
