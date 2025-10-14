@@ -443,7 +443,7 @@ export default function AppointmentsPage() {
   }, [isCreateOpen]);
 
   const checkAvailability = React.useCallback(async () => {
-    const { date, time, services, user, doctor } = newAppointment;
+    const { date, time, services, user, doctor, calendar } = newAppointment;
     if (!date || !time || !user) {
       return;
     }
@@ -465,6 +465,10 @@ export default function AppointmentsPage() {
         mode: 'checkAvailability',
     });
     attendeesEmails.forEach(email => params.append('attendeesEmails', email));
+    
+    if (calendar?.id) {
+        params.append('calendarID', calendar.id);
+    }
 
     try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments_availability?${params.toString()}`, {
