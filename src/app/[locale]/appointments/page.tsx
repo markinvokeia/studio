@@ -350,10 +350,6 @@ export default function AppointmentsPage() {
   // Debounced search effect for services
   React.useEffect(() => {
     const handler = setTimeout(async () => {
-        if (serviceSearchQuery.length < 2) {
-            setServiceSearchResults([]);
-            return;
-        };
         setIsSearchingServices(true);
         try {
           const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?search=${serviceSearchQuery}`, {
@@ -375,7 +371,7 @@ export default function AppointmentsPage() {
             duration_minutes: apiService.duration_minutes || 0,
             is_active: apiService.is_active,
           }));
-          setServiceSearchResults(mappedServices.slice(0, 10));
+          setServiceSearchResults(mappedServices);
         } catch (error) {
           console.error("Failed to fetch services:", error);
           setServiceSearchResults([]);
@@ -387,7 +383,7 @@ export default function AppointmentsPage() {
     return () => {
         clearTimeout(handler);
     };
-  }, [serviceSearchQuery]);
+  }, [serviceSearchQuery, isServiceSearchOpen]);
   
   // Debounced search effect for doctors
   React.useEffect(() => {
@@ -1021,7 +1017,3 @@ export default function AppointmentsPage() {
     </>
   );
 }
-
-    
-
-    
