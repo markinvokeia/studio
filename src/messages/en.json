@@ -209,6 +209,51 @@
     "edit": "Edit",
     "delete": "Delete"
   },
+  "MedicationsPage": {
+    "title": "Medications",
+    "description": "Manage the catalog of medications for auto-completion.",
+    "filterPlaceholder": "Filter by generic name...",
+    "createDialog": {
+      "title": "Create New Medication",
+      "description": "Fill in the details below to add a new medication.",
+      "editTitle": "Edit Medication",
+      "editDescription": "Update the details for this medication.",
+      "genericName": "Generic Name",
+      "genericNamePlaceholder": "e.g., Ibuprofen",
+      "commercialName": "Commercial Name",
+      "commercialNamePlaceholder": "e.g., Advil",
+      "cancel": "Cancel",
+      "save": "Create Medication",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the medication \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Medication Created",
+      "editSuccessTitle": "Medication Updated",
+      "successDescription": "Medication \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Medication Deleted",
+      "deleteSuccessDescription": "Medication \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the medication."
+    },
+    "validation": {
+      "nameRequired": "Generic name is required."
+    }
+  },
+  "MedicationsColumns": {
+    "id": "ID",
+    "genericName": "Generic Name",
+    "commercialName": "Commercial Name",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
   "UsersPage": {
     "title": "Users",
     "description": "Manage all users in the system.",

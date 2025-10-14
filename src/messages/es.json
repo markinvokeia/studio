@@ -209,6 +209,51 @@
     "edit": "Editar",
     "delete": "Eliminar"
   },
+  "MedicationsPage": {
+    "title": "Medicamentos",
+    "description": "Gestiona el catálogo de medicamentos para autocompletar.",
+    "filterPlaceholder": "Filtrar por nombre genérico...",
+    "createDialog": {
+      "title": "Crear Nuevo Medicamento",
+      "description": "Completa los detalles a continuación para agregar un nuevo medicamento.",
+      "editTitle": "Editar Medicamento",
+      "editDescription": "Actualiza los detalles de este medicamento.",
+      "genericName": "Nombre Genérico",
+      "genericNamePlaceholder": "e.g., Ibuprofeno",
+      "commercialName": "Nombre Comercial",
+      "commercialNamePlaceholder": "e.g., Advil",
+      "cancel": "Cancelar",
+      "save": "Crear Medicamento",
+      "editSave": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente el medicamento \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Medicamento Creado",
+      "editSuccessTitle": "Medicamento Actualizado",
+      "successDescription": "El medicamento \"{name}\" ha sido guardado exitosamente.",
+      "deleteSuccessTitle": "Medicamento Eliminado",
+      "deleteSuccessDescription": "El medicamento \"{name}\" ha sido eliminado.",
+      "deleteErrorDescription": "No se pudo eliminar el medicamento."
+    },
+    "validation": {
+      "nameRequired": "El nombre genérico es requerido."
+    }
+  },
+  "MedicationsColumns": {
+    "id": "ID",
+    "genericName": "Nombre Genérico",
+    "commercialName": "Nombre Comercial",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
   "UsersPage": {
     "title": "Usuarios",
     "description": "Gestiona todos los usuarios del sistema.",
