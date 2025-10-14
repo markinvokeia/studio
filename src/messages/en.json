@@ -254,6 +254,55 @@
     "edit": "Edit",
     "delete": "Delete"
   },
+  "DentalConditionsPage": {
+    "title": "Dental Conditions",
+    "description": "Manage possible findings in an odontogram.",
+    "filterPlaceholder": "Filter by name...",
+    "createDialog": {
+      "title": "Create New Dental Condition",
+      "description": "Fill in the details below to add a new dental condition.",
+      "editTitle": "Edit Dental Condition",
+      "editDescription": "Update the details for this dental condition.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Caries",
+      "visualCode": "Visual Code",
+      "visualCodePlaceholder": "e.g., CARIES",
+      "color": "Color",
+      "cancel": "Cancel",
+      "save": "Create Condition",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the condition \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Condition Created",
+      "editSuccessTitle": "Condition Updated",
+      "successDescription": "Condition \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Condition Deleted",
+      "deleteSuccessDescription": "Condition \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the condition."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "codeRequired": "Visual code is required.",
+      "colorInvalid": "Invalid hex color format."
+    }
+  },
+  "DentalConditionsColumns": {
+    "id": "ID",
+    "name": "Name",
+    "visualCode": "Visual Code",
+    "color": "Color",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
   "UsersPage": {
     "title": "Users",
     "description": "Manage all users in the system.",

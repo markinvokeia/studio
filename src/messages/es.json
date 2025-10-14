@@ -254,6 +254,55 @@
     "edit": "Editar",
     "delete": "Eliminar"
   },
+  "DentalConditionsPage": {
+    "title": "Condiciones Dentales",
+    "description": "Gestiona posibles hallazgos en un odontograma.",
+    "filterPlaceholder": "Filtrar por nombre...",
+    "createDialog": {
+      "title": "Crear Nueva Condición Dental",
+      "description": "Completa los detalles a continuación para agregar una nueva condición dental.",
+      "editTitle": "Editar Condición Dental",
+      "editDescription": "Actualiza los detalles de esta condición dental.",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Caries",
+      "visualCode": "Código Visual",
+      "visualCodePlaceholder": "ej., CARIES",
+      "color": "Color",
+      "cancel": "Cancelar",
+      "save": "Crear Condición",
+      "editSave": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente la condición \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Condición Creada",
+      "editSuccessTitle": "Condición Actualizada",
+      "successDescription": "La condición \"{name}\" se ha guardado correctamente.",
+      "deleteSuccessTitle": "Condición Eliminada",
+      "deleteSuccessDescription": "La condición \"{name}\" ha sido eliminada.",
+      "deleteErrorDescription": "No se pudo eliminar la condición."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio.",
+      "codeRequired": "El código visual es obligatorio.",
+      "colorInvalid": "Formato de color hexadecimal no válido."
+    }
+  },
+  "DentalConditionsColumns": {
+    "id": "ID",
+    "name": "Nombre",
+    "visualCode": "Código Visual",
+    "color": "Color",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
   "UsersPage": {
     "title": "Usuarios",
     "description": "Gestiona todos los usuarios del sistema.",
