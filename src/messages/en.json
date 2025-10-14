@@ -163,6 +163,8 @@
     "createDialog": {
       "title": "Create New Ailment",
       "description": "Fill in the details below to add a new ailment.",
+      "editTitle": "Edit Ailment",
+      "editDescription": "Update the details for this ailment.",
       "name": "Name",
       "namePlaceholder": "e.g., Arterial Hypertension",
       "category": "Category",
@@ -173,7 +175,29 @@
       "level2": "2 (Warning)",
       "level3": "3 (Critical)",
       "cancel": "Cancel",
-      "save": "Create Ailment"
+      "save": "Create Ailment",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the ailment \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Ailment Created",
+      "editSuccessTitle": "Ailment Updated",
+      "successDescription": "Ailment \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Ailment Deleted",
+      "deleteSuccessDescription": "Ailment \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the ailment."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "categoryRequired": "Category is required.",
+      "alertLevelRequired": "Alert level is required."
     }
   },
   "AilmentsColumns": {

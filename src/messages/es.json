@@ -163,6 +163,8 @@
     "createDialog": {
       "title": "Crear Nuevo Padecimiento",
       "description": "Completa los detalles a continuación para agregar un nuevo padecimiento.",
+      "editTitle": "Editar Padecimiento",
+      "editDescription": "Actualiza los detalles de este padecimiento.",
       "name": "Nombre",
       "namePlaceholder": "ej., Hipertensión Arterial",
       "category": "Categoría",
@@ -173,7 +175,29 @@
       "level2": "2 (Advertencia)",
       "level3": "3 (Crítico)",
       "cancel": "Cancelar",
-      "save": "Crear Padecimiento"
+      "save": "Crear Padecimiento",
+      "editSave": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente el padecimiento \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Padecimiento Creado",
+      "editSuccessTitle": "Padecimiento Actualizado",
+      "successDescription": "El padecimiento \"{name}\" ha sido guardado exitosamente.",
+      "deleteSuccessTitle": "Padecimiento Eliminado",
+      "deleteSuccessDescription": "El padecimiento \"{name}\" ha sido eliminado.",
+      "deleteErrorDescription": "No se pudo eliminar el padecimiento."
+    },
+    "validation": {
+      "nameRequired": "El nombre es requerido.",
+      "categoryRequired": "La categoría es requerida.",
+      "alertLevelRequired": "El nivel de alerta es requerido."
     }
   },
   "AilmentsColumns": {

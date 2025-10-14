@@ -16,9 +16,13 @@ import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-export const AilmentsColumnsWrapper = () => {
+interface AilmentsColumnsProps {
+    onEdit: (ailment: Ailment) => void;
+    onDelete: (ailment: Ailment) => void;
+}
+
+export const AilmentsColumnsWrapper = ({ onEdit, onDelete }: AilmentsColumnsProps) => {
     const t = useTranslations('AilmentsColumns');
-    console.log('Translations for AilmentsColumns loaded.');
     const columns: ColumnDef<Ailment>[] = [
         { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title={t('id')} /> },
         { accessorKey: 'nombre', header: ({column}) => <DataTableColumnHeader column={column} title={t('name')} /> },
@@ -50,8 +54,8 @@ export const AilmentsColumnsWrapper = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-                    <DropdownMenuItem>{t('edit')}</DropdownMenuItem>
-                    <DropdownMenuItem>{t('delete')}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onEdit(ailment)}>{t('edit')}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDelete(ailment)} className="text-destructive">{t('delete')}</DropdownMenuItem>
                 </DropdownMenuContent>
                 </DropdownMenu>
             );
