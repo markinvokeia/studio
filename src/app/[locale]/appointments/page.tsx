@@ -350,6 +350,10 @@ export default function AppointmentsPage() {
   // Debounced search effect for services
   React.useEffect(() => {
     const handler = setTimeout(async () => {
+        if (!isServiceSearchOpen && serviceSearchQuery.length === 0) {
+            setServiceSearchResults([]);
+            return;
+        }
         setIsSearchingServices(true);
         try {
           const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?search=${serviceSearchQuery}`, {
@@ -389,20 +393,7 @@ export default function AppointmentsPage() {
   React.useEffect(() => {
     const handler = setTimeout(async () => {
         if (!isDoctorSearchOpen && doctorSearchQuery.length === 0) {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
-            if (response.ok) {
-                const data = await response.json();
-                const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || []);
-                const mappedDoctors = doctorsData.map((apiUser: any): UserType => ({
-                    id: apiUser.user_id ? String(apiUser.user_id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
-                    name: apiUser.name || 'No Name',
-                    email: apiUser.email || 'no-email@example.com',
-                    phone_number: apiUser.phone_number || '000-000-0000',
-                    is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
-                    avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
-                }));
-                setDoctorSearchResults(mappedDoctors.slice(0, 10));
-            }
+            setDoctorSearchResults([]);
             return;
         }
         setIsSearchingDoctors(true);
@@ -426,7 +417,7 @@ export default function AppointmentsPage() {
             is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
             avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
           }));
-          setDoctorSearchResults(mappedDoctors.slice(0, 10));
+          setDoctorSearchResults(mappedDoctors);
         } catch (error) {
           console.error("Failed to fetch doctors:", error);
           setDoctorSearchResults([]);
@@ -1017,3 +1008,5 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
