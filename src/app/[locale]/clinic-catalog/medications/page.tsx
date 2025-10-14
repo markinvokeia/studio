@@ -57,7 +57,7 @@ async function getMedications(): Promise<Medication[]> {
 }
 
 async function upsertMedication(medicationData: MedicationFormValues) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/medicamentos/upsert', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogo_medicamentos/upsert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(medicationData),
@@ -70,7 +70,7 @@ async function upsertMedication(medicationData: MedicationFormValues) {
 }
 
 async function deleteMedication(id: string) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/medicamentos/delete', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogo_medicamentos/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
