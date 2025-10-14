@@ -1,4 +1,3 @@
-
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -299,6 +298,52 @@
     "name": "Name",
     "visualCode": "Visual Code",
     "color": "Color",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "DentalSurfacesPage": {
+    "title": "Dental Surfaces",
+    "description": "Manage the surfaces of a tooth.",
+    "filterPlaceholder": "Filter by name...",
+    "createDialog": {
+      "title": "Create New Dental Surface",
+      "description": "Fill in the details below to add a new dental surface.",
+      "editTitle": "Edit Dental Surface",
+      "editDescription": "Update the details for this dental surface.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Occlusal",
+      "code": "Code",
+      "codePlaceholder": "e.g., O",
+      "cancel": "Cancel",
+      "save": "Create Surface",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the surface \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Surface Created",
+      "editSuccessTitle": "Surface Updated",
+      "successDescription": "Surface \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Surface Deleted",
+      "deleteSuccessDescription": "Surface \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the surface."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "codeRequired": "Code is required."
+    }
+  },
+  "DentalSurfacesColumns": {
+    "id": "ID",
+    "name": "Name",
+    "code": "Code",
     "actions": "Actions",
     "edit": "Edit",
     "delete": "Delete"

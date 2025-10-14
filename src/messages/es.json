@@ -1,4 +1,3 @@
-
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -299,6 +298,52 @@
     "name": "Nombre",
     "visualCode": "Código Visual",
     "color": "Color",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
+  "DentalSurfacesPage": {
+    "title": "Superficies Dentales",
+    "description": "Gestiona las superficies de un diente.",
+    "filterPlaceholder": "Filtrar por nombre...",
+    "createDialog": {
+      "title": "Crear Nueva Superficie Dental",
+      "description": "Completa los detalles a continuación para agregar una nueva superficie dental.",
+      "editTitle": "Editar Superficie Dental",
+      "editDescription": "Actualiza los detalles de esta superficie dental.",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Oclusal",
+      "code": "Código",
+      "codePlaceholder": "ej., O",
+      "cancel": "Cancelar",
+      "save": "Crear Superficie",
+      "editSave": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente la superficie \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Superficie Creada",
+      "editSuccessTitle": "Superficie Actualizada",
+      "successDescription": "La superficie \"{name}\" se ha guardado correctamente.",
+      "deleteSuccessTitle": "Superficie Eliminada",
+      "deleteSuccessDescription": "La superficie \"{name}\" ha sido eliminada.",
+      "deleteErrorDescription": "No se pudo eliminar la superficie."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio.",
+      "codeRequired": "El código es obligatorio."
+    }
+  },
+  "DentalSurfacesColumns": {
+    "id": "ID",
+    "name": "Nombre",
+    "code": "Código",
     "actions": "Acciones",
     "edit": "Editar",
     "delete": "Eliminar"
