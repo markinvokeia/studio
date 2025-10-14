@@ -351,8 +351,12 @@ export default function AppointmentsPage() {
   React.useEffect(() => {
     const handler = setTimeout(async () => {
         if (!isServiceSearchOpen && serviceSearchQuery.length === 0) {
-            setServiceSearchResults([]);
-            return;
+            if (isServiceSearchOpen) { // Load all if opened with no query
+                // continue to fetch
+            } else {
+                setServiceSearchResults([]);
+                return;
+            }
         }
         setIsSearchingServices(true);
         try {
@@ -393,8 +397,12 @@ export default function AppointmentsPage() {
   React.useEffect(() => {
     const handler = setTimeout(async () => {
         if (!isDoctorSearchOpen && doctorSearchQuery.length === 0) {
-            setDoctorSearchResults([]);
-            return;
+            if (isDoctorSearchOpen) { // Load all if opened with no query
+                 // continue to fetch
+            } else {
+                setDoctorSearchResults([]);
+                return;
+            }
         }
         setIsSearchingDoctors(true);
         try {
@@ -434,13 +442,17 @@ export default function AppointmentsPage() {
   React.useEffect(() => {
     if (isCreateOpen) {
       const tomorrow = addDays(new Date(), 1);
-      setNewAppointment(prev => ({
-        ...prev,
+      setNewAppointment({
+        user: null,
+        services: [],
+        doctor: null,
+        calendar: calendars.length > 0 ? calendars[0] : null,
         date: format(tomorrow, 'yyyy-MM-dd'),
         time: '09:00',
-      }));
+        showSuggestions: true,
+      });
     }
-  }, [isCreateOpen]);
+  }, [isCreateOpen, calendars]);
 
   const checkAvailability = React.useCallback(async () => {
     const { date, time, services, user, doctor, calendar } = newAppointment;
@@ -1004,7 +1016,8 @@ export default function AppointmentsPage() {
                 </div>
             )}
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>{t('createDialog.cancel')}</Button>
             <Button>{t('createDialog.save')}</Button>
           </div>
         </DialogContent>
@@ -1012,7 +1025,3 @@ export default function AppointmentsPage() {
     </>
   );
 }
-
-    
-
-    
