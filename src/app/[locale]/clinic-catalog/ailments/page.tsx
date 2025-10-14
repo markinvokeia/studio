@@ -78,7 +78,7 @@ async function upsertAilment(ailmentData: AilmentFormValues) {
 
 async function deleteAilment(id: string) {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/padecimientos/delete', {
-        method: 'POST', // Assuming DELETE might not be supported, using POST as per instruction.
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
     });
