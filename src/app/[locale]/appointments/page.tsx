@@ -467,7 +467,7 @@ export default function AppointmentsPage() {
     attendeesEmails.forEach(email => params.append('attendeesEmails', email));
     
     if (calendar?.id) {
-        params.append('calendarID', calendar.id);
+        params.append('calendarIds', calendar.id);
     }
 
     try {
@@ -1012,5 +1012,7 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
 
     
