@@ -625,18 +625,20 @@ export default function AppointmentsPage() {
       });
 
       const responseData = await response.json();
+      const result = Array.isArray(responseData) ? responseData[0] : responseData;
 
-      if (response.ok && Array.isArray(responseData) && responseData[0]?.code === 200) {
+
+      if (response.ok && result.code === 200) {
         toast({
           title: editingAppointment ? "Appointment Updated" : "Appointment Created",
-          description: responseData[0].message || `The appointment has been successfully ${editingAppointment ? 'updated' : 'saved'}.`,
+          description: result.message || `The appointment has been successfully ${editingAppointment ? 'updated' : 'saved'}.`,
         });
 
         setCreateOpen(false);
         setEditingAppointment(null);
         loadAppointments();
       } else {
-        const errorMessage = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'An unknown error occurred.';
+        const errorMessage = result.message || 'An unknown error occurred.';
         throw new Error(errorMessage);
       }
 
@@ -660,17 +662,18 @@ export default function AppointmentsPage() {
         });
 
         const responseData = await response.json();
+        const result = Array.isArray(responseData) ? responseData[0] : responseData;
 
-        if (response.ok && Array.isArray(responseData) && responseData[0]?.code === 200) {
+        if (response.ok && result.code === 200) {
             toast({
                 title: "Appointment Cancelled",
-                description: responseData[0].message || "The appointment has been successfully cancelled.",
+                description: result.message || "The appointment has been successfully cancelled.",
             });
             setIsDeleteAlertOpen(false);
             setDeletingAppointment(null);
             loadAppointments();
         } else {
-            const errorMessage = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to delete appointment';
+            const errorMessage = result.message || 'Failed to delete appointment';
             throw new Error(errorMessage);
         }
     } catch (error) {
