@@ -85,12 +85,16 @@ async function getAppointments(calendarIds: string[], startDate: Date, endDate: 
             return [];
         }
 
+        const calendars = await getCalendars();
+
         return appointmentsData.map((apiAppt: any) => {
             const appointmentDateTimeStr = apiAppt.start_time || (apiAppt.start && apiAppt.start.dateTime);
             if (!appointmentDateTimeStr) return null;
 
             const appointmentDateTime = parseISO(appointmentDateTimeStr);
             if (isNaN(appointmentDateTime.getTime())) return null;
+            
+            const calendar = calendars.find(c => c.google_calendar_id === apiAppt.organizer?.email);
 
             return {
                 id: apiAppt.id ? String(apiAppt.id) : `appt_${Math.random().toString(36).substr(2, 9)}`,
@@ -103,7 +107,7 @@ async function getAppointments(calendarIds: string[], startDate: Date, endDate: 
                 status: apiAppt.status || 'confirmed',
                 patientPhone: apiAppt.patientPhone,
                 doctorName: apiAppt.doctorName,
-                calendar_id: apiAppt.organizer?.email,
+                calendar_id: calendar?.id || apiAppt.organizer?.email,
                 calendar_name: apiAppt.organizer?.displayName || apiAppt.organizer?.email || '',
             };
         }).filter((apt): apt is Appointment => apt !== null);
@@ -125,7 +129,7 @@ async function getCalendars(): Promise<CalendarType[]> {
         const data = await response.json();
         const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
         return calendarsData.map((apiCalendar: any) => ({
-            id: apiCalendar.google_calendar_id,
+            id: apiCalendar.id,
             name: apiCalendar.name,
             google_calendar_id: apiCalendar.google_calendar_id,
             is_active: apiCalendar.is_active,
@@ -203,7 +207,7 @@ export default function AppointmentsPage() {
         user: { id: '', name: appointment.patientName, email: appointment.patientEmail || '', phone_number: appointment.patientPhone || '', is_active: true, avatar: ''}, // Mock user with email
         services: [{ id: '', name: appointment.service_name, category: '', price: 0, duration_minutes: 30, is_active: true}], // Mock service
         doctor: { id: '', name: appointment.doctorName || '', email: appointment.doctorEmail || '', phone_number: '', is_active: true, avatar: '' }, // Mock doctor with email
-        calendar: calendars.find(c => c.google_calendar_id === appointment.calendar_id) || null,
+        calendar: calendars.find(c => c.id === appointment.calendar_id) || null,
         date: appointment.date,
         time: appointment.time,
         showSuggestions: false,
@@ -1206,5 +1210,7 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
 
     
