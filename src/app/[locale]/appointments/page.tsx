@@ -128,8 +128,8 @@ async function getCalendars(): Promise<CalendarType[]> {
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
-        return calendarsData.map((apiCalendar: any, index: number) => ({
-            id: apiCalendar.id ? String(apiCalendar.id) : `cal-${index}`,
+        return calendarsData.map((apiCalendar: any) => ({
+            id: apiCalendar.id ? String(apiCalendar.id) : `cal_${apiCalendar.google_calendar_id}`,
             name: apiCalendar.name,
             google_calendar_id: apiCalendar.google_calendar_id,
             is_active: apiCalendar.is_active,
@@ -765,7 +765,7 @@ export default function AppointmentsPage() {
                                 <Separator />
                                 <ScrollArea className="h-32">
                                     {calendars.map(calendar => (
-                                    <div key={calendar.id || calendar.google_calendar_id} className="flex items-center space-x-2 py-1">
+                                    <div key={calendar.id} className="flex items-center space-x-2 py-1">
                                         <Checkbox 
                                             id={calendar.id}
                                             checked={selectedCalendarIds.includes(calendar.id)}
@@ -1226,6 +1226,7 @@ export default function AppointmentsPage() {
     
 
     
+
 
 
 
