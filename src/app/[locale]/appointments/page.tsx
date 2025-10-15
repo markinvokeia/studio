@@ -499,6 +499,11 @@ export default function AppointmentsPage() {
       return;
     }
 
+    if (editingAppointment && editingAppointment.date === date && editingAppointment.time === time) {
+        setAvailabilityStatus('available');
+        return;
+    }
+
     setAvailabilityStatus('checking');
 
     const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
@@ -558,7 +563,7 @@ export default function AppointmentsPage() {
         console.error("Failed to check availability:", error);
         setAvailabilityStatus('idle');
     }
-  }, [newAppointment]);
+  }, [newAppointment, editingAppointment]);
 
   React.useEffect(() => {
       const handler = setTimeout(() => {
