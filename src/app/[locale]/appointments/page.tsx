@@ -203,7 +203,7 @@ export default function AppointmentsPage() {
 
   const handleEdit = (appointment: Appointment) => {
     setEditingAppointment(appointment);
-    const foundCalendar = calendars.find(c => c.id === appointment.calendar_id) || calendars.find(c => c.name === appointment.calendar_name);
+    const foundCalendar = calendars.find(c => c.id === appointment.calendar_id || c.google_calendar_id === appointment.calendar_id || c.name === appointment.calendar_name);
     
     setNewAppointment({
         user: { id: '', name: appointment.patientName, email: appointment.patientEmail || '', phone_number: appointment.patientPhone || '', is_active: true, avatar: ''}, // Mock user with email
@@ -1226,5 +1226,6 @@ export default function AppointmentsPage() {
     
 
     
+
 
 
