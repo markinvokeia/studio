@@ -128,8 +128,8 @@ async function getCalendars(): Promise<CalendarType[]> {
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
-        return calendarsData.map((apiCalendar: any) => ({
-            id: apiCalendar.id,
+        return calendarsData.map((apiCalendar: any, index: number) => ({
+            id: apiCalendar.id || `cal-${index}`,
             name: apiCalendar.name,
             google_calendar_id: apiCalendar.google_calendar_id,
             is_active: apiCalendar.is_active,
@@ -269,7 +269,7 @@ export default function AppointmentsPage() {
     setIsCalendarsLoading(true);
     const fetchedCalendars = await getCalendars();
     setCalendars(fetchedCalendars);
-    setSelectedCalendarIds(fetchedCalendars.map(c => c.id));
+    setSelectedCalendarIds(fetchedCalendars.map(c => c.id).filter(id => id));
     if (fetchedCalendars.length > 0) {
       setNewAppointment(prev => ({ ...prev, calendar: fetchedCalendars[0] }));
     }
@@ -337,7 +337,7 @@ export default function AppointmentsPage() {
 
   const handleSelectAllCalendars = (checked: boolean | 'indeterminate') => {
     if (checked) {
-        setSelectedCalendarIds(calendars.map(c => c.id));
+        setSelectedCalendarIds(calendars.map(c => c.id).filter(id => id));
     } else {
         setSelectedCalendarIds([]);
     }
@@ -750,7 +750,7 @@ export default function AppointmentsPage() {
                                 <div className="flex items-center space-x-2">
                                     <Checkbox 
                                         id="select-all"
-                                        checked={selectedCalendarIds.length === calendars.length}
+                                        checked={selectedCalendarIds.length === calendars.filter(c => c.id).length}
                                         onCheckedChange={handleSelectAllCalendars}
                                     />
                                     <Label htmlFor="select-all" className="font-semibold">{t('selectAll')}</Label>
@@ -758,7 +758,7 @@ export default function AppointmentsPage() {
                                 <Separator />
                                 <ScrollArea className="h-32">
                                     {calendars.map(calendar => (
-                                    <div key={calendar.id} className="flex items-center space-x-2 py-1">
+                                    <div key={calendar.id || calendar.name} className="flex items-center space-x-2 py-1">
                                         <Checkbox 
                                             id={calendar.id}
                                             checked={selectedCalendarIds.includes(calendar.id)}
