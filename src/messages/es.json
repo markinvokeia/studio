@@ -146,8 +146,8 @@
     "time": "Hora",
     "status": "Estado",
     "actions": "Acciones",
-    "edit": "Editar Cita",
-    "cancel": "Cancelar Cita"
+    "edit": "Editar",
+    "cancel": "Cancelar"
   },
   "AppointmentStatus": {
     "completed": "Completada",

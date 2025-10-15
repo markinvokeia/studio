@@ -15,6 +15,16 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
@@ -129,7 +139,6 @@ export default function AppointmentsPage() {
   const t = useTranslations('AppointmentsPage');
   const tColumns = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
-  const appointmentColumns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns(tColumns, tStatus), [tColumns, tStatus]);
   const { toast } = useToast();
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
@@ -148,6 +157,10 @@ export default function AppointmentsPage() {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
+
+  const [editingAppointment, setEditingAppointment] = React.useState<Appointment | null>(null);
+  const [deletingAppointment, setDeletingAppointment] = React.useState<Appointment | null>(null);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false);
   
   // User Search State
   const [isUserSearchOpen, setUserSearchOpen] = React.useState(false);
@@ -181,6 +194,29 @@ export default function AppointmentsPage() {
   const [isCalendarSearchOpen, setCalendarSearchOpen] = React.useState(false);
   const [availabilityStatus, setAvailabilityStatus] = React.useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
   const [suggestedTimes, setSuggestedTimes] = React.useState<any[]>([]);
+
+  const handleEdit = (appointment: Appointment) => {
+    // This is a simplified version. A complete implementation would
+    // fetch the full user, service, doctor, and calendar objects if needed.
+    setEditingAppointment(appointment);
+    setNewAppointment({
+        user: { id: '', name: appointment.patientName, email: '', phone_number: appointment.patientPhone || '', is_active: true, avatar: ''}, // Mock user
+        services: [{ id: '', name: appointment.service_name, category: '', price: 0, duration_minutes: 30, is_active: true}], // Mock service
+        doctor: { id: '', name: appointment.doctorName || '', email: '', phone_number: '', is_active: true, avatar: '' }, // Mock doctor
+        calendar: calendars.find(c => c.id === appointment.calendar_id) || null,
+        date: appointment.date,
+        time: appointment.time,
+        showSuggestions: false,
+    });
+    setCreateOpen(true);
+  };
+
+  const handleCancel = (appointment: Appointment) => {
+      setDeletingAppointment(appointment);
+      setIsDeleteAlertOpen(true);
+  };
+  
+  const appointmentColumns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns({ t: tColumns, tStatus, onEdit: handleEdit, onCancel: handleCancel }), [tColumns, tStatus]);
 
   const suggestionColumns: ColumnDef<any>[] = [
     {
@@ -443,7 +479,7 @@ export default function AppointmentsPage() {
   }, [doctorSearchQuery, isDoctorSearchOpen]);
 
   React.useEffect(() => {
-    if (isCreateOpen) {
+    if (isCreateOpen && !editingAppointment) {
       const tomorrow = addDays(new Date(), 1);
       setNewAppointment({
         user: null,
@@ -455,7 +491,7 @@ export default function AppointmentsPage() {
         showSuggestions: true,
       });
     }
-  }, [isCreateOpen, calendars]);
+  }, [isCreateOpen, calendars, editingAppointment]);
 
   const checkAvailability = React.useCallback(async () => {
     const { date, time, services, user, doctor, calendar } = newAppointment;
@@ -546,7 +582,7 @@ export default function AppointmentsPage() {
     const totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
     const endDateTime = addMinutes(startDateTime, totalDuration);
 
-    const payload = {
+    const payload: any = {
       startingDateAndTime: startDateTime.toISOString(),
       endingDateAndTime: endDateTime.toISOString(),
       calendarId: calendar.id,
@@ -557,6 +593,10 @@ export default function AppointmentsPage() {
       userName: user.name,
       serviceName: services.map(s => s.name).join(', '),
     };
+
+    if (editingAppointment) {
+      payload.id = editingAppointment.id;
+    }
 
     try {
       const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments/upsert', {
@@ -569,19 +609,20 @@ export default function AppointmentsPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create appointment");
+        throw new Error(errorData.message || "Failed to save appointment");
       }
 
       toast({
-        title: "Appointment Created",
-        description: "The new appointment has been successfully saved.",
+        title: editingAppointment ? "Appointment Updated" : "Appointment Created",
+        description: `The appointment has been successfully ${editingAppointment ? 'updated' : 'saved'}.`,
       });
 
       setCreateOpen(false);
+      setEditingAppointment(null);
       loadAppointments();
 
     } catch (error) {
-      console.error("Error creating appointment:", error);
+      console.error("Error saving appointment:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -589,6 +630,35 @@ export default function AppointmentsPage() {
       });
     }
   };
+  
+  const confirmDeleteAppointment = async () => {
+        if (!deletingAppointment) return;
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments/delete', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ eventId: deletingAppointment.id, calendarId: deletingAppointment.calendar_id }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete appointment');
+            }
+
+            toast({
+                title: "Appointment Cancelled",
+                description: "The appointment has been successfully cancelled.",
+            });
+            setIsDeleteAlertOpen(false);
+            setDeletingAppointment(null);
+            loadAppointments();
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: error instanceof Error ? error.message : "Could not cancel the appointment.",
+            });
+        }
+    };
 
 
   return (
@@ -716,10 +786,10 @@ export default function AppointmentsPage() {
                                             <div className="flex items-center gap-2">
                                                 <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">{apt.time}</p>
                                                 <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(apt)}>
                                                         <Edit className="h-4 w-4" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleCancel(apt)}>
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>
@@ -795,11 +865,11 @@ export default function AppointmentsPage() {
             </CardContent>
         </Tabs>
       </Card>
-      <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
+      <Dialog open={isCreateOpen} onOpenChange={(isOpen) => { setCreateOpen(isOpen); if (!isOpen) setEditingAppointment(null); }}>
         <DialogContent className={cn("sm:max-w-md", newAppointment.showSuggestions && "sm:max-w-4xl")}>
           <DialogHeader>
-            <DialogTitle>{t('createDialog.title')}</DialogTitle>
-            <DialogDescription>{t('createDialog.description')}</DialogDescription>
+            <DialogTitle>{editingAppointment ? "Edit Appointment" : t('createDialog.title')}</DialogTitle>
+            <DialogDescription>{editingAppointment ? "Update the appointment details below." : t('createDialog.description')}</DialogDescription>
           </DialogHeader>
           <div className={cn("grid gap-8 py-4", newAppointment.showSuggestions && "grid-cols-2")}>
             <div className="grid gap-4">
@@ -1089,13 +1159,25 @@ export default function AppointmentsPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>{t('createDialog.cancel')}</Button>
+            <Button variant="outline" onClick={() => {setCreateOpen(false); setEditingAppointment(null);}}>{t('createDialog.cancel')}</Button>
             <Button onClick={handleSaveAppointment}>{t('createDialog.save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure you want to cancel?</AlertDialogTitle>
+              <AlertDialogDescription>
+                  This will permanently cancel the appointment for "{deletingAppointment?.service_name}" on {deletingAppointment?.date}. This action cannot be undone.
+              </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setDeletingAppointment(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteAppointment} className="bg-destructive hover:bg-destructive/90">Confirm Cancellation</AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
-
-    

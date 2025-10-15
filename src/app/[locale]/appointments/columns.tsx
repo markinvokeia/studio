@@ -17,7 +17,14 @@ import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 
-export const getAppointmentColumns = (t: (key: string) => string, tStatus: (key: string) => string): ColumnDef<Appointment>[] => [
+interface AppointmentColumnsProps {
+  t: (key: string) => string;
+  tStatus: (key: string) => string;
+  onEdit: (appointment: Appointment) => void;
+  onCancel: (appointment: Appointment) => void;
+}
+
+export const getAppointmentColumns = ({ t, tStatus, onEdit, onCancel }: AppointmentColumnsProps): ColumnDef<Appointment>[] => [
     { accessorKey: 'service_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('service')} /> },
     { accessorKey: 'patientName', header: ({column}) => <DataTableColumnHeader column={column} title={t('patient')} /> },
     { accessorKey: 'doctorName', header: ({column}) => <DataTableColumnHeader column={column} title={t('doctor')} /> },
@@ -59,8 +66,8 @@ export const getAppointmentColumns = (t: (key: string) => string, tStatus: (key:
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-                <DropdownMenuItem>{t('edit')}</DropdownMenuItem>
-                <DropdownMenuItem>{t('cancel')}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onEdit(appointment)}>{t('edit')}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onCancel(appointment)} className="text-destructive">{t('cancel')}</DropdownMenuItem>
             </DropdownMenuContent>
             </DropdownMenu>
         );
@@ -68,11 +75,9 @@ export const getAppointmentColumns = (t: (key: string) => string, tStatus: (key:
     },
 ];
 
-export function AppointmentColumnsWrapper() {
+export function AppointmentColumnsWrapper({ onEdit, onCancel }: { onEdit: (appointment: Appointment) => void; onCancel: (appointment: Appointment) => void; }) {
     const t = useTranslations('AppointmentsColumns');
     const tStatus = useTranslations('AppointmentStatus');
-    const columns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns(t, tStatus), [t, tStatus]);
+    const columns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns({t, tStatus, onEdit, onCancel}), [t, tStatus, onEdit, onCancel]);
     return columns;
 }
-
-    

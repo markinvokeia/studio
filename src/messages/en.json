@@ -146,8 +146,8 @@
     "time": "Time",
     "status": "Status",
     "actions": "Actions",
-    "edit": "Edit Appointment",
-    "cancel": "Cancel Appointment"
+    "edit": "Edit",
+    "cancel": "Cancel"
   },
   "AppointmentStatus": {
     "completed": "Completed",
