@@ -71,11 +71,12 @@ async function upsertDentalCondition(conditionData: ConditionFormValues) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(conditionData),
     });
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to save condition' }));
-        throw new Error(errorData.message);
+    const responseData = await response.json();
+    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to save condition';
+        throw new Error(message);
     }
-    return response.json();
+    return responseData;
 }
 
 async function deleteDentalCondition(id: string) {
@@ -84,11 +85,12 @@ async function deleteDentalCondition(id: string) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
     });
-     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to delete condition' }));
-        throw new Error(errorData.message);
+     const responseData = await response.json();
+     if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to delete condition';
+        throw new Error(message);
     }
-    return response.json();
+    return responseData;
 }
 
 export default function DentalConditionsPage() {
