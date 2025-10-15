@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { servicesColumns } from './columns';
+import { ServicesColumnsWrapper } from './columns';
 import { Service } from '@/lib/types';
 import {
   Dialog,
@@ -15,14 +15,19 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 const serviceFormSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(1, 'Name is required'),
   category: z.string().min(1, 'Category is required'),
   price: z.coerce.number().positive('Price must be a positive number'),
@@ -59,6 +64,7 @@ async function getServices(): Promise<Service[]> {
       duration_minutes: apiService.duration_minutes || 0,
       description: apiService.description,
       indications: apiService.indications,
+      is_active: apiService.is_active,
     }));
   } catch (error) {
     console.error("Failed to fetch services:", error);
@@ -66,40 +72,45 @@ async function getServices(): Promise<Service[]> {
   }
 }
 
-async function createService(serviceData: ServiceFormValues): Promise<any> {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services', {
+async function upsertService(serviceData: ServiceFormValues) {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogoservicios/upsert', {
         method: 'POST',
-        mode: 'cors',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(serviceData),
     });
-
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to create service' }));
-        throw new Error(errorData.message || `Error HTTP: ${response.status}`);
+        const errorData = await response.json().catch(() => ({ message: 'Failed to save service' }));
+        throw new Error(errorData.message);
     }
+    return response.json();
+}
 
+async function deleteService(id: string) {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogoservicios/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+    });
+     if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to delete service' }));
+        throw new Error(errorData.message);
+    }
     return response.json();
 }
 
 export default function ServicesPage() {
   const [services, setServices] = React.useState<Service[]>([]);
-  const [isCreateOpen, setCreateOpen] = React.useState(false);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [editingService, setEditingService] = React.useState<Service | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [deletingService, setDeletingService] = React.useState<Service | null>(null);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+
   const { toast } = useToast();
 
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema),
-    defaultValues: {
-      name: '',
-      category: '',
-      price: 0,
-      duration_minutes: 60,
-      description: '',
-      indications: '',
-    },
   });
 
   const loadServices = React.useCallback(async () => {
@@ -113,24 +124,76 @@ export default function ServicesPage() {
     loadServices();
   }, [loadServices]);
 
-  const onSubmit = async (values: ServiceFormValues) => {
+  const handleCreate = () => {
+    setEditingService(null);
+    form.reset({
+      name: '',
+      category: '',
+      price: 0,
+      duration_minutes: 60,
+      description: '',
+      indications: '',
+    });
+    setSubmissionError(null);
+    setIsDialogOpen(true);
+  };
+  
+  const handleEdit = (service: Service) => {
+    setEditingService(service);
+    form.reset({
+        id: service.id,
+        name: service.name,
+        category: service.category,
+        price: service.price,
+        duration_minutes: service.duration_minutes,
+        description: service.description,
+        indications: service.indications,
+    });
+    setSubmissionError(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = (service: Service) => {
+    setDeletingService(service);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingService) return;
     try {
-        await createService(values);
+        await deleteService(deletingService.id);
         toast({
-            title: "Service Created",
-            description: `${values.name} has been successfully created.`,
+            title: "Service Deleted",
+            description: `Service "${deletingService.name}" has been deleted.`,
         });
-        setCreateOpen(false);
-        form.reset();
+        setIsDeleteDialogOpen(false);
+        setDeletingService(null);
         loadServices();
     } catch (error) {
         toast({
-            variant: "destructive",
-            title: "Error",
-            description: error instanceof Error ? error.message : "An unexpected error occurred.",
+            variant: 'destructive',
+            title: 'Error',
+            description: error instanceof Error ? error.message : "Could not delete the service.",
         });
     }
   };
+
+  const onSubmit = async (values: ServiceFormValues) => {
+    setSubmissionError(null);
+    try {
+        await upsertService(values);
+        toast({
+            title: editingService ? "Service Updated" : "Service Created",
+            description: `Service "${values.name}" has been saved successfully.`,
+        });
+        setIsDialogOpen(false);
+        loadServices();
+    } catch (error) {
+        setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+    }
+  };
+  
+  const servicesColumns = ServicesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
 
 
   return (
@@ -146,33 +209,40 @@ export default function ServicesPage() {
           data={services} 
           filterColumnId="name" 
           filterPlaceholder="Filter services by name..." 
-          onCreate={() => setCreateOpen(true)}
+          onCreate={handleCreate}
           onRefresh={loadServices}
           isRefreshing={isRefreshing}
         />
       </CardContent>
     </Card>
 
-    <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create New Service</DialogTitle>
+          <DialogTitle>{editingService ? 'Edit Service' : 'Create New Service'}</DialogTitle>
           <DialogDescription>
-            Fill in the details below to add a new service.
+            {editingService ? 'Update the details for this service.' : 'Fill in the details below to add a new service.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                {submissionError && (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>{submissionError}</AlertDescription>
+                    </Alert>
+                )}
                  <FormField
                     control={form.control}
                     name="name"
                     render={({ field }) => (
-                        <FormItem className="grid grid-cols-4 items-center gap-4">
-                        <FormLabel className="text-right">Name</FormLabel>
+                        <FormItem>
+                        <FormLabel>Name</FormLabel>
                         <FormControl>
-                            <Input placeholder="e.g., Initial Consultation" className="col-span-3" {...field} />
+                            <Input placeholder="e.g., Initial Consultation" {...field} />
                         </FormControl>
-                        <FormMessage className="col-span-4" />
+                        <FormMessage />
                         </FormItem>
                     )}
                 />
@@ -180,12 +250,12 @@ export default function ServicesPage() {
                     control={form.control}
                     name="category"
                     render={({ field }) => (
-                        <FormItem className="grid grid-cols-4 items-center gap-4">
-                        <FormLabel className="text-right">Category</FormLabel>
+                        <FormItem>
+                        <FormLabel>Category</FormLabel>
                         <FormControl>
-                            <Input placeholder="e.g., Consulting" className="col-span-3" {...field} />
+                            <Input placeholder="e.g., Consulting" {...field} />
                         </FormControl>
-                        <FormMessage className="col-span-4" />
+                        <FormMessage />
                         </FormItem>
                     )}
                 />
@@ -193,12 +263,12 @@ export default function ServicesPage() {
                     control={form.control}
                     name="price"
                     render={({ field }) => (
-                        <FormItem className="grid grid-cols-4 items-center gap-4">
-                        <FormLabel className="text-right">Price</FormLabel>
+                        <FormItem>
+                        <FormLabel>Price</FormLabel>
                         <FormControl>
-                            <Input type="number" placeholder="0.00" className="col-span-3" {...field} />
+                            <Input type="number" placeholder="0.00" {...field} />
                         </FormControl>
-                        <FormMessage className="col-span-4" />
+                        <FormMessage />
                         </FormItem>
                     )}
                 />
@@ -206,12 +276,12 @@ export default function ServicesPage() {
                     control={form.control}
                     name="duration_minutes"
                     render={({ field }) => (
-                        <FormItem className="grid grid-cols-4 items-center gap-4">
-                        <FormLabel className="text-right">Duration (min)</FormLabel>
+                        <FormItem>
+                        <FormLabel>Duration (min)</FormLabel>
                         <FormControl>
-                            <Input type="number" placeholder="60" className="col-span-3" {...field} />
+                            <Input type="number" placeholder="60" {...field} />
                         </FormControl>
-                        <FormMessage className="col-span-4" />
+                        <FormMessage />
                         </FormItem>
                     )}
                 />
@@ -219,12 +289,12 @@ export default function ServicesPage() {
                     control={form.control}
                     name="description"
                     render={({ field }) => (
-                        <FormItem className="grid grid-cols-4 items-start gap-4">
-                        <FormLabel className="text-right pt-2">Description</FormLabel>
+                        <FormItem>
+                        <FormLabel>Description</FormLabel>
                         <FormControl>
-                            <Textarea placeholder="Describe the service" className="col-span-3" {...field} />
+                            <Textarea placeholder="Describe the service" {...field} />
                         </FormControl>
-                        <FormMessage className="col-span-4" />
+                        <FormMessage />
                         </FormItem>
                     )}
                 />
@@ -232,23 +302,38 @@ export default function ServicesPage() {
                     control={form.control}
                     name="indications"
                     render={({ field }) => (
-                        <FormItem className="grid grid-cols-4 items-start gap-4">
-                        <FormLabel className="text-right pt-2">Indications</FormLabel>
+                        <FormItem>
+                        <FormLabel>Indications</FormLabel>
                         <FormControl>
-                            <Textarea placeholder="Enter indications for this service" className="col-span-3" {...field} />
+                            <Textarea placeholder="Enter indications for this service" {...field} />
                         </FormControl>
-                        <FormMessage className="col-span-4" />
+                        <FormMessage />
                         </FormItem>
                     )}
                 />
-                <div className="flex justify-end space-x-2">
-                    <Button variant="outline" type="button" onClick={() => setCreateOpen(false)}>Cancel</Button>
-                    <Button type="submit">Create Service</Button>
-                </div>
+                <DialogFooter>
+                    <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                    <Button type="submit">{editingService ? 'Save Changes' : 'Create Service'}</Button>
+                </DialogFooter>
             </form>
         </Form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This will permanently delete the service "{deletingService?.name}". This action cannot be undone.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
