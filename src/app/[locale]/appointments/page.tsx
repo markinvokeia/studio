@@ -107,8 +107,8 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
                 status: apiAppt.status || 'confirmed',
                 patientPhone: apiAppt.patientPhone,
                 doctorName: apiAppt.doctorName,
-                calendar_id: calendar?.id || apiAppt.organizer?.email,
-                calendar_name: apiAppt.organizer?.displayName || calendar?.name || apiAppt.organizer?.email || '',
+                calendar_id: calendar?.id,
+                calendar_name: apiAppt.organizer?.displayName,
             };
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
@@ -203,7 +203,7 @@ export default function AppointmentsPage() {
 
   const handleEdit = (appointment: Appointment) => {
     setEditingAppointment(appointment);
-    const foundCalendar = calendars.find(c => c.id === appointment.calendar_id || c.google_calendar_id === appointment.calendar_id || c.name === appointment.calendar_name);
+    const foundCalendar = calendars.find(c => c.id === appointment.calendar_id || c.name === appointment.calendar_name);
     
     setNewAppointment({
         user: { id: '', name: appointment.patientName, email: appointment.patientEmail || '', phone_number: appointment.patientPhone || '', is_active: true, avatar: ''}, // Mock user with email
@@ -765,7 +765,7 @@ export default function AppointmentsPage() {
                                 <Separator />
                                 <ScrollArea className="h-32">
                                     {calendars.map(calendar => (
-                                    <div key={calendar.id} className="flex items-center space-x-2 py-1">
+                                    <div key={calendar.id || calendar.google_calendar_id} className="flex items-center space-x-2 py-1">
                                         <Checkbox 
                                             id={calendar.id}
                                             checked={selectedCalendarIds.includes(calendar.id)}
@@ -1226,6 +1226,7 @@ export default function AppointmentsPage() {
     
 
     
+
 
 
 
