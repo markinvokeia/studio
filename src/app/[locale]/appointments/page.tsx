@@ -203,7 +203,7 @@ export default function AppointmentsPage() {
         user: { id: '', name: appointment.patientName, email: appointment.patientEmail || '', phone_number: appointment.patientPhone || '', is_active: true, avatar: ''}, // Mock user with email
         services: [{ id: '', name: appointment.service_name, category: '', price: 0, duration_minutes: 30, is_active: true}], // Mock service
         doctor: { id: '', name: appointment.doctorName || '', email: appointment.doctorEmail || '', phone_number: '', is_active: true, avatar: '' }, // Mock doctor with email
-        calendar: calendars.find(c => c.id === appointment.calendar_id) || null,
+        calendar: calendars.find(c => c.google_calendar_id === appointment.calendar_id) || null,
         date: appointment.date,
         time: appointment.time,
         showSuggestions: false,
@@ -1206,3 +1206,5 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
