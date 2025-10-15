@@ -97,7 +97,7 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
             const calendar = calendars.find(c => c.google_calendar_id === apiAppt.organizer?.email);
 
             return {
-                id: apiAppt.id ? String(apiAppt.id) : `appt_${Math.random().toString(36).substr(2, 9)}`,
+                id: apiAppt.id,
                 patientName: apiAppt.patientName || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a:any) => a.email).join(', ') : 'N/A'),
                 patientEmail: apiAppt.patientEmail,
                 doctorEmail: apiAppt.doctorEmail,
@@ -202,8 +202,17 @@ export default function AppointmentsPage() {
   const [suggestedTimes, setSuggestedTimes] = React.useState<any[]>([]);
 
   const handleEdit = (appointment: Appointment) => {
+    console.log('Editing appointment:', appointment);
+    console.log('Available calendars:', calendars);
+
     setEditingAppointment(appointment);
-    const foundCalendar = calendars.find(c => c.id === appointment.calendar_id || c.name === appointment.calendar_name);
+    let foundCalendar = calendars.find(c => c.id === appointment.calendar_id);
+    
+    if (!foundCalendar) {
+        foundCalendar = calendars.find(c => c.name === appointment.calendar_name);
+    }
+
+    console.log('Found calendar:', foundCalendar);
     
     setNewAppointment({
         user: { id: '', name: appointment.patientName, email: appointment.patientEmail || '', phone_number: appointment.patientPhone || '', is_active: true, avatar: ''}, // Mock user with email
@@ -1226,6 +1235,7 @@ export default function AppointmentsPage() {
     
 
     
+
 
 
 
