@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { RefreshCw, UploadCloud } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 async function getClinic(): Promise<Clinic | null> {
     try {
@@ -42,7 +43,7 @@ async function getClinic(): Promise<Clinic | null> {
             location: apiClinic.address || 'No Location',
             contact_email: apiClinic.email || 'no-email@example.com',
             phone_number: apiClinic.phone || '000-000-0000',
-            logo: apiClinic.logo_base64,
+            logo_base64: apiClinic.logo_base64,
         };
     } catch (error) {
         console.error("Failed to fetch clinics:", error);
@@ -52,6 +53,7 @@ async function getClinic(): Promise<Clinic | null> {
 
 
 export default function ClinicsPage() {
+    const t = useTranslations('Navigation');
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
     const [isSaving, setIsSaving] = React.useState(false);
@@ -63,8 +65,8 @@ export default function ClinicsPage() {
         setIsLoading(true);
         const fetchedClinic = await getClinic();
         setClinic(fetchedClinic);
-        if (fetchedClinic?.logo) {
-            setLogoPreview(fetchedClinic.logo);
+        if (fetchedClinic?.logo_base64) {
+            setLogoPreview(fetchedClinic.logo_base64);
         }
         setIsLoading(false);
     }, []);
@@ -188,7 +190,7 @@ export default function ClinicsPage() {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>Clinic Details</CardTitle>
+                    <CardTitle>{t('ClinicDetails')}</CardTitle>
                     <CardDescription>Manage clinic locations and contact information.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -202,7 +204,7 @@ export default function ClinicsPage() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Clinic Details</CardTitle>
+                <CardTitle>{t('ClinicDetails')}</CardTitle>
                 <CardDescription>Manage clinic locations and contact information.</CardDescription>
             </CardHeader>
             <CardContent>

@@ -27,6 +27,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { useTranslations } from 'next-intl';
 
 const holidayFormSchema = z.object({
   id: z.string().optional(),
@@ -100,6 +101,7 @@ async function deleteHoliday(id: string) {
 }
 
 export default function HolidaysPage() {
+    const t = useTranslations('Navigation');
     const { toast } = useToast();
     const [holidays, setHolidays] = React.useState<ClinicException[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -195,7 +197,7 @@ export default function HolidaysPage() {
         <>
         <Card>
             <CardHeader>
-                <CardTitle>Holidays & Exceptions</CardTitle>
+                <CardTitle>{t('Holidays')}</CardTitle>
                 <CardDescription>Manage exceptions to the regular clinic schedule.</CardDescription>
             </CardHeader>
             <CardContent>

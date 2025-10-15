@@ -31,6 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 const scheduleFormSchema = z.object({
     id: z.string().optional(),
@@ -95,6 +96,7 @@ async function deleteSchedule(id: string) {
 }
 
 export default function SchedulesPage() {
+    const t = useTranslations('Navigation');
     const { toast } = useToast();
     const [schedules, setSchedules] = React.useState<ClinicSchedule[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -188,7 +190,7 @@ export default function SchedulesPage() {
         <>
         <Card>
             <CardHeader>
-                <CardTitle>Clinic Schedules</CardTitle>
+                <CardTitle>{t('Schedules')}</CardTitle>
                 <CardDescription>Manage regular weekly schedules for the clinic.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -297,5 +299,3 @@ export default function SchedulesPage() {
         </>
     );
 }
-
-    

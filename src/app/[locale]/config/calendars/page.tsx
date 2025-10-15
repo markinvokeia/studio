@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 const calendarFormSchema = z.object({
     id: z.string().optional(),
@@ -92,6 +93,7 @@ async function deleteCalendar(id: string, googleCalendarId: string) {
 }
 
 export default function CalendarsPage() {
+    const t = useTranslations('Navigation');
     const { toast } = useToast();
     const [calendars, setCalendars] = React.useState<Calendar[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -179,7 +181,7 @@ export default function CalendarsPage() {
         <>
         <Card>
             <CardHeader>
-                <CardTitle>Calendars</CardTitle>
+                <CardTitle>{t('Calendars')}</CardTitle>
                 <CardDescription>Manage your calendars.</CardDescription>
             </CardHeader>
             <CardContent>
