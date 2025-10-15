@@ -46,7 +46,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 
 
-async function getAppointments(calendarIds: string[], startDate: Date, endDate: Date): Promise<Appointment[]> {
+async function getAppointments(calendarGoogleIds: string[], startDate: Date, endDate: Date): Promise<Appointment[]> {
     const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
     
     const params = new URLSearchParams({
@@ -54,8 +54,8 @@ async function getAppointments(calendarIds: string[], startDate: Date, endDate: 
         endingDateAndTime: formatDateForAPI(endDate),
     });
     
-    if (calendarIds.length > 0) {
-        params.append('calendar_ids', calendarIds.join(','));
+    if (calendarGoogleIds.length > 0) {
+        params.append('calendar_ids', calendarGoogleIds.join(','));
     }
 
     try {
@@ -260,10 +260,14 @@ export default function AppointmentsPage() {
         return;
     };
     setIsRefreshing(true);
-    const fetchedAppointments = await getAppointments(selectedCalendarIds, fetchRange.from, fetchRange.to);
+    const googleCalendarIds = selectedCalendarIds.map(id => {
+      const cal = calendars.find(c => c.id === id);
+      return cal?.google_calendar_id;
+    }).filter((id): id is string => !!id);
+    const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.from, fetchRange.to);
     setAppointments(fetchedAppointments);
     setIsRefreshing(false);
-  }, [selectedCalendarIds, fetchRange]);
+  }, [selectedCalendarIds, fetchRange, calendars]);
   
   const loadCalendars = React.useCallback(async () => {
     setIsCalendarsLoading(true);
@@ -764,7 +768,7 @@ export default function AppointmentsPage() {
                                             checked={selectedCalendarIds.includes(calendar.id)}
                                             onCheckedChange={(checked) => handleCalendarSelection(calendar.id, !!checked)}
                                         />
-                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: calendarColors[calendar.id] }} />
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: calendar.id ? calendarColors[calendar.id] : '#ccc' }} />
                                         <Label htmlFor={calendar.id}>{calendar.name}</Label>
                                     </div>
                                     ))}
@@ -808,7 +812,7 @@ export default function AppointmentsPage() {
                                 {selectedDayAppointments.length > 0 ? (
                                 selectedDayAppointments.map((apt) => (
                                     <div key={apt.id} className="group flex items-start space-x-4 rounded-lg border bg-card text-card-foreground shadow-sm p-4 relative overflow-hidden">
-                                        <div className="absolute left-0 top-0 h-full w-2" style={{ backgroundColor: calendarColors[apt.calendar_id] }} />
+                                        <div className="absolute left-0 top-0 h-full w-2" style={{ backgroundColor: apt.calendar_id ? calendarColors[apt.calendar_id] : '#ccc' }} />
                                         <div className="pl-4 w-full">
                                             <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-2">
