@@ -235,6 +235,7 @@ export default function AppointmentsPage() {
   ];
 
   const generateColor = (str: string) => {
+    if (!str) return '#ccc';
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
         hash = str.charCodeAt(i) + ((hash << 5) - hash);
@@ -246,7 +247,9 @@ export default function AppointmentsPage() {
   React.useEffect(() => {
     const colors: {[key: string]: string} = {};
     calendars.forEach(cal => {
-        colors[cal.id] = generateColor(cal.id);
+        if(cal.id) {
+          colors[cal.id] = generateColor(cal.id);
+        }
     });
     setCalendarColors(colors);
   }, [calendars]);
@@ -1210,6 +1213,8 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
 
     
 
