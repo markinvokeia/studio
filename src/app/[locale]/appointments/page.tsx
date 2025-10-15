@@ -108,7 +108,7 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
                 patientPhone: apiAppt.patientPhone,
                 doctorName: apiAppt.doctorName,
                 calendar_id: calendar?.id,
-                calendar_name: apiAppt.organizer?.displayName,
+                calendar_name: apiAppt.organizer?.displayName || apiAppt.organizer?.email,
             };
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
@@ -202,29 +202,36 @@ export default function AppointmentsPage() {
   const [suggestedTimes, setSuggestedTimes] = React.useState<any[]>([]);
 
   const handleEdit = (appointment: Appointment) => {
-    console.log('Editing appointment:', appointment);
-    console.log('Available calendars:', calendars);
-
     setEditingAppointment(appointment);
-    let foundCalendar = calendars.find(c => c.id === appointment.calendar_id);
-    
-    if (!foundCalendar) {
-        foundCalendar = calendars.find(c => c.name === appointment.calendar_name);
-    }
 
-    console.log('Found calendar:', foundCalendar);
-    
-    setNewAppointment({
-        user: { id: '', name: appointment.patientName, email: appointment.patientEmail || '', phone_number: appointment.patientPhone || '', is_active: true, avatar: ''}, // Mock user with email
-        services: [{ id: '', name: appointment.service_name, category: '', price: 0, duration_minutes: 30, is_active: true}], // Mock service
-        doctor: { id: '', name: appointment.doctorName || '', email: appointment.doctorEmail || '', phone_number: '', is_active: true, avatar: '' }, // Mock doctor with email
-        calendar: foundCalendar || null,
-        date: appointment.date,
-        time: appointment.time,
-        showSuggestions: false,
-    });
-    setCreateOpen(true);
+    // This logic now runs inside the useEffect below, once calendars are loaded.
   };
+
+  React.useEffect(() => {
+    if (editingAppointment && calendars.length > 0) {
+        console.log("Editing appointment:", editingAppointment);
+        console.log("Available calendars:", calendars);
+
+        let foundCalendar = calendars.find(c => c.id === editingAppointment.calendar_id);
+        
+        if (!foundCalendar) {
+            foundCalendar = calendars.find(c => c.name === editingAppointment.calendar_name);
+        }
+
+        console.log("Found calendar:", foundCalendar);
+
+        setNewAppointment({
+            user: { id: '', name: editingAppointment.patientName, email: editingAppointment.patientEmail || '', phone_number: editingAppointment.patientPhone || '', is_active: true, avatar: ''}, // Mock user with email
+            services: [{ id: '', name: editingAppointment.service_name, category: '', price: 0, duration_minutes: 30, is_active: true}], // Mock service
+            doctor: { id: '', name: editingAppointment.doctorName || '', email: editingAppointment.doctorEmail || '', phone_number: '', is_active: true, avatar: '' }, // Mock doctor with email
+            calendar: foundCalendar || null,
+            date: editingAppointment.date,
+            time: editingAppointment.time,
+            showSuggestions: false,
+        });
+        setCreateOpen(true);
+    }
+  }, [editingAppointment, calendars]);
 
   const handleCancel = (appointment: Appointment) => {
       setDeletingAppointment(appointment);
@@ -1229,15 +1236,3 @@ export default function AppointmentsPage() {
     </>
   );
 }
-
-    
-
-    
-
-    
-
-
-
-
-
-
