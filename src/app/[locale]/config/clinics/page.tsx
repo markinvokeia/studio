@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -41,6 +42,7 @@ async function getClinic(): Promise<Clinic | null> {
             location: apiClinic.address || 'No Location',
             contact_email: apiClinic.email || 'no-email@example.com',
             phone_number: apiClinic.phone || '000-000-0000',
+            logo: apiClinic.logo_url || null,
         };
     } catch (error) {
         console.error("Failed to fetch clinics:", error);
@@ -52,13 +54,18 @@ async function getClinic(): Promise<Clinic | null> {
 export default function ClinicsPage() {
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
+    const [isSaving, setIsSaving] = React.useState(false);
     const [logoPreview, setLogoPreview] = React.useState<string | null>(null);
+    const [logoFile, setLogoFile] = React.useState<File | null>(null);
     const { toast } = useToast();
 
     const loadClinic = React.useCallback(async () => {
         setIsLoading(true);
         const fetchedClinic = await getClinic();
         setClinic(fetchedClinic);
+        if (fetchedClinic?.logo) {
+            setLogoPreview(fetchedClinic.logo);
+        }
         setIsLoading(false);
     }, []);
 
@@ -83,7 +90,53 @@ export default function ClinicsPage() {
                 });
                 return;
             }
+            setLogoFile(file);
             setLogoPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleSaveChanges = async () => {
+        if (!clinic) return;
+        setIsSaving(true);
+        
+        const formData = new FormData();
+        formData.append('id', clinic.id);
+        formData.append('name', clinic.name);
+        formData.append('address', clinic.location);
+        formData.append('email', clinic.contact_email);
+        formData.append('phone', clinic.phone_number);
+
+        if (logoFile) {
+            formData.append('logo', logoFile);
+        }
+
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/clinic/update', {
+                method: 'POST',
+                mode: 'cors',
+                body: formData,
+            });
+
+            const responseData = await response.json();
+
+            if (response.ok && (responseData.code === 200 || responseData[0]?.code === 200)) {
+                toast({
+                    title: 'Success',
+                    description: 'Clinic details updated successfully.',
+                });
+                loadClinic();
+            } else {
+                 const errorMessage = responseData.message || (responseData[0]?.message) || 'An unknown error occurred.';
+                throw new Error(errorMessage);
+            }
+        } catch (error) {
+             toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: error instanceof Error ? error.message : 'Could not update clinic details.',
+            });
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -193,9 +246,11 @@ export default function ClinicsPage() {
                 </div>
             </CardContent>
             <CardFooter className="justify-between">
-                <Button>Save Changes</Button>
+                <Button onClick={handleSaveChanges} disabled={isSaving}>
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                </Button>
                 <Button variant="outline" size="icon" onClick={loadClinic} disabled={isLoading}>
-                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`h-4 w-4 ${isLoading || isSaving ? 'animate-spin' : ''}`} />
                 </Button>
             </CardFooter>
         </Card>

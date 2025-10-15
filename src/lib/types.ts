@@ -137,6 +137,7 @@ export type Clinic = {
   location: string;
   contact_email: string;
   phone_number: string;
+  logo?: string;
 };
 
 export type ClinicSchedule = {
@@ -357,5 +358,3 @@ export type PatientSession = {
   tratamientos: TreatmentDetail[];
   archivos_adjuntos: AttachedFile[];
 };
-
-    
