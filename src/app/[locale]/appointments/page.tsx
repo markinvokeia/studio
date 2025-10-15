@@ -519,8 +519,11 @@ export default function AppointmentsPage() {
         startingDateAndTime: startDateTime.toISOString(),
         endingDateAndTime: endDateTime.toISOString(),
         mode: 'checkAvailability',
-        attendeesEmails: attendeesEmails.join(','),
     };
+
+    if (attendeesEmails.length > 0) {
+        params.attendeesEmails = attendeesEmails.join(',');
+    }
     
     if (calendar?.id) {
         params.calendarIds = calendar.id;
@@ -873,8 +876,8 @@ export default function AppointmentsPage() {
       <Dialog open={isCreateOpen} onOpenChange={(isOpen) => { setCreateOpen(isOpen); if (!isOpen) setEditingAppointment(null); }}>
         <DialogContent className={cn("sm:max-w-md", newAppointment.showSuggestions && "sm:max-w-4xl")}>
           <DialogHeader>
-            <DialogTitle>{editingAppointment ? "Edit Appointment" : t('createDialog.title')}</DialogTitle>
-            <DialogDescription>{editingAppointment ? "Update the appointment details below." : t('createDialog.description')}</DialogDescription>
+            <DialogTitle>{editingAppointment ? t('AppointmentsColumns.edit') : t('createDialog.title')}</DialogTitle>
+            <DialogDescription>{editingAppointment ? t('AppointmentsColumns.edit') : t('createDialog.description')}</DialogDescription>
           </DialogHeader>
           <div className={cn("grid gap-8 py-4", newAppointment.showSuggestions && "grid-cols-2")}>
             <div className="grid gap-4">
@@ -1172,14 +1175,14 @@ export default function AppointmentsPage() {
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
           <AlertDialogContent>
               <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure you want to cancel?</AlertDialogTitle>
+              <AlertDialogTitle>{t('AppointmentsColumns.cancel')}</AlertDialogTitle>
               <AlertDialogDescription>
                   This will permanently cancel the appointment for "{deletingAppointment?.service_name}" on {deletingAppointment?.date}. This action cannot be undone.
               </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setDeletingAppointment(null)}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDeleteAppointment} className="bg-destructive hover:bg-destructive/90">Confirm Cancellation</AlertDialogAction>
+              <AlertDialogCancel onClick={() => setDeletingAppointment(null)}>{t('createDialog.cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteAppointment} className="bg-destructive hover:bg-destructive/90">{t('AppointmentsColumns.cancel')}</AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
