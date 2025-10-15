@@ -1,3 +1,4 @@
+
 export type User = {
   id: string;
   name: string;
@@ -230,12 +231,14 @@ export type Message = {
 export type Appointment = {
   id: string;
   patientName: string;
+  patientEmail?: string;
   service_name: string;
   date: string;
   time: string;
   status: 'confirmed' | 'completed' | 'cancelled' | 'pending';
   patientPhone?: string;
   doctorName?: string;
+  doctorEmail?: string;
   calendar_id: string;
   calendar_name?: string;
 };
@@ -354,3 +357,5 @@ export type PatientSession = {
   tratamientos: TreatmentDetail[];
   archivos_adjuntos: AttachedFile[];
 };
+
+    

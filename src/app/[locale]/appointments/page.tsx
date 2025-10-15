@@ -95,6 +95,8 @@ async function getAppointments(calendarIds: string[], startDate: Date, endDate: 
             return {
                 id: apiAppt.id ? String(apiAppt.id) : `appt_${Math.random().toString(36).substr(2, 9)}`,
                 patientName: apiAppt.patientName || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a:any) => a.email).join(', ') : 'N/A'),
+                patientEmail: apiAppt.patientEmail,
+                doctorEmail: apiAppt.doctorEmail,
                 service_name: apiAppt.summary || 'No Service Name',
                 date: format(appointmentDateTime, 'yyyy-MM-dd'),
                 time: format(appointmentDateTime, 'HH:mm'),
@@ -196,13 +198,11 @@ export default function AppointmentsPage() {
   const [suggestedTimes, setSuggestedTimes] = React.useState<any[]>([]);
 
   const handleEdit = (appointment: Appointment) => {
-    // This is a simplified version. A complete implementation would
-    // fetch the full user, service, doctor, and calendar objects if needed.
     setEditingAppointment(appointment);
     setNewAppointment({
-        user: { id: '', name: appointment.patientName, email: '', phone_number: appointment.patientPhone || '', is_active: true, avatar: ''}, // Mock user
+        user: { id: '', name: appointment.patientName, email: appointment.patientEmail || '', phone_number: appointment.patientPhone || '', is_active: true, avatar: ''}, // Mock user with email
         services: [{ id: '', name: appointment.service_name, category: '', price: 0, duration_minutes: 30, is_active: true}], // Mock service
-        doctor: { id: '', name: appointment.doctorName || '', email: '', phone_number: '', is_active: true, avatar: '' }, // Mock doctor
+        doctor: { id: '', name: appointment.doctorName || '', email: appointment.doctorEmail || '', phone_number: '', is_active: true, avatar: '' }, // Mock doctor with email
         calendar: calendars.find(c => c.id === appointment.calendar_id) || null,
         date: appointment.date,
         time: appointment.time,
@@ -495,7 +495,7 @@ export default function AppointmentsPage() {
 
   const checkAvailability = React.useCallback(async () => {
     const { date, time, services, user, doctor, calendar } = newAppointment;
-    if (!date || !time || !user) {
+    if (!date || !time || (!user && !editingAppointment)) {
       return;
     }
 
@@ -510,12 +510,17 @@ export default function AppointmentsPage() {
     const totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
     const endDateTime = addMinutes(startDateTime, totalDuration);
 
-    const attendeesEmails: string[] = [];
+    const attendeeEmails: string[] = [];
     if (user?.email) {
-        attendeesEmails.push(user.email);
+      attendeeEmails.push(user.email);
+    } else if (editingAppointment?.patientEmail) {
+      attendeeEmails.push(editingAppointment.patientEmail);
     }
+    
     if (doctor?.email) {
-        attendeesEmails.push(doctor.email);
+      attendeeEmails.push(doctor.email);
+    } else if (editingAppointment?.doctorEmail) {
+      attendeeEmails.push(editingAppointment.doctorEmail);
     }
     
     const params: Record<string, string> = {
@@ -524,8 +529,8 @@ export default function AppointmentsPage() {
         mode: 'checkAvailability',
     };
 
-    if (attendeesEmails.length > 0) {
-        params.attendeesEmails = attendeesEmails.join(',');
+    if (attendeeEmails.length > 0) {
+        params.attendeesEmails = attendeeEmails.join(',');
     }
     
     if (calendar?.id) {
