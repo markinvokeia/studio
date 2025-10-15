@@ -35,23 +35,11 @@ async function getClinic(): Promise<Clinic | null> {
         }
         
         const apiClinic = clinicsData[0];
-
+        
         let logoUrl = null;
-        if (apiClinic.logo && apiClinic.logo.type === 'Buffer' && Array.isArray(apiClinic.logo.data)) {
-            try {
-                // The data seems to be a JSON string within a buffer.
-                const jsonString = Buffer.from(apiClinic.logo.data).toString('utf-8');
-                const logoData = JSON.parse(jsonString);
-                if (logoData.fileUrl) {
-                    logoUrl = logoData.fileUrl;
-                }
-            } catch (e) {
-                console.error("Could not parse logo data:", e);
-            }
-        } else if (typeof apiClinic.logo === 'string') {
-             logoUrl = apiClinic.logo;
+        if (apiClinic.logo_base64) {
+            logoUrl = `data:image/webp;base64,${apiClinic.logo_base64}`;
         }
-
 
         return {
             id: apiClinic.id ? String(apiClinic.id) : `cli_${Math.random().toString(36).substr(2, 9)}`,
@@ -108,7 +96,11 @@ export default function ClinicsPage() {
                 return;
             }
             setLogoFile(file);
-            setLogoPreview(URL.createObjectURL(file));
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setLogoPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
         }
     };
 
