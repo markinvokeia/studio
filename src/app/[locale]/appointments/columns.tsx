@@ -74,3 +74,5 @@ export function AppointmentColumnsWrapper() {
     const columns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns(t, tStatus), [t, tStatus]);
     return columns;
 }
+
+    

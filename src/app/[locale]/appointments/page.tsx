@@ -6,13 +6,14 @@ import { addDays, addMinutes, addMonths, format, parse, parseISO, isSameDay, isT
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType, User as UserType, Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Calendar as CalendarIcon, User, Phone, Stethoscope, RefreshCw, CalendarDays, List, Search, ChevronsUpDown, Check, X } from 'lucide-react';
+import { PlusCircle, Calendar as CalendarIcon, User, Phone, Stethoscope, RefreshCw, CalendarDays, List, Search, ChevronsUpDown, Check, X, Edit, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -704,7 +705,7 @@ export default function AppointmentsPage() {
                             <div className="p-6 space-y-4">
                                 {selectedDayAppointments.length > 0 ? (
                                 selectedDayAppointments.map((apt) => (
-                                    <div key={apt.id} className="flex items-start space-x-4 rounded-lg border bg-card text-card-foreground shadow-sm p-4 relative overflow-hidden">
+                                    <div key={apt.id} className="group flex items-start space-x-4 rounded-lg border bg-card text-card-foreground shadow-sm p-4 relative overflow-hidden">
                                         <div className="absolute left-0 top-0 h-full w-2" style={{ backgroundColor: calendarColors[apt.calendar_id] }} />
                                         <div className="pl-4 w-full">
                                             <div className="flex justify-between items-start">
@@ -712,7 +713,17 @@ export default function AppointmentsPage() {
                                                 <Badge variant={getStatusVariant(apt.status) as any} className="capitalize text-xs">{tStatus(apt.status.toLowerCase())}</Badge>
                                                 <p className="font-semibold">{apt.service_name}</p>
                                             </div>
-                                            <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">{apt.time}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">{apt.time}</p>
+                                                <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
                                             </div>
                                             <Separator className="my-2" />
                                             <div className="text-sm text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1">
@@ -1077,12 +1088,14 @@ export default function AppointmentsPage() {
                 </div>
             )}
           </div>
-          <div className="flex justify-end space-x-2">
+          <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>{t('createDialog.cancel')}</Button>
             <Button onClick={handleSaveAppointment}>{t('createDialog.save')}</Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
   );
 }
+
+    
