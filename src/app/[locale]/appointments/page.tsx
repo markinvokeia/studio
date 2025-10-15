@@ -884,8 +884,8 @@ export default function AppointmentsPage() {
       <Dialog open={isCreateOpen} onOpenChange={(isOpen) => { setCreateOpen(isOpen); if (!isOpen) setEditingAppointment(null); }}>
         <DialogContent className={cn("sm:max-w-md", newAppointment.showSuggestions && "sm:max-w-4xl")}>
           <DialogHeader>
-            <DialogTitle>{editingAppointment ? t('AppointmentsColumns.edit') : t('createDialog.title')}</DialogTitle>
-            <DialogDescription>{editingAppointment ? t('AppointmentsColumns.edit') : t('createDialog.description')}</DialogDescription>
+            <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
+            <DialogDescription>{editingAppointment ? tColumns('edit') : t('createDialog.description')}</DialogDescription>
           </DialogHeader>
           <div className={cn("grid gap-8 py-4", newAppointment.showSuggestions && "grid-cols-2")}>
             <div className="grid gap-4">
