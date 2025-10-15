@@ -36,18 +36,13 @@ async function getClinic(): Promise<Clinic | null> {
         
         const apiClinic = clinicsData[0];
         
-        let logoUrl = null;
-        if (apiClinic.logo_base64) {
-            logoUrl = `data:image/webp;base64,${apiClinic.logo_base64}`;
-        }
-
         return {
             id: apiClinic.id ? String(apiClinic.id) : `cli_${Math.random().toString(36).substr(2, 9)}`,
             name: apiClinic.name || 'No Name',
             location: apiClinic.address || 'No Location',
             contact_email: apiClinic.email || 'no-email@example.com',
             phone_number: apiClinic.phone || '000-000-0000',
-            logo: logoUrl,
+            logo: apiClinic.logo_base64,
         };
     } catch (error) {
         console.error("Failed to fetch clinics:", error);
