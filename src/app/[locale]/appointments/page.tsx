@@ -510,7 +510,10 @@ export default function AppointmentsPage() {
     const totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
     const endDateTime = addMinutes(startDateTime, totalDuration);
 
-    const attendeesEmails = [user.email];
+    const attendeesEmails: string[] = [];
+    if (user?.email) {
+        attendeesEmails.push(user.email);
+    }
     if (doctor?.email) {
         attendeesEmails.push(doctor.email);
     }
@@ -1189,3 +1192,5 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
