@@ -119,6 +119,7 @@ const AnamnesisDashboard = ({
     fetchPatientHabits: (userId: string) => void,
     userId: string
 }) => {
+    const t = useTranslations('ClinicHistoryPage');
     const { toast } = useToast();
     const [ailmentsCatalog, setAilmentsCatalog] = useState<Ailment[]>([]);
     const [medicationsCatalog, setMedicationsCatalog] = useState<Medication[]>([]);
@@ -282,8 +283,8 @@ const AnamnesisDashboard = ({
         if (!selectedAilment || !userId) {
             toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: 'Por favor, seleccione un padecimiento válido.',
+                title: t('anamnesis.toast.error'),
+                description: t('anamnesis.toast.invalidAilment'),
             });
             return;
         }
@@ -317,15 +318,15 @@ const AnamnesisDashboard = ({
             }
 
             toast({
-                title: 'Éxito',
-                description: 'El antecedente personal ha sido guardado.',
+                title: t('anamnesis.toast.success'),
+                description: t('anamnesis.toast.personalSuccess'),
             });
 
             setIsPersonalHistoryDialogOpen(false);
             fetchPersonalHistory(userId);
         } catch (error: any) {
             console.error('Error saving personal history:', error);
-            setPersonalSubmissionError(error.message || 'No se pudo guardar el antecedente. Por favor, intente de nuevo.');
+            setPersonalSubmissionError(error.message || t('anamnesis.toast.personalError'));
         } finally {
             setIsSubmittingPersonal(false);
         }
@@ -340,8 +341,8 @@ const AnamnesisDashboard = ({
         if (!selectedAilment || !familyParentesco || !userId) {
             toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: 'Por favor, complete todos los campos requeridos.',
+                title: t('anamnesis.toast.error'),
+                description: t('anamnesis.toast.requiredFields'),
             });
             return;
         }
@@ -373,15 +374,15 @@ const AnamnesisDashboard = ({
             }
 
             toast({
-                title: 'Éxito',
-                description: 'El antecedente familiar ha sido guardado.',
+                title: t('anamnesis.toast.success'),
+                description: t('anamnesis.toast.familySuccess'),
             });
 
             setIsFamilyHistoryDialogOpen(false);
             fetchFamilyHistory(userId);
         } catch (error: any) {
             console.error('Error saving family history:', error);
-            setFamilySubmissionError(error.message || 'No se pudo guardar el antecedente. Por favor, intente de nuevo.');
+            setFamilySubmissionError(error.message || t('anamnesis.toast.familyError'));
         } finally {
             setIsSubmittingFamily(false);
         }
@@ -412,11 +413,11 @@ const AnamnesisDashboard = ({
             });
             if (response.status > 299) throw new Error((await response.json()).message || 'Server error');
 
-            toast({ title: 'Éxito', description: 'La alergia ha sido guardada.' });
+            toast({ title: t('anamnesis.toast.success'), description: t('anamnesis.toast.allergySuccess') });
             setIsAllergyDialogOpen(false);
             fetchAllergies(userId);
         } catch (error: any) {
-            setAllergySubmissionError(error.message || 'No se pudo guardar la alergia.');
+            setAllergySubmissionError(error.message || t('anamnesis.toast.allergyError'));
         } finally {
             setIsSubmittingAllergy(false);
         }
@@ -452,11 +453,11 @@ const AnamnesisDashboard = ({
             });
             if (response.status > 299) throw new Error((await response.json()).message || 'Server error');
 
-            toast({ title: 'Éxito', description: 'El medicamento ha sido guardado.' });
+            toast({ title: t('anamnesis.toast.success'), description: t('anamnesis.toast.medicationSuccess') });
             setIsMedicationDialogOpen(false);
             fetchMedications(userId);
         } catch (error: any) {
-            setMedicationSubmissionError(error.message || 'No se pudo guardar el medicamento.');
+            setMedicationSubmissionError(error.message || t('anamnesis.toast.medicationError'));
         } finally {
             setIsSubmittingMedication(false);
         }
@@ -513,27 +514,32 @@ const AnamnesisDashboard = ({
         let endpoint = '';
         let body: any = {};
         let fetchCallback: Function | null = null;
+        let itemTypeKey = '';
     
         switch (deletingItem.type) {
-            case 'antecedente personal':
+            case 'personal':
                 endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales/delete';
                 body = { id: deletingItem.item.id };
                 fetchCallback = fetchPersonalHistory;
+                itemTypeKey = 'personal';
                 break;
-            case 'antecedente familiar':
+            case 'family':
                 endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_familiares/delete';
                 body = { id: deletingItem.item.id };
                 fetchCallback = fetchFamilyHistory;
+                itemTypeKey = 'family';
                 break;
-            case 'alergia':
+            case 'allergy':
                 endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/alergias/delete';
                 body = { id: deletingItem.item.id };
                 fetchCallback = fetchAllergies;
+                itemTypeKey = 'allergy';
                 break;
-            case 'medicamento':
+            case 'medication':
                 endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/medicamentos/delete';
                 body = { id: deletingItem.item.id };
                 fetchCallback = fetchMedications;
+                itemTypeKey = 'medication';
                 break;
         }
     
@@ -551,12 +557,12 @@ const AnamnesisDashboard = ({
             });
     
             if (!response.ok) {
-                throw new Error(`Failed to delete ${deletingItem.type}`);
+                throw new Error(t('anamnesis.toast.deleteFailed', { item: t(`anamnesis.itemTypes.${itemTypeKey}`) }));
             }
     
             toast({
-                title: 'Éxito',
-                description: `El ${deletingItem.type} ha sido eliminado.`,
+                title: t('anamnesis.toast.success'),
+                description: t('anamnesis.toast.deleteSuccess', { item: t(`anamnesis.itemTypes.${itemTypeKey}`) }),
             });
     
             setIsDeleteDialogOpen(false);
@@ -570,8 +576,8 @@ const AnamnesisDashboard = ({
             console.error(`Error deleting ${deletingItem.type}:`, error);
             toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: `No se pudo eliminar el ${deletingItem.type}. Por favor, intente de nuevo.`,
+                title: t('anamnesis.toast.error'),
+                description: error instanceof Error ? error.message : t('anamnesis.toast.deleteError', { item: t(`anamnesis.itemTypes.${itemTypeKey}`) }),
             });
         }
     };
@@ -595,7 +601,7 @@ const AnamnesisDashboard = ({
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center">
                                 <User className="w-5 h-5 text-primary mr-2" />
-                                <h3 className="text-lg font-bold text-card-foreground">Antecedentes Personales</h3>
+                                <h3 className="text-lg font-bold text-card-foreground">{t('anamnesis.personalTitle')}</h3>
                             </div>
                             <Button variant="outline" size="icon" onClick={handleAddPersonalClick}>
                                 <Plus className="h-4 w-4" />
@@ -603,7 +609,7 @@ const AnamnesisDashboard = ({
                         </div>
                         <div className="space-y-3">
                             {isLoadingPersonalHistory ? (
-                                <p className="text-muted-foreground">Loading personal history...</p>
+                                <p className="text-muted-foreground">{t('anamnesis.loading.personal')}</p>
                             ) : personalHistory.length > 0 ? (
                                 personalHistory.map((item) => (
                                     <div key={item.id} className="border-l-4 border-blue-300 dark:border-blue-700 pl-4 py-2 flex justify-between items-center">
@@ -615,14 +621,14 @@ const AnamnesisDashboard = ({
                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditPersonalClick(item)}>
                                                 <Edit3 className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'antecedente personal')}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'personal')}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-muted-foreground">No personal history found.</p>
+                                <p className="text-muted-foreground">{t('anamnesis.noData.personal')}</p>
                             )}
                         </div>
                     </div>
@@ -631,7 +637,7 @@ const AnamnesisDashboard = ({
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center">
                                 <Heart className="w-5 h-5 text-red-500 mr-2" />
-                                <h3 className="text-lg font-bold text-card-foreground">Antecedentes Familiares</h3>
+                                <h3 className="text-lg font-bold text-card-foreground">{t('anamnesis.familyTitle')}</h3>
                             </div>
                              <Button variant="outline" size="icon" onClick={handleAddFamilyClick}>
                                 <Plus className="h-4 w-4" />
@@ -639,27 +645,27 @@ const AnamnesisDashboard = ({
                         </div>
                         <div className="space-y-3">
                             {isLoadingFamilyHistory ? (
-                                <p className="text-muted-foreground">Loading family history...</p>
+                                <p className="text-muted-foreground">{t('anamnesis.loading.family')}</p>
                             ) : familyHistory.length > 0 ? (
                                 familyHistory.map((item, index) => (
                                     <div key={index} className="border-l-4 border-red-300 dark:border-red-700 pl-4 py-2 flex justify-between items-center">
                                         <div>
                                             <div className="font-semibold text-foreground">{item.nombre}</div>
-                                            <div className="text-sm text-muted-foreground">Familiar: {item.parentesco}</div>
+                                            <div className="text-sm text-muted-foreground">{t('anamnesis.relative')}: {item.parentesco}</div>
                                             <div className="text-sm text-muted-foreground">{item.comentarios}</div>
                                         </div>
                                         <div className="flex items-center space-x-1">
                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditFamilyClick(item)}>
                                                 <Edit3 className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'antecedente familiar')}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'family')}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                            <p className="text-muted-foreground">No family history found.</p>
+                            <p className="text-muted-foreground">{t('anamnesis.noData.family')}</p>
                             )}
                         </div>
                     </div>
@@ -667,7 +673,7 @@ const AnamnesisDashboard = ({
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center">
                                 <Pill className="w-5 h-5 text-green-500 mr-2" />
-                                <h3 className="text-lg font-bold text-card-foreground">Medicamentos Actuales</h3>
+                                <h3 className="text-lg font-bold text-card-foreground">{t('anamnesis.medicationsTitle')}</h3>
                             </div>
                             <Button variant="outline" size="icon" onClick={handleAddMedicationClick}>
                                 <Plus className="h-4 w-4" />
@@ -675,7 +681,7 @@ const AnamnesisDashboard = ({
                         </div>
                         <div className="space-y-3">
                             {isLoadingMedications ? (
-                                <p className="text-muted-foreground">Loading medications...</p>
+                                <p className="text-muted-foreground">{t('anamnesis.loading.medications')}</p>
                             ) : medications.length > 0 ? (
                                 medications.map((item, index) => (
                                     <div key={index} className="border-l-4 border-green-300 dark:border-green-700 pl-4 py-2 flex justify-between items-center">
@@ -683,7 +689,7 @@ const AnamnesisDashboard = ({
                                             <div className="col-span-2">
                                                 <div className="font-semibold text-foreground">{item.medicamento_nombre}</div>
                                                 <div className="text-sm text-muted-foreground mt-1">
-                                                    {formatDate(item.fecha_inicio)} - {item.fecha_fin ? formatDate(item.fecha_fin) : 'Presente'}
+                                                    {formatDate(item.fecha_inicio)} - {item.fecha_fin ? formatDate(item.fecha_fin) : t('anamnesis.present')}
                                                 </div>
                                                 <div className="text-sm text-muted-foreground mt-1">{item.motivo}</div>
                                             </div>
@@ -696,14 +702,14 @@ const AnamnesisDashboard = ({
                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditMedicationClick(item)}>
                                                 <Edit3 className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'medicamento')}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'medication')}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                            <p className="text-muted-foreground">No medications found.</p>
+                            <p className="text-muted-foreground">{t('anamnesis.noData.medications')}</p>
                             )}
                         </div>
                     </div>
@@ -714,7 +720,7 @@ const AnamnesisDashboard = ({
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center">
                                 <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
-                                <h3 className="text-lg font-bold text-card-foreground">Alergias</h3>
+                                <h3 className="text-lg font-bold text-card-foreground">{t('anamnesis.allergiesTitle')}</h3>
                             </div>
                            <Button variant="outline" size="icon" onClick={handleAddAllergyClick}>
                                 <Plus className="h-4 w-4" />
@@ -722,7 +728,7 @@ const AnamnesisDashboard = ({
                         </div>
                         <div className="space-y-3">
                             {isLoadingAllergies ? (
-                                <p className="text-muted-foreground">Loading allergies...</p>
+                                <p className="text-muted-foreground">{t('anamnesis.loading.allergies')}</p>
                             ) : allergies.length > 0 ? (
                                 allergies.map((item, index) => (
                                     <div key={index} className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex justify-between items-center">
@@ -736,14 +742,14 @@ const AnamnesisDashboard = ({
                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAllergyClick(item)}>
                                                 <Edit3 className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'alergia')}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'allergy')}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-muted-foreground">No allergies found.</p>
+                                <p className="text-muted-foreground">{t('anamnesis.noData.allergies')}</p>
                             )}
                         </div>
                     </div>
@@ -753,9 +759,9 @@ const AnamnesisDashboard = ({
             <Dialog open={isPersonalHistoryDialogOpen} onOpenChange={setIsPersonalHistoryDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editingPersonalHistory ? 'Editar Antecedente Personal' : 'Añadir Antecedente Personal'}</DialogTitle>
+                        <DialogTitle>{editingPersonalHistory ? t('anamnesis.dialogs.personal.editTitle') : t('anamnesis.dialogs.personal.addTitle')}</DialogTitle>
                         <DialogDescription>
-                            {editingPersonalHistory ? 'Actualice los detalles del antecedente.' : 'Complete el formulario para añadir un nuevo antecedente personal.'}
+                            {editingPersonalHistory ? t('anamnesis.dialogs.personal.editDescription') : t('anamnesis.dialogs.personal.addDescription')}
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmitPersonalHistory}>
@@ -763,12 +769,12 @@ const AnamnesisDashboard = ({
                             {personalSubmissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>Error</AlertTitle>
+                                    <AlertTitle>{t('anamnesis.toast.error')}</AlertTitle>
                                     <AlertDescription>{personalSubmissionError}</AlertDescription>
                                 </Alert>
                             )}
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="padecimiento" className="text-right">Padecimiento</Label>
+                                <Label htmlFor="padecimiento" className="text-right">{t('anamnesis.dialogs.ailment')}</Label>
                                 <Popover open={isPersonalHistoryComboboxOpen} onOpenChange={setIsPersonalHistoryComboboxOpen}>
                                     <PopoverTrigger asChild>
                                     <Button
@@ -780,14 +786,14 @@ const AnamnesisDashboard = ({
                                     >
                                         {selectedPersonalAilmentName
                                         ? selectedPersonalAilmentName
-                                        : "Seleccione un padecimiento..."}
+                                        : t('anamnesis.dialogs.selectAilment')}
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-[300px] p-0">
                                     <Command>
-                                        <CommandInput placeholder="Buscar padecimiento..." />
-                                        <CommandEmpty>No se encontró el padecimiento.</CommandEmpty>
+                                        <CommandInput placeholder={t('anamnesis.dialogs.searchAilment')} />
+                                        <CommandEmpty>{t('anamnesis.dialogs.noAilmentFound')}</CommandEmpty>
                                         <CommandGroup>
                                         {ailmentsCatalog.map((ailment) => (
                                             <CommandItem
@@ -813,10 +819,10 @@ const AnamnesisDashboard = ({
                                 </Popover>
                             </div>
                             <div className="grid grid-cols-4 items-start gap-4">
-                                <Label htmlFor="comentarios" className="text-right pt-2">Comentarios</Label>
+                                <Label htmlFor="comentarios" className="text-right pt-2">{t('anamnesis.dialogs.comments')}</Label>
                                 <Textarea 
                                     id="comentarios" 
-                                    placeholder="e.g., Medicación diaria" 
+                                    placeholder={t('anamnesis.dialogs.commentsPlaceholder')} 
                                     className="col-span-3" 
                                     value={personalComentarios} 
                                     onChange={(e) => setPersonalComentarios(e.target.value)} 
@@ -824,9 +830,9 @@ const AnamnesisDashboard = ({
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" type="button" onClick={() => setIsPersonalHistoryDialogOpen(false)}>Cancelar</Button>
+                            <Button variant="outline" type="button" onClick={() => setIsPersonalHistoryDialogOpen(false)}>{t('anamnesis.dialogs.cancel')}</Button>
                             <Button type="submit" disabled={isSubmittingPersonal}>
-                                {isSubmittingPersonal ? 'Guardando...' : 'Guardar'}
+                                {isSubmittingPersonal ? t('anamnesis.dialogs.saving') : t('anamnesis.dialogs.save')}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -836,9 +842,9 @@ const AnamnesisDashboard = ({
             <Dialog open={isFamilyHistoryDialogOpen} onOpenChange={setIsFamilyHistoryDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editingFamilyHistory ? 'Editar Antecedente Familiar' : 'Añadir Antecedente Familiar'}</DialogTitle>
+                        <DialogTitle>{editingFamilyHistory ? t('anamnesis.dialogs.family.editTitle') : t('anamnesis.dialogs.family.addTitle')}</DialogTitle>
                         <DialogDescription>
-                            {editingFamilyHistory ? 'Actualice los detalles del antecedente.' : 'Complete el formulario para añadir un nuevo antecedente familiar.'}
+                             {editingFamilyHistory ? t('anamnesis.dialogs.family.editDescription') : t('anamnesis.dialogs.family.addDescription')}
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmitFamilyHistory}>
@@ -846,23 +852,23 @@ const AnamnesisDashboard = ({
                             {familySubmissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>Error</AlertTitle>
+                                    <AlertTitle>{t('anamnesis.toast.error')}</AlertTitle>
                                     <AlertDescription>{familySubmissionError}</AlertDescription>
                                 </Alert>
                             )}
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="family-padecimiento" className="text-right">Padecimiento</Label>
+                                <Label htmlFor="family-padecimiento" className="text-right">{t('anamnesis.dialogs.ailment')}</Label>
                                 <Popover open={isFamilyHistoryComboboxOpen} onOpenChange={setIsFamilyHistoryComboboxOpen}>
                                     <PopoverTrigger asChild>
                                         <Button variant="outline" role="combobox" aria-expanded={isFamilyHistoryComboboxOpen} className="w-[300px] justify-between col-span-3" type="button">
-                                            {selectedFamilyAilmentName || "Seleccione un padecimiento..."}
+                                            {selectedFamilyAilmentName || t('anamnesis.dialogs.selectAilment')}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-[300px] p-0">
                                         <Command>
-                                            <CommandInput placeholder="Buscar padecimiento..." />
-                                            <CommandEmpty>No se encontró el padecimiento.</CommandEmpty>
+                                            <CommandInput placeholder={t('anamnesis.dialogs.searchAilment')} />
+                                            <CommandEmpty>{t('anamnesis.dialogs.noAilmentFound')}</CommandEmpty>
                                             <CommandGroup>
                                                 {ailmentsCatalog.map((ailment) => (
                                                     <CommandItem
@@ -882,26 +888,26 @@ const AnamnesisDashboard = ({
                                 </Popover>
                             </div>
                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="parentesco" className="text-right">Parentesco</Label>
+                                <Label htmlFor="parentesco" className="text-right">{t('anamnesis.dialogs.family.relationship')}</Label>
                                 <Select onValueChange={setFamilyParentesco} value={familyParentesco}>
                                     <SelectTrigger className="col-span-3">
-                                        <SelectValue placeholder="Seleccione un parentesco" />
+                                        <SelectValue placeholder={t('anamnesis.dialogs.family.selectRelationship')} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Padre">Padre</SelectItem>
-                                        <SelectItem value="Madre">Madre</SelectItem>
-                                        <SelectItem value="Abuelo Materno">Abuelo Materno</SelectItem>
-                                        <SelectItem value="Abuela Paterna">Abuela Paterna</SelectItem>
-                                        <SelectItem value="Abuelo Paterno">Abuelo Paterno</SelectItem>
-                                        <SelectItem value="Abuela Materna">Abuela Materna</SelectItem>
+                                        <SelectItem value="Padre">{t('anamnesis.dialogs.family.father')}</SelectItem>
+                                        <SelectItem value="Madre">{t('anamnesis.dialogs.family.mother')}</SelectItem>
+                                        <SelectItem value="Abuelo Materno">{t('anamnesis.dialogs.family.maternalGrandfather')}</SelectItem>
+                                        <SelectItem value="Abuela Paterna">{t('anamnesis.dialogs.family.paternalGrandmother')}</SelectItem>
+                                        <SelectItem value="Abuelo Paterno">{t('anamnesis.dialogs.family.paternalGrandfather')}</SelectItem>
+                                        <SelectItem value="Abuela Materna">{t('anamnesis.dialogs.family.maternalGrandmother')}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="grid grid-cols-4 items-start gap-4">
-                                <Label htmlFor="family-comentarios" className="text-right pt-2">Comentarios</Label>
+                                <Label htmlFor="family-comentarios" className="text-right pt-2">{t('anamnesis.dialogs.comments')}</Label>
                                 <Textarea 
                                     id="family-comentarios" 
-                                    placeholder="e.g., Diagnosticada a los 45 años" 
+                                    placeholder={t('anamnesis.dialogs.family.commentsPlaceholder')} 
                                     className="col-span-3" 
                                     value={familyComentarios} 
                                     onChange={(e) => setFamilyComentarios(e.target.value)} 
@@ -909,9 +915,9 @@ const AnamnesisDashboard = ({
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" type="button" onClick={() => setIsFamilyHistoryDialogOpen(false)}>Cancelar</Button>
+                            <Button variant="outline" type="button" onClick={() => setIsFamilyHistoryDialogOpen(false)}>{t('anamnesis.dialogs.cancel')}</Button>
                             <Button type="submit" disabled={isSubmittingFamily}>
-                                {isSubmittingFamily ? 'Guardando...' : 'Guardar'}
+                                {isSubmittingFamily ? t('anamnesis.dialogs.saving') : t('anamnesis.dialogs.save')}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -921,23 +927,23 @@ const AnamnesisDashboard = ({
             <Dialog open={isAllergyDialogOpen} onOpenChange={setIsAllergyDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editingAllergy ? 'Editar Alergia' : 'Añadir Alergia'}</DialogTitle>
+                        <DialogTitle>{editingAllergy ? t('anamnesis.dialogs.allergy.editTitle') : t('anamnesis.dialogs.allergy.addTitle')}</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSubmitAllergy}>
                         <div className="grid gap-4 py-4">
-                            {allergySubmissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{allergySubmissionError}</AlertDescription></Alert>}
+                            {allergySubmissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>{t('anamnesis.toast.error')}</AlertTitle><AlertDescription>{allergySubmissionError}</AlertDescription></Alert>}
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="alergeno" className="text-right">Alérgeno</Label>
+                                <Label htmlFor="alergeno" className="text-right">{t('anamnesis.dialogs.allergy.allergen')}</Label>
                                 <Input id="alergeno" value={allergyData.alergeno} onChange={(e) => setAllergyData({ ...allergyData, alergeno: e.target.value })} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="reaccion_descrita" className="text-right">Reacción</Label>
+                                <Label htmlFor="reaccion_descrita" className="text-right">{t('anamnesis.dialogs.allergy.reaction')}</Label>
                                 <Input id="reaccion_descrita" value={allergyData.reaccion_descrita} onChange={(e) => setAllergyData({ ...allergyData, reaccion_descrita: e.target.value })} className="col-span-3" />
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" type="button" onClick={() => setIsAllergyDialogOpen(false)}>Cancelar</Button>
-                            <Button type="submit" disabled={isSubmittingAllergy}>{isSubmittingAllergy ? 'Guardando...' : 'Guardar'}</Button>
+                            <Button variant="outline" type="button" onClick={() => setIsAllergyDialogOpen(false)}>{t('anamnesis.dialogs.cancel')}</Button>
+                            <Button type="submit" disabled={isSubmittingAllergy}>{isSubmittingAllergy ? t('anamnesis.dialogs.saving') : t('anamnesis.dialogs.save')}</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
@@ -946,24 +952,24 @@ const AnamnesisDashboard = ({
             <Dialog open={isMedicationDialogOpen} onOpenChange={setIsMedicationDialogOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>{editingMedication ? 'Editar Medicamento' : 'Añadir Medicamento'}</DialogTitle>
+                        <DialogTitle>{editingMedication ? t('anamnesis.dialogs.medication.editTitle') : t('anamnesis.dialogs.medication.addTitle')}</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSubmitMedication}>
                         <div className="grid gap-4 py-4">
-                            {medicationSubmissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{medicationSubmissionError}</AlertDescription></Alert>}
+                            {medicationSubmissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>{t('anamnesis.toast.error')}</AlertTitle><AlertDescription>{medicationSubmissionError}</AlertDescription></Alert>}
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="med-name" className="text-right">Nombre</Label>
+                                <Label htmlFor="med-name" className="text-right">{t('anamnesis.dialogs.medication.name')}</Label>
                                  <Popover open={isMedicationComboboxOpen} onOpenChange={setIsMedicationComboboxOpen}>
                                     <PopoverTrigger asChild>
                                         <Button variant="outline" role="combobox" aria-expanded={isMedicationComboboxOpen} className="w-[300px] justify-between col-span-3" type="button">
-                                            {selectedMedication?.name || "Seleccione un medicamento..."}
+                                            {selectedMedication?.name || t('anamnesis.dialogs.medication.selectMedication')}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-[300px] p-0">
                                         <Command>
-                                            <CommandInput placeholder="Buscar medicamento..." />
-                                            <CommandEmpty>No se encontró el medicamento.</CommandEmpty>
+                                            <CommandInput placeholder={t('anamnesis.dialogs.medication.searchMedication')} />
+                                            <CommandEmpty>{t('anamnesis.dialogs.medication.noMedicationFound')}</CommandEmpty>
                                             <CommandGroup>
                                                 {medicationsCatalog.map((med) => (
                                                     <CommandItem
@@ -983,29 +989,29 @@ const AnamnesisDashboard = ({
                                 </Popover>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="med-dose" className="text-right">Dosis</Label>
+                                <Label htmlFor="med-dose" className="text-right">{t('anamnesis.dialogs.medication.dose')}</Label>
                                 <Input id="med-dose" value={medicationData.dosis} onChange={e => setMedicationData({ ...medicationData, dosis: e.target.value })} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="med-frequency" className="text-right">Frecuencia</Label>
+                                <Label htmlFor="med-frequency" className="text-right">{t('anamnesis.dialogs.medication.frequency')}</Label>
                                 <Input id="med-frequency" value={medicationData.frecuencia} onChange={e => setMedicationData({ ...medicationData, frecuencia: e.target.value })} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="med-since" className="text-right">Desde</Label>
+                                <Label htmlFor="med-since" className="text-right">{t('anamnesis.dialogs.medication.startDate')}</Label>
                                 <Input id="med-since" type="date" value={medicationData.fecha_inicio || ''} onChange={e => setMedicationData({ ...medicationData, fecha_inicio: e.target.value })} className="col-span-3" />
                             </div>
                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="med-endDate" className="text-right">Hasta</Label>
+                                <Label htmlFor="med-endDate" className="text-right">{t('anamnesis.dialogs.medication.endDate')}</Label>
                                 <Input id="med-endDate" type="date" value={medicationData.fecha_fin || ''} onChange={e => setMedicationData({ ...medicationData, fecha_fin: e.target.value })} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="med-reason" className="text-right">Motivo</Label>
+                                <Label htmlFor="med-reason" className="text-right">{t('anamnesis.dialogs.medication.reason')}</Label>
                                 <Input id="med-reason" value={medicationData.motivo} onChange={e => setMedicationData({ ...medicationData, motivo: e.target.value })} className="col-span-3" />
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" type="button" onClick={() => setIsMedicationDialogOpen(false)}>Cancelar</Button>
-                            <Button type="submit" disabled={isSubmittingMedication}>{isSubmittingMedication ? 'Guardando...' : 'Guardar'}</Button>
+                            <Button variant="outline" type="button" onClick={() => setIsMedicationDialogOpen(false)}>{t('anamnesis.dialogs.cancel')}</Button>
+                            <Button type="submit" disabled={isSubmittingMedication}>{isSubmittingMedication ? t('anamnesis.dialogs.saving') : t('anamnesis.dialogs.save')}</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
@@ -1014,14 +1020,14 @@ const AnamnesisDashboard = ({
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('anamnesis.deleteDialog.title')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete this item.
+                           {t('anamnesis.deleteDialog.description')}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setDeletingItem(null)}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleConfirmDelete}>Continue</AlertDialogAction>
+                        <AlertDialogCancel onClick={() => setDeletingItem(null)}>{t('anamnesis.deleteDialog.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmDelete}>{t('anamnesis.deleteDialog.confirm')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -1030,6 +1036,7 @@ const AnamnesisDashboard = ({
 };
 
 const HabitCard = ({ userId, fetchPatientHabits }: { userId: string, fetchPatientHabits: (userId: string) => void }) => {
+    const t = useTranslations('ClinicHistoryPage.habits');
     const [isEditing, setIsEditing] = useState(false);
     const [editedHabits, setEditedHabits] = useState<PatientHabits>({ tabaquismo: '', alcohol: '', bruxismo: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1103,13 +1110,13 @@ const HabitCard = ({ userId, fetchPatientHabits }: { userId: string, fetchPatien
 
             if (response.status > 299) throw new Error((await response.json()).message || 'Server error');
             
-            toast({ title: 'Éxito', description: 'Los hábitos del paciente han sido guardados.' });
+            toast({ title: t('toast.success'), description: t('toast.saveSuccess') });
             setIsEditing(false);
             loadHabits(); // Re-fetch to update initialHabits
 
         } catch (error: any) {
-            setSubmissionError(error.message || 'No se pudo guardar los hábitos.');
-            toast({ variant: 'destructive', title: 'Error', description: error.message || 'No se pudo guardar los hábitos.' });
+            setSubmissionError(error.message || t('toast.saveError'));
+            toast({ variant: 'destructive', title: t('toast.error'), description: error.message || t('toast.saveError') });
         } finally {
             setIsSubmitting(false);
         }
@@ -1136,7 +1143,7 @@ const HabitCard = ({ userId, fetchPatientHabits }: { userId: string, fetchPatien
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
                     <User className="w-5 h-5 text-primary mr-2" />
-                    <h3 className="text-lg font-bold text-card-foreground">Hábitos del Paciente</h3>
+                    <h3 className="text-lg font-bold text-card-foreground">{t('title')}</h3>
                 </div>
                 {!isEditing && (
                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleEdit}>
@@ -1147,28 +1154,28 @@ const HabitCard = ({ userId, fetchPatientHabits }: { userId: string, fetchPatien
             {isEditing ? (
                 <div className="space-y-4">
                     <div className="space-y-1">
-                        <Label htmlFor="tabaquismo">Tabaquismo</Label>
-                        <Input id="tabaquismo" placeholder="e.g., 10 cigarrillos al día" value={editedHabits.tabaquismo || ''} onChange={(e) => handleInputChange('tabaquismo', e.target.value)} />
+                        <Label htmlFor="tabaquismo">{t('smoking')}</Label>
+                        <Input id="tabaquismo" placeholder={t('smokingPlaceholder')} value={editedHabits.tabaquismo || ''} onChange={(e) => handleInputChange('tabaquismo', e.target.value)} />
                     </div>
                      <div className="space-y-1">
-                        <Label htmlFor="alcohol">Alcohol</Label>
-                        <Input id="alcohol" placeholder="e.g., 2 cervezas los fines de semana" value={editedHabits.alcohol || ''} onChange={(e) => handleInputChange('alcohol', e.target.value)} />
+                        <Label htmlFor="alcohol">{t('alcohol')}</Label>
+                        <Input id="alcohol" placeholder={t('alcoholPlaceholder')} value={editedHabits.alcohol || ''} onChange={(e) => handleInputChange('alcohol', e.target.value)} />
                     </div>
                      <div className="space-y-1">
-                        <Label htmlFor="bruxismo">Bruxismo</Label>
-                        <Input id="bruxismo" placeholder="e.g., Nocturno, utiliza placa" value={editedHabits.bruxismo || ''} onChange={(e) => handleInputChange('bruxismo', e.target.value)} />
+                        <Label htmlFor="bruxismo">{t('bruxism')}</Label>
+                        <Input id="bruxismo" placeholder={t('bruxismPlaceholder')} value={editedHabits.bruxismo || ''} onChange={(e) => handleInputChange('bruxismo', e.target.value)} />
                     </div>
                      {submissionError && (
                         <Alert variant="destructive">
                             <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>Error</AlertTitle>
+                            <AlertTitle>{t('toast.error')}</AlertTitle>
                             <AlertDescription>{submissionError}</AlertDescription>
                         </Alert>
                     )}
                     <div className="flex justify-end gap-2 mt-4">
-                        <Button variant="outline" onClick={handleCancel}>Cancelar</Button>
+                        <Button variant="outline" onClick={handleCancel}>{t('cancel')}</Button>
                         <Button onClick={handleSave} disabled={isSubmitting}>
-                            {isSubmitting ? 'Guardando...' : 'Guardar'}
+                            {isSubmitting ? t('saving') : t('save')}
                         </Button>
                     </div>
                 </div>
@@ -1177,27 +1184,27 @@ const HabitCard = ({ userId, fetchPatientHabits }: { userId: string, fetchPatien
                 <div className="flex items-start gap-4">
                   <Wind className="w-5 h-5 text-muted-foreground mt-1" />
                   <div>
-                    <h4 className="font-semibold text-foreground">Tabaquismo</h4>
-                    <p className="text-sm text-muted-foreground">{initialHabits.tabaquismo || 'No especificado'}</p>
+                    <h4 className="font-semibold text-foreground">{t('smoking')}</h4>
+                    <p className="text-sm text-muted-foreground">{initialHabits.tabaquismo || t('notSpecified')}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
                   <GlassWater className="w-5 h-5 text-muted-foreground mt-1" />
                   <div>
-                    <h4 className="font-semibold text-foreground">Alcohol</h4>
-                    <p className="text-sm text-muted-foreground">{initialHabits.alcohol || 'No especificado'}</p>
+                    <h4 className="font-semibold text-foreground">{t('alcohol')}</h4>
+                    <p className="text-sm text-muted-foreground">{initialHabits.alcohol || t('notSpecified')}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
                   <Smile className="w-5 h-5 text-muted-foreground mt-1" />
                   <div>
-                    <h4 className="font-semibold text-foreground">Bruxismo</h4>
-                    <p className="text-sm text-muted-foreground">{initialHabits.bruxismo || 'No especificado'}</p>
+                    <h4 className="font-semibold text-foreground">{t('bruxism')}</h4>
+                    <p className="text-sm text-muted-foreground">{initialHabits.bruxismo || t('notSpecified')}</p>
                   </div>
                 </div>
               </div>
             ) : (
-              <p className="text-muted-foreground">No patient habits found.</p>
+              <p className="text-muted-foreground">{t('noData')}</p>
             )}
         </div>
     );
@@ -1206,6 +1213,7 @@ const HabitCard = ({ userId, fetchPatientHabits }: { userId: string, fetchPatien
 const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const router = useRouter();
   const locale = useLocale();
+  const t = useTranslations('ClinicHistoryPage');
 
   const [activeView, setActiveView] = useState('anamnesis');
   const [selectedTooth, setSelectedTooth] = useState(null);
@@ -1547,12 +1555,12 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: deletingSession.sesion_id })
         });
-        if (!response.ok) throw new Error('Failed to delete session');
-        toast({ title: 'Éxito', description: 'La sesión ha sido eliminada.' });
+        if (!response.ok) throw new Error(t('timeline.toast.deleteError'));
+        toast({ title: t('timeline.toast.success'), description: t('timeline.toast.deleteSuccess') });
         refreshAllData();
     } catch (error) {
         console.error('Delete error', error);
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar la sesión.' });
+        toast({ variant: 'destructive', title: t('timeline.toast.error'), description: error instanceof Error ? error.message : t('timeline.toast.deleteError') });
     } finally {
         setDeletingSession(null);
     }
@@ -1664,20 +1672,20 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
       <div className="space-y-6">
         <div className="bg-card rounded-xl shadow-lg p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-card-foreground">Galería de Imágenes</h3>
+            <h3 className="text-xl font-bold text-card-foreground">{t('images.title')}</h3>
             <div className="flex items-center space-x-2">
               <Shield className="w-4 h-4 text-blue-600" />
-              <span className="text-sm text-muted-foreground">DICOM Compliant</span>
+              <span className="text-sm text-muted-foreground">{t('images.dicomCompliant')}</span>
               <Filter className="w-5 h-5 text-muted-foreground ml-4" />
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 className="border border-input rounded-lg px-3 py-2 text-sm bg-background text-foreground"
               >
-                <option value="all">Todas las imágenes</option>
-                <option value="radiografia">Radiografías</option>
-                <option value="foto">Fotografías</option>
-                {selectedTooth && <option value="tooth">Diente {selectedTooth}</option>}
+                <option value="all">{t('images.all')}</option>
+                <option value="radiografia">{t('images.xrays')}</option>
+                <option value="foto">{t('images.photos')}</option>
+                {selectedTooth && <option value="tooth">{t('images.tooth')} {selectedTooth}</option>}
               </select>
             </div>
           </div>
@@ -1730,7 +1738,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
           <AlertTriangle className="w-6 h-6 text-destructive mr-3" />
-          <h3 className="text-lg font-bold text-destructive-foreground">Alertas Médicas Críticas</h3>
+          <h3 className="text-lg font-bold text-destructive-foreground">{t('alerts.title')}</h3>
         </div>
         <div className="flex items-center space-x-2">
           <Shield className="w-4 h-4 text-blue-600" />
@@ -1768,7 +1776,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
             </ul>
             {items.length > 3 && (
                 <Button variant="link" onClick={() => setIsOpen(!isOpen)} className="p-0 h-auto text-xs">
-                    {isOpen ? 'Show Less' : `Show ${items.length - 3} more...`}
+                    {isOpen ? t('timeline.showLess') : t('timeline.showMore', { count: items.length - 3 })}
                 </Button>
             )}
         </div>
@@ -1777,33 +1785,33 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
   const TreatmentTimeline = ({ sessions, onAction }: { sessions: PatientSession[], onAction: (action: 'add' | 'edit' | 'delete', session?: PatientSession) => void }) => {
     const conditionLabels: { [key: string]: string } = {
-        caries: "Caries",
-        filling: "Restauración",
-        crown: "Corona",
-        missing: "Ausente",
-        fracture: "Fractura",
-        'fixed-ortho': "Orto Fija",
-        implant: "Implante",
-        endodontics: "Endodoncia",
-        pulp: "Pulpitis",
-        'crown-tmp': "Corona Temporal",
-        bolt: "Perno",
-        diastema: "Diastema",
-        rotation: "Rotación",
-        worn: "Desgastado",
-        supernumerary: "Supernumerario",
-        fusion: "Fusión",
-        prosthesis: "Prótesis",
-        edentulism: "Edentulismo",
-        eruption: "Erupción",
+        caries: t('odontogram.conditions.caries'),
+        filling: t('odontogram.conditions.filling'),
+        crown: t('odontogram.conditions.crown'),
+        missing: t('odontogram.conditions.missing'),
+        fracture: t('odontogram.conditions.fracture'),
+        'fixed-ortho': t('odontogram.conditions.fixed-ortho'),
+        implant: t('odontogram.conditions.implant'),
+        endodontics: t('odontogram.conditions.endodontics'),
+        pulp: t('odontogram.conditions.pulp'),
+        'crown-tmp': t('odontogram.conditions.crown-tmp'),
+        bolt: t('odontogram.conditions.bolt'),
+        diastema: t('odontogram.conditions.diastema'),
+        rotation: t('odontogram.conditions.rotation'),
+        worn: t('odontogram.conditions.worn'),
+        supernumerary: t('odontogram.conditions.supernumerary'),
+        fusion: t('odontogram.conditions.fusion'),
+        prosthesis: t('odontogram.conditions.prosthesis'),
+        edentulism: t('odontogram.conditions.edentulism'),
+        eruption: t('odontogram.conditions.eruption'),
     };
 
     const surfaceLabels: { [key: string]: string } = {
-        center: 'Oclusal',
-        top: 'Vestibular',
-        bottom: 'Lingual',
-        left: 'Mesial',
-        right: 'Distal',
+        center: t('odontogram.surfaces.center'),
+        top: t('odontogram.surfaces.top'),
+        bottom: t('odontogram.surfaces.bottom'),
+        left: t('odontogram.surfaces.left'),
+        right: t('odontogram.surfaces.right'),
     };
 
     const getDescriptionsForTooth = (toothState: any) => {
@@ -1862,7 +1870,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     if (isLoadingPatientSessions) {
         return (
             <div className="bg-card rounded-xl shadow-lg p-6">
-                <h3 className="text-xl font-bold text-card-foreground mb-6">Historial de Tratamientos</h3>
+                <h3 className="text-xl font-bold text-card-foreground mb-6">{t('timeline.title')}</h3>
                 <div className="space-y-4">
                     {[...Array(3)].map((_, i) => (
                         <div key={i} className="flex gap-4">
@@ -1884,7 +1892,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
     return (
         <div className="bg-card rounded-xl shadow-lg p-6 flex flex-col h-full">
             <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-card-foreground">Historial de Tratamientos</h3>
+                <h3 className="text-xl font-bold text-card-foreground">{t('timeline.title')}</h3>
                 <Button variant="outline" size="icon" onClick={() => onAction('add')}>
                     <Plus className="h-4 w-4" />
                 </Button>
@@ -1922,11 +1930,11 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                                                     disabled={isOdontogramSession}
                                                                 >
                                                                     <Edit3 className="mr-2 h-4 w-4" />
-                                                                    <span>Editar</span>
+                                                                    <span>{t('timeline.edit')}</span>
                                                                 </DropdownMenuItem>
                                                             </div>
                                                         </TooltipTrigger>
-                                                        {isOdontogramSession && <TooltipContent>Las sesiones de odontograma se gestionan desde el odontograma.</TooltipContent>}
+                                                        {isOdontogramSession && <TooltipContent>{t('timeline.odontogramTooltip')}</TooltipContent>}
                                                     </Tooltip>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
@@ -1938,26 +1946,26 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                                                     className="text-destructive"
                                                                 >
                                                                     <Trash2 className="mr-2 h-4 w-4" />
-                                                                    <span>Eliminar</span>
+                                                                    <span>{t('timeline.delete')}</span>
                                                                 </DropdownMenuItem>
                                                             </div>
                                                         </TooltipTrigger>
-                                                         {isOdontogramSession && <TooltipContent>Las sesiones de odontograma se gestionan desde el odontograma.</TooltipContent>}
+                                                         {isOdontogramSession && <TooltipContent>{t('timeline.odontogramTooltip')}</TooltipContent>}
                                                     </Tooltip>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </div>
                                         <div className="space-y-3 text-sm text-foreground/80">
-                                            {session.tipo_sesion && <p><strong className="text-foreground/90">Tipo de Sesión:</strong> <span className="capitalize bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-300">{session.tipo_sesion}</span></p>}
-                                            {session.diagnostico && <p><strong className="text-foreground/90">Diagnóstico:</strong> {session.diagnostico}</p>}
-                                            {session.notas_clinicas && <p><strong className="text-foreground/90">Notas:</strong> {session.notas_clinicas}</p>}
+                                            {session.tipo_sesion && <p><strong className="text-foreground/90">{t('timeline.sessionType')}:</strong> <span className="capitalize bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-300">{session.tipo_sesion}</span></p>}
+                                            {session.diagnostico && <p><strong className="text-foreground/90">{t('timeline.diagnosis')}:</strong> {session.diagnostico}</p>}
+                                            {session.notas_clinicas && <p><strong className="text-foreground/90">{t('timeline.notes')}:</strong> {session.notas_clinicas}</p>}
                                             
                                             {odontogramSummary && (
                                                 <CollapsibleList
-                                                    title="Actualización Odontograma"
+                                                    title={t('timeline.odontogramUpdate')}
                                                     items={odontogramSummary.map(item => (
                                                         <li key={item.toothId}>
-                                                            <strong className="font-medium">Diente {item.toothId}:</strong> {item.conditions.join(', ')}
+                                                            <strong className="font-medium">{t('timeline.tooth', {id: item.toothId})}:</strong> {item.conditions.join(', ')}
                                                         </li>
                                                     ))}
                                                 />
@@ -1965,15 +1973,15 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 
                                             {session.tratamientos && (
                                                <CollapsibleList
-                                                    title="Tratamientos"
-                                                    items={session.tratamientos.map((t, i) => (
-                                                        <li key={i}>{t.descripcion} {t.numero_diente && `(Diente ${t.numero_diente})`}</li>
+                                                    title={t('timeline.treatments')}
+                                                    items={session.tratamientos.map((tr, i) => (
+                                                        <li key={i}>{tr.descripcion} {tr.numero_diente && `(${t('timeline.tooth', {id: tr.numero_diente})})`}</li>
                                                     ))}
                                                 />
                                             )}
                                             {session.archivos_adjuntos && (
                                                 <CollapsibleList
-                                                    title="Archivos Adjuntos"
+                                                    title={t('timeline.attachments')}
                                                     items={session.archivos_adjuntos.map((file, i) => (
                                                         <li key={i}>
                                                             <a 
@@ -1983,7 +1991,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                                                 className="text-primary hover:underline flex items-center gap-1"
                                                             >
                                                                 <Paperclip className="w-3 h-3" />
-                                                                {file.tipo} {file.diente_asociado && `(Diente ${file.diente_asociado})`}
+                                                                {file.tipo} {file.diente_asociado && `(${t('timeline.tooth', {id: file.diente_asociado})})`}
                                                             </a>
                                                         </li>
                                                     ))}
@@ -2005,10 +2013,10 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
   const Navigation = () => (
     <div className="flex space-x-1">
       {[
-        { id: 'anamnesis', label: 'Anamnesis', icon: FileText },
-        { id: 'timeline', label: 'Timeline', icon: Clock },
-        { id: 'odontogram', label: 'Odontogram', icon: Smile },
-        { id: 'images', label: 'Imágenes', icon: Camera },
+        { id: 'anamnesis', label: t('tabs.anamnesis'), icon: FileText },
+        { id: 'timeline', label: t('tabs.timeline'), icon: Clock },
+        { id: 'odontogram', label: t('tabs.odontogram'), icon: Smile },
+        { id: 'images', label: t('tabs.images'), icon: Camera },
       ].map(({ id, label, icon: Icon }) => (
         <Button
             key={id}
@@ -2030,7 +2038,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
       <div className="bg-card shadow-sm border-b border-border px-6 py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-card-foreground">Historial Clinico Digital</h1>
+            <h1 className="text-2xl font-bold text-card-foreground">{t('title')}</h1>
             {selectedPatient && (
                 <div className="flex items-center gap-2">
                     <p className="text-2xl font-bold text-foreground">{selectedPatient.name}</p>
@@ -2052,17 +2060,17 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                                 setSearchQuery(e.target.value)
                                 if(!patientSearchOpen) setPatientSearchOpen(true)
                             }}
-                            placeholder="Buscar paciente..."
+                            placeholder={t('searchPlaceholder')}
                             className="pl-9 w-96"
                         />
                     </div>
                 </PopoverTrigger>
                 <PopoverContent className="p-0 w-96" align="start">
                     <Command>
-                        <CommandInput placeholder="Buscar por nombre o ID..." value={searchQuery} onValueChange={setSearchQuery}/>
+                        <CommandInput placeholder={t('searchPlaceholder')} value={searchQuery} onValueChange={setSearchQuery}/>
                         <CommandList>
                             <CommandEmpty>
-                                {isSearching ? 'Buscando...' : 'No se encontraron pacientes.'}
+                                {isSearching ? t('searching') : t('noPatientsFound')}
                             </CommandEmpty>
                             <CommandGroup>
                                 {searchResults.map((user) => (
@@ -2137,8 +2145,8 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         !isFullscreen && (
           <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
             <SearchCheck className="w-24 h-24 text-muted-foreground/30 mb-4" />
-            <h2 className="text-2xl font-semibold text-foreground/80">Seleccione un paciente</h2>
-            <p className="text-muted-foreground mt-2">Utilice la barra de búsqueda de arriba para encontrar y cargar el historial clínico de un paciente.</p>
+            <h2 className="text-2xl font-semibold text-foreground/80">{t('selectPatientTitle')}</h2>
+            <p className="text-muted-foreground mt-2">{t('selectPatientDescription')}</p>
           </div>
         )
       )}
@@ -2154,14 +2162,14 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         <AlertDialog open={!!deletingSession} onOpenChange={() => setDeletingSession(null)}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('timeline.deleteDialog.title')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        This will permanently delete the session. This action cannot be undone.
+                        {t('timeline.deleteDialog.description')}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleConfirmDeleteSession}>Continue</AlertDialogAction>
+                    <AlertDialogCancel>{t('timeline.deleteDialog.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmDeleteSession}>{t('timeline.deleteDialog.confirm')}</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
@@ -2170,6 +2178,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
 };
 
 const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOpen: boolean, onOpenChange: (open: boolean) => void, session: PatientSession | null, userId: string, onSave: () => void }) => {
+    const t = useTranslations('ClinicHistoryPage.sessionDialog');
     const [formData, setFormData] = useState<Partial<PatientSession>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [doctors, setDoctors] = useState<UserType[]>([]);
@@ -2224,8 +2233,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         if (!newTreatmentDescription) {
             toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: 'La descripción del tratamiento no puede estar vacía.',
+                title: t('toast.error'),
+                description: t('toast.treatmentDescriptionEmpty'),
             });
             return;
         }
@@ -2278,12 +2287,12 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                 const errorText = await response.text();
                 throw new Error(`Failed to save session: ${errorText}`);
             }
-            toast({ title: 'Éxito', description: 'La sesión ha sido guardada.' });
+            toast({ title: t('toast.success'), description: t('toast.saveSuccess') });
             onSave();
             onOpenChange(false);
         } catch (error) {
             console.error('Save error', error);
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la sesión.' });
+            toast({ variant: 'destructive', title: t('toast.error'), description: t('toast.saveError') });
         } finally {
             setIsSubmitting(false);
         }
@@ -2293,20 +2302,20 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-4xl">
                 <DialogHeader>
-                    <DialogTitle>{session ? 'Edit Clinical Session' : 'Create New Clinical Session'}</DialogTitle>
+                    <DialogTitle>{session ? t('editTitle') : t('createTitle')}</DialogTitle>
                 </DialogHeader>
                 <div className="py-4 space-y-4">
                     <div className="space-y-2">
-                        <Label>Session Date</Label>
+                        <Label>{t('date')}</Label>
                         <Input type="datetime-local" value={formData.fecha_sesion || ''} onChange={e => handleInputChange('fecha_sesion', e.target.value)} />
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label>Doctor</Label>
+                                <Label>{t('doctor')}</Label>
                                 <Select value={formData.doctor_id || ''} onValueChange={(value) => handleInputChange('doctor_id', value)}>
-                                    <SelectTrigger><SelectValue placeholder="Select a doctor..."/></SelectTrigger>
+                                    <SelectTrigger><SelectValue placeholder={t('selectDoctor')} /></SelectTrigger>
                                     <SelectContent>
                                         {doctors.map(doc => (
                                             <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>
@@ -2315,31 +2324,31 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label>Procedure</Label>
+                                <Label>{t('procedure')}</Label>
                                 <Input value={formData.procedimiento_realizado || ''} onChange={e => handleInputChange('procedimiento_realizado', e.target.value)} />
                             </div>
                             <div className="space-y-2">
-                                <Label>Diagnosis</Label>
+                                <Label>{t('diagnosis')}</Label>
                                 <Textarea value={formData.diagnostico || ''} onChange={e => handleInputChange('diagnostico', e.target.value)} />
                             </div>
                             <div className="space-y-2">
-                                <Label>Clinical Notes</Label>
+                                <Label>{t('notes')}</Label>
                                 <Textarea value={formData.notas_clinicas || ''} onChange={e => handleInputChange('notas_clinicas', e.target.value)} />
                             </div>
                         </div>
                         <div className="space-y-4">
-                            <h4 className="font-semibold">Session Treatments</h4>
+                            <h4 className="font-semibold">{t('treatments')}</h4>
                             <div className="space-y-2 p-2 border rounded-md">
                                 <div className="flex gap-2">
                                     <Input 
                                         type="number"
-                                        placeholder="Tooth #" 
+                                        placeholder={t('toothPlaceholder')}
                                         value={newTreatmentTooth}
                                         onChange={(e) => setNewTreatmentTooth(e.target.value)}
                                         className="w-24"
                                     />
                                     <Input 
-                                        placeholder="Treatment description" 
+                                        placeholder={t('treatmentPlaceholder')} 
                                         value={newTreatmentDescription}
                                         onChange={(e) => setNewTreatmentDescription(e.target.value)}
                                     />
@@ -2351,7 +2360,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                                     <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-md">
                                         <div>
                                             <p className="text-sm font-medium">{treatment.descripcion}</p>
-                                            {treatment.numero_diente && <p className="text-xs text-muted-foreground">Tooth: {treatment.numero_diente}</p>}
+                                            {treatment.numero_diente && <p className="text-xs text-muted-foreground">{t('tooth')}: {treatment.numero_diente}</p>}
                                         </div>
                                         <Button type="button" variant="destructive-ghost" size="icon" onClick={() => handleRemoveTreatment(index)}>
                                             <Trash2 className="h-4 w-4" />
@@ -2363,8 +2372,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                    <Button onClick={handleSave} disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</Button>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
+                    <Button onClick={handleSave} disabled={isSubmitting}>{isSubmitting ? t('saving') : t('save')}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -2380,3 +2389,4 @@ export default function DentalClinicalSystemPage() {
     
 
     
+

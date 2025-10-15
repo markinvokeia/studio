@@ -487,5 +487,231 @@
   },
   "General": {
     "noResults": "No results."
+  },
+  "ClinicHistoryPage": {
+    "title": "Digital Clinic History",
+    "searchPlaceholder": "Search patient...",
+    "searching": "Searching...",
+    "noPatientsFound": "No patients found.",
+    "selectPatientTitle": "Select a Patient",
+    "selectPatientDescription": "Use the search bar above to find and load a patient's clinic history.",
+    "tabs": {
+      "anamnesis": "Anamnesis",
+      "timeline": "Timeline",
+      "odontogram": "Odontogram",
+      "images": "Images"
+    },
+    "anamnesis": {
+      "personalTitle": "Personal History",
+      "familyTitle": "Family History",
+      "medicationsTitle": "Current Medications",
+      "allergiesTitle": "Allergies",
+      "relative": "Relative",
+      "present": "Present",
+      "loading": {
+        "personal": "Loading personal history...",
+        "family": "Loading family history...",
+        "medications": "Loading medications...",
+        "allergies": "Loading allergies..."
+      },
+      "noData": {
+        "personal": "No personal history found.",
+        "family": "No family history found.",
+        "medications": "No medications found.",
+        "allergies": "No allergies found."
+      },
+      "itemTypes": {
+        "personal": "personal history item",
+        "family": "family history item",
+        "allergy": "allergy",
+        "medication": "medication"
+      },
+      "dialogs": {
+        "ailment": "Ailment",
+        "comments": "Comments",
+        "commentsPlaceholder": "e.g., Daily medication",
+        "selectAilment": "Select an ailment...",
+        "searchAilment": "Search ailment...",
+        "noAilmentFound": "No ailment found.",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving...",
+        "personal": {
+          "addTitle": "Add Personal History",
+          "editTitle": "Edit Personal History",
+          "addDescription": "Complete the form to add a new personal history item.",
+          "editDescription": "Update the details of the history item."
+        },
+        "family": {
+          "addTitle": "Add Family History",
+          "editTitle": "Edit Family History",
+          "addDescription": "Complete the form to add a new family history item.",
+          "editDescription": "Update the details of the history item.",
+          "relationship": "Relationship",
+          "selectRelationship": "Select a relationship",
+          "father": "Father",
+          "mother": "Mother",
+          "maternalGrandfather": "Maternal Grandfather",
+          "paternalGrandmother": "Paternal Grandmother",
+          "paternalGrandfather": "Paternal Grandfather",
+          "maternalGrandmother": "Maternal Grandmother",
+          "commentsPlaceholder": "e.g., Diagnosed at 45"
+        },
+        "allergy": {
+          "addTitle": "Add Allergy",
+          "editTitle": "Edit Allergy",
+          "allergen": "Allergen",
+          "reaction": "Reaction"
+        },
+        "medication": {
+          "addTitle": "Add Medication",
+          "editTitle": "Edit Medication",
+          "name": "Name",
+          "selectMedication": "Select a medication...",
+          "searchMedication": "Search medication...",
+          "noMedicationFound": "No medication found.",
+          "dose": "Dose",
+          "frequency": "Frequency",
+          "startDate": "Start Date",
+          "endDate": "End Date",
+          "reason": "Reason"
+        }
+      },
+      "toast": {
+        "success": "Success",
+        "error": "Error",
+        "invalidAilment": "Please select a valid ailment.",
+        "requiredFields": "Please fill all required fields.",
+        "personalSuccess": "Personal history item has been saved.",
+        "personalError": "Could not save personal history item. Please try again.",
+        "familySuccess": "Family history item has been saved.",
+        "familyError": "Could not save family history item. Please try again.",
+        "allergySuccess": "Allergy has been saved.",
+        "allergyError": "Could not save allergy.",
+        "medicationSuccess": "Medication has been saved.",
+        "medicationError": "Could not save medication.",
+        "deleteSuccess": "{item} has been deleted.",
+        "deleteFailed": "Failed to delete {item}",
+        "deleteError": "Could not delete {item}. Please try again."
+      },
+      "deleteDialog": {
+        "title": "Are you sure?",
+        "description": "This action cannot be undone. This will permanently delete this item.",
+        "cancel": "Cancel",
+        "confirm": "Continue"
+      }
+    },
+    "habits": {
+      "title": "Patient Habits",
+      "smoking": "Smoking",
+      "smokingPlaceholder": "e.g., 10 cigarettes a day",
+      "alcohol": "Alcohol",
+      "alcoholPlaceholder": "e.g., 2 beers on weekends",
+      "bruxism": "Bruxism",
+      "bruxismPlaceholder": "e.g., Nocturnal, uses plate",
+      "notSpecified": "Not specified",
+      "noData": "No patient habits found.",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "toast": {
+        "success": "Success",
+        "error": "Error",
+        "saveSuccess": "Patient habits have been saved.",
+        "saveError": "Could not save habits."
+      }
+    },
+    "timeline": {
+      "title": "Treatment History",
+      "edit": "Edit",
+      "delete": "Delete",
+      "odontogramTooltip": "Odontogram sessions are managed from the odontogram.",
+      "sessionType": "Session Type",
+      "diagnosis": "Diagnosis",
+      "notes": "Notes",
+      "odontogramUpdate": "Odontogram Update",
+      "tooth": "Tooth {id}",
+      "treatments": "Treatments",
+      "attachments": "Attachments",
+      "showLess": "Show Less",
+      "showMore": "Show {count, plural, one {# more} other {# more}}...",
+      "toast": {
+        "success": "Success",
+        "error": "Error",
+        "deleteSuccess": "The session has been deleted.",
+        "deleteError": "Could not delete the session."
+      },
+      "deleteDialog": {
+        "title": "Are you sure?",
+        "description": "This will permanently delete the session. This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Continue"
+      }
+    },
+    "sessionDialog": {
+      "createTitle": "Create New Clinical Session",
+      "editTitle": "Edit Clinical Session",
+      "date": "Session Date",
+      "doctor": "Doctor",
+      "selectDoctor": "Select a doctor...",
+      "procedure": "Procedure",
+      "diagnosis": "Diagnosis",
+      "notes": "Clinical Notes",
+      "treatments": "Session Treatments",
+      "toothPlaceholder": "Tooth #",
+      "treatmentPlaceholder": "Treatment description",
+      "tooth": "Tooth",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "toast": {
+        "success": "Success",
+        "error": "Error",
+        "saveSuccess": "The session has been saved.",
+        "saveError": "Could not save the session.",
+        "treatmentDescriptionEmpty": "Treatment description cannot be empty."
+      }
+    },
+    "images": {
+      "title": "Image Gallery",
+      "dicomCompliant": "DICOM Compliant",
+      "all": "All images",
+      "xrays": "X-Rays",
+      "photos": "Photographs",
+      "tooth": "Tooth"
+    },
+    "alerts": {
+      "title": "Critical Medical Alerts"
+    },
+    "odontogram": {
+      "conditions": {
+        "caries": "Caries",
+        "filling": "Restoration",
+        "crown": "Crown",
+        "missing": "Missing",
+        "fracture": "Fracture",
+        "fixed-ortho": "Fixed Ortho",
+        "implant": "Implant",
+        "endodontics": "Endodontics",
+        "pulp": "Pulpitis",
+        "crown-tmp": "Temporary Crown",
+        "bolt": "Post",
+        "diastema": "Diastema",
+        "rotation": "Rotation",
+        "worn": "Worn",
+        "supernumerary": "Supernumerary",
+        "fusion": "Fusion",
+        "prosthesis": "Prosthesis",
+        "edentulism": "Edentulism",
+        "eruption": "Eruption"
+      },
+      "surfaces": {
+        "center": "Occlusal",
+        "top": "Vestibular",
+        "bottom": "Lingual",
+        "left": "Mesial",
+        "right": "Distal"
+      }
+    }
   }
 }
