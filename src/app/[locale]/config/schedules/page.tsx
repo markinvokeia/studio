@@ -72,8 +72,12 @@ async function upsertSchedule(scheduleData: ScheduleFormValues) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...scheduleData, day_of_week: Number(scheduleData.day_of_week) }),
     });
-    if (!response.ok) throw new Error('Failed to save schedule');
-    return response.json();
+    const responseData = await response.json();
+    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to save schedule';
+        throw new Error(message);
+    }
+    return responseData;
 }
 
 async function deleteSchedule(id: string) {
@@ -82,8 +86,12 @@ async function deleteSchedule(id: string) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
     });
-    if (!response.ok) throw new Error('Failed to delete schedule');
-    return response.json();
+    const responseData = await response.json();
+    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to delete schedule';
+        throw new Error(message);
+    }
+    return responseData;
 }
 
 export default function SchedulesPage() {
