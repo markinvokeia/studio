@@ -203,11 +203,13 @@ export default function AppointmentsPage() {
 
   const handleEdit = (appointment: Appointment) => {
     setEditingAppointment(appointment);
+    const foundCalendar = calendars.find(c => c.id === appointment.calendar_id) || calendars.find(c => c.name === appointment.calendar_name);
+    
     setNewAppointment({
         user: { id: '', name: appointment.patientName, email: appointment.patientEmail || '', phone_number: appointment.patientPhone || '', is_active: true, avatar: ''}, // Mock user with email
         services: [{ id: '', name: appointment.service_name, category: '', price: 0, duration_minutes: 30, is_active: true}], // Mock service
         doctor: { id: '', name: appointment.doctorName || '', email: appointment.doctorEmail || '', phone_number: '', is_active: true, avatar: '' }, // Mock doctor with email
-        calendar: calendars.find(c => c.id === appointment.calendar_id) || calendars.find(c => c.google_calendar_id === appointment.calendar_id) || null,
+        calendar: foundCalendar || null,
         date: appointment.date,
         time: appointment.time,
         showSuggestions: false,
@@ -234,7 +236,7 @@ export default function AppointmentsPage() {
     { accessorKey: 'time', header: t('createDialog.suggested.time') },
   ];
 
-  const generateColor = (str: string) => {
+  const generateColor = (str: string | undefined) => {
     if (!str) return '#ccc';
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -1224,4 +1226,5 @@ export default function AppointmentsPage() {
     
 
     
+
 
