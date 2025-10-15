@@ -1183,19 +1183,21 @@ export default function AppointmentsPage() {
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
           <AlertDialogContent>
               <AlertDialogHeader>
-              <AlertDialogTitle>{t('AppointmentsColumns.cancel')}</AlertDialogTitle>
+              <AlertDialogTitle>{tColumns('cancel')}</AlertDialogTitle>
               <AlertDialogDescription>
                   This will permanently cancel the appointment for "{deletingAppointment?.service_name}" on {deletingAppointment?.date}. This action cannot be undone.
               </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setDeletingAppointment(null)}>{t('createDialog.cancel')}</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDeleteAppointment} className="bg-destructive hover:bg-destructive/90">{t('AppointmentsColumns.cancel')}</AlertDialogAction>
+              <AlertDialogAction onClick={confirmDeleteAppointment} className="bg-destructive hover:bg-destructive/90">{tColumns('cancel')}</AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
     </>
   );
 }
+
+    
 
     
