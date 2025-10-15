@@ -85,8 +85,6 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
             return [];
         }
 
-        const calendars = await getCalendars();
-
         return appointmentsData.map((apiAppt: any) => {
             const appointmentDateTimeStr = apiAppt.start_time || (apiAppt.start && apiAppt.start.dateTime);
             if (!appointmentDateTimeStr) return null;
@@ -94,8 +92,6 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
             const appointmentDateTime = parseISO(appointmentDateTimeStr);
             if (isNaN(appointmentDateTime.getTime())) return null;
             
-            const calendar = calendars.find(c => c.google_calendar_id === apiAppt.organizer?.email);
-
             return {
                 id: apiAppt.id,
                 patientName: apiAppt.patientName || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a:any) => a.email).join(', ') : 'N/A'),
@@ -107,7 +103,7 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
                 status: apiAppt.status || 'confirmed',
                 patientPhone: apiAppt.patientPhone,
                 doctorName: apiAppt.doctorName,
-                calendar_id: calendar?.id,
+                calendar_id: apiAppt.organizer?.email,
                 calendar_name: apiAppt.organizer?.displayName || apiAppt.organizer?.email,
             };
         }).filter((apt): apt is Appointment => apt !== null);
@@ -129,7 +125,7 @@ async function getCalendars(): Promise<CalendarType[]> {
         const data = await response.json();
         const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
         return calendarsData.map((apiCalendar: any) => ({
-            id: String(apiCalendar.id),
+            id: apiCalendar.google_calendar_id,
             name: apiCalendar.name,
             google_calendar_id: apiCalendar.google_calendar_id,
             is_active: apiCalendar.is_active,
@@ -203,8 +199,6 @@ export default function AppointmentsPage() {
 
   const handleEdit = (appointment: Appointment) => {
     setEditingAppointment(appointment);
-
-    // This logic now runs inside the useEffect below, once calendars are loaded.
   };
 
   React.useEffect(() => {
@@ -214,7 +208,7 @@ export default function AppointmentsPage() {
         if (!foundCalendar) {
             foundCalendar = calendars.find(c => c.name === editingAppointment.calendar_name);
         }
-
+        
         setNewAppointment({
             user: { id: '', name: editingAppointment.patientName, email: editingAppointment.patientEmail || '', phone_number: editingAppointment.patientPhone || '', is_active: true, avatar: ''}, // Mock user with email
             services: [{ id: '', name: editingAppointment.service_name, category: '', price: 0, duration_minutes: 30, is_active: true}], // Mock service
@@ -776,7 +770,7 @@ export default function AppointmentsPage() {
                                 <Separator />
                                 <ScrollArea className="h-32">
                                     {calendars.map(calendar => (
-                                    <div key={calendar.id || React.useId()} className="flex items-center space-x-2 py-1">
+                                    <div key={calendar.id} className="flex items-center space-x-2 py-1">
                                         <Checkbox 
                                             id={calendar.id}
                                             checked={selectedCalendarIds.includes(calendar.id)}
