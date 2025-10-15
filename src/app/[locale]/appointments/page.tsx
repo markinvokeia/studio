@@ -620,25 +620,25 @@ export default function AppointmentsPage() {
     try {
       const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments/upsert', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "An unknown error occurred" }));
-        throw new Error(errorData.message || "Failed to save appointment");
+      const responseData = await response.json();
+
+      if (response.ok && Array.isArray(responseData) && responseData[0]?.code === 200) {
+        toast({
+          title: editingAppointment ? "Appointment Updated" : "Appointment Created",
+          description: responseData[0].message || `The appointment has been successfully ${editingAppointment ? 'updated' : 'saved'}.`,
+        });
+
+        setCreateOpen(false);
+        setEditingAppointment(null);
+        loadAppointments();
+      } else {
+        const errorMessage = responseData[0]?.message || "An unknown error occurred.";
+        throw new Error(errorMessage);
       }
-
-      toast({
-        title: editingAppointment ? "Appointment Updated" : "Appointment Created",
-        description: `The appointment has been successfully ${editingAppointment ? 'updated' : 'saved'}.`,
-      });
-
-      setCreateOpen(false);
-      setEditingAppointment(null);
-      loadAppointments();
 
     } catch (error) {
       console.error("Error saving appointment:", error);
@@ -651,34 +651,36 @@ export default function AppointmentsPage() {
   };
   
   const confirmDeleteAppointment = async () => {
-        if (!deletingAppointment) return;
-        try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments/delete', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ eventId: deletingAppointment.id, calendarId: deletingAppointment.calendar_id }),
-            });
+    if (!deletingAppointment) return;
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments/delete', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ eventId: deletingAppointment.id, calendarId: deletingAppointment.calendar_id }),
+        });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: "An unknown error occurred during deletion" }));
-                throw new Error(errorData.message || 'Failed to delete appointment');
-            }
+        const responseData = await response.json();
 
+        if (response.ok && Array.isArray(responseData) && responseData[0]?.code === 200) {
             toast({
                 title: "Appointment Cancelled",
-                description: "The appointment has been successfully cancelled.",
+                description: responseData[0].message || "The appointment has been successfully cancelled.",
             });
             setIsDeleteAlertOpen(false);
             setDeletingAppointment(null);
             loadAppointments();
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: error instanceof Error ? error.message : "Could not cancel the appointment.",
-            });
+        } else {
+            const errorMessage = responseData[0]?.message || 'Failed to delete appointment';
+            throw new Error(errorMessage);
         }
-    };
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: error instanceof Error ? error.message : "Could not cancel the appointment.",
+        });
+    }
+};
 
 
   return (
@@ -1180,7 +1182,7 @@ export default function AppointmentsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => {setCreateOpen(false); setEditingAppointment(null);}}>{t('createDialog.cancel')}</Button>
-            <Button onClick={handleSaveAppointment}>{editingAppointment ? t('createDialog.save') : t('createDialog.save')}</Button>
+            <Button onClick={handleSaveAppointment}>{editingAppointment ? tColumns('edit') : t('createDialog.save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1201,8 +1203,3 @@ export default function AppointmentsPage() {
     </>
   );
 }
-
-    
-
-    
-
