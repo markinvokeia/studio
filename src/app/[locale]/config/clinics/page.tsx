@@ -36,13 +36,30 @@ async function getClinic(): Promise<Clinic | null> {
         
         const apiClinic = clinicsData[0];
 
+        let logoUrl = null;
+        if (apiClinic.logo && apiClinic.logo.type === 'Buffer' && Array.isArray(apiClinic.logo.data)) {
+            try {
+                // The data seems to be a JSON string within a buffer.
+                const jsonString = Buffer.from(apiClinic.logo.data).toString('utf-8');
+                const logoData = JSON.parse(jsonString);
+                if (logoData.fileUrl) {
+                    logoUrl = logoData.fileUrl;
+                }
+            } catch (e) {
+                console.error("Could not parse logo data:", e);
+            }
+        } else if (typeof apiClinic.logo === 'string') {
+             logoUrl = apiClinic.logo;
+        }
+
+
         return {
             id: apiClinic.id ? String(apiClinic.id) : `cli_${Math.random().toString(36).substr(2, 9)}`,
             name: apiClinic.name || 'No Name',
             location: apiClinic.address || 'No Location',
             contact_email: apiClinic.email || 'no-email@example.com',
             phone_number: apiClinic.phone || '000-000-0000',
-            logo: apiClinic.logo_url || null,
+            logo: logoUrl,
         };
     } catch (error) {
         console.error("Failed to fetch clinics:", error);
