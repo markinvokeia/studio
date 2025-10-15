@@ -108,7 +108,7 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
                 patientPhone: apiAppt.patientPhone,
                 doctorName: apiAppt.doctorName,
                 calendar_id: calendar?.id || apiAppt.organizer?.email,
-                calendar_name: apiAppt.organizer?.displayName || apiAppt.organizer?.email || '',
+                calendar_name: apiAppt.organizer?.displayName || calendar?.name || apiAppt.organizer?.email || '',
             };
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
@@ -129,7 +129,7 @@ async function getCalendars(): Promise<CalendarType[]> {
         const data = await response.json();
         const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
         return calendarsData.map((apiCalendar: any, index: number) => ({
-            id: apiCalendar.id || `cal-${index}`,
+            id: apiCalendar.id ? String(apiCalendar.id) : `cal-${index}`,
             name: apiCalendar.name,
             google_calendar_id: apiCalendar.google_calendar_id,
             is_active: apiCalendar.is_active,
@@ -207,7 +207,7 @@ export default function AppointmentsPage() {
         user: { id: '', name: appointment.patientName, email: appointment.patientEmail || '', phone_number: appointment.patientPhone || '', is_active: true, avatar: ''}, // Mock user with email
         services: [{ id: '', name: appointment.service_name, category: '', price: 0, duration_minutes: 30, is_active: true}], // Mock service
         doctor: { id: '', name: appointment.doctorName || '', email: appointment.doctorEmail || '', phone_number: '', is_active: true, avatar: '' }, // Mock doctor with email
-        calendar: calendars.find(c => c.id === appointment.calendar_id) || null,
+        calendar: calendars.find(c => c.id === appointment.calendar_id) || calendars.find(c => c.google_calendar_id === appointment.calendar_id) || null,
         date: appointment.date,
         time: appointment.time,
         showSuggestions: false,
@@ -264,6 +264,7 @@ export default function AppointmentsPage() {
       const cal = calendars.find(c => c.id === id);
       return cal?.google_calendar_id;
     }).filter((id): id is string => !!id);
+
     const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.from, fetchRange.to);
     setAppointments(fetchedAppointments);
     setIsRefreshing(false);
@@ -762,7 +763,7 @@ export default function AppointmentsPage() {
                                 <Separator />
                                 <ScrollArea className="h-32">
                                     {calendars.map(calendar => (
-                                    <div key={calendar.id || calendar.name} className="flex items-center space-x-2 py-1">
+                                    <div key={calendar.id || calendar.google_calendar_id} className="flex items-center space-x-2 py-1">
                                         <Checkbox 
                                             id={calendar.id}
                                             checked={selectedCalendarIds.includes(calendar.id)}
@@ -1223,3 +1224,4 @@ export default function AppointmentsPage() {
     
 
     
+
