@@ -636,7 +636,7 @@ export default function AppointmentsPage() {
         setEditingAppointment(null);
         loadAppointments();
       } else {
-        const errorMessage = responseData[0]?.message || "An unknown error occurred.";
+        const errorMessage = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'An unknown error occurred.';
         throw new Error(errorMessage);
       }
 
@@ -670,7 +670,7 @@ export default function AppointmentsPage() {
             setDeletingAppointment(null);
             loadAppointments();
         } else {
-            const errorMessage = responseData[0]?.message || 'Failed to delete appointment';
+            const errorMessage = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to delete appointment';
             throw new Error(errorMessage);
         }
     } catch (error) {
