@@ -542,6 +542,9 @@ export default function AppointmentsPage() {
             method: 'GET',
             mode: 'cors',
         });
+        if (!response.ok) {
+            throw new Error('Failed to check availability');
+        }
         const data = await response.json();
         
         let isAvailable = false;
@@ -624,7 +627,7 @@ export default function AppointmentsPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: "An unknown error occurred" }));
         throw new Error(errorData.message || "Failed to save appointment");
       }
 
@@ -657,7 +660,8 @@ export default function AppointmentsPage() {
             });
 
             if (!response.ok) {
-                throw new Error('Failed to delete appointment');
+                const errorData = await response.json().catch(() => ({ message: "An unknown error occurred during deletion" }));
+                throw new Error(errorData.message || 'Failed to delete appointment');
             }
 
             toast({
@@ -885,7 +889,7 @@ export default function AppointmentsPage() {
         <DialogContent className={cn("sm:max-w-md", newAppointment.showSuggestions && "sm:max-w-4xl")}>
           <DialogHeader>
             <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
-            <DialogDescription>{editingAppointment ? tColumns('edit') : t('createDialog.description')}</DialogDescription>
+            <DialogDescription>{editingAppointment ? t('createDialog.description') : t('createDialog.description')}</DialogDescription>
           </DialogHeader>
           <div className={cn("grid gap-8 py-4", newAppointment.showSuggestions && "grid-cols-2")}>
             <div className="grid gap-4">
@@ -1176,7 +1180,7 @@ export default function AppointmentsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => {setCreateOpen(false); setEditingAppointment(null);}}>{t('createDialog.cancel')}</Button>
-            <Button onClick={handleSaveAppointment}>{t('createDialog.save')}</Button>
+            <Button onClick={handleSaveAppointment}>{editingAppointment ? t('createDialog.save') : t('createDialog.save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1201,3 +1205,4 @@ export default function AppointmentsPage() {
     
 
     
+
