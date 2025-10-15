@@ -487,5 +487,539 @@
   },
   "General": {
     "noResults": "No se encontraron resultados."
+  },
+  "CalendarsPage": {
+    "title": "Calendarios",
+    "description": "Gestiona tus calendarios.",
+    "filterPlaceholder": "Filtrar calendarios por nombre...",
+    "createDialog": {
+      "title": "Crear Nuevo Calendario",
+      "editTitle": "Editar Calendario",
+      "description": "Completa los detalles a continuación para agregar un nuevo calendario.",
+      "editDescription": "Actualiza los detalles de este calendario.",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Calendario Principal",
+      "googleCalendarId": "ID de Google Calendar",
+      "googleCalendarIdPlaceholder": "ej., abc@group.calendar.google.com",
+      "active": "Activo",
+      "cancel": "Cancelar",
+      "save": "Guardar Cambios",
+      "create": "Crear Calendario"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente el calendario \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "deleteSuccessTitle": "Calendario Eliminado",
+      "deleteSuccessDescription": "El calendario \"{name}\" ha sido eliminado.",
+      "deleteErrorDescription": "No se pudo eliminar el calendario.",
+      "updateSuccessTitle": "Calendario Actualizado",
+      "createSuccessTitle": "Calendario Creado",
+      "successDescription": "El calendario \"{name}\" ha sido guardado exitosamente.",
+      "genericError": "Ocurrió un error inesperado."
+    },
+    "columns": {
+      "name": "Nombre",
+      "googleCalendarId": "ID de Google Calendar",
+      "active": "Activo",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "yes": "Si",
+      "no": "No"
+    }
+  },
+  "ClinicsPage": {
+    "description": "Gestiona las ubicaciones e información de contacto de la clínica.",
+    "logo": "Logo de la Clínica",
+    "name": "Nombre",
+    "location": "Ubicación",
+    "email": "Email",
+    "phone": "Teléfono",
+    "save": "Guardar Cambios",
+    "refresh": "Refrescar",
+    "noData": "No se encontró información de la clínica.",
+    "fileTooLarge": "Archivo Demasiado Grande",
+    "fileSizeError": "La imagen del logo seleccionado debe ser menor a 1MB.",
+    "success": "Éxito",
+    "updateSuccess": "Detalles de la clínica actualizados exitosamente.",
+    "error": "Error",
+    "updateError": "No se pudieron actualizar los detalles de la clínica."
+  },
+  "HolidaysPage": {
+    "description": "Gestiona las excepciones al horario regular de la clínica.",
+    "filterPlaceholder": "Filtrar feriados por fecha...",
+    "createDialog": {
+      "title": "Crear Nueva Excepción",
+      "editTitle": "Editar Excepción",
+      "description": "Completa los detalles a continuación para agregar un nuevo feriado o excepción.",
+      "editDescription": "Actualiza los detalles de esta excepción.",
+      "date": "Fecha",
+      "isOpen": "Clínica Abierta",
+      "startTime": "Hora de Inicio",
+      "endTime": "Hora de Fin",
+      "notes": "Notas",
+      "notesPlaceholder": "ej., Evento especial",
+      "cancel": "Cancelar",
+      "save": "Guardar Cambios",
+      "create": "Crear Excepción"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente la excepción. Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "deleteSuccessTitle": "Excepción Eliminada",
+      "deleteSuccessDescription": "La excepción ha sido eliminada exitosamente.",
+      "deleteErrorDescription": "No se pudo eliminar la excepción.",
+      "updateSuccessTitle": "Excepción Actualizada",
+      "createSuccessTitle": "Excepción Creada",
+      "successDescription": "La excepción ha sido guardada exitosamente.",
+      "genericError": "Ocurrió un error inesperado."
+    },
+    "columns": {
+      "id": "ID",
+      "date": "Fecha",
+      "status": "Estado",
+      "open": "Abierto",
+      "closed": "Cerrado",
+      "startTime": "Hora de Inicio",
+      "endTime": "Hora de Fin",
+      "notes": "Notas",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    }
+  },
+  "SchedulesPage": {
+    "description": "Gestiona los horarios semanales regulares de la clínica.",
+    "filterPlaceholder": "Filtrar horarios por día...",
+    "createDialog": {
+      "title": "Crear Nuevo Horario",
+      "editTitle": "Editar Horario",
+      "description": "Completa los detalles a continuación para agregar un nuevo horario.",
+      "editDescription": "Actualiza los detalles de este horario.",
+      "dayOfWeek": "Día de la Semana",
+      "selectDay": "Selecciona un día",
+      "monday": "Lunes",
+      "tuesday": "Martes",
+      "wednesday": "Miércoles",
+      "thursday": "Jueves",
+      "friday": "Viernes",
+      "saturday": "Sábado",
+      "sunday": "Domingo",
+      "startTime": "Hora de Inicio",
+      "endTime": "Hora de Fin",
+      "cancel": "Cancelar",
+      "save": "Guardar Cambios",
+      "create": "Crear Horario"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente el horario. Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "deleteSuccessTitle": "Horario Eliminado",
+      "deleteSuccessDescription": "El horario ha sido eliminado exitosamente.",
+      "deleteErrorDescription": "No se pudo eliminar el horario.",
+      "updateSuccessTitle": "Horario Actualizado",
+      "createSuccessTitle": "Horario Creado",
+      "successDescription": "El horario ha sido guardado exitosamente.",
+      "genericError": "Ocurrió un error inesperado."
+    },
+    "columns": {
+      "id": "ID",
+      "dayOfWeek": "Día de la Semana",
+      "startTime": "Hora de Inicio",
+      "endTime": "Hora de Fin",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "days": {
+        "0": "Domingo",
+        "1": "Lunes",
+        "2": "Martes",
+        "3": "Miércoles",
+        "4": "Jueves",
+        "5": "Viernes",
+        "6": "Sábado"
+      }
+    }
+  },
+  "ServicesPage": {
+    "title": "Catálogo de Servicios",
+    "description": "Gestiona los servicios de la empresa.",
+    "filterPlaceholder": "Filtrar servicios por nombre...",
+    "createDialog": {
+      "title": "Crear Nuevo Servicio",
+      "editTitle": "Editar Servicio",
+      "description": "Completa los detalles a continuación para agregar un nuevo servicio.",
+      "editDescription": "Actualiza los detalles de este servicio.",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Consulta Inicial",
+      "category": "Categoría",
+      "categoryPlaceholder": "ej., Consultoría",
+      "price": "Precio",
+      "pricePlaceholder": "0.00",
+      "duration": "Duración (min)",
+      "durationPlaceholder": "60",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Describe el servicio",
+      "indications": "Indicaciones",
+      "indicationsPlaceholder": "Introduce indicaciones para este servicio",
+      "cancel": "Cancelar",
+      "save": "Guardar Cambios",
+      "create": "Crear Servicio"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente el servicio \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "deleteSuccessTitle": "Servicio Eliminado",
+      "deleteSuccessDescription": "El servicio \"{name}\" ha sido eliminado.",
+      "deleteErrorDescription": "No se pudo eliminar el servicio.",
+      "updateSuccessTitle": "Servicio Actualizado",
+      "createSuccessTitle": "Servicio Creado",
+      "successDescription": "El servicio \"{name}\" ha sido guardado exitosamente.",
+      "genericError": "Ocurrió un error inesperado."
+    },
+    "columns": {
+      "id": "ID",
+      "name": "Nombre",
+      "category": "Categoría",
+      "price": "Precio",
+      "duration": "Duración (min)",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    }
+  },
+  "ChannelsPage": {
+    "title": "Canales de Comunicación",
+    "description": "Gestiona los canales de comunicación.",
+    "filterPlaceholder": "Filtrar canales por nombre...",
+    "createDialog": {
+      "title": "Crear Nuevo Canal",
+      "description": "Completa los detalles a continuación para agregar un nuevo canal de comunicación.",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Email de Soporte",
+      "type": "Tipo",
+      "selectType": "Selecciona un tipo",
+      "email": "Email",
+      "sms": "SMS",
+      "chat": "Chat",
+      "active": "Está Activo",
+      "cancel": "Cancelar",
+      "create": "Crear Canal"
+    },
+    "columns": {
+      "id": "ID",
+      "name": "Nombre",
+      "type": "Tipo",
+      "active": "Activo",
+      "yes": "Sí",
+      "no": "No",
+      "actions": "Acciones",
+      "openMenu": "Abrir menú",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    }
+  },
+  "ConversationsPage": {
+    "title": "Conversaciones",
+    "description": "Gestiona las conversaciones de los usuarios.",
+    "filterPlaceholder": "Filtrar conversaciones por asunto...",
+    "createDialog": {
+      "title": "Crear Nueva Conversación",
+      "description": "Completa los detalles a continuación para iniciar una nueva conversación.",
+      "subject": "Asunto",
+      "subjectPlaceholder": "ej., Pregunta de facturación",
+      "userId": "ID de Usuario",
+      "userIdPlaceholder": "usr_...",
+      "channelId": "ID de Canal",
+      "channelIdPlaceholder": "chan_...",
+      "status": "Estado",
+      "selectStatus": "Selecciona un estado",
+      "open": "Abierta",
+      "closed": "Cerrada",
+      "pending": "Pendiente",
+      "cancel": "Cancelar",
+      "create": "Crear Conversación"
+    },
+    "columns": {
+      "id": "ID",
+      "subject": "Asunto",
+      "userId": "ID de Usuario",
+      "channelId": "ID de Canal",
+      "status": "Estado",
+      "actions": "Acciones",
+      "openMenu": "Abrir menú",
+      "viewDetails": "Ver Detalles",
+      "delete": "Eliminar"
+    }
+  },
+  "InvoicesPage": {
+    "title": "Facturas",
+    "description": "Gestiona todas las facturas de los clientes.",
+    "detailsTitle": "Detalles de la Factura",
+    "detailsDescription": "ID de Factura: {id}",
+    "close": "Cerrar detalles",
+    "tabs": {
+      "items": "Artículos de Factura",
+      "payments": "Pagos"
+    },
+    "itemsTitle": "Artículos para la Factura {id}",
+    "refresh": "Refrescar"
+  },
+  "InvoiceItemsTable": {
+    "filterPlaceholder": "Filtrar por servicio..."
+  },
+  "PaymentsTable": {
+    "filterPlaceholder": "Filtrar por ID de factura..."
+  },
+  "OrdersPage": {
+    "title": "Pedidos",
+    "description": "Gestiona todos los pedidos de los clientes.",
+    "detailsTitle": "Detalles del Pedido",
+    "detailsDescription": "ID de Pedido: {id}",
+    "close": "Cerrar detalles",
+    "tabs": {
+      "items": "Artículos del Pedido",
+      "invoices": "Facturas",
+      "payments": "Pagos"
+    },
+    "itemsTitle": "Artículos del Pedido {id}",
+    "refresh": "Refrescar"
+  },
+  "OrderItemsTable": {
+    "filterPlaceholder": "Filtrar por servicio..."
+  },
+  "PaymentsListPage": {
+    "title": "Pagos",
+    "description": "Ver todos los pagos procesados."
+  },
+  "QuotesPage": {
+    "createDialog": {
+      "title": "Crear Nueva Cotización",
+      "description": "Completa los detalles a continuación para agregar una nueva cotización.",
+      "userId": "ID de Usuario",
+      "userIdPlaceholder": "usr_...",
+      "total": "Total",
+      "totalPlaceholder": "0.00",
+      "status": "Estado",
+      "selectStatus": "Selecciona un estado",
+      "draft": "Borrador",
+      "sent": "Enviada",
+      "accepted": "Aceptada",
+      "rejected": "Rechazada",
+      "pending": "Pendiente",
+      "confirmed": "Confirmada",
+      "paymentStatus": "Estado de Pago",
+      "selectPaymentStatus": "Selecciona un estado de pago",
+      "unpaid": "No Pagada",
+      "paid": "Pagada",
+      "partial": "Parcial",
+      "cancel": "Cancelar",
+      "create": "Crear Cotización"
+    },
+    "detailsTitle": "Detalles de la Cotización",
+    "detailsDescription": "ID de Cotización: {id}",
+    "close": "Cerrar detalles",
+    "tabs": {
+      "items": "Artículos de Cotización",
+      "orders": "Pedidos",
+      "invoices": "Facturas",
+      "payments": "Pagos"
+    }
+  },
+  "QuoteItemsTable": {
+    "filterPlaceholder": "Filtrar por servicio..."
+  },
+  "AccessLogPage": {
+    "title": "Registro de Acceso",
+    "description": "Monitorea el acceso de usuarios e intentos de inicio de sesión.",
+    "filterPlaceholder": "Filtrar registros por ID de usuario...",
+    "columns": {
+      "id": "ID",
+      "userId": "ID de Usuario",
+      "timestamp": "Marca de Tiempo",
+      "action": "Acción",
+      "success": "Éxito",
+      "ipAddress": "Dirección IP",
+      "channel": "Canal",
+      "details": "Detalles",
+      "actions": "Acciones",
+      "viewUser": "Ver Usuario",
+      "yes": "Sí",
+      "no": "No"
+    }
+  },
+  "AuditLogPage": {
+    "title": "Registro de Auditoría",
+    "description": "Revisa la actividad del sistema.",
+    "filterPlaceholder": "Filtrar registros por nombre de tabla...",
+    "columns": {
+      "id": "ID",
+      "changedAt": "Cambiado En",
+      "table": "Tabla",
+      "recordId": "ID de Registro",
+      "operation": "Operación",
+      "oldValue": "Valor Antiguo",
+      "newValue": "Valor Nuevo",
+      "changedBy": "Cambiado Por",
+      "actions": "Acciones",
+      "viewDetails": "Ver Detalles"
+    }
+  },
+  "SystemConfigPage": {
+    "title": "Configuraciones del Sistema",
+    "description": "Gestiona configuraciones a nivel de sistema.",
+    "filterPlaceholder": "Filtrar configuraciones por clave...",
+    "createDialog": {
+      "title": "Crear Nueva Configuración",
+      "description": "Completa los detalles a continuación para agregar una nueva configuración del sistema.",
+      "key": "Clave",
+      "keyPlaceholder": "ej., API_ENDPOINT",
+      "value": "Valor",
+      "valuePlaceholder": "ej., https://api.example.com",
+      "dataType": "Tipo de Dato",
+      "selectDataType": "Selecciona un tipo de dato",
+      "string": "Texto",
+      "number": "Número",
+      "boolean": "Booleano",
+      "json": "JSON",
+      "cancel": "Cancelar",
+      "create": "Crear Configuración"
+    },
+    "columns": {
+      "id": "ID",
+      "key": "Clave",
+      "value": "Valor",
+      "dataType": "Tipo",
+      "updatedBy": "Actualizado Por",
+      "actions": "Acciones",
+      "openMenu": "Abrir menú",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    }
+  },
+  "ErrorLogPage": {
+    "title": "Registro de Errores",
+    "description": "Rastrea errores y advertencias del sistema.",
+    "filterPlaceholder": "Filtrar errores por mensaje...",
+    "columns": {
+      "id": "ID",
+      "createdAt": "Creado En",
+      "severity": "Gravedad",
+      "message": "Mensaje",
+      "channel": "Canal",
+      "userId": "ID de Usuario",
+      "actions": "Acciones",
+      "viewDetails": "Ver Detalles"
+    }
+  },
+  "PermissionsPage": {
+    "title": "Permisos",
+    "description": "Ver todos los permisos del sistema.",
+    "filterPlaceholder": "Filtrar permisos por nombre...",
+    "detailsTitle": "Detalles de {name}",
+    "detailsDescription": "ID de Permiso: {id}",
+    "close": "Cerrar detalles",
+    "tabs": {
+      "users": "Usuarios"
+    },
+    "createDialog": {
+      "title": "Crear Nuevo Permiso",
+      "description": "Completa los detalles a continuación para agregar un nuevo permiso.",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Crear Usuario",
+      "action": "Acción",
+      "selectAction": "Selecciona una acción",
+      "create": "Crear",
+      "read": "Leer",
+      "update": "Actualizar",
+      "delete": "Eliminar",
+      "manage": "Gestionar",
+      "resource": "Recurso",
+      "resourcePlaceholder": "ej., usuario",
+      "cancel": "Cancelar",
+      "createButton": "Crear Permiso"
+    },
+    "PermissionUsers": {
+      "filterPlaceholder": "Filtrar por usuario..."
+    },
+    "columns": {
+      "permissionId": "ID de Permiso",
+      "name": "Nombre",
+      "description": "Descripción",
+      "action": "Acción",
+      "resource": "Recurso",
+      "actions": "Acciones",
+      "openMenu": "Abrir menú",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    }
+  },
+  "RolesPage": {
+    "title": "Roles",
+    "description": "Gestiona los roles de usuario y sus permisos.",
+    "filterPlaceholder": "Filtrar roles por nombre...",
+    "detailsTitle": "Detalles de {name}",
+    "detailsDescription": "ID de Rol: {id}",
+    "close": "Cerrar detalles",
+    "tabs": {
+      "users": "Usuarios",
+      "permissions": "Permisos"
+    },
+    "createDialog": {
+      "title": "Crear Nuevo Rol",
+      "description": "Completa los detalles a continuación para agregar un nuevo rol.",
+      "name": "Nombre",
+      "namePlaceholder": "Admin",
+      "cancel": "Cancelar",
+      "create": "Crear Rol"
+    },
+    "RolePermissions": {
+      "filterPlaceholder": "Filtrar por permiso..."
+    },
+    "RoleUsers": {
+      "filterPlaceholder": "Filtrar por usuario..."
+    },
+    "columns": {
+      "roleId": "ID de Rol",
+      "name": "Nombre",
+      "actions": "Acciones",
+      "openMenu": "Abrir menú",
+      "edit": "Editar rol",
+      "managePermissions": "Gestionar permisos",
+      "delete": "Eliminar rol"
+    }
+  },
+  "MedicalHistory": {
+    "showLess": "Mostrar Menos",
+    "showMore": "Mostrar {count} más...",
+    "notes": "Notas:",
+    "treatments": "Tratamientos:",
+    "tooth": "Diente: {tooth}",
+    "attachments": "Archivos Adjuntos:",
+    "noHistory": "No se encontró historial médico para este usuario.",
+    "viewFullHistory": "Ver Historial Clínico Completo",
+    "refresh": "Refrescar"
   }
 }
+
+    

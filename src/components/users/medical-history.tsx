@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 interface MedicalHistoryProps {
   user: User;
@@ -49,6 +49,7 @@ async function getPatientSessions(userId: string): Promise<PatientSession[]> {
 }
 
 export function MedicalHistory({ user }: MedicalHistoryProps) {
+  const t = useTranslations('MedicalHistory');
   const [openItems, setOpenItems] = React.useState<string[]>([]);
   const [sessions, setSessions] = React.useState<PatientSession[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -114,31 +115,31 @@ export function MedicalHistory({ user }: MedicalHistoryProps) {
                             <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>
                                 <CollapsibleTrigger asChild>
                                     <Button variant="link" className="p-0 h-auto text-sm flex items-center gap-1">
-                                        {isOpen ? 'Show Less' : 'Show More'}
+                                        {isOpen ? t('showLess') : t('showMore', { count: '' })}
                                         <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
                                     </Button>
                                 </CollapsibleTrigger>
                                 <CollapsibleContent>
                                 <div className="mt-2 text-sm text-muted-foreground space-y-2">
-                                    <p><strong>Notes:</strong> {session.notas_clinicas}</p>
+                                    <p><strong>{t('notes')}</strong> {session.notas_clinicas}</p>
                                     {session.tratamientos && session.tratamientos.length > 0 && (
                                         <div>
-                                            <strong>Treatments:</strong>
+                                            <strong>{t('treatments')}</strong>
                                             <ul className="list-disc pl-5">
                                                 {session.tratamientos.map((t, i) => (
-                                                    <li key={i}>{t.descripcion} {t.numero_diente && `(Tooth: ${t.numero_diente})`}</li>
+                                                    <li key={i}>{t.descripcion} {t.numero_diente && `(${t('tooth', { tooth: t.numero_diente })})`}</li>
                                                 ))}
                                             </ul>
                                         </div>
                                     )}
                                      {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
                                         <div>
-                                            <strong>Attachments:</strong>
+                                            <strong>{t('attachments')}</strong>
                                             <ul className="list-disc pl-5">
                                                 {session.archivos_adjuntos.map((file, i) => (
                                                     <li key={i}>
                                                         <a href={file.ruta} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                                            {file.tipo} {file.diente_asociado && `(Tooth: ${file.diente_asociado})`}
+                                                            {file.tipo} {file.diente_asociado && `(${t('tooth', { tooth: file.diente_asociado })})`}
                                                         </a>
                                                     </li>
                                                 ))}
@@ -155,7 +156,7 @@ export function MedicalHistory({ user }: MedicalHistoryProps) {
                 </Timeline>
             ) : (
                 <div className="flex h-full items-center justify-center text-muted-foreground">
-                    No medical history found for this user.
+                    {t('noHistory')}
                 </div>
             )}
         </ScrollArea>
@@ -163,7 +164,7 @@ export function MedicalHistory({ user }: MedicalHistoryProps) {
              <div className="w-full">
                  <Link href={`/${locale}/clinic-history/${user.id}`} passHref>
                     <Button variant="outline" className="w-full">
-                        View Full Clinical History
+                        {t('viewFullHistory')}
                         <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                 </Link>
@@ -173,3 +174,5 @@ export function MedicalHistory({ user }: MedicalHistoryProps) {
     </Card>
   );
 }
+
+    
