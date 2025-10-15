@@ -129,7 +129,7 @@ async function getCalendars(): Promise<CalendarType[]> {
         const data = await response.json();
         const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
         return calendarsData.map((apiCalendar: any) => ({
-            id: apiCalendar.id ? String(apiCalendar.id) : `cal_${apiCalendar.google_calendar_id}`,
+            id: String(apiCalendar.id),
             name: apiCalendar.name,
             google_calendar_id: apiCalendar.google_calendar_id,
             is_active: apiCalendar.is_active,
@@ -209,16 +209,12 @@ export default function AppointmentsPage() {
 
   React.useEffect(() => {
     if (editingAppointment && calendars.length > 0) {
-        console.log("Editing appointment:", editingAppointment);
-        console.log("Available calendars:", calendars);
 
         let foundCalendar = calendars.find(c => c.id === editingAppointment.calendar_id);
         
         if (!foundCalendar) {
             foundCalendar = calendars.find(c => c.name === editingAppointment.calendar_name);
         }
-
-        console.log("Found calendar:", foundCalendar);
 
         setNewAppointment({
             user: { id: '', name: editingAppointment.patientName, email: editingAppointment.patientEmail || '', phone_number: editingAppointment.patientPhone || '', is_active: true, avatar: ''}, // Mock user with email
