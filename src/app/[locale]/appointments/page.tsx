@@ -209,7 +209,6 @@ export default function AppointmentsPage() {
 
   React.useEffect(() => {
     if (editingAppointment && calendars.length > 0) {
-
         let foundCalendar = calendars.find(c => c.id === editingAppointment.calendar_id);
         
         if (!foundCalendar) {
@@ -777,7 +776,7 @@ export default function AppointmentsPage() {
                                 <Separator />
                                 <ScrollArea className="h-32">
                                     {calendars.map(calendar => (
-                                    <div key={calendar.id || calendar.google_calendar_id} className="flex items-center space-x-2 py-1">
+                                    <div key={calendar.id || React.useId()} className="flex items-center space-x-2 py-1">
                                         <Checkbox 
                                             id={calendar.id}
                                             checked={selectedCalendarIds.includes(calendar.id)}
