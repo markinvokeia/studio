@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -133,7 +134,33 @@
         "calendar": "Calendario",
         "date": "Fecha",
         "time": "Hora"
-      }
+      },
+      "selectUser": "Seleccionar usuario...",
+      "searchUserPlaceholder": "Buscar usuario por nombre...",
+      "searching": "Buscando...",
+      "servicesSelected": "{count} seleccionados",
+      "selectServices": "Seleccionar servicios...",
+      "searchServicePlaceholder": "Buscar servicio por nombre...",
+      "selectDoctor": "Seleccionar doctor...",
+      "searchDoctorPlaceholder": "Buscar doctor por nombre...",
+      "none": "Ninguno",
+      "allCalendars": "Todos",
+      "descriptionLabel": "Descripción",
+      "toast": {
+        "missingInfoTitle": "Información Faltante",
+        "missingInfoDescription": "Por favor, complete todos los campos requeridos.",
+        "updateSuccessTitle": "Cita Actualizada",
+        "createSuccessTitle": "Cita Creada",
+        "saveSuccessDescription": "La cita ha sido guardada exitosamente.",
+        "updateSuccessDescription": "La cita ha sido actualizada exitosamente.",
+        "errorTitle": "Error",
+        "errorDescription": "Ocurrió un error inesperado.",
+        "cancelSuccessTitle": "Cita Cancelada",
+        "cancelSuccessDescription": "La cita ha sido cancelada exitosamente.",
+        "cancelErrorDescription": "No se pudo cancelar la cita."
+      },
+      "cancelAppointmentTitle": "Cancelar Cita",
+      "cancelAppointmentDescription": "Esto cancelará permanentemente la cita para \"{serviceName}\" el {date}. Esta acción no se puede deshacer."
     }
   },
   "AppointmentsColumns": {
@@ -487,231 +514,7 @@
   },
   "General": {
     "noResults": "No se encontraron resultados."
-  },
-    "ClinicHistoryPage": {
-    "title": "Historial Clínico Digital",
-    "searchPlaceholder": "Buscar paciente...",
-    "searching": "Buscando...",
-    "noPatientsFound": "No se encontraron pacientes.",
-    "selectPatientTitle": "Seleccione un Paciente",
-    "selectPatientDescription": "Use la barra de búsqueda para encontrar y cargar el historial clínico de un paciente.",
-    "tabs": {
-      "anamnesis": "Anamnesis",
-      "timeline": "Timeline",
-      "odontogram": "Odontograma",
-      "images": "Imágenes"
-    },
-    "anamnesis": {
-      "personalTitle": "Antecedentes Personales",
-      "familyTitle": "Antecedentes Familiares",
-      "medicationsTitle": "Medicamentos Actuales",
-      "allergiesTitle": "Alergias",
-      "relative": "Familiar",
-      "present": "Presente",
-      "loading": {
-        "personal": "Cargando antecedentes personales...",
-        "family": "Cargando antecedentes familiares...",
-        "medications": "Cargando medicamentos...",
-        "allergies": "Cargando alergias..."
-      },
-      "noData": {
-        "personal": "No se encontraron antecedentes personales.",
-        "family": "No se encontraron antecedentes familiares.",
-        "medications": "No se encontraron medicamentos.",
-        "allergies": "No se encontraron alergias."
-      },
-      "itemTypes": {
-        "personal": "antecedente personal",
-        "family": "antecedente familiar",
-        "allergy": "alergia",
-        "medication": "medicamento"
-      },
-      "dialogs": {
-        "ailment": "Padecimiento",
-        "comments": "Comentarios",
-        "commentsPlaceholder": "ej., Medicación diaria",
-        "selectAilment": "Seleccione un padecimiento...",
-        "searchAilment": "Buscar padecimiento...",
-        "noAilmentFound": "No se encontró el padecimiento.",
-        "cancel": "Cancelar",
-        "save": "Guardar",
-        "saving": "Guardando...",
-        "personal": {
-          "addTitle": "Añadir Antecedente Personal",
-          "editTitle": "Editar Antecedente Personal",
-          "addDescription": "Complete el formulario para añadir un nuevo antecedente personal.",
-          "editDescription": "Actualice los detalles del antecedente."
-        },
-        "family": {
-          "addTitle": "Añadir Antecedente Familiar",
-          "editTitle": "Editar Antecedente Familiar",
-          "addDescription": "Complete el formulario para añadir un nuevo antecedente familiar.",
-          "editDescription": "Actualice los detalles del antecedente.",
-          "relationship": "Parentesco",
-          "selectRelationship": "Seleccione un parentesco",
-          "father": "Padre",
-          "mother": "Madre",
-          "maternalGrandfather": "Abuelo Materno",
-          "paternalGrandmother": "Abuela Paterna",
-          "paternalGrandfather": "Abuelo Paterno",
-          "maternalGrandmother": "Abuela Materna",
-          "commentsPlaceholder": "ej., Diagnosticada a los 45 años"
-        },
-        "allergy": {
-          "addTitle": "Añadir Alergia",
-          "editTitle": "Editar Alergia",
-          "allergen": "Alérgeno",
-          "reaction": "Reacción"
-        },
-        "medication": {
-          "addTitle": "Añadir Medicamento",
-          "editTitle": "Editar Medicamento",
-          "name": "Nombre",
-          "selectMedication": "Seleccione un medicamento...",
-          "searchMedication": "Buscar medicamento...",
-          "noMedicationFound": "No se encontró el medicamento.",
-          "dose": "Dosis",
-          "frequency": "Frecuencia",
-          "startDate": "Fecha de Inicio",
-          "endDate": "Fecha de Fin",
-          "reason": "Motivo"
-        }
-      },
-      "toast": {
-        "success": "Éxito",
-        "error": "Error",
-        "invalidAilment": "Por favor, seleccione un padecimiento válido.",
-        "requiredFields": "Por favor, complete todos los campos requeridos.",
-        "personalSuccess": "El antecedente personal ha sido guardado.",
-        "personalError": "No se pudo guardar el antecedente personal. Por favor, intente de nuevo.",
-        "familySuccess": "El antecedente familiar ha sido guardado.",
-        "familyError": "No se pudo guardar el antecedente familiar. Por favor, intente de nuevo.",
-        "allergySuccess": "La alergia ha sido guardada.",
-        "allergyError": "No se pudo guardar la alergia.",
-        "medicationSuccess": "El medicamento ha sido guardado.",
-        "medicationError": "No se pudo guardar el medicamento.",
-        "deleteSuccess": "El {item} ha sido eliminado.",
-        "deleteFailed": "No se pudo eliminar el {item}",
-        "deleteError": "No se pudo eliminar el {item}. Por favor, intente de nuevo."
-      },
-      "deleteDialog": {
-        "title": "¿Está seguro?",
-        "description": "Esta acción no se puede deshacer. Esto eliminará permanentemente este ítem.",
-        "cancel": "Cancelar",
-        "confirm": "Continuar"
-      }
-    },
-    "habits": {
-      "title": "Hábitos del Paciente",
-      "smoking": "Tabaquismo",
-      "smokingPlaceholder": "ej., 10 cigarrillos al día",
-      "alcohol": "Alcohol",
-      "alcoholPlaceholder": "ej., 2 cervezas los fines de semana",
-      "bruxism": "Bruxismo",
-      "bruxismPlaceholder": "ej., Nocturno, utiliza placa",
-      "notSpecified": "No especificado",
-      "noData": "No se encontraron hábitos del paciente.",
-      "cancel": "Cancelar",
-      "save": "Guardar",
-      "saving": "Guardando...",
-      "toast": {
-        "success": "Éxito",
-        "error": "Error",
-        "saveSuccess": "Los hábitos del paciente han sido guardados.",
-        "saveError": "No se pudo guardar los hábitos."
-      }
-    },
-    "timeline": {
-      "title": "Historial de Tratamientos",
-      "edit": "Editar",
-      "delete": "Eliminar",
-      "odontogramTooltip": "Las sesiones de odontograma se gestionan desde el odontograma.",
-      "sessionType": "Tipo de Sesión",
-      "diagnosis": "Diagnóstico",
-      "notes": "Notas",
-      "odontogramUpdate": "Actualización Odontograma",
-      "tooth": "Diente {id}",
-      "treatments": "Tratamientos",
-      "attachments": "Archivos Adjuntos",
-      "showLess": "Mostrar Menos",
-      "showMore": "Mostrar {count} más...",
-      "toast": {
-        "success": "Éxito",
-        "error": "Error",
-        "deleteSuccess": "La sesión ha sido eliminada.",
-        "deleteError": "No se pudo eliminar la sesión."
-      },
-      "deleteDialog": {
-        "title": "¿Está seguro?",
-        "description": "Esto eliminará permanentemente la sesión. Esta acción no se puede deshacer.",
-        "cancel": "Cancelar",
-        "confirm": "Continuar"
-      }
-    },
-    "sessionDialog": {
-      "createTitle": "Crear Nueva Sesión Clínica",
-      "editTitle": "Editar Sesión Clínica",
-      "date": "Fecha de la Sesión",
-      "doctor": "Doctor",
-      "selectDoctor": "Seleccione un doctor...",
-      "procedure": "Procedimiento",
-      "diagnosis": "Diagnóstico",
-      "notes": "Notas Clínicas",
-      "treatments": "Tratamientos de la Sesión",
-      "toothPlaceholder": "Diente #",
-      "treatmentPlaceholder": "Descripción del tratamiento",
-      "tooth": "Diente",
-      "cancel": "Cancelar",
-      "save": "Guardar",
-      "saving": "Guardando...",
-      "toast": {
-        "success": "Éxito",
-        "error": "Error",
-        "saveSuccess": "La sesión ha sido guardada.",
-        "saveError": "No se pudo guardar la sesión.",
-        "treatmentDescriptionEmpty": "La descripción del tratamiento no puede estar vacía."
-      }
-    },
-    "images": {
-      "title": "Galería de Imágenes",
-      "dicomCompliant": "Compatible con DICOM",
-      "all": "Todas las imágenes",
-      "xrays": "Radiografías",
-      "photos": "Fotografías",
-      "tooth": "Diente"
-    },
-    "alerts": {
-      "title": "Alertas Médicas Críticas"
-    },
-    "odontogram": {
-      "conditions": {
-        "caries": "Caries",
-        "filling": "Restauración",
-        "crown": "Corona",
-        "missing": "Ausente",
-        "fracture": "Fractura",
-        "fixed-ortho": "Orto Fija",
-        "implant": "Implante",
-        "endodontics": "Endodoncia",
-        "pulp": "Pulpitis",
-        "crown-tmp": "Corona Temporal",
-        "bolt": "Perno",
-        "diastema": "Diastema",
-        "rotation": "Rotación",
-        "worn": "Desgastado",
-        "supernumerary": "Supernumerario",
-        "fusion": "Fusión",
-        "prosthesis": "Prótesis",
-        "edentulism": "Edentulismo",
-        "eruption": "Erupción"
-      },
-      "surfaces": {
-        "center": "Oclusal",
-        "top": "Vestibular",
-        "bottom": "Lingual",
-        "left": "Mesial",
-        "right": "Distal"
-      }
-    }
   }
 }
+
+    

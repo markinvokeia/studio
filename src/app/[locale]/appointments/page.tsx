@@ -127,7 +127,7 @@ async function getCalendars(): Promise<CalendarType[]> {
         const data = await response.json();
         const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
         return calendarsData.map((apiCalendar: any) => ({
-            id: apiCalendar.google_calendar_id,
+            id: apiCalendar.id,
             name: apiCalendar.name,
             google_calendar_id: apiCalendar.google_calendar_id,
             is_active: apiCalendar.is_active,
@@ -143,6 +143,9 @@ export default function AppointmentsPage() {
   const t = useTranslations('AppointmentsPage');
   const tColumns = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
+  const tGeneral = useTranslations('General');
+  const tUsers = useTranslations('UsersPage');
+
   const { toast } = useToast();
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
@@ -926,7 +929,7 @@ export default function AppointmentsPage() {
         <DialogContent className={cn("sm:max-w-md", newAppointment.showSuggestions && !editingAppointment && "sm:max-w-4xl")}>
           <DialogHeader>
             <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
-            <DialogDescription>{editingAppointment ? t('createDialog.description') : t('createDialog.description')}</DialogDescription>
+            <DialogDescription>{t('createDialog.description')}</DialogDescription>
           </DialogHeader>
           <div className={cn("grid gap-8 py-4", newAppointment.showSuggestions && !editingAppointment && "grid-cols-2")}>
             <div className="grid gap-4">
@@ -943,20 +946,20 @@ export default function AppointmentsPage() {
                       >
                           {newAppointment.user
                           ? newAppointment.user.name
-                          : "Select user..."}
+                          : t('createDialog.selectUser')}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0">
                       <Command>
                           <CommandInput 
-                              placeholder="Search user by name..." 
+                              placeholder={t('createDialog.searchUserPlaceholder')}
                               value={userSearchQuery}
                               onValueChange={setUserSearchQuery}
                           />
                           <CommandList>
                               <CommandEmpty>
-                                  {isSearchingUsers ? 'Searching...' : 'No user found.'}
+                                  {isSearchingUsers ? t('createDialog.searching') : tGeneral('noResults')}
                               </CommandEmpty>
                               <CommandGroup>
                                   {userSearchResults.map((user) => (
@@ -996,20 +999,20 @@ export default function AppointmentsPage() {
                           aria-expanded={isServiceSearchOpen}
                           className="w-full justify-between"
                         >
-                          {newAppointment.services.length > 0 ? `${newAppointment.services.length} selected` : "Select services..."}
+                          {newAppointment.services.length > 0 ? t('createDialog.servicesSelected', { count: newAppointment.services.length }) : t('createDialog.selectServices')}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-[300px] p-0">
                         <Command>
                           <CommandInput
-                            placeholder="Search service by name..."
+                            placeholder={t('createDialog.searchServicePlaceholder')}
                             value={serviceSearchQuery}
                             onValueChange={setServiceSearchQuery}
                           />
                           <CommandList>
                             <CommandEmpty>
-                              {isSearchingServices ? 'Searching...' : 'No service found.'}
+                              {isSearchingServices ? t('createDialog.searching') : tGeneral('noResults')}
                             </CommandEmpty>
                             <CommandGroup>
                               {serviceSearchResults.map((service) => (
@@ -1071,25 +1074,25 @@ export default function AppointmentsPage() {
                           aria-expanded={isDoctorSearchOpen}
                           className="w-[300px] justify-between col-span-3"
                       >
-                          {newAppointment.doctor ? newAppointment.doctor.name : "Select doctor..."}
+                          {newAppointment.doctor ? newAppointment.doctor.name : t('createDialog.selectDoctor')}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0">
                       <Command>
                           <CommandInput 
-                              placeholder="Search doctor by name..." 
+                              placeholder={t('createDialog.searchDoctorPlaceholder')}
                               value={doctorSearchQuery}
                               onValueChange={setDoctorSearchQuery}
                           />
                           <CommandList>
                               <CommandEmpty>
-                                  {isSearchingDoctors ? 'Searching...' : 'No doctor found.'}
+                                  {isSearchingDoctors ? t('createDialog.searching') : tGeneral('noResults')}
                               </CommandEmpty>
                               <CommandGroup>
                                     <CommandItem onSelect={() => { setNewAppointment(prev => ({...prev, doctor: null})); setDoctorSearchOpen(false); }}>
                                         <Check className={cn("mr-2 h-4 w-4", !newAppointment.doctor ? "opacity-100" : "opacity-0" )}/>
-                                        None
+                                        {t('createDialog.none')}
                                     </CommandItem>
                                   {doctorSearchResults.map((doctor) => (
                                   <CommandItem
@@ -1126,18 +1129,18 @@ export default function AppointmentsPage() {
                           aria-expanded={isCalendarSearchOpen}
                           className="w-[300px] justify-between col-span-3"
                       >
-                          {newAppointment.calendar ? newAppointment.calendar.name : "Todos"}
+                          {newAppointment.calendar ? newAppointment.calendar.name : t('createDialog.allCalendars')}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0">
                       <Command>
                           <CommandList>
-                              <CommandEmpty>No calendars found.</CommandEmpty>
+                              <CommandEmpty>{tGeneral('noResults')}</CommandEmpty>
                               <CommandGroup>
                                     <CommandItem onSelect={() => { setNewAppointment(prev => ({...prev, calendar: null})); setCalendarSearchOpen(false); }}>
                                         <Check className={cn("mr-2 h-4 w-4", !newAppointment.calendar ? "opacity-100" : "opacity-0" )}/>
-                                        Todos
+                                        {t('createDialog.allCalendars')}
                                     </CommandItem>
                                   {calendars.map((calendar) => (
                                   <CommandItem
@@ -1183,7 +1186,7 @@ export default function AppointmentsPage() {
               </div>
               {editingAppointment && (
                 <div className="grid grid-cols-4 items-start gap-4">
-                    <Label htmlFor="description" className="text-right pt-2">Description</Label>
+                    <Label htmlFor="description" className="text-right pt-2">{t('createDialog.descriptionLabel')}</Label>
                     <Textarea 
                         id="description" 
                         className="col-span-3 h-24" 
@@ -1248,9 +1251,9 @@ export default function AppointmentsPage() {
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
           <AlertDialogContent>
               <AlertDialogHeader>
-              <AlertDialogTitle>{tColumns('cancel')}</AlertDialogTitle>
+              <AlertDialogTitle>{t('createDialog.cancelAppointmentTitle')}</AlertDialogTitle>
               <AlertDialogDescription>
-                  This will permanently cancel the appointment for "{deletingAppointment?.service_name}" on {deletingAppointment?.date}. This action cannot be undone.
+                  {t('createDialog.cancelAppointmentDescription', { serviceName: deletingAppointment?.service_name, date: deletingAppointment?.date })}
               </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -1262,6 +1265,8 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
 
     
 
