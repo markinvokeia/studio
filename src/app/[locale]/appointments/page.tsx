@@ -104,7 +104,7 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
                 patientPhone: apiAppt.patientPhone,
                 doctorName: apiAppt.doctorName,
                 calendar_id: apiAppt.organizer?.email,
-                calendar_name: apiAppt.organizer?.displayName || apiAppt.organizer?.email,
+                calendar_name: apiAppt.organizer?.displayName,
             };
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
@@ -769,17 +769,20 @@ export default function AppointmentsPage() {
                                 </div>
                                 <Separator />
                                 <ScrollArea className="h-32">
-                                    {calendars.map(calendar => (
-                                    <div key={calendar.id} className="flex items-center space-x-2 py-1">
-                                        <Checkbox 
-                                            id={calendar.id}
-                                            checked={selectedCalendarIds.includes(calendar.id)}
-                                            onCheckedChange={(checked) => handleCalendarSelection(calendar.id, !!checked)}
-                                        />
-                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: calendar.id ? calendarColors[calendar.id] : '#ccc' }} />
-                                        <Label htmlFor={calendar.id}>{calendar.name}</Label>
-                                    </div>
-                                    ))}
+                                    {calendars.map(calendar => {
+                                      const key = calendar.id || `calendar-${React.useId()}`;
+                                      return (
+                                        <div key={key} className="flex items-center space-x-2 py-1">
+                                            <Checkbox 
+                                                id={calendar.id}
+                                                checked={selectedCalendarIds.includes(calendar.id)}
+                                                onCheckedChange={(checked) => handleCalendarSelection(calendar.id, !!checked)}
+                                            />
+                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: calendar.id ? calendarColors[calendar.id] : '#ccc' }} />
+                                            <Label htmlFor={calendar.id}>{calendar.name}</Label>
+                                        </div>
+                                      );
+                                    })}
                                 </ScrollArea>
                             </div>
                             )}
