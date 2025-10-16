@@ -659,7 +659,7 @@ export default function AppointmentsPage() {
         setEditingAppointment(null);
         loadAppointments();
       } else {
-        const errorMessage = result.message || 'An unknown error occurred.';
+        const errorMessage = result.error?.description || result.message || 'An unknown error occurred.';
         throw new Error(errorMessage);
       }
 
@@ -1234,5 +1234,7 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
 
     
