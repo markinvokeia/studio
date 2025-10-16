@@ -234,6 +234,7 @@ export type Appointment = {
   patientName: string;
   patientEmail?: string;
   service_name: string;
+  description?: string;
   date: string;
   time: string;
   status: 'confirmed' | 'completed' | 'cancelled' | 'pending';

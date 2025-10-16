@@ -44,6 +44,7 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
 
 
 async function getAppointments(calendarGoogleIds: string[], startDate: Date, endDate: Date): Promise<Appointment[]> {
@@ -98,6 +99,7 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
                 patientEmail: apiAppt.patientEmail,
                 doctorEmail: apiAppt.doctorEmail,
                 service_name: apiAppt.summary || 'No Service Name',
+                description: apiAppt.description || '',
                 date: format(appointmentDateTime, 'yyyy-MM-dd'),
                 time: format(appointmentDateTime, 'HH:mm'),
                 status: apiAppt.status || 'confirmed',
@@ -191,6 +193,7 @@ export default function AppointmentsPage() {
     calendar: null as CalendarType | null,
     date: '',
     time: '',
+    description: '',
     showSuggestions: true,
   });
   const [isCalendarSearchOpen, setCalendarSearchOpen] = React.useState(false);
@@ -212,10 +215,11 @@ export default function AppointmentsPage() {
         setNewAppointment({
             user: { id: '', name: editingAppointment.patientName, email: editingAppointment.patientEmail || '', phone_number: editingAppointment.patientPhone || '', is_active: true, avatar: ''}, // Mock user with email
             services: [{ id: '', name: editingAppointment.service_name, category: '', price: 0, duration_minutes: 30, is_active: true}], // Mock service
-            doctor: { id: '', name: editingAppointment.doctorName || '', email: editingAppointment.doctorEmail || '', phone_number: '', is_active: true, avatar: '' }, // Mock doctor with email
+            doctor: editingAppointment.doctorEmail ? { id: '', name: editingAppointment.doctorName || '', email: editingAppointment.doctorEmail, phone_number: '', is_active: true, avatar: '' } : null,
             calendar: foundCalendar || null,
             date: editingAppointment.date,
             time: editingAppointment.time,
+            description: editingAppointment.description || '',
             showSuggestions: false,
         });
         setCreateOpen(true);
@@ -504,6 +508,7 @@ export default function AppointmentsPage() {
         calendar: null,
         date: format(tomorrow, 'yyyy-MM-dd'),
         time: '09:00',
+        description: '',
         showSuggestions: true,
       });
     }
@@ -603,8 +608,8 @@ export default function AppointmentsPage() {
   }, [checkAvailability]);
 
   const handleSaveAppointment = async () => {
-    const { user, doctor, services, calendar, date, time } = newAppointment;
-    if (!user || services.length === 0 || !date || !time) {
+    const { user, doctor, services, calendar, date, time, description } = newAppointment;
+    if (!user || (!editingAppointment && services.length === 0) || !date || !time) {
       toast({
         variant: "destructive",
         title: "Missing Information",
@@ -621,11 +626,12 @@ export default function AppointmentsPage() {
       startingDateAndTime: startDateTime.toISOString(),
       endingDateAndTime: endDateTime.toISOString(),
       doctorId: doctor?.id || '',
-      doctorEmail: doctor?.email,
+      doctorEmail: doctor?.email || '',
       userId: user.id,
       userEmail: user.email,
       userName: user.name,
       serviceName: services.map(s => s.name).join(', '),
+      description: editingAppointment ? description : services.map(s => s.name).join(', '),
     };
 
     if (calendar) {
@@ -659,7 +665,8 @@ export default function AppointmentsPage() {
         setEditingAppointment(null);
         loadAppointments();
       } else {
-        const errorMessage = result?.error?.description || result?.message || 'An unknown error occurred.';
+        const errorDetails = result?.error || result;
+        const errorMessage = errorDetails?.description || errorDetails?.message || 'An unknown error occurred.';
         throw new Error(errorMessage);
       }
 
@@ -915,12 +922,12 @@ export default function AppointmentsPage() {
         </Tabs>
       </Card>
       <Dialog open={isCreateOpen} onOpenChange={(isOpen) => { setCreateOpen(isOpen); if (!isOpen) setEditingAppointment(null); }}>
-        <DialogContent className={cn("sm:max-w-md", newAppointment.showSuggestions && "sm:max-w-4xl")}>
+        <DialogContent className={cn("sm:max-w-md", newAppointment.showSuggestions && !editingAppointment && "sm:max-w-4xl")}>
           <DialogHeader>
             <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
             <DialogDescription>{editingAppointment ? t('createDialog.description') : t('createDialog.description')}</DialogDescription>
           </DialogHeader>
-          <div className={cn("grid gap-8 py-4", newAppointment.showSuggestions && "grid-cols-2")}>
+          <div className={cn("grid gap-8 py-4", newAppointment.showSuggestions && !editingAppointment && "grid-cols-2")}>
             <div className="grid gap-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="patientName" className="text-right">{t('createDialog.userName')}</Label>
@@ -976,81 +983,83 @@ export default function AppointmentsPage() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="grid grid-cols-4 items-start gap-4">
-                <Label htmlFor="service_name" className="text-right pt-2">{t('createDialog.serviceName')}</Label>
-                <div className="col-span-3">
-                  <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={isServiceSearchOpen}
-                        className="w-full justify-between"
-                      >
-                        {newAppointment.services.length > 0 ? `${newAppointment.services.length} selected` : "Select services..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0">
-                      <Command>
-                        <CommandInput
-                          placeholder="Search service by name..."
-                          value={serviceSearchQuery}
-                          onValueChange={setServiceSearchQuery}
-                        />
-                        <CommandList>
-                          <CommandEmpty>
-                            {isSearchingServices ? 'Searching...' : 'No service found.'}
-                          </CommandEmpty>
-                          <CommandGroup>
-                            {serviceSearchResults.map((service) => (
-                              <CommandItem
-                                key={service.id}
-                                value={service.name}
-                                onSelect={() => {
-                                  setNewAppointment(prev => {
-                                    const isSelected = prev.services.some(s => s.id === service.id);
-                                    if (isSelected) {
-                                      return { ...prev, services: prev.services.filter(s => s.id !== service.id) };
-                                    } else {
-                                      return { ...prev, services: [...prev.services, service] };
-                                    }
-                                  });
-                                  setServiceSearchQuery('');
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    newAppointment.services.some(s => s.id === service.id) ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {service.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {newAppointment.services.map((service) => (
-                      <Badge key={service.id} variant="secondary" className="flex items-center gap-1">
-                        {service.name}
-                        <button
-                          onClick={() => setNewAppointment(prev => ({
-                            ...prev,
-                            services: prev.services.filter(s => s.id !== service.id)
-                          }))}
-                          className="rounded-full hover:bg-background"
+              {!editingAppointment && (
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="service_name" className="text-right pt-2">{t('createDialog.serviceName')}</Label>
+                  <div className="col-span-3">
+                    <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={isServiceSearchOpen}
+                          className="w-full justify-between"
                         >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
+                          {newAppointment.services.length > 0 ? `${newAppointment.services.length} selected` : "Select services..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] p-0">
+                        <Command>
+                          <CommandInput
+                            placeholder="Search service by name..."
+                            value={serviceSearchQuery}
+                            onValueChange={setServiceSearchQuery}
+                          />
+                          <CommandList>
+                            <CommandEmpty>
+                              {isSearchingServices ? 'Searching...' : 'No service found.'}
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {serviceSearchResults.map((service) => (
+                                <CommandItem
+                                  key={service.id}
+                                  value={service.name}
+                                  onSelect={() => {
+                                    setNewAppointment(prev => {
+                                      const isSelected = prev.services.some(s => s.id === service.id);
+                                      if (isSelected) {
+                                        return { ...prev, services: prev.services.filter(s => s.id !== service.id) };
+                                      } else {
+                                        return { ...prev, services: [...prev.services, service] };
+                                      }
+                                    });
+                                    setServiceSearchQuery('');
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      newAppointment.services.some(s => s.id === service.id) ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {service.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {newAppointment.services.map((service) => (
+                        <Badge key={service.id} variant="secondary" className="flex items-center gap-1">
+                          {service.name}
+                          <button
+                            onClick={() => setNewAppointment(prev => ({
+                              ...prev,
+                              services: prev.services.filter(s => s.id !== service.id)
+                            }))}
+                            className="rounded-full hover:bg-background"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="doctorName" className="text-right">{tColumns('doctor')}</Label>
                 <Popover open={isDoctorSearchOpen} onOpenChange={setDoctorSearchOpen}>
@@ -1077,6 +1086,10 @@ export default function AppointmentsPage() {
                                   {isSearchingDoctors ? 'Searching...' : 'No doctor found.'}
                               </CommandEmpty>
                               <CommandGroup>
+                                  <CommandItem onSelect={() => { setNewAppointment(prev => ({...prev, doctor: null})); setDoctorSearchOpen(false); }}>
+                                        <Check className={cn("mr-2 h-4 w-4", !newAppointment.doctor ? "opacity-100" : "opacity-0" )}/>
+                                        None
+                                    </CommandItem>
                                   {doctorSearchResults.map((doctor) => (
                                   <CommandItem
                                       key={doctor.id}
@@ -1167,14 +1180,28 @@ export default function AppointmentsPage() {
                     onChange={e => setNewAppointment(prev => ({...prev, time: e.target.value}))}
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="show-suggestions" className="text-right">{t('createDialog.showSuggestions')}</Label>
-                  <div className="col-span-3 flex items-center">
-                      <Checkbox id="show-suggestions" checked={newAppointment.showSuggestions} onCheckedChange={(checked) => setNewAppointment(prev => ({...prev, showSuggestions: !!checked}))} />
-                  </div>
-              </div>
+              {editingAppointment && (
+                <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="description" className="text-right pt-2">Description</Label>
+                    <Textarea 
+                        id="description" 
+                        className="col-span-3" 
+                        value={newAppointment.description} 
+                        onChange={(e) => setNewAppointment(prev => ({...prev, description: e.target.value}))} 
+                        readOnly={!!editingAppointment}
+                    />
+                </div>
+              )}
+              {!editingAppointment && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="show-suggestions" className="text-right">{t('createDialog.showSuggestions')}</Label>
+                    <div className="col-span-3 flex items-center">
+                        <Checkbox id="show-suggestions" checked={newAppointment.showSuggestions} onCheckedChange={(checked) => setNewAppointment(prev => ({...prev, showSuggestions: !!checked}))} />
+                    </div>
+                </div>
+              )}
             </div>
-            {newAppointment.showSuggestions && (
+            {newAppointment.showSuggestions && !editingAppointment && (
                 <div className="border-l pl-8">
                     <h4 className="font-semibold mb-4">{t('createDialog.suggestedTimes')}</h4>
                     <RadioGroup onValueChange={(value) => {
