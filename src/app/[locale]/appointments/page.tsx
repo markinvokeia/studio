@@ -631,7 +631,7 @@ export default function AppointmentsPage() {
       userEmail: user.email,
       userName: user.name,
       serviceName: services.map(s => s.name).join(', '),
-      description: editingAppointment ? description : services.map(s => s.name).join(', '),
+      description: description || services.map(s => s.name).join(', '),
     };
 
     if (calendar) {
@@ -778,20 +778,17 @@ export default function AppointmentsPage() {
                                 </div>
                                 <Separator />
                                 <ScrollArea className="h-32">
-                                    {calendars.map(calendar => {
-                                      const key = calendar.id || `calendar-${React.useId()}`;
-                                      return (
-                                        <div key={key} className="flex items-center space-x-2 py-1">
-                                            <Checkbox 
-                                                id={calendar.id}
-                                                checked={selectedCalendarIds.includes(calendar.id)}
-                                                onCheckedChange={(checked) => handleCalendarSelection(calendar.id, !!checked)}
-                                            />
-                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: calendar.id ? calendarColors[calendar.id] : '#ccc' }} />
-                                            <Label htmlFor={calendar.id}>{calendar.name}</Label>
-                                        </div>
-                                      );
-                                    })}
+                                    {calendars.map(calendar => (
+                                      <div key={calendar.id} className="flex items-center space-x-2 py-1">
+                                          <Checkbox 
+                                              id={calendar.id}
+                                              checked={selectedCalendarIds.includes(calendar.id)}
+                                              onCheckedChange={(checked) => handleCalendarSelection(calendar.id, !!checked)}
+                                          />
+                                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: calendar.id ? calendarColors[calendar.id] : '#ccc' }} />
+                                          <Label htmlFor={calendar.id}>{calendar.name}</Label>
+                                      </div>
+                                    ))}
                                 </ScrollArea>
                             </div>
                             )}
@@ -1086,7 +1083,7 @@ export default function AppointmentsPage() {
                                   {isSearchingDoctors ? 'Searching...' : 'No doctor found.'}
                               </CommandEmpty>
                               <CommandGroup>
-                                  <CommandItem onSelect={() => { setNewAppointment(prev => ({...prev, doctor: null})); setDoctorSearchOpen(false); }}>
+                                    <CommandItem onSelect={() => { setNewAppointment(prev => ({...prev, doctor: null})); setDoctorSearchOpen(false); }}>
                                         <Check className={cn("mr-2 h-4 w-4", !newAppointment.doctor ? "opacity-100" : "opacity-0" )}/>
                                         None
                                     </CommandItem>
@@ -1185,10 +1182,9 @@ export default function AppointmentsPage() {
                     <Label htmlFor="description" className="text-right pt-2">Description</Label>
                     <Textarea 
                         id="description" 
-                        className="col-span-3" 
+                        className="col-span-3 h-24" 
                         value={newAppointment.description} 
                         onChange={(e) => setNewAppointment(prev => ({...prev, description: e.target.value}))} 
-                        readOnly={!!editingAppointment}
                     />
                 </div>
               )}
