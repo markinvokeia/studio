@@ -282,9 +282,6 @@ export default function AppointmentsPage() {
     const fetchedCalendars = await getCalendars();
     setCalendars(fetchedCalendars);
     setSelectedCalendarIds(fetchedCalendars.map(c => c.id).filter(id => id));
-    if (fetchedCalendars.length > 0) {
-      setNewAppointment(prev => ({ ...prev, calendar: fetchedCalendars[0] }));
-    }
     setIsCalendarsLoading(false);
   }, []);
 
@@ -504,13 +501,13 @@ export default function AppointmentsPage() {
         user: null,
         services: [],
         doctor: null,
-        calendar: calendars.length > 0 ? calendars[0] : null,
+        calendar: null,
         date: format(tomorrow, 'yyyy-MM-dd'),
         time: '09:00',
         showSuggestions: true,
       });
     }
-  }, [isCreateOpen, calendars, editingAppointment]);
+  }, [isCreateOpen, editingAppointment]);
 
   const checkAvailability = React.useCallback(async () => {
     const { date, time, services, user, doctor, calendar } = newAppointment;
@@ -607,7 +604,7 @@ export default function AppointmentsPage() {
 
   const handleSaveAppointment = async () => {
     const { user, doctor, services, calendar, date, time } = newAppointment;
-    if (!user || services.length === 0 || !calendar || !date || !time) {
+    if (!user || services.length === 0 || !date || !time) {
       toast({
         variant: "destructive",
         title: "Missing Information",
@@ -623,14 +620,19 @@ export default function AppointmentsPage() {
     const payload: any = {
       startingDateAndTime: startDateTime.toISOString(),
       endingDateAndTime: endDateTime.toISOString(),
-      calendarId: calendar.id,
-      doctorId: doctor?.id,
+      doctorId: doctor?.id || '',
       doctorEmail: doctor?.email,
       userId: user.id,
       userEmail: user.email,
       userName: user.name,
       serviceName: services.map(s => s.name).join(', '),
     };
+
+    if (calendar) {
+        payload.calendarId = calendar.id;
+    } else {
+        payload.calendarId = calendars.map(c => c.id).join(',');
+    }
 
     if (editingAppointment) {
       payload.id = editingAppointment.id;
@@ -1109,7 +1111,7 @@ export default function AppointmentsPage() {
                           aria-expanded={isCalendarSearchOpen}
                           className="w-[300px] justify-between col-span-3"
                       >
-                          {newAppointment.calendar ? newAppointment.calendar.name : "Select calendar..."}
+                          {newAppointment.calendar ? newAppointment.calendar.name : "Todos"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                   </PopoverTrigger>
@@ -1118,6 +1120,10 @@ export default function AppointmentsPage() {
                           <CommandList>
                               <CommandEmpty>No calendars found.</CommandEmpty>
                               <CommandGroup>
+                                    <CommandItem onSelect={() => { setNewAppointment(prev => ({...prev, calendar: null})); setCalendarSearchOpen(false); }}>
+                                        <Check className={cn("mr-2 h-4 w-4", !newAppointment.calendar ? "opacity-100" : "opacity-0" )}/>
+                                        Todos
+                                    </CommandItem>
                                   {calendars.map((calendar) => (
                                   <CommandItem
                                       key={calendar.id}
@@ -1228,3 +1234,5 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
