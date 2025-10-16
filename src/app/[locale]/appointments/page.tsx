@@ -127,7 +127,7 @@ async function getCalendars(): Promise<CalendarType[]> {
         const data = await response.json();
         const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
         return calendarsData.map((apiCalendar: any) => ({
-            id: apiCalendar.id,
+            id: apiCalendar.id || apiCalendar.google_calendar_id,
             name: apiCalendar.name,
             google_calendar_id: apiCalendar.google_calendar_id,
             is_active: apiCalendar.is_active,
