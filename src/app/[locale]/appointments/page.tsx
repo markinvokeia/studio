@@ -550,6 +550,10 @@ export default function AppointmentsPage() {
         mode: 'checkAvailability',
     };
 
+    if (editingAppointment) {
+        params.eventId = editingAppointment.id;
+    }
+
     if (attendeeEmails.length > 0) {
         params.attendeesEmails = attendeeEmails.join(',');
     }
@@ -641,7 +645,7 @@ export default function AppointmentsPage() {
     }
 
     if (editingAppointment) {
-      payload.id = editingAppointment.id;
+      payload.eventId = editingAppointment.id;
     }
 
     try {
@@ -1258,3 +1262,5 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
