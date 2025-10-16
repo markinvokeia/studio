@@ -649,7 +649,7 @@ export default function AppointmentsPage() {
       const result = Array.isArray(responseData) ? responseData[0] : responseData;
 
 
-      if (response.ok && result.code === 200) {
+      if (response.ok && (result.code === 200 || result.status === 'success')) {
         toast({
           title: editingAppointment ? "Appointment Updated" : "Appointment Created",
           description: result.message || `The appointment has been successfully ${editingAppointment ? 'updated' : 'saved'}.`,
@@ -931,6 +931,7 @@ export default function AppointmentsPage() {
                           role="combobox"
                           aria-expanded={isUserSearchOpen}
                           className="w-[300px] justify-between col-span-3"
+                          disabled={!!editingAppointment}
                       >
                           {newAppointment.user
                           ? newAppointment.user.name
