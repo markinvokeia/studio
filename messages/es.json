@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -23,9 +24,6 @@
     "Schedules": "Horarios",
     "Holidays": "Feriados",
     "Calendars": "Calendarios",
-    "Communications": "Comunicaciones",
-    "Conversations": "Conversaciones",
-    "Channels": "Canales",
     "System": "Sistema",
     "Roles": "Roles",
     "Permissions": "Permisos",
@@ -146,8 +144,8 @@
     "time": "Hora",
     "status": "Estado",
     "actions": "Acciones",
-    "edit": "Editar Cita",
-    "cancel": "Cancelar Cita"
+    "edit": "Editar",
+    "cancel": "Cancelar"
   },
   "AppointmentStatus": {
     "completed": "Completada",

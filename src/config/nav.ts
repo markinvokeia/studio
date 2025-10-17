@@ -97,15 +97,6 @@ export const navItems: NavItem[] = [
     ],
   },
   {
-    title: 'Communications',
-    href: '/communications',
-    icon: MessageSquare,
-    items: [
-      { title: 'Conversations', href: '/communications', icon: MessageSquare, isChidren: true },
-      { title: 'Channels', href: '/communications/channels', icon: BotMessageSquare, isChidren: true },
-    ],
-  },
-  {
     title: 'System',
     href: '/system',
     icon: Shield,

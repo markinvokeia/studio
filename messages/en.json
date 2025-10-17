@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -23,9 +24,6 @@
     "Schedules": "Schedules",
     "Holidays": "Holidays",
     "Calendars": "Calendars",
-    "Communications": "Communications",
-    "Conversations": "Conversations",
-    "Channels": "Channels",
     "System": "System",
     "Roles": "Roles",
     "Permissions": "Permissions",
@@ -146,8 +144,8 @@
     "time": "Time",
     "status": "Status",
     "actions": "Actions",
-    "edit": "Edit Appointment",
-    "cancel": "Cancel Appointment"
+    "edit": "Edit",
+    "cancel": "Cancel"
   },
   "AppointmentStatus": {
     "completed": "Completed",
