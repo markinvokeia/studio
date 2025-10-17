@@ -24,9 +24,6 @@
     "Schedules": "Schedules",
     "Holidays": "Holidays",
     "Calendars": "Calendars",
-    "Communications": "Communications",
-    "Conversations": "Conversations",
-    "Channels": "Channels",
     "System": "System",
     "Roles": "Roles",
     "Permissions": "Permissions",
@@ -134,33 +131,7 @@
         "calendar": "Calendar",
         "date": "Date",
         "time": "Time"
-      },
-      "selectUser": "Select user...",
-      "searchUserPlaceholder": "Search user by name...",
-      "searching": "Searching...",
-      "servicesSelected": "{count} selected",
-      "selectServices": "Select services...",
-      "searchServicePlaceholder": "Search service by name...",
-      "selectDoctor": "Select doctor...",
-      "searchDoctorPlaceholder": "Search doctor by name...",
-      "none": "None",
-      "allCalendars": "All",
-      "descriptionLabel": "Description",
-      "toast": {
-        "missingInfoTitle": "Missing Information",
-        "missingInfoDescription": "Please fill out all required fields.",
-        "updateSuccessTitle": "Appointment Updated",
-        "createSuccessTitle": "Appointment Created",
-        "saveSuccessDescription": "The appointment has been successfully saved.",
-        "updateSuccessDescription": "The appointment has been successfully updated.",
-        "errorTitle": "Error",
-        "errorDescription": "An unexpected error occurred.",
-        "cancelSuccessTitle": "Appointment Cancelled",
-        "cancelSuccessDescription": "The appointment has been successfully cancelled.",
-        "cancelErrorDescription": "Could not cancel the appointment."
-      },
-      "cancelAppointmentTitle": "Cancel Appointment",
-      "cancelAppointmentDescription": "This will permanently cancel the appointment for \"{serviceName}\" on {date}. This action cannot be undone."
+      }
     }
   },
   "AppointmentsColumns": {
@@ -173,8 +144,8 @@
     "time": "Time",
     "status": "Status",
     "actions": "Actions",
-    "edit": "Edit Appointment",
-    "cancel": "Cancel Appointment"
+    "edit": "Edit",
+    "cancel": "Cancel"
   },
   "AppointmentStatus": {
     "completed": "Completed",
@@ -516,5 +487,3 @@
     "noResults": "No results."
   }
 }
-
-    

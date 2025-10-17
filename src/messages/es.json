@@ -24,9 +24,6 @@
     "Schedules": "Horarios",
     "Holidays": "Feriados",
     "Calendars": "Calendarios",
-    "Communications": "Comunicaciones",
-    "Conversations": "Conversaciones",
-    "Channels": "Canales",
     "System": "Sistema",
     "Roles": "Roles",
     "Permissions": "Permisos",
@@ -134,33 +131,7 @@
         "calendar": "Calendario",
         "date": "Fecha",
         "time": "Hora"
-      },
-      "selectUser": "Seleccionar usuario...",
-      "searchUserPlaceholder": "Buscar usuario por nombre...",
-      "searching": "Buscando...",
-      "servicesSelected": "{count} seleccionados",
-      "selectServices": "Seleccionar servicios...",
-      "searchServicePlaceholder": "Buscar servicio por nombre...",
-      "selectDoctor": "Seleccionar doctor...",
-      "searchDoctorPlaceholder": "Buscar doctor por nombre...",
-      "none": "Ninguno",
-      "allCalendars": "Todos",
-      "descriptionLabel": "Descripción",
-      "toast": {
-        "missingInfoTitle": "Información Faltante",
-        "missingInfoDescription": "Por favor, complete todos los campos requeridos.",
-        "updateSuccessTitle": "Cita Actualizada",
-        "createSuccessTitle": "Cita Creada",
-        "saveSuccessDescription": "La cita ha sido guardada exitosamente.",
-        "updateSuccessDescription": "La cita ha sido actualizada exitosamente.",
-        "errorTitle": "Error",
-        "errorDescription": "Ocurrió un error inesperado.",
-        "cancelSuccessTitle": "Cita Cancelada",
-        "cancelSuccessDescription": "La cita ha sido cancelada exitosamente.",
-        "cancelErrorDescription": "No se pudo cancelar la cita."
-      },
-      "cancelAppointmentTitle": "Cancelar Cita",
-      "cancelAppointmentDescription": "Esto cancelará permanentemente la cita para \"{serviceName}\" el {date}. Esta acción no se puede deshacer."
+      }
     }
   },
   "AppointmentsColumns": {
@@ -173,8 +144,8 @@
     "time": "Hora",
     "status": "Estado",
     "actions": "Acciones",
-    "edit": "Editar Cita",
-    "cancel": "Cancelar Cita"
+    "edit": "Editar",
+    "cancel": "Cancelar"
   },
   "AppointmentStatus": {
     "completed": "Completada",
@@ -516,5 +487,3 @@
     "noResults": "No se encontraron resultados."
   }
 }
-
-    
