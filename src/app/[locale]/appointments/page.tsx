@@ -641,6 +641,7 @@ export default function AppointmentsPage() {
       userName: user.name,
       serviceName: services.map(s => s.name).join(', '),
       description: description || services.map(s => s.name).join(', '),
+      mode: editingAppointment ? 'update' : 'create',
     };
 
     if (calendar) {
@@ -1275,3 +1276,4 @@ export default function AppointmentsPage() {
     
 
     
+
