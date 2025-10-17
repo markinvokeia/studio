@@ -2,7 +2,10 @@
 'use client';
 
 import * as React from 'react';
-import { permissionColumns } from './columns';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { PermissionsColumnsWrapper } from './columns';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Permission } from '@/lib/types';
@@ -13,9 +16,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -25,10 +29,23 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RowSelectionState } from '@tanstack/react-table';
-import { X } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PermissionUsers } from '@/components/permissions/permission-users';
+import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
+
+const permissionFormSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().optional(),
+  action: z.string().min(1, 'Action is required'),
+  resource: z.string().min(1, 'Resource is required'),
+});
+
+type PermissionFormValues = z.infer<typeof permissionFormSchema>;
 
 async function getPermissions(): Promise<Permission[]> {
   try {
@@ -61,12 +78,50 @@ async function getPermissions(): Promise<Permission[]> {
   }
 }
 
+async function upsertPermission(permissionData: PermissionFormValues) {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/permisos/upsert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(permissionData),
+    });
+    const responseData = await response.json();
+    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to save permission';
+        throw new Error(message);
+    }
+    return responseData;
+}
+
+async function deletePermission(id: string) {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/permisos/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+    });
+     const responseData = await response.json();
+    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to delete permission';
+        throw new Error(message);
+    }
+    return responseData;
+}
+
 export default function PermissionsPage() {
   const [permissions, setPermissions] = React.useState<Permission[]>([]);
   const [selectedPermission, setSelectedPermission] = React.useState<Permission | null>(null);
-  const [isCreateOpen, setCreateOpen] = React.useState(false);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [editingPermission, setEditingPermission] = React.useState<Permission | null>(null);
+  const [deletingPermission, setDeletingPermission] = React.useState<Permission | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const { toast } = useToast();
+
+  const form = useForm<PermissionFormValues>({
+    resolver: zodResolver(permissionFormSchema),
+    defaultValues: { name: '', description: '', action: '', resource: '' },
+  });
 
   const loadPermissions = React.useCallback(async () => {
     setIsRefreshing(true);
@@ -79,6 +134,45 @@ export default function PermissionsPage() {
     loadPermissions();
   }, [loadPermissions]);
 
+  const handleCreate = () => {
+    setEditingPermission(null);
+    form.reset({ name: '', description: '', action: '', resource: '' });
+    setSubmissionError(null);
+    setIsDialogOpen(true);
+  };
+  
+  const handleEdit = (permission: Permission) => {
+    setEditingPermission(permission);
+    form.reset(permission);
+    setSubmissionError(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = (permission: Permission) => {
+    setDeletingPermission(permission);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingPermission) return;
+    try {
+        await deletePermission(deletingPermission.id);
+        toast({
+            title: "Permission Deleted",
+            description: `Permission "${deletingPermission.name}" has been deleted.`,
+        });
+        setIsDeleteDialogOpen(false);
+        setDeletingPermission(null);
+        loadPermissions();
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: error instanceof Error ? error.message : "Could not delete the permission.",
+        });
+    }
+  };
+
   const handleRowSelectionChange = (selectedRows: Permission[]) => {
     const permission = selectedRows.length > 0 ? selectedRows[0] : null;
     setSelectedPermission(permission);
@@ -88,6 +182,24 @@ export default function PermissionsPage() {
     setSelectedPermission(null);
     setRowSelection({});
   };
+
+  const onSubmit = async (values: PermissionFormValues) => {
+    setSubmissionError(null);
+    try {
+        await upsertPermission(values);
+        toast({
+            title: editingPermission ? "Permission Updated" : "Permission Created",
+            description: `The permission "${values.name}" has been saved successfully.`,
+        });
+        setIsDialogOpen(false);
+        loadPermissions();
+    } catch (error) {
+        setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+    }
+  };
+
+  const permissionsColumns = PermissionsColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
+
 
   return (
     <>
@@ -100,13 +212,13 @@ export default function PermissionsPage() {
                 </CardHeader>
                 <CardContent>
                     <DataTable 
-                    columns={permissionColumns} 
+                    columns={permissionsColumns} 
                     data={permissions} 
                     filterColumnId="name" 
                     filterPlaceholder="Filter permissions by name..."
                     onRowSelectionChange={handleRowSelectionChange}
                     enableSingleRowSelection={true}
-                    onCreate={() => setCreateOpen(true)}
+                    onCreate={handleCreate}
                     onRefresh={loadPermissions}
                     isRefreshing={isRefreshing}
                     rowSelection={rowSelection}
@@ -143,51 +255,100 @@ export default function PermissionsPage() {
         )}
     </div>
 
-    <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create New Permission</DialogTitle>
+          <DialogTitle>{editingPermission ? 'Edit Permission' : 'Create New Permission'}</DialogTitle>
           <DialogDescription>
-            Fill in the details below to add a new permission.
+            {editingPermission ? 'Update the details for this permission.' : 'Fill in the details below to add a new permission.'}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
-              Name
-            </Label>
-            <Input id="name" placeholder="e.g., Create User" className="col-span-3" />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="action" className="text-right">
-              Action
-            </Label>
-             <Select>
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Select an action" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="create">Create</SelectItem>
-                <SelectItem value="read">Read</SelectItem>
-                <SelectItem value="update">Update</SelectItem>
-                <SelectItem value="delete">Delete</SelectItem>
-                 <SelectItem value="manage">Manage</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="resource" className="text-right">
-              Resource
-            </Label>
-            <Input id="resource" placeholder="e.g., user" className="col-span-3" />
-          </div>
-        </div>
-         <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button type="submit">Create Permission</Button>
-        </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+              {submissionError && (
+                  <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>{submissionError}</AlertDescription>
+                  </Alert>
+              )}
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl><Input placeholder="e.g., Create User" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl><Input placeholder="e.g., Allows creating new users." {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="action"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Action</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger><SelectValue placeholder="Select an action" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="create">Create</SelectItem>
+                      <SelectItem value="read">Read</SelectItem>
+                      <SelectItem value="update">Update</SelectItem>
+                      <SelectItem value="delete">Delete</SelectItem>
+                      <SelectItem value="manage">Manage</SelectItem>
+                    </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="resource"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Resource</FormLabel>
+                    <FormControl><Input placeholder="e.g., user" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                <Button type="submit">{editingPermission ? 'Save Changes' : 'Create Permission'}</Button>
+              </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
+     <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This will permanently delete the permission "{deletingPermission?.name}". This action cannot be undone.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
