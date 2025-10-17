@@ -180,6 +180,8 @@ export type SystemConfiguration = {
   value: string;
   data_type: 'string' | 'number' | 'boolean' | 'json';
   updated_by: string;
+  description?: string;
+  is_public?: boolean;
 };
 
 export type AuditLog = {

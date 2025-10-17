@@ -32,14 +32,18 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const configFormSchema = z.object({
   id: z.string().optional(),
   key: z.string().min(1, 'Key is required'),
   value: z.string().min(1, 'Value is required'),
+  description: z.string().optional(),
   data_type: z.enum(['string', 'number', 'boolean', 'json'], {
     required_error: 'Data type is required',
   }),
+  is_public: z.boolean().default(false),
 });
 
 type ConfigFormValues = z.infer<typeof configFormSchema>;
@@ -66,6 +70,8 @@ async function getConfigs(): Promise<SystemConfiguration[]> {
             value: apiConfig.value,
             data_type: apiConfig.data_type,
             updated_by: apiConfig.updated_by,
+            description: apiConfig.description,
+            is_public: apiConfig.is_public,
         }));
     } catch (error) {
         console.error("Failed to fetch configurations:", error);
@@ -131,7 +137,7 @@ export default function SystemConfigPage() {
     
     const handleCreate = () => {
         setEditingConfig(null);
-        form.reset({ key: '', value: '', data_type: 'string' });
+        form.reset({ key: '', value: '', description: '', data_type: 'string', is_public: false });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -142,7 +148,9 @@ export default function SystemConfigPage() {
           id: config.id,
           key: config.key,
           value: config.value,
+          description: config.description,
           data_type: config.data_type,
+          is_public: config.is_public,
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -254,6 +262,19 @@ export default function SystemConfigPage() {
                         />
                         <FormField
                             control={form.control}
+                            name="description"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Description</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="Describe what this configuration is for." {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
                             name="data_type"
                             render={({ field }) => (
                                 <FormItem>
@@ -272,6 +293,23 @@ export default function SystemConfigPage() {
                                     </SelectContent>
                                     </Select>
                                     <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="is_public"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                                    <FormControl>
+                                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                    </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                        <FormLabel>Is Public</FormLabel>
+                                        <FormDescription>
+                                            Allow this configuration to be accessed from the client-side.
+                                        </FormDescription>
+                                    </div>
                                 </FormItem>
                             )}
                         />
