@@ -118,10 +118,23 @@
     "createDialog": {
       "title": "Create New Appointment",
       "description": "Fill in the details below to create a new appointment.",
+      "cancelAppointmentTitle": "Cancel Appointment",
+      "cancelAppointmentDescription": "Are you sure you want to cancel the appointment for {serviceName} on {date}?",
       "userName": "User Name",
-      "serviceName": "Service Name",
+      "selectUser": "Select a user",
+      "searchUserPlaceholder": "Search by name or email...",
+      "searching": "Searching...",
+      "serviceName": "Service(s)",
+      "selectServices": "Select services",
+      "servicesSelected": "{count, plural, one {# service selected} other {# services selected}}",
+      "searchServicePlaceholder": "Search for a service...",
+      "selectDoctor": "Select a doctor",
+      "searchDoctorPlaceholder": "Search for a doctor...",
+      "none": "None",
+      "allCalendars": "All Calendars",
       "date": "Date",
       "time": "Time",
+      "descriptionLabel": "Description",
       "save": "Save",
       "cancel": "Cancel",
       "calendar": "Calendar",
@@ -535,3 +548,5 @@
     "noResults": "No results."
   }
 }
+
+    

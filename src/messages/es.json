@@ -118,10 +118,23 @@
     "createDialog": {
       "title": "Crear Nueva Cita",
       "description": "Completa los detalles a continuación para crear una nueva cita.",
+      "cancelAppointmentTitle": "Cancelar Cita",
+      "cancelAppointmentDescription": "¿Estás seguro que quieres cancelar la cita para {serviceName} el {date}?",
       "userName": "Nombre de Usuario",
-      "serviceName": "Nombre del Servicio",
+      "selectUser": "Selecciona un usuario",
+      "searchUserPlaceholder": "Buscar por nombre o email...",
+      "searching": "Buscando...",
+      "serviceName": "Servicio(s)",
+      "selectServices": "Seleccionar servicios",
+      "servicesSelected": "{count, plural, one {# servicio seleccionado} other {# servicios seleccionados}}",
+      "searchServicePlaceholder": "Buscar un servicio...",
+      "selectDoctor": "Seleccionar un doctor",
+      "searchDoctorPlaceholder": "Buscar un doctor...",
+      "none": "Ninguno",
+      "allCalendars": "Todos los Calendarios",
       "date": "Fecha",
       "time": "Hora",
+      "descriptionLabel": "Descripción",
       "save": "Guardar",
       "cancel": "Cancelar",
       "calendar": "Calendario",
@@ -535,3 +548,5 @@
     "noResults": "No se encontraron resultados."
   }
 }
+
+    
