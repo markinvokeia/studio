@@ -27,7 +27,10 @@ export type UserRole = {
   role_id: string;
   name: string;
   is_active: boolean;
+  id: string; // Add id to satisfy User type when using in a mixed context
+  email: string; // Add email for consistency
 };
+
 
 export type UserRoleAssignment = {
     role_id: string;
@@ -359,3 +362,5 @@ export type PatientSession = {
   tratamientos: TreatmentDetail[];
   archivos_adjuntos: AttachedFile[];
 };
+
+    

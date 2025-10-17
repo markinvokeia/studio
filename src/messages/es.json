@@ -483,7 +483,54 @@
     "orderId": "ID Pedido",
     "createdAt": "Fecha Creación"
   },
+  "RolesPage": {
+    "title": "Roles",
+    "description": "Gestionar roles de usuario y sus permisos.",
+    "filterPlaceholder": "Filtrar roles por nombre...",
+    "detailsFor": "Detalles de {name}",
+    "close": "Cerrar detalles",
+    "tabs": {
+      "users": "Usuarios",
+      "permissions": "Permisos"
+    },
+    "createDialog": {
+      "title": "Crear Nuevo Rol",
+      "description": "Completa los detalles a continuación para añadir un nuevo rol.",
+      "editTitle": "Editar Rol",
+      "editDescription": "Actualiza los detalles de este rol.",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "ej., Administrador",
+      "cancel": "Cancelar",
+      "save": "Crear Rol",
+      "editSave": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente el rol \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "createSuccess": "Rol Creado",
+      "editSuccess": "Rol Actualizado",
+      "deleteSuccess": "Rol Eliminado",
+      "successDescription": "El rol \"{name}\" ha sido guardado exitosamente.",
+      "deleteDescription": "El rol \"{name}\" ha sido eliminado.",
+      "error": "Error",
+      "saveError": "No se pudo guardar el rol.",
+      "deleteError": "No se pudo eliminar el rol."
+    }
+  },
+  "RolesColumns": {
+    "roleId": "ID de Rol",
+    "name": "Nombre",
+    "actions": "Acciones",
+    "edit": "Editar rol",
+    "delete": "Eliminar rol"
+  },
   "General": {
     "noResults": "No se encontraron resultados."
   }
 }
+
+    

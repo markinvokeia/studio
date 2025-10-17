@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import type { Role } from '@/lib/types';
+import { useTranslations } from 'next-intl';
 
 interface RolesColumnsProps {
     onEdit: (role: Role) => void;
@@ -22,6 +23,8 @@ interface RolesColumnsProps {
 }
 
 export const RolesColumnsWrapper = ({ onEdit, onDelete }: RolesColumnsProps): ColumnDef<Role>[] => {
+    const t = useTranslations('RolesColumns');
+
     const columns: ColumnDef<Role>[] = [
       {
         id: 'select',
@@ -46,13 +49,13 @@ export const RolesColumnsWrapper = ({ onEdit, onDelete }: RolesColumnsProps): Co
       {
         accessorKey: 'id',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Role ID" />
+          <DataTableColumnHeader column={column} title={t('roleId')} />
         ),
       },
       {
         accessorKey: 'name',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Name" />
+          <DataTableColumnHeader column={column} title={t('name')} />
         ),
       },
       {
@@ -68,10 +71,10 @@ export const RolesColumnsWrapper = ({ onEdit, onDelete }: RolesColumnsProps): Co
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => onEdit(role)}>Edit role</DropdownMenuItem>
+                <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => onEdit(role)}>{t('edit')}</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => onDelete(role)} className="text-destructive">Delete role</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onDelete(role)} className="text-destructive">{t('delete')}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           );
@@ -81,3 +84,5 @@ export const RolesColumnsWrapper = ({ onEdit, onDelete }: RolesColumnsProps): Co
 
     return columns;
 };
+
+    

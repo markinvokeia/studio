@@ -29,14 +29,14 @@ import { RowSelectionState } from '@tanstack/react-table';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useTranslations } from 'next-intl';
 
-
-const roleFormSchema = z.object({
+const roleFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().min(1, t('validation.nameRequired')),
 });
 
-type RoleFormValues = z.infer<typeof roleFormSchema>;
+type RoleFormValues = z.infer<ReturnType<typeof roleFormSchema>>;
 
 async function getRoles(): Promise<Role[]> {
   try {
@@ -96,6 +96,9 @@ async function deleteRole(id: string) {
 
 
 export default function RolesPage() {
+  const t = useTranslations('RolesPage');
+  const tValidation = useTranslations('validation');
+
   const [roles, setRoles] = React.useState<Role[]>([]);
   const [selectedRole, setSelectedRole] = React.useState<Role | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -108,7 +111,7 @@ export default function RolesPage() {
   const { toast } = useToast();
 
   const form = useForm<RoleFormValues>({
-    resolver: zodResolver(roleFormSchema),
+    resolver: zodResolver(roleFormSchema(tValidation)),
     defaultValues: { name: '' },
   });
 
@@ -147,8 +150,8 @@ export default function RolesPage() {
     try {
         await deleteRole(deletingRole.id);
         toast({
-            title: "Role Deleted",
-            description: `Role "${deletingRole.name}" has been deleted.`,
+            title: t('toast.deleteSuccess'),
+            description: t('toast.deleteDescription', {name: deletingRole.name}),
         });
         setIsDeleteDialogOpen(false);
         setDeletingRole(null);
@@ -156,8 +159,8 @@ export default function RolesPage() {
     } catch (error) {
         toast({
             variant: 'destructive',
-            title: 'Error',
-            description: error instanceof Error ? error.message : "Could not delete the role.",
+            title: t('toast.error'),
+            description: error instanceof Error ? error.message : t('toast.deleteError'),
         });
     }
   };
@@ -177,13 +180,13 @@ export default function RolesPage() {
     try {
         await upsertRole(values);
         toast({
-            title: editingRole ? "Role Updated" : "Role Created",
-            description: `The role "${values.name}" has been saved successfully.`,
+            title: editingRole ? t('toast.editSuccess') : t('toast.createSuccess'),
+            description: t('toast.successDescription', {name: values.name}),
         });
         setIsDialogOpen(false);
         loadRoles();
     } catch (error) {
-        setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+        setSubmissionError(error instanceof Error ? error.message : t('toast.saveError'));
     }
   };
   
@@ -196,15 +199,15 @@ export default function RolesPage() {
         <div className={cn("transition-all duration-300", selectedRole ? "lg:col-span-2" : "lg:col-span-5")}>
             <Card>
                 <CardHeader>
-                    <CardTitle>Roles</CardTitle>
-                    <CardDescription>Manage user roles and their permissions.</CardDescription>
+                    <CardTitle>{t('title')}</CardTitle>
+                    <CardDescription>{t('description')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <DataTable 
                     columns={rolesColumns} 
                     data={roles} 
                     filterColumnId="name" 
-                    filterPlaceholder="Filter roles by name..."
+                    filterPlaceholder={t('filterPlaceholder')}
                     onRowSelectionChange={handleRowSelectionChange}
                     enableSingleRowSelection={true}
                     onCreate={handleCreate}
@@ -221,19 +224,19 @@ export default function RolesPage() {
                  <Card>
                     <CardHeader className="flex flex-row items-start justify-between">
                         <div>
-                            <CardTitle>Details for {selectedRole.name}</CardTitle>
+                            <CardTitle>{t('detailsFor', { name: selectedRole.name })}</CardTitle>
                             <CardDescription>Role ID: {selectedRole.id}</CardDescription>
                         </div>
                          <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
                             <X className="h-5 w-5" />
-                            <span className="sr-only">Close details</span>
+                            <span className="sr-only">{t('close')}</span>
                         </Button>
                     </CardHeader>
                     <CardContent>
                         <Tabs defaultValue="users" className="w-full">
                             <TabsList className="h-auto items-center justify-start flex-wrap">
-                                <TabsTrigger value="users">Users</TabsTrigger>
-                                <TabsTrigger value="permissions">Permissions</TabsTrigger>
+                                <TabsTrigger value="users">{t('tabs.users')}</TabsTrigger>
+                                <TabsTrigger value="permissions">{t('tabs.permissions')}</TabsTrigger>
                             </TabsList>
                             <TabsContent value="users">
                                 <RoleUsers roleId={selectedRole.id} />
@@ -251,9 +254,9 @@ export default function RolesPage() {
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{editingRole ? 'Edit Role' : 'Create New Role'}</DialogTitle>
+          <DialogTitle>{editingRole ? t('createDialog.editTitle') : t('createDialog.title')}</DialogTitle>
           <DialogDescription>
-            {editingRole ? 'Update the details for this role.' : 'Fill in the details below to add a new role.'}
+            {editingRole ? t('createDialog.editDescription') : t('createDialog.description')}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -261,7 +264,7 @@ export default function RolesPage() {
                 {submissionError && (
                     <Alert variant="destructive">
                         <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Error</AlertTitle>
+                        <AlertTitle>{t('toast.error')}</AlertTitle>
                         <AlertDescription>{submissionError}</AlertDescription>
                     </Alert>
                 )}
@@ -270,17 +273,17 @@ export default function RolesPage() {
                     name="name"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Name</FormLabel>
+                        <FormLabel>{t('createDialog.nameLabel')}</FormLabel>
                         <FormControl>
-                            <Input placeholder="Admin" {...field} />
+                            <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
                 />
                 <DialogFooter>
-                    <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                    <Button type="submit">{editingRole ? 'Save Changes' : 'Create Role'}</Button>
+                    <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('createDialog.cancel')}</Button>
+                    <Button type="submit">{editingRole ? t('createDialog.editSave') : t('createDialog.save')}</Button>
                 </DialogFooter>
             </form>
         </Form>
@@ -290,17 +293,19 @@ export default function RolesPage() {
     <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                    This will permanently delete the role "{deletingRole?.name}". This action cannot be undone.
+                    {t('deleteDialog.description', { name: deletingRole?.name })}
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
     </>
   );
 }
+
+    

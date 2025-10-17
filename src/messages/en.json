@@ -483,7 +483,54 @@
     "orderId": "Order ID",
     "createdAt": "Created At"
   },
+  "RolesPage": {
+    "title": "Roles",
+    "description": "Manage user roles and their permissions.",
+    "filterPlaceholder": "Filter roles by name...",
+    "detailsFor": "Details for {name}",
+    "close": "Close details",
+    "tabs": {
+      "users": "Users",
+      "permissions": "Permissions"
+    },
+    "createDialog": {
+      "title": "Create New Role",
+      "description": "Fill in the details below to add a new role.",
+      "editTitle": "Edit Role",
+      "editDescription": "Update the details for this role.",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g., Administrator",
+      "cancel": "Cancel",
+      "save": "Create Role",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the role \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "createSuccess": "Role Created",
+      "editSuccess": "Role Updated",
+      "deleteSuccess": "Role Deleted",
+      "successDescription": "The role \"{name}\" has been saved successfully.",
+      "deleteDescription": "The role \"{name}\" has been deleted.",
+      "error": "Error",
+      "saveError": "Could not save the role.",
+      "deleteError": "Could not delete the role."
+    }
+  },
+  "RolesColumns": {
+    "roleId": "Role ID",
+    "name": "Name",
+    "actions": "Actions",
+    "edit": "Edit role",
+    "delete": "Delete role"
+  },
   "General": {
     "noResults": "No results."
   }
 }
+
+    
