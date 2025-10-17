@@ -45,6 +45,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 async function getAppointments(calendarGoogleIds: string[], startDate: Date, endDate: Date): Promise<Appointment[]> {
@@ -736,16 +737,32 @@ export default function AppointmentsPage() {
                 <CardDescription>{t('description')}</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-                <TabsList>
-                    <TabsTrigger value="calendar" className="flex items-center gap-2">
-                        <CalendarDays className="h-4 w-4" />
-                        {t('calendarView')}
-                    </TabsTrigger>
-                    <TabsTrigger value="list" className="flex items-center gap-2">
-                        <List className="h-4 w-4" />
-                        {t('listView')}
-                    </TabsTrigger>
-                </TabsList>
+                <TooltipProvider>
+                    <TabsList>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <TabsTrigger value="calendar">
+                                    <CalendarDays className="h-4 w-4" />
+                                    <span className="sr-only">{t('calendarView')}</span>
+                                </TabsTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{t('calendarView')}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <TabsTrigger value="list">
+                                    <List className="h-4 w-4" />
+                                    <span className="sr-only">{t('listView')}</span>
+                                </TabsTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{t('listView')}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TabsList>
+                </TooltipProvider>
             </div>
             </CardHeader>
             <CardContent>
@@ -1277,3 +1294,6 @@ export default function AppointmentsPage() {
 
     
 
+
+
+    
