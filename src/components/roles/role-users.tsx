@@ -84,11 +84,11 @@ async function assignUserToRole(roleId: string, userId: string) {
     return response.json();
 }
 
-async function deleteUserFromRole(userRoleId: string) {
+async function deleteUserFromRole(roleId: string, userId: string) {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/role_users/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_role_id: userRoleId }),
+        body: JSON.stringify({ role_id: roleId, user_id: userId }),
     });
     if (!response.ok) throw new Error('Failed to delete user from role');
     return response.json();
@@ -140,7 +140,7 @@ export function RoleUsers({ roleId }: RoleUsersProps) {
   const confirmDelete = async () => {
     if (!deletingUser) return;
     try {
-        await deleteUserFromRole(deletingUser.user_role_id);
+        await deleteUserFromRole(roleId, deletingUser.id);
         toast({
             title: "User Removed",
             description: `User "${deletingUser.name}" has been removed from this role.`,
