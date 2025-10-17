@@ -33,7 +33,7 @@ import { useTranslations } from 'next-intl';
 
 const roleFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  name: z.string().min(1, t('validation.nameRequired')),
+  name: z.string().min(1, t('nameRequired')),
 });
 
 type RoleFormValues = z.infer<ReturnType<typeof roleFormSchema>>;
@@ -97,7 +97,7 @@ async function deleteRole(id: string) {
 
 export default function RolesPage() {
   const t = useTranslations('RolesPage');
-  const tValidation = useTranslations('validation');
+  const tValidation = useTranslations('RolesPage.validation');
 
   const [roles, setRoles] = React.useState<Role[]>([]);
   const [selectedRole, setSelectedRole] = React.useState<Role | null>(null);
@@ -307,5 +307,3 @@ export default function RolesPage() {
     </>
   );
 }
-
-    

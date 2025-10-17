@@ -519,6 +519,9 @@
       "error": "Error",
       "saveError": "Could not save the role.",
       "deleteError": "Could not delete the role."
+    },
+    "validation": {
+      "nameRequired": "Name is required."
     }
   },
   "RolesColumns": {
@@ -532,5 +535,3 @@
     "noResults": "No results."
   }
 }
-
-    

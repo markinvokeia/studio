@@ -519,6 +519,9 @@
       "error": "Error",
       "saveError": "No se pudo guardar el rol.",
       "deleteError": "No se pudo eliminar el rol."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio."
     }
   },
   "RolesColumns": {
@@ -532,5 +535,3 @@
     "noResults": "No se encontraron resultados."
   }
 }
-
-    
