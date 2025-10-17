@@ -199,12 +199,14 @@ export default function AppointmentsPage() {
     description: '',
     showSuggestions: true,
   });
+  const [originalCalendarId, setOriginalCalendarId] = React.useState<string | undefined>(undefined);
   const [isCalendarSearchOpen, setCalendarSearchOpen] = React.useState(false);
   const [availabilityStatus, setAvailabilityStatus] = React.useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
   const [suggestedTimes, setSuggestedTimes] = React.useState<any[]>([]);
 
   const handleEdit = (appointment: Appointment) => {
     setEditingAppointment(appointment);
+    setOriginalCalendarId(appointment.calendar_id);
   };
 
   React.useEffect(() => {
@@ -649,6 +651,7 @@ export default function AppointmentsPage() {
 
     if (editingAppointment) {
       payload.eventId = editingAppointment.id;
+      payload.oldCalendarId = originalCalendarId;
     }
 
     try {
@@ -670,6 +673,7 @@ export default function AppointmentsPage() {
 
         setCreateOpen(false);
         setEditingAppointment(null);
+        setOriginalCalendarId(undefined);
         loadAppointments();
       } else {
         const errorDetails = result?.error || result;
@@ -925,7 +929,7 @@ export default function AppointmentsPage() {
             </CardContent>
         </Tabs>
       </Card>
-      <Dialog open={isCreateOpen} onOpenChange={(isOpen) => { setCreateOpen(isOpen); if (!isOpen) setEditingAppointment(null); }}>
+      <Dialog open={isCreateOpen} onOpenChange={(isOpen) => { setCreateOpen(isOpen); if (!isOpen) {setEditingAppointment(null); setOriginalCalendarId(undefined); }}}>
         <DialogContent className={cn("sm:max-w-md", newAppointment.showSuggestions && !editingAppointment && "sm:max-w-4xl")}>
           <DialogHeader>
             <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
