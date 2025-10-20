@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -627,7 +626,7 @@ export default function QuotesPage() {
             const endpoint = `https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/${action}`;
             const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             if (!response.ok) throw new Error(`Failed to ${action} quote.`);
-            toast({ title: `Quote ${action === 'confirm' ? 'Confirmed' : 'Rejected'}`, description: `Quote #${quote.id} has been successfully ${action}.` });
+            toast({ title: `Quote ${action === 'confirm' ? 'Confirmed' : 'Rejected'}`, description: `Quote #${quote.id} has been successfully ${action === 'confirm' ? 'confirmed' : 'rejected'}.` });
             loadQuotes();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : `Could not ${action} the quote.` });
@@ -735,7 +734,7 @@ export default function QuotesPage() {
                                                     <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                                 </Button>
                                             </div>
-                                            <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} />
+                                            <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} />
                                         </div>
                                     )}
                                 </TabsContent>
@@ -1015,4 +1014,3 @@ export default function QuotesPage() {
         </>
     );
 }
-
