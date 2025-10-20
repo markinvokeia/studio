@@ -171,7 +171,7 @@ const getColumns = (
             )}
             {isDraftOrPending && (
                 <>
-                <DropdownMenuSeparator />
+                {isDraft && <DropdownMenuSeparator />}
                 <DropdownMenuItem onClick={() => onQuoteAction(quote, 'confirm')}>Confirm</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onQuoteAction(quote, 'reject')} className="text-destructive">Reject</DropdownMenuItem>
                 </>
