@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -65,15 +66,20 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate }: Ord
     if (!selectedItem || !actionType || !selectedDate) return;
 
     try {
+        const queryPayload = {
+            action: actionType,
+            order_item_id: selectedItem.id,
+            schedule_date_time: selectedDate.toISOString(),
+        };
+
         const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/lines/schedule', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                order_item_id: selectedItem.id,
-                schedule_complete: actionType,
-                date: format(selectedDate, 'yyyy-MM-dd'),
+                query: JSON.stringify(queryPayload)
             }),
         });
+
         if (!response.ok) throw new Error(`Failed to ${actionType} item.`);
         
         toast({
