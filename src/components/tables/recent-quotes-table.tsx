@@ -151,7 +151,7 @@ const getColumns = (
       const t = useTranslations('UserColumns');
       const quote = row.original;
       const isDraft = quote.status === 'draft';
-      const isDraftOrPending = quote.status === 'draft' || quote.status === 'pending';
+      const isPending = quote.status === 'pending';
 
       return (
         <DropdownMenu>
@@ -169,9 +169,9 @@ const getColumns = (
                 <DropdownMenuItem onClick={() => onDelete(quote)} className="text-destructive">Delete Quote</DropdownMenuItem>
               </>
             )}
-            {isDraftOrPending && (
+            {(isDraft || isPending) && (
                 <>
-                {isDraft && <DropdownMenuSeparator />}
+                {(isDraft) && <DropdownMenuSeparator />}
                 <DropdownMenuItem onClick={() => onQuoteAction(quote, 'confirm')}>Confirm</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onQuoteAction(quote, 'reject')} className="text-destructive">Reject</DropdownMenuItem>
                 </>
@@ -227,3 +227,5 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
     </Card>
   );
 }
+
+    
