@@ -7,8 +7,26 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { QuoteItem } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { MoreHorizontal } from 'lucide-react';
 
-const columns: ColumnDef<QuoteItem>[] = [
+interface QuoteItemsTableProps {
+  items: QuoteItem[];
+  isLoading?: boolean;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
+  canEdit: boolean;
+  onCreate: () => void;
+  onEdit: (item: QuoteItem) => void;
+  onDelete: (item: QuoteItem) => void;
+}
+
+const getColumns = (
+  onEdit: (item: QuoteItem) => void,
+  onDelete: (item: QuoteItem) => void,
+  canEdit: boolean
+): ColumnDef<QuoteItem>[] => [
   {
     accessorKey: 'id',
     header: ({ column }) => (
@@ -55,16 +73,31 @@ const columns: ColumnDef<QuoteItem>[] = [
       return <div className="font-medium">{formatted}</div>;
     },
   },
+  {
+    id: 'actions',
+    cell: ({ row }) => {
+      const item = row.original;
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0" disabled={!canEdit}>
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => onEdit(item)}>Edit</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onDelete(item)} className="text-destructive">Delete</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    },
+  },
 ];
 
-interface QuoteItemsTableProps {
-  items: QuoteItem[];
-  isLoading?: boolean;
-  onRefresh?: () => void;
-  isRefreshing?: boolean;
-}
-
-export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing }: QuoteItemsTableProps) {
+export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete }: QuoteItemsTableProps) {
+    const columns = getColumns(onEdit, onDelete, canEdit);
     if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
@@ -85,6 +118,7 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
           filterPlaceholder="Filter by service..."
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
+          onCreate={canEdit ? onCreate : undefined}
         />
       </CardContent>
     </Card>

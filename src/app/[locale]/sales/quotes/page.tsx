@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
-import { Quote, QuoteItem, Order, Invoice, Payment, OrderItem, InvoiceItem, User } from '@/lib/types';
+import { Quote, QuoteItem, Order, Invoice, Payment, OrderItem, InvoiceItem, User, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -53,6 +53,17 @@ const quoteFormSchema = z.object({
 });
 
 type QuoteFormValues = z.infer<typeof quoteFormSchema>;
+
+const quoteItemFormSchema = z.object({
+    id: z.string().optional(),
+    quote_id: z.string(),
+    service_id: z.string().min(1, 'Service is required'),
+    quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+    unit_price: z.coerce.number().min(0, 'Unit price must be positive'),
+    total: z.coerce.number().min(0, 'Total must be positive'),
+});
+
+type QuoteItemFormValues = z.infer<typeof quoteItemFormSchema>;
 
 
 async function getQuotes(): Promise<Quote[]> {
@@ -122,6 +133,41 @@ async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
         return [];
     }
 }
+
+async function getServices(): Promise<Service[]> {
+  try {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services', {
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : (data.services || data.data || []);
+  } catch (error) {
+    console.error("Failed to fetch services:", error);
+    return [];
+  }
+}
+
+async function upsertQuoteItem(itemData: QuoteItemFormValues) {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/lines/upsert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(itemData),
+    });
+    if (!response.ok) throw new Error('Failed to save quote item.');
+    return response.json();
+}
+
+async function deleteQuoteItem(id: string) {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/lines/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+    });
+    if (!response.ok) throw new Error('Failed to delete quote item.');
+    return response.json();
+}
+
 
 async function getOrders(quoteId: string): Promise<Order[]> {
     if (!quoteId) return [];
@@ -334,31 +380,39 @@ export default function QuotesPage() {
     const [isLoadingInvoiceItems, setIsLoadingInvoiceItems] = React.useState(false);
     const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
     
-    const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+    const [isQuoteDialogOpen, setIsQuoteDialogOpen] = React.useState(false);
     const [editingQuote, setEditingQuote] = React.useState<Quote | null>(null);
     const [deletingQuote, setDeletingQuote] = React.useState<Quote | null>(null);
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-    const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+    const [isDeleteQuoteDialogOpen, setIsDeleteQuoteDialogOpen] = React.useState(false);
+    const [quoteSubmissionError, setQuoteSubmissionError] = React.useState<string | null>(null);
+
+    const [isQuoteItemDialogOpen, setIsQuoteItemDialogOpen] = React.useState(false);
+    const [editingQuoteItem, setEditingQuoteItem] = React.useState<QuoteItem | null>(null);
+    const [deletingQuoteItem, setDeletingQuoteItem] = React.useState<QuoteItem | null>(null);
+    const [isDeleteQuoteItemDialogOpen, setIsDeleteQuoteItemDialogOpen] = React.useState(false);
+    const [quoteItemSubmissionError, setQuoteItemSubmissionError] = React.useState<string | null>(null);
 
     const [allUsers, setAllUsers] = React.useState<User[]>([]);
+    const [allServices, setAllServices] = React.useState<Service[]>([]);
     const [isUserSearchOpen, setUserSearchOpen] = React.useState(false);
+    const [isServiceSearchOpen, setServiceSearchOpen] = React.useState(false);
 
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
-    const form = useForm<QuoteFormValues>({
-        resolver: zodResolver(quoteFormSchema),
-      });
+    const quoteForm = useForm<QuoteFormValues>({ resolver: zodResolver(quoteFormSchema) });
+    const quoteItemForm = useForm<QuoteItemFormValues>({ resolver: zodResolver(quoteItemFormSchema) });
 
-    const watchedStatus = form.watch("status");
-    const isStatusDraft = watchedStatus === 'draft';
+    const watchedQuoteStatus = quoteForm.watch("status");
+    const isStatusDraft = watchedQuoteStatus === 'draft';
+    const canEditQuote = selectedQuote?.status.toLowerCase() === 'draft';
 
     React.useEffect(() => {
         if (isStatusDraft) {
-            form.setValue('payment_status', 'unpaid');
-            form.setValue('billing_status', 'not invoiced');
+            quoteForm.setValue('payment_status', 'unpaid');
+            quoteForm.setValue('billing_status', 'not invoiced');
         }
-    }, [isStatusDraft, form]);
+    }, [isStatusDraft, quoteForm]);
 
 
     const loadQuotes = React.useCallback(async () => {
@@ -373,10 +427,9 @@ export default function QuotesPage() {
     }, [loadQuotes]);
 
     React.useEffect(() => {
-        if (isDialogOpen) {
-          getUsers().then(setAllUsers);
-        }
-    }, [isDialogOpen]);
+        if (isQuoteDialogOpen) getUsers().then(setAllUsers);
+        if (isQuoteItemDialogOpen) getServices().then(setAllServices);
+    }, [isQuoteDialogOpen, isQuoteItemDialogOpen]);
 
     const loadQuoteItems = React.useCallback(async () => {
         if (!selectedQuote) return;
@@ -452,125 +505,119 @@ export default function QuotesPage() {
         }
     }, [selectedInvoice, loadInvoiceItems]);
 
-    const handleCreate = () => {
+    const handleCreateQuote = () => {
         setEditingQuote(null);
-        form.reset({
-          user_id: '',
-          total: 0,
-          status: 'draft',
-          payment_status: 'unpaid',
-          billing_status: 'not invoiced',
-        });
-        setSubmissionError(null);
-        setIsDialogOpen(true);
+        quoteForm.reset({ user_id: '', total: 0, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced' });
+        setQuoteSubmissionError(null);
+        setIsQuoteDialogOpen(true);
       };
       
-    const handleEdit = (quote: Quote) => {
-        if (quote.status !== 'draft') {
-            toast({
-                variant: 'destructive',
-                title: 'Cannot Edit Quote',
-                description: 'You can only edit quotes that are in "Draft" status.',
-            });
+    const handleEditQuote = (quote: Quote) => {
+        if (quote.status.toLowerCase() !== 'draft') {
+            toast({ variant: 'destructive', title: 'Cannot Edit Quote', description: 'You can only edit quotes that are in "Draft" status.' });
             return;
         }
         setEditingQuote(quote);
-        form.reset({
-            id: quote.id,
-            user_id: quote.user_id,
-            total: quote.total,
-            status: quote.status,
-            payment_status: quote.payment_status,
-            billing_status: quote.billing_status as any,
-        });
-        setSubmissionError(null);
-        setIsDialogOpen(true);
+        quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, status: quote.status, payment_status: quote.payment_status, billing_status: quote.billing_status as any });
+        setQuoteSubmissionError(null);
+        setIsQuoteDialogOpen(true);
     };
     
-    const handleDelete = (quote: Quote) => {
-        if (quote.status !== 'draft') {
-            toast({
-                variant: 'destructive',
-                title: 'Cannot Delete Quote',
-                description: 'You can only delete quotes that are in "Draft" status.',
-            });
+    const handleDeleteQuote = (quote: Quote) => {
+        if (quote.status.toLowerCase() !== 'draft') {
+            toast({ variant: 'destructive', title: 'Cannot Delete Quote', description: 'You can only delete quotes that are in "Draft" status.' });
             return;
         }
         setDeletingQuote(quote);
-        setIsDeleteDialogOpen(true);
+        setIsDeleteQuoteDialogOpen(true);
     };
 
-    const confirmDelete = async () => {
+    const confirmDeleteQuote = async () => {
         if (!deletingQuote) return;
         try {
             await deleteQuote(deletingQuote.id);
-            toast({
-                title: "Quote Deleted",
-                description: `Quote "${deletingQuote.id}" has been deleted.`,
-            });
-            setIsDeleteDialogOpen(false);
+            toast({ title: "Quote Deleted", description: `Quote "${deletingQuote.id}" has been deleted.` });
+            setIsDeleteQuoteDialogOpen(false);
             setDeletingQuote(null);
             loadQuotes();
-            if (selectedQuote?.id === deletingQuote.id) {
-                setSelectedQuote(null);
-            }
+            if (selectedQuote?.id === deletingQuote.id) setSelectedQuote(null);
         } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: error instanceof Error ? error.message : "Could not delete the quote.",
-            });
+            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : "Could not delete the quote." });
         }
     };
     
-    const onSubmit = async (values: QuoteFormValues) => {
-        setSubmissionError(null);
+    const onQuoteSubmit = async (values: QuoteFormValues) => {
+        setQuoteSubmissionError(null);
         try {
             await upsertQuote(values);
-            toast({
-                title: editingQuote ? "Quote Updated" : "Quote Created",
-                description: `The quote has been saved successfully.`,
-            });
-            setIsDialogOpen(false);
+            toast({ title: editingQuote ? "Quote Updated" : "Quote Created", description: `The quote has been saved successfully.` });
+            setIsQuoteDialogOpen(false);
             loadQuotes();
         } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+            setQuoteSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+        }
+    };
+
+    const handleCreateQuoteItem = () => {
+        if (!selectedQuote) return;
+        setEditingQuoteItem(null);
+        quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
+        setQuoteItemSubmissionError(null);
+        setIsQuoteItemDialogOpen(true);
+    };
+    
+    const handleEditQuoteItem = (item: QuoteItem) => {
+        setEditingQuoteItem(item);
+        const service = allServices.find(s => s.id === item.service_id);
+        quoteItemForm.reset({ id: item.id, quote_id: selectedQuote!.id, service_id: item.service_id, quantity: item.quantity, unit_price: item.unit_price, total: item.total });
+        if(service) quoteItemForm.setValue('unit_price', service.price);
+        setQuoteItemSubmissionError(null);
+        setIsQuoteItemDialogOpen(true);
+    };
+
+    const handleDeleteQuoteItem = (item: QuoteItem) => {
+        setDeletingQuoteItem(item);
+        setIsDeleteQuoteItemDialogOpen(true);
+    };
+
+    const confirmDeleteQuoteItem = async () => {
+        if (!deletingQuoteItem) return;
+        try {
+            await deleteQuoteItem(deletingQuoteItem.id);
+            toast({ title: 'Quote Item Deleted', description: 'The item has been removed from the quote.' });
+            loadQuoteItems();
+            loadQuotes(); // To update total
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not delete quote item.' });
+        } finally {
+            setIsDeleteQuoteItemDialogOpen(false);
+            setDeletingQuoteItem(null);
+        }
+    };
+
+    const onQuoteItemSubmit = async (values: QuoteItemFormValues) => {
+        setQuoteItemSubmissionError(null);
+        try {
+            await upsertQuoteItem(values);
+            toast({ title: editingQuoteItem ? 'Item Updated' : 'Item Added', description: 'The quote item has been saved.' });
+            setIsQuoteItemDialogOpen(false);
+            loadQuoteItems();
+            loadQuotes(); // To update total
+        } catch (error) {
+            setQuoteItemSubmissionError(error instanceof Error ? error.message : 'An unexpected error occurred.');
         }
     };
 
     const handleQuoteAction = async (quote: Quote, action: 'confirm' | 'reject') => {
         try {
-            const payload = {
-                quote_number: quote.id,
-                confirm_reject: action,
-            };
-    
-            const endpoint = action === 'confirm' 
-                ? 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/confirm' 
-                : 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/reject';
-    
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-    
-            if (!response.ok) {
-                throw new Error(`Failed to ${action} quote.`);
-            }
-    
-            toast({
-                title: `Quote ${action === 'confirm' ? 'Confirmed' : 'Rejected'}`,
-                description: `Quote #${quote.id} has been successfully ${action === 'confirm' ? 'confirmed' : 'rejected'}.`,
-            });
+            const payload = { quote_number: quote.id, confirm_reject: action };
+            const endpoint = `https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/${action}`;
+            const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) throw new Error(`Failed to ${action} quote.`);
+            toast({ title: `Quote ${action === 'confirm' ? 'Confirmed' : 'Rejected'}`, description: `Quote #${quote.id} has been successfully ${action}.` });
             loadQuotes();
-    
         } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: error instanceof Error ? error.message : `Could not ${action} the quote.`,
-            });
+            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : `Could not ${action} the quote.` });
         }
     };
 
@@ -593,6 +640,20 @@ export default function QuotesPage() {
         setSelectedQuote(null);
         setRowSelection({});
     };
+
+    // Auto-calculate total for quote item form
+    const watchedServiceId = quoteItemForm.watch('service_id');
+    const watchedQuantity = quoteItemForm.watch('quantity');
+
+    React.useEffect(() => {
+        const service = allServices.find(s => s.id === watchedServiceId);
+        if (service) {
+            const unitPrice = service.price;
+            const quantity = watchedQuantity || 0;
+            quoteItemForm.setValue('unit_price', unitPrice);
+            quoteItemForm.setValue('total', unitPrice * quantity);
+        }
+    }, [watchedServiceId, watchedQuantity, allServices, quoteItemForm]);
     
     return (
         <>
@@ -601,13 +662,13 @@ export default function QuotesPage() {
                  <RecentQuotesTable 
                     quotes={quotes} 
                     onRowSelectionChange={handleRowSelectionChange} 
-                    onCreate={handleCreate}
+                    onCreate={handleCreateQuote}
                     onRefresh={loadQuotes}
                     isRefreshing={isRefreshing}
                     rowSelection={rowSelection}
                     setRowSelection={setRowSelection}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
+                    onEdit={handleEditQuote}
+                    onDelete={handleDeleteQuote}
                     onQuoteAction={handleQuoteAction}
                 />
             </div>
@@ -639,6 +700,10 @@ export default function QuotesPage() {
                                         isLoading={isLoadingItems}
                                         onRefresh={loadQuoteItems}
                                         isRefreshing={isLoadingItems}
+                                        canEdit={canEditQuote}
+                                        onCreate={handleCreateQuoteItem}
+                                        onEdit={handleEditQuoteItem}
+                                        onDelete={handleDeleteQuoteItem}
                                     />
                                 </TabsContent>
                                 <TabsContent value="orders">
@@ -697,7 +762,7 @@ export default function QuotesPage() {
             )}
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>{editingQuote ? 'Edit Quote' : 'Create New Quote'}</DialogTitle>
@@ -705,17 +770,17 @@ export default function QuotesPage() {
                         {editingQuote ? 'Update the details for this quote.' : 'Fill in the details below to add a new quote.'}
                     </DialogDescription>
                 </DialogHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                        {submissionError && (
+                <Form {...quoteForm}>
+                    <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="space-y-4 py-4">
+                        {quoteSubmissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
                                 <AlertTitle>Error</AlertTitle>
-                                <AlertDescription>{submissionError}</AlertDescription>
+                                <AlertDescription>{quoteSubmissionError}</AlertDescription>
                             </Alert>
                         )}
                         <FormField
-                            control={form.control}
+                            control={quoteForm.control}
                             name="user_id"
                             render={({ field }) => (
                                 <FormItem>
@@ -736,7 +801,7 @@ export default function QuotesPage() {
                                                     <CommandEmpty>No user found.</CommandEmpty>
                                                     <CommandGroup>
                                                         {allUsers.map((user) => (
-                                                            <CommandItem value={user.name} key={user.id} onSelect={() => { form.setValue("user_id", user.id); setUserSearchOpen(false); }}>
+                                                            <CommandItem value={user.name} key={user.id} onSelect={() => { quoteForm.setValue("user_id", user.id); setUserSearchOpen(false); }}>
                                                                 <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
                                                                 {user.name}
                                                             </CommandItem>
@@ -751,7 +816,7 @@ export default function QuotesPage() {
                             )}
                         />
                          <FormField
-                            control={form.control}
+                            control={quoteForm.control}
                             name="total"
                             render={({ field }) => (
                                 <FormItem>
@@ -764,7 +829,7 @@ export default function QuotesPage() {
                             )}
                         />
                          <FormField
-                            control={form.control}
+                            control={quoteForm.control}
                             name="status"
                             render={({ field }) => (
                                 <FormItem>
@@ -783,7 +848,7 @@ export default function QuotesPage() {
                             )}
                         />
                         <FormField
-                            control={form.control}
+                            control={quoteForm.control}
                             name="payment_status"
                             render={({ field }) => (
                                 <FormItem>
@@ -801,7 +866,7 @@ export default function QuotesPage() {
                             )}
                         />
                         <FormField
-                            control={form.control}
+                            control={quoteForm.control}
                             name="billing_status"
                             render={({ field }) => (
                                 <FormItem>
@@ -819,14 +884,14 @@ export default function QuotesPage() {
                             )}
                         />
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                            <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>Cancel</Button>
                             <Button type="submit">{editingQuote ? 'Save Changes' : 'Create Quote'}</Button>
                         </DialogFooter>
                     </form>
                 </Form>
             </DialogContent>
         </Dialog>
-        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialog open={isDeleteQuoteDialogOpen} onOpenChange={setIsDeleteQuoteDialogOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -836,11 +901,104 @@ export default function QuotesPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                    <AlertDialogAction onClick={confirmDeleteQuote} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Quote Item Dialog */}
+        <Dialog open={isQuoteItemDialogOpen} onOpenChange={setIsQuoteItemDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{editingQuoteItem ? 'Edit Item' : 'Add New Item'}</DialogTitle>
+                    <DialogDescription>Fill in the details for the quote item.</DialogDescription>
+                </DialogHeader>
+                <Form {...quoteItemForm}>
+                    <form onSubmit={quoteItemForm.handleSubmit(onQuoteItemSubmit)} className="space-y-4 py-4">
+                         {quoteItemSubmissionError && (
+                            <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>Error</AlertTitle>
+                                <AlertDescription>{quoteItemSubmissionError}</AlertDescription>
+                            </Alert>
+                        )}
+                        <FormField
+                            control={quoteItemForm.control}
+                            name="service_id"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Service</FormLabel>
+                                <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
+                                    <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                                        {field.value ? allServices.find(s => s.id === field.value)?.name : "Select service"}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Search service..." />
+                                        <CommandList>
+                                        <CommandEmpty>No service found.</CommandEmpty>
+                                        <CommandGroup>
+                                            {allServices.map((service) => (
+                                            <CommandItem value={service.name} key={service.id} onSelect={() => { quoteItemForm.setValue("service_id", service.id); setServiceSearchOpen(false); }}>
+                                                <Check className={cn("mr-2 h-4 w-4", service.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                {service.name}
+                                            </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField control={quoteItemForm.control} name="quantity" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Quantity</FormLabel>
+                                <FormControl><Input type="number" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <FormField control={quoteItemForm.control} name="unit_price" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Unit Price</FormLabel>
+                                <FormControl><Input type="number" readOnly disabled {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <FormField control={quoteItemForm.control} name="total" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Total</FormLabel>
+                                <FormControl><Input type="number" readOnly disabled {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsQuoteItemDialogOpen(false)}>Cancel</Button>
+                            <Button type="submit">{editingQuoteItem ? 'Save Changes' : 'Add Item'}</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+        <AlertDialog open={isDeleteQuoteItemDialogOpen} onOpenChange={setIsDeleteQuoteItemDialogOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>This will permanently delete this quote item. This action cannot be undone.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDeleteQuoteItem} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
         </>
     );
 }
-
