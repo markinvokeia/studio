@@ -21,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
@@ -31,6 +32,7 @@ const getColumns = (
     t: (key: string) => string,
     onEdit: (quote: Quote) => void,
     onDelete: (quote: Quote) => void,
+    onQuoteAction: (quote: Quote, action: 'confirm' | 'reject') => void,
 ): ColumnDef<Quote>[] => [
   {
     id: 'select',
@@ -148,6 +150,9 @@ const getColumns = (
     cell: ({ row }) => {
       const t = useTranslations('UserColumns');
       const quote = row.original;
+      const isDraft = quote.status === 'draft';
+      const isDraftOrPending = quote.status === 'draft' || quote.status === 'pending';
+
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -158,8 +163,19 @@ const getColumns = (
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => onEdit(quote)}>{t('edit')}</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDelete(quote)} className="text-destructive">{t('delete')}</DropdownMenuItem>
+            {isDraft && (
+              <>
+                <DropdownMenuItem onClick={() => onEdit(quote)}>Edit Quote</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onDelete(quote)} className="text-destructive">Delete Quote</DropdownMenuItem>
+              </>
+            )}
+            {isDraftOrPending && (
+                <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => onQuoteAction(quote, 'confirm')}>Confirm</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onQuoteAction(quote, 'reject')} className="text-destructive">Reject</DropdownMenuItem>
+                </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -178,11 +194,12 @@ interface RecentQuotesTableProps {
   setRowSelection?: (selection: RowSelectionState) => void;
   onEdit?: (quote: Quote) => void;
   onDelete?: (quote: Quote) => void;
+  onQuoteAction?: (quote: Quote, action: 'confirm' | 'reject') => void;
 }
 
-export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRefresh, isRefreshing, rowSelection, setRowSelection, onEdit = () => {}, onDelete = () => {} }: RecentQuotesTableProps) {
+export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRefresh, isRefreshing, rowSelection, setRowSelection, onEdit = () => {}, onDelete = () => {}, onQuoteAction = () => {} }: RecentQuotesTableProps) {
   const t = useTranslations();
-  const columns = React.useMemo(() => getColumns(t, onEdit, onDelete), [t, onEdit, onDelete]);
+  const columns = React.useMemo(() => getColumns(t, onEdit, onDelete, onQuoteAction), [t, onEdit, onDelete, onQuoteAction]);
   return (
     <Card>
       <CardHeader>

@@ -350,6 +350,17 @@ export default function QuotesPage() {
         resolver: zodResolver(quoteFormSchema),
       });
 
+    const watchedStatus = form.watch("status");
+    const isStatusDraft = watchedStatus === 'draft';
+
+    React.useEffect(() => {
+        if (isStatusDraft) {
+            form.setValue('payment_status', 'unpaid');
+            form.setValue('billing_status', 'not invoiced');
+        }
+    }, [isStatusDraft, form]);
+
+
     const loadQuotes = React.useCallback(async () => {
         setIsRefreshing(true);
         const fetchedQuotes = await getQuotes();
@@ -477,6 +488,14 @@ export default function QuotesPage() {
     };
     
     const handleDelete = (quote: Quote) => {
+        if (quote.status !== 'draft') {
+            toast({
+                variant: 'destructive',
+                title: 'Cannot Delete Quote',
+                description: 'You can only delete quotes that are in "Draft" status.',
+            });
+            return;
+        }
         setDeletingQuote(quote);
         setIsDeleteDialogOpen(true);
     };
@@ -519,6 +538,45 @@ export default function QuotesPage() {
         }
     };
 
+    const handleQuoteAction = async (quote: Quote, action: 'confirm' | 'reject') => {
+        try {
+            const user = allUsers.find(u => u.id === quote.user_id) || { id: quote.user_id, name: quote.user_name, email: quote.userEmail };
+            const payload = {
+                quote_number: quote.id,
+                confirm_reject: action,
+                patient_email: user.email,
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                },
+            };
+
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quotes/${action}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to ${action} quote.`);
+            }
+
+            toast({
+                title: `Quote ${action === 'confirm' ? 'Confirmed' : 'Rejected'}`,
+                description: `Quote #${quote.id} has been successfully ${action === 'confirm' ? 'confirmed' : 'rejected'}.`,
+            });
+            loadQuotes();
+
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: error instanceof Error ? error.message : `Could not ${action} the quote.`,
+            });
+        }
+    };
+
     const handleRowSelectionChange = (selectedRows: Quote[]) => {
         const quote = selectedRows.length > 0 ? selectedRows[0] : null;
         setSelectedQuote(quote);
@@ -553,6 +611,7 @@ export default function QuotesPage() {
                     setRowSelection={setRowSelection}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
+                    onQuoteAction={handleQuoteAction}
                 />
             </div>
 
@@ -732,7 +791,7 @@ export default function QuotesPage() {
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Payment Status</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={isStatusDraft}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select a payment status" /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         <SelectItem value="unpaid">Unpaid</SelectItem>
@@ -750,7 +809,7 @@ export default function QuotesPage() {
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Billing Status</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={isStatusDraft}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select a billing status" /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         <SelectItem value="not invoiced">Not Invoiced</SelectItem>
