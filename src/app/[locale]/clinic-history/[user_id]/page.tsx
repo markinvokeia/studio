@@ -2134,7 +2134,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                             >
                               {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
                            </Button>
-                            <iframe src={`http://192.168.1.9:5173/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
+                            <iframe src={`https://1e44d2212c3f.ngrok-free.app/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
                         </div>
                     )}
                     {activeView === 'images' && <ImageGallery />}
@@ -2389,5 +2389,6 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
 
 
