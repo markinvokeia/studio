@@ -79,7 +79,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
             body: JSON.stringify({
                 query: JSON.stringify(queryPayload),
                 quote_number: quoteId,
-                schedule_complete: 'schedule'
+                schedule_complete: actionType,
             }),
         });
 
