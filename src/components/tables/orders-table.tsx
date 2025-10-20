@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -9,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, AlertTriangle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Calendar } from '../ui/calendar';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 interface OrdersTableProps {
   orders: Order[];
@@ -39,6 +41,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
     const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
     const [selectedOrderForInvoice, setSelectedOrderForInvoice] = React.useState<Order | null>(null);
     const [invoiceDate, setInvoiceDate] = React.useState<Date | undefined>(new Date());
+    const [invoiceSubmissionError, setInvoiceSubmissionError] = React.useState<string | null>(null);
 
     const handleInvoiceClick = (order: Order) => {
         setSelectedOrderForInvoice(order);
@@ -48,7 +51,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
 
     const handleConfirmInvoice = async () => {
         if (!selectedOrderForInvoice || !invoiceDate) return;
-
+        setInvoiceSubmissionError(null);
         try {
             const payload = {
                 order_id: selectedOrderForInvoice.id,
@@ -63,9 +66,9 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
-
-            if (!response.ok) {
-                throw new Error('Failed to create invoice.');
+            const responseData = await response.json();
+            if (!response.ok || responseData.error || (responseData.code && responseData.code >= 400)) {
+                throw new Error(responseData.message ||'Failed to create invoice.');
             }
 
             toast({
@@ -76,16 +79,11 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             if (onRefresh) {
                 onRefresh();
             }
-
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: error instanceof Error ? error.message : 'Could not create the invoice.',
-            });
-        } finally {
             setIsInvoiceDialogOpen(false);
             setSelectedOrderForInvoice(null);
+
+        } catch (error) {
+            setInvoiceSubmissionError(error instanceof Error ? error.message : 'Could not create the invoice.');
         }
     };
     
@@ -206,6 +204,13 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
                     Select a date for the invoice for order #{selectedOrderForInvoice?.id}.
                 </DialogDescription>
             </DialogHeader>
+            {invoiceSubmissionError && (
+              <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{invoiceSubmissionError}</AlertDescription>
+              </Alert>
+            )}
             <div className="flex justify-center py-4">
                 <Calendar
                     mode="single"
@@ -223,3 +228,5 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
     </>
   );
 }
+
+    
