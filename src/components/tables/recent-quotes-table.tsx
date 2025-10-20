@@ -150,8 +150,9 @@ const getColumns = (
     cell: ({ row }) => {
       const t = useTranslations('UserColumns');
       const quote = row.original;
-      const isDraft = quote.status === 'draft';
-      const isPending = quote.status === 'pending';
+      const status = (quote.status || '').toLowerCase();
+      const isDraft = status === 'draft';
+      const isPending = status === 'pending';
 
       return (
         <DropdownMenu>
@@ -219,5 +220,3 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
     </Card>
   );
 }
-
-    
