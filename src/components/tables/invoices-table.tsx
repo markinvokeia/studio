@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, AlertTriangle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +32,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+
 
 const paymentFormSchema = z.object({
   amount: z.coerce.number().positive('Amount must be a positive number'),
@@ -58,6 +60,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const { toast } = useToast();
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
   const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = React.useState<Invoice | null>(null);
+  const [paymentSubmissionError, setPaymentSubmissionError] = React.useState<string | null>(null);
 
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentFormSchema),
@@ -75,11 +78,13 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       status: 'completed',
       payment_date: new Date(),
     });
+    setPaymentSubmissionError(null);
     setIsPaymentDialogOpen(true);
   };
   
   const handlePaymentSubmit = async (values: PaymentFormValues) => {
     if (!selectedInvoiceForPayment) return;
+    setPaymentSubmissionError(null);
     
     try {
         const payload = {
@@ -99,8 +104,11 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             body: JSON.stringify(payload),
         });
 
-        if (!response.ok) {
-            throw new Error('Failed to add payment.');
+        const responseData = await response.json();
+        
+        if (!response.ok || (responseData.error && responseData.code >= 400)) {
+            const message = responseData.message || 'Failed to add payment.';
+            throw new Error(message);
         }
 
         toast({
@@ -112,15 +120,13 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             onRefresh();
         }
 
-    } catch (error) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: error instanceof Error ? error.message : 'Could not add the payment.',
-        });
-    } finally {
         setIsPaymentDialogOpen(false);
         setSelectedInvoiceForPayment(null);
+
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Could not add the payment.';
+        setPaymentSubmissionError(errorMessage);
+        // Do not call toast here, error is shown in dialog
     }
   };
 
@@ -271,6 +277,13 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         </DialogHeader>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(handlePaymentSubmit)} className="space-y-4 py-4">
+               {paymentSubmissionError && (
+                  <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>{paymentSubmissionError}</AlertDescription>
+                  </Alert>
+              )}
               <FormField
                 control={form.control}
                 name="amount"
