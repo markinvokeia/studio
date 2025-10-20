@@ -93,7 +93,7 @@ async function getQuotes(): Promise<Quote[]> {
       billing_status: apiQuote.billing_status || 'not invoiced',
       user_name: apiQuote.user_name || 'No Name',
       userEmail: apiQuote.userEmail || 'no-email@example.com',
-      createdAt: apiQuote.createdAt || new Date().toISOString().split('T')[0],
+      createdAt: apiQuote.created_at || new Date().toISOString().split('T')[0],
     }));
   } catch (error) {
     console.error("Failed to fetch quotes:", error);
@@ -137,11 +137,17 @@ async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
 async function getServices(): Promise<Service[]> {
   try {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services', {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json',
+      },
       cache: 'no-store',
     });
     if (!response.ok) return [];
     const data = await response.json();
-    return Array.isArray(data) ? data : (data.services || data.data || []);
+    const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
+    return servicesData.map((s: any) => ({ ...s, id: String(s.id) }));
   } catch (error) {
     console.error("Failed to fetch services:", error);
     return [];
@@ -568,8 +574,15 @@ export default function QuotesPage() {
     
     const handleEditQuoteItem = (item: QuoteItem) => {
         setEditingQuoteItem(item);
-        const service = allServices.find(s => s.id === item.service_id);
-        quoteItemForm.reset({ id: item.id, quote_id: selectedQuote!.id, service_id: item.service_id, quantity: item.quantity, unit_price: item.unit_price, total: item.total });
+        const service = allServices.find(s => String(s.id) === String(item.service_id));
+        quoteItemForm.reset({ 
+            id: item.id, 
+            quote_id: selectedQuote!.id, 
+            service_id: String(item.service_id), 
+            quantity: item.quantity, 
+            unit_price: item.unit_price, 
+            total: item.total 
+        });
         if(service) quoteItemForm.setValue('unit_price', service.price);
         setQuoteItemSubmissionError(null);
         setIsQuoteItemDialogOpen(true);
@@ -646,10 +659,10 @@ export default function QuotesPage() {
     const watchedQuantity = quoteItemForm.watch('quantity');
 
     React.useEffect(() => {
-        const service = allServices.find(s => s.id === watchedServiceId);
+        const service = allServices.find(s => String(s.id) === watchedServiceId);
         if (service) {
             const unitPrice = service.price;
-            const quantity = watchedQuantity || 0;
+            const quantity = Number(watchedQuantity) || 0;
             quoteItemForm.setValue('unit_price', unitPrice);
             quoteItemForm.setValue('total', unitPrice * quantity);
         }
@@ -944,8 +957,8 @@ export default function QuotesPage() {
                                         <CommandEmpty>No service found.</CommandEmpty>
                                         <CommandGroup>
                                             {allServices.map((service) => (
-                                            <CommandItem value={service.name} key={service.id} onSelect={() => { quoteItemForm.setValue("service_id", service.id); setServiceSearchOpen(false); }}>
-                                                <Check className={cn("mr-2 h-4 w-4", service.id === field.value ? "opacity-100" : "opacity-0")} />
+                                            <CommandItem value={service.name} key={service.id} onSelect={() => { quoteItemForm.setValue("service_id", String(service.id)); setServiceSearchOpen(false); }}>
+                                                <Check className={cn("mr-2 h-4 w-4", String(service.id) === field.value ? "opacity-100" : "opacity-0")} />
                                                 {service.name}
                                             </CommandItem>
                                             ))}
@@ -1002,3 +1015,4 @@ export default function QuotesPage() {
         </>
     );
 }
+
