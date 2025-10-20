@@ -37,7 +37,7 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 const paymentFormSchema = z.object({
   amount: z.coerce.number().positive('Amount must be a positive number'),
-  method: z.enum(['credit_card', 'bank_transfer', 'cash']),
+  method: z.enum(['credit_card', 'bank_transfer', 'cash', 'debit', 'credit', 'mercado_pago']),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
     required_error: "A payment date is required.",
@@ -106,7 +106,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
         const responseData = await response.json();
         
-        if (!response.ok || (responseData.error && responseData.code >= 400)) {
+        if (responseData.error || (responseData.code && responseData.code >= 400)) {
             const message = responseData.message || 'Failed to add payment.';
             throw new Error(message);
         }
@@ -126,7 +126,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Could not add the payment.';
         setPaymentSubmissionError(errorMessage);
-        // Do not call toast here, error is shown in dialog
     }
   };
 
@@ -313,6 +312,9 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                         <SelectItem value="credit_card">Credit Card</SelectItem>
                         <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                         <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="debit">Debito</SelectItem>
+                        <SelectItem value="credit">Credito</SelectItem>
+                        <SelectItem value="mercado_pago">Mercado Pago</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
