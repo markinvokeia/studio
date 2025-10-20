@@ -164,11 +164,11 @@ async function upsertQuoteItem(itemData: QuoteItemFormValues) {
     return response.json();
 }
 
-async function deleteQuoteItem(id: string) {
+async function deleteQuoteItem(id: string, quoteId: string) {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/lines/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id, quote_id: quoteId }),
     });
     if (!response.ok) throw new Error('Failed to delete quote item.');
     return response.json();
@@ -594,9 +594,9 @@ export default function QuotesPage() {
     };
 
     const confirmDeleteQuoteItem = async () => {
-        if (!deletingQuoteItem) return;
+        if (!deletingQuoteItem || !selectedQuote) return;
         try {
-            await deleteQuoteItem(deletingQuoteItem.id);
+            await deleteQuoteItem(deletingQuoteItem.id, selectedQuote.id);
             toast({ title: 'Quote Item Deleted', description: 'The item has been removed from the quote.' });
             loadQuoteItems();
             loadQuotes(); // To update total
