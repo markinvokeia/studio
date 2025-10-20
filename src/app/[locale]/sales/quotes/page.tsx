@@ -540,34 +540,31 @@ export default function QuotesPage() {
 
     const handleQuoteAction = async (quote: Quote, action: 'confirm' | 'reject') => {
         try {
-            const user = allUsers.find(u => u.id === quote.user_id) || { id: quote.user_id, name: quote.user_name, email: quote.userEmail };
             const payload = {
                 quote_number: quote.id,
                 confirm_reject: action,
-                patient_email: user.email,
-                user: {
-                    id: user.id,
-                    name: user.name,
-                    email: user.email,
-                },
             };
-
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quotes/${action}`, {
+    
+            const endpoint = action === 'confirm' 
+                ? 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/confirm' 
+                : 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/reject';
+    
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
-
+    
             if (!response.ok) {
                 throw new Error(`Failed to ${action} quote.`);
             }
-
+    
             toast({
                 title: `Quote ${action === 'confirm' ? 'Confirmed' : 'Rejected'}`,
                 description: `Quote #${quote.id} has been successfully ${action === 'confirm' ? 'confirmed' : 'rejected'}.`,
             });
             loadQuotes();
-
+    
         } catch (error) {
             toast({
                 variant: 'destructive',
@@ -846,3 +843,4 @@ export default function QuotesPage() {
         </>
     );
 }
+
