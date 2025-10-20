@@ -46,9 +46,10 @@ interface OrderItemsTableProps {
   items: OrderItem[];
   isLoading?: boolean;
   onItemsUpdate?: () => void;
+  quoteId?: string;
 }
 
-export function OrderItemsTable({ items, isLoading = false, onItemsUpdate }: OrderItemsTableProps) {
+export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quoteId }: OrderItemsTableProps) {
   const { toast } = useToast();
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<OrderItem | null>(null);
@@ -63,7 +64,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate }: Ord
   };
 
   const handleDateSave = async () => {
-    if (!selectedItem || !actionType || !selectedDate) return;
+    if (!selectedItem || !actionType || !selectedDate || !quoteId) return;
 
     try {
         const queryPayload = {
@@ -76,7 +77,9 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate }: Ord
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: JSON.stringify(queryPayload)
+                query: JSON.stringify(queryPayload),
+                quote_number: quoteId,
+                schedule_complete: 'schedule'
             }),
         });
 

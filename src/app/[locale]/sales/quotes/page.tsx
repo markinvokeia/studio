@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -734,7 +735,7 @@ export default function QuotesPage() {
                                                     <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                                 </Button>
                                             </div>
-                                            <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} />
+                                            <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedQuote.id} />
                                         </div>
                                     )}
                                 </TabsContent>
