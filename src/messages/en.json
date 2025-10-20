@@ -24,6 +24,7 @@
     "Schedules": "Schedules",
     "Holidays": "Holidays",
     "Calendars": "Calendars",
+    "DoctorAvailability": "Doctor Availability",
     "System": "System",
     "Roles": "Roles",
     "Permissions": "Permissions",
@@ -772,4 +773,3 @@
   }
 }
 
-    

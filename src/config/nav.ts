@@ -29,6 +29,7 @@ import {
   CreditCard,
   Radiation,
   Share2,
+  CalendarPlus,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -94,6 +95,7 @@ export const navItems: NavItem[] = [
       { title: 'Schedules', href: '/config/schedules', icon: CalendarClock, isChidren: true },
       { title: 'Holidays', href: '/config/holidays', icon: CalendarOff, isChidren: true },
       { title: 'Calendars', href: '/config/calendars', icon: Calendar, isChidren: true },
+      { title: 'DoctorAvailability', href: '/config/doctor-availability', icon: CalendarPlus, isChidren: true },
     ],
   },
   {

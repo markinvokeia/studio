@@ -24,6 +24,7 @@
     "Schedules": "Horarios",
     "Holidays": "Feriados",
     "Calendars": "Calendarios",
+    "DoctorAvailability": "Disponibilidad de Médicos",
     "System": "Sistema",
     "Roles": "Roles",
     "Permissions": "Permisos",
@@ -772,4 +773,3 @@
   }
 }
 
-    

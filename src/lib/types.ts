@@ -1,4 +1,5 @@
 
+
 export type User = {
   id: string;
   name: string;
@@ -141,6 +142,7 @@ export type Clinic = {
   contact_email: string;
   phone_number: string;
   logo?: string;
+  logo_base64?: string;
 };
 
 export type ClinicSchedule = {
@@ -365,4 +367,15 @@ export type PatientSession = {
   archivos_adjuntos: AttachedFile[];
 };
 
+export type AvailabilityRule = {
+    id: string;
+    user_id: string;
+    user_name?: string;
+    recurrence: 'daily' | 'weekly' | 'biweekly';
+    day_of_week?: number;
+    start_time: string;
+    end_time: string;
+    start_date: string;
+    end_date?: string;
+};
     
