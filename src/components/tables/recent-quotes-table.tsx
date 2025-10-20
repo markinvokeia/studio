@@ -28,7 +28,9 @@ import { DocumentTextIcon } from '../icons/document-text-icon';
 import { useTranslations } from 'next-intl';
 
 const getColumns = (
-    t: (key: string) => string
+    t: (key: string) => string,
+    onEdit: (quote: Quote) => void,
+    onDelete: (quote: Quote) => void,
 ): ColumnDef<Quote>[] => [
   {
     id: 'select',
@@ -145,7 +147,6 @@ const getColumns = (
     id: 'actions',
     cell: ({ row }) => {
       const t = useTranslations('UserColumns');
-      console.log('Translations for UserColumns loaded in cell.');
       const quote = row.original;
       return (
         <DropdownMenu>
@@ -157,9 +158,8 @@ const getColumns = (
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-            <DropdownMenuItem>{t('viewDetails')}</DropdownMenuItem>
-            <DropdownMenuItem>{t('edit')}</DropdownMenuItem>
-            <DropdownMenuItem>{t('delete')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onEdit(quote)}>{t('edit')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onDelete(quote)} className="text-destructive">{t('delete')}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -176,12 +176,13 @@ interface RecentQuotesTableProps {
   isRefreshing?: boolean;
   rowSelection?: RowSelectionState;
   setRowSelection?: (selection: RowSelectionState) => void;
+  onEdit?: (quote: Quote) => void;
+  onDelete?: (quote: Quote) => void;
 }
 
-export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRefresh, isRefreshing, rowSelection, setRowSelection }: RecentQuotesTableProps) {
+export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRefresh, isRefreshing, rowSelection, setRowSelection, onEdit = () => {}, onDelete = () => {} }: RecentQuotesTableProps) {
   const t = useTranslations();
-  console.log('Translations for RecentQuotesTable loaded.');
-  const columns = React.useMemo(() => getColumns(t), [t]);
+  const columns = React.useMemo(() => getColumns(t, onEdit, onDelete), [t, onEdit, onDelete]);
   return (
     <Card>
       <CardHeader>

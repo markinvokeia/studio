@@ -1,10 +1,12 @@
 
-
 'use client';
 
 import * as React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
-import { Quote, QuoteItem, Order, Invoice, Payment, OrderItem, InvoiceItem } from '@/lib/types';
+import { Quote, QuoteItem, Order, Invoice, Payment, OrderItem, InvoiceItem, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,9 +17,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -26,13 +29,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { OrdersTable } from '@/components/tables/orders-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
-import { RefreshCw, X } from 'lucide-react';
+import { RefreshCw, X, AlertTriangle, ChevronsUpDown, Check } from 'lucide-react';
 import { RowSelectionState } from '@tanstack/react-table';
+import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+
+const quoteFormSchema = z.object({
+  id: z.string().optional(),
+  user_id: z.string().min(1, 'User is required'),
+  total: z.coerce.number().min(0, 'Total must be a positive number'),
+  status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed']),
+  payment_status: z.enum(['unpaid', 'paid', 'partial']),
+  billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced']),
+});
+
+type QuoteFormValues = z.infer<typeof quoteFormSchema>;
 
 
 async function getQuotes(): Promise<Quote[]> {
@@ -235,8 +255,64 @@ async function getPayments(quoteId: string): Promise<Payment[]> {
     }
 }
 
+async function getUsers(): Promise<User[]> {
+    try {
+      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users', {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/json',
+        },
+        cache: 'no-store',
+      });
+      if (!response.ok) return [];
+      const responseData = await response.json();
+      const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
+      const usersData = Array.isArray(data.data) ? data.data : [];
+      return usersData.map((apiUser: any) => ({
+        id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+        name: apiUser.name || 'No Name',
+        email: apiUser.email || 'no-email@example.com',
+        phone_number: apiUser.phone_number || '000-000-0000',
+        is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+      }));
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      return [];
+    }
+  }
+  
+async function upsertQuote(quoteData: QuoteFormValues) {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/upsert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(quoteData),
+    });
+    const responseData = await response.json();
+    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to save quote';
+        throw new Error(message);
+    }
+    return responseData;
+}
+  
+async function deleteQuote(id: string) {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+    });
+    const responseData = await response.json();
+    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to delete quote';
+        throw new Error(message);
+    }
+    return responseData;
+}
+
 
 export default function QuotesPage() {
+    const { toast } = useToast();
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
     const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
@@ -258,9 +334,21 @@ export default function QuotesPage() {
     const [isLoadingInvoiceItems, setIsLoadingInvoiceItems] = React.useState(false);
     const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
     
-    const [isCreateOpen, setCreateOpen] = React.useState(false);
+    const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+    const [editingQuote, setEditingQuote] = React.useState<Quote | null>(null);
+    const [deletingQuote, setDeletingQuote] = React.useState<Quote | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+    const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+
+    const [allUsers, setAllUsers] = React.useState<User[]>([]);
+    const [isUserSearchOpen, setUserSearchOpen] = React.useState(false);
+
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+
+    const form = useForm<QuoteFormValues>({
+        resolver: zodResolver(quoteFormSchema),
+      });
 
     const loadQuotes = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -272,6 +360,12 @@ export default function QuotesPage() {
     React.useEffect(() => {
         loadQuotes();
     }, [loadQuotes]);
+
+    React.useEffect(() => {
+        if (isDialogOpen) {
+          getUsers().then(setAllUsers);
+        }
+    }, [isDialogOpen]);
 
     const loadQuoteItems = React.useCallback(async () => {
         if (!selectedQuote) return;
@@ -347,6 +441,83 @@ export default function QuotesPage() {
         }
     }, [selectedInvoice, loadInvoiceItems]);
 
+    const handleCreate = () => {
+        setEditingQuote(null);
+        form.reset({
+          user_id: '',
+          total: 0,
+          status: 'draft',
+          payment_status: 'unpaid',
+          billing_status: 'not invoiced',
+        });
+        setSubmissionError(null);
+        setIsDialogOpen(true);
+      };
+      
+    const handleEdit = (quote: Quote) => {
+        if (quote.status !== 'draft') {
+            toast({
+                variant: 'destructive',
+                title: 'Cannot Edit Quote',
+                description: 'You can only edit quotes that are in "Draft" status.',
+            });
+            return;
+        }
+        setEditingQuote(quote);
+        form.reset({
+            id: quote.id,
+            user_id: quote.user_id,
+            total: quote.total,
+            status: quote.status,
+            payment_status: quote.payment_status,
+            billing_status: quote.billing_status as any,
+        });
+        setSubmissionError(null);
+        setIsDialogOpen(true);
+    };
+    
+    const handleDelete = (quote: Quote) => {
+        setDeletingQuote(quote);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingQuote) return;
+        try {
+            await deleteQuote(deletingQuote.id);
+            toast({
+                title: "Quote Deleted",
+                description: `Quote "${deletingQuote.id}" has been deleted.`,
+            });
+            setIsDeleteDialogOpen(false);
+            setDeletingQuote(null);
+            loadQuotes();
+            if (selectedQuote?.id === deletingQuote.id) {
+                setSelectedQuote(null);
+            }
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: error instanceof Error ? error.message : "Could not delete the quote.",
+            });
+        }
+    };
+    
+    const onSubmit = async (values: QuoteFormValues) => {
+        setSubmissionError(null);
+        try {
+            await upsertQuote(values);
+            toast({
+                title: editingQuote ? "Quote Updated" : "Quote Created",
+                description: `The quote has been saved successfully.`,
+            });
+            setIsDialogOpen(false);
+            loadQuotes();
+        } catch (error) {
+            setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+        }
+    };
 
     const handleRowSelectionChange = (selectedRows: Quote[]) => {
         const quote = selectedRows.length > 0 ? selectedRows[0] : null;
@@ -375,11 +546,13 @@ export default function QuotesPage() {
                  <RecentQuotesTable 
                     quotes={quotes} 
                     onRowSelectionChange={handleRowSelectionChange} 
-                    onCreate={() => setCreateOpen(true)}
+                    onCreate={handleCreate}
                     onRefresh={loadQuotes}
                     isRefreshing={isRefreshing}
                     rowSelection={rowSelection}
                     setRowSelection={setRowSelection}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
                 />
             </div>
 
@@ -468,78 +641,149 @@ export default function QuotesPage() {
             )}
         </div>
 
-        <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogContent>
                 <DialogHeader>
-                <DialogTitle>Create New Quote</DialogTitle>
-                <DialogDescription>
-                    Fill in the details below to add a new quote.
-                </DialogDescription>
+                    <DialogTitle>{editingQuote ? 'Edit Quote' : 'Create New Quote'}</DialogTitle>
+                    <DialogDescription>
+                        {editingQuote ? 'Update the details for this quote.' : 'Fill in the details below to add a new quote.'}
+                    </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="user_id" className="text-right">
-                    User ID
-                    </Label>
-                    <Input id="user_id" placeholder="usr_..." className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="total" className="text-right">
-                    Total
-                    </Label>
-                    <Input id="total" type="number" placeholder="0.00" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="status" className="text-right">
-                    Status
-                    </Label>
-                    <Select>
-                    <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select a status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="sent">Sent</SelectItem>
-                        <SelectItem value="accepted">Accepted</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="confirmed">Confirmed</SelectItem>
-                    </SelectContent>
-                    </Select>
-                </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="payment_status" className="text-right">
-                    Payment Status
-                    </Label>
-                    <Select>
-                    <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select a payment status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="unpaid">Unpaid</SelectItem>
-                        <SelectItem value="paid">Paid</SelectItem>
-                        <SelectItem value="partial">Partial</SelectItem>
-                    </SelectContent>
-                    </Select>
-                </div>
-                </div>
-                <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-                    <Button type="submit">Create Quote</Button>
-                </div>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                        {submissionError && (
+                            <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>Error</AlertTitle>
+                                <AlertDescription>{submissionError}</AlertDescription>
+                            </Alert>
+                        )}
+                        <FormField
+                            control={form.control}
+                            name="user_id"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>User</FormLabel>
+                                    <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                                                    {field.value ? allUsers.find(user => user.id === field.value)?.name : "Select user"}
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                            <Command>
+                                                <CommandInput placeholder="Search user..." />
+                                                <CommandList>
+                                                    <CommandEmpty>No user found.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {allUsers.map((user) => (
+                                                            <CommandItem value={user.name} key={user.id} onSelect={() => { form.setValue("user_id", user.id); setUserSearchOpen(false); }}>
+                                                                <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                                {user.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="total"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Total</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" placeholder="0.00" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="status"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Status</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="draft">Draft</SelectItem>
+                                        <SelectItem value="pending">Pending</SelectItem>
+                                        <SelectItem value="confirmed">Confirmed</SelectItem>
+                                        <SelectItem value="rejected">Rejected</SelectItem>
+                                    </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="payment_status"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Payment Status</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a payment status" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="unpaid">Unpaid</SelectItem>
+                                        <SelectItem value="partial">Partial</SelectItem>
+                                        <SelectItem value="paid">Paid</SelectItem>
+                                    </SelectContent>
+                                    </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="billing_status"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Billing Status</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a billing status" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="not invoiced">Not Invoiced</SelectItem>
+                                        <SelectItem value="partially invoiced">Partially Invoiced</SelectItem>
+                                        <SelectItem value="invoiced">Invoiced</SelectItem>
+                                    </SelectContent>
+                                    </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                            <Button type="submit">{editingQuote ? 'Save Changes' : 'Create Quote'}</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
             </DialogContent>
         </Dialog>
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will permanently delete the quote "{deletingQuote?.id}". This action cannot be undone.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
         </>
     );
 }
-
-    
-
-    
-
-
-
-    
-
-    
-
