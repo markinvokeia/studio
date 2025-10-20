@@ -163,19 +163,11 @@ const getColumns = (
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-            {isDraft && (
-              <>
-                <DropdownMenuItem onClick={() => onEdit(quote)}>Edit Quote</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onDelete(quote)} className="text-destructive">Delete Quote</DropdownMenuItem>
-              </>
-            )}
-            {(isDraft || isPending) && (
-                <>
-                {(isDraft) && <DropdownMenuSeparator />}
-                <DropdownMenuItem onClick={() => onQuoteAction(quote, 'confirm')}>Confirm</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onQuoteAction(quote, 'reject')} className="text-destructive">Reject</DropdownMenuItem>
-                </>
-            )}
+            <DropdownMenuItem onClick={() => onEdit(quote)} disabled={!isDraft}>Edit Quote</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onDelete(quote)} className="text-destructive" disabled={!isDraft}>Delete Quote</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onQuoteAction(quote, 'confirm')} disabled={!isDraft && !isPending}>Confirm</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onQuoteAction(quote, 'reject')} className="text-destructive" disabled={!isDraft && !isPending}>Reject</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
