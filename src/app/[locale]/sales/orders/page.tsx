@@ -250,7 +250,7 @@ export default function OrdersPage() {
                                             <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                         </Button>
                                     </div>
-                                   <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} />
+                                   <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedOrder.quote_id}/>
                                 </TabsContent>
                                 <TabsContent value="invoices">
                                     <InvoicesTable 
