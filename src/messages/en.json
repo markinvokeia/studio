@@ -424,6 +424,58 @@
     "edit": "Edit",
     "delete": "Delete"
   },
+  "DoctorAvailabilityExceptionsPage": {
+    "title": "Availability Exceptions",
+    "description": "Manage doctor availability exceptions.",
+    "filterPlaceholder": "Filter by doctor name...",
+    "dialog": {
+      "createTitle": "Create New Exception",
+      "editTitle": "Edit Exception",
+      "doctor": "Doctor",
+      "selectDoctor": "Select doctor",
+      "searchDoctor": "Search doctor...",
+      "noDoctorFound": "No doctor found.",
+      "date": "Date",
+      "isAvailable": "Is Available",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "cancel": "Cancel",
+      "create": "Create Exception",
+      "save": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the availability exception. This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createTitle": "Exception Created",
+      "editTitle": "Exception Updated",
+      "deleteTitle": "Exception Deleted",
+      "successDescription": "The availability exception has been saved.",
+      "deleteDescription": "The availability exception has been deleted.",
+      "deleteError": "Could not delete the exception."
+    },
+    "validation": {
+      "doctorRequired": "Doctor is required.",
+      "dateRequired": "Date is required."
+    },
+    "columns": {
+        "doctor": "Doctor",
+        "date": "Date",
+        "available": "Available",
+        "yes": "Yes",
+        "no": "No",
+        "startTime": "Start Time",
+        "endTime": "End Time",
+        "actions": "Actions",
+        "edit": "Edit",
+        "delete": "Delete"
+    }
+  },
   "UsersPage": {
     "title": "Users",
     "description": "Manage all users in the system.",

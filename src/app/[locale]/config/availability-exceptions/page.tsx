@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Check, ChevronsUpDown, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -32,16 +32,16 @@ import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { Checkbox } from '@/components/ui/checkbox';
 
-const exceptionFormSchema = z.object({
+const exceptionFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
-    user_id: z.string().min(1, 'Doctor is required'),
-    exception_date: z.string().min(1, 'Date is required'),
+    user_id: z.string().min(1, t('validation.doctorRequired')),
+    exception_date: z.string().min(1, t('validation.dateRequired')),
     start_time: z.string().optional(),
     end_time: z.string().optional(),
     is_available: z.boolean().default(false),
 });
 
-type ExceptionFormValues = z.infer<typeof exceptionFormSchema>;
+type ExceptionFormValues = z.infer<ReturnType<typeof exceptionFormSchema>>;
 
 type GetExceptionsResponse = {
   exceptions: AvailabilityException[];
@@ -130,7 +130,8 @@ async function deleteAvailabilityException(id: string) {
 }
 
 export default function AvailabilityExceptionsPage() {
-    const t = useTranslations('Navigation');
+    const t = useTranslations('DoctorAvailabilityExceptionsPage');
+    const tValidation = useTranslations('DoctorAvailabilityExceptionsPage.validation');
     const { toast } = useToast();
     const [exceptions, setExceptions] = React.useState<AvailabilityException[]>([]);
     const [doctors, setDoctors] = React.useState<User[]>([]);
@@ -148,7 +149,7 @@ export default function AvailabilityExceptionsPage() {
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
     const form = useForm<ExceptionFormValues>({
-        resolver: zodResolver(exceptionFormSchema),
+        resolver: zodResolver(exceptionFormSchema(tValidation)),
     });
 
     const watchedIsAvailable = form.watch("is_available");
@@ -210,15 +211,15 @@ export default function AvailabilityExceptionsPage() {
         if (!deletingException) return;
         try {
             await deleteAvailabilityException(deletingException.id);
-            toast({ title: "Exception Deleted", description: "The availability exception has been deleted." });
+            toast({ title: t('toast.deleteTitle'), description: t('toast.deleteDescription') });
             setIsDeleteDialogOpen(false);
             setDeletingException(null);
             loadExceptions();
         } catch (error) {
             toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: error instanceof Error ? error.message : "Could not delete exception.",
+                title: t('toast.errorTitle'),
+                description: error instanceof Error ? error.message : t('toast.deleteError'),
             });
         }
     };
@@ -227,11 +228,11 @@ export default function AvailabilityExceptionsPage() {
         setSubmissionError(null);
         try {
             await upsertAvailabilityException(values);
-            toast({ title: editingException ? "Exception Updated" : "Exception Created", description: "The availability exception has been saved." });
+            toast({ title: editingException ? t('toast.editTitle') : t('toast.createTitle'), description: t('toast.successDescription') });
             setIsDialogOpen(false);
             loadExceptions();
         } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
         }
     };
     
@@ -241,8 +242,8 @@ export default function AvailabilityExceptionsPage() {
         <>
         <Card>
             <CardHeader>
-                <CardTitle>{t('DoctorAvailabilityExceptions')}</CardTitle>
-                <CardDescription>Manage doctor availability exceptions.</CardDescription>
+                <CardTitle>{t('title')}</CardTitle>
+                <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <DataTable 
@@ -255,7 +256,7 @@ export default function AvailabilityExceptionsPage() {
                     onColumnFiltersChange={setColumnFilters}
                     manualPagination={true}
                     filterColumnId="user_name" 
-                    filterPlaceholder="Filter by doctor name..."
+                    filterPlaceholder={t('filterPlaceholder')}
                     onCreate={handleCreate}
                     onRefresh={loadExceptions}
                     isRefreshing={isRefreshing}
@@ -265,14 +266,14 @@ export default function AvailabilityExceptionsPage() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{editingException ? 'Edit Exception' : 'Create New Exception'}</DialogTitle>
+                    <DialogTitle>{editingException ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                 </DialogHeader>
                  <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle>Error</AlertTitle>
+                                <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
                                 <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
@@ -281,21 +282,21 @@ export default function AvailabilityExceptionsPage() {
                             name="user_id"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Doctor</FormLabel>
+                                    <FormLabel>{t('dialog.doctor')}</FormLabel>
                                     <Popover open={isDoctorComboboxOpen} onOpenChange={setIsDoctorComboboxOpen}>
                                         <PopoverTrigger asChild>
                                             <FormControl>
                                             <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                {field.value ? doctors.find(doc => doc.id === field.value)?.name : "Select doctor"}
+                                                {field.value ? doctors.find(doc => doc.id === field.value)?.name : t('dialog.selectDoctor')}
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
                                             </FormControl>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                             <Command>
-                                            <CommandInput placeholder="Search doctor..." />
+                                            <CommandInput placeholder={t('dialog.searchDoctor')} />
                                             <CommandList>
-                                                <CommandEmpty>No doctor found.</CommandEmpty>
+                                                <CommandEmpty>{t('dialog.noDoctorFound')}</CommandEmpty>
                                                 <CommandGroup>
                                                 {doctors.map((doctor) => (
                                                     <CommandItem
@@ -319,7 +320,7 @@ export default function AvailabilityExceptionsPage() {
                                 </FormItem>
                             )}
                         />
-                         <FormField control={form.control} name="exception_date" render={({ field }) => (<FormItem><FormLabel>Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                         <FormField control={form.control} name="exception_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.date')}</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField
                             control={form.control}
                             name="is_available"
@@ -328,19 +329,19 @@ export default function AvailabilityExceptionsPage() {
                                     <FormControl>
                                         <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                                     </FormControl>
-                                    <FormLabel>Is Available</FormLabel>
+                                    <FormLabel>{t('dialog.isAvailable')}</FormLabel>
                                 </FormItem>
                             )}
                         />
                         {watchedIsAvailable && (
                             <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="start_time" render={({ field }) => (<FormItem><FormLabel>Start Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="end_time" render={({ field }) => (<FormItem><FormLabel>End Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="start_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="end_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             </div>
                         )}
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                            <Button type="submit">{editingException ? 'Save Changes' : 'Create Exception'}</Button>
+                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                            <Button type="submit">{editingException ? t('dialog.save') : t('dialog.create')}</Button>
                         </DialogFooter>
                     </form>
                 </Form>
@@ -349,12 +350,12 @@ export default function AvailabilityExceptionsPage() {
          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>This will permanently delete the availability exception. This action cannot be undone.</AlertDialogDescription>
+                    <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
+                    <AlertDialogDescription>{t('deleteDialog.description')}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                    <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

@@ -424,6 +424,58 @@
     "edit": "Editar",
     "delete": "Eliminar"
   },
+  "DoctorAvailabilityExceptionsPage": {
+    "title": "Excepciones de disponibilidad",
+    "description": "Gestionar excepciones de disponibilidad de doctores.",
+    "filterPlaceholder": "Filtrar por nombre de doctor...",
+    "dialog": {
+      "createTitle": "Crear Nueva Excepción",
+      "editTitle": "Editar Excepción",
+      "doctor": "Doctor",
+      "selectDoctor": "Seleccionar doctor",
+      "searchDoctor": "Buscar doctor...",
+      "noDoctorFound": "No se encontró ningún doctor.",
+      "date": "Fecha",
+      "isAvailable": "Disponible",
+      "startTime": "Hora de Inicio",
+      "endTime": "Hora de Fin",
+      "cancel": "Cancelar",
+      "create": "Crear Excepción",
+      "save": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente la excepción de disponibilidad. Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createTitle": "Excepción Creada",
+      "editTitle": "Excepción Actualizada",
+      "deleteTitle": "Excepción Eliminada",
+      "successDescription": "La excepción de disponibilidad ha sido guardada.",
+      "deleteDescription": "La excepción de disponibilidad ha sido eliminada.",
+      "deleteError": "No se pudo eliminar la excepción."
+    },
+    "validation": {
+      "doctorRequired": "El doctor es requerido.",
+      "dateRequired": "La fecha es requerida."
+    },
+    "columns": {
+        "doctor": "Doctor",
+        "date": "Fecha",
+        "available": "Disponible",
+        "yes": "Sí",
+        "no": "No",
+        "startTime": "Hora de Inicio",
+        "endTime": "Hora de Fin",
+        "actions": "Acciones",
+        "edit": "Editar",
+        "delete": "Eliminar"
+    }
+  },
   "UsersPage": {
     "title": "Usuarios",
     "description": "Gestiona todos los usuarios del sistema.",
