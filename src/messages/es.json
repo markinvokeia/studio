@@ -705,6 +705,77 @@
     "orderId": "ID Pedido",
     "createdAt": "Fecha Creación"
   },
+  "OrdersPage": {
+    "title": "Pedidos",
+    "description": "Gestionar todos los pedidos de los clientes.",
+    "createTitle": "Crear Nuevo Pedido",
+    "createDescription": "Completa los detalles para crear un nuevo pedido.",
+    "selectUser": "Seleccionar usuario",
+    "searchUser": "Buscar usuario...",
+    "noUserFound": "No se encontró el usuario.",
+    "selectQuote": "Seleccionar cotización",
+    "searchQuote": "Buscar cotización...",
+    "noQuoteFound": "No se encontró cotización para este usuario.",
+    "status": "Estado",
+    "selectStatus": "Seleccionar un estado",
+    "pending": "Pendiente",
+    "processing": "Procesando",
+    "completed": "Completado",
+    "cancelled": "Cancelado",
+    "cancel": "Cancelar",
+    "create": "Crear Pedido",
+    "filterPlaceholder": "Filtrar por nombre de usuario...",
+    "invoiceDialog": {
+      "title": "Crear Factura",
+      "description": "Selecciona una fecha para la factura del pedido #{orderId}.",
+      "error": "Error",
+      "noItemsToInvoice": "No existen servicios por facturar. Por favor revise que existan servicios completados y que no hayan sido ya facturados",
+      "invoiceSuccess": "Factura Creada",
+      "invoiceSuccessDesc": "La factura para el pedido #{orderId} ha sido creada.",
+      "createError": "No se pudo crear la factura.",
+      "confirm": "Crear Factura"
+    }
+  },
+  "InvoicesPage": {
+    "title": "Facturas",
+    "description": "Gestionar todas las facturas de los clientes.",
+    "filterPlaceholder": "Filtrar por ID de factura...",
+    "paymentDialog": {
+      "title": "Añadir Pago",
+      "description": "Registrar un pago para la factura #{invoiceId}.",
+      "amount": "Monto",
+      "method": "Método de Pago",
+      "selectMethod": "Seleccionar un método",
+      "status": "Estado del Pago",
+      "selectStatus": "Seleccionar un estado",
+      "date": "Fecha de Pago",
+      "pickDate": "Seleccionar una fecha",
+      "add": "Añadir Pago",
+      "cancel": "Cancelar",
+      "success": "Pago Añadido",
+      "successDescription": "El pago para la factura #{invoiceId} ha sido registrado.",
+      "error": "No se pudo añadir el pago."
+    },
+    "methods": {
+      "credit_card": "Tarjeta de Crédito",
+      "bank_transfer": "Transferencia Bancaria",
+      "cash": "Efectivo",
+      "debit": "Débito",
+      "credit": "Crédito",
+      "mercado_pago": "Mercado Pago"
+    },
+    "status": {
+      "paid": "Pagada",
+      "sent": "Enviada",
+      "draft": "Borrador",
+      "overdue": "Vencida",
+      "unpaid": "No Pagada",
+      "partial": "Parcial",
+      "completed": "Completado",
+      "pending": "Pendiente",
+      "failed": "Fallido"
+    }
+  },
   "RolesPage": {
     "title": "Roles",
     "description": "Gestionar roles de usuario y sus permisos.",

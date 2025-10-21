@@ -705,6 +705,77 @@
     "orderId": "Order ID",
     "createdAt": "Created At"
   },
+  "OrdersPage": {
+    "title": "Orders",
+    "description": "Manage all customer orders.",
+    "createTitle": "Create New Order",
+    "createDescription": "Fill in the details to create a new order.",
+    "selectUser": "Select user",
+    "searchUser": "Search user...",
+    "noUserFound": "No user found.",
+    "selectQuote": "Select quote",
+    "searchQuote": "Search quote...",
+    "noQuoteFound": "No quote found for this user.",
+    "status": "Status",
+    "selectStatus": "Select a status",
+    "pending": "Pending",
+    "processing": "Processing",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "cancel": "Cancel",
+    "create": "Create Order",
+    "filterPlaceholder": "Filter by user name...",
+    "invoiceDialog": {
+      "title": "Create Invoice",
+      "description": "Select a date for the invoice for order #{orderId}.",
+      "error": "Error",
+      "noItemsToInvoice": "There are no services to invoice. Please make sure there are completed services that have not been invoiced yet.",
+      "invoiceSuccess": "Invoice Created",
+      "invoiceSuccessDesc": "Invoice for order #{orderId} has been created.",
+      "createError": "Could not create the invoice.",
+      "confirm": "Create Invoice"
+    }
+  },
+  "InvoicesPage": {
+    "title": "Invoices",
+    "description": "Manage all customer invoices.",
+    "filterPlaceholder": "Filter by invoice ID...",
+    "paymentDialog": {
+      "title": "Add Payment",
+      "description": "Register a payment for invoice #{invoiceId}.",
+      "amount": "Amount",
+      "method": "Payment Method",
+      "selectMethod": "Select a method",
+      "status": "Payment Status",
+      "selectStatus": "Select a status",
+      "date": "Payment Date",
+      "pickDate": "Pick a date",
+      "add": "Add Payment",
+      "cancel": "Cancel",
+      "success": "Payment Added",
+      "successDescription": "Payment for invoice #{invoiceId} has been registered.",
+      "error": "Could not add the payment."
+    },
+    "methods": {
+        "credit_card": "Credit Card",
+        "bank_transfer": "Bank Transfer",
+        "cash": "Cash",
+        "debit": "Debit",
+        "credit": "Credit",
+        "mercado_pago": "Mercado Pago"
+    },
+    "status": {
+        "paid": "Paid",
+        "sent": "Sent",
+        "draft": "Draft",
+        "overdue": "Overdue",
+        "unpaid": "Unpaid",
+        "partial": "Partial",
+        "completed": "Completed",
+        "pending": "Pending",
+        "failed": "Failed"
+    }
+  },
   "RolesPage": {
     "title": "Roles",
     "description": "Manage user roles and their permissions.",

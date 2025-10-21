@@ -33,18 +33,18 @@ import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { useTranslations } from 'next-intl';
 
-
-const paymentFormSchema = z.object({
-  amount: z.coerce.number().positive('Amount must be a positive number'),
+const paymentFormSchema = (t: (key: string) => string) => z.object({
+  amount: z.coerce.number().positive(t('amountPositive')),
   method: z.enum(['credit_card', 'bank_transfer', 'cash', 'debit', 'credit', 'mercado_pago']),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
-    required_error: "A payment date is required.",
+    required_error: t('dateRequired'),
   }),
 });
 
-type PaymentFormValues = z.infer<typeof paymentFormSchema>;
+type PaymentFormValues = z.infer<ReturnType<typeof paymentFormSchema>>;
 
 interface InvoicesTableProps {
   invoices: Invoice[];
@@ -57,13 +57,18 @@ interface InvoicesTableProps {
 }
 
 export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, rowSelection, setRowSelection }: InvoicesTableProps) {
+  const t = useTranslations('InvoicesPage');
+  const tStatus = useTranslations('InvoicesPage.status');
+  const tMethods = useTranslations('InvoicesPage.methods');
+  const tValidation = useTranslations('InvoicesPage.validation');
+
   const { toast } = useToast();
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
   const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = React.useState<Invoice | null>(null);
   const [paymentSubmissionError, setPaymentSubmissionError] = React.useState<string | null>(null);
 
   const form = useForm<PaymentFormValues>({
-    resolver: zodResolver(paymentFormSchema),
+    resolver: zodResolver(paymentFormSchema(tValidation)),
     defaultValues: {
       method: 'credit_card',
       status: 'completed',
@@ -112,8 +117,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         }
 
         toast({
-            title: 'Payment Added',
-            description: `Payment for invoice #${selectedInvoiceForPayment.id} has been registered.`,
+            title: t('paymentDialog.success'),
+            description: t('paymentDialog.successDescription', { invoiceId: selectedInvoiceForPayment.id }),
         });
         
         if (onRefresh) {
@@ -124,7 +129,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         setSelectedInvoiceForPayment(null);
 
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Could not add the payment.';
+        const errorMessage = error instanceof Error ? error.message : t('paymentDialog.error');
         setPaymentSubmissionError(errorMessage);
     }
   };
@@ -156,25 +161,25 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     {
       accessorKey: 'id',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Invoice ID" />
+        <DataTableColumnHeader column={column} title={t('columns.invoiceId')} />
       ),
     },
     {
         accessorKey: 'user_name',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="User" />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.user')} />,
     },
     {
         accessorKey: 'order_id',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Order ID" />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.orderId')} />,
     },
     {
         accessorKey: 'quote_id',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Quote ID" />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.quoteId')} />,
     },
     {
       accessorKey: 'total',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Total" />
+        <DataTableColumnHeader column={column} title={t('columns.total')} />
       ),
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('total'));
@@ -188,7 +193,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     {
       accessorKey: 'status',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
+        <DataTableColumnHeader column={column} title={t('columns.status')} />
       ),
       cell: ({ row }) => {
         const status = row.getValue('status') as string;
@@ -201,14 +206,14 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
         return (
           <Badge variant={variant} className="capitalize">
-            {status}
+            {tStatus(status)}
           </Badge>
         );
       },
     },
     {
       accessorKey: 'payment_status',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Payment" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.payment')} />,
       cell: ({ row }) => {
         const status = row.original.payment_status;
         const variant = {
@@ -216,13 +221,13 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           partial: 'info',
           unpaid: 'outline',
         }[status?.toLowerCase() ?? ('default' as any)];
-        return <Badge variant={variant} className="capitalize">{status || 'N/A'}</Badge>;
+        return <Badge variant={variant} className="capitalize">{tStatus(status)}</Badge>;
       },
     },
      {
       accessorKey: 'createdAt',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Created At" />
+        <DataTableColumnHeader column={column} title={t('columns.createdAt')} />
       ),
     },
     {
@@ -238,9 +243,9 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => handleAddPaymentClick(invoice)}>
-                Add Payment
+                {t('paymentDialog.add')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -267,7 +272,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           columns={columns}
           data={invoices}
           filterColumnId="id"
-          filterPlaceholder="Filter by invoice ID..."
+          filterPlaceholder={t('filterPlaceholder')}
           onRowSelectionChange={onRowSelectionChange}
           enableSingleRowSelection={!!onRowSelectionChange}
           onRefresh={onRefresh}
@@ -281,9 +286,9 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Payment</DialogTitle>
+          <DialogTitle>{t('paymentDialog.title')}</DialogTitle>
           <DialogDescription>
-            Register a payment for invoice #{selectedInvoiceForPayment?.id}.
+            {t('paymentDialog.description', { invoiceId: selectedInvoiceForPayment?.id })}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -291,7 +296,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                {paymentSubmissionError && (
                   <Alert variant="destructive">
                       <AlertTriangle className="h-4 w-4" />
-                      <AlertTitle>Error</AlertTitle>
+                      <AlertTitle>{t('toast.error')}</AlertTitle>
                       <AlertDescription>{paymentSubmissionError}</AlertDescription>
                   </Alert>
               )}
@@ -300,7 +305,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount</FormLabel>
+                    <FormLabel>{t('paymentDialog.amount')}</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -313,20 +318,20 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 name="method"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Payment Method</FormLabel>
+                    <FormLabel>{t('paymentDialog.method')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a method" />
+                          <SelectValue placeholder={t('paymentDialog.selectMethod')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="credit_card">Credit Card</SelectItem>
-                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="debit">Debito</SelectItem>
-                        <SelectItem value="credit">Credito</SelectItem>
-                        <SelectItem value="mercado_pago">Mercado Pago</SelectItem>
+                        <SelectItem value="credit_card">{tMethods('credit_card')}</SelectItem>
+                        <SelectItem value="bank_transfer">{tMethods('bank_transfer')}</SelectItem>
+                        <SelectItem value="cash">{tMethods('cash')}</SelectItem>
+                        <SelectItem value="debit">{tMethods('debit')}</SelectItem>
+                        <SelectItem value="credit">{tMethods('credit')}</SelectItem>
+                        <SelectItem value="mercado_pago">{tMethods('mercado_pago')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -338,17 +343,17 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Payment Status</FormLabel>
+                    <FormLabel>{t('paymentDialog.status')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a status" />
+                          <SelectValue placeholder={t('paymentDialog.selectStatus')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="failed">Failed</SelectItem>
+                        <SelectItem value="completed">{tStatus('completed')}</SelectItem>
+                        <SelectItem value="pending">{tStatus('pending')}</SelectItem>
+                        <SelectItem value="failed">{tStatus('failed')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -360,7 +365,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 name="payment_date"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Payment Date</FormLabel>
+                    <FormLabel>{t('paymentDialog.date')}</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -374,7 +379,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                             {field.value ? (
                               format(field.value, "PPP")
                             ) : (
-                              <span>Pick a date</span>
+                              <span>{t('paymentDialog.pickDate')}</span>
                             )}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -394,8 +399,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 )}
               />
               <DialogFooter>
-                <Button variant="outline" type="button" onClick={() => setIsPaymentDialogOpen(false)}>Cancel</Button>
-                <Button type="submit">Add Payment</Button>
+                <Button variant="outline" type="button" onClick={() => setIsPaymentDialogOpen(false)}>{t('paymentDialog.cancel')}</Button>
+                <Button type="submit">{t('paymentDialog.add')}</Button>
               </DialogFooter>
             </form>
         </Form>
