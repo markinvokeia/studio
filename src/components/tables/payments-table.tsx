@@ -19,7 +19,8 @@ const getColumns = (
     const paymentMethodMap: { [key: string]: string } = {
         'transferencia': 'bank_transfer',
         'tarjeta de credito': 'credit_card',
-        'efectivo': 'cash'
+        'efectivo': 'cash',
+        'tarjeta de debito': 'debit',
         // Add other mappings as needed
     };
     
