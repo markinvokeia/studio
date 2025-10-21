@@ -163,6 +163,12 @@ export default function DoctorAvailabilityPage() {
     const [isDoctorComboboxOpen, setIsDoctorComboboxOpen] = React.useState(false);
     const watchedRecurrence = form.watch("recurrence");
 
+    React.useEffect(() => {
+        if (watchedRecurrence === 'daily') {
+            form.setValue('day_of_week', undefined);
+        }
+    }, [watchedRecurrence, form]);
+
     const loadRules = React.useCallback(async () => {
         setIsRefreshing(true);
         const searchQuery = (columnFilters.find(f => f.id === 'user_name')?.value as string) || '';
