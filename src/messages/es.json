@@ -757,7 +757,8 @@
       "scheduled": "Programado",
       "completed": "Completado",
       "cancelled": "Cancelado",
-      "invoiced": "Facturado"
+      "invoiced": "Facturado",
+      "pending": "Pendiente"
     },
     "actions": {
       "openMenu": "Abrir menú",

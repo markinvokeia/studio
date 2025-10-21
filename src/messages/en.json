@@ -757,7 +757,8 @@
       "scheduled": "Scheduled",
       "completed": "Completed",
       "cancelled": "Cancelled",
-      "invoiced": "Invoiced"
+      "invoiced": "Invoiced",
+      "pending": "Pending"
     },
     "actions": {
       "openMenu": "Open menu",
@@ -815,34 +816,34 @@
       "error": "Could not add the payment."
     },
     "methods": {
-        "credit_card": "Credit Card",
-        "bank_transfer": "Bank Transfer",
-        "cash": "Cash",
-        "debit": "Debit",
-        "credit": "Credit",
-        "mercado_pago": "Mercado Pago"
+      "credit_card": "Credit Card",
+      "bank_transfer": "Bank Transfer",
+      "cash": "Cash",
+      "debit": "Debit",
+      "credit": "Credit",
+      "mercado_pago": "Mercado Pago"
     },
     "status": {
-        "paid": "Paid",
-        "sent": "Sent",
-        "draft": "Draft",
-        "overdue": "Overdue",
-        "unpaid": "Unpaid",
-        "partial": "Partial",
-        "completed": "Completed",
-        "pending": "Pending",
-        "failed": "Failed"
+      "paid": "Paid",
+      "sent": "Sent",
+      "draft": "Draft",
+      "overdue": "Overdue",
+      "unpaid": "Unpaid",
+      "partial": "Partial",
+      "completed": "Completed",
+      "pending": "Pending",
+      "failed": "Failed"
     },
     "columns": {
-        "invoiceId": "Invoice ID",
-        "user": "User",
-        "orderId": "Order ID",
-        "quoteId": "Quote ID",
-        "total": "Total",
-        "status": "Status",
-        "payment": "Payment",
-        "createdAt": "Created At",
-        "actions": "Actions"
+      "invoiceId": "Invoice ID",
+      "user": "User",
+      "orderId": "Order ID",
+      "quoteId": "Quote ID",
+      "total": "Total",
+      "status": "Status",
+      "payment": "Payment",
+      "createdAt": "Created At",
+      "actions": "Actions"
     },
     "validation": {
       "amountPositive": "Amount must be a positive number.",
