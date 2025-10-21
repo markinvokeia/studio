@@ -136,6 +136,7 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
 export default function OrdersPage() {
     const t = useTranslations('OrdersPage');
     const tQuotes = useTranslations('QuotesPage');
+    const tOrderItems = useTranslations('OrderItemsTable');
     const [orders, setOrders] = React.useState<Order[]>([]);
     const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -251,7 +252,7 @@ export default function OrdersPage() {
                                     </TabsList>
                                     <TabsContent value="items">
                                     <div className="flex items-center justify-between mb-2">
-                                            <h4 className="text-md font-semibold">{t('OrderItemsTable.title', {id: selectedOrder.id})}</h4>
+                                            <h4 className="text-md font-semibold">{tOrderItems('title', {id: selectedOrder.id})}</h4>
                                             <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
                                                 <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                             </Button>

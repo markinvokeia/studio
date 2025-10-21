@@ -741,7 +741,7 @@
     }
   },
   "OrderItemsTable": {
-    "title": "Ítems del Pedido {id}",
+    "title": "Ítems del Pedido #{id}",
     "columns": {
       "id": "ID",
       "service": "Servicio",
