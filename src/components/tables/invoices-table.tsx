@@ -160,6 +160,18 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       ),
     },
     {
+        accessorKey: 'user_name',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="User" />,
+    },
+    {
+        accessorKey: 'order_id',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Order ID" />,
+    },
+    {
+        accessorKey: 'quote_id',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Quote ID" />,
+    },
+    {
       accessorKey: 'total',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Total" />

@@ -32,7 +32,7 @@ async function getInvoices(): Promise<Invoice[]> {
             total: apiInvoice.total || 0,
             status: apiInvoice.status || 'draft',
             payment_status: apiInvoice.payment_status || 'unpaid',
-            createdAt: apiInvoice.createdAt || new Date().toISOString().split('T')[0],
+            createdAt: apiInvoice.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
         }));
     } catch (error) {
@@ -88,7 +88,7 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
             amount: apiPayment.amount || 0,
             method: apiPayment.method || 'credit_card',
             status: apiPayment.status || 'pending',
-            createdAt: apiPayment.createdAt || new Date().toISOString().split('T')[0],
+            createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
         }));
     } catch (error) {
