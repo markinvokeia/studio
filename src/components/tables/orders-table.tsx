@@ -156,18 +156,21 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
           <DataTableColumnHeader column={column} title={tUserColumns('status')} />
         ),
         cell: ({ row }) => {
-          const status = row.getValue('status') as string;
+          const status = (row.getValue('status') as string) || '';
+          let normalizedStatus = status.toLowerCase();
+          if (normalizedStatus === 'in progress') {
+            normalizedStatus = 'processing';
+          }
           const variant = {
             completed: 'success',
             pending: 'info',
             processing: 'default',
             cancelled: 'destructive',
-            'in progress': 'default',
-          }[status?.toLowerCase() ?? ''] ?? ('default' as any);
+          }[normalizedStatus] ?? ('default' as any);
     
           return (
             <Badge variant={variant} className="capitalize">
-              {tOrdersPage(`status.${status.toLowerCase().replace(' ', '')}` as any)}
+              {tOrdersPage(`status.${normalizedStatus}` as any)}
             </Badge>
           );
         },
@@ -473,3 +476,5 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated }: Crea
     </Dialog>
   );
 }
+
+    
