@@ -61,6 +61,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
     const handleInvoiceClick = (order: Order) => {
         setSelectedOrderForInvoice(order);
         setInvoiceDate(new Date());
+        setInvoiceSubmissionError(null);
         setIsInvoiceDialogOpen(true);
     };
 
