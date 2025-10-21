@@ -206,7 +206,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
         return (
           <Badge variant={variant} className="capitalize">
-            {tStatus(status)}
+            {tStatus(status.toLowerCase())}
           </Badge>
         );
       },
@@ -221,7 +221,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           partial: 'info',
           unpaid: 'outline',
         }[status?.toLowerCase() ?? ('default' as any)];
-        return <Badge variant={variant} className="capitalize">{tStatus(status)}</Badge>;
+        return <Badge variant={variant} className="capitalize">{tStatus(status.toLowerCase())}</Badge>;
       },
     },
      {
