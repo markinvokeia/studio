@@ -629,6 +629,10 @@
       "quantity": "Cantidad",
       "unitPrice": "Precio Unitario",
       "total": "Total",
+      "id": "ID",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar",
       "cancel": "Cancelar",
       "save": "Añadir Ítem",
       "editSave": "Guardar Cambios"

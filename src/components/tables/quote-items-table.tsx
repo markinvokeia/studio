@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface QuoteItemsTableProps {
   items: QuoteItem[];
@@ -23,6 +24,7 @@ interface QuoteItemsTableProps {
 }
 
 const getColumns = (
+  t: (key: string) => string,
   onEdit: (item: QuoteItem) => void,
   onDelete: (item: QuoteItem) => void,
   canEdit: boolean
@@ -30,25 +32,25 @@ const getColumns = (
   {
     accessorKey: 'id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="ID" />
+      <DataTableColumnHeader column={column} title={t('id')} />
     ),
   },
   {
     accessorKey: 'service_name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Service" />
+      <DataTableColumnHeader column={column} title={t('service')} />
     ),
   },
   {
     accessorKey: 'quantity',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Qty" />
+      <DataTableColumnHeader column={column} title={t('quantity')} />
     ),
   },
   {
     accessorKey: 'unit_price',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Unit Price" />
+      <DataTableColumnHeader column={column} title={t('unitPrice')} />
     ),
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue('unit_price'));
@@ -62,7 +64,7 @@ const getColumns = (
   {
     accessorKey: 'total',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Total" />
+      <DataTableColumnHeader column={column} title={t('total')} />
     ),
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue('total'));
@@ -86,9 +88,9 @@ const getColumns = (
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => onEdit(item)}>Edit</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDelete(item)} className="text-destructive">Delete</DropdownMenuItem>
+            <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => onEdit(item)}>{t('edit')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onDelete(item)} className="text-destructive">{t('delete')}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -97,7 +99,21 @@ const getColumns = (
 ];
 
 export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete }: QuoteItemsTableProps) {
-    const columns = getColumns(onEdit, onDelete, canEdit);
+    const t = useTranslations('QuotesPage.itemDialog');
+    const tShared = useTranslations('UserColumns');
+    const columns = getColumns(
+        (key) => {
+            try {
+                return t(key);
+            } catch (e) {
+                return tShared(key);
+            }
+        }, 
+        onEdit, 
+        onDelete, 
+        canEdit
+    );
+
     if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
@@ -115,7 +131,7 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
           columns={columns}
           data={items}
           filterColumnId="service_name"
-          filterPlaceholder="Filter by service..."
+          filterPlaceholder={t('searchService')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
           onCreate={canEdit ? onCreate : undefined}

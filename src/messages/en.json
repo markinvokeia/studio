@@ -629,6 +629,10 @@
       "quantity": "Quantity",
       "unitPrice": "Unit Price",
       "total": "Total",
+      "id": "ID",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete",
       "cancel": "Cancel",
       "save": "Add Item",
       "editSave": "Save Changes"
