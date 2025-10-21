@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Order, OrderItem, Invoice, Payment } from '@/lib/types';
+import { Order, OrderItem, Invoice, Payment, User, Quote } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,6 +13,7 @@ import { OrderItemsTable } from '@/components/tables/order-items-table';
 import { RefreshCw, X } from 'lucide-react';
 import { RowSelectionState } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from 'next-intl';
 
 async function getOrders(): Promise<Order[]> {
     try {
@@ -133,6 +134,8 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
 }
 
 export default function OrdersPage() {
+    const t = useTranslations('OrdersPage');
+    const tQuotes = useTranslations('QuotesPage');
     const [orders, setOrders] = React.useState<Order[]>([]);
     const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -208,8 +211,8 @@ export default function OrdersPage() {
                 <div className={cn("transition-all duration-300", selectedOrder ? "lg:col-span-2" : "lg:col-span-5")}>
                     <Card>
                         <CardHeader>
-                            <CardTitle>Orders</CardTitle>
-                            <CardDescription>Manage all customer orders.</CardDescription>
+                            <CardTitle>{t('title')}</CardTitle>
+                            <CardDescription>{t('description')}</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <OrdersTable 
@@ -231,8 +234,8 @@ export default function OrdersPage() {
                         <Card>
                             <CardHeader className="flex flex-row items-start justify-between">
                                 <div>
-                                    <CardTitle>Details for Order</CardTitle>
-                                    <CardDescription>Order ID: {selectedOrder.id}</CardDescription>
+                                    <CardTitle>{t('detailsFor')}</CardTitle>
+                                    <CardDescription>{t('orderId')}: {selectedOrder.id}</CardDescription>
                                 </div>
                                 <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
                                     <X className="h-5 w-5" />
@@ -242,13 +245,13 @@ export default function OrdersPage() {
                             <CardContent>
                                 <Tabs defaultValue="items" className="w-full">
                                     <TabsList className="h-auto items-center justify-start flex-wrap">
-                                        <TabsTrigger value="items">Order Items</TabsTrigger>
-                                        <TabsTrigger value="invoices">Invoices</TabsTrigger>
-                                        <TabsTrigger value="payments">Payments</TabsTrigger>
+                                        <TabsTrigger value="items">{tQuotes('tabs.items')}</TabsTrigger>
+                                        <TabsTrigger value="invoices">{tQuotes('tabs.invoices')}</TabsTrigger>
+                                        <TabsTrigger value="payments">{tQuotes('tabs.payments')}</TabsTrigger>
                                     </TabsList>
                                     <TabsContent value="items">
                                     <div className="flex items-center justify-between mb-2">
-                                            <h4 className="text-md font-semibold">Order Items for {selectedOrder.id}</h4>
+                                            <h4 className="text-md font-semibold">{t('OrderItemsTable.title', {id: selectedOrder.id})}</h4>
                                             <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
                                                 <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                             </Button>

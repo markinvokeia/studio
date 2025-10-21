@@ -710,6 +710,8 @@
     "description": "Manage all customer orders.",
     "createTitle": "Create New Order",
     "createDescription": "Fill in the details to create a new order.",
+    "detailsFor": "Details for Order",
+    "orderId": "Order ID",
     "selectUser": "Select user",
     "searchUser": "Search user...",
     "noUserFound": "No user found.",
@@ -739,6 +741,7 @@
     }
   },
   "OrderItemsTable": {
+    "title": "Order Items for {id}",
     "columns": {
       "id": "ID",
       "service": "Service",
@@ -788,6 +791,12 @@
     "title": "Invoices",
     "description": "Manage all customer invoices.",
     "filterPlaceholder": "Filter by invoice ID...",
+    "detailsFor": "Details for Invoice",
+    "invoiceId": "Invoice ID",
+    "tabs": {
+      "items": "Invoice Items",
+      "payments": "Payments"
+    },
     "paymentDialog": {
       "title": "Add Payment",
       "description": "Register a payment for invoice #{invoiceId}.",
@@ -840,6 +849,7 @@
     }
   },
   "InvoiceItemsTable": {
+    "title": "Items for Invoice {id}",
     "filterPlaceholder": "Filter by service...",
     "columns": {
       "id": "Item ID",

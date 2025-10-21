@@ -710,6 +710,8 @@
     "description": "Gestionar todos los pedidos de los clientes.",
     "createTitle": "Crear Nuevo Pedido",
     "createDescription": "Completa los detalles para crear un nuevo pedido.",
+    "detailsFor": "Detalles del Pedido",
+    "orderId": "ID del Pedido",
     "selectUser": "Seleccionar usuario",
     "searchUser": "Buscar usuario...",
     "noUserFound": "No se encontró el usuario.",
@@ -739,6 +741,7 @@
     }
   },
   "OrderItemsTable": {
+    "title": "Ítems del Pedido {id}",
     "columns": {
       "id": "ID",
       "service": "Servicio",
@@ -788,6 +791,12 @@
     "title": "Facturas",
     "description": "Gestionar todas las facturas de los clientes.",
     "filterPlaceholder": "Filtrar por ID de factura...",
+    "detailsFor": "Detalles de la Factura",
+    "invoiceId": "ID de Factura",
+    "tabs": {
+      "items": "Ítems de Factura",
+      "payments": "Pagos"
+    },
     "paymentDialog": {
       "title": "Añadir Pago",
       "description": "Registrar un pago para la factura #{invoiceId}.",
@@ -840,6 +849,7 @@
     }
   },
   "InvoiceItemsTable": {
+    "title": "Ítems de la Factura {id}",
     "filterPlaceholder": "Filtrar por servicio...",
     "columns": {
       "id": "ID Ítem",
