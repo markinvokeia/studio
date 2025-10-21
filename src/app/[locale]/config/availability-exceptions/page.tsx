@@ -152,7 +152,8 @@ export default function AvailabilityExceptionsPage() {
     });
 
     const watchedIsAvailable = form.watch("is_available");
-    const watchedUserId = form.watch("user_id");
+    const [isDoctorComboboxOpen, setIsDoctorComboboxOpen] = React.useState(false);
+
 
     const loadExceptions = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -235,7 +236,6 @@ export default function AvailabilityExceptionsPage() {
     };
     
     const exceptionsColumns = ExceptionsColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
-    const selectedDoctor = doctors.find(doc => doc.id === watchedUserId);
 
     return (
         <>
@@ -282,45 +282,39 @@ export default function AvailabilityExceptionsPage() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Doctor</FormLabel>
-                                    {selectedDoctor ? (
-                                        <div className="flex items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm">
-                                            <span>{selectedDoctor.name}</span>
-                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => form.setValue('user_id', '')}>
-                                                <X className="h-4 w-4" />
+                                    <Popover open={isDoctorComboboxOpen} onOpenChange={setIsDoctorComboboxOpen}>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                            <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                                                {field.value ? doctors.find(doc => doc.id === field.value)?.name : "Select doctor"}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
-                                        </div>
-                                    ) : (
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                    Select doctor
-                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-full p-0">
-                                                <Command>
-                                                <CommandInput placeholder="Search doctor..." />
-                                                <CommandList>
-                                                    <CommandEmpty>No doctor found.</CommandEmpty>
-                                                    <CommandGroup>
-                                                    {doctors.map((doctor) => (
-                                                        <CommandItem
-                                                            value={doctor.name}
-                                                            key={doctor.id}
-                                                            onSelect={() => form.setValue("user_id", doctor.id)}
-                                                        >
-                                                        <Check className={cn("mr-2 h-4 w-4", doctor.id === field.value ? "opacity-100" : "opacity-0")}/>
-                                                        {doctor.name}
-                                                        </CommandItem>
-                                                    ))}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
-                                    )}
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                            <Command>
+                                            <CommandInput placeholder="Search doctor..." />
+                                            <CommandList>
+                                                <CommandEmpty>No doctor found.</CommandEmpty>
+                                                <CommandGroup>
+                                                {doctors.map((doctor) => (
+                                                    <CommandItem
+                                                        value={doctor.name}
+                                                        key={doctor.id}
+                                                        onSelect={() => {
+                                                            form.setValue("user_id", doctor.id);
+                                                            setIsDoctorComboboxOpen(false);
+                                                        }}
+                                                    >
+                                                    <Check className={cn("mr-2 h-4 w-4", doctor.id === field.value ? "opacity-100" : "opacity-0")}/>
+                                                    {doctor.name}
+                                                    </CommandItem>
+                                                ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
                                     <FormMessage />
                                 </FormItem>
                             )}
