@@ -774,6 +774,21 @@
       "completed": "Completado",
       "pending": "Pendiente",
       "failed": "Fallido"
+    },
+    "columns": {
+        "invoiceId": "ID Factura",
+        "user": "Usuario",
+        "orderId": "ID Pedido",
+        "quoteId": "ID Cotización",
+        "total": "Total",
+        "status": "Estado",
+        "payment": "Pago",
+        "createdAt": "Fecha Creación",
+        "actions": "Acciones"
+    },
+    "validation": {
+        "amountPositive": "El monto debe ser un número positivo.",
+        "dateRequired": "La fecha de pago es requerida."
     }
   },
   "RolesPage": {
