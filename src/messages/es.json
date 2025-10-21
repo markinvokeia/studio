@@ -756,7 +756,8 @@
     "status": {
       "scheduled": "Programado",
       "completed": "Completado",
-      "cancelled": "Cancelado"
+      "cancelled": "Cancelado",
+      "invoiced": "Facturado"
     },
     "actions": {
       "openMenu": "Abrir menú",
@@ -860,6 +861,9 @@
     }
   },
   "PaymentsPage": {
+    "title": "Pagos",
+    "description": "Ver todos los pagos procesados.",
+    "filterPlaceholder": "Filtrar por ID de factura...",
     "columns": {
       "id": "ID de Pago",
       "quoteId": "ID de Cotización",

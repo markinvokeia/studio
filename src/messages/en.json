@@ -756,7 +756,8 @@
     "status": {
       "scheduled": "Scheduled",
       "completed": "Completed",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "invoiced": "Invoiced"
     },
     "actions": {
       "openMenu": "Open menu",
@@ -860,6 +861,9 @@
     }
   },
   "PaymentsPage": {
+    "title": "Payments",
+    "description": "View all processed payments.",
+    "filterPlaceholder": "Filter by invoice ID...",
     "columns": {
       "id": "Payment ID",
       "quoteId": "Quote ID",
