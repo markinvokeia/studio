@@ -160,7 +160,7 @@ export default function DoctorAvailabilityPage() {
     const form = useForm<AvailabilityFormValues>({
         resolver: zodResolver(availabilityFormSchema),
     });
-
+    const [isDoctorComboboxOpen, setIsDoctorComboboxOpen] = React.useState(false);
     const watchedRecurrence = form.watch("recurrence");
 
     const loadRules = React.useCallback(async () => {
@@ -294,7 +294,7 @@ export default function DoctorAvailabilityPage() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Doctor</FormLabel>
-                                    <Popover>
+                                    <Popover open={isDoctorComboboxOpen} onOpenChange={setIsDoctorComboboxOpen}>
                                         <PopoverTrigger asChild>
                                             <FormControl>
                                             <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
@@ -303,7 +303,7 @@ export default function DoctorAvailabilityPage() {
                                             </Button>
                                             </FormControl>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-full p-0">
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                             <Command>
                                             <CommandInput placeholder="Search doctor..." />
                                             <CommandList>
@@ -313,7 +313,10 @@ export default function DoctorAvailabilityPage() {
                                                     <CommandItem
                                                         value={doctor.name}
                                                         key={doctor.id}
-                                                        onSelect={() => form.setValue("user_id", doctor.id)}
+                                                        onSelect={() => {
+                                                            form.setValue("user_id", doctor.id);
+                                                            setIsDoctorComboboxOpen(false);
+                                                        }}
                                                     >
                                                     <Check className={cn("mr-2 h-4 w-4", doctor.id === field.value ? "opacity-100" : "opacity-0")}/>
                                                     {doctor.name}
