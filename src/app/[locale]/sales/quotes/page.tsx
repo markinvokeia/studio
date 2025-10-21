@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -161,8 +162,8 @@ async function upsertQuoteItem(itemData: QuoteItemFormValues) {
         body: JSON.stringify(itemData),
     });
     const responseData = await response.json();
-    if (responseData.error || (responseData.code && responseData.code >= 400)) {
-        const message = responseData.message || 'Failed to save quote item.';
+    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to save quote item.';
         throw new Error(message);
     }
     return responseData;
@@ -175,8 +176,8 @@ async function deleteQuoteItem(id: string, quoteId: string) {
         body: JSON.stringify({ id, quote_id: quoteId }),
     });
     const responseData = await response.json();
-    if (responseData.error || (responseData.code && responseData.code >= 400)) {
-        const message = responseData.message || 'Failed to delete quote item.';
+    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to delete quote item.';
         throw new Error(message);
     }
     return responseData;
@@ -349,8 +350,8 @@ async function upsertQuote(quoteData: QuoteFormValues) {
         body: JSON.stringify(quoteData),
     });
     const responseData = await response.json();
-    if (responseData.error || (responseData.code && responseData.code >= 400)) {
-        const message = responseData.message || 'Failed to save quote';
+    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to save quote';
         throw new Error(message);
     }
     return responseData;
@@ -363,8 +364,8 @@ async function deleteQuote(id: string) {
         body: JSON.stringify({ id }),
     });
     const responseData = await response.json();
-    if (responseData.error || (responseData.code && responseData.code >= 400)) {
-        const message = responseData.message || 'Failed to delete quote';
+    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to delete quote';
         throw new Error(message);
     }
     return responseData;
@@ -635,8 +636,8 @@ export default function QuotesPage() {
             const endpoint = `https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/${action}`;
             const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const responseData = await response.json();
-            if (responseData.error || (responseData.code && responseData.code >= 400)) {
-                const message = responseData.message || `Failed to ${action} quote.`;
+            if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+                const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : `Failed to ${action} quote.`;
                 throw new Error(message);
             }
             toast({ title: `Quote ${action === 'confirm' ? 'Confirmed' : 'Rejected'}`, description: `Quote #${quote.id} has been successfully ${action === 'confirm' ? 'confirmed' : 'rejected'}.` });
