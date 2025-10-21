@@ -244,24 +244,28 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
 
     <Dialog open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
         <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-                <DialogTitle className="capitalize">{t(`dateDialog.title.${actionType}`)}</DialogTitle>
-                <DialogDescription>
-                    {t(`dateDialog.description.${actionType}`)}
-                </DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-center py-4">
-                <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    initialFocus
-                />
-            </div>
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDatePickerOpen(false)}>{t('dateDialog.cancel')}</Button>
-                <Button onClick={handleDateSave}>{t('dateDialog.save')}</Button>
-            </DialogFooter>
+            {actionType && (
+                <>
+                    <DialogHeader>
+                        <DialogTitle className="capitalize">{t(`dateDialog.title.${actionType}`)}</DialogTitle>
+                        <DialogDescription>
+                            {t(`dateDialog.description.${actionType}`)}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-center py-4">
+                        <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={setSelectedDate}
+                            initialFocus
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDatePickerOpen(false)}>{t('dateDialog.cancel')}</Button>
+                        <Button onClick={handleDateSave}>{t('dateDialog.save')}</Button>
+                    </DialogFooter>
+                </>
+            )}
         </DialogContent>
     </Dialog>
     </>
