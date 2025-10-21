@@ -736,6 +736,50 @@
       "confirm": "Create Invoice"
     }
   },
+  "OrderItemsTable": {
+    "columns": {
+      "id": "ID",
+      "service": "Service",
+      "quantity": "Qty",
+      "unitPrice": "Unit Price",
+      "total": "Total",
+      "status": "Status",
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "invoiced": "Invoiced"
+    },
+    "status": {
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "actions": {
+      "openMenu": "Open menu",
+      "title": "Actions",
+      "schedule": "Schedule",
+      "complete": "Complete"
+    },
+    "filterPlaceholder": "Filter by service...",
+    "dateDialog": {
+      "title": {
+        "schedule": "Schedule Item",
+        "complete": "Complete Item"
+      },
+      "description": {
+        "schedule": "Select a date to mark this item as scheduled.",
+        "complete": "Select a date to mark this item as completed."
+      },
+      "cancel": "Cancel",
+      "save": "Save Date"
+    },
+    "toast": {
+      "error": "Error",
+      "scheduledTitle": "Item Scheduled",
+      "completedTitle": "Item Completed",
+      "updateSuccess": "The order item has been updated successfully.",
+      "updateError": "Failed to update item."
+    }
+  },
   "InvoicesPage": {
     "title": "Invoices",
     "description": "Manage all customer invoices.",
@@ -789,6 +833,16 @@
     "validation": {
         "amountPositive": "Amount must be a positive number.",
         "dateRequired": "Payment date is required."
+    }
+  },
+  "InvoiceItemsTable": {
+    "filterPlaceholder": "Filter by service...",
+    "columns": {
+      "id": "Item ID",
+      "service": "Service",
+      "quantity": "Qty",
+      "unitPrice": "Unit Price",
+      "total": "Total"
     }
   },
   "RolesPage": {

@@ -17,11 +17,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Calendar as CalendarIcon } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { useTranslations } from 'next-intl';
 
 type ActionType = 'schedule' | 'complete';
 
@@ -50,6 +50,7 @@ interface OrderItemsTableProps {
 }
 
 export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quoteId }: OrderItemsTableProps) {
+  const t = useTranslations('OrderItemsTable');
   const { toast } = useToast();
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<OrderItem | null>(null);
@@ -83,11 +84,11 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
             }),
         });
 
-        if (!response.ok) throw new Error(`Failed to ${actionType} item.`);
+        if (!response.ok) throw new Error(t('toast.updateError'));
         
         toast({
-            title: `Item ${actionType === 'schedule' ? 'Scheduled' : 'Completed'}`,
-            description: `The order item has been updated successfully.`,
+            title: t(actionType === 'schedule' ? 'toast.scheduledTitle' : 'toast.completedTitle'),
+            description: t('toast.updateSuccess'),
         });
 
         if(onItemsUpdate) {
@@ -97,8 +98,8 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
     } catch (error) {
         toast({
             variant: 'destructive',
-            title: 'Error',
-            description: error instanceof Error ? error.message : `Could not update the item.`,
+            title: t('toast.error'),
+            description: error instanceof Error ? error.message : t('toast.updateError'),
         });
     } finally {
         setIsDatePickerOpen(false);
@@ -111,25 +112,25 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
     {
       accessorKey: 'id',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="ID" />
+        <DataTableColumnHeader column={column} title={t('columns.id')} />
       ),
     },
     {
       accessorKey: 'service_name',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Service" />
+        <DataTableColumnHeader column={column} title={t('columns.service')} />
       ),
     },
     {
       accessorKey: 'quantity',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Qty" />
+        <DataTableColumnHeader column={column} title={t('columns.quantity')} />
       ),
     },
     {
       accessorKey: 'unit_price',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Unit Price" />
+        <DataTableColumnHeader column={column} title={t('columns.unitPrice')} />
       ),
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('unit_price'));
@@ -143,7 +144,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
     {
       accessorKey: 'total',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Total" />
+        <DataTableColumnHeader column={column} title={t('columns.total')} />
       ),
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('total'));
@@ -157,7 +158,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
     {
       accessorKey: 'status',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
+        <DataTableColumnHeader column={column} title={t('columns.status')} />
       ),
       cell: ({ row }) => {
         const status = row.getValue('status') as string;
@@ -169,7 +170,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
 
         return (
           <Badge variant={variant} className="capitalize">
-            {status}
+            {t(`status.${status.toLowerCase()}`)}
           </Badge>
         );
       },
@@ -177,21 +178,21 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
     {
       accessorKey: 'scheduled_date',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Scheduled" />
+        <DataTableColumnHeader column={column} title={t('columns.scheduled')} />
       ),
        cell: ({ row }) => <DateCell dateValue={row.getValue('scheduled_date')} />,
     },
     {
       accessorKey: 'completed_date',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Completed" />
+        <DataTableColumnHeader column={column} title={t('columns.completed')} />
       ),
       cell: ({ row }) => <DateCell dateValue={row.getValue('completed_date')} />,
     },
     {
       accessorKey: 'invoiced_date',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Invoiced" />
+        <DataTableColumnHeader column={column} title={t('columns.invoiced')} />
       ),
       cell: ({ row }) => <DateCell dateValue={row.getValue('invoiced_date')} />,
     },
@@ -203,14 +204,14 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
+                            <span className="sr-only">{t('actions.openMenu')}</span>
                             <MoreHorizontal className="h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        {!item.scheduled_date && <DropdownMenuItem onClick={() => handleActionClick(item, 'schedule')}>Schedule</DropdownMenuItem>}
-                        {!item.completed_date && <DropdownMenuItem onClick={() => handleActionClick(item, 'complete')}>Complete</DropdownMenuItem>}
+                        <DropdownMenuLabel>{t('actions.title')}</DropdownMenuLabel>
+                        {!item.scheduled_date && <DropdownMenuItem onClick={() => handleActionClick(item, 'schedule')}>{t('actions.schedule')}</DropdownMenuItem>}
+                        {!item.completed_date && <DropdownMenuItem onClick={() => handleActionClick(item, 'complete')}>{t('actions.complete')}</DropdownMenuItem>}
                     </DropdownMenuContent>
                 </DropdownMenu>
             );
@@ -236,7 +237,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
           columns={columns}
           data={items}
           filterColumnId="service_name"
-          filterPlaceholder="Filter by service..."
+          filterPlaceholder={t('filterPlaceholder')}
         />
       </CardContent>
     </Card>
@@ -244,9 +245,9 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
     <Dialog open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
         <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-                <DialogTitle className="capitalize">{actionType} Item</DialogTitle>
+                <DialogTitle className="capitalize">{t(`dateDialog.title.${actionType}`)}</DialogTitle>
                 <DialogDescription>
-                    Select a date to mark this item as {actionType}.
+                    {t(`dateDialog.description.${actionType}`)}
                 </DialogDescription>
             </DialogHeader>
             <div className="flex justify-center py-4">
@@ -258,8 +259,8 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
                 />
             </div>
             <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDatePickerOpen(false)}>Cancel</Button>
-                <Button onClick={handleDateSave}>Save Date</Button>
+                <Button variant="outline" onClick={() => setIsDatePickerOpen(false)}>{t('dateDialog.cancel')}</Button>
+                <Button onClick={handleDateSave}>{t('dateDialog.save')}</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>

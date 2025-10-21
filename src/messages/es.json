@@ -736,6 +736,50 @@
       "confirm": "Crear Factura"
     }
   },
+  "OrderItemsTable": {
+    "columns": {
+      "id": "ID",
+      "service": "Servicio",
+      "quantity": "Cant.",
+      "unitPrice": "Precio Un.",
+      "total": "Total",
+      "status": "Estado",
+      "scheduled": "Programado",
+      "completed": "Completado",
+      "invoiced": "Facturado"
+    },
+    "status": {
+      "scheduled": "Programado",
+      "completed": "Completado",
+      "cancelled": "Cancelado"
+    },
+    "actions": {
+      "openMenu": "Abrir menú",
+      "title": "Acciones",
+      "schedule": "Programar",
+      "complete": "Completar"
+    },
+    "filterPlaceholder": "Filtrar por servicio...",
+    "dateDialog": {
+      "title": {
+        "schedule": "Programar Ítem",
+        "complete": "Completar Ítem"
+      },
+      "description": {
+        "schedule": "Selecciona una fecha para marcar este ítem como programado.",
+        "complete": "Selecciona una fecha para marcar este ítem como completado."
+      },
+      "cancel": "Cancelar",
+      "save": "Guardar Fecha"
+    },
+    "toast": {
+      "error": "Error",
+      "scheduledTitle": "Ítem Programado",
+      "completedTitle": "Ítem Completado",
+      "updateSuccess": "El ítem del pedido ha sido actualizado exitosamente.",
+      "updateError": "No se pudo actualizar el ítem."
+    }
+  },
   "InvoicesPage": {
     "title": "Facturas",
     "description": "Gestionar todas las facturas de los clientes.",
@@ -789,6 +833,16 @@
     "validation": {
         "amountPositive": "El monto debe ser un número positivo.",
         "dateRequired": "La fecha de pago es requerida."
+    }
+  },
+  "InvoiceItemsTable": {
+    "filterPlaceholder": "Filtrar por servicio...",
+    "columns": {
+      "id": "ID Ítem",
+      "service": "Servicio",
+      "quantity": "Cant.",
+      "unitPrice": "Precio Un.",
+      "total": "Total"
     }
   },
   "RolesPage": {

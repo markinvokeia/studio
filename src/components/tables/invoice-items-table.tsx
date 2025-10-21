@@ -7,55 +7,7 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { InvoiceItem } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const columns: ColumnDef<InvoiceItem>[] = [
-  {
-    accessorKey: 'id',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Item ID" />
-    ),
-  },
-  {
-    accessorKey: 'service_name',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Service" />
-    ),
-  },
-  {
-    accessorKey: 'quantity',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Qty" />
-    ),
-  },
-  {
-    accessorKey: 'unit_price',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Unit Price" />
-    ),
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue('unit_price'));
-      const formatted = new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-      }).format(amount);
-      return <div className="font-medium">{formatted}</div>;
-    },
-  },
-  {
-    accessorKey: 'total',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Total" />
-    ),
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue('total'));
-      const formatted = new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-      }).format(amount);
-      return <div className="font-medium">{formatted}</div>;
-    },
-  },
-];
+import { useTranslations } from 'next-intl';
 
 interface InvoiceItemsTableProps {
   items: InvoiceItem[];
@@ -63,7 +15,58 @@ interface InvoiceItemsTableProps {
 }
 
 export function InvoiceItemsTable({ items, isLoading = false }: InvoiceItemsTableProps) {
-    if (isLoading) {
+  const t = useTranslations('InvoiceItemsTable');
+
+  const columns: ColumnDef<InvoiceItem>[] = [
+    {
+      accessorKey: 'id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('columns.id')} />
+      ),
+    },
+    {
+      accessorKey: 'service_name',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('columns.service')} />
+      ),
+    },
+    {
+      accessorKey: 'quantity',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('columns.quantity')} />
+      ),
+    },
+    {
+      accessorKey: 'unit_price',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('columns.unitPrice')} />
+      ),
+      cell: ({ row }) => {
+        const amount = parseFloat(row.getValue('unit_price'));
+        const formatted = new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+        }).format(amount);
+        return <div className="font-medium">{formatted}</div>;
+      },
+    },
+    {
+      accessorKey: 'total',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('columns.total')} />
+      ),
+      cell: ({ row }) => {
+        const amount = parseFloat(row.getValue('total'));
+        const formatted = new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+        }).format(amount);
+        return <div className="font-medium">{formatted}</div>;
+      },
+    },
+  ];
+
+  if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
         <Skeleton className="h-8 w-full" />
@@ -80,7 +83,7 @@ export function InvoiceItemsTable({ items, isLoading = false }: InvoiceItemsTabl
           columns={columns}
           data={items}
           filterColumnId="service_name"
-          filterPlaceholder="Filter by service..."
+          filterPlaceholder={t('filterPlaceholder')}
         />
       </CardContent>
     </Card>
