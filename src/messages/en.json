@@ -716,12 +716,14 @@
     "selectQuote": "Select quote",
     "searchQuote": "Search quote...",
     "noQuoteFound": "No quote found for this user.",
-    "status": "Status",
-    "selectStatus": "Select a status",
-    "pending": "Pending",
-    "processing": "Processing",
-    "completed": "Completed",
-    "cancelled": "Cancelled",
+    "status": {
+      "label": "Status",
+      "select": "Select a status",
+      "pending": "Pending",
+      "processing": "Processing",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
     "cancel": "Cancel",
     "create": "Create Order",
     "filterPlaceholder": "Filter by user name...",
@@ -763,11 +765,13 @@
     "dateDialog": {
       "title": {
         "schedule": "Schedule Item",
-        "complete": "Complete Item"
+        "complete": "Complete Item",
+        "null": "Select Date"
       },
       "description": {
         "schedule": "Select a date to mark this item as scheduled.",
-        "complete": "Select a date to mark this item as completed."
+        "complete": "Select a date to mark this item as completed.",
+        "null": "Please select a date."
       },
       "cancel": "Cancel",
       "save": "Save Date"

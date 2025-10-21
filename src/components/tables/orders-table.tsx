@@ -31,6 +31,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '../ui/command';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { useTranslations } from 'next-intl';
 
 const orderFormSchema = z.object({
   user_id: z.string().min(1, 'User is required'),
@@ -52,6 +53,7 @@ interface OrdersTableProps {
 }
 
 export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection }: OrdersTableProps) {
+    const t = useTranslations('OrdersPage');
     const { toast } = useToast();
     const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
     const [selectedOrderForInvoice, setSelectedOrderForInvoice] = React.useState<Order | null>(null);
@@ -84,12 +86,12 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             });
             const responseData = await response.json();
             if (!response.ok || responseData.error || (responseData.code && responseData.code >= 400)) {
-                throw new Error(responseData.message ||'Failed to create invoice.');
+                throw new Error(responseData.message || t('invoiceDialog.createError'));
             }
 
             toast({
-                title: 'Invoice Created',
-                description: `Invoice for order #${selectedOrderForInvoice.id} has been created.`,
+                title: t('invoiceDialog.invoiceSuccess'),
+                description: t('invoiceDialog.invoiceSuccessDesc', { orderId: selectedOrderForInvoice.id }),
             });
             
             if (onRefresh) {
@@ -99,7 +101,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             setSelectedOrderForInvoice(null);
 
         } catch (error) {
-            setInvoiceSubmissionError(error instanceof Error ? error.message : 'Could not create the invoice.');
+            setInvoiceSubmissionError(error instanceof Error ? error.message : t('invoiceDialog.createError'));
         }
     };
     
@@ -129,21 +131,21 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
       {
         accessorKey: 'id',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Order ID" />
+          <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />
         ),
       },
       {
         accessorKey: 'user_name',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="User" />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.name')} />,
       },
       {
         accessorKey: 'quote_id',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Quote ID" />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.quoteId')} />,
       },
       {
         accessorKey: 'status',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Status" />
+          <DataTableColumnHeader column={column} title={t('UserColumns.status')} />
         ),
         cell: ({ row }) => {
           const status = row.getValue('status') as string;
@@ -156,7 +158,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
     
           return (
             <Badge variant={variant} className="capitalize">
-              {status}
+              {t(`status.${status.toLowerCase()}`)}
             </Badge>
           );
         },
@@ -164,7 +166,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
       {
         accessorKey: 'createdAt',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Created At" />
+          <DataTableColumnHeader column={column} title={t('OrderColumns.createdAt')} />
         ),
       },
       {
@@ -180,9 +182,9 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuLabel>{t('UserColumns.actions')}</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleInvoiceClick(order)}>
-                            Invoice
+                            {t('Navigation.Invoices')}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -209,7 +211,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
           columns={columns}
           data={orders}
           filterColumnId="user_name"
-          filterPlaceholder="Filter by user name..."
+          filterPlaceholder={t('filterPlaceholder')}
           onRowSelectionChange={onRowSelectionChange}
           enableSingleRowSelection={onRowSelectionChange ? true : false}
           onRefresh={onRefresh}
@@ -224,15 +226,15 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
     <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-                <DialogTitle>Create Invoice</DialogTitle>
+                <DialogTitle>{t('invoiceDialog.title')}</DialogTitle>
                 <DialogDescription>
-                    Select a date for the invoice for order #{selectedOrderForInvoice?.id}.
+                   {t('invoiceDialog.description', { orderId: selectedOrderForInvoice?.id })}
                 </DialogDescription>
             </DialogHeader>
             {invoiceSubmissionError && (
               <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
+                  <AlertTitle>{t('invoiceDialog.error')}</AlertTitle>
                   <AlertDescription>{invoiceSubmissionError}</AlertDescription>
               </Alert>
             )}
@@ -245,8 +247,8 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
                 />
             </div>
             <DialogFooter>
-                <Button variant="outline" onClick={() => setIsInvoiceDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleConfirmInvoice}>Create Invoice</Button>
+                <Button variant="outline" onClick={() => setIsInvoiceDialogOpen(false)}>{t('cancel')}</Button>
+                <Button onClick={handleConfirmInvoice}>{t('invoiceDialog.confirm')}</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
@@ -261,6 +263,7 @@ interface CreateOrderDialogProps {
 }
 
 export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated }: CreateOrderDialogProps) {
+  const t = useTranslations('OrdersPage');
   const [users, setUsers] = React.useState<User[]>([]);
   const [quotes, setQuotes] = React.useState<Quote[]>([]);
   const [selectedUserId, setSelectedUserId] = React.useState<string | null>(null);
@@ -337,8 +340,8 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated }: Crea
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create New Order</DialogTitle>
-          <DialogDescription>Fill in the details to create a new order.</DialogDescription>
+          <DialogTitle>{t('createTitle')}</DialogTitle>
+          <DialogDescription>{t('createDescription')}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
@@ -347,21 +350,21 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated }: Crea
               name="user_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>User</FormLabel>
+                  <FormLabel>{t('selectUser')}</FormLabel>
                   <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                          {field.value ? users.find((user) => user.id === field.value)?.name : "Select user"}
+                          {field.value ? users.find((user) => user.id === field.value)?.name : t('selectUser')}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                       <Command>
-                        <CommandInput placeholder="Search user..." />
+                        <CommandInput placeholder={t('searchUser')} />
                         <CommandList>
-                          <CommandEmpty>No user found.</CommandEmpty>
+                          <CommandEmpty>{t('noUserFound')}</CommandEmpty>
                           <CommandGroup>
                             {users.map((user) => (
                               <CommandItem
@@ -390,21 +393,21 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated }: Crea
               name="quote_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Quote</FormLabel>
+                  <FormLabel>{t('selectQuote')}</FormLabel>
                   <Popover open={isQuoteSearchOpen} onOpenChange={setQuoteSearchOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button variant="outline" role="combobox" disabled={!selectedUserId} className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                          {field.value ? `Quote #${field.value}` : "Select quote"}
+                          {field.value ? `Quote #${field.value}` : t('selectQuote')}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                       <Command>
-                        <CommandInput placeholder="Search quote..." />
+                        <CommandInput placeholder={t('searchQuote')} />
                         <CommandList>
-                          <CommandEmpty>No quote found for this user.</CommandEmpty>
+                          <CommandEmpty>{t('noQuoteFound')}</CommandEmpty>
                           <CommandGroup>
                             {quotes.map((quote) => (
                               <CommandItem
@@ -433,18 +436,18 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated }: Crea
               name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Status</FormLabel>
+                  <FormLabel>{t('status')}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a status" />
+                        <SelectValue placeholder={t('selectStatus')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="processing">Processing</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      <SelectItem value="pending">{t('pending')}</SelectItem>
+                      <SelectItem value="processing">{t('processing')}</SelectItem>
+                      <SelectItem value="completed">{t('completed')}</SelectItem>
+                      <SelectItem value="cancelled">{t('cancelled')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -452,8 +455,8 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated }: Crea
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button type="submit">Create Order</Button>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
+              <Button type="submit">{t('create')}</Button>
             </DialogFooter>
           </form>
         </Form>

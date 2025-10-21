@@ -763,11 +763,13 @@
     "dateDialog": {
       "title": {
         "schedule": "Programar Ítem",
-        "complete": "Completar Ítem"
+        "complete": "Completar Ítem",
+        "null": "Seleccionar Fecha"
       },
       "description": {
         "schedule": "Selecciona una fecha para marcar este ítem como programado.",
-        "complete": "Selecciona una fecha para marcar este ítem como completado."
+        "complete": "Selecciona una fecha para marcar este ítem como completado.",
+        "null": "Por favor, seleccione una fecha."
       },
       "cancel": "Cancelar",
       "save": "Guardar Fecha"
@@ -820,19 +822,19 @@
       "failed": "Fallido"
     },
     "columns": {
-        "invoiceId": "ID Factura",
-        "user": "Usuario",
-        "orderId": "ID Pedido",
-        "quoteId": "ID Cotización",
-        "total": "Total",
-        "status": "Estado",
-        "payment": "Pago",
-        "createdAt": "Fecha Creación",
-        "actions": "Acciones"
+      "invoiceId": "ID Factura",
+      "user": "Usuario",
+      "orderId": "ID Pedido",
+      "quoteId": "ID Cotización",
+      "total": "Total",
+      "status": "Estado",
+      "payment": "Pago",
+      "createdAt": "Fecha Creación",
+      "actions": "Acciones"
     },
     "validation": {
-        "amountPositive": "El monto debe ser un número positivo.",
-        "dateRequired": "La fecha de pago es requerida."
+      "amountPositive": "El monto debe ser un número positivo.",
+      "dateRequired": "La fecha de pago es obligatoria."
     }
   },
   "InvoiceItemsTable": {
