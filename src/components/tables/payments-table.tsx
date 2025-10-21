@@ -67,7 +67,7 @@ const getColumns = (
     ),
      cell: ({ row }) => {
       const method = row.getValue('method') as string;
-      return <div className="capitalize">{tMethods(method)}</div>;
+      return <div className="capitalize">{tMethods(method.toLowerCase())}</div>;
     },
   },
   {
