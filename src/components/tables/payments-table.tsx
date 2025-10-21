@@ -6,44 +6,50 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Payment } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import React from 'react';
+import { useTranslations } from 'next-intl';
 
-const columns: ColumnDef<Payment>[] = [
+const getColumns = (
+  t: (key: string) => string,
+  tStatus: (key: string) => string,
+  tMethods: (key: string) => string,
+): ColumnDef<Payment>[] => [
   {
     accessorKey: 'id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Payment ID" />
+      <DataTableColumnHeader column={column} title={t('id')} />
     ),
   },
   {
     accessorKey: 'quote_id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Quote ID" />
+      <DataTableColumnHeader column={column} title={t('quoteId')} />
     ),
   },
   {
     accessorKey: 'order_id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Order ID" />
+      <DataTableColumnHeader column={column} title={t('orderId')} />
     ),
   },
   {
     accessorKey: 'invoice_id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Invoice ID" />
+      <DataTableColumnHeader column={column} title={t('invoiceId')} />
     ),
   },
   {
     accessorKey: 'user_name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="User" />
+      <DataTableColumnHeader column={column} title={t('user')} />
     ),
   },
   {
     accessorKey: 'amount',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Amount" />
+      <DataTableColumnHeader column={column} title={t('amount')} />
     ),
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue('amount'));
@@ -57,16 +63,16 @@ const columns: ColumnDef<Payment>[] = [
   {
     accessorKey: 'method',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Method" />
+      <DataTableColumnHeader column={column} title={t('method')} />
     ),
      cell: ({ row }) => {
       const method = row.getValue('method') as string;
-      return <div className="capitalize">{method.replace(/_/g, ' ')}</div>;
+      return <div className="capitalize">{tMethods(method)}</div>;
     },
   },
   {
     accessorKey: 'status',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('status')} />,
     cell: ({ row }) => {
       const status = row.original.status;
       const variant = {
@@ -74,13 +80,13 @@ const columns: ColumnDef<Payment>[] = [
         pending: 'info',
         failed: 'destructive',
       }[status.toLowerCase()] ?? ('default' as any);
-      return <Badge variant={variant} className="capitalize">{status}</Badge>;
+      return <Badge variant={variant} className="capitalize">{tStatus(status)}</Badge>;
     },
   },
   {
     accessorKey: 'createdAt',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created At" />
+      <DataTableColumnHeader column={column} title={t('createdAt')} />
     ),
   },
 ];
@@ -94,6 +100,11 @@ interface PaymentsTableProps {
 }
 
 export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [] }: PaymentsTableProps) {
+    const t = useTranslations('PaymentsPage.columns');
+    const tStatus = useTranslations('InvoicesPage.status');
+    const tMethods = useTranslations('InvoicesPage.methods');
+    const columns = React.useMemo(() => getColumns(t, tStatus, tMethods), [t, tStatus, tMethods]);
+
     if (isLoading) {
     return (
       <div className="space-y-4 pt-4">

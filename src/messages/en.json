@@ -835,8 +835,8 @@
         "actions": "Actions"
     },
     "validation": {
-        "amountPositive": "Amount must be a positive number.",
-        "dateRequired": "Payment date is required."
+      "amountPositive": "Amount must be a positive number.",
+      "dateRequired": "Payment date is required."
     }
   },
   "InvoiceItemsTable": {
@@ -847,6 +847,19 @@
       "quantity": "Qty",
       "unitPrice": "Unit Price",
       "total": "Total"
+    }
+  },
+  "PaymentsPage": {
+    "columns": {
+      "id": "Payment ID",
+      "quoteId": "Quote ID",
+      "orderId": "Order ID",
+      "invoiceId": "Invoice ID",
+      "user": "User",
+      "amount": "Amount",
+      "method": "Method",
+      "status": "Status",
+      "createdAt": "Created At"
     }
   },
   "RolesPage": {

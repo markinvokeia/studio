@@ -716,12 +716,14 @@
     "selectQuote": "Seleccionar cotización",
     "searchQuote": "Buscar cotización...",
     "noQuoteFound": "No se encontró cotización para este usuario.",
-    "status": "Estado",
-    "selectStatus": "Seleccionar un estado",
-    "pending": "Pendiente",
-    "processing": "Procesando",
-    "completed": "Completado",
-    "cancelled": "Cancelado",
+    "status": {
+      "label": "Estado",
+      "select": "Seleccionar un estado",
+      "pending": "Pendiente",
+      "processing": "Procesando",
+      "completed": "Completado",
+      "cancelled": "Cancelado"
+    },
     "cancel": "Cancelar",
     "create": "Crear Pedido",
     "filterPlaceholder": "Filtrar por nombre de usuario...",
@@ -845,6 +847,19 @@
       "quantity": "Cant.",
       "unitPrice": "Precio Un.",
       "total": "Total"
+    }
+  },
+  "PaymentsPage": {
+    "columns": {
+      "id": "ID de Pago",
+      "quoteId": "ID de Cotización",
+      "orderId": "ID de Pedido",
+      "invoiceId": "ID de Factura",
+      "user": "Usuario",
+      "amount": "Monto",
+      "method": "Método",
+      "status": "Estado",
+      "createdAt": "Fecha de Creación"
     }
   },
   "RolesPage": {
