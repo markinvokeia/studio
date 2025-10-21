@@ -25,6 +25,7 @@
     "Holidays": "Feriados",
     "Calendars": "Calendarios",
     "DoctorAvailability": "Disponibilidad de Médicos",
+    "DoctorAvailabilityExceptions": "Excepciones de disponibilidad",
     "System": "Sistema",
     "Roles": "Roles",
     "Permissions": "Permisos",
@@ -766,10 +767,19 @@
         "left": "Izquierda",
         "right": "Derecha"
       }
+    },
+    "MedicalHistory": {
+      "showMore": "Mostrar más",
+      "showLess": "Mostrar menos",
+      "notes": "Notas:",
+      "treatments": "Tratamientos:",
+      "tooth": "Diente #{tooth}",
+      "attachments": "Adjuntos:",
+      "noHistory": "No se encontró historial para este usuario.",
+      "viewFullHistory": "Ver Historial Clínico Completo"
     }
   },
   "General": {
     "noResults": "No se encontraron resultados."
   }
 }
-

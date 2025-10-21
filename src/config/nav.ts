@@ -30,6 +30,7 @@ import {
   Radiation,
   Share2,
   CalendarPlus,
+  UserX,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -96,6 +97,7 @@ export const navItems: NavItem[] = [
       { title: 'Holidays', href: '/config/holidays', icon: CalendarOff, isChidren: true },
       { title: 'Calendars', href: '/config/calendars', icon: Calendar, isChidren: true },
       { title: 'DoctorAvailability', href: '/config/doctor-availability', icon: CalendarPlus, isChidren: true },
+      { title: 'DoctorAvailabilityExceptions', href: '/config/availability-exceptions', icon: UserX, isChidren: true },
     ],
   },
   {

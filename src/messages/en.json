@@ -25,6 +25,7 @@
     "Holidays": "Holidays",
     "Calendars": "Calendars",
     "DoctorAvailability": "Doctor Availability",
+    "DoctorAvailabilityExceptions": "Availability Exceptions",
     "System": "System",
     "Roles": "Roles",
     "Permissions": "Permissions",
@@ -766,10 +767,19 @@
         "left": "Left",
         "right": "Right"
       }
+    },
+    "MedicalHistory": {
+      "showMore": "Show more",
+      "showLess": "Show less",
+      "notes": "Notes:",
+      "treatments": "Treatments:",
+      "tooth": "Tooth #{tooth}",
+      "attachments": "Attachments:",
+      "noHistory": "No history found for this user.",
+      "viewFullHistory": "View Full Clinical History"
     }
   },
   "General": {
     "noResults": "No results."
   }
 }
-

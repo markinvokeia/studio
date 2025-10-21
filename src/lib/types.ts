@@ -378,4 +378,14 @@ export type AvailabilityRule = {
     start_date: string;
     end_date?: string;
 };
+
+export type AvailabilityException = {
+    id: string;
+    user_id: string;
+    user_name?: string;
+    exception_date: string;
+    start_time: string;
+    end_time: string;
+    is_available: boolean;
+};
     
