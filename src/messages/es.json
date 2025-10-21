@@ -464,16 +464,16 @@
       "dateRequired": "La fecha es requerida."
     },
     "columns": {
-        "doctor": "Doctor",
-        "date": "Fecha",
-        "available": "Disponible",
-        "yes": "Sí",
-        "no": "No",
-        "startTime": "Hora de Inicio",
-        "endTime": "Hora de Fin",
-        "actions": "Acciones",
-        "edit": "Editar",
-        "delete": "Eliminar"
+      "doctor": "Doctor",
+      "date": "Fecha",
+      "available": "Disponible",
+      "yes": "Sí",
+      "no": "No",
+      "startTime": "Hora de Inicio",
+      "endTime": "Hora de Fin",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
     }
   },
   "UsersPage": {
@@ -1161,3 +1161,5 @@
     "noResults": "No se encontraron resultados."
   }
 }
+
+    
