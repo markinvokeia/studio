@@ -33,13 +33,13 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useTranslations } from 'next-intl';
 
-const orderFormSchema = z.object({
+const orderFormSchema = (t: (key: string) => string) => z.object({
   user_id: z.string().min(1, 'User is required'),
   quote_id: z.string().min(1, 'Quote is required'),
   status: z.enum(['pending', 'processing', 'completed', 'cancelled']),
 });
 
-type OrderFormValues = z.infer<typeof orderFormSchema>;
+type OrderFormValues = z.infer<ReturnType<typeof orderFormSchema>>;
 
 interface OrdersTableProps {
   orders: Order[];
@@ -90,6 +90,10 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             });
             const responseData = await response.json();
             if (!response.ok || responseData.error || (responseData.code && responseData.code >= 400)) {
+                if (responseData.message) {
+                     setInvoiceSubmissionError(responseData.message);
+                     return;
+                }
                 throw new Error(responseData.message || tOrdersPage('invoiceDialog.createError'));
             }
 
@@ -162,7 +166,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
     
           return (
             <Badge variant={variant} className="capitalize">
-              {tOrdersPage(`status.${status.toLowerCase()}`)}
+              {tOrdersPage(status.toLowerCase() as any)}
             </Badge>
           );
         },
@@ -276,7 +280,7 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated }: Crea
   const { toast } = useToast();
 
   const form = useForm<OrderFormValues>({
-    resolver: zodResolver(orderFormSchema),
+    resolver: zodResolver(orderFormSchema(t)),
     defaultValues: {
       status: 'pending',
     },
