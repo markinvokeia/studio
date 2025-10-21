@@ -162,11 +162,12 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             pending: 'info',
             processing: 'default',
             cancelled: 'destructive',
+            'in progress': 'default',
           }[status?.toLowerCase() ?? ''] ?? ('default' as any);
     
           return (
             <Badge variant={variant} className="capitalize">
-              {tOrdersPage(status.toLowerCase() as any)}
+              {tOrdersPage(`status.${status.toLowerCase().replace(' ', '')}` as any)}
             </Badge>
           );
         },
