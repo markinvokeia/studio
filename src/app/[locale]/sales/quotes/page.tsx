@@ -41,29 +41,30 @@ import { RowSelectionState } from '@tanstack/react-table';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useTranslations } from 'next-intl';
 
 
-const quoteFormSchema = z.object({
+const quoteFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  user_id: z.string().min(1, 'User is required'),
+  user_id: z.string().min(1, t('quoteDialog.user')),
   total: z.coerce.number().min(0, 'Total must be a positive number'),
   status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed']),
   payment_status: z.enum(['unpaid', 'paid', 'partial']),
   billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced']),
 });
 
-type QuoteFormValues = z.infer<typeof quoteFormSchema>;
+type QuoteFormValues = z.infer<ReturnType<typeof quoteFormSchema>>;
 
-const quoteItemFormSchema = z.object({
+const quoteItemFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     quote_id: z.string(),
-    service_id: z.string().min(1, 'Service is required'),
+    service_id: z.string().min(1, t('itemDialog.service')),
     quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
     unit_price: z.coerce.number().min(0, 'Unit price must be positive'),
     total: z.coerce.number().min(0, 'Total must be positive'),
 });
 
-type QuoteItemFormValues = z.infer<typeof quoteItemFormSchema>;
+type QuoteItemFormValues = z.infer<ReturnType<typeof quoteItemFormSchema>>;
 
 
 async function getQuotes(): Promise<Quote[]> {
@@ -343,7 +344,7 @@ async function getUsers(): Promise<User[]> {
   }
   
 async function upsertQuote(quoteData: QuoteFormValues) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/upsert', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3-easypanel.host/webhook/quote/upsert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(quoteData),
@@ -372,6 +373,7 @@ async function deleteQuote(id: string) {
 
 
 export default function QuotesPage() {
+    const t = useTranslations('QuotesPage');
     const { toast } = useToast();
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
@@ -414,8 +416,8 @@ export default function QuotesPage() {
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
-    const quoteForm = useForm<QuoteFormValues>({ resolver: zodResolver(quoteFormSchema) });
-    const quoteItemForm = useForm<QuoteItemFormValues>({ resolver: zodResolver(quoteItemFormSchema) });
+    const quoteForm = useForm<QuoteFormValues>({ resolver: zodResolver(quoteFormSchema(t)) });
+    const quoteItemForm = useForm<QuoteItemFormValues>({ resolver: zodResolver(quoteItemFormSchema(t)) });
 
     const watchedQuoteStatus = quoteForm.watch("status");
     const isStatusDraft = watchedQuoteStatus === 'draft';
@@ -550,13 +552,13 @@ export default function QuotesPage() {
         if (!deletingQuote) return;
         try {
             await deleteQuote(deletingQuote.id);
-            toast({ title: "Quote Deleted", description: `Quote "${deletingQuote.id}" has been deleted.` });
+            toast({ title: t('toast.quoteDeleted'), description: t('toast.quoteDeleteSuccess', { id: deletingQuote.id }) });
             setIsDeleteQuoteDialogOpen(false);
             setDeletingQuote(null);
             loadQuotes();
             if (selectedQuote?.id === deletingQuote.id) setSelectedQuote(null);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : "Could not delete the quote." });
+            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('toast.quoteDeleteError') });
         }
     };
     
@@ -564,11 +566,11 @@ export default function QuotesPage() {
         setQuoteSubmissionError(null);
         try {
             await upsertQuote(values);
-            toast({ title: editingQuote ? "Quote Updated" : "Quote Created", description: `The quote has been saved successfully.` });
+            toast({ title: editingQuote ? t('toast.quoteUpdated') : t('toast.quoteCreated'), description: t('toast.quoteSaveSuccess') });
             setIsQuoteDialogOpen(false);
             loadQuotes();
         } catch (error) {
-            setQuoteSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+            setQuoteSubmissionError(error instanceof Error ? error.message : t('toast.quoteError'));
         }
     };
 
@@ -605,11 +607,11 @@ export default function QuotesPage() {
         if (!deletingQuoteItem || !selectedQuote) return;
         try {
             await deleteQuoteItem(deletingQuoteItem.id, selectedQuote.id);
-            toast({ title: 'Quote Item Deleted', description: 'The item has been removed from the quote.' });
+            toast({ title: t('toast.itemDeleted'), description: t('toast.itemDeleteSuccess') });
             loadQuoteItems();
             loadQuotes(); // To update total
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not delete quote item.' });
+            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('toast.itemDeleteError') });
         } finally {
             setIsDeleteQuoteItemDialogOpen(false);
             setDeletingQuoteItem(null);
@@ -620,12 +622,12 @@ export default function QuotesPage() {
         setQuoteItemSubmissionError(null);
         try {
             await upsertQuoteItem(values);
-            toast({ title: editingQuoteItem ? 'Item Updated' : 'Item Added', description: 'The quote item has been saved.' });
+            toast({ title: editingQuoteItem ? t('toast.itemUpdated') : t('toast.itemAdded'), description: t('toast.itemSaveSuccess') });
             setIsQuoteItemDialogOpen(false);
             loadQuoteItems();
             loadQuotes(); // To update total
         } catch (error) {
-            setQuoteItemSubmissionError(error instanceof Error ? error.message : 'An unexpected error occurred.');
+            setQuoteItemSubmissionError(error instanceof Error ? error.message : t('toast.itemError'));
         }
     };
 
@@ -636,13 +638,13 @@ export default function QuotesPage() {
             const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const responseData = await response.json();
             if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
-                const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : `Failed to ${action} quote.`;
+                const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : t('toast.quoteActionError', {action: action});
                 throw new Error(message);
             }
-            toast({ title: `Quote ${action === 'confirm' ? 'Confirmed' : 'Rejected'}`, description: `Quote #${quote.id} has been successfully ${action === 'confirm' ? 'confirmed' : 'rejected'}.` });
+            toast({ title: action === 'confirm' ? t('toast.quoteConfirmed') : t('toast.quoteRejected'), description: t(action === 'confirm' ? 'toast.quoteConfirmSuccess' : 'toast.quoteRejectSuccess', { id: quote.id }) });
             loadQuotes();
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : `Could not ${action} the quote.` });
+            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('toast.quoteActionError', {action: action}) });
         }
     };
 
@@ -703,8 +705,8 @@ export default function QuotesPage() {
                     <Card>
                         <CardHeader className="flex flex-row items-start justify-between">
                             <div>
-                                <CardTitle>Details for Quote</CardTitle>
-                                <CardDescription>Quote ID: {selectedQuote.id}</CardDescription>
+                                <CardTitle>{t('detailsFor')}</CardTitle>
+                                <CardDescription>{t('quoteId')}: {selectedQuote.id}</CardDescription>
                             </div>
                             <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
                                 <X className="h-5 w-5" />
@@ -714,10 +716,10 @@ export default function QuotesPage() {
                         <CardContent>
                             <Tabs defaultValue="items" className="w-full">
                                 <TabsList className="h-auto items-center justify-start flex-wrap">
-                                    <TabsTrigger value="items">Quote Items</TabsTrigger>
-                                    <TabsTrigger value="orders">Orders</TabsTrigger>
-                                    <TabsTrigger value="invoices">Invoices</TabsTrigger>
-                                    <TabsTrigger value="payments">Payments</TabsTrigger>
+                                    <TabsTrigger value="items">{t('tabs.items')}</TabsTrigger>
+                                    <TabsTrigger value="orders">{t('tabs.orders')}</TabsTrigger>
+                                    <TabsTrigger value="invoices">{t('tabs.invoices')}</TabsTrigger>
+                                    <TabsTrigger value="payments">{t('tabs.payments')}</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="items">
                                    <QuoteItemsTable 
@@ -790,9 +792,9 @@ export default function QuotesPage() {
         <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{editingQuote ? 'Edit Quote' : 'Create New Quote'}</DialogTitle>
+                    <DialogTitle>{editingQuote ? t('quoteDialog.editTitle') : t('quoteDialog.createTitle')}</DialogTitle>
                     <DialogDescription>
-                        {editingQuote ? 'Update the details for this quote.' : 'Fill in the details below to add a new quote.'}
+                        {editingQuote ? t('quoteDialog.editDescription') : t('quoteDialog.description')}
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...quoteForm}>
@@ -809,21 +811,21 @@ export default function QuotesPage() {
                             name="user_id"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>User</FormLabel>
+                                    <FormLabel>{t('quoteDialog.user')}</FormLabel>
                                     <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
                                         <PopoverTrigger asChild>
                                             <FormControl>
                                                 <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                    {field.value ? allUsers.find(user => user.id === field.value)?.name : "Select user"}
+                                                    {field.value ? allUsers.find(user => user.id === field.value)?.name : t('quoteDialog.selectUser')}
                                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                 </Button>
                                             </FormControl>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                             <Command>
-                                                <CommandInput placeholder="Search user..." />
+                                                <CommandInput placeholder={t('quoteDialog.searchUser')} />
                                                 <CommandList>
-                                                    <CommandEmpty>No user found.</CommandEmpty>
+                                                    <CommandEmpty>{t('quoteDialog.noUserFound')}</CommandEmpty>
                                                     <CommandGroup>
                                                         {allUsers.map((user) => (
                                                             <CommandItem value={user.name} key={user.id} onSelect={() => { quoteForm.setValue("user_id", user.id); setUserSearchOpen(false); }}>
@@ -845,7 +847,7 @@ export default function QuotesPage() {
                             name="total"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Total</FormLabel>
+                                    <FormLabel>{t('quoteDialog.total')}</FormLabel>
                                     <FormControl>
                                         <Input type="number" placeholder="0.00" {...field} />
                                     </FormControl>
@@ -858,14 +860,14 @@ export default function QuotesPage() {
                             name="status"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Status</FormLabel>
+                                    <FormLabel>{t('quoteDialog.status')}</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger></FormControl>
+                                    <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectStatus')} /></SelectTrigger></FormControl>
                                     <SelectContent>
-                                        <SelectItem value="draft">Draft</SelectItem>
-                                        <SelectItem value="pending">Pending</SelectItem>
-                                        <SelectItem value="confirmed">Confirmed</SelectItem>
-                                        <SelectItem value="rejected">Rejected</SelectItem>
+                                        <SelectItem value="draft">{t('quoteDialog.draft')}</SelectItem>
+                                        <SelectItem value="pending">{t('quoteDialog.pending')}</SelectItem>
+                                        <SelectItem value="confirmed">{t('quoteDialog.confirmed')}</SelectItem>
+                                        <SelectItem value="rejected">{t('quoteDialog.rejected')}</SelectItem>
                                     </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -877,13 +879,13 @@ export default function QuotesPage() {
                             name="payment_status"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Payment Status</FormLabel>
+                                <FormLabel>{t('quoteDialog.paymentStatus')}</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value} disabled={isStatusDraft}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a payment status" /></SelectTrigger></FormControl>
+                                    <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectPaymentStatus')} /></SelectTrigger></FormControl>
                                     <SelectContent>
-                                        <SelectItem value="unpaid">Unpaid</SelectItem>
-                                        <SelectItem value="partial">Partial</SelectItem>
-                                        <SelectItem value="paid">Paid</SelectItem>
+                                        <SelectItem value="unpaid">{t('quoteDialog.unpaid')}</SelectItem>
+                                        <SelectItem value="partial">{t('quoteDialog.partial')}</SelectItem>
+                                        <SelectItem value="paid">{t('quoteDialog.paid')}</SelectItem>
                                     </SelectContent>
                                     </Select>
                                 <FormMessage />
@@ -895,13 +897,13 @@ export default function QuotesPage() {
                             name="billing_status"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Billing Status</FormLabel>
+                                <FormLabel>{t('quoteDialog.billingStatus')}</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value} disabled={isStatusDraft}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a billing status" /></SelectTrigger></FormControl>
+                                    <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectBillingStatus')} /></SelectTrigger></FormControl>
                                     <SelectContent>
-                                        <SelectItem value="not invoiced">Not Invoiced</SelectItem>
-                                        <SelectItem value="partially invoiced">Partially Invoiced</SelectItem>
-                                        <SelectItem value="invoiced">Invoiced</SelectItem>
+                                        <SelectItem value="not invoiced">{t('quoteDialog.notInvoiced')}</SelectItem>
+                                        <SelectItem value="partially invoiced">{t('quoteDialog.partiallyInvoiced')}</SelectItem>
+                                        <SelectItem value="invoiced">{t('quoteDialog.invoiced')}</SelectItem>
                                     </SelectContent>
                                     </Select>
                                 <FormMessage />
@@ -909,8 +911,8 @@ export default function QuotesPage() {
                             )}
                         />
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>Cancel</Button>
-                            <Button type="submit">{editingQuote ? 'Save Changes' : 'Create Quote'}</Button>
+                            <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>{t('quoteDialog.cancel')}</Button>
+                            <Button type="submit">{editingQuote ? t('quoteDialog.editSave') : t('quoteDialog.save')}</Button>
                         </DialogFooter>
                     </form>
                 </Form>
@@ -919,14 +921,14 @@ export default function QuotesPage() {
         <AlertDialog open={isDeleteQuoteDialogOpen} onOpenChange={setIsDeleteQuoteDialogOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('deleteQuoteDialog.title')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        This will permanently delete the quote "{deletingQuote?.id}". This action cannot be undone.
+                        {t('deleteQuoteDialog.description', { id: deletingQuote?.id })}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={confirmDeleteQuote} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                    <AlertDialogCancel>{t('deleteQuoteDialog.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDeleteQuote} className="bg-destructive hover:bg-destructive/90">{t('deleteQuoteDialog.confirm')}</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
@@ -935,8 +937,8 @@ export default function QuotesPage() {
         <Dialog open={isQuoteItemDialogOpen} onOpenChange={setIsQuoteItemDialogOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{editingQuoteItem ? 'Edit Item' : 'Add New Item'}</DialogTitle>
-                    <DialogDescription>Fill in the details for the quote item.</DialogDescription>
+                    <DialogTitle>{editingQuoteItem ? t('itemDialog.editTitle') : t('itemDialog.createTitle')}</DialogTitle>
+                    <DialogDescription>{t('itemDialog.description')}</DialogDescription>
                 </DialogHeader>
                 <Form {...quoteItemForm}>
                     <form onSubmit={quoteItemForm.handleSubmit(onQuoteItemSubmit)} className="space-y-4 py-4">
@@ -952,21 +954,21 @@ export default function QuotesPage() {
                             name="service_id"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Service</FormLabel>
+                                <FormLabel>{t('itemDialog.service')}</FormLabel>
                                 <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
                                     <PopoverTrigger asChild>
                                     <FormControl>
                                         <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                        {field.value ? allServices.find(s => s.id === field.value)?.name : "Select service"}
+                                        {field.value ? allServices.find(s => s.id === field.value)?.name : t('itemDialog.selectService')}
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                     </FormControl>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                     <Command>
-                                        <CommandInput placeholder="Search service..." />
+                                        <CommandInput placeholder={t('itemDialog.searchService')} />
                                         <CommandList>
-                                        <CommandEmpty>No service found.</CommandEmpty>
+                                        <CommandEmpty>{t('itemDialog.noServiceFound')}</CommandEmpty>
                                         <CommandGroup>
                                             {allServices.map((service) => (
                                             <CommandItem value={service.name} key={service.id} onSelect={() => { quoteItemForm.setValue("service_id", String(service.id)); setServiceSearchOpen(false); }}>
@@ -985,28 +987,28 @@ export default function QuotesPage() {
                         />
                         <FormField control={quoteItemForm.control} name="quantity" render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Quantity</FormLabel>
+                                <FormLabel>{t('itemDialog.quantity')}</FormLabel>
                                 <FormControl><Input type="number" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}/>
                         <FormField control={quoteItemForm.control} name="unit_price" render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Unit Price</FormLabel>
+                                <FormLabel>{t('itemDialog.unitPrice')}</FormLabel>
                                 <FormControl><Input type="number" readOnly disabled {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}/>
                         <FormField control={quoteItemForm.control} name="total" render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Total</FormLabel>
+                                <FormLabel>{t('itemDialog.total')}</FormLabel>
                                 <FormControl><Input type="number" readOnly disabled {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}/>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsQuoteItemDialogOpen(false)}>Cancel</Button>
-                            <Button type="submit">{editingQuoteItem ? 'Save Changes' : 'Add Item'}</Button>
+                            <Button type="button" variant="outline" onClick={() => setIsQuoteItemDialogOpen(false)}>{t('itemDialog.cancel')}</Button>
+                            <Button type="submit">{editingQuoteItem ? t('itemDialog.editSave') : t('itemDialog.save')}</Button>
                         </DialogFooter>
                     </form>
                 </Form>
@@ -1015,12 +1017,12 @@ export default function QuotesPage() {
         <AlertDialog open={isDeleteQuoteItemDialogOpen} onOpenChange={setIsDeleteQuoteItemDialogOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>This will permanently delete this quote item. This action cannot be undone.</AlertDialogDescription>
+                    <AlertDialogTitle>{t('deleteItemDialog.title')}</AlertDialogTitle>
+                    <AlertDialogDescription>{t('deleteItemDialog.description')}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={confirmDeleteQuoteItem} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                    <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDeleteQuoteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
