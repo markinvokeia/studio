@@ -361,6 +361,69 @@
     "edit": "Editar",
     "delete": "Eliminar"
   },
+  "DoctorAvailabilityPage": {
+    "title": "Disponibilidad de Médicos",
+    "description": "Gestionar las reglas de disponibilidad de los médicos para las citas.",
+    "filterPlaceholder": "Filtrar por nombre de médico...",
+    "dialog": {
+      "createTitle": "Crear Nueva Regla de Disponibilidad",
+      "editTitle": "Editar Regla de Disponibilidad",
+      "doctor": "Médico",
+      "selectDoctor": "Seleccionar médico",
+      "searchDoctor": "Buscar médico...",
+      "noDoctorFound": "No se encontró ningún médico.",
+      "recurrence": "Recurrencia",
+      "selectRecurrence": "Seleccionar una recurrencia",
+      "daily": "Diaria",
+      "weekly": "Semanal",
+      "biweekly": "Quincenal",
+      "dayOfWeek": "Día de la Semana",
+      "selectDay": "Seleccionar un día",
+      "startTime": "Hora de Inicio",
+      "endTime": "Hora de Fin",
+      "startDate": "Fecha de Inicio",
+      "endDate": "Fecha de Fin (Opcional)",
+      "cancel": "Cancelar",
+      "create": "Crear Regla",
+      "save": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente la regla de disponibilidad. Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createTitle": "Regla Creada",
+      "editTitle": "Regla Actualizada",
+      "deleteTitle": "Regla Eliminada",
+      "successDescription": "La regla de disponibilidad ha sido guardada.",
+      "deleteDescription": "La regla de disponibilidad ha sido eliminada.",
+      "deleteError": "No se pudo eliminar la regla."
+    },
+    "days": {
+      "monday": "Lunes",
+      "tuesday": "Martes",
+      "wednesday": "Miércoles",
+      "thursday": "Jueves",
+      "friday": "Viernes",
+      "saturday": "Sábado",
+      "sunday": "Domingo"
+    }
+  },
+  "DoctorAvailabilityColumns": {
+    "doctor": "Médico",
+    "recurrence": "Recurrencia",
+    "day": "Día",
+    "startTime": "Hora de Inicio",
+    "endTime": "Hora de Fin",
+    "startDate": "Fecha de Inicio",
+    "endDate": "Fecha de Fin",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
   "UsersPage": {
     "title": "Usuarios",
     "description": "Gestiona todos los usuarios del sistema.",

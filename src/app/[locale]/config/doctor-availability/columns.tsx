@@ -14,41 +14,39 @@ import {
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-
-interface AvailabilityRulesColumnsProps {
-    onEdit: (rule: AvailabilityRule) => void;
-    onDelete: (rule: AvailabilityRule) => void;
-}
+import { useTranslations } from 'next-intl';
 
 const dayOfWeekMap: { [key: number]: string } = {
-  1: 'Monday',
-  2: 'Tuesday',
-  3: 'Wednesday',
-  4: 'Thursday',
-  5: 'Friday',
-  6: 'Saturday',
-  7: 'Sunday',
+  1: 'monday',
+  2: 'tuesday',
+  3: 'wednesday',
+  4: 'thursday',
+  5: 'friday',
+  6: 'saturday',
+  7: 'sunday',
 };
 
 
-export const AvailabilityRulesColumnsWrapper = ({ onEdit, onDelete }: AvailabilityRulesColumnsProps): ColumnDef<AvailabilityRule>[] => {
+export const AvailabilityRulesColumnsWrapper = ({ onEdit, onDelete }: { onEdit: (rule: AvailabilityRule) => void; onDelete: (rule: AvailabilityRule) => void; }): ColumnDef<AvailabilityRule>[] => {
+    const t = useTranslations('DoctorAvailabilityColumns');
+    const tDays = useTranslations('DoctorAvailabilityPage.days');
     
     const columns: ColumnDef<AvailabilityRule>[] = [
-        { accessorKey: 'user_name', header: ({column}) => <DataTableColumnHeader column={column} title="Doctor" /> },
+        { accessorKey: 'user_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('doctor')} /> },
         { 
           accessorKey: 'recurrence', 
-          header: ({column}) => <DataTableColumnHeader column={column} title="Recurrence" />,
+          header: ({column}) => <DataTableColumnHeader column={column} title={t('recurrence')} />,
           cell: ({ row }) => <Badge variant="secondary" className="capitalize">{row.original.recurrence}</Badge>
         },
         { 
             accessorKey: 'day_of_week', 
-            header: ({column}) => <DataTableColumnHeader column={column} title="Day" />,
-            cell: ({ row }) => row.original.day_of_week ? dayOfWeekMap[row.original.day_of_week] : 'N/A',
+            header: ({column}) => <DataTableColumnHeader column={column} title={t('day')} />,
+            cell: ({ row }) => row.original.day_of_week ? tDays(dayOfWeekMap[row.original.day_of_week]) : 'N/A',
         },
-        { accessorKey: 'start_time', header: ({column}) => <DataTableColumnHeader column={column} title="Start Time" /> },
-        { accessorKey: 'end_time', header: ({column}) => <DataTableColumnHeader column={column} title="End Time" /> },
-        { accessorKey: 'start_date', header: ({column}) => <DataTableColumnHeader column={column} title="Start Date" /> },
-        { accessorKey: 'end_date', header: ({column}) => <DataTableColumnHeader column={column} title="End Date" /> },
+        { accessorKey: 'start_time', header: ({column}) => <DataTableColumnHeader column={column} title={t('startTime')} /> },
+        { accessorKey: 'end_time', header: ({column}) => <DataTableColumnHeader column={column} title={t('endTime')} /> },
+        { accessorKey: 'start_date', header: ({column}) => <DataTableColumnHeader column={column} title={t('startDate')} /> },
+        { accessorKey: 'end_date', header: ({column}) => <DataTableColumnHeader column={column} title={t('endDate')} /> },
         {
             id: 'actions',
             cell: ({ row }) => {
@@ -62,9 +60,9 @@ export const AvailabilityRulesColumnsWrapper = ({ onEdit, onDelete }: Availabili
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onEdit(rule)}>Edit</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDelete(rule)} className="text-destructive">Delete</DropdownMenuItem>
+                    <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => onEdit(rule)}>{t('edit')}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDelete(rule)} className="text-destructive">{t('delete')}</DropdownMenuItem>
                 </DropdownMenuContent>
                 </DropdownMenu>
             );

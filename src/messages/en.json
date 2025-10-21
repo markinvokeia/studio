@@ -361,6 +361,69 @@
     "edit": "Edit",
     "delete": "Delete"
   },
+  "DoctorAvailabilityPage": {
+    "title": "Doctor Availability",
+    "description": "Manage doctor availability rules for appointments.",
+    "filterPlaceholder": "Filter by doctor name...",
+    "dialog": {
+      "createTitle": "Create New Availability Rule",
+      "editTitle": "Edit Availability Rule",
+      "doctor": "Doctor",
+      "selectDoctor": "Select doctor",
+      "searchDoctor": "Search doctor...",
+      "noDoctorFound": "No doctor found.",
+      "recurrence": "Recurrence",
+      "selectRecurrence": "Select a recurrence",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "biweekly": "Biweekly",
+      "dayOfWeek": "Day of Week",
+      "selectDay": "Select a day",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "startDate": "Start Date",
+      "endDate": "End Date (Optional)",
+      "cancel": "Cancel",
+      "create": "Create Rule",
+      "save": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the availability rule. This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createTitle": "Rule Created",
+      "editTitle": "Rule Updated",
+      "deleteTitle": "Rule Deleted",
+      "successDescription": "The availability rule has been saved.",
+      "deleteDescription": "The availability rule has been deleted.",
+      "deleteError": "Could not delete the rule."
+    },
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    }
+  },
+  "DoctorAvailabilityColumns": {
+    "doctor": "Doctor",
+    "recurrence": "Recurrence",
+    "day": "Day",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
   "UsersPage": {
     "title": "Users",
     "description": "Manage all users in the system.",

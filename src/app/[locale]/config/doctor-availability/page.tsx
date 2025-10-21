@@ -118,7 +118,7 @@ async function upsertAvailabilityRule(ruleData: AvailabilityFormValues) {
         }),
     });
     const responseData = await response.json();
-    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400) || responseData.error) {
+    if (!response.ok || (responseData.error || (Array.isArray(responseData) && responseData[0]?.code >= 400))) {
         const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message) || 'Failed to save rule';
         throw new Error(message);
     }
@@ -132,7 +132,7 @@ async function deleteAvailabilityRule(id: string) {
         body: JSON.stringify({ id }),
     });
     const responseData = await response.json();
-    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400) || responseData.error) {
+    if (!response.ok || (responseData.error || (Array.isArray(responseData) && responseData[0]?.code >= 400))) {
         const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message) || 'Failed to delete rule';
         throw new Error(message);
     }
@@ -140,7 +140,7 @@ async function deleteAvailabilityRule(id: string) {
 }
 
 export default function DoctorAvailabilityPage() {
-    const t = useTranslations('Navigation');
+    const t = useTranslations('DoctorAvailabilityPage');
     const { toast } = useToast();
     const [rules, setRules] = React.useState<AvailabilityRule[]>([]);
     const [doctors, setDoctors] = React.useState<User[]>([]);
@@ -221,15 +221,15 @@ export default function DoctorAvailabilityPage() {
         if (!deletingRule) return;
         try {
             await deleteAvailabilityRule(deletingRule.id);
-            toast({ title: "Rule Deleted", description: "The availability rule has been deleted." });
+            toast({ title: t('toast.deleteTitle'), description: t('toast.deleteDescription') });
             setIsDeleteDialogOpen(false);
             setDeletingRule(null);
             loadRules();
         } catch (error) {
             toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: error instanceof Error ? error.message : "Could not delete rule.",
+                title: t('toast.errorTitle'),
+                description: error instanceof Error ? error.message : t('toast.deleteError'),
             });
         }
     };
@@ -238,7 +238,7 @@ export default function DoctorAvailabilityPage() {
         setSubmissionError(null);
         try {
             await upsertAvailabilityRule(values);
-            toast({ title: editingRule ? "Rule Updated" : "Rule Created", description: "The availability rule has been saved." });
+            toast({ title: editingRule ? t('toast.editTitle') : t('toast.createTitle'), description: t('toast.successDescription') });
             setIsDialogOpen(false);
             loadRules();
         } catch (error) {
@@ -253,8 +253,8 @@ export default function DoctorAvailabilityPage() {
         <>
         <Card>
             <CardHeader>
-                <CardTitle>{t('DoctorAvailability')}</CardTitle>
-                <CardDescription>Manage doctor availability rules for appointments.</CardDescription>
+                <CardTitle>{t('title')}</CardTitle>
+                <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <DataTable 
@@ -267,7 +267,7 @@ export default function DoctorAvailabilityPage() {
                     onColumnFiltersChange={setColumnFilters}
                     manualPagination={true}
                     filterColumnId="user_name" 
-                    filterPlaceholder="Filter by doctor name..."
+                    filterPlaceholder={t('filterPlaceholder')}
                     onCreate={handleCreate}
                     onRefresh={loadRules}
                     isRefreshing={isRefreshing}
@@ -277,14 +277,14 @@ export default function DoctorAvailabilityPage() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{editingRule ? 'Edit Availability Rule' : 'Create New Availability Rule'}</DialogTitle>
+                    <DialogTitle>{editingRule ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                 </DialogHeader>
                  <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle>Error</AlertTitle>
+                                <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
                                 <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
@@ -293,21 +293,21 @@ export default function DoctorAvailabilityPage() {
                             name="user_id"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Doctor</FormLabel>
+                                    <FormLabel>{t('dialog.doctor')}</FormLabel>
                                     <Popover open={isDoctorComboboxOpen} onOpenChange={setIsDoctorComboboxOpen}>
                                         <PopoverTrigger asChild>
                                             <FormControl>
                                             <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                {field.value ? doctors.find(doc => doc.id === field.value)?.name : "Select doctor"}
+                                                {field.value ? doctors.find(doc => doc.id === field.value)?.name : t('dialog.selectDoctor')}
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
                                             </FormControl>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                             <Command>
-                                            <CommandInput placeholder="Search doctor..." />
+                                            <CommandInput placeholder={t('dialog.searchDoctor')} />
                                             <CommandList>
-                                                <CommandEmpty>No doctor found.</CommandEmpty>
+                                                <CommandEmpty>{t('dialog.noDoctorFound')}</CommandEmpty>
                                                 <CommandGroup>
                                                 {doctors.map((doctor) => (
                                                     <CommandItem
@@ -336,13 +336,13 @@ export default function DoctorAvailabilityPage() {
                             name="recurrence"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Recurrence</FormLabel>
+                                    <FormLabel>{t('dialog.recurrence')}</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a recurrence" /></SelectTrigger></FormControl>
+                                    <FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectRecurrence')} /></SelectTrigger></FormControl>
                                     <SelectContent>
-                                        <SelectItem value="daily">Daily</SelectItem>
-                                        <SelectItem value="weekly">Weekly</SelectItem>
-                                        <SelectItem value="biweekly">Biweekly</SelectItem>
+                                        <SelectItem value="daily">{t('dialog.daily')}</SelectItem>
+                                        <SelectItem value="weekly">{t('dialog.weekly')}</SelectItem>
+                                        <SelectItem value="biweekly">{t('dialog.biweekly')}</SelectItem>
                                     </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -355,17 +355,17 @@ export default function DoctorAvailabilityPage() {
                                 name="day_of_week"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Day of Week</FormLabel>
+                                        <FormLabel>{t('dialog.dayOfWeek')}</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select a day" /></SelectTrigger></FormControl>
+                                            <FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectDay')} /></SelectTrigger></FormControl>
                                             <SelectContent>
-                                                <SelectItem value="1">Monday</SelectItem>
-                                                <SelectItem value="2">Tuesday</SelectItem>
-                                                <SelectItem value="3">Wednesday</SelectItem>
-                                                <SelectItem value="4">Thursday</SelectItem>
-                                                <SelectItem value="5">Friday</SelectItem>
-                                                <SelectItem value="6">Saturday</SelectItem>
-                                                <SelectItem value="7">Sunday</SelectItem>
+                                                <SelectItem value="1">{t('days.monday')}</SelectItem>
+                                                <SelectItem value="2">{t('days.tuesday')}</SelectItem>
+                                                <SelectItem value="3">{t('days.wednesday')}</SelectItem>
+                                                <SelectItem value="4">{t('days.thursday')}</SelectItem>
+                                                <SelectItem value="5">{t('days.friday')}</SelectItem>
+                                                <SelectItem value="6">{t('days.saturday')}</SelectItem>
+                                                <SelectItem value="7">{t('days.sunday')}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -374,16 +374,16 @@ export default function DoctorAvailabilityPage() {
                             />
                         )}
                         <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="start_time" render={({ field }) => (<FormItem><FormLabel>Start Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="end_time" render={({ field }) => (<FormItem><FormLabel>End Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="start_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="end_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
                          <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="start_date" render={({ field }) => (<FormItem><FormLabel>Start Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="end_date" render={({ field }) => (<FormItem><FormLabel>End Date (Optional)</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="start_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startDate')}</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="end_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endDate')}</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                            <Button type="submit">{editingRule ? 'Save Changes' : 'Create Rule'}</Button>
+                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                            <Button type="submit">{editingRule ? t('dialog.save') : t('dialog.create')}</Button>
                         </DialogFooter>
                     </form>
                 </Form>
@@ -392,12 +392,12 @@ export default function DoctorAvailabilityPage() {
          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>This will permanently delete the availability rule. This action cannot be undone.</AlertDialogDescription>
+                    <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
+                    <AlertDialogDescription>{t('deleteDialog.description')}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                    <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
