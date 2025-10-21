@@ -53,7 +53,11 @@ interface OrdersTableProps {
 }
 
 export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection }: OrdersTableProps) {
-    const t = useTranslations('OrdersPage');
+    const t = useTranslations();
+    const tOrderColumns = useTranslations('OrderColumns');
+    const tUserColumns = useTranslations('UserColumns');
+    const tQuoteColumns = useTranslations('QuoteColumns');
+    const tOrdersPage = useTranslations('OrdersPage');
     const { toast } = useToast();
     const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
     const [selectedOrderForInvoice, setSelectedOrderForInvoice] = React.useState<Order | null>(null);
@@ -86,12 +90,12 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             });
             const responseData = await response.json();
             if (!response.ok || responseData.error || (responseData.code && responseData.code >= 400)) {
-                throw new Error(responseData.message || t('invoiceDialog.createError'));
+                throw new Error(responseData.message || tOrdersPage('invoiceDialog.createError'));
             }
 
             toast({
-                title: t('invoiceDialog.invoiceSuccess'),
-                description: t('invoiceDialog.invoiceSuccessDesc', { orderId: selectedOrderForInvoice.id }),
+                title: tOrdersPage('invoiceDialog.invoiceSuccess'),
+                description: tOrdersPage('invoiceDialog.invoiceSuccessDesc', { orderId: selectedOrderForInvoice.id }),
             });
             
             if (onRefresh) {
@@ -101,7 +105,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             setSelectedOrderForInvoice(null);
 
         } catch (error) {
-            setInvoiceSubmissionError(error instanceof Error ? error.message : t('invoiceDialog.createError'));
+            setInvoiceSubmissionError(error instanceof Error ? error.message : tOrdersPage('invoiceDialog.createError'));
         }
     };
     
@@ -131,21 +135,21 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
       {
         accessorKey: 'id',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />
+          <DataTableColumnHeader column={column} title={tOrderColumns('orderId')} />
         ),
       },
       {
         accessorKey: 'user_name',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.name')} />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title={tUserColumns('name')} />,
       },
       {
         accessorKey: 'quote_id',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.quoteId')} />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title={tQuoteColumns('quoteId')} />,
       },
       {
         accessorKey: 'status',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('UserColumns.status')} />
+          <DataTableColumnHeader column={column} title={tUserColumns('status')} />
         ),
         cell: ({ row }) => {
           const status = row.getValue('status') as string;
@@ -158,7 +162,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
     
           return (
             <Badge variant={variant} className="capitalize">
-              {t(`status.${status.toLowerCase()}`)}
+              {tOrdersPage(`status.${status.toLowerCase()}`)}
             </Badge>
           );
         },
@@ -166,7 +170,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
       {
         accessorKey: 'createdAt',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('OrderColumns.createdAt')} />
+          <DataTableColumnHeader column={column} title={tOrderColumns('createdAt')} />
         ),
       },
       {
@@ -182,7 +186,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>{t('UserColumns.actions')}</DropdownMenuLabel>
+                        <DropdownMenuLabel>{tUserColumns('actions')}</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleInvoiceClick(order)}>
                             {t('Navigation.Invoices')}
                         </DropdownMenuItem>
@@ -211,7 +215,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
           columns={columns}
           data={orders}
           filterColumnId="user_name"
-          filterPlaceholder={t('filterPlaceholder')}
+          filterPlaceholder={tOrdersPage('filterPlaceholder')}
           onRowSelectionChange={onRowSelectionChange}
           enableSingleRowSelection={onRowSelectionChange ? true : false}
           onRefresh={onRefresh}
@@ -226,15 +230,15 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
     <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-                <DialogTitle>{t('invoiceDialog.title')}</DialogTitle>
+                <DialogTitle>{tOrdersPage('invoiceDialog.title')}</DialogTitle>
                 <DialogDescription>
-                   {t('invoiceDialog.description', { orderId: selectedOrderForInvoice?.id })}
+                   {tOrdersPage('invoiceDialog.description', { orderId: selectedOrderForInvoice?.id })}
                 </DialogDescription>
             </DialogHeader>
             {invoiceSubmissionError && (
               <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>{t('invoiceDialog.error')}</AlertTitle>
+                  <AlertTitle>{tOrdersPage('invoiceDialog.error')}</AlertTitle>
                   <AlertDescription>{invoiceSubmissionError}</AlertDescription>
               </Alert>
             )}
@@ -247,8 +251,8 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
                 />
             </div>
             <DialogFooter>
-                <Button variant="outline" onClick={() => setIsInvoiceDialogOpen(false)}>{t('cancel')}</Button>
-                <Button onClick={handleConfirmInvoice}>{t('invoiceDialog.confirm')}</Button>
+                <Button variant="outline" onClick={() => setIsInvoiceDialogOpen(false)}>{tOrdersPage('cancel')}</Button>
+                <Button onClick={handleConfirmInvoice}>{tOrdersPage('invoiceDialog.confirm')}</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
@@ -436,18 +440,18 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated }: Crea
               name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('status')}</FormLabel>
+                  <FormLabel>{t('status.label')}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder={t('selectStatus')} />
+                        <SelectValue placeholder={t('status.select')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="pending">{t('pending')}</SelectItem>
-                      <SelectItem value="processing">{t('processing')}</SelectItem>
-                      <SelectItem value="completed">{t('completed')}</SelectItem>
-                      <SelectItem value="cancelled">{t('cancelled')}</SelectItem>
+                      <SelectItem value="pending">{t('status.pending')}</SelectItem>
+                      <SelectItem value="processing">{t('status.processing')}</SelectItem>
+                      <SelectItem value="completed">{t('status.completed')}</SelectItem>
+                      <SelectItem value="cancelled">{t('status.cancelled')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
