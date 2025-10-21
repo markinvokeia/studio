@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Order, OrderItem, Invoice, Payment, User, Quote } from '@/lib/types';
+import { Order, OrderItem, Invoice, Payment, User, Quote, InvoiceItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,6 +10,7 @@ import { OrdersTable, CreateOrderDialog } from '@/components/tables/orders-table
 import { InvoicesTable } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
+import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { RefreshCw, X } from 'lucide-react';
 import { RowSelectionState } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
@@ -133,21 +134,51 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
     }
 }
 
+async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
+    if (!invoiceId) return [];
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        const itemsData = Array.isArray(data) ? data : (data.invoice_items || data.data || []);
+        return itemsData.map((apiItem: any) => ({
+            id: apiItem.id ? String(apiItem.id) : `ii_${Math.random().toString(36).substr(2, 9)}`,
+            service_id: apiItem.service_id,
+            service_name: apiItem.service_name || 'N/A',
+            quantity: apiItem.quantity,
+            unit_price: apiItem.unit_price,
+            total: apiItem.total,
+        }));
+    } catch (error) {
+        console.error("Failed to fetch invoice items:", error);
+        return [];
+    }
+}
+
 export default function OrdersPage() {
     const t = useTranslations('OrdersPage');
     const tQuotes = useTranslations('QuotesPage');
     const tOrderItems = useTranslations('OrderItemsTable');
+    const tInvoiceItems = useTranslations('InvoiceItemsTable');
     const [orders, setOrders] = React.useState<Order[]>([]);
     const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
     const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
+    const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
+    const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
     const [payments, setPayments] = React.useState<Payment[]>([]);
 
     const [isLoadingOrders, setIsLoadingOrders] = React.useState(false);
     const [isLoadingOrderItems, setIsLoadingOrderItems] = React.useState(false);
     const [isLoadingInvoices, setIsLoadingInvoices] = React.useState(false);
+    const [isLoadingInvoiceItems, setIsLoadingInvoiceItems] = React.useState(false);
     const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
 
@@ -183,12 +214,20 @@ export default function OrdersPage() {
         setIsLoadingPayments(false);
     }, [selectedOrder]);
 
+    const loadInvoiceItems = React.useCallback(async () => {
+        if (!selectedInvoice) return;
+        setIsLoadingInvoiceItems(true);
+        setInvoiceItems(await getInvoiceItems(selectedInvoice.id));
+        setIsLoadingInvoiceItems(false);
+    }, [selectedInvoice]);
+
 
     React.useEffect(() => {
         if (selectedOrder) {
             loadOrderItems();
             loadInvoices();
             loadPayments();
+            setSelectedInvoice(null);
         } else {
             setOrderItems([]);
             setInvoices([]);
@@ -196,9 +235,22 @@ export default function OrdersPage() {
         }
     }, [selectedOrder, loadOrderItems, loadInvoices, loadPayments]);
 
+    React.useEffect(() => {
+        if (selectedInvoice) {
+            loadInvoiceItems();
+        } else {
+            setInvoiceItems([]);
+        }
+    }, [selectedInvoice, loadInvoiceItems]);
+
     const handleRowSelectionChange = (selectedRows: Order[]) => {
         const order = selectedRows.length > 0 ? selectedRows[0] : null;
         setSelectedOrder(order);
+    };
+
+    const handleInvoiceSelectionChange = (selectedRows: Invoice[]) => {
+        const invoice = selectedRows.length > 0 ? selectedRows[0] : null;
+        setSelectedInvoice(invoice);
     };
     
     const handleCloseDetails = () => {
@@ -262,10 +314,22 @@ export default function OrdersPage() {
                                     <TabsContent value="invoices">
                                         <InvoicesTable 
                                             invoices={invoices} 
-                                            isLoading={isLoadingInvoices} 
+                                            isLoading={isLoadingInvoices}
+                                            onRowSelectionChange={handleInvoiceSelectionChange}
                                             onRefresh={loadInvoices}
                                             isRefreshing={isLoadingInvoices}
                                         />
+                                        {selectedInvoice && (
+                                            <div className="mt-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h4 className="text-md font-semibold">{tInvoiceItems('title', {id: selectedInvoice.id})}</h4>
+                                                    <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
+                                                        <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
+                                                    </Button>
+                                                </div>
+                                                <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
+                                            </div>
+                                        )}
                                     </TabsContent>
                                     <TabsContent value="payments">
                                         <PaymentsTable 
