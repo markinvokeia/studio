@@ -12,6 +12,7 @@ import { PaymentsTable } from '@/components/tables/payments-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { RefreshCw, X } from 'lucide-react';
 import { RowSelectionState } from '@tanstack/react-table';
+import { useTranslations } from 'next-intl';
 
 async function getInvoices(): Promise<Invoice[]> {
     try {
@@ -98,6 +99,7 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
 }
 
 export default function InvoicesPage() {
+    const t = useTranslations('InvoicesPage');
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -159,8 +161,8 @@ export default function InvoicesPage() {
             <div className={cn("transition-all duration-300", selectedInvoice ? "lg:col-span-2" : "lg:col-span-5")}>
                  <Card>
                     <CardHeader>
-                        <CardTitle>Invoices</CardTitle>
-                        <CardDescription>Manage all customer invoices.</CardDescription>
+                        <CardTitle>{t('title')}</CardTitle>
+                        <CardDescription>{t('description')}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <InvoicesTable 
@@ -181,8 +183,8 @@ export default function InvoicesPage() {
                     <Card>
                         <CardHeader className="flex flex-row items-start justify-between">
                             <div>
-                                <CardTitle>Details for Invoice</CardTitle>
-                                <CardDescription>Invoice ID: {selectedInvoice.id}</CardDescription>
+                                <CardTitle>{t('detailsFor')}</CardTitle>
+                                <CardDescription>{t('invoiceId')}: {selectedInvoice.id}</CardDescription>
                             </div>
                             <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
                                 <X className="h-5 w-5" />
@@ -192,12 +194,12 @@ export default function InvoicesPage() {
                         <CardContent>
                             <Tabs defaultValue="items" className="w-full">
                                 <TabsList className="h-auto items-center justify-start flex-wrap">
-                                    <TabsTrigger value="items">Invoice Items</TabsTrigger>
-                                    <TabsTrigger value="payments">Payments</TabsTrigger>
+                                    <TabsTrigger value="items">{t('tabs.items')}</TabsTrigger>
+                                    <TabsTrigger value="payments">{t('tabs.payments')}</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="items">
                                     <div className="flex items-center justify-between mb-2">
-                                        <h4 className="text-md font-semibold">Items for Invoice {selectedInvoice.id}</h4>
+                                        <h4 className="text-md font-semibold">{t('tabs.items')} {selectedInvoice.id}</h4>
                                         <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
                                             <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
                                         </Button>
