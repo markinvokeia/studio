@@ -30,13 +30,14 @@ const dayOfWeekMap: { [key: number]: string } = {
 export const AvailabilityRulesColumnsWrapper = ({ onEdit, onDelete }: { onEdit: (rule: AvailabilityRule) => void; onDelete: (rule: AvailabilityRule) => void; }): ColumnDef<AvailabilityRule>[] => {
     const t = useTranslations('DoctorAvailabilityColumns');
     const tDays = useTranslations('DoctorAvailabilityPage.days');
+    const tDialog = useTranslations('DoctorAvailabilityPage.dialog');
     
     const columns: ColumnDef<AvailabilityRule>[] = [
         { accessorKey: 'user_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('doctor')} /> },
         { 
           accessorKey: 'recurrence', 
           header: ({column}) => <DataTableColumnHeader column={column} title={t('recurrence')} />,
-          cell: ({ row }) => <Badge variant="secondary" className="capitalize">{row.original.recurrence}</Badge>
+          cell: ({ row }) => <Badge variant="secondary" className="capitalize">{tDialog(row.original.recurrence)}</Badge>
         },
         { 
             accessorKey: 'day_of_week', 
