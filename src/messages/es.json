@@ -1284,14 +1284,14 @@
       "resourceRequired": "El recurso es obligatorio."
     },
     "columns": {
-        "id": "ID de Permiso",
-        "name": "Nombre",
-        "description": "Descripción",
-        "action": "Acción",
-        "resource": "Recurso",
-        "actions": "Acciones",
-        "edit": "Editar",
-        "delete": "Eliminar"
+      "id": "ID de Permiso",
+      "name": "Nombre",
+      "description": "Descripción",
+      "action": "Acción",
+      "resource": "Recurso",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
     }
   },
   "ClinicHistoryPage": {
@@ -1584,9 +1584,17 @@
       "viewDetails": "Ver Detalles"
     }
   },
+  "DataTablePagination": {
+    "selected": "{count} de {total} fila(s) seleccionada(s).",
+    "rowsPerPage": "Filas por página",
+    "page": "Página {current} de {total}",
+    "goToFirst": "Ir a la primera página",
+    "goToPrevious": "Ir a la página anterior",
+    "goToNext": "Ir a la página siguiente",
+    "goToLast": "Ir a la última página",
+    "all": "Todo"
+  },
   "General": {
     "noResults": "No se encontraron resultados."
   }
 }
-
-    

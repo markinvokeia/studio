@@ -1582,9 +1582,17 @@
       "viewDetails": "View Details"
     }
   },
+  "DataTablePagination": {
+    "selected": "{count} of {total} row(s) selected.",
+    "rowsPerPage": "Rows per page",
+    "page": "Page {current} of {total}",
+    "goToFirst": "Go to first page",
+    "goToPrevious": "Go to previous page",
+    "goToNext": "Go to next page",
+    "goToLast": "Go to last page",
+    "all": "All"
+  },
   "General": {
     "noResults": "No results."
   }
 }
-
-    
