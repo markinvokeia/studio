@@ -31,7 +31,7 @@ import { useTranslations } from 'next-intl';
 
 const holidayFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  date: z.string().min(1, t('validation.dateRequired')),
+  date: z.string().min(1, t('dateRequired')),
   is_open: z.boolean().default(false),
   start_time: z.string().optional(),
   end_time: z.string().optional(),
