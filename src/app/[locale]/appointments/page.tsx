@@ -198,7 +198,6 @@ export default function AppointmentsPage() {
     date: '',
     time: '',
     description: '',
-    showSuggestions: true,
   });
   const [originalCalendarId, setOriginalCalendarId] = React.useState<string | undefined>(undefined);
   const [isCalendarSearchOpen, setCalendarSearchOpen] = React.useState(false);
@@ -226,7 +225,6 @@ export default function AppointmentsPage() {
             date: editingAppointment.date,
             time: editingAppointment.time,
             description: editingAppointment.description || '',
-            showSuggestions: false,
         });
         setCreateOpen(true);
     }
@@ -516,7 +514,6 @@ export default function AppointmentsPage() {
         date: format(tomorrow, 'yyyy-MM-dd'),
         time: '09:00',
         description: '',
-        showSuggestions: true,
       });
     }
   }, [isCreateOpen, editingAppointment]);
@@ -587,32 +584,32 @@ export default function AppointmentsPage() {
             isAvailable = result.isAvailable === true;
             
             if (result.suggestedTimes) {
-              const patientId = newAppointment.user?.id;
-              const suggestionsMap = new Map();
-      
-              result.suggestedTimes.forEach((suggestion: any) => {
-                  const key = `${suggestion.json.fecha_cita}-${suggestion.json.hora_cita}-${suggestion.json.calendario}`;
-                  if (!suggestionsMap.has(key)) {
-                      suggestionsMap.set(key, {
-                          calendar: suggestion.json.calendario,
-                          date: suggestion.json.fecha_cita,
-                          time: suggestion.json.hora_cita,
-                          doctors: [],
-                      });
-                  }
-                  if (suggestion.json.user_id !== patientId) {
-                      suggestionsMap.get(key).doctors.push(suggestion.json.user_name || t('createDialog.none'));
-                  }
-              });
+                const patientId = newAppointment.user?.id;
+                const suggestionsMap = new Map();
+        
+                result.suggestedTimes.forEach((suggestion: any) => {
+                    const key = `${suggestion.json.fecha_cita}-${suggestion.json.hora_cita}-${suggestion.json.calendario}`;
+                    if (!suggestionsMap.has(key)) {
+                        suggestionsMap.set(key, {
+                            calendar: suggestion.json.calendario,
+                            date: suggestion.json.fecha_cita,
+                            time: suggestion.json.hora_cita,
+                            doctors: new Set(),
+                        });
+                    }
+                    if (suggestion.json.user_id !== patientId) {
+                        suggestionsMap.get(key).doctors.add(suggestion.json.user_name || t('createDialog.none'));
+                    }
+                });
 
-              suggestions = Array.from(suggestionsMap.values()).map((s, index) => ({
-                id: `sugg-${index}`,
-                calendar: s.calendar,
-                date: s.date,
-                time: s.time,
-                doctor: s.doctors.join(', ') || t('createDialog.none'),
-              }));
-            }
+                suggestions = Array.from(suggestionsMap.values()).map((s, index) => ({
+                  id: `sugg-${index}`,
+                  calendar: s.calendar,
+                  date: s.date,
+                  time: s.time,
+                  doctor: Array.from(s.doctors).join(', ') || t('createDialog.none'),
+                }));
+              }
         }
 
         setAvailabilityStatus(isAvailable ? 'available' : 'unavailable');
@@ -961,12 +958,12 @@ export default function AppointmentsPage() {
         </Tabs>
       </Card>
       <Dialog open={isCreateOpen} onOpenChange={(isOpen) => { setCreateOpen(isOpen); if (!isOpen) {setEditingAppointment(null); setOriginalCalendarId(undefined); }}}>
-        <DialogContent className={cn("sm:max-w-md", newAppointment.showSuggestions && !editingAppointment && "sm:max-w-4xl")}>
+        <DialogContent className={cn("sm:max-w-md", !editingAppointment && availabilityStatus === 'unavailable' && "sm:max-w-4xl")}>
           <DialogHeader>
             <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
             <DialogDescription>{t('createDialog.description')}</DialogDescription>
           </DialogHeader>
-          <div className={cn("grid gap-8 py-4", newAppointment.showSuggestions && !editingAppointment && "grid-cols-2")}>
+          <div className={cn("grid gap-8 py-4", !editingAppointment && availabilityStatus === 'unavailable' && "grid-cols-2")}>
             <div className="grid gap-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="patientName" className="text-right">{t('createDialog.userName')}</Label>
@@ -1230,16 +1227,8 @@ export default function AppointmentsPage() {
                     />
                 </div>
               )}
-              {!editingAppointment && (
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="show-suggestions" className="text-right">{t('createDialog.showSuggestions')}</Label>
-                    <div className="col-span-3 flex items-center">
-                        <Checkbox id="show-suggestions" checked={newAppointment.showSuggestions} onCheckedChange={(checked) => setNewAppointment(prev => ({...prev, showSuggestions: !!checked}))} />
-                    </div>
-                </div>
-              )}
             </div>
-            {newAppointment.showSuggestions && !editingAppointment && availabilityStatus === 'unavailable' && (
+            {!editingAppointment && availabilityStatus === 'unavailable' && (
                 <div className="border-l pl-8">
                     <h4 className="font-semibold mb-4">{t('createDialog.suggestedTimes')}</h4>
                     <RadioGroup onValueChange={(value) => {
@@ -1266,16 +1255,17 @@ export default function AppointmentsPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {suggestedTimes.map((suggestion) => (
-                                    <TableRow key={suggestion.id}>
-                                        <TableCell><RadioGroupItem value={suggestion.id} id={suggestion.id} /></TableCell>
-                                        <TableCell>{suggestion.calendar}</TableCell>
-                                        <TableCell>{suggestion.doctor}</TableCell>
-                                        <TableCell>{suggestion.date}</TableCell>
-                                        <TableCell>{suggestion.time}</TableCell>
-                                    </TableRow>
-                                    ))}
-                                    {suggestedTimes.length === 0 && (
+                                    {suggestedTimes.length > 0 ? (
+                                        suggestedTimes.map((suggestion) => (
+                                            <TableRow key={suggestion.id}>
+                                                <TableCell><RadioGroupItem value={suggestion.id} id={suggestion.id} /></TableCell>
+                                                <TableCell>{suggestion.calendar}</TableCell>
+                                                <TableCell>{suggestion.doctor}</TableCell>
+                                                <TableCell>{suggestion.date}</TableCell>
+                                                <TableCell>{suggestion.time}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
                                         <TableRow>
                                             <TableCell colSpan={5} className="text-center text-muted-foreground">
                                                 {availabilityStatus === 'checking' ? t('createDialog.searching') : tGeneral('noResults')}
@@ -1320,6 +1310,8 @@ export default function AppointmentsPage() {
     
 
 
+
+    
 
     
 
