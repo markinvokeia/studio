@@ -1163,6 +1163,14 @@
       "viewFullHistory": "Ver Historial Clínico Completo"
     }
   },
+  "UserLogsPage": {
+    "filterPlaceholder": "Filtrar por acción...",
+    "columns": {
+      "timestamp": "Fecha y Hora",
+      "action": "Acción",
+      "details": "Detalles"
+    }
+  },
   "General": {
     "noResults": "No se encontraron resultados."
   }

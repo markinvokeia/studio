@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -7,20 +8,21 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { UserLog } from '@/lib/types';
+import { useTranslations } from 'next-intl';
 
-const columns: ColumnDef<UserLog>[] = [
+const getColumns = (t: (key: string) => string): ColumnDef<UserLog>[] => [
   {
     accessorKey: 'timestamp',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Timestamp" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.timestamp')} />,
     cell: ({ row }) => new Date(row.getValue('timestamp')).toLocaleString(),
   },
   {
     accessorKey: 'action',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Action" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.action')} />,
   },
   {
     accessorKey: 'details',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Details" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.details')} />,
   },
 ];
 
@@ -36,7 +38,8 @@ async function getLogsForUser(userId: string): Promise<UserLog[]> {
     });
 
     if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.error(`HTTP error! status: ${response.status}`);
+        return [];
     }
 
     const data = await response.json();
@@ -59,8 +62,11 @@ interface UserLogsProps {
 }
 
 export function UserLogs({ userId }: UserLogsProps) {
+  const t = useTranslations('UserLogsPage');
   const [logs, setLogs] = React.useState<UserLog[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+
+  const columns = React.useMemo(() => getColumns(t), [t]);
 
   React.useEffect(() => {
     async function loadLogs() {
@@ -90,7 +96,7 @@ export function UserLogs({ userId }: UserLogsProps) {
           columns={columns}
           data={logs}
           filterColumnId="action"
-          filterPlaceholder="Filter by action..."
+          filterPlaceholder={t('filterPlaceholder')}
         />
       </CardContent>
     </Card>

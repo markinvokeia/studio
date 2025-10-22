@@ -555,6 +555,10 @@ export default function AppointmentsPage() {
         mode: 'checkAvailability',
     };
 
+    if(doctor?.email) {
+      params.doctorEmail = doctor.email;
+    }
+    
     if (editingAppointment) {
         params.eventId = editingAppointment.id;
     }
@@ -588,18 +592,25 @@ export default function AppointmentsPage() {
                 const allDocs = [...doctorSearchResults, ...result.suggestedTimes.map((s:any) => ({ id: s.json.user_id, name: s.json.user_name, email: s.json.user_email, is_active: true, phone_number: '', avatar: ''}))];
                 const uniqueDocs = Array.from(new Map(allDocs.map(item => [item.id, item])).values());
                 setDoctorSearchResults(uniqueDocs);
+                
+                const processedSuggestions = result.suggestedTimes.flatMap((suggestion: any) => {
+                    const doctorsInSuggestion = suggestion.json.user_name.split(',').map((name: string) => name.trim());
+                    const doctorIds = suggestion.json.user_id.split(',');
+                    const doctorEmails = suggestion.json.user_email.split(',');
 
-                suggestions = result.suggestedTimes.map((suggestion: any, index: number) => ({
-                    id: `sugg-${suggestion.json.user_id}-${index}`,
-                    calendar: suggestion.json.calendario,
-                    date: suggestion.json.fecha_cita,
-                    time: suggestion.json.hora_cita,
-                    doctor: {
-                        id: suggestion.json.user_id,
-                        name: suggestion.json.user_name || t('createDialog.none'),
-                        email: suggestion.json.user_email,
-                    },
-                }));
+                    return doctorsInSuggestion.map((docName: string, index: number) => ({
+                        id: `sugg-${doctorIds[index]}-${suggestion.json.fecha_cita}-${suggestion.json.hora_cita}`,
+                        calendar: suggestion.json.calendario,
+                        date: suggestion.json.fecha_cita,
+                        time: suggestion.json.hora_cita,
+                        doctor: {
+                            id: doctorIds[index],
+                            name: docName,
+                            email: doctorEmails[index],
+                        },
+                    }));
+                });
+                suggestions = processedSuggestions;
             }
         }
 
@@ -609,14 +620,15 @@ export default function AppointmentsPage() {
         console.error("Failed to check availability:", error);
         setAvailabilityStatus('idle');
     }
-  }, [newAppointment.date, newAppointment.time, newAppointment.services, newAppointment.user, newAppointment.doctor, newAppointment.calendar, editingAppointment, t, doctorSearchResults]);
-
+  }, [newAppointment.date, newAppointment.time, newAppointment.services, newAppointment.user, newAppointment.doctor, newAppointment.calendar, editingAppointment, doctorSearchResults]);
+  
   React.useEffect(() => {
     const handler = setTimeout(() => {
       checkAvailability();
     }, 500);
     return () => clearTimeout(handler);
-  }, [checkAvailability]);
+  }, [newAppointment.date, newAppointment.time, newAppointment.services.length, newAppointment.user, newAppointment.doctor, newAppointment.calendar]);
+
 
   const handleSaveAppointment = async () => {
     const { user, doctor, services, calendar, date, time, description } = newAppointment;

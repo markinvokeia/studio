@@ -1,4 +1,3 @@
-
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -609,6 +608,9 @@
     "total": "Total",
     "billingStatus": "Billing Status"
   },
+  "UserQuotes": {
+    "filterPlaceholder": "Filter by quote ID..."
+  },
   "QuotesPage": {
     "detailsFor": "Details for Quote",
     "quoteId": "Quote ID",
@@ -1157,6 +1159,14 @@
       "attachments": "Attachments:",
       "noHistory": "No history found for this user.",
       "viewFullHistory": "View Full Clinical History"
+    }
+  },
+  "UserLogsPage": {
+    "filterPlaceholder": "Filter by action...",
+    "columns": {
+      "timestamp": "Timestamp",
+      "action": "Action",
+      "details": "Details"
     }
   },
   "General": {
