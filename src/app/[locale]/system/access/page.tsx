@@ -17,45 +17,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
-const columns: ColumnDef<AccessLog>[] = [
-    { 
-        accessorKey: 'id', 
-        header: ({column}) => <DataTableColumnHeader column={column} title="ID" />,
-        enableHiding: true,
-    },
-    { accessorKey: 'user_id', header: ({column}) => <DataTableColumnHeader column={column} title="User ID" /> },
-    { accessorKey: 'timestamp', header: ({column}) => <DataTableColumnHeader column={column} title="Timestamp" /> },
-    { accessorKey: 'action', header: ({column}) => <DataTableColumnHeader column={column} title="Action" /> },
-    { accessorKey: 'success', header: ({column}) => <DataTableColumnHeader column={column} title="Success" />, cell: ({row}) => row.original.success ? "Yes" : "No" },
-    { accessorKey: 'ip_address', header: ({column}) => <DataTableColumnHeader column={column} title="IP Address" /> },
-    { accessorKey: 'channel', header: ({column}) => <DataTableColumnHeader column={column} title="Channel" /> },
-    { 
-        accessorKey: 'details', 
-        header: ({column}) => <DataTableColumnHeader column={column} title="Details" />,
-        cell: ({ row }) => <div className="max-w-xs whitespace-pre-wrap break-all">{row.original.details}</div>
-    },
-    {
-        id: 'actions',
-        cell: ({ row }) => {
-        const log = row.original;
-        return (
-            <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem>View User</DropdownMenuItem>
-            </DropdownMenuContent>
-            </DropdownMenu>
-        );
-        },
-    },
-];
 
 type GetAccessLogsResponse = {
   accessLogs: AccessLog[];
@@ -107,6 +70,7 @@ async function getAccessLogs(pagination: PaginationState): Promise<GetAccessLogs
 
 
 export default function AccessLogPage() {
+    const t = useTranslations('AccessLogPage');
     const [data, setData] = React.useState<AccessLog[]>([]);
     const [logCount, setLogCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -118,6 +82,45 @@ export default function AccessLogPage() {
         id: false,
         ip_address: false,
     });
+    
+    const columns: ColumnDef<AccessLog>[] = [
+        { 
+            accessorKey: 'id', 
+            header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
+            enableHiding: true,
+        },
+        { accessorKey: 'user_id', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.userId')} /> },
+        { accessorKey: 'timestamp', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.timestamp')} /> },
+        { accessorKey: 'action', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.action')} /> },
+        { accessorKey: 'success', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.success')} />, cell: ({row}) => row.original.success ? "Yes" : "No" },
+        { accessorKey: 'ip_address', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.ipAddress')} /> },
+        { accessorKey: 'channel', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.channel')} /> },
+        { 
+            accessorKey: 'details', 
+            header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.details')} />,
+            cell: ({ row }) => <div className="max-w-xs whitespace-pre-wrap break-all">{row.original.details}</div>
+        },
+        {
+            id: 'actions',
+            cell: ({ row }) => {
+            const log = row.original;
+            return (
+                <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
+                    <DropdownMenuItem>{t('columns.viewUser')}</DropdownMenuItem>
+                </DropdownMenuContent>
+                </DropdownMenu>
+            );
+            },
+        },
+    ];
 
     const loadLogs = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -134,15 +137,15 @@ export default function AccessLogPage() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Access Log</CardTitle>
-                <CardDescription>Monitor user access and login attempts.</CardDescription>
+                <CardTitle>{t('title')}</CardTitle>
+                <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <DataTable 
                     columns={columns} 
                     data={data} 
                     filterColumnId="user_id" 
-                    filterPlaceholder="Filter logs by user ID..."
+                    filterPlaceholder={t('filterPlaceholder')}
                     onRefresh={loadLogs}
                     isRefreshing={isRefreshing}
                     pageCount={Math.ceil(logCount / pagination.pageSize)}

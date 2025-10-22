@@ -712,7 +712,7 @@
       "delete": "Eliminar"
     }
   },
-    "ConfigurationsPage": {
+  "ConfigurationsPage": {
     "title": "Configuraciones",
     "description": "Gestionar la configuración de todo el sistema.",
     "filterPlaceholder": "Filtrar configuraciones por clave...",
@@ -1230,7 +1230,7 @@
     "title": "Permisos",
     "description": "Ver todos los permisos del sistema.",
     "filterPlaceholder": "Filtrar permisos por nombre...",
-    "detailsFor": "Detalles de {name}",
+    "detailsFor": "Detalles para {name}",
     "permissionId": "ID de Permiso",
     "close": "Cerrar detalles",
     "tabs": {
@@ -1282,7 +1282,7 @@
       "resourceRequired": "El recurso es obligatorio."
     },
     "columns": {
-        "id": "ID Permiso",
+        "id": "ID de Permiso",
         "name": "Nombre",
         "description": "Descripción",
         "action": "Acción",
@@ -1548,6 +1548,23 @@
       "changedBy": "Cambiado Por",
       "actions": "Acciones",
       "viewDetails": "Ver Detalles"
+    }
+  },
+  "AccessLogPage": {
+    "title": "Registro de Acceso",
+    "description": "Monitorea el acceso de usuarios e intentos de inicio de sesión.",
+    "filterPlaceholder": "Filtrar registros por ID de usuario...",
+    "columns": {
+      "id": "ID",
+      "userId": "ID de Usuario",
+      "timestamp": "Fecha y Hora",
+      "action": "Acción",
+      "success": "Éxito",
+      "ipAddress": "Dirección IP",
+      "channel": "Canal",
+      "details": "Detalles",
+      "actions": "Acciones",
+      "viewUser": "Ver Usuario"
     }
   },
   "General": {

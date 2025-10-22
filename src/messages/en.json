@@ -1548,6 +1548,23 @@
       "viewDetails": "View Details"
     }
   },
+  "AccessLogPage": {
+    "title": "Access Log",
+    "description": "Monitor user access and login attempts.",
+    "filterPlaceholder": "Filter logs by user ID...",
+    "columns": {
+      "id": "ID",
+      "userId": "User ID",
+      "timestamp": "Timestamp",
+      "action": "Action",
+      "success": "Success",
+      "ipAddress": "IP Address",
+      "channel": "Channel",
+      "details": "Details",
+      "actions": "Actions",
+      "viewUser": "View User"
+    }
+  },
   "General": {
     "noResults": "No results."
   }
