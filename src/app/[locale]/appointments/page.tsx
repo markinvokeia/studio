@@ -585,29 +585,12 @@ export default function AppointmentsPage() {
             isAvailable = result.isAvailable === true;
             
             if (result.suggestedTimes) {
-                 const suggestionsMap = new Map<string, { calendar: string; date: string; time: string; doctors: Set<string> }>();
-
-                result.suggestedTimes.forEach((suggestion: any) => {
-                    const key = `${suggestion.json.calendario}-${suggestion.json.fecha_cita}-${suggestion.json.hora_cita}`;
-                    if (!suggestionsMap.has(key)) {
-                        suggestionsMap.set(key, {
-                            calendar: suggestion.json.calendario,
-                            date: suggestion.json.fecha_cita,
-                            time: suggestion.json.hora_cita,
-                            doctors: new Set<string>(),
-                        });
-                    }
-                    if (suggestion.json.user_id !== newAppointment.user?.id) {
-                       suggestionsMap.get(key)!.doctors.add(suggestion.json.user_name || t('createDialog.none'));
-                    }
-                });
-
-                suggestions = Array.from(suggestionsMap.values()).map((s, index) => ({
+                suggestions = result.suggestedTimes.map((suggestion: any, index: number) => ({
                     id: `sugg-${index}`,
-                    calendar: s.calendar,
-                    date: s.date,
-                    time: s.time,
-                    doctor: Array.from(s.doctors).join(', ') || t('createDialog.none'),
+                    calendar: suggestion.json.calendario,
+                    date: suggestion.json.fecha_cita,
+                    time: suggestion.json.hora_cita,
+                    doctor: suggestion.json.user_name || t('createDialog.none'),
                 }));
             }
         }
@@ -1319,6 +1302,8 @@ export default function AppointmentsPage() {
     
 
 
+
+    
 
     
 
