@@ -684,6 +684,7 @@
     "deleteDialog": {
       "title": "Are you sure?",
       "description": "This will permanently delete the calendar \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
       "delete": "Delete"
     },
     "toast": {
@@ -1057,10 +1058,8 @@
     "methods": {
       "credit_card": "Credit Card",
       "bank_transfer": "Bank Transfer",
-      "transferencia": "Transferencia",
       "cash": "Cash",
       "debit": "Debit",
-      "tarjeta_de_debito": "Debit Card",
       "credit": "Credit",
       "mercado_pago": "Mercado Pago"
     },

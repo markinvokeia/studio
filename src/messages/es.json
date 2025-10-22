@@ -684,6 +684,7 @@
     "deleteDialog": {
       "title": "¿Estás seguro?",
       "description": "Esto eliminará permanentemente el calendario \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
       "delete": "Eliminar"
     },
     "toast": {
@@ -1105,7 +1106,7 @@
   "PaymentsPage": {
     "title": "Pagos",
     "description": "Ver todos los pagos procesados.",
-    "filterPlaceholder": "Filtrar por ID de factura...",
+    "filterPlaceholder": "Filtrar pagos por ID de factura...",
     "columns": {
       "id": "ID de Pago",
       "quoteId": "ID de Cotización",
