@@ -623,8 +623,7 @@ export default function AppointmentsPage() {
     newAppointment.user,
     newAppointment.doctor,
     newAppointment.calendar,
-    editingAppointment,
-    checkAvailability,
+    editingAppointment
   ]);
 
   const handleSaveAppointment = async () => {
