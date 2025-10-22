@@ -1230,7 +1230,7 @@
     "title": "Permisos",
     "description": "Ver todos los permisos del sistema.",
     "filterPlaceholder": "Filtrar permisos por nombre...",
-    "detailsFor": "Detalles para {name}",
+    "detailsFor": "Detalles de {name}",
     "permissionId": "ID de Permiso",
     "close": "Cerrar detalles",
     "tabs": {
@@ -1531,6 +1531,23 @@
       "timestamp": "Fecha y Hora",
       "action": "Acción",
       "details": "Detalles"
+    }
+  },
+  "AuditLog": {
+    "title": "Registro de Auditoría",
+    "description": "Revisar la actividad del sistema.",
+    "filterPlaceholder": "Filtrar por nombre de tabla...",
+    "columns": {
+      "id": "ID",
+      "changedAt": "Fecha de Cambio",
+      "table": "Tabla",
+      "recordId": "ID de Registro",
+      "operation": "Operación",
+      "oldValue": "Valor Antiguo",
+      "newValue": "Valor Nuevo",
+      "changedBy": "Cambiado Por",
+      "actions": "Acciones",
+      "viewDetails": "Ver Detalles"
     }
   },
   "General": {

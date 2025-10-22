@@ -1237,7 +1237,7 @@
     "dialog": {
       "title": "Create New Permission",
       "editTitle": "Edit Permission",
-      "description": "Fill in the details below to add a new permission.",
+      "description": "Fill in the details to add a new permission.",
       "editDescription": "Update the details for this permission.",
       "name": "Name",
       "namePlaceholder": "e.g., Create User",
@@ -1529,6 +1529,23 @@
       "timestamp": "Timestamp",
       "action": "Action",
       "details": "Details"
+    }
+  },
+  "AuditLog": {
+    "title": "Audit Log",
+    "description": "Review system activity.",
+    "filterPlaceholder": "Filter logs by table name...",
+    "columns": {
+      "id": "ID",
+      "changedAt": "Changed At",
+      "table": "Table",
+      "recordId": "Record ID",
+      "operation": "Operation",
+      "oldValue": "Old Value",
+      "newValue": "New Value",
+      "changedBy": "Changed By",
+      "actions": "Actions",
+      "viewDetails": "View Details"
     }
   },
   "General": {

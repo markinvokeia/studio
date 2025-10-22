@@ -16,68 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
-
-
-const columns: ColumnDef<AuditLog>[] = [
-    { 
-        accessorKey: 'id', 
-        header: ({column}) => <DataTableColumnHeader column={column} title="ID" />,
-        enableHiding: true,
-    },
-    { accessorKey: 'changed_at', header: ({column}) => <DataTableColumnHeader column={column} title="Changed At" /> },
-    { accessorKey: 'table_name', header: ({column}) => <DataTableColumnHeader column={column} title="Table" /> },
-    { accessorKey: 'record_id', header: ({column}) => <DataTableColumnHeader column={column} title="Record ID" /> },
-    { accessorKey: 'operation', header: ({column}) => <DataTableColumnHeader column={column} title="Operation" /> },
-    { 
-        accessorKey: 'old_value', 
-        header: ({column}) => <DataTableColumnHeader column={column} title="Old Value" />,
-        cell: ({ row }) => {
-            const value = row.original.old_value;
-            let displayValue = '';
-            if (typeof value === 'object' && value !== null) {
-                displayValue = JSON.stringify(value, null, 2);
-            } else if (value !== null && value !== undefined) {
-                displayValue = String(value);
-            }
-            return <pre className="text-xs whitespace-pre-wrap max-w-xs break-all">{displayValue}</pre>
-        }
-    },
-    { 
-        accessorKey: 'new_value', 
-        header: ({column}) => <DataTableColumnHeader column={column} title="New Value" />,
-        cell: ({ row }) => {
-             const value = row.original.new_value;
-            let displayValue = '';
-            if (typeof value === 'object' && value !== null) {
-                displayValue = JSON.stringify(value, null, 2);
-            } else if (value !== null && value !== undefined) {
-                displayValue = String(value);
-            }
-            return <pre className="text-xs whitespace-pre-wrap max-w-xs break-all">{displayValue}</pre>
-        }
-    },
-    { accessorKey: 'changed_by', header: ({column}) => <DataTableColumnHeader column={column} title="Changed By" /> },
-    {
-        id: 'actions',
-        cell: ({ row }) => {
-        const log = row.original;
-        return (
-            <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem>View Details</DropdownMenuItem>
-            </DropdownMenuContent>
-            </DropdownMenu>
-        );
-        },
-    },
-];
+import { useTranslations } from 'next-intl';
 
 type GetAuditLogsResponse = {
   auditLogs: AuditLog[];
@@ -130,6 +69,7 @@ async function getAuditLogs(pagination: PaginationState): Promise<GetAuditLogsRe
 
 
 export default function AuditLogPage() {
+    const t = useTranslations('AuditLog');
     const [data, setData] = React.useState<AuditLog[]>([]);
     const [logCount, setLogCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -140,6 +80,67 @@ export default function AuditLogPage() {
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
         id: false,
     });
+
+    const columns: ColumnDef<AuditLog>[] = React.useMemo(() => [
+        { 
+            accessorKey: 'id', 
+            header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
+            enableHiding: true,
+        },
+        { accessorKey: 'changed_at', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.changedAt')} /> },
+        { accessorKey: 'table_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.table')} /> },
+        { accessorKey: 'record_id', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.recordId')} /> },
+        { accessorKey: 'operation', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.operation')} /> },
+        { 
+            accessorKey: 'old_value', 
+            header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.oldValue')} />,
+            cell: ({ row }) => {
+                const value = row.original.old_value;
+                let displayValue = '';
+                if (typeof value === 'object' && value !== null) {
+                    displayValue = JSON.stringify(value, null, 2);
+                } else if (value !== null && value !== undefined) {
+                    displayValue = String(value);
+                }
+                return <pre className="text-xs whitespace-pre-wrap max-w-xs break-all">{displayValue}</pre>
+            }
+        },
+        { 
+            accessorKey: 'new_value', 
+            header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.newValue')} />,
+            cell: ({ row }) => {
+                 const value = row.original.new_value;
+                let displayValue = '';
+                if (typeof value === 'object' && value !== null) {
+                    displayValue = JSON.stringify(value, null, 2);
+                } else if (value !== null && value !== undefined) {
+                    displayValue = String(value);
+                }
+                return <pre className="text-xs whitespace-pre-wrap max-w-xs break-all">{displayValue}</pre>
+            }
+        },
+        { accessorKey: 'changed_by', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.changedBy')} /> },
+        {
+            id: 'actions',
+            cell: ({ row }) => {
+            const log = row.original;
+            return (
+                <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
+                    <DropdownMenuItem>{t('columns.viewDetails')}</DropdownMenuItem>
+                </DropdownMenuContent>
+                </DropdownMenu>
+            );
+            },
+        },
+    ], [t]);
 
     const loadLogs = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -156,15 +157,15 @@ export default function AuditLogPage() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Audit Log</CardTitle>
-                <CardDescription>Review system activity.</CardDescription>
+                <CardTitle>{t('title')}</CardTitle>
+                <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <DataTable 
                     columns={columns} 
                     data={data} 
                     filterColumnId="table_name" 
-                    filterPlaceholder="Filter logs by table name..." 
+                    filterPlaceholder={t('filterPlaceholder')} 
                     onRefresh={loadLogs}
                     isRefreshing={isRefreshing}
                     pageCount={Math.ceil(logCount / pagination.pageSize)}
