@@ -21,7 +21,8 @@ const getColumns = (
         'tarjeta de credito': 'credit_card',
         'efectivo': 'cash',
         'tarjeta de debito': 'debit',
-        // Add other mappings as needed
+        'credit': 'credit',
+        'mercado pago': 'mercado_pago',
     };
     
     return [
@@ -115,6 +116,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
     const t = useTranslations('PaymentsPage.columns');
     const tStatus = useTranslations('InvoicesPage.status');
     const tMethods = useTranslations('InvoicesPage.methods');
+    const tPage = useTranslations('PaymentsPage');
     const columns = React.useMemo(() => getColumns(t, tStatus, tMethods), [t, tStatus, tMethods]);
 
     if (isLoading) {
@@ -136,7 +138,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           columns={filteredColumns}
           data={payments}
           filterColumnId="invoice_id"
-          filterPlaceholder={t('filterPlaceholder')}
+          filterPlaceholder={tPage('filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
         />
