@@ -29,10 +29,10 @@ import { useTranslations } from 'next-intl';
 
 const serviceFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  name: z.string().min(1, t('validation.nameRequired')),
-  category: z.string().min(1, t('validation.categoryRequired')),
-  price: z.coerce.number().positive(t('validation.pricePositive')),
-  duration_minutes: z.coerce.number().int().positive(t('validation.durationInteger')),
+  name: z.string().min(1, t('nameRequired')),
+  category: z.string().min(1, t('categoryRequired')),
+  price: z.coerce.number().positive(t('pricePositive')),
+  duration_minutes: z.coerce.number().int().positive(t('durationInteger')),
   description: z.string().optional(),
   indications: z.string().optional(),
 });
