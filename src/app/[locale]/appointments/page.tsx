@@ -593,20 +593,20 @@ export default function AppointmentsPage() {
                 const uniqueDocs = Array.from(new Map(allDocs.map(item => [item.id, item])).values());
                 setDoctorSearchResults(uniqueDocs);
                 
-                const processedSuggestions = result.suggestedTimes.flatMap((suggestion: any) => {
+                const processedSuggestions = result.suggestedTimes.flatMap((suggestion: any, suggestionIndex: number) => {
                     const doctorsInSuggestion = suggestion.json.user_name.split(',').map((name: string) => name.trim());
                     const doctorIds = suggestion.json.user_id.split(',');
                     const doctorEmails = suggestion.json.user_email.split(',');
 
-                    return doctorsInSuggestion.map((docName: string, index: number) => ({
-                        id: `sugg-${doctorIds[index]}-${suggestion.json.fecha_cita}-${suggestion.json.hora_cita}`,
+                    return doctorsInSuggestion.map((docName: string, docIndex: number) => ({
+                        id: `sugg-${doctorIds[docIndex]}-${suggestion.json.fecha_cita}-${suggestion.json.hora_cita}-${suggestionIndex}-${docIndex}`,
                         calendar: suggestion.json.calendario,
                         date: suggestion.json.fecha_cita,
                         time: suggestion.json.hora_cita,
                         doctor: {
-                            id: doctorIds[index],
+                            id: doctorIds[docIndex],
                             name: docName,
-                            email: doctorEmails[index],
+                            email: doctorEmails[docIndex],
                         },
                     }));
                 });
@@ -1324,5 +1324,7 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
 
     
