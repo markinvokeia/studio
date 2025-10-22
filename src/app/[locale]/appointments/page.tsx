@@ -588,15 +588,30 @@ export default function AppointmentsPage() {
             
             if (result.suggestedTimes) {
               const patientId = newAppointment.user?.id;
-              suggestions = result.suggestedTimes
-                .filter((suggestion: any) => suggestion.json.user_id !== patientId)
-                .map((suggestion: any, index: number) => ({
-                    id: `sugg-${index}`,
-                    calendar: suggestion.json.calendario,
-                    date: suggestion.json.fecha_cita,
-                    time: suggestion.json.hora_cita,
-                    doctor: suggestion.json.user_name || t('createDialog.none'),
-                }));
+              const suggestionsMap = new Map();
+      
+              result.suggestedTimes.forEach((suggestion: any) => {
+                  const key = `${suggestion.json.fecha_cita}-${suggestion.json.hora_cita}-${suggestion.json.calendario}`;
+                  if (!suggestionsMap.has(key)) {
+                      suggestionsMap.set(key, {
+                          calendar: suggestion.json.calendario,
+                          date: suggestion.json.fecha_cita,
+                          time: suggestion.json.hora_cita,
+                          doctors: [],
+                      });
+                  }
+                  if (suggestion.json.user_id !== patientId) {
+                      suggestionsMap.get(key).doctors.push(suggestion.json.user_name || t('createDialog.none'));
+                  }
+              });
+
+              suggestions = Array.from(suggestionsMap.values()).map((s, index) => ({
+                id: `sugg-${index}`,
+                calendar: s.calendar,
+                date: s.date,
+                time: s.time,
+                doctor: s.doctors.join(', ') || t('createDialog.none'),
+              }));
             }
         }
 
@@ -1224,53 +1239,53 @@ export default function AppointmentsPage() {
                 </div>
               )}
             </div>
-            {newAppointment.showSuggestions && !editingAppointment && (
+            {newAppointment.showSuggestions && !editingAppointment && availabilityStatus === 'unavailable' && (
                 <div className="border-l pl-8">
                     <h4 className="font-semibold mb-4">{t('createDialog.suggestedTimes')}</h4>
-                    <ScrollArea className="h-64">
                     <RadioGroup onValueChange={(value) => {
-                      const suggestion = suggestedTimes.find(s => s.id === value);
-                      if (suggestion) {
-                          setNewAppointment(prev => ({
-                              ...prev,
-                              date: suggestion.date,
-                              time: suggestion.time,
-                              calendar: calendars.find(c => c.name === suggestion.calendar) || prev.calendar,
-                              doctor: doctorSearchResults.find(d => d.name === suggestion.doctor) || prev.doctor,
-                          }))
-                      }
+                        const suggestion = suggestedTimes.find(s => s.id === value);
+                        if (suggestion) {
+                            setNewAppointment(prev => ({
+                                ...prev,
+                                date: suggestion.date,
+                                time: suggestion.time,
+                                calendar: calendars.find(c => c.name === suggestion.calendar) || prev.calendar,
+                                doctor: doctorSearchResults.find(d => d.name === suggestion.doctor) || prev.doctor,
+                            }))
+                        }
                     }}>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead></TableHead>
-                          <TableHead>{t('createDialog.suggested.calendar')}</TableHead>
-                          <TableHead>{tColumns('doctor')}</TableHead>
-                          <TableHead>{t('createDialog.suggested.date')}</TableHead>
-                          <TableHead>{t('createDialog.suggested.time')}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {suggestedTimes.map((suggestion) => (
-                          <TableRow key={suggestion.id}>
-                            <TableCell><RadioGroupItem value={suggestion.id} id={suggestion.id} /></TableCell>
-                            <TableCell>{suggestion.calendar}</TableCell>
-                            <TableCell>{suggestion.doctor}</TableCell>
-                            <TableCell>{suggestion.date}</TableCell>
-                            <TableCell>{suggestion.time}</TableCell>
-                          </TableRow>
-                        ))}
-                         {suggestedTimes.length === 0 && (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center text-muted-foreground">
-                                    {availabilityStatus === 'checking' ? t('createDialog.searching') : tGeneral('noResults')}
-                                </TableCell>
-                            </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
+                        <ScrollArea className="h-64">
+                            <Table>
+                                <TableHeader className="sticky top-0 bg-background z-10">
+                                    <TableRow>
+                                        <TableHead></TableHead>
+                                        <TableHead>{t('createDialog.suggested.calendar')}</TableHead>
+                                        <TableHead>{tColumns('doctor')}</TableHead>
+                                        <TableHead>{t('createDialog.suggested.date')}</TableHead>
+                                        <TableHead>{t('createDialog.suggested.time')}</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {suggestedTimes.map((suggestion) => (
+                                    <TableRow key={suggestion.id}>
+                                        <TableCell><RadioGroupItem value={suggestion.id} id={suggestion.id} /></TableCell>
+                                        <TableCell>{suggestion.calendar}</TableCell>
+                                        <TableCell>{suggestion.doctor}</TableCell>
+                                        <TableCell>{suggestion.date}</TableCell>
+                                        <TableCell>{suggestion.time}</TableCell>
+                                    </TableRow>
+                                    ))}
+                                    {suggestedTimes.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center text-muted-foreground">
+                                                {availabilityStatus === 'checking' ? t('createDialog.searching') : tGeneral('noResults')}
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
                     </RadioGroup>
-                    </ScrollArea>
                 </div>
             )}
           </div>
