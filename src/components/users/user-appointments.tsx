@@ -10,23 +10,24 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Appointment, User } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO, addMonths } from 'date-fns';
+import { useTranslations } from 'next-intl';
 
-const columns: ColumnDef<Appointment>[] = [
+const getColumns = (t: (key: string) => string, tStatus: (key: string) => string): ColumnDef<Appointment>[] => [
   {
     accessorKey: 'service_name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Service" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('service')} />,
   },
   {
     accessorKey: 'date',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Date" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('date')} />,
   },
   {
     accessorKey: 'time',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Time" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('time')} />,
   },
   {
     accessorKey: 'status',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('status')} />,
     cell: ({ row }) => {
       const status = row.getValue('status') as string;
       const variant = {
@@ -38,7 +39,7 @@ const columns: ColumnDef<Appointment>[] = [
 
       return (
         <Badge variant={variant} className="capitalize">
-          {status}
+          {tStatus(status.toLowerCase())}
         </Badge>
       );
     },
@@ -119,8 +120,12 @@ interface UserAppointmentsProps {
 }
 
 export function UserAppointments({ user }: UserAppointmentsProps) {
+  const t = useTranslations('AppointmentsColumns');
+  const tStatus = useTranslations('AppointmentStatus');
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+
+  const columns = React.useMemo(() => getColumns(t, tStatus), [t, tStatus]);
 
   const loadAppointments = React.useCallback(async () => {
       if (!user) return;
