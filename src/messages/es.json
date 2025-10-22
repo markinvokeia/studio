@@ -664,6 +664,53 @@
       "errorUnknown": "No se pudieron actualizar los detalles de la clínica."
     }
   },
+  "CalendarsPage": {
+    "description": "Gestiona tus calendarios.",
+    "filterPlaceholder": "Filtrar calendarios por nombre...",
+    "dialog": {
+      "createTitle": "Crear Nuevo Calendario",
+      "editTitle": "Editar Calendario",
+      "description": "Completa los detalles a continuación para agregar un nuevo calendario.",
+      "editDescription": "Actualiza los detalles de este calendario.",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Calendario Principal",
+      "googleCalendarId": "ID de Google Calendar",
+      "googleCalendarIdPlaceholder": "ej., abc@group.calendar.google.com",
+      "active": "Activo",
+      "cancel": "Cancelar",
+      "create": "Crear Calendario",
+      "save": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente el calendario \"{name}\". Esta acción no se puede deshacer.",
+      "delete": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Calendario Creado",
+      "editSuccessTitle": "Calendario Actualizado",
+      "deleteSuccessTitle": "Calendario Eliminado",
+      "successDescription": "El calendario \"{name}\" ha sido guardado exitosamente.",
+      "deleteSuccessDescription": "El calendario \"{name}\" ha sido eliminado.",
+      "deleteErrorDescription": "No se pudo eliminar el calendario."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio",
+      "emailInvalid": "Formato de correo electrónico no válido para el ID de calendario"
+    },
+    "columns": {
+      "name": "Nombre",
+      "googleCalendarId": "ID de Google Calendar",
+      "active": "Activo",
+      "yes": "Sí",
+      "no": "No",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    }
+  },
   "UsersPage": {
     "title": "Usuarios",
     "description": "Gestiona todos los usuarios del sistema.",
@@ -1013,9 +1060,9 @@
       "transferencia": "Transferencia",
       "cash": "Efectivo",
       "debit": "Débito",
-      "tarjeta_de_débito": "Tarjeta de Débito",
+      "tarjeta de débito": "Tarjeta de Débito",
       "credit": "Crédito",
-      "mercado_pago": "Mercado Pago"
+      "mercado pago": "Mercado Pago"
     },
     "status": {
       "paid": "Pagada",

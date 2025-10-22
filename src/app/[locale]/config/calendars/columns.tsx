@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useTranslations } from 'next-intl';
 
 interface CalendarsColumnsProps {
     onEdit: (calendar: Calendar) => void;
@@ -22,13 +23,14 @@ interface CalendarsColumnsProps {
 
 
 export const CalendarsColumnsWrapper = ({ onEdit, onDelete }: CalendarsColumnsProps): ColumnDef<Calendar>[] => {
+    const t = useTranslations('CalendarsPage.columns');
     const columns: ColumnDef<Calendar>[] = [
-        { accessorKey: 'name', header: ({column}) => <DataTableColumnHeader column={column} title="Name" /> },
-        { accessorKey: 'google_calendar_id', header: ({column}) => <DataTableColumnHeader column={column} title="Google Calendar ID" /> },
+        { accessorKey: 'name', header: ({column}) => <DataTableColumnHeader column={column} title={t('name')} /> },
+        { accessorKey: 'google_calendar_id', header: ({column}) => <DataTableColumnHeader column={column} title={t('googleCalendarId')} /> },
         { 
         accessorKey: 'is_active', 
-        header: ({column}) => <DataTableColumnHeader column={column} title="Active" />,
-        cell: ({ row }) => <Badge variant={row.original.is_active ? 'success' : 'outline'}>{row.original.is_active ? 'Yes' : 'No'}</Badge>,
+        header: ({column}) => <DataTableColumnHeader column={column} title={t('active')} />,
+        cell: ({ row }) => <Badge variant={row.original.is_active ? 'success' : 'outline'}>{row.original.is_active ? t('yes') : t('no')}</Badge>,
         },
         {
             id: 'actions',
@@ -43,9 +45,9 @@ export const CalendarsColumnsWrapper = ({ onEdit, onDelete }: CalendarsColumnsPr
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onEdit(calendar)}>Edit</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDelete(calendar)} className="text-destructive">Delete</DropdownMenuItem>
+                    <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => onEdit(calendar)}>{t('edit')}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDelete(calendar)} className="text-destructive">{t('delete')}</DropdownMenuItem>
                 </DropdownMenuContent>
                 </DropdownMenu>
             );

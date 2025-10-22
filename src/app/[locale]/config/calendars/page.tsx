@@ -27,14 +27,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-const calendarFormSchema = z.object({
+const calendarFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
-    name: z.string().min(1, 'Name is required'),
-    google_calendar_id: z.string().email('Invalid email format for calendar ID'),
+    name: z.string().min(1, t('validation.nameRequired')),
+    google_calendar_id: z.string().email(t('validation.emailInvalid')),
     is_active: z.boolean().default(false),
 });
 
-type CalendarFormValues = z.infer<typeof calendarFormSchema>;
+type CalendarFormValues = z.infer<ReturnType<typeof calendarFormSchema>>;
 
 async function getCalendars(): Promise<Calendar[]> {
     try {
@@ -93,7 +93,9 @@ async function deleteCalendar(id: string, googleCalendarId: string) {
 }
 
 export default function CalendarsPage() {
-    const t = useTranslations('Navigation');
+    const t = useTranslations('CalendarsPage');
+    const tNav = useTranslations('Navigation');
+    const tValidation = useTranslations('CalendarsPage.validation');
     const { toast } = useToast();
     const [calendars, setCalendars] = React.useState<Calendar[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -106,7 +108,7 @@ export default function CalendarsPage() {
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
     const form = useForm<CalendarFormValues>({
-        resolver: zodResolver(calendarFormSchema),
+        resolver: zodResolver(calendarFormSchema(tValidation)),
         defaultValues: { name: '', google_calendar_id: '', is_active: false },
     });
 
@@ -145,8 +147,8 @@ export default function CalendarsPage() {
         try {
             await deleteCalendar(deletingCalendar.id, deletingCalendar.google_calendar_id);
             toast({
-                title: "Calendar Deleted",
-                description: `Calendar "${deletingCalendar.name}" has been deleted.`,
+                title: t('toast.deleteSuccessTitle'),
+                description: t('toast.deleteSuccessDescription', {name: deletingCalendar.name}),
             });
             setIsDeleteDialogOpen(false);
             setDeletingCalendar(null);
@@ -154,8 +156,8 @@ export default function CalendarsPage() {
         } catch (error) {
             toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: error instanceof Error ? error.message : "Could not delete the calendar.",
+                title: t('toast.errorTitle'),
+                description: error instanceof Error ? error.message : t('toast.deleteErrorDescription'),
             });
         }
     };
@@ -165,13 +167,13 @@ export default function CalendarsPage() {
         try {
             await upsertCalendar(values);
             toast({
-                title: editingCalendar ? "Calendar Updated" : "Calendar Created",
-                description: `The calendar "${values.name}" has been saved successfully.`,
+                title: editingCalendar ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'),
+                description: t('toast.successDescription', {name: values.name}),
             });
             setIsDialogOpen(false);
             loadCalendars();
         } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
         }
     };
 
@@ -181,15 +183,15 @@ export default function CalendarsPage() {
         <>
         <Card>
             <CardHeader>
-                <CardTitle>{t('Calendars')}</CardTitle>
-                <CardDescription>Manage your calendars.</CardDescription>
+                <CardTitle>{tNav('Calendars')}</CardTitle>
+                <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <DataTable 
                     columns={calendarsColumns} 
                     data={calendars} 
                     filterColumnId="name" 
-                    filterPlaceholder="Filter calendars by name..."
+                    filterPlaceholder={t('filterPlaceholder')}
                     onCreate={handleCreate}
                     onRefresh={loadCalendars}
                     isRefreshing={isRefreshing}
@@ -199,9 +201,9 @@ export default function CalendarsPage() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{editingCalendar ? 'Edit Calendar' : 'Create New Calendar'}</DialogTitle>
+                    <DialogTitle>{editingCalendar ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     <DialogDescription>
-                        {editingCalendar ? 'Update the details for this calendar.' : 'Fill in the details below to add a new calendar.'}
+                        {editingCalendar ? t('dialog.editDescription') : t('dialog.description')}
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -209,7 +211,7 @@ export default function CalendarsPage() {
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle>Error</AlertTitle>
+                                <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
                                 <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
@@ -218,9 +220,9 @@ export default function CalendarsPage() {
                             name="name"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Name</FormLabel>
+                                    <FormLabel>{t('dialog.name')}</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="e.g., Main Calendar" {...field} />
+                                        <Input placeholder={t('dialog.namePlaceholder')} {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -231,9 +233,9 @@ export default function CalendarsPage() {
                             name="google_calendar_id"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Google Calendar ID</FormLabel>
+                                    <FormLabel>{t('dialog.googleCalendarId')}</FormLabel>
                                     <FormControl>
-                                        <Input type="email" placeholder="e.g., abc@group.calendar.google.com" {...field} />
+                                        <Input type="email" placeholder={t('dialog.googleCalendarIdPlaceholder')} {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -247,13 +249,13 @@ export default function CalendarsPage() {
                                     <FormControl>
                                         <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                                     </FormControl>
-                                    <FormLabel>Active</FormLabel>
+                                    <FormLabel>{t('dialog.active')}</FormLabel>
                                 </FormItem>
                             )}
                         />
                         <DialogFooter>
-                            <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                            <Button type="submit">{editingCalendar ? 'Save Changes' : 'Create Calendar'}</Button>
+                            <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                            <Button type="submit">{editingCalendar ? t('dialog.save') : t('dialog.create')}</Button>
                         </DialogFooter>
                     </form>
                 </Form>
@@ -262,14 +264,14 @@ export default function CalendarsPage() {
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                    This will permanently delete the calendar "{deletingCalendar?.name}". This action cannot be undone.
+                    {t('deleteDialog.description', {name: deletingCalendar?.name})}
                 </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.delete')}</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

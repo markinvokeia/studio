@@ -664,6 +664,53 @@
       "errorUnknown": "Could not update clinic details."
     }
   },
+  "CalendarsPage": {
+    "description": "Manage your calendars.",
+    "filterPlaceholder": "Filter calendars by name...",
+    "dialog": {
+      "createTitle": "Create New Calendar",
+      "editTitle": "Edit Calendar",
+      "description": "Fill in the details below to add a new calendar.",
+      "editDescription": "Update the details for this calendar.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Main Calendar",
+      "googleCalendarId": "Google Calendar ID",
+      "googleCalendarIdPlaceholder": "e.g., abc@group.calendar.google.com",
+      "active": "Active",
+      "cancel": "Cancel",
+      "create": "Create Calendar",
+      "save": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the calendar \"{name}\". This action cannot be undone.",
+      "delete": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Calendar Created",
+      "editSuccessTitle": "Calendar Updated",
+      "deleteSuccessTitle": "Calendar Deleted",
+      "successDescription": "The calendar \"{name}\" has been saved successfully.",
+      "deleteSuccessDescription": "The calendar \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the calendar."
+    },
+    "validation": {
+      "nameRequired": "Name is required",
+      "emailInvalid": "Invalid email format for calendar ID"
+    },
+    "columns": {
+      "name": "Name",
+      "googleCalendarId": "Google Calendar ID",
+      "active": "Active",
+      "yes": "Yes",
+      "no": "No",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    }
+  },
   "UsersPage": {
     "title": "Users",
     "description": "Manage all users in the system.",
@@ -1013,7 +1060,7 @@
       "transferencia": "Transferencia",
       "cash": "Cash",
       "debit": "Debit",
-      "tarjeta_de_débito": "Debit Card",
+      "tarjeta_de_debito": "Debit Card",
       "credit": "Credit",
       "mercado_pago": "Mercado Pago"
     },
