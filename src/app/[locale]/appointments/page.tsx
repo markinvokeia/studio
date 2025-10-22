@@ -245,7 +245,7 @@ export default function AppointmentsPage() {
       ),
     },
     { accessorKey: 'calendar', header: t('createDialog.suggested.calendar') },
-    { accessorKey: 'doctor', header: tColumns('doctor') },
+    { accessorKey: 'doctor.name', header: tColumns('doctor') },
     { accessorKey: 'date', header: t('createDialog.suggested.date') },
     { accessorKey: 'time', header: t('createDialog.suggested.time') },
   ];
@@ -585,12 +585,20 @@ export default function AppointmentsPage() {
             isAvailable = result.isAvailable === true;
             
             if (result.suggestedTimes) {
-                suggestions = result.suggestedTimes.map((suggestion: any, index: number) => ({
-                    id: `sugg-${index}`,
+              const allDocs = [...doctorSearchResults, ...result.suggestedTimes.map((s:any) => ({ id: s.json.user_id, name: s.json.user_name, email: s.json.user_email, is_active: true, phone_number: '', avatar: ''}))];
+              const uniqueDocs = Array.from(new Map(allDocs.map(item => [item.id, item])).values());
+              setDoctorSearchResults(uniqueDocs);
+              
+              suggestions = result.suggestedTimes.flatMap((suggestion: any, index: number) => ({
+                    id: `sugg-${suggestion.json.user_id}-${index}`,
                     calendar: suggestion.json.calendario,
                     date: suggestion.json.fecha_cita,
                     time: suggestion.json.hora_cita,
-                    doctor: suggestion.json.user_name || t('createDialog.none'),
+                    doctor: {
+                        id: suggestion.json.user_id,
+                        name: suggestion.json.user_name || t('createDialog.none'),
+                        email: suggestion.json.user_email,
+                    },
                 }));
             }
         }
@@ -601,7 +609,7 @@ export default function AppointmentsPage() {
         console.error("Failed to check availability:", error);
         setAvailabilityStatus('idle');
     }
-  }, [newAppointment, editingAppointment, t]);
+  }, [newAppointment, editingAppointment, t, doctorSearchResults]);
 
   React.useEffect(() => {
       const handler = setTimeout(() => {
@@ -1226,12 +1234,13 @@ export default function AppointmentsPage() {
                     <RadioGroup onValueChange={(value) => {
                         const suggestion = suggestedTimes.find(s => s.id === value);
                         if (suggestion) {
+                            const fullDoctorObject = doctorSearchResults.find(d => d.id === suggestion.doctor.id) || null;
                             setNewAppointment(prev => ({
                                 ...prev,
                                 date: suggestion.date,
                                 time: suggestion.time,
                                 calendar: calendars.find(c => c.name === suggestion.calendar) || prev.calendar,
-                                doctor: doctorSearchResults.find(d => d.name === suggestion.doctor) || prev.doctor,
+                                doctor: fullDoctorObject,
                             }))
                         }
                     }}>
@@ -1252,7 +1261,7 @@ export default function AppointmentsPage() {
                                             <TableRow key={suggestion.id}>
                                                 <TableCell><RadioGroupItem value={suggestion.id} id={suggestion.id} /></TableCell>
                                                 <TableCell>{suggestion.calendar}</TableCell>
-                                                <TableCell>{suggestion.doctor}</TableCell>
+                                                <TableCell>{suggestion.doctor.name}</TableCell>
                                                 <TableCell>{suggestion.date}</TableCell>
                                                 <TableCell>{suggestion.time}</TableCell>
                                             </TableRow>
@@ -1294,21 +1303,5 @@ export default function AppointmentsPage() {
     </>
   );
 }
-
-    
-
-    
-
-    
-
-
-
-    
-
-    
-
-    
-
-    
 
     
