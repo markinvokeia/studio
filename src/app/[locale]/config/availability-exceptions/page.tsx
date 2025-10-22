@@ -34,8 +34,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 const exceptionFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
-    user_id: z.string().min(1, t('validation.doctorRequired')),
-    exception_date: z.string().min(1, t('validation.dateRequired')),
+    user_id: z.string().min(1, t('doctorRequired')),
+    exception_date: z.string().min(1, t('dateRequired')),
     start_time: z.string().optional(),
     end_time: z.string().optional(),
     is_available: z.boolean().default(false),
