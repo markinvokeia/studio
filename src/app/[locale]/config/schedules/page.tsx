@@ -33,14 +33,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-const scheduleFormSchema = z.object({
+const scheduleFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
-    day_of_week: z.string().min(1, "Day of week is required"),
-    start_time: z.string().min(1, "Start time is required"),
-    end_time: z.string().min(1, "End time is required"),
+    day_of_week: z.string().min(1, t('dayRequired')),
+    start_time: z.string().min(1, t('startRequired')),
+    end_time: z.string().min(1, t('endRequired')),
 });
 
-type ScheduleFormValues = z.infer<typeof scheduleFormSchema>;
+type ScheduleFormValues = z.infer<ReturnType<typeof scheduleFormSchema>>;
 
 async function getSchedules(): Promise<ClinicSchedule[]> {
     try {
@@ -96,7 +96,8 @@ async function deleteSchedule(id: string) {
 }
 
 export default function SchedulesPage() {
-    const t = useTranslations('Navigation');
+    const t = useTranslations('SchedulesPage');
+    const tValidation = useTranslations('SchedulesPage.validation');
     const { toast } = useToast();
     const [schedules, setSchedules] = React.useState<ClinicSchedule[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -109,7 +110,7 @@ export default function SchedulesPage() {
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
     const form = useForm<ScheduleFormValues>({
-        resolver: zodResolver(scheduleFormSchema),
+        resolver: zodResolver(scheduleFormSchema(tValidation)),
         defaultValues: { day_of_week: '', start_time: '', end_time: '' },
     });
 
@@ -153,8 +154,8 @@ export default function SchedulesPage() {
         try {
             await deleteSchedule(deletingSchedule.id);
             toast({
-                title: "Schedule Deleted",
-                description: "The schedule has been successfully deleted.",
+                title: t('toast.deleteSuccessTitle'),
+                description: t('toast.deleteSuccessDescription'),
             });
             setIsDeleteDialogOpen(false);
             setDeletingSchedule(null);
@@ -162,8 +163,8 @@ export default function SchedulesPage() {
         } catch (error) {
             toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: "Could not delete the schedule.",
+                title: t('toast.errorTitle'),
+                description: t('toast.deleteErrorDescription'),
             });
         }
     };
@@ -173,13 +174,13 @@ export default function SchedulesPage() {
         try {
             await upsertSchedule(values);
             toast({
-                title: editingSchedule ? "Schedule Updated" : "Schedule Created",
-                description: `The schedule has been saved successfully.`,
+                title: editingSchedule ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'),
+                description: t('toast.successDescription'),
             });
             setIsDialogOpen(false);
             loadSchedules();
         } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
         }
     };
     
@@ -190,15 +191,15 @@ export default function SchedulesPage() {
         <>
         <Card>
             <CardHeader>
-                <CardTitle>{t('Schedules')}</CardTitle>
-                <CardDescription>Manage regular weekly schedules for the clinic.</CardDescription>
+                <CardTitle>{t('title')}</CardTitle>
+                <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <DataTable 
                     columns={schedulesColumns} 
                     data={schedules} 
                     filterColumnId="day_of_week" 
-                    filterPlaceholder="Filter schedules by day..." 
+                    filterPlaceholder={t('filterPlaceholder')} 
                     onCreate={handleCreate}
                     onRefresh={loadSchedules}
                     isRefreshing={isRefreshing}
@@ -208,9 +209,9 @@ export default function SchedulesPage() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{editingSchedule ? 'Edit Schedule' : 'Create New Schedule'}</DialogTitle>
+                    <DialogTitle>{editingSchedule ? t('createDialog.editTitle') : t('createDialog.title')}</DialogTitle>
                     <DialogDescription>
-                        {editingSchedule ? 'Update the details for this schedule.' : 'Fill in the details below to add a new schedule.'}
+                        {editingSchedule ? t('createDialog.editDescription') : t('createDialog.description')}
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -218,7 +219,7 @@ export default function SchedulesPage() {
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle>Error</AlertTitle>
+                                <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
                                 <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
@@ -227,21 +228,21 @@ export default function SchedulesPage() {
                             name="day_of_week"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Day of Week</FormLabel>
+                                    <FormLabel>{t('createDialog.dayOfWeek')}</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select a day" />
+                                            <SelectValue placeholder={t('createDialog.selectDay')} />
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        <SelectItem value="1">Monday</SelectItem>
-                                        <SelectItem value="2">Tuesday</SelectItem>
-                                        <SelectItem value="3">Wednesday</SelectItem>
-                                        <SelectItem value="4">Thursday</SelectItem>
-                                        <SelectItem value="5">Friday</SelectItem>
-                                        <SelectItem value="6">Saturday</SelectItem>
-                                        <SelectItem value="0">Sunday</SelectItem>
+                                        <SelectItem value="1">{t('days.monday')}</SelectItem>
+                                        <SelectItem value="2">{t('days.tuesday')}</SelectItem>
+                                        <SelectItem value="3">{t('days.wednesday')}</SelectItem>
+                                        <SelectItem value="4">{t('days.thursday')}</SelectItem>
+                                        <SelectItem value="5">{t('days.friday')}</SelectItem>
+                                        <SelectItem value="6">{t('days.saturday')}</SelectItem>
+                                        <SelectItem value="0">{t('days.sunday')}</SelectItem>
                                     </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -253,7 +254,7 @@ export default function SchedulesPage() {
                             name="start_time"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Start Time</FormLabel>
+                                <FormLabel>{t('createDialog.startTime')}</FormLabel>
                                 <FormControl>
                                     <Input type="time" {...field} />
                                 </FormControl>
@@ -266,7 +267,7 @@ export default function SchedulesPage() {
                             name="end_time"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>End Time</FormLabel>
+                                <FormLabel>{t('createDialog.endTime')}</FormLabel>
                                 <FormControl>
                                     <Input type="time" {...field} />
                                 </FormControl>
@@ -275,8 +276,8 @@ export default function SchedulesPage() {
                             )}
                         />
                         <DialogFooter>
-                            <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                            <Button type="submit">{editingSchedule ? 'Save Changes' : 'Create Schedule'}</Button>
+                            <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('createDialog.cancel')}</Button>
+                            <Button type="submit">{editingSchedule ? t('createDialog.editSave') : t('createDialog.save')}</Button>
                         </DialogFooter>
                     </form>
                 </Form>
@@ -285,14 +286,14 @@ export default function SchedulesPage() {
          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        This will permanently delete the schedule. This action cannot be undone.
+                        {t('deleteDialog.description')}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                    <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

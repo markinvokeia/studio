@@ -13,15 +13,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 const dayOfWeekMap: { [key: number]: string } = {
-  0: 'Sunday',
-  1: 'Monday',
-  2: 'Tuesday',
-  3: 'Wednesday',
-  4: 'Thursday',
-  5: 'Friday',
-  6: 'Saturday',
+  0: 'sunday',
+  1: 'monday',
+  2: 'tuesday',
+  3: 'wednesday',
+  4: 'thursday',
+  5: 'friday',
+  6: 'saturday',
 };
 
 interface SchedulesColumnsProps {
@@ -30,16 +31,18 @@ interface SchedulesColumnsProps {
 }
 
 export const SchedulesColumnsWrapper = ({ onEdit, onDelete }: SchedulesColumnsProps): ColumnDef<ClinicSchedule>[] => {
+    const t = useTranslations('SchedulesPage.columns');
+    const tDays = useTranslations('SchedulesPage.days');
     
     const columns: ColumnDef<ClinicSchedule>[] = [
-        { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title="ID" /> },
+        { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title={t('id')} /> },
         { 
         accessorKey: 'day_of_week', 
-        header: ({column}) => <DataTableColumnHeader column={column} title="Day of Week" />,
-        cell: ({ row }) => dayOfWeekMap[row.original.day_of_week] || 'Unknown Day',
+        header: ({column}) => <DataTableColumnHeader column={column} title={t('dayOfWeek')} />,
+        cell: ({ row }) => tDays(dayOfWeekMap[row.original.day_of_week] as any) || 'Unknown Day',
         },
-        { accessorKey: 'start_time', header: ({column}) => <DataTableColumnHeader column={column} title="Start Time" /> },
-        { accessorKey: 'end_time', header: ({column}) => <DataTableColumnHeader column={column} title="End Time" /> },
+        { accessorKey: 'start_time', header: ({column}) => <DataTableColumnHeader column={column} title={t('startTime')} /> },
+        { accessorKey: 'end_time', header: ({column}) => <DataTableColumnHeader column={column} title={t('endTime')} /> },
         {
             id: 'actions',
             cell: ({ row }) => {
@@ -53,9 +56,9 @@ export const SchedulesColumnsWrapper = ({ onEdit, onDelete }: SchedulesColumnsPr
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onEdit(schedule)}>Edit</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDelete(schedule)} className="text-destructive">Delete</DropdownMenuItem>
+                    <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => onEdit(schedule)}>{t('edit')}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDelete(schedule)} className="text-destructive">{t('delete')}</DropdownMenuItem>
                 </DropdownMenuContent>
                 </DropdownMenu>
             );
@@ -65,5 +68,3 @@ export const SchedulesColumnsWrapper = ({ onEdit, onDelete }: SchedulesColumnsPr
 
     return columns;
 }
-
-    

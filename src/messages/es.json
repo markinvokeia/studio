@@ -353,6 +353,63 @@
       "codeRequired": "El código es obligatorio."
     }
   },
+  "SchedulesPage": {
+    "title": "Horarios",
+    "description": "Gestiona los horarios semanales regulares de la clínica.",
+    "filterPlaceholder": "Filtrar horarios por día...",
+    "createDialog": {
+      "title": "Crear Nuevo Horario",
+      "editTitle": "Editar Horario",
+      "description": "Completa los detalles a continuación para agregar un nuevo horario.",
+      "editDescription": "Actualiza los detalles de este horario.",
+      "dayOfWeek": "Día de la Semana",
+      "selectDay": "Selecciona un día",
+      "startTime": "Hora de Inicio",
+      "endTime": "Hora de Fin",
+      "cancel": "Cancelar",
+      "save": "Crear Horario",
+      "editSave": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente el horario. Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Horario Creado",
+      "editSuccessTitle": "Horario Actualizado",
+      "deleteSuccessTitle": "Horario Eliminado",
+      "successDescription": "El horario se ha guardado correctamente.",
+      "deleteSuccessDescription": "El horario ha sido eliminado.",
+      "deleteErrorDescription": "No se pudo eliminar el horario."
+    },
+    "validation": {
+      "dayRequired": "El día de la semana es obligatorio.",
+      "startRequired": "La hora de inicio es obligatoria.",
+      "endRequired": "La hora de fin es obligatoria."
+    },
+    "days": {
+      "monday": "Lunes",
+      "tuesday": "Martes",
+      "wednesday": "Miércoles",
+      "thursday": "Jueves",
+      "friday": "Viernes",
+      "saturday": "Sábado",
+      "sunday": "Domingo"
+    },
+    "columns": {
+      "id": "ID",
+      "dayOfWeek": "Día de la Semana",
+      "startTime": "Hora de Inicio",
+      "endTime": "Hora de Fin",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    }
+  },
   "DentalSurfacesColumns": {
     "id": "ID",
     "name": "Nombre",

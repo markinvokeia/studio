@@ -353,6 +353,63 @@
       "codeRequired": "Code is required."
     }
   },
+  "SchedulesPage": {
+    "title": "Schedules",
+    "description": "Manage regular weekly schedules for the clinic.",
+    "filterPlaceholder": "Filter schedules by day...",
+    "createDialog": {
+      "title": "Create New Schedule",
+      "editTitle": "Edit Schedule",
+      "description": "Fill in the details below to add a new schedule.",
+      "editDescription": "Update the details for this schedule.",
+      "dayOfWeek": "Day of Week",
+      "selectDay": "Select a day",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "cancel": "Cancel",
+      "save": "Create Schedule",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the schedule. This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Schedule Created",
+      "editSuccessTitle": "Schedule Updated",
+      "deleteSuccessTitle": "Schedule Deleted",
+      "successDescription": "The schedule has been saved successfully.",
+      "deleteSuccessDescription": "The schedule has been deleted.",
+      "deleteErrorDescription": "Could not delete the schedule."
+    },
+    "validation": {
+      "dayRequired": "Day of week is required.",
+      "startRequired": "Start time is required.",
+      "endRequired": "End time is required."
+    },
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "columns": {
+        "id": "ID",
+        "dayOfWeek": "Day of Week",
+        "startTime": "Start Time",
+        "endTime": "End Time",
+        "actions": "Actions",
+        "edit": "Edit",
+        "delete": "Delete"
+    }
+  },
   "DentalSurfacesColumns": {
     "id": "ID",
     "name": "Name",
@@ -905,7 +962,7 @@
       "transferencia": "Transferencia",
       "cash": "Cash",
       "debit": "Debit",
-      "tarjeta_de_débito": "Tarjeta de Débito",
+      "tarjeta_de_débito": "Debit Card",
       "credit": "Credit",
       "mercado_pago": "Mercado Pago"
     },
