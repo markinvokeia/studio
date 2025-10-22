@@ -35,17 +35,17 @@ import { PermissionUsers } from '@/components/permissions/permission-users';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useTranslations } from 'next-intl';
 
-
-const permissionFormSchema = z.object({
+const permissionFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().min(1, t('validation.nameRequired')),
   description: z.string().optional(),
-  action: z.string().min(1, 'Action is required'),
-  resource: z.string().min(1, 'Resource is required'),
+  action: z.string().min(1, t('validation.actionRequired')),
+  resource: z.string().min(1, t('validation.resourceRequired')),
 });
 
-type PermissionFormValues = z.infer<typeof permissionFormSchema>;
+type PermissionFormValues = z.infer<ReturnType<typeof permissionFormSchema>>;
 
 async function getPermissions(): Promise<Permission[]> {
   try {
@@ -107,6 +107,8 @@ async function deletePermission(id: string) {
 }
 
 export default function PermissionsPage() {
+  const t = useTranslations('PermissionsPage');
+  const tValidation = useTranslations('PermissionsPage.validation');
   const [permissions, setPermissions] = React.useState<Permission[]>([]);
   const [selectedPermission, setSelectedPermission] = React.useState<Permission | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -119,7 +121,7 @@ export default function PermissionsPage() {
   const { toast } = useToast();
 
   const form = useForm<PermissionFormValues>({
-    resolver: zodResolver(permissionFormSchema),
+    resolver: zodResolver(permissionFormSchema(tValidation)),
     defaultValues: { name: '', description: '', action: '', resource: '' },
   });
 
@@ -158,8 +160,8 @@ export default function PermissionsPage() {
     try {
         await deletePermission(deletingPermission.id);
         toast({
-            title: "Permission Deleted",
-            description: `Permission "${deletingPermission.name}" has been deleted.`,
+            title: t('toast.deleteSuccess'),
+            description: t('toast.deleteSuccessDescription', {name: deletingPermission.name}),
         });
         setIsDeleteDialogOpen(false);
         setDeletingPermission(null);
@@ -167,8 +169,8 @@ export default function PermissionsPage() {
     } catch (error) {
         toast({
             variant: 'destructive',
-            title: 'Error',
-            description: error instanceof Error ? error.message : "Could not delete the permission.",
+            title: t('toast.error'),
+            description: error instanceof Error ? error.message : t('toast.deleteError'),
         });
     }
   };
@@ -188,13 +190,13 @@ export default function PermissionsPage() {
     try {
         await upsertPermission(values);
         toast({
-            title: editingPermission ? "Permission Updated" : "Permission Created",
-            description: `The permission "${values.name}" has been saved successfully.`,
+            title: editingPermission ? t('toast.editSuccess') : t('toast.createSuccess'),
+            description: t('toast.successDescription', {name: values.name}),
         });
         setIsDialogOpen(false);
         loadPermissions();
     } catch (error) {
-        setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+        setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
     }
   };
 
@@ -207,15 +209,15 @@ export default function PermissionsPage() {
         <div className={cn("transition-all duration-300", selectedPermission ? "lg:col-span-2" : "lg:col-span-5")}>
             <Card>
                 <CardHeader>
-                    <CardTitle>Permissions</CardTitle>
-                    <CardDescription>View all system permissions.</CardDescription>
+                    <CardTitle>{t('title')}</CardTitle>
+                    <CardDescription>{t('description')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <DataTable 
                     columns={permissionsColumns} 
                     data={permissions} 
                     filterColumnId="name" 
-                    filterPlaceholder="Filter permissions by name..."
+                    filterPlaceholder={t('filterPlaceholder')}
                     onRowSelectionChange={handleRowSelectionChange}
                     enableSingleRowSelection={true}
                     onCreate={handleCreate}
@@ -232,18 +234,18 @@ export default function PermissionsPage() {
                  <Card>
                     <CardHeader className="flex flex-row items-start justify-between">
                         <div>
-                            <CardTitle>Details for {selectedPermission.name}</CardTitle>
-                            <CardDescription>Permission ID: {selectedPermission.id}</CardDescription>
+                            <CardTitle>{t('detailsFor', {name: selectedPermission.name})}</CardTitle>
+                            <CardDescription>{t('permissionId')}: {selectedPermission.id}</CardDescription>
                         </div>
                          <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
                             <X className="h-5 w-5" />
-                            <span className="sr-only">Close details</span>
+                            <span className="sr-only">{t('close')}</span>
                         </Button>
                     </CardHeader>
                     <CardContent>
                         <Tabs defaultValue="users" className="w-full">
                             <TabsList className="h-auto items-center justify-start flex-wrap">
-                                <TabsTrigger value="users">Users</TabsTrigger>
+                                <TabsTrigger value="users">{t('tabs.users')}</TabsTrigger>
                             </TabsList>
                             <TabsContent value="users">
                                 <PermissionUsers permissionId={selectedPermission.id} />
@@ -258,9 +260,9 @@ export default function PermissionsPage() {
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{editingPermission ? 'Edit Permission' : 'Create New Permission'}</DialogTitle>
+          <DialogTitle>{editingPermission ? t('dialog.editTitle') : t('dialog.title')}</DialogTitle>
           <DialogDescription>
-            {editingPermission ? 'Update the details for this permission.' : 'Fill in the details below to add a new permission.'}
+            {editingPermission ? t('dialog.editDescription') : t('dialog.description')}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -268,7 +270,7 @@ export default function PermissionsPage() {
               {submissionError && (
                   <Alert variant="destructive">
                       <AlertTriangle className="h-4 w-4" />
-                      <AlertTitle>Error</AlertTitle>
+                      <AlertTitle>{t('toast.error')}</AlertTitle>
                       <AlertDescription>{submissionError}</AlertDescription>
                   </Alert>
               )}
@@ -277,8 +279,8 @@ export default function PermissionsPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl><Input placeholder="e.g., Create User" {...field} /></FormControl>
+                    <FormLabel>{t('dialog.name')}</FormLabel>
+                    <FormControl><Input placeholder={t('dialog.namePlaceholder')} {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -288,8 +290,8 @@ export default function PermissionsPage() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl><Input placeholder="e.g., Allows creating new users." {...field} /></FormControl>
+                    <FormLabel>{t('dialog.descriptionLabel')}</FormLabel>
+                    <FormControl><Input placeholder={t('dialog.descriptionPlaceholder')} {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -299,17 +301,17 @@ export default function PermissionsPage() {
                 name="action"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Action</FormLabel>
+                    <FormLabel>{t('dialog.action')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger><SelectValue placeholder="Select an action" /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder={t('dialog.selectAction')} /></SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="create">Create</SelectItem>
-                      <SelectItem value="read">Read</SelectItem>
-                      <SelectItem value="update">Update</SelectItem>
-                      <SelectItem value="delete">Delete</SelectItem>
-                      <SelectItem value="manage">Manage</SelectItem>
+                      <SelectItem value="create">{t('dialog.actions.create')}</SelectItem>
+                      <SelectItem value="read">{t('dialog.actions.read')}</SelectItem>
+                      <SelectItem value="update">{t('dialog.actions.update')}</SelectItem>
+                      <SelectItem value="delete">{t('dialog.actions.delete')}</SelectItem>
+                      <SelectItem value="manage">{t('dialog.actions.manage')}</SelectItem>
                     </SelectContent>
                     </Select>
                     <FormMessage />
@@ -321,15 +323,15 @@ export default function PermissionsPage() {
                 name="resource"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Resource</FormLabel>
-                    <FormControl><Input placeholder="e.g., user" {...field} /></FormControl>
+                    <FormLabel>{t('dialog.resource')}</FormLabel>
+                    <FormControl><Input placeholder={t('dialog.resourcePlaceholder')} {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <DialogFooter>
-                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                <Button type="submit">{editingPermission ? 'Save Changes' : 'Create Permission'}</Button>
+                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                <Button type="submit">{editingPermission ? t('dialog.save') : t('dialog.create')}</Button>
               </DialogFooter>
           </form>
         </Form>
@@ -338,14 +340,14 @@ export default function PermissionsPage() {
      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                    This will permanently delete the permission "{deletingPermission?.name}". This action cannot be undone.
+                    {t('deleteDialog.description', {name: deletingPermission?.name})}
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>

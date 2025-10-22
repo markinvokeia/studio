@@ -1167,6 +1167,72 @@
     "edit": "Editar rol",
     "delete": "Eliminar rol"
   },
+  "PermissionsPage": {
+    "title": "Permisos",
+    "description": "Ver todos los permisos del sistema.",
+    "filterPlaceholder": "Filtrar permisos por nombre...",
+    "detailsFor": "Detalles para {name}",
+    "permissionId": "ID de Permiso",
+    "close": "Cerrar detalles",
+    "tabs": {
+      "users": "Usuarios"
+    },
+    "dialog": {
+      "title": "Crear Nuevo Permiso",
+      "editTitle": "Editar Permiso",
+      "description": "Completa los detalles para agregar un nuevo permiso.",
+      "editDescription": "Actualiza los detalles de este permiso.",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Crear Usuario",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "ej., Permite crear nuevos usuarios",
+      "action": "Acción",
+      "selectAction": "Seleccionar una acción",
+      "actions": {
+        "create": "Crear",
+        "read": "Leer",
+        "update": "Actualizar",
+        "delete": "Eliminar",
+        "manage": "Gestionar"
+      },
+      "resource": "Recurso",
+      "resourcePlaceholder": "ej., usuario",
+      "cancel": "Cancelar",
+      "create": "Crear Permiso",
+      "save": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente el permiso \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "error": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccess": "Permiso Creado",
+      "editSuccess": "Permiso Actualizado",
+      "deleteSuccess": "Permiso Eliminado",
+      "successDescription": "El permiso \"{name}\" se ha guardado correctamente.",
+      "deleteSuccessDescription": "El permiso \"{name}\" ha sido eliminado.",
+      "deleteError": "No se pudo eliminar el permiso."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio.",
+      "actionRequired": "La acción es obligatoria.",
+      "resourceRequired": "El recurso es obligatorio."
+    },
+    "columns": {
+        "id": "ID Permiso",
+        "name": "Nombre",
+        "description": "Descripción",
+        "action": "Acción",
+        "resource": "Recurso",
+        "actions": "Acciones",
+        "edit": "Editar",
+        "delete": "Eliminar"
+    }
+  },
   "ClinicHistoryPage": {
     "title": "Historial Clínico",
     "searchPlaceholder": "Buscar paciente...",

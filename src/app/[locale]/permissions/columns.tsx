@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface PermissionsColumnsProps {
   onEdit: (permission: Permission) => void;
@@ -23,6 +24,7 @@ interface PermissionsColumnsProps {
 }
 
 export const PermissionsColumnsWrapper = ({ onEdit, onDelete }: PermissionsColumnsProps): ColumnDef<Permission>[] => {
+  const t = useTranslations('PermissionsPage.columns');
   const columns: ColumnDef<Permission>[] = [
     {
       id: 'select',
@@ -47,32 +49,32 @@ export const PermissionsColumnsWrapper = ({ onEdit, onDelete }: PermissionsColum
     {
       accessorKey: 'id',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Permission ID" />
+        <DataTableColumnHeader column={column} title={t('id')} />
       ),
     },
     {
       accessorKey: 'name',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Name" />
+        <DataTableColumnHeader column={column} title={t('name')} />
       ),
     },
     {
       accessorKey: 'description',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Description" />
+        <DataTableColumnHeader column={column} title={t('description')} />
       ),
     },
     {
       accessorKey: 'action',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Action" />
+        <DataTableColumnHeader column={column} title={t('action')} />
       ),
        cell: ({ row }) => <Badge variant="secondary" className="capitalize">{row.getValue('action')}</Badge>
     },
     {
       accessorKey: 'resource',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Resource" />
+        <DataTableColumnHeader column={column} title={t('resource')} />
       ),
       cell: ({ row }) => <Badge variant="outline" className="capitalize">{row.getValue('resource')}</Badge>
     },
@@ -89,9 +91,9 @@ export const PermissionsColumnsWrapper = ({ onEdit, onDelete }: PermissionsColum
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => onEdit(permission)}>Edit</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDelete(permission)} className="text-destructive">Delete</DropdownMenuItem>
+              <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => onEdit(permission)}>{t('edit')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onDelete(permission)} className="text-destructive">{t('delete')}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         );

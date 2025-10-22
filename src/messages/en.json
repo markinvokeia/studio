@@ -1165,6 +1165,72 @@
     "edit": "Edit role",
     "delete": "Delete role"
   },
+  "PermissionsPage": {
+    "title": "Permissions",
+    "description": "View all system permissions.",
+    "filterPlaceholder": "Filter permissions by name...",
+    "detailsFor": "Details for {name}",
+    "permissionId": "Permission ID",
+    "close": "Close details",
+    "tabs": {
+      "users": "Users"
+    },
+    "dialog": {
+      "title": "Create New Permission",
+      "editTitle": "Edit Permission",
+      "description": "Fill in the details below to add a new permission.",
+      "editDescription": "Update the details for this permission.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Create User",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "e.g., Allows creating new users",
+      "action": "Action",
+      "selectAction": "Select an action",
+      "actions": {
+        "create": "Create",
+        "read": "Read",
+        "update": "Update",
+        "delete": "Delete",
+        "manage": "Manage"
+      },
+      "resource": "Resource",
+      "resourcePlaceholder": "e.g., user",
+      "cancel": "Cancel",
+      "create": "Create Permission",
+      "save": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the permission \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "error": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccess": "Permission Created",
+      "editSuccess": "Permission Updated",
+      "deleteSuccess": "Permission Deleted",
+      "successDescription": "The permission \"{name}\" has been saved successfully.",
+      "deleteSuccessDescription": "The permission \"{name}\" has been deleted.",
+      "deleteError": "Could not delete the permission."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "actionRequired": "Action is required.",
+      "resourceRequired": "Resource is required."
+    },
+    "columns": {
+        "id": "Permission ID",
+        "name": "Name",
+        "description": "Description",
+        "action": "Action",
+        "resource": "Resource",
+        "actions": "Actions",
+        "edit": "Edit",
+        "delete": "Delete"
+    }
+  },
   "ClinicHistoryPage": {
     "title": "Clinical History",
     "searchPlaceholder": "Search patient...",
