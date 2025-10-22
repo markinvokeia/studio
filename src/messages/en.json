@@ -410,6 +410,57 @@
         "delete": "Delete"
     }
   },
+  "HolidaysPage": {
+    "description": "Manage exceptions to the regular clinic schedule.",
+    "filterPlaceholder": "Filter holidays by date...",
+    "createDialog": {
+      "title": "Create New Exception",
+      "editTitle": "Edit Exception",
+      "description": "Fill in the details below to add a new holiday or exception.",
+      "editDescription": "Update the details for this exception.",
+      "date": "Date",
+      "isOpen": "Clinic is Open",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "notes": "Notes",
+      "notesPlaceholder": "e.g., Special event",
+      "cancel": "Cancel",
+      "save": "Create Exception",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the exception. This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Exception Created",
+      "editSuccessTitle": "Exception Updated",
+      "deleteSuccessTitle": "Exception Deleted",
+      "successDescription": "The exception has been saved successfully.",
+      "deleteSuccessDescription": "The exception has been deleted.",
+      "deleteErrorDescription": "Could not delete the exception."
+    },
+    "validation": {
+      "dateRequired": "Date is required."
+    },
+    "columns": {
+      "id": "ID",
+      "date": "Date",
+      "status": "Status",
+      "open": "Open",
+      "closed": "Closed",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "notes": "Notes",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    }
+  },
   "DentalSurfacesColumns": {
     "id": "ID",
     "name": "Name",

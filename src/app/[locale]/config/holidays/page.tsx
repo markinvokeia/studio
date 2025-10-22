@@ -29,16 +29,16 @@ import { AlertTriangle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 
-const holidayFormSchema = z.object({
+const holidayFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  date: z.string().min(1, 'Date is required'),
+  date: z.string().min(1, t('validation.dateRequired')),
   is_open: z.boolean().default(false),
   start_time: z.string().optional(),
   end_time: z.string().optional(),
   notes: z.string().optional(),
 });
 
-type HolidayFormValues = z.infer<typeof holidayFormSchema>;
+type HolidayFormValues = z.infer<ReturnType<typeof holidayFormSchema>>;
 
 async function getHolidays(): Promise<ClinicException[]> {
     try {
@@ -101,7 +101,10 @@ async function deleteHoliday(id: string) {
 }
 
 export default function HolidaysPage() {
-    const t = useTranslations('Navigation');
+    const t = useTranslations('HolidaysPage');
+    const tNav = useTranslations('Navigation');
+    const tValidation = useTranslations('HolidaysPage.validation');
+
     const { toast } = useToast();
     const [holidays, setHolidays] = React.useState<ClinicException[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -114,7 +117,7 @@ export default function HolidaysPage() {
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
     const form = useForm<HolidayFormValues>({
-        resolver: zodResolver(holidayFormSchema),
+        resolver: zodResolver(holidayFormSchema(tValidation)),
         defaultValues: { date: '', is_open: false, start_time: '', end_time: '', notes: '' },
     });
 
@@ -160,8 +163,8 @@ export default function HolidaysPage() {
         try {
             await deleteHoliday(deletingHoliday.id);
             toast({
-                title: "Exception Deleted",
-                description: "The exception has been successfully deleted.",
+                title: t('toast.deleteSuccessTitle'),
+                description: t('toast.deleteSuccessDescription'),
             });
             setIsDeleteDialogOpen(false);
             setDeletingHoliday(null);
@@ -169,8 +172,8 @@ export default function HolidaysPage() {
         } catch (error) {
             toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: "Could not delete the exception.",
+                title: t('toast.errorTitle'),
+                description: t('toast.deleteErrorDescription'),
             });
         }
     };
@@ -180,13 +183,13 @@ export default function HolidaysPage() {
         try {
             await upsertHoliday(values);
             toast({
-                title: editingHoliday ? "Exception Updated" : "Exception Created",
-                description: `The exception has been saved successfully.`,
+                title: editingHoliday ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'),
+                description: t('toast.successDescription'),
             });
             setIsDialogOpen(false);
             loadHolidays();
         } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
         }
     };
 
@@ -197,15 +200,15 @@ export default function HolidaysPage() {
         <>
         <Card>
             <CardHeader>
-                <CardTitle>{t('Holidays')}</CardTitle>
-                <CardDescription>Manage exceptions to the regular clinic schedule.</CardDescription>
+                <CardTitle>{tNav('Holidays')}</CardTitle>
+                <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <DataTable 
                     columns={holidaysColumns} 
                     data={holidays} 
                     filterColumnId="date" 
-                    filterPlaceholder="Filter holidays by date..."
+                    filterPlaceholder={t('filterPlaceholder')}
                     onCreate={handleCreate}
                     onRefresh={loadHolidays}
                     isRefreshing={isRefreshing}
@@ -215,9 +218,9 @@ export default function HolidaysPage() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{editingHoliday ? 'Edit Exception' : 'Create New Exception'}</DialogTitle>
+                    <DialogTitle>{editingHoliday ? t('createDialog.editTitle') : t('createDialog.title')}</DialogTitle>
                     <DialogDescription>
-                        {editingHoliday ? 'Update the details for this exception.' : 'Fill in the details below to add a new holiday or exception.'}
+                        {editingHoliday ? t('createDialog.editDescription') : t('createDialog.description')}
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -225,7 +228,7 @@ export default function HolidaysPage() {
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle>Error</AlertTitle>
+                                <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
                                 <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
@@ -234,7 +237,7 @@ export default function HolidaysPage() {
                             name="date"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Date</FormLabel>
+                                    <FormLabel>{t('createDialog.date')}</FormLabel>
                                     <FormControl>
                                         <Input type="date" {...field} />
                                     </FormControl>
@@ -250,7 +253,7 @@ export default function HolidaysPage() {
                                     <FormControl>
                                         <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                                     </FormControl>
-                                    <FormLabel>Clinic is Open</FormLabel>
+                                    <FormLabel>{t('createDialog.isOpen')}</FormLabel>
                                 </FormItem>
                             )}
                         />
@@ -259,11 +262,11 @@ export default function HolidaysPage() {
                             name="start_time"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Start Time</FormLabel>
-                                    <FormControl>
-                                        <Input type="time" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
+                                <FormLabel>{t('createDialog.startTime')}</FormLabel>
+                                <FormControl>
+                                    <Input type="time" {...field} />
+                                </FormControl>
+                                <FormMessage />
                                 </FormItem>
                             )}
                         />
@@ -272,11 +275,11 @@ export default function HolidaysPage() {
                             name="end_time"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>End Time</FormLabel>
-                                    <FormControl>
-                                        <Input type="time" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
+                                <FormLabel>{t('createDialog.endTime')}</FormLabel>
+                                <FormControl>
+                                    <Input type="time" {...field} />
+                                </FormControl>
+                                <FormMessage />
                                 </FormItem>
                             )}
                         />
@@ -285,17 +288,17 @@ export default function HolidaysPage() {
                             name="notes"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Notes</FormLabel>
+                                    <FormLabel>{t('createDialog.notes')}</FormLabel>
                                     <FormControl>
-                                        <Textarea placeholder="e.g., Special event" {...field} />
+                                        <Textarea placeholder={t('createDialog.notesPlaceholder')} {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
                         <DialogFooter>
-                            <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                            <Button type="submit">{editingHoliday ? 'Save Changes' : 'Create Exception'}</Button>
+                            <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('createDialog.cancel')}</Button>
+                            <Button type="submit">{editingHoliday ? t('createDialog.editSave') : t('createDialog.save')}</Button>
                         </DialogFooter>
                     </form>
                 </Form>
@@ -305,14 +308,14 @@ export default function HolidaysPage() {
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                    This will permanently delete the exception. This action cannot be undone.
+                    {t('deleteDialog.description')}
                 </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

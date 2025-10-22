@@ -410,6 +410,57 @@
       "delete": "Eliminar"
     }
   },
+  "HolidaysPage": {
+    "description": "Gestionar excepciones al horario regular de la clínica.",
+    "filterPlaceholder": "Filtrar feriados por fecha...",
+    "createDialog": {
+      "title": "Crear Nueva Excepción",
+      "editTitle": "Editar Excepción",
+      "description": "Completa los detalles a continuación para agregar un nuevo feriado o excepción.",
+      "editDescription": "Actualiza los detalles de esta excepción.",
+      "date": "Fecha",
+      "isOpen": "Clínica Abierta",
+      "startTime": "Hora de Inicio",
+      "endTime": "Hora de Fin",
+      "notes": "Notas",
+      "notesPlaceholder": "ej., Evento especial",
+      "cancel": "Cancelar",
+      "save": "Crear Excepción",
+      "editSave": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente la excepción. Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Excepción Creada",
+      "editSuccessTitle": "Excepción Actualizada",
+      "deleteSuccessTitle": "Excepción Eliminada",
+      "successDescription": "La excepción ha sido guardada exitosamente.",
+      "deleteSuccessDescription": "La excepción ha sido eliminada.",
+      "deleteErrorDescription": "No se pudo eliminar la excepción."
+    },
+    "validation": {
+      "dateRequired": "La fecha es obligatoria."
+    },
+    "columns": {
+      "id": "ID",
+      "date": "Fecha",
+      "status": "Estado",
+      "open": "Abierto",
+      "closed": "Cerrado",
+      "startTime": "Hora de Inicio",
+      "endTime": "Hora de Fin",
+      "notes": "Notas",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    }
+  },
   "DentalSurfacesColumns": {
     "id": "ID",
     "name": "Nombre",
