@@ -49,7 +49,7 @@ async function getPatientSessions(userId: string): Promise<PatientSession[]> {
 }
 
 export function MedicalHistory({ user }: MedicalHistoryProps) {
-  const t = useTranslations('MedicalHistory');
+  const t = useTranslations('ClinicHistoryPage.MedicalHistory');
   const [openItems, setOpenItems] = React.useState<string[]>([]);
   const [sessions, setSessions] = React.useState<PatientSession[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -174,5 +174,7 @@ export function MedicalHistory({ user }: MedicalHistoryProps) {
     </Card>
   );
 }
+
+    
 
     
