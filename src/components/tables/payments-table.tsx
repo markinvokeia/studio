@@ -76,7 +76,8 @@ const getColumns = (
         ),
          cell: ({ row }) => {
           const method = row.getValue('method') as string;
-          const normalizedMethod = paymentMethodMap[method.toLowerCase()] || method.toLowerCase();
+          let normalizedMethod = paymentMethodMap[method.toLowerCase()] || method.toLowerCase();
+          normalizedMethod = normalizedMethod.replace(/\s+/g, '_');
           return <div className="capitalize">{tMethods(normalizedMethod)}</div>;
         },
       },
@@ -135,7 +136,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           columns={filteredColumns}
           data={payments}
           filterColumnId="invoice_id"
-          filterPlaceholder="Filter by invoice ID..."
+          filterPlaceholder={t('filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
         />
