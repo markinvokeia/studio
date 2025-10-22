@@ -25,18 +25,19 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
-const serviceFormSchema = z.object({
+const serviceFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  name: z.string().min(1, 'Name is required'),
-  category: z.string().min(1, 'Category is required'),
-  price: z.coerce.number().positive('Price must be a positive number'),
-  duration_minutes: z.coerce.number().int().positive('Duration must be a positive integer'),
+  name: z.string().min(1, t('validation.nameRequired')),
+  category: z.string().min(1, t('validation.categoryRequired')),
+  price: z.coerce.number().positive(t('validation.pricePositive')),
+  duration_minutes: z.coerce.number().int().positive(t('validation.durationInteger')),
   description: z.string().optional(),
   indications: z.string().optional(),
 });
 
-type ServiceFormValues = z.infer<typeof serviceFormSchema>;
+type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
 
 async function getServices(): Promise<Service[]> {
   try {
@@ -101,6 +102,8 @@ async function deleteService(id: string) {
 }
 
 export default function ServicesPage() {
+  const t = useTranslations('ServicesPage');
+  const tValidation = useTranslations('ServicesPage.validation');
   const [services, setServices] = React.useState<Service[]>([]);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingService, setEditingService] = React.useState<Service | null>(null);
@@ -112,7 +115,7 @@ export default function ServicesPage() {
   const { toast } = useToast();
 
   const form = useForm<ServiceFormValues>({
-    resolver: zodResolver(serviceFormSchema),
+    resolver: zodResolver(serviceFormSchema(tValidation)),
   });
 
   const loadServices = React.useCallback(async () => {
@@ -165,8 +168,8 @@ export default function ServicesPage() {
     try {
         await deleteService(deletingService.id);
         toast({
-            title: "Service Deleted",
-            description: `Service "${deletingService.name}" has been deleted.`,
+            title: t('toast.deleteSuccessTitle'),
+            description: t('toast.deleteSuccessDescription', {name: deletingService.name}),
         });
         setIsDeleteDialogOpen(false);
         setDeletingService(null);
@@ -174,8 +177,8 @@ export default function ServicesPage() {
     } catch (error) {
         toast({
             variant: 'destructive',
-            title: 'Error',
-            description: error instanceof Error ? error.message : "Could not delete the service.",
+            title: t('toast.errorTitle'),
+            description: error instanceof Error ? error.message : t('toast.deleteErrorDescription'),
         });
     }
   };
@@ -185,13 +188,13 @@ export default function ServicesPage() {
     try {
         await upsertService(values);
         toast({
-            title: editingService ? "Service Updated" : "Service Created",
-            description: `Service "${values.name}" has been saved successfully.`,
+            title: editingService ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'),
+            description: t('toast.successDescription', {name: values.name}),
         });
         setIsDialogOpen(false);
         loadServices();
     } catch (error) {
-        setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+        setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
     }
   };
   
@@ -202,15 +205,15 @@ export default function ServicesPage() {
     <>
     <Card>
       <CardHeader>
-        <CardTitle>Service Catalog</CardTitle>
-        <CardDescription>Manage business services.</CardDescription>
+        <CardTitle>{t('title')}</CardTitle>
+        <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <DataTable 
           columns={servicesColumns} 
           data={services} 
           filterColumnId="name" 
-          filterPlaceholder="Filter services by name..." 
+          filterPlaceholder={t('filterPlaceholder')} 
           onCreate={handleCreate}
           onRefresh={loadServices}
           isRefreshing={isRefreshing}
@@ -221,9 +224,9 @@ export default function ServicesPage() {
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{editingService ? 'Edit Service' : 'Create New Service'}</DialogTitle>
+          <DialogTitle>{editingService ? t('createDialog.editTitle') : t('createDialog.title')}</DialogTitle>
           <DialogDescription>
-            {editingService ? 'Update the details for this service.' : 'Fill in the details below to add a new service.'}
+            {editingService ? t('createDialog.editDescription') : t('createDialog.description')}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -231,7 +234,7 @@ export default function ServicesPage() {
                 {submissionError && (
                     <Alert variant="destructive">
                         <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Error</AlertTitle>
+                        <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
                         <AlertDescription>{submissionError}</AlertDescription>
                     </Alert>
                 )}
@@ -240,9 +243,9 @@ export default function ServicesPage() {
                     name="name"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Name</FormLabel>
+                        <FormLabel>{t('createDialog.name')}</FormLabel>
                         <FormControl>
-                            <Input placeholder="e.g., Initial Consultation" {...field} />
+                            <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -253,9 +256,9 @@ export default function ServicesPage() {
                     name="category"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Category</FormLabel>
+                        <FormLabel>{t('createDialog.category')}</FormLabel>
                         <FormControl>
-                            <Input placeholder="e.g., Consulting" {...field} />
+                            <Input placeholder={t('createDialog.categoryPlaceholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -266,7 +269,7 @@ export default function ServicesPage() {
                     name="price"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Price</FormLabel>
+                        <FormLabel>{t('createDialog.price')}</FormLabel>
                         <FormControl>
                             <Input type="number" placeholder="0.00" {...field} />
                         </FormControl>
@@ -279,7 +282,7 @@ export default function ServicesPage() {
                     name="duration_minutes"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Duration (min)</FormLabel>
+                        <FormLabel>{t('createDialog.duration')}</FormLabel>
                         <FormControl>
                             <Input type="number" placeholder="60" {...field} />
                         </FormControl>
@@ -292,9 +295,9 @@ export default function ServicesPage() {
                     name="description"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Description</FormLabel>
+                        <FormLabel>{t('createDialog.descriptionLabel')}</FormLabel>
                         <FormControl>
-                            <Textarea placeholder="Describe the service" {...field} />
+                            <Textarea placeholder={t('createDialog.descriptionPlaceholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -305,17 +308,17 @@ export default function ServicesPage() {
                     name="indications"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Indications</FormLabel>
+                        <FormLabel>{t('createDialog.indicationsLabel')}</FormLabel>
                         <FormControl>
-                            <Textarea placeholder="Enter indications for this service" {...field} />
+                            <Textarea placeholder={t('createDialog.indicationsPlaceholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
                 />
                 <DialogFooter>
-                    <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                    <Button type="submit">{editingService ? 'Save Changes' : 'Create Service'}</Button>
+                    <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('createDialog.cancel')}</Button>
+                    <Button type="submit">{editingService ? t('createDialog.editSave') : t('createDialog.save')}</Button>
                 </DialogFooter>
             </form>
         </Form>
@@ -325,14 +328,14 @@ export default function ServicesPage() {
     <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                    This will permanently delete the service "{deletingService?.name}". This action cannot be undone.
+                    {t('deleteDialog.description', {name: deletingService?.name})}
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>

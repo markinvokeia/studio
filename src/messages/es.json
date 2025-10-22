@@ -476,6 +476,62 @@
       "delete": "Eliminar"
     }
   },
+  "ServicesPage": {
+    "title": "Catálogo de Servicios",
+    "description": "Gestionar los servicios del negocio.",
+    "filterPlaceholder": "Filtrar servicios por nombre...",
+    "createDialog": {
+      "title": "Crear Nuevo Servicio",
+      "editTitle": "Editar Servicio",
+      "description": "Completa los detalles a continuación para agregar un nuevo servicio.",
+      "editDescription": "Actualiza los detalles de este servicio.",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Consulta Inicial",
+      "category": "Categoría",
+      "categoryPlaceholder": "ej., Consultoría",
+      "price": "Precio",
+      "duration": "Duración (min)",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Describe el servicio",
+      "indicationsLabel": "Indicaciones",
+      "indicationsPlaceholder": "Introduce indicaciones para este servicio",
+      "cancel": "Cancelar",
+      "save": "Crear Servicio",
+      "editSave": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente el servicio \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Servicio Creado",
+      "editSuccessTitle": "Servicio Actualizado",
+      "deleteSuccessTitle": "Servicio Eliminado",
+      "successDescription": "El servicio \"{name}\" ha sido guardado exitosamente.",
+      "deleteSuccessDescription": "El servicio \"{name}\" ha sido eliminado.",
+      "deleteErrorDescription": "No se pudo eliminar el servicio."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio",
+      "categoryRequired": "La categoría es obligatoria",
+      "pricePositive": "El precio debe ser un número positivo",
+      "durationInteger": "La duración debe ser un número entero positivo"
+    }
+  },
+  "ServicesColumns": {
+    "id": "ID",
+    "name": "Nombre",
+    "category": "Categoría",
+    "price": "Precio",
+    "duration": "Duración (min)",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
   "UsersPage": {
     "title": "Usuarios",
     "description": "Gestiona todos los usuarios del sistema.",
@@ -822,11 +878,11 @@
     "methods": {
       "credit_card": "Tarjeta de Crédito",
       "bank_transfer": "Transferencia Bancaria",
+      "transferencia": "Transferencia",
       "cash": "Efectivo",
       "debit": "Débito",
       "credit": "Crédito",
-      "mercado_pago": "Mercado Pago",
-      "transferencia": "Transferencia"
+      "mercado_pago": "Mercado Pago"
     },
     "status": {
       "paid": "Pagada",

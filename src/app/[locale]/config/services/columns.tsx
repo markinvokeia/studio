@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import React from 'react';
+import { useTranslations } from 'next-intl';
 
 
 interface ServicesColumnsProps {
@@ -22,37 +23,37 @@ interface ServicesColumnsProps {
 }
 
 export const ServicesColumnsWrapper = ({ onEdit, onDelete }: ServicesColumnsProps): ColumnDef<Service>[] => {
-
+  const t = useTranslations('ServicesColumns');
   const columns: ColumnDef<Service>[] = [
     {
       accessorKey: 'id',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="ID" />
+        <DataTableColumnHeader column={column} title={t('id')} />
       ),
     },
     {
       accessorKey: 'name',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Name" />
+        <DataTableColumnHeader column={column} title={t('name')} />
       ),
     },
     {
       accessorKey: 'category',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Category" />
+        <DataTableColumnHeader column={column} title={t('category')} />
       ),
     },
     {
       accessorKey: 'price',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Price" />
+        <DataTableColumnHeader column={column} title={t('price')} />
       ),
       cell: ({ row }) => `$${row.original.price}`,
     },
     {
       accessorKey: 'duration_minutes',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Duration (min)" />
+        <DataTableColumnHeader column={column} title={t('duration')} />
       ),
     },
     {
@@ -68,9 +69,9 @@ export const ServicesColumnsWrapper = ({ onEdit, onDelete }: ServicesColumnsProp
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => onEdit(service)}>Edit</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDelete(service)} className="text-destructive">Delete</DropdownMenuItem>
+              <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => onEdit(service)}>{t('edit')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onDelete(service)} className="text-destructive">{t('delete')}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         );
