@@ -585,11 +585,11 @@ export default function AppointmentsPage() {
             isAvailable = result.isAvailable === true;
             
             if (result.suggestedTimes) {
-              const allDocs = [...doctorSearchResults, ...result.suggestedTimes.map((s:any) => ({ id: s.json.user_id, name: s.json.user_name, email: s.json.user_email, is_active: true, phone_number: '', avatar: ''}))];
-              const uniqueDocs = Array.from(new Map(allDocs.map(item => [item.id, item])).values());
-              setDoctorSearchResults(uniqueDocs);
-              
-              suggestions = result.suggestedTimes.flatMap((suggestion: any, index: number) => ({
+                const allDocs = [...doctorSearchResults, ...result.suggestedTimes.map((s:any) => ({ id: s.json.user_id, name: s.json.user_name, email: s.json.user_email, is_active: true, phone_number: '', avatar: ''}))];
+                const uniqueDocs = Array.from(new Map(allDocs.map(item => [item.id, item])).values());
+                setDoctorSearchResults(uniqueDocs);
+
+                suggestions = result.suggestedTimes.map((suggestion: any, index: number) => ({
                     id: `sugg-${suggestion.json.user_id}-${index}`,
                     calendar: suggestion.json.calendario,
                     date: suggestion.json.fecha_cita,
@@ -609,14 +609,23 @@ export default function AppointmentsPage() {
         console.error("Failed to check availability:", error);
         setAvailabilityStatus('idle');
     }
-  }, [newAppointment, editingAppointment, t, doctorSearchResults]);
+  }, [newAppointment.date, newAppointment.time, newAppointment.services, newAppointment.user, newAppointment.doctor, newAppointment.calendar, editingAppointment, t, doctorSearchResults]);
 
   React.useEffect(() => {
-      const handler = setTimeout(() => {
-          checkAvailability();
-      }, 500);
-      return () => clearTimeout(handler);
-  }, [checkAvailability]);
+    const handler = setTimeout(() => {
+      checkAvailability();
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [
+    newAppointment.date,
+    newAppointment.time,
+    newAppointment.services,
+    newAppointment.user,
+    newAppointment.doctor,
+    newAppointment.calendar,
+    editingAppointment,
+    checkAvailability,
+  ]);
 
   const handleSaveAppointment = async () => {
     const { user, doctor, services, calendar, date, time, description } = newAppointment;
