@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -8,15 +9,16 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Quote } from '@/lib/types';
 import { Badge } from '../ui/badge';
+import { useTranslations } from 'next-intl';
 
-const columns: ColumnDef<Quote>[] = [
+const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
     {
         accessorKey: 'id',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Quote ID" />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.quoteId')} />,
     },
     {
         accessorKey: 'total',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Total" />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.total')} />,
         cell: ({ row }) => {
             const amount = parseFloat(row.getValue('total'));
             const formatted = new Intl.NumberFormat('en-US', {
@@ -28,7 +30,7 @@ const columns: ColumnDef<Quote>[] = [
     },
     {
         accessorKey: 'status',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.status')} />,
         cell: ({ row }) => {
           const status = row.getValue('status') as string;
           const variant = {
@@ -42,14 +44,14 @@ const columns: ColumnDef<Quote>[] = [
     
           return (
             <Badge variant={variant} className="capitalize">
-              {status}
+              {t(`QuotesPage.quoteDialog.${status.toLowerCase()}`)}
             </Badge>
           );
         },
     },
     {
         accessorKey: 'payment_status',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Payment" />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('Navigation.Payments')} />,
          cell: ({ row }) => {
           const status = row.getValue('payment_status') as string;
           const variant = {
@@ -60,7 +62,7 @@ const columns: ColumnDef<Quote>[] = [
     
           return (
             <Badge variant={variant} className="capitalize">
-              {status}
+              {t(`QuotesPage.quoteDialog.${status.toLowerCase()}`)}
             </Badge>
           );
         },
@@ -104,8 +106,11 @@ interface UserQuotesProps {
 }
 
 export function UserQuotes({ userId }: UserQuotesProps) {
+  const t = useTranslations();
   const [userQuotes, setUserQuotes] = React.useState<Quote[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+
+  const columns = React.useMemo(() => getColumns(t), [t]);
 
   React.useEffect(() => {
     async function loadQuotes() {

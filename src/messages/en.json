@@ -659,6 +659,7 @@
       "pending": "Pending",
       "confirmed": "Confirmed",
       "rejected": "Rejected",
+      "accepted": "Accepted",
       "paymentStatus": "Payment Status",
       "selectPaymentStatus": "Select a payment status",
       "unpaid": "Unpaid",
@@ -1162,5 +1163,3 @@
     "noResults": "No results."
   }
 }
-
-    
