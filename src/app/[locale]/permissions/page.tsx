@@ -39,10 +39,10 @@ import { useTranslations } from 'next-intl';
 
 const permissionFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  name: z.string().min(1, t('validation.nameRequired')),
+  name: z.string().min(1, t('nameRequired')),
   description: z.string().optional(),
-  action: z.string().min(1, t('validation.actionRequired')),
-  resource: z.string().min(1, t('validation.resourceRequired')),
+  action: z.string().min(1, t('actionRequired')),
+  resource: z.string().min(1, t('resourceRequired')),
 });
 
 type PermissionFormValues = z.infer<ReturnType<typeof permissionFormSchema>>;
