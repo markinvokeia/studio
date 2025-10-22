@@ -587,32 +587,16 @@ export default function AppointmentsPage() {
             isAvailable = result.isAvailable === true;
             
             if (result.suggestedTimes) {
-                const groupedSuggestions: { [key: string]: any } = {};
-
-                result.suggestedTimes.forEach((suggestion: any) => {
-                    const { calendario, fecha_cita, hora_cita, user_name, user_id } = suggestion.json;
-                    const key = `${calendario}-${fecha_cita}-${hora_cita}`;
-                    if (!groupedSuggestions[key]) {
-                        groupedSuggestions[key] = {
-                            calendar: calendario,
-                            date: fecha_cita,
-                            time: hora_cita,
-                            doctors: [],
-                        };
-                    }
-                    if (user_id !== newAppointment.user?.id) {
-                        groupedSuggestions[key].doctors.push(user_name);
-                    }
-                });
-
-                suggestions = Object.entries(groupedSuggestions).map(([key, value], index) => ({
+              const patientId = newAppointment.user?.id;
+              suggestions = result.suggestedTimes
+                .filter((suggestion: any) => suggestion.json.user_id !== patientId)
+                .map((suggestion: any, index: number) => ({
                     id: `sugg-${index}`,
-                    calendar: value.calendar,
-                    date: value.date,
-                    time: value.time,
-                    doctor: value.doctors.join(', ') || t('createDialog.none'),
+                    calendar: suggestion.json.calendario,
+                    date: suggestion.json.fecha_cita,
+                    time: suggestion.json.hora_cita,
+                    doctor: suggestion.json.user_name || t('createDialog.none'),
                 }));
-
             }
         }
 
@@ -1243,6 +1227,7 @@ export default function AppointmentsPage() {
             {newAppointment.showSuggestions && !editingAppointment && (
                 <div className="border-l pl-8">
                     <h4 className="font-semibold mb-4">{t('createDialog.suggestedTimes')}</h4>
+                    <ScrollArea className="h-64">
                     <RadioGroup onValueChange={(value) => {
                       const suggestion = suggestedTimes.find(s => s.id === value);
                       if (suggestion) {
@@ -1251,6 +1236,7 @@ export default function AppointmentsPage() {
                               date: suggestion.date,
                               time: suggestion.time,
                               calendar: calendars.find(c => c.name === suggestion.calendar) || prev.calendar,
+                              doctor: doctorSearchResults.find(d => d.name === suggestion.doctor) || prev.doctor,
                           }))
                       }
                     }}>
@@ -1274,9 +1260,17 @@ export default function AppointmentsPage() {
                             <TableCell>{suggestion.time}</TableCell>
                           </TableRow>
                         ))}
+                         {suggestedTimes.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                                    {availabilityStatus === 'checking' ? t('createDialog.searching') : tGeneral('noResults')}
+                                </TableCell>
+                            </TableRow>
+                        )}
                       </TableBody>
                     </Table>
                     </RadioGroup>
+                    </ScrollArea>
                 </div>
             )}
           </div>
