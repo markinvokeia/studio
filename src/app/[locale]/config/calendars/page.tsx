@@ -29,8 +29,8 @@ import { useTranslations } from 'next-intl';
 
 const calendarFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
-    name: z.string().min(1, t('validation.nameRequired')),
-    google_calendar_id: z.string().email(t('validation.emailInvalid')),
+    name: z.string().min(1, t('nameRequired')),
+    google_calendar_id: z.string().email(t('emailInvalid')),
     is_active: z.boolean().default(false),
 });
 
