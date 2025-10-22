@@ -532,6 +532,30 @@
     "edit": "Edit",
     "delete": "Delete"
   },
+  "ClinicDetailsPage": {
+    "title": "Clinic Details",
+    "description": "Manage clinic locations and contact information.",
+    "logoLabel": "Clinic Logo",
+    "nameLabel": "Name",
+    "namePlaceholder": "e.g., Downtown Branch",
+    "locationLabel": "Location",
+    "locationPlaceholder": "e.g., 123 Main St, Anytown",
+    "emailLabel": "Email",
+    "emailPlaceholder": "e.g., branch@clinic.com",
+    "phoneLabel": "Phone",
+    "phonePlaceholder": "e.g., 111-222-3333",
+    "save": "Save Changes",
+    "saving": "Saving...",
+    "noClinic": "No clinic information found.",
+    "toast": {
+      "fileTooLargeTitle": "File Too Large",
+      "fileTooLargeDesc": "The selected logo image must be less than 1MB.",
+      "successTitle": "Success",
+      "successDesc": "Clinic details updated successfully.",
+      "errorTitle": "Error",
+      "errorUnknown": "Could not update clinic details."
+    }
+  },
   "UsersPage": {
     "title": "Users",
     "description": "Manage all users in the system.",
@@ -878,9 +902,10 @@
     "methods": {
       "credit_card": "Credit Card",
       "bank_transfer": "Bank Transfer",
-      "transferencia": "Bank Transfer",
+      "transferencia": "Transferencia",
       "cash": "Cash",
       "debit": "Debit",
+      "tarjeta_de_débito": "Tarjeta de Débito",
       "credit": "Credit",
       "mercado_pago": "Mercado Pago"
     },
@@ -925,7 +950,7 @@
   "PaymentsPage": {
     "title": "Payments",
     "description": "View all processed payments.",
-    "filterPlaceholder": "Filter by invoice ID...",
+    "filterPlaceholder": "Filter payments by invoice ID...",
     "columns": {
       "id": "Payment ID",
       "quoteId": "Quote ID",

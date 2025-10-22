@@ -53,7 +53,7 @@ async function getClinic(): Promise<Clinic | null> {
 
 
 export default function ClinicsPage() {
-    const t = useTranslations('Navigation');
+    const t = useTranslations('ClinicDetailsPage');
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
     const [isSaving, setIsSaving] = React.useState(false);
@@ -87,8 +87,8 @@ export default function ClinicsPage() {
             if (file.size > 1024 * 1024) { // 1MB limit
                 toast({
                     variant: 'destructive',
-                    title: 'File Too Large',
-                    description: 'The selected logo image must be less than 1MB.',
+                    title: t('toast.fileTooLargeTitle'),
+                    description: t('toast.fileTooLargeDesc'),
                 });
                 return;
             }
@@ -127,19 +127,19 @@ export default function ClinicsPage() {
 
             if (response.ok && (responseData.code === 200 || responseData[0]?.code === 200)) {
                 toast({
-                    title: 'Success',
-                    description: 'Clinic details updated successfully.',
+                    title: t('toast.successTitle'),
+                    description: t('toast.successDesc'),
                 });
                 loadClinic();
             } else {
-                 const errorMessage = responseData.message || (responseData[0]?.message) || 'An unknown error occurred.';
+                 const errorMessage = responseData.message || (responseData[0]?.message) || t('toast.errorUnknown');
                 throw new Error(errorMessage);
             }
         } catch (error) {
              toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: error instanceof Error ? error.message : 'Could not update clinic details.',
+                title: t('toast.errorTitle'),
+                description: error instanceof Error ? error.message : t('toast.errorUnknown'),
             });
         } finally {
             setIsSaving(false);
@@ -190,11 +190,11 @@ export default function ClinicsPage() {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>{t('ClinicDetails')}</CardTitle>
-                    <CardDescription>Manage clinic locations and contact information.</CardDescription>
+                    <CardTitle>{t('title')}</CardTitle>
+                    <CardDescription>{t('description')}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p>No clinic information found.</p>
+                    <p>{t('noClinic')}</p>
                 </CardContent>
             </Card>
         );
@@ -204,14 +204,14 @@ export default function ClinicsPage() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>{t('ClinicDetails')}</CardTitle>
-                <CardDescription>Manage clinic locations and contact information.</CardDescription>
+                <CardTitle>{t('title')}</CardTitle>
+                <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
                     <div className="space-y-6">
                         <div className="space-y-2">
-                            <Label htmlFor="logo">Clinic Logo</Label>
+                            <Label htmlFor="logo">{t('logoLabel')}</Label>
                              <div className="flex items-center gap-4">
                                 <div className="relative h-24 w-24 rounded-md border-2 border-dashed border-muted-foreground/50 flex items-center justify-center">
                                     {logoPreview ? (
@@ -225,20 +225,20 @@ export default function ClinicsPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="name">Name</Label>
-                            <Input id="name" value={clinic.name} onChange={handleInputChange} placeholder="e.g., Downtown Branch" />
+                            <Label htmlFor="name">{t('nameLabel')}</Label>
+                            <Input id="name" value={clinic.name} onChange={handleInputChange} placeholder={t('namePlaceholder')} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="location">Location</Label>
-                            <Input id="location" value={clinic.location} onChange={handleInputChange} placeholder="e.g., 123 Main St, Anytown" />
+                            <Label htmlFor="location">{t('locationLabel')}</Label>
+                            <Input id="location" value={clinic.location} onChange={handleInputChange} placeholder={t('locationPlaceholder')} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="contact_email">Email</Label>
-                            <Input id="contact_email" type="email" value={clinic.contact_email} onChange={handleInputChange} placeholder="e.g., branch@clinic.com" />
+                            <Label htmlFor="contact_email">{t('emailLabel')}</Label>
+                            <Input id="contact_email" type="email" value={clinic.contact_email} onChange={handleInputChange} placeholder={t('emailPlaceholder')} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="phone_number">Phone</Label>
-                            <Input id="phone_number" value={clinic.phone_number} onChange={handleInputChange} placeholder="e.g., 111-222-3333" />
+                            <Label htmlFor="phone_number">{t('phoneLabel')}</Label>
+                            <Input id="phone_number" value={clinic.phone_number} onChange={handleInputChange} placeholder={t('phonePlaceholder')} />
                         </div>
                     </div>
                     <div className="h-[400px] w-full overflow-hidden rounded-lg md:h-full">
@@ -253,7 +253,7 @@ export default function ClinicsPage() {
             </CardContent>
             <CardFooter className="justify-between">
                 <Button onClick={handleSaveChanges} disabled={isSaving}>
-                    {isSaving ? 'Saving...' : 'Save Changes'}
+                    {isSaving ? t('saving') : t('save')}
                 </Button>
                 <Button variant="outline" size="icon" onClick={loadClinic} disabled={isLoading}>
                     <RefreshCw className={`h-4 w-4 ${isLoading || isSaving ? 'animate-spin' : ''}`} />

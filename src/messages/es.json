@@ -532,6 +532,30 @@
     "edit": "Editar",
     "delete": "Eliminar"
   },
+  "ClinicDetailsPage": {
+    "title": "Detalles de la Clínica",
+    "description": "Gestionar ubicaciones de la clínica e información de contacto.",
+    "logoLabel": "Logo de la Clínica",
+    "nameLabel": "Nombre",
+    "namePlaceholder": "ej., Sucursal Centro",
+    "locationLabel": "Ubicación",
+    "locationPlaceholder": "ej., Av. Principal 123, Ciudad",
+    "emailLabel": "Correo Electrónico",
+    "emailPlaceholder": "ej., sucursal@clinica.com",
+    "phoneLabel": "Teléfono",
+    "phonePlaceholder": "ej., 111-222-3333",
+    "save": "Guardar Cambios",
+    "saving": "Guardando...",
+    "noClinic": "No se encontró información de la clínica.",
+    "toast": {
+      "fileTooLargeTitle": "Archivo Demasiado Grande",
+      "fileTooLargeDesc": "La imagen del logo seleccionado debe ser menor a 1MB.",
+      "successTitle": "Éxito",
+      "successDesc": "Los detalles de la clínica se actualizaron correctamente.",
+      "errorTitle": "Error",
+      "errorUnknown": "No se pudieron actualizar los detalles de la clínica."
+    }
+  },
   "UsersPage": {
     "title": "Usuarios",
     "description": "Gestiona todos los usuarios del sistema.",
@@ -881,6 +905,7 @@
       "transferencia": "Transferencia",
       "cash": "Efectivo",
       "debit": "Débito",
+      "tarjeta_de_débito": "Tarjeta de Débito",
       "credit": "Crédito",
       "mercado_pago": "Mercado Pago"
     },
