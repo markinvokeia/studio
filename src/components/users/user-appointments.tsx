@@ -122,6 +122,7 @@ interface UserAppointmentsProps {
 export function UserAppointments({ user }: UserAppointmentsProps) {
   const t = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
+  const tAppointmentsPage = useTranslations('AppointmentsPage');
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
@@ -156,7 +157,7 @@ export function UserAppointments({ user }: UserAppointmentsProps) {
           columns={columns}
           data={appointments}
           filterColumnId="service_name"
-          filterPlaceholder="Filter by service..."
+          filterPlaceholder={tAppointmentsPage('filterByService')}
         />
       </CardContent>
     </Card>
