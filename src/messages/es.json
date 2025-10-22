@@ -821,7 +821,8 @@
       "cash": "Efectivo",
       "debit": "Débito",
       "credit": "Crédito",
-      "mercado_pago": "Mercado Pago"
+      "mercado_pago": "Mercado Pago",
+      "transferencia": "Transferencia"
     },
     "status": {
       "paid": "Pagada",
@@ -1162,3 +1163,5 @@
     "noResults": "No se encontraron resultados."
   }
 }
+
+    

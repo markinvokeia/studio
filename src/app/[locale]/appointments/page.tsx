@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -247,6 +246,7 @@ export default function AppointmentsPage() {
       ),
     },
     { accessorKey: 'calendar', header: t('createDialog.suggested.calendar') },
+    { accessorKey: 'doctor', header: tColumns('doctor') },
     { accessorKey: 'date', header: t('createDialog.suggested.date') },
     { accessorKey: 'time', header: t('createDialog.suggested.time') },
   ];
@@ -580,26 +580,49 @@ export default function AppointmentsPage() {
         
         let isAvailable = false;
         let suggestions: any[] = [];
-
+    
         if (Array.isArray(data) && data.length > 0) {
-            isAvailable = data[0].isAvailable === true;
-            suggestions = (data[0].suggestions || []).map((s: any, index: number) => {
-              let parsedDoctor = {};
-              try {
-                if (s.availableDoctor) {
-                  parsedDoctor = JSON.parse(s.availableDoctor);
-                }
-              } catch(e) {
-                console.error("Failed to parse doctor data from suggestion", e);
-              }
-              return {
-                id: `sugg-${index}`,
-                calendar: s.availableCalendarName,
-                date: format(parseISO(s.availableStartingTime), 'yyyy-MM-dd'),
-                time: format(parseISO(s.availableStartingTime), 'HH:mm'),
-                doctor: parsedDoctor,
-              };
-            });
+            const result = data[0];
+            isAvailable = result.isAvailable === true;
+            
+            if (result.suggestedAppointments) {
+                const groupedSuggestions: { [key: string]: any } = {};
+
+                result.suggestedAppointments.forEach((suggestion: any) => {
+                    const { calendario, fecha_cita, hora_cita, user_name, user_id } = suggestion.json;
+                    const key = `${calendario}-${fecha_cita}-${hora_cita}`;
+                    if (!groupedSuggestions[key]) {
+                        groupedSuggestions[key] = {
+                            calendar: calendario,
+                            date: fecha_cita,
+                            time: hora_cita,
+                            doctors: [],
+                        };
+                    }
+                    if (user_id !== newAppointment.user?.id) {
+                        groupedSuggestions[key].doctors.push(user_name);
+                    }
+                });
+
+                suggestions = Object.entries(groupedSuggestions).map(([key, value], index) => ({
+                    id: `sugg-${index}`,
+                    calendar: value.calendar,
+                    date: value.date,
+                    time: value.time,
+                    doctor: value.doctors.join(', ') || t('createDialog.none'),
+                }));
+
+            } else if (result.suggestions) { // Fallback for old format
+                suggestions = (result.suggestions || []).map((s: any, index: number) => {
+                    return {
+                      id: `sugg-${index}`,
+                      calendar: s.availableCalendarName,
+                      date: format(parseISO(s.availableStartingTime), 'yyyy-MM-dd'),
+                      time: format(parseISO(s.availableStartingTime), 'HH:mm'),
+                      doctor: s.availableDoctor ? JSON.parse(s.availableDoctor).name : t('createDialog.none'),
+                    };
+                  });
+            }
         }
 
         setAvailabilityStatus(isAvailable ? 'available' : 'unavailable');
@@ -608,7 +631,7 @@ export default function AppointmentsPage() {
         console.error("Failed to check availability:", error);
         setAvailabilityStatus('idle');
     }
-  }, [newAppointment, editingAppointment]);
+  }, [newAppointment, editingAppointment, t]);
 
   React.useEffect(() => {
       const handler = setTimeout(() => {
@@ -1245,6 +1268,7 @@ export default function AppointmentsPage() {
                         <TableRow>
                           <TableHead></TableHead>
                           <TableHead>{t('createDialog.suggested.calendar')}</TableHead>
+                          <TableHead>{tColumns('doctor')}</TableHead>
                           <TableHead>{t('createDialog.suggested.date')}</TableHead>
                           <TableHead>{t('createDialog.suggested.time')}</TableHead>
                         </TableRow>
@@ -1254,6 +1278,7 @@ export default function AppointmentsPage() {
                           <TableRow key={suggestion.id}>
                             <TableCell><RadioGroupItem value={suggestion.id} id={suggestion.id} /></TableCell>
                             <TableCell>{suggestion.calendar}</TableCell>
+                            <TableCell>{suggestion.doctor}</TableCell>
                             <TableCell>{suggestion.date}</TableCell>
                             <TableCell>{suggestion.time}</TableCell>
                           </TableRow>
@@ -1295,5 +1320,7 @@ export default function AppointmentsPage() {
     
 
 
+
+    
 
     
