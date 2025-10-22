@@ -10,31 +10,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { User } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
-
-const columns: ColumnDef<User>[] = [
-  {
-    accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <span className="font-medium">{row.getValue('name')}</span>
-      </div>
-    ),
-  },
-  {
-    accessorKey: 'email',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
-  },
-  {
-    accessorKey: 'is_active',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
-    cell: ({ row }) => (
-      <Badge variant={row.getValue('is_active') ? 'default' : 'outline'}>
-        {row.getValue('is_active') ? 'Active' : 'Inactive'}
-      </Badge>
-    ),
-  },
-];
+import { useTranslations } from 'next-intl';
 
 async function getUsersForPermission(permissionId: string): Promise<User[]> {
   if (!permissionId) return [];
@@ -73,8 +49,34 @@ interface PermissionUsersProps {
 }
 
 export function PermissionUsers({ permissionId }: PermissionUsersProps) {
+  const t = useTranslations('UserColumns');
   const [users, setUsers] = React.useState<User[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+
+  const columns: ColumnDef<User>[] = [
+    {
+      accessorKey: 'name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('name')} />,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{row.getValue('name')}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'email',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('email')} />,
+    },
+    {
+      accessorKey: 'is_active',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('status')} />,
+      cell: ({ row }) => (
+        <Badge variant={row.getValue('is_active') ? 'default' : 'outline'}>
+          {row.getValue('is_active') ? 'Active' : 'Inactive'}
+        </Badge>
+      ),
+    },
+  ];
 
   React.useEffect(() => {
     async function loadUsers() {
