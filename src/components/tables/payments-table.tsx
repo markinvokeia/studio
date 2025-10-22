@@ -21,6 +21,7 @@ const getColumns = (
         'tarjeta de credito': 'credit_card',
         'efectivo': 'cash',
         'tarjeta de debito': 'debit',
+        'tarjeta de débito': 'debit',
         'credit': 'credit',
         'mercado pago': 'mercado_pago',
     };
