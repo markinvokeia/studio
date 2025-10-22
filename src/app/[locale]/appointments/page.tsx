@@ -530,6 +530,7 @@ export default function AppointmentsPage() {
     }
 
     setAvailabilityStatus('checking');
+    setSuggestedTimes([]);
 
     const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
     const totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
@@ -584,32 +585,31 @@ export default function AppointmentsPage() {
             isAvailable = result.isAvailable === true;
             
             if (result.suggestedTimes) {
-                const patientId = newAppointment.user?.id;
-                const suggestionsMap = new Map();
-        
+                 const suggestionsMap = new Map<string, { calendar: string; date: string; time: string; doctors: Set<string> }>();
+
                 result.suggestedTimes.forEach((suggestion: any) => {
-                    const key = `${suggestion.json.fecha_cita}-${suggestion.json.hora_cita}-${suggestion.json.calendario}`;
+                    const key = `${suggestion.json.calendario}-${suggestion.json.fecha_cita}-${suggestion.json.hora_cita}`;
                     if (!suggestionsMap.has(key)) {
                         suggestionsMap.set(key, {
                             calendar: suggestion.json.calendario,
                             date: suggestion.json.fecha_cita,
                             time: suggestion.json.hora_cita,
-                            doctors: new Set(),
+                            doctors: new Set<string>(),
                         });
                     }
-                    if (suggestion.json.user_id !== patientId) {
-                        suggestionsMap.get(key).doctors.add(suggestion.json.user_name || t('createDialog.none'));
+                    if (suggestion.json.user_id !== newAppointment.user?.id) {
+                       suggestionsMap.get(key)!.doctors.add(suggestion.json.user_name || t('createDialog.none'));
                     }
                 });
 
                 suggestions = Array.from(suggestionsMap.values()).map((s, index) => ({
-                  id: `sugg-${index}`,
-                  calendar: s.calendar,
-                  date: s.date,
-                  time: s.time,
-                  doctor: Array.from(s.doctors).join(', ') || t('createDialog.none'),
+                    id: `sugg-${index}`,
+                    calendar: s.calendar,
+                    date: s.date,
+                    time: s.time,
+                    doctor: Array.from(s.doctors).join(', ') || t('createDialog.none'),
                 }));
-              }
+            }
         }
 
         setAvailabilityStatus(isAvailable ? 'available' : 'unavailable');
@@ -690,7 +690,16 @@ export default function AppointmentsPage() {
       } else {
         const errorDetails = result?.error || result;
         const errorMessage = errorDetails?.description || errorDetails?.message || 'An unknown error occurred.';
-        throw new Error(errorMessage);
+        if (errorMessage.includes("No existe disponibilidad")) {
+            toast({
+                variant: "destructive",
+                title: "Slot Unavailable",
+                description: "The selected time is no longer available. Please choose a different time.",
+            });
+            checkAvailability(); // Re-check for new suggestions
+        } else {
+            throw new Error(errorMessage);
+        }
       }
 
     } catch (error) {
@@ -958,12 +967,12 @@ export default function AppointmentsPage() {
         </Tabs>
       </Card>
       <Dialog open={isCreateOpen} onOpenChange={(isOpen) => { setCreateOpen(isOpen); if (!isOpen) {setEditingAppointment(null); setOriginalCalendarId(undefined); }}}>
-        <DialogContent className={cn("sm:max-w-md", !editingAppointment && availabilityStatus === 'unavailable' && "sm:max-w-4xl")}>
+        <DialogContent className={cn("sm:max-w-md", !editingAppointment && availabilityStatus === 'unavailable' && suggestedTimes.length > 0 && "sm:max-w-4xl")}>
           <DialogHeader>
             <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
             <DialogDescription>{t('createDialog.description')}</DialogDescription>
           </DialogHeader>
-          <div className={cn("grid gap-8 py-4", !editingAppointment && availabilityStatus === 'unavailable' && "grid-cols-2")}>
+          <div className={cn("grid gap-8 py-4", !editingAppointment && availabilityStatus === 'unavailable' && suggestedTimes.length > 0 && "grid-cols-2")}>
             <div className="grid gap-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="patientName" className="text-right">{t('createDialog.userName')}</Label>
@@ -1228,7 +1237,7 @@ export default function AppointmentsPage() {
                 </div>
               )}
             </div>
-            {!editingAppointment && availabilityStatus === 'unavailable' && (
+            {!editingAppointment && availabilityStatus === 'unavailable' && suggestedTimes.length > 0 && (
                 <div className="border-l pl-8">
                     <h4 className="font-semibold mb-4">{t('createDialog.suggestedTimes')}</h4>
                     <RadioGroup onValueChange={(value) => {
@@ -1310,6 +1319,8 @@ export default function AppointmentsPage() {
     
 
 
+
+    
 
     
 
