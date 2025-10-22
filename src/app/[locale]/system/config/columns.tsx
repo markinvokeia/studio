@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useTranslations } from 'next-intl';
 
 interface ConfigsColumnsProps {
     onEdit: (config: SystemConfiguration) => void;
@@ -22,18 +23,19 @@ interface ConfigsColumnsProps {
 
 
 export const ConfigsColumnsWrapper = ({ onEdit, onDelete }: ConfigsColumnsProps): ColumnDef<SystemConfiguration>[] => {
+    const t = useTranslations('ConfigurationsPage.columns');
     const columns: ColumnDef<SystemConfiguration>[] = [
-        { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title="ID" /> },
-        { accessorKey: 'key', header: ({column}) => <DataTableColumnHeader column={column} title="Key" /> },
-        { accessorKey: 'value', header: ({column}) => <DataTableColumnHeader column={column} title="Value" /> },
-        { accessorKey: 'description', header: ({column}) => <DataTableColumnHeader column={column} title="Description" /> },
-        { accessorKey: 'data_type', header: ({column}) => <DataTableColumnHeader column={column} title="Type" /> },
+        { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title={t('id')} /> },
+        { accessorKey: 'key', header: ({column}) => <DataTableColumnHeader column={column} title={t('key')} /> },
+        { accessorKey: 'value', header: ({column}) => <DataTableColumnHeader column={column} title={t('value')} /> },
+        { accessorKey: 'description', header: ({column}) => <DataTableColumnHeader column={column} title={t('description')} /> },
+        { accessorKey: 'data_type', header: ({column}) => <DataTableColumnHeader column={column} title={t('type')} /> },
         { 
             accessorKey: 'is_public', 
-            header: ({column}) => <DataTableColumnHeader column={column} title="Is Public" />,
-            cell: ({ row }) => <Badge variant={row.original.is_public ? 'success' : 'outline'}>{row.original.is_public ? 'Yes' : 'No'}</Badge>,
+            header: ({column}) => <DataTableColumnHeader column={column} title={t('isPublic')} />,
+            cell: ({ row }) => <Badge variant={row.original.is_public ? 'success' : 'outline'}>{row.original.is_public ? t('yes') : t('no')}</Badge>,
         },
-        { accessorKey: 'updated_by', header: ({column}) => <DataTableColumnHeader column={column} title="Updated By" /> },
+        { accessorKey: 'updated_by', header: ({column}) => <DataTableColumnHeader column={column} title={t('updatedBy')} /> },
         {
             id: 'actions',
             cell: ({ row }) => {
@@ -47,9 +49,9 @@ export const ConfigsColumnsWrapper = ({ onEdit, onDelete }: ConfigsColumnsProps)
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onEdit(config)}>Edit</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDelete(config)} className="text-destructive">Delete</DropdownMenuItem>
+                    <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => onEdit(config)}>{t('edit')}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDelete(config)} className="text-destructive">{t('delete')}</DropdownMenuItem>
                 </DropdownMenuContent>
                 </DropdownMenu>
             );

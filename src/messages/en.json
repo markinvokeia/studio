@@ -712,6 +712,65 @@
       "delete": "Delete"
     }
   },
+    "ConfigurationsPage": {
+    "title": "Configurations",
+    "description": "Manage system-wide settings.",
+    "filterPlaceholder": "Filter configurations by key...",
+    "dialog": {
+      "createTitle": "Create New Configuration",
+      "editTitle": "Edit Configuration",
+      "createDescription": "Fill in the details below to add a new system configuration.",
+      "editDescription": "Update the details for this configuration.",
+      "key": "Key",
+      "keyPlaceholder": "e.g., API_ENDPOINT",
+      "value": "Value",
+      "valuePlaceholder": "e.g., https://api.example.com",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe what this configuration is for.",
+      "dataType": "Data Type",
+      "selectDataType": "Select a data type",
+      "isPublic": "Is Public",
+      "isPublicDescription": "Allow this configuration to be accessed from the client-side.",
+      "cancel": "Cancel",
+      "create": "Create Configuration",
+      "save": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the configuration \"{key}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createTitle": "Configuration Created",
+      "editTitle": "Configuration Updated",
+      "deleteTitle": "Configuration Deleted",
+      "successDescription": "The configuration \"{key}\" has been saved successfully.",
+      "deleteDescription": "The configuration \"{key}\" has been deleted.",
+      "deleteError": "Could not delete the configuration."
+    },
+    "validation": {
+      "keyRequired": "Key is required",
+      "valueRequired": "Value is required",
+      "dataTypeRequired": "Data type is required"
+    },
+    "columns": {
+      "id": "ID",
+      "key": "Key",
+      "value": "Value",
+      "description": "Description",
+      "type": "Type",
+      "isPublic": "Is Public",
+      "yes": "Yes",
+      "no": "No",
+      "updatedBy": "Updated By",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    }
+  },
   "UsersPage": {
     "title": "Users",
     "description": "Manage all users in the system.",

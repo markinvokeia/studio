@@ -712,6 +712,65 @@
       "delete": "Eliminar"
     }
   },
+    "ConfigurationsPage": {
+    "title": "Configuraciones",
+    "description": "Gestionar la configuración de todo el sistema.",
+    "filterPlaceholder": "Filtrar configuraciones por clave...",
+    "dialog": {
+      "createTitle": "Crear Nueva Configuración",
+      "editTitle": "Editar Configuración",
+      "createDescription": "Complete los detalles a continuación para agregar una nueva configuración del sistema.",
+      "editDescription": "Actualice los detalles de esta configuración.",
+      "key": "Clave",
+      "keyPlaceholder": "ej., API_ENDPOINT",
+      "value": "Valor",
+      "valuePlaceholder": "ej., https://api.example.com",
+      "description": "Descripción",
+      "descriptionPlaceholder": "Describa para qué sirve esta configuración.",
+      "dataType": "Tipo de Dato",
+      "selectDataType": "Seleccione un tipo de dato",
+      "isPublic": "Es Público",
+      "isPublicDescription": "Permitir que esta configuración sea accesible desde el lado del cliente.",
+      "cancel": "Cancelar",
+      "create": "Crear Configuración",
+      "save": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente la configuración \"{key}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createTitle": "Configuración Creada",
+      "editTitle": "Configuración Actualizada",
+      "deleteTitle": "Configuración Eliminada",
+      "successDescription": "La configuración \"{key}\" ha sido guardada exitosamente.",
+      "deleteDescription": "La configuración \"{key}\" ha sido eliminada.",
+      "deleteError": "No se pudo eliminar la configuración."
+    },
+    "validation": {
+      "keyRequired": "La clave es obligatoria",
+      "valueRequired": "El valor es obligatorio",
+      "dataTypeRequired": "El tipo de dato es obligatorio"
+    },
+    "columns": {
+      "id": "ID",
+      "key": "Clave",
+      "value": "Valor",
+      "description": "Descripción",
+      "type": "Tipo",
+      "isPublic": "Es Público",
+      "yes": "Sí",
+      "no": "No",
+      "updatedBy": "Actualizado Por",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    }
+  },
   "UsersPage": {
     "title": "Usuarios",
     "description": "Gestiona todos los usuarios del sistema.",

@@ -35,18 +35,18 @@ import { useTranslations } from 'next-intl';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 
-const configFormSchema = z.object({
+const configFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  key: z.string().min(1, 'Key is required'),
-  value: z.string().min(1, 'Value is required'),
+  key: z.string().min(1, t('keyRequired')),
+  value: z.string().min(1, t('valueRequired')),
   description: z.string().optional(),
   data_type: z.enum(['string', 'number', 'boolean', 'json'], {
-    required_error: 'Data type is required',
+    required_error: t('dataTypeRequired'),
   }),
   is_public: z.boolean().default(false),
 });
 
-type ConfigFormValues = z.infer<typeof configFormSchema>;
+type ConfigFormValues = z.infer<ReturnType<typeof configFormSchema>>;
 
 async function getConfigs(): Promise<SystemConfiguration[]> {
     try {
@@ -108,7 +108,8 @@ async function deleteConfig(id: string) {
 }
 
 export default function SystemConfigPage() {
-    const t = useTranslations('Navigation');
+    const t = useTranslations('ConfigurationsPage');
+    const tValidation = useTranslations('ConfigurationsPage.validation');
     const { toast } = useToast();
     const [configs, setConfigs] = React.useState<SystemConfiguration[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -121,7 +122,7 @@ export default function SystemConfigPage() {
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
     const form = useForm<ConfigFormValues>({
-        resolver: zodResolver(configFormSchema),
+        resolver: zodResolver(configFormSchema(tValidation)),
     });
 
     const loadConfigs = React.useCallback(async () => {
@@ -166,8 +167,8 @@ export default function SystemConfigPage() {
         try {
             await deleteConfig(deletingConfig.id);
             toast({
-                title: "Configuration Deleted",
-                description: `Configuration "${deletingConfig.key}" has been deleted.`,
+                title: t('toast.deleteTitle'),
+                description: t('toast.deleteDescription', { key: deletingConfig.key }),
             });
             setIsDeleteDialogOpen(false);
             setDeletingConfig(null);
@@ -175,8 +176,8 @@ export default function SystemConfigPage() {
         } catch (error) {
             toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: error instanceof Error ? error.message : "Could not delete the configuration.",
+                title: t('toast.errorTitle'),
+                description: error instanceof Error ? error.message : t('toast.deleteError'),
             });
         }
     };
@@ -186,13 +187,13 @@ export default function SystemConfigPage() {
         try {
             await upsertConfig(values);
             toast({
-                title: editingConfig ? "Configuration Updated" : "Configuration Created",
-                description: `The configuration "${values.key}" has been saved successfully.`,
+                title: editingConfig ? t('toast.editTitle') : t('toast.createTitle'),
+                description: t('toast.successDescription', { key: values.key }),
             });
             setIsDialogOpen(false);
             loadConfigs();
         } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
         }
     };
 
@@ -202,15 +203,15 @@ export default function SystemConfigPage() {
         <>
         <Card>
             <CardHeader>
-                <CardTitle>{t('Configurations')}</CardTitle>
-                <CardDescription>Manage system-wide settings.</CardDescription>
+                <CardTitle>{t('title')}</CardTitle>
+                <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <DataTable 
                     columns={configsColumns} 
                     data={configs} 
                     filterColumnId="key" 
-                    filterPlaceholder="Filter configurations by key..."
+                    filterPlaceholder={t('filterPlaceholder')}
                     onCreate={handleCreate}
                     onRefresh={loadConfigs}
                     isRefreshing={isRefreshing}
@@ -220,9 +221,9 @@ export default function SystemConfigPage() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{editingConfig ? 'Edit Configuration' : 'Create New Configuration'}</DialogTitle>
+                    <DialogTitle>{editingConfig ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     <DialogDescription>
-                        {editingConfig ? 'Update the details for this configuration.' : 'Fill in the details below to add a new system configuration.'}
+                        {editingConfig ? t('dialog.editDescription') : t('dialog.createDescription')}
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -230,7 +231,7 @@ export default function SystemConfigPage() {
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle>Error</AlertTitle>
+                                <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
                                 <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
@@ -239,9 +240,9 @@ export default function SystemConfigPage() {
                             name="key"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Key</FormLabel>
+                                    <FormLabel>{t('dialog.key')}</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="e.g., API_ENDPOINT" {...field} />
+                                        <Input placeholder={t('dialog.keyPlaceholder')} {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -252,9 +253,9 @@ export default function SystemConfigPage() {
                             name="value"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Value</FormLabel>
+                                    <FormLabel>{t('dialog.value')}</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="e.g., https://api.example.com" {...field} />
+                                        <Input placeholder={t('dialog.valuePlaceholder')} {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -265,9 +266,9 @@ export default function SystemConfigPage() {
                             name="description"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Description</FormLabel>
+                                    <FormLabel>{t('dialog.description')}</FormLabel>
                                     <FormControl>
-                                        <Textarea placeholder="Describe what this configuration is for." {...field} />
+                                        <Textarea placeholder={t('dialog.descriptionPlaceholder')} {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -278,11 +279,11 @@ export default function SystemConfigPage() {
                             name="data_type"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Data Type</FormLabel>
+                                    <FormLabel>{t('dialog.dataType')}</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select a data type" />
+                                            <SelectValue placeholder={t('dialog.selectDataType')} />
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
@@ -305,17 +306,17 @@ export default function SystemConfigPage() {
                                         <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                                     </FormControl>
                                     <div className="space-y-1 leading-none">
-                                        <FormLabel>Is Public</FormLabel>
+                                        <FormLabel>{t('dialog.isPublic')}</FormLabel>
                                         <FormDescription>
-                                            Allow this configuration to be accessed from the client-side.
+                                            {t('dialog.isPublicDescription')}
                                         </FormDescription>
                                     </div>
                                 </FormItem>
                             )}
                         />
                         <DialogFooter>
-                            <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                            <Button type="submit">{editingConfig ? 'Save Changes' : 'Create Configuration'}</Button>
+                            <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                            <Button type="submit">{editingConfig ? t('dialog.save') : t('dialog.create')}</Button>
                         </DialogFooter>
                     </form>
                 </Form>
@@ -324,14 +325,14 @@ export default function SystemConfigPage() {
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                    This will permanently delete the configuration "{deletingConfig?.key}". This action cannot be undone.
+                    {t('deleteDialog.description', { key: deletingConfig?.key })}
                 </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
