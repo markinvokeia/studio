@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -585,10 +586,10 @@ export default function AppointmentsPage() {
             const result = data[0];
             isAvailable = result.isAvailable === true;
             
-            if (result.suggestedAppointments) {
+            if (result.suggestedTimes) {
                 const groupedSuggestions: { [key: string]: any } = {};
 
-                result.suggestedAppointments.forEach((suggestion: any) => {
+                result.suggestedTimes.forEach((suggestion: any) => {
                     const { calendario, fecha_cita, hora_cita, user_name, user_id } = suggestion.json;
                     const key = `${calendario}-${fecha_cita}-${hora_cita}`;
                     if (!groupedSuggestions[key]) {
@@ -612,16 +613,6 @@ export default function AppointmentsPage() {
                     doctor: value.doctors.join(', ') || t('createDialog.none'),
                 }));
 
-            } else if (result.suggestions) { // Fallback for old format
-                suggestions = (result.suggestions || []).map((s: any, index: number) => {
-                    return {
-                      id: `sugg-${index}`,
-                      calendar: s.availableCalendarName,
-                      date: format(parseISO(s.availableStartingTime), 'yyyy-MM-dd'),
-                      time: format(parseISO(s.availableStartingTime), 'HH:mm'),
-                      doctor: s.availableDoctor ? JSON.parse(s.availableDoctor).name : t('createDialog.none'),
-                    };
-                  });
             }
         }
 
