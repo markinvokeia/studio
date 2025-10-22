@@ -126,8 +126,8 @@ export function MedicalHistory({ user }: MedicalHistoryProps) {
                                         <div>
                                             <strong>{t('treatments')}</strong>
                                             <ul className="list-disc pl-5">
-                                                {session.tratamientos.map((t, i) => (
-                                                    <li key={i}>{t.descripcion} {t.numero_diente && `(${t('tooth', { tooth: t.numero_diente })})`}</li>
+                                                {session.tratamientos.map((treatment, i) => (
+                                                    <li key={i}>{treatment.descripcion} {treatment.numero_diente && `(${t('tooth', { tooth: treatment.numero_diente })})`}</li>
                                                 ))}
                                             </ul>
                                         </div>
