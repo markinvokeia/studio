@@ -6,6 +6,7 @@ import * as React from 'react';
 import { Payment } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { PaymentsTable } from '@/components/tables/payments-table';
+import { useTranslations } from 'next-intl';
 
 async function getPayments(): Promise<Payment[]> {
     try {
@@ -37,6 +38,7 @@ async function getPayments(): Promise<Payment[]> {
 }
 
 export default function PaymentsPage() {
+    const t = useTranslations('PaymentsPage');
     const [payments, setPayments] = React.useState<Payment[]>([]);
     const [isLoading, setIsLoading] = React.useState(false);
 
@@ -54,8 +56,8 @@ export default function PaymentsPage() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Payments</CardTitle>
-                <CardDescription>View all processed payments.</CardDescription>
+                <CardTitle>{t('title')}</CardTitle>
+                <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <PaymentsTable

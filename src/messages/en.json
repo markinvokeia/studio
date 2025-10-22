@@ -821,6 +821,7 @@
     "methods": {
       "credit_card": "Credit Card",
       "bank_transfer": "Bank Transfer",
+      "transferencia": "Bank Transfer",
       "cash": "Cash",
       "debit": "Debit",
       "credit": "Credit",
