@@ -616,15 +616,7 @@ export default function AppointmentsPage() {
       checkAvailability();
     }, 500);
     return () => clearTimeout(handler);
-  }, [
-    newAppointment.date,
-    newAppointment.time,
-    newAppointment.services,
-    newAppointment.user,
-    newAppointment.doctor,
-    newAppointment.calendar,
-    editingAppointment
-  ]);
+  }, [checkAvailability]);
 
   const handleSaveAppointment = async () => {
     const { user, doctor, services, calendar, date, time, description } = newAppointment;
@@ -965,7 +957,16 @@ export default function AppointmentsPage() {
             </CardContent>
         </Tabs>
       </Card>
-      <Dialog open={isCreateOpen} onOpenChange={(isOpen) => { setCreateOpen(isOpen); if (!isOpen) {setEditingAppointment(null); setOriginalCalendarId(undefined); }}}>
+      <Dialog open={isCreateOpen} onOpenChange={(isOpen) => {
+        setCreateOpen(isOpen);
+        if (!isOpen) {
+          setEditingAppointment(null);
+          setOriginalCalendarId(undefined);
+          setNewAppointment({ user: null, services: [], doctor: null, calendar: null, date: '', time: '', description: '' });
+          setUserSearchQuery('');
+          setDoctorSearchQuery('');
+        }
+      }}>
         <DialogContent className={cn("sm:max-w-md", !editingAppointment && availabilityStatus === 'unavailable' && suggestedTimes.length > 0 && "sm:max-w-4xl")}>
           <DialogHeader>
             <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
