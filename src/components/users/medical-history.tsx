@@ -12,6 +12,7 @@ import { Button } from '../ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
+import { es, enUS } from 'date-fns/locale';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
@@ -54,6 +55,7 @@ export function MedicalHistory({ user }: MedicalHistoryProps) {
   const [sessions, setSessions] = React.useState<PatientSession[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const locale = useLocale();
+  const dateFnsLocale = locale === 'es' ? es : enUS;
 
   React.useEffect(() => {
     const fetchSessions = async () => {
@@ -104,7 +106,7 @@ export function MedicalHistory({ user }: MedicalHistoryProps) {
                             <div className="flex flex-col flex-grow ml-5">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-baseline gap-2">
-                                        <p className='text-sm font-medium text-muted-foreground'>{format(parseISO(session.fecha_sesion), 'PPP')}</p>
+                                        <p className='text-sm font-medium text-muted-foreground'>{format(parseISO(session.fecha_sesion), 'PPP', { locale: dateFnsLocale })}</p>
                                         <TimelineTitle>{session.procedimiento_realizado}</TimelineTitle>
                                     </div>
                                 </div>
@@ -174,7 +176,3 @@ export function MedicalHistory({ user }: MedicalHistoryProps) {
     </Card>
   );
 }
-
-    
-
-    
