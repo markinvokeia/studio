@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -79,7 +80,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
     
           return (
             <Badge variant={variant} className="capitalize">
-              {t(`QuotesPage.quoteDialog.${status.toLowerCase().replace(' ', '')}`)}
+              {t(`QuotesPage.quoteDialog.${status.toLowerCase().replace(/ /g, '')}`)}
             </Badge>
           );
         },

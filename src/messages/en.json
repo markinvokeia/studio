@@ -700,8 +700,8 @@
       "deleteErrorDescription": "Could not delete the calendar."
     },
     "validation": {
-      "nameRequired": "Name is required",
-      "emailInvalid": "Invalid email format for calendar ID"
+      "nameRequired": "Name is required.",
+      "emailInvalid": "Invalid email format for calendar ID."
     },
     "columns": {
       "name": "Name",

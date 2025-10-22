@@ -968,7 +968,7 @@
       "billingStatus": "Estado de Facturación",
       "selectBillingStatus": "Seleccionar un estado de facturación",
       "notInvoiced": "No Facturado",
-      "partiallyInvoiced": "Parcialmente Facturado",
+      "partiallyInvoiced": "Facturado Parcialmente",
       "invoiced": "Facturado",
       "cancel": "Cancelar",
       "save": "Crear Cotización",
