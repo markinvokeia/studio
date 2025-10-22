@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -66,6 +65,24 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
             </Badge>
           );
         },
+    },
+    {
+        accessorKey: 'billing_status',
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.billingStatus')} />,
+         cell: ({ row }) => {
+          const status = row.getValue('billing_status') as string;
+          const variant = {
+            invoiced: 'success',
+            'partially invoiced': 'info',
+            'not invoiced': 'outline',
+          }[status.toLowerCase()] ?? ('default'as any);
+    
+          return (
+            <Badge variant={variant} className="capitalize">
+              {t(`QuotesPage.quoteDialog.${status.toLowerCase().replace(' ', '')}`)}
+            </Badge>
+          );
+        },
     }
 ];
 
@@ -93,6 +110,7 @@ async function getQuotesForUser(userId: string): Promise<Quote[]> {
       total: apiQuote.total || 0,
       status: apiQuote.status || 'draft',
       payment_status: apiQuote.payment_status || 'unpaid',
+      billing_status: apiQuote.billing_status || 'not invoiced',
       createdAt: apiQuote.createdAt || new Date().toISOString().split('T')[0],
     }));
   } catch (error) {
@@ -140,7 +158,7 @@ export function UserQuotes({ userId }: UserQuotesProps) {
           columns={columns}
           data={userQuotes}
           filterColumnId='id'
-          filterPlaceholder='Filter by quote ID...'
+          filterPlaceholder={t('UserQuotes.filterPlaceholder')}
         />
       </CardContent>
     </Card>
