@@ -3,7 +3,7 @@
   "Navigation": {
     "Dashboard": "Dashboard",
     "Appointments": "Appointments",
-    "UsersAndAccess": "Users & Access",
+    "UsersAndAccess": "Users",
     "Users": "Users",
     "ClinicHistory": "Clinic History",
     "Studies": "Studies",
@@ -1586,3 +1586,5 @@
     "noResults": "No results."
   }
 }
+
+    
