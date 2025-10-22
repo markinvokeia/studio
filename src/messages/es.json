@@ -609,6 +609,9 @@
     "total": "Total",
     "billingStatus": "Estado Facturación"
   },
+  "UserQuotes": {
+    "filterPlaceholder": "Filtrar por ID de cotización..."
+  },
   "QuotesPage": {
     "detailsFor": "Detalles de la Cotización",
     "quoteId": "ID de Cotización",
