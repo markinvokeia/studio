@@ -355,17 +355,17 @@
   },
   "SchedulesPage": {
     "title": "Horarios",
-    "description": "Gestiona los horarios semanales regulares de la clínica.",
+    "description": "Gestionar los horarios semanales regulares de la clínica.",
     "filterPlaceholder": "Filtrar horarios por día...",
     "createDialog": {
       "title": "Crear Nuevo Horario",
       "editTitle": "Editar Horario",
-      "description": "Completa los detalles a continuación para agregar un nuevo horario.",
-      "editDescription": "Actualiza los detalles de este horario.",
+      "description": "Completa los detalles a continuación para añadir un nuevo horario.",
+      "editDescription": "Actualiza los detalles para este horario.",
       "dayOfWeek": "Día de la Semana",
-      "selectDay": "Selecciona un día",
+      "selectDay": "Seleccionar un día",
       "startTime": "Hora de Inicio",
-      "endTime": "Hora de Fin",
+      "endTime": "Hora de Finalización",
       "cancel": "Cancelar",
       "save": "Crear Horario",
       "editSave": "Guardar Cambios"
@@ -382,14 +382,14 @@
       "createSuccessTitle": "Horario Creado",
       "editSuccessTitle": "Horario Actualizado",
       "deleteSuccessTitle": "Horario Eliminado",
-      "successDescription": "El horario se ha guardado correctamente.",
+      "successDescription": "El horario se ha guardado con éxito.",
       "deleteSuccessDescription": "El horario ha sido eliminado.",
       "deleteErrorDescription": "No se pudo eliminar el horario."
     },
     "validation": {
       "dayRequired": "El día de la semana es obligatorio.",
       "startRequired": "La hora de inicio es obligatoria.",
-      "endRequired": "La hora de fin es obligatoria."
+      "endRequired": "La hora de finalización es obligatoria."
     },
     "days": {
       "monday": "Lunes",
@@ -411,13 +411,14 @@
     }
   },
   "HolidaysPage": {
+    "title": "Feriados y Excepciones",
     "description": "Gestionar excepciones al horario regular de la clínica.",
     "filterPlaceholder": "Filtrar feriados por fecha...",
     "createDialog": {
       "title": "Crear Nueva Excepción",
       "editTitle": "Editar Excepción",
-      "description": "Completa los detalles a continuación para agregar un nuevo feriado o excepción.",
-      "editDescription": "Actualiza los detalles de esta excepción.",
+      "description": "Completa los detalles para añadir un nuevo feriado o excepción.",
+      "editDescription": "Actualiza los detalles para esta excepción.",
       "date": "Fecha",
       "isOpen": "Clínica Abierta",
       "startTime": "Hora de Inicio",
@@ -665,12 +666,13 @@
     }
   },
   "CalendarsPage": {
+    "title": "Calendarios",
     "description": "Gestiona tus calendarios.",
     "filterPlaceholder": "Filtrar calendarios por nombre...",
     "dialog": {
       "createTitle": "Crear Nuevo Calendario",
       "editTitle": "Editar Calendario",
-      "description": "Completa los detalles a continuación para agregar un nuevo calendario.",
+      "description": "Completa los detalles para agregar un nuevo calendario.",
       "editDescription": "Actualiza los detalles de este calendario.",
       "name": "Nombre",
       "namePlaceholder": "ej., Calendario Principal",
@@ -684,8 +686,8 @@
     "deleteDialog": {
       "title": "¿Estás seguro?",
       "description": "Esto eliminará permanentemente el calendario \"{name}\". Esta acción no se puede deshacer.",
-      "cancel": "Cancelar",
-      "delete": "Eliminar"
+      "delete": "Eliminar",
+      "cancel": "Cancelar"
     },
     "toast": {
       "errorTitle": "Error",
@@ -693,13 +695,13 @@
       "createSuccessTitle": "Calendario Creado",
       "editSuccessTitle": "Calendario Actualizado",
       "deleteSuccessTitle": "Calendario Eliminado",
-      "successDescription": "El calendario \"{name}\" ha sido guardado exitosamente.",
+      "successDescription": "El calendario \"{name}\" se ha guardado correctamente.",
       "deleteSuccessDescription": "El calendario \"{name}\" ha sido eliminado.",
       "deleteErrorDescription": "No se pudo eliminar el calendario."
     },
     "validation": {
-      "nameRequired": "El nombre es obligatorio",
-      "emailInvalid": "Formato de correo electrónico no válido para el ID de calendario"
+      "nameRequired": "El nombre es obligatorio.",
+      "emailInvalid": "Formato de correo electrónico no válido para el ID de calendario."
     },
     "columns": {
       "name": "Nombre",
@@ -1565,6 +1567,21 @@
       "details": "Detalles",
       "actions": "Acciones",
       "viewUser": "Ver Usuario"
+    }
+  },
+  "ErrorLogPage": {
+    "title": "Registro de Errores",
+    "description": "Rastrear errores y advertencias del sistema.",
+    "filterPlaceholder": "Filtrar errores por mensaje...",
+    "columns": {
+      "id": "ID",
+      "createdAt": "Fecha de Creación",
+      "severity": "Gravedad",
+      "message": "Mensaje",
+      "channel": "Canal",
+      "userId": "ID de Usuario",
+      "actions": "Acciones",
+      "viewDetails": "Ver Detalles"
     }
   },
   "General": {

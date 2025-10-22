@@ -17,40 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
-
-
-const columns: ColumnDef<ErrorLog>[] = [
-    { 
-        accessorKey: 'id', 
-        header: ({column}) => <DataTableColumnHeader column={column} title="ID" />,
-        enableHiding: true,
-    },
-    { accessorKey: 'created_at', header: ({column}) => <DataTableColumnHeader column={column} title="Created At" /> },
-    { accessorKey: 'severity', header: ({column}) => <DataTableColumnHeader column={column} title="Severity" /> },
-    { accessorKey: 'message', header: ({column}) => <DataTableColumnHeader column={column} title="Message" /> },
-    { accessorKey: 'channel', header: ({column}) => <DataTableColumnHeader column={column} title="Channel" /> },
-    { accessorKey: 'user_id', header: ({column}) => <DataTableColumnHeader column={column} title="User ID" /> },
-    {
-        id: 'actions',
-        cell: ({ row }) => {
-        const log = row.original;
-        return (
-            <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem>View Details</DropdownMenuItem>
-            </DropdownMenuContent>
-            </DropdownMenu>
-        );
-        },
-    },
-];
+import { useTranslations } from 'next-intl';
 
 type GetErrorLogsResponse = {
   errorLogs: ErrorLog[];
@@ -100,6 +67,7 @@ async function getErrorLogs(pagination: PaginationState): Promise<GetErrorLogsRe
 
 
 export default function ErrorLogPage() {
+    const t = useTranslations('ErrorLogPage');
     const [data, setData] = React.useState<ErrorLog[]>([]);
     const [logCount, setLogCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -110,6 +78,39 @@ export default function ErrorLogPage() {
      const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
         id: false,
     });
+
+    const columns: ColumnDef<ErrorLog>[] = React.useMemo(() => [
+        { 
+            accessorKey: 'id', 
+            header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
+            enableHiding: true,
+        },
+        { accessorKey: 'created_at', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} /> },
+        { accessorKey: 'severity', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.severity')} /> },
+        { accessorKey: 'message', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.message')} /> },
+        { accessorKey: 'channel', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.channel')} /> },
+        { accessorKey: 'user_id', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.userId')} /> },
+        {
+            id: 'actions',
+            cell: ({ row }) => {
+            const log = row.original;
+            return (
+                <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
+                    <DropdownMenuItem>{t('columns.viewDetails')}</DropdownMenuItem>
+                </DropdownMenuContent>
+                </DropdownMenu>
+            );
+            },
+        },
+    ], [t]);
 
     const loadLogs = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -126,15 +127,15 @@ export default function ErrorLogPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Error Log</CardTitle>
-        <CardDescription>Track system errors and warnings.</CardDescription>
+        <CardTitle>{t('title')}</CardTitle>
+        <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <DataTable 
             columns={columns} 
             data={data} 
             filterColumnId="message" 
-            filterPlaceholder="Filter errors by message..."
+            filterPlaceholder={t('filterPlaceholder')}
             onRefresh={loadLogs}
             isRefreshing={isRefreshing}
             pageCount={Math.ceil(logCount / pagination.pageSize)}

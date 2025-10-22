@@ -411,6 +411,7 @@
     }
   },
   "HolidaysPage": {
+    "title": "Holidays",
     "description": "Manage exceptions to the regular clinic schedule.",
     "filterPlaceholder": "Filter holidays by date...",
     "createDialog": {
@@ -665,6 +666,7 @@
     }
   },
   "CalendarsPage": {
+    "title": "Calendars",
     "description": "Manage your calendars.",
     "filterPlaceholder": "Filter calendars by name...",
     "dialog": {
@@ -684,8 +686,8 @@
     "deleteDialog": {
       "title": "Are you sure?",
       "description": "This will permanently delete the calendar \"{name}\". This action cannot be undone.",
-      "cancel": "Cancel",
-      "delete": "Delete"
+      "delete": "Delete",
+      "cancel": "Cancel"
     },
     "toast": {
       "errorTitle": "Error",
@@ -1563,6 +1565,21 @@
       "details": "Details",
       "actions": "Actions",
       "viewUser": "View User"
+    }
+  },
+  "ErrorLogPage": {
+    "title": "Error Log",
+    "description": "Track system errors and warnings.",
+    "filterPlaceholder": "Filter errors by message...",
+    "columns": {
+      "id": "ID",
+      "createdAt": "Created At",
+      "severity": "Severity",
+      "message": "Message",
+      "channel": "Channel",
+      "userId": "User ID",
+      "actions": "Actions",
+      "viewDetails": "View Details"
     }
   },
   "General": {
