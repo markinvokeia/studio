@@ -9,9 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Loader2, Globe, Check } from 'lucide-react';
+import { AlertTriangle, Loader2, Globe, Check, Moon, Sun } from 'lucide-react';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +33,7 @@ export default function LoginPage() {
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const locale = useLocale();
   const pathname = usePathname();
+  const { setTheme } = useTheme();
   const t = useTranslations('Header');
   const tLogin = useTranslations('LoginPage');
 
@@ -46,7 +48,7 @@ export default function LoginPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowForm(true);
-    }, 3000); // Show form after 3 seconds
+    }, 8000); // Show form after 8 seconds
 
     return () => clearTimeout(timer);
   }, []);
@@ -91,7 +93,7 @@ export default function LoginPage() {
           showForm ? 'opacity-50' : 'opacity-0'
         }`}
       />
-       <div className="absolute top-4 right-4 z-10">
+       <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" className="bg-white/20 text-white backdrop-blur-sm">
@@ -120,6 +122,26 @@ export default function LoginPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+           <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="bg-white/20 text-white backdrop-blur-sm">
+                  <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                  <span className="sr-only">Toggle theme</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setTheme('light')}>
+                  Light
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme('dark')}>
+                  Dark
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme('system')}>
+                  System
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
         </div>
       <div
         className={`absolute inset-0 flex items-center justify-center transition-opacity duration-1000 ${
