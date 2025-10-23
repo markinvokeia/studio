@@ -19,8 +19,12 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isLoginPage = pathname === `/${locale}/login`;
 
   React.useEffect(() => {
-    if (!isLoading && !user && !isLoginPage) {
-      router.replace(`/${locale}/login`);
+    if (!isLoading) {
+      if (!user && !isLoginPage) {
+        router.replace(`/${locale}/login`);
+      } else if (user && isLoginPage) {
+        router.replace(`/${locale}`);
+      }
     }
   }, [user, isLoading, isLoginPage, router, locale]);
 
@@ -37,7 +41,6 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (user && isLoginPage) {
-     router.replace(`/${locale}`);
      return null;
   }
 
