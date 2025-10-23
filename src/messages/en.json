@@ -44,6 +44,17 @@
     "logout": "Logout",
     "commandPlaceholder": "Enter a command..."
   },
+  "LoginPage": {
+    "title": "Welcome Back",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign In",
+    "errors": {
+      "title": "Login Failed",
+      "invalidCredentials": "Invalid credentials",
+      "unexpected": "An unexpected error occurred."
+    }
+  },
   "ReportFilters": {
     "apply": "Apply Filters",
     "filterBy": "Filter by...",
@@ -969,10 +980,7 @@
       "selectBillingStatus": "Select a billing status",
       "notInvoiced": "Not Invoiced",
       "partiallyInvoiced": "Partially Invoiced",
-      "invoiced": "Invoiced",
-      "cancel": "Cancel",
-      "save": "Create Quote",
-      "editSave": "Save Changes"
+      "invoiced": "Invoiced"
     },
     "deleteQuoteDialog": {
       "title": "Are you sure?",

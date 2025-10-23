@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -34,6 +33,7 @@ export default function LoginPage() {
   const locale = useLocale();
   const pathname = usePathname();
   const t = useTranslations('Header');
+  const tLogin = useTranslations('LoginPage');
 
   useEffect(() => {
     const savedLocale = localStorage.getItem('locale');
@@ -65,7 +65,11 @@ export default function LoginPage() {
       await login(email, password);
       router.push(`/${locale}`);
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred.');
+      if (err.message === 'Invalid credentials') {
+        setError(tLogin('errors.invalidCredentials'));
+      } else {
+        setError(err.message || tLogin('errors.unexpected'));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -131,19 +135,19 @@ export default function LoginPage() {
               alt="InvokeIA Logo"
               className="mx-auto mb-4"
             />
-            <CardTitle>Welcome Back</CardTitle>
+            <CardTitle>{tLogin('title')}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Login Failed</AlertTitle>
+                  <AlertTitle>{tLogin('errors.title')}</AlertTitle>
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{tLogin('email')}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -154,7 +158,7 @@ export default function LoginPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{tLogin('password')}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -167,7 +171,7 @@ export default function LoginPage() {
                 {isLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
-                  'Sign In'
+                  tLogin('signIn')
                 )}
               </Button>
             </form>

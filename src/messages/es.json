@@ -44,6 +44,17 @@
     "logout": "Cerrar Sesión",
     "commandPlaceholder": "Introduce un comando..."
   },
+  "LoginPage": {
+    "title": "Bienvenido de Nuevo",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "signIn": "Iniciar Sesión",
+    "errors": {
+      "title": "Falló el inicio de sesión",
+      "invalidCredentials": "Credenciales inválidas",
+      "unexpected": "Ocurrió un error inesperado."
+    }
+  },
   "ReportFilters": {
     "apply": "Aplicar Filtros",
     "filterBy": "Filtrar por...",
@@ -121,7 +132,7 @@
       "title": "Crear Nueva Cita",
       "description": "Completa los detalles a continuación para crear una nueva cita.",
       "cancelAppointmentTitle": "Cancelar Cita",
-      "cancelAppointmentDescription": "¿Estás seguro de que quieres cancelar la cita para {serviceName} el {date}?",
+      "cancelAppointmentDescription": "¿Estás seguro que quieres cancelar la cita para {serviceName} el {date}?",
       "userName": "Nombre de Usuario",
       "selectUser": "Selecciona un usuario",
       "searchUserPlaceholder": "Buscar por nombre o email...",
@@ -133,7 +144,7 @@
       "selectDoctor": "Seleccionar un doctor",
       "searchDoctorPlaceholder": "Buscar un doctor...",
       "none": "Ninguno",
-      "allCalendars": "Todos los Calendarios",
+      "allCalendars": "Todos los calendarios",
       "date": "Fecha",
       "time": "Hora",
       "descriptionLabel": "Descripción",
@@ -969,10 +980,7 @@
       "selectBillingStatus": "Seleccionar un estado de facturación",
       "notInvoiced": "No Facturado",
       "partiallyInvoiced": "Facturado Parcialmente",
-      "invoiced": "Facturado",
-      "cancel": "Cancelar",
-      "save": "Crear Cotización",
-      "editSave": "Guardar Cambios"
+      "invoiced": "Facturado"
     },
     "deleteQuoteDialog": {
       "title": "¿Estás seguro?",
