@@ -3,16 +3,24 @@
 
 import * as React from 'react';
 import { useState, useEffect, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2, Globe, Check } from 'lucide-react';
 import Image from 'next/image';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { UsFlagIcon } from '@/components/icons/us-flag-icon';
+import { UyFlagIcon } from '@/components/icons/uy-flag-icon';
 
 export default function LoginPage() {
   const [showForm, setShowForm] = useState(false);
@@ -24,6 +32,16 @@ export default function LoginPage() {
   const router = useRouter();
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const locale = useLocale();
+  const pathname = usePathname();
+  const t = useTranslations('Header');
+
+  useEffect(() => {
+    const savedLocale = localStorage.getItem('locale');
+    if (savedLocale && savedLocale !== locale) {
+      const newPathname = pathname.replace(`/${locale}`, `/${savedLocale}`);
+      router.replace(newPathname);
+    }
+  }, [locale, pathname, router]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -32,6 +50,12 @@ export default function LoginPage() {
 
     return () => clearTimeout(timer);
   }, []);
+
+  const onSelectLocale = (newLocale: string) => {
+    localStorage.setItem('locale', newLocale);
+    const newPathname = pathname.replace(`/${locale}`, `/${newLocale}`);
+    router.replace(newPathname);
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -58,11 +82,41 @@ export default function LoginPage() {
         loop
         playsInline
       />
-      <div
+       <div
         className={`absolute top-0 left-0 w-full h-full bg-black transition-opacity duration-1000 ${
           showForm ? 'opacity-50' : 'opacity-0'
         }`}
       />
+       <div className="absolute top-4 right-4 z-10">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="bg-white/20 text-white backdrop-blur-sm">
+                <Globe className="h-[1.2rem] w-[1.2rem]" />
+                <span className="sr-only">{t('toggleLanguage')}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => onSelectLocale('es')} disabled={locale === 'es'}>
+                <span className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-2">
+                    <UyFlagIcon className="h-4 w-4" />
+                    {t('spanish')}
+                  </div>
+                  {locale === 'es' && <Check className="h-4 w-4 ml-2" />}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onSelectLocale('en')} disabled={locale === 'en'}>
+                <span className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-2">
+                    <UsFlagIcon className="h-4 w-4" />
+                    {t('english')}
+                  </div>
+                  {locale === 'en' && <Check className="h-4 w-4 ml-2" />}
+                </span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       <div
         className={`absolute inset-0 flex items-center justify-center transition-opacity duration-1000 ${
           showForm ? 'opacity-100' : 'opacity-0 pointer-events-none'
