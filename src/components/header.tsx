@@ -39,6 +39,7 @@ import { useSidebar } from '@/hooks/use-sidebar';
 import { useLocale, useTranslations } from 'next-intl';
 import { UyFlagIcon } from './icons/uy-flag-icon';
 import { UsFlagIcon } from './icons/us-flag-icon';
+import { useAuth } from '@/context/AuthContext';
 
 
 export function Header() {
@@ -49,6 +50,8 @@ export function Header() {
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { logout, user } = useAuth();
+
 
   const onSelectLocale = (newLocale: string) => {
     const newPathname = pathname.replace(`/${locale}`, `/${newLocale}`);
@@ -106,6 +109,11 @@ export function Header() {
         </React.Fragment>
       );
   });
+
+  const handleLogout = () => {
+    logout();
+    router.push(`/${locale}/login`);
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 mt-4">
@@ -215,12 +223,12 @@ export function Header() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{t('myAccount')}</DropdownMenuLabel>
+            <DropdownMenuLabel>{user?.name || t('myAccount')}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>{t('settings')}</DropdownMenuItem>
             <DropdownMenuItem>{t('support')}</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>{t('logout')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>{t('logout')}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
