@@ -152,7 +152,6 @@ export default function AvailabilityExceptionsPage() {
         resolver: zodResolver(exceptionFormSchema(tValidation)),
     });
 
-    const watchedIsAvailable = form.watch("is_available");
     const [isDoctorComboboxOpen, setIsDoctorComboboxOpen] = React.useState(false);
 
 
@@ -333,12 +332,10 @@ export default function AvailabilityExceptionsPage() {
                                 </FormItem>
                             )}
                         />
-                        {watchedIsAvailable && (
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="start_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="end_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            </div>
-                        )}
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField control={form.control} name="start_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="end_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        </div>
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                             <Button type="submit">{editingException ? t('dialog.save') : t('dialog.create')}</Button>
