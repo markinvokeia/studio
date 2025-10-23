@@ -48,7 +48,7 @@ export default function LoginPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowForm(true);
-    }, 8000); // Show form after 8 seconds
+    }, 5000); // Show form after 5 seconds
 
     return () => clearTimeout(timer);
   }, []);
