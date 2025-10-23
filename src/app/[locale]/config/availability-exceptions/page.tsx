@@ -193,8 +193,8 @@ export default function AvailabilityExceptionsPage() {
             id: exception.id,
             user_id: exception.user_id,
             exception_date: format(parseISO(exception.exception_date), 'yyyy-MM-dd'),
-            start_time: exception.start_time,
-            end_time: exception.end_time,
+            start_time: exception.start_time || '',
+            end_time: exception.end_time || '',
             is_available: exception.is_available,
         });
         setSubmissionError(null);
