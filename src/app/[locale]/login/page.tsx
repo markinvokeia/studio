@@ -15,7 +15,6 @@ import Image from 'next/image';
 import { useLocale } from 'next-intl';
 
 export default function LoginPage() {
-  const [videoEnded, setVideoEnded] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,24 +25,12 @@ export default function LoginPage() {
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const locale = useLocale();
 
-  const handleVideoEnd = () => {
-    setVideoEnded(true);
-  };
-
   useEffect(() => {
-    if (videoEnded) {
-      const timer = setTimeout(() => setShowForm(true), 500); // Delay for fade-in effect
-      return () => clearTimeout(timer);
-    }
-  }, [videoEnded]);
-  
-  // Skip video for faster debugging/testing
-  useEffect(() => {
-    const skipVideo = false; // Set to true to skip video during development
-    if (skipVideo) {
-      setVideoEnded(true);
+    const timer = setTimeout(() => {
       setShowForm(true);
-    }
+    }, 3000); // Show form after 3 seconds
+
+    return () => clearTimeout(timer);
   }, []);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -66,9 +53,9 @@ export default function LoginPage() {
         ref={videoRef}
         className="absolute top-0 left-0 w-full h-full object-cover"
         src="/videos/login_promo.mp4"
-        onEnded={handleVideoEnd}
         autoPlay
         muted
+        loop
         playsInline
       />
       <div
