@@ -45,13 +45,9 @@ export default function LoginPage() {
     }
   }, [locale, pathname, router]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowForm(true);
-    }, 5000); // Show form after 5 seconds
-
-    return () => clearTimeout(timer);
-  }, []);
+  const handleVideoEnd = () => {
+    setShowForm(true);
+  };
 
   const onSelectLocale = (newLocale: string) => {
     localStorage.setItem('locale', newLocale);
@@ -85,8 +81,8 @@ export default function LoginPage() {
         src="/videos/login_promo.mp4"
         autoPlay
         muted
-        loop
         playsInline
+        onEnded={handleVideoEnd}
       />
        <div
         className={`absolute top-0 left-0 w-full h-full bg-black transition-opacity duration-1000 ${
