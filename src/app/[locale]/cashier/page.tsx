@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -19,7 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { CajaSesion } from '@/lib/types';
+import { CajaSesion, CajaMovimiento } from '@/lib/types';
 
 const openSessionSchema = (t: (key: string) => string) => z.object({
   montoApertura: z.coerce.number().positive(t('validation.openingAmountRequired')),
@@ -48,6 +47,7 @@ export default function CashierPage() {
     const { toast } = useToast();
     
     const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(null);
+    const [sessionMovements, setSessionMovements] = React.useState<CajaMovimiento[]>([]);
     const [closedSessionReport, setClosedSessionReport] = React.useState<CajaSesion | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
     const [serverError, setServerError] = React.useState<string | null>(null);
@@ -57,90 +57,101 @@ export default function CashierPage() {
     const expenseForm = useForm<ExpenseFormValues>({ resolver: zodResolver(expenseSchema(t)) });
 
     const checkActiveSession = React.useCallback(async () => {
-        if (!user) return;
         setIsLoading(true);
         setServerError(null);
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/caja/sesion/activa`);
-            if (response.status === 404) {
-                setActiveSession(null);
-                return;
-            }
-            if (!response.ok) {
-                 const errorData = await response.json();
-                 throw new Error(errorData.message || 'Failed to check active session.');
-            }
-            const sessionData = await response.json();
-            setActiveSession(sessionData);
-        } catch (error) {
-            setServerError(error instanceof Error ? error.message : String(error));
-        } finally {
+        // MOCK: In a real scenario, this would fetch from the backend.
+        // For now, we rely on the local state `activeSession`.
+        setTimeout(() => {
             setIsLoading(false);
-        }
-    }, [user]);
+        }, 500);
+    }, []);
 
     React.useEffect(() => {
         checkActiveSession();
     }, [checkActiveSession]);
 
     const handleOpenSession = async (values: OpenSessionFormValues) => {
-        try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/caja/abrir', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...values, puntoDeCajaId: 'Recepcion-1' }),
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || t('toast.openError'));
-            }
-            toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
-            checkActiveSession();
-            return true;
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('toast.error'), description: error instanceof Error ? error.message : t('toast.openError') });
-            return false;
-        }
+        if (!user) return false;
+        
+        const newSession: CajaSesion = {
+            id: `ses_${Date.now()}`,
+            usuarioId: user.id,
+            puntoDeCajaId: 'Recepcion-1',
+            estado: 'ABIERTA',
+            fechaApertura: new Date().toISOString(),
+            montoApertura: values.montoApertura,
+        };
+        
+        setActiveSession(newSession);
+        setSessionMovements([]); // Reset movements for new session
+        toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
+        return true;
     };
     
     const handleRegisterExpense = async (values: ExpenseFormValues) => {
-        try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/caja/registrar-egreso', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(values),
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || t('toast.expenseError'));
-            }
-            toast({ title: t('toast.expenseSuccessTitle'), description: t('toast.expenseSuccessDescription') });
-            return true;
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('toast.error'), description: error instanceof Error ? error.message : t('toast.expenseError') });
-            return false;
-        }
+        if (!activeSession || !user) return false;
+
+        const newMovement: CajaMovimiento = {
+            id: `mov_${Date.now()}`,
+            cajaSesionId: activeSession.id,
+            tipo: 'EGRESO',
+            metodoPago: 'EFECTIVO',
+            monto: values.monto,
+            descripcion: values.descripcion,
+            fecha: new Date().toISOString(),
+            usuarioId: user.id,
+        };
+        
+        setSessionMovements(prev => [...prev, newMovement]);
+        toast({ title: t('toast.expenseSuccessTitle'), description: t('toast.expenseSuccessDescription') });
+        return true;
     };
 
     const handleCloseSession = async (values: CloseSessionFormValues) => {
-        try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/caja/cerrar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(values),
-            });
-             const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || t('toast.closeError'));
-            }
-            setClosedSessionReport(data);
-            setActiveSession(null);
-            toast({ title: t('toast.closeSuccessTitle'), description: t('toast.closeSuccessDescription') });
-            return true;
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('toast.error'), description: error instanceof Error ? error.message : t('toast.closeError') });
-            return false;
-        }
+        if (!activeSession) return false;
+
+        // MOCK: Simulate some income movements for demonstration
+        const mockIncome: CajaMovimiento[] = [
+            { id: `mov_${Date.now()+1}`, cajaSesionId: activeSession.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 250, descripcion: 'Pago Factura F-001', fecha: new Date().toISOString(), usuarioId: activeSession.usuarioId },
+            { id: `mov_${Date.now()+2}`, cajaSesionId: activeSession.id, tipo: 'INGRESO', metodoPago: 'TARJETA', monto: 150, descripcion: 'Pago Factura F-002', fecha: new Date().toISOString(), usuarioId: activeSession.usuarioId },
+            { id: `mov_${Date.now()+3}`, cajaSesionId: activeSession.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 300, descripcion: 'Pago Factura F-003', fecha: new Date().toISOString(), usuarioId: activeSession.usuarioId },
+        ];
+        const allMovements = [...sessionMovements, ...mockIncome];
+        
+        const totalIngresosEfectivo = allMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'EFECTIVO').reduce((sum, m) => sum + m.monto, 0);
+        const totalIngresosTarjeta = allMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'TARJETA').reduce((sum, m) => sum + m.monto, 0);
+        const totalIngresosTransferencia = allMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'TRANSFERENCIA').reduce((sum, m) => sum + m.monto, 0);
+        const totalIngresosOtro = allMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'OTRO').reduce((sum, m) => sum + m.monto, 0);
+        
+        const totalEgresosEfectivo = allMovements.filter(m => m.tipo === 'EGRESO' && m.metodoPago === 'EFECTIVO').reduce((sum, m) => sum + m.monto, 0);
+
+        const montoCalculadoEfectivo = activeSession.montoApertura + totalIngresosEfectivo - totalEgresosEfectivo;
+        
+        const report: CajaSesion = {
+            ...activeSession,
+            estado: 'CERRADA',
+            fechaCierre: new Date().toISOString(),
+            montoCierreDeclaradoEfectivo: values.declaradoEfectivo,
+            montoCierreDeclaradoTarjeta: values.declaradoTarjeta,
+            montoCierreDeclaradoTransferencia: values.declaradoTransferencia,
+            montoCierreDeclaradoOtro: values.declaradoOtro,
+            montoCierreCalculadoEfectivo: montoCalculadoEfectivo,
+            montoCierreCalculadoTarjeta: totalIngresosTarjeta,
+            montoCierreCalculadoTransferencia: totalIngresosTransferencia,
+            montoCierreCalculadoOtro: totalIngresosOtro,
+            totalEgresosEfectivo: totalEgresosEfectivo,
+            descuadreEfectivo: values.declaradoEfectivo - montoCalculadoEfectivo,
+            descuadreTarjeta: values.declaradoTarjeta - totalIngresosTarjeta,
+            descuadreTransferencia: values.declaradoTransferencia - totalIngresosTransferencia,
+            descuadreOtro: values.declaradoOtro - totalIngresosOtro,
+            notasCierre: values.notas,
+        };
+
+        setClosedSessionReport(report);
+        setActiveSession(null);
+        setSessionMovements([]);
+        toast({ title: t('toast.closeSuccessTitle'), description: t('toast.closeSuccessDescription') });
+        return true;
     };
     
     if (isLoading) {
@@ -224,6 +235,7 @@ function OpenSessionDashboard({ form, onOpenSession }: { form: any, onOpenSessio
 
 function ActiveSessionDashboard({ session, expenseForm, closeSessionForm, onRegisterExpense, onCloseSession }: { session: any, expenseForm: any, closeSessionForm: any, onRegisterExpense: any, onCloseSession: any }) {
     const t = useTranslations('CashierPage');
+    const { user } = useAuth();
     const [isExpenseDialogOpen, setIsExpenseDialogOpen] = React.useState(false);
     const [isCloseDialogOpen, setIsCloseDialogOpen] = React.useState(false);
 
@@ -247,7 +259,7 @@ function ActiveSessionDashboard({ session, expenseForm, closeSessionForm, onRegi
         <Card>
             <CardHeader>
                 <CardTitle>{t('activeSession.title')}</CardTitle>
-                <CardDescription>{t('activeSession.description', { user: session.usuarioId, location: session.puntoDeCajaId })}</CardDescription>
+                <CardDescription>{t('activeSession.description', { user: user?.name, location: session.puntoDeCajaId })}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -390,4 +402,3 @@ function CloseSessionReport({ report, onNewSession }: { report: CajaSesion, onNe
         </Card>
     );
 }
-
