@@ -6,14 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Box, Briefcase, DollarSign, LogOut, TrendingDown, TrendingUp } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { AlertTriangle, Box, Briefcase, DollarSign, LogOut, TrendingDown, TrendingUp, ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
@@ -22,6 +20,8 @@ import { useTranslations } from 'next-intl';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
+import { useAuth } from '@/context/AuthContext';
+
 
 const openSessionSchema = (t: (key: string) => string) => z.object({
   montoApertura: z.coerce.number().positive(t('validation.openingAmountRequired')),
@@ -44,6 +44,8 @@ type OpenSessionFormValues = z.infer<ReturnType<typeof openSessionSchema>>;
 type CloseSessionFormValues = z.infer<ReturnType<typeof closeSessionSchema>>;
 type ExpenseFormValues = z.infer<ReturnType<typeof expenseSchema>>;
 
+type WizardStep = 'REVIEW' | 'DECLARE' | 'REPORT';
+
 export default function CashierPage() {
     const t = useTranslations('CashierPage');
     const { user } = useAuth();
@@ -54,6 +56,7 @@ export default function CashierPage() {
     const [closedSessionReport, setClosedSessionReport] = React.useState<CajaSesion | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
     const [serverError, setServerError] = React.useState<string | null>(null);
+    const [wizardStep, setWizardStep] = React.useState<WizardStep>('REVIEW');
 
     const openSessionForm = useForm<OpenSessionFormValues>({ resolver: zodResolver(openSessionSchema(t)) });
     const closeSessionForm = useForm<CloseSessionFormValues>({ resolver: zodResolver(closeSessionSchema(t)) });
@@ -94,6 +97,7 @@ export default function CashierPage() {
 
         setActiveSession(newSession);
         setSessionMovements(mockIncome);
+        setWizardStep('REVIEW');
         toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
         return true;
     };
@@ -152,6 +156,7 @@ export default function CashierPage() {
         setClosedSessionReport(report);
         setActiveSession(null);
         setSessionMovements([]);
+        setWizardStep('REPORT');
         toast({ title: t('toast.closeSuccessTitle'), description: t('toast.closeSuccessDescription') });
         return true;
     };
@@ -170,22 +175,37 @@ export default function CashierPage() {
         );
     }
     
-    if (closedSessionReport) {
-        return <CloseSessionReport report={closedSessionReport} onNewSession={() => setClosedSessionReport(null)} />;
+    if (wizardStep === 'REPORT' && closedSessionReport) {
+        return <CloseSessionReport report={closedSessionReport} onNewSession={() => { setClosedSessionReport(null); setWizardStep('REVIEW'); }} />;
     }
 
-    return activeSession ? (
+    if (!activeSession) {
+        return <OpenSessionDashboard form={openSessionForm} onOpenSession={handleOpenSession} />;
+    }
+
+    if (wizardStep === 'REVIEW') {
+      return (
         <ActiveSessionDashboard 
             session={activeSession}
             movements={sessionMovements}
             expenseForm={expenseForm}
-            closeSessionForm={closeSessionForm}
             onRegisterExpense={handleRegisterExpense}
-            onCloseSession={handleCloseSession}
+            onProceedToClose={() => setWizardStep('DECLARE')}
         />
-    ) : (
-        <OpenSessionDashboard form={openSessionForm} onOpenSession={handleOpenSession} />
-    );
+      );
+    }
+
+    if (wizardStep === 'DECLARE') {
+      return (
+          <BlindCloseForm
+              form={closeSessionForm}
+              onSubmit={handleCloseSession}
+              onBack={() => setWizardStep('REVIEW')}
+          />
+      );
+    }
+
+    return null; // Should not be reached
 }
 
 // Components
@@ -244,11 +264,10 @@ const movementColumns: ColumnDef<CajaMovimiento>[] = [
 ];
 
 
-function ActiveSessionDashboard({ session, movements, expenseForm, closeSessionForm, onRegisterExpense, onCloseSession }: { session: any, movements: CajaMovimiento[], expenseForm: any, closeSessionForm: any, onRegisterExpense: any, onCloseSession: any }) {
+function ActiveSessionDashboard({ session, movements, expenseForm, onRegisterExpense, onProceedToClose }: { session: any, movements: CajaMovimiento[], expenseForm: any, onRegisterExpense: any, onProceedToClose: () => void }) {
     const t = useTranslations('CashierPage');
     const { user } = useAuth();
     const [isExpenseDialogOpen, setIsExpenseDialogOpen] = React.useState(false);
-    const [isCloseDialogOpen, setIsCloseDialogOpen] = React.useState(false);
 
     const onExpenseSubmit = async (values: ExpenseFormValues) => {
         const success = await onRegisterExpense(values);
@@ -258,14 +277,6 @@ function ActiveSessionDashboard({ session, movements, expenseForm, closeSessionF
         }
     };
     
-    const onCloseSubmit = async (values: CloseSessionFormValues) => {
-        const success = await onCloseSession(values);
-        if (success) {
-            setIsCloseDialogOpen(false);
-            closeSessionForm.reset();
-        }
-    };
-
     const totalIncome = React.useMemo(() => movements.filter(m => m.tipo === 'INGRESO').reduce((sum, m) => sum + m.monto, 0), [movements]);
     const totalExpenses = React.useMemo(() => movements.filter(m => m.tipo === 'EGRESO').reduce((sum, m) => sum + m.monto, 0), [movements]);
     
@@ -365,31 +376,47 @@ function ActiveSessionDashboard({ session, movements, expenseForm, closeSessionF
                     </DialogContent>
                 </Dialog>
 
-                <Dialog open={isCloseDialogOpen} onOpenChange={setIsCloseDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button><LogOut className="mr-2 h-4 w-4" />{t('activeSession.closeSession')}</Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                            <DialogTitle>{t('closeDialog.title')}</DialogTitle>
-                            <DialogDescription>{t('closeDialog.description')}</DialogDescription>
-                        </DialogHeader>
-                        <Form {...closeSessionForm}>
-                            <form onSubmit={closeSessionForm.handleSubmit(onCloseSubmit)} className="space-y-4 py-4">
-                                <FormField control={closeSessionForm.control} name="declaradoEfectivo" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.cash')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={closeSessionForm.control} name="declaradoTarjeta" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.card')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={closeSessionForm.control} name="declaradoTransferencia" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.transfer')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={closeSessionForm.control} name="declaradoOtro" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.other')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={closeSessionForm.control} name="notas" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.notes')}</FormLabel><FormControl><Textarea placeholder={t('closeDialog.notesPlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <DialogFooter>
-                                    <Button variant="outline" type="button" onClick={() => setIsCloseDialogOpen(false)}>{t('cancel')}</Button>
-                                    <Button type="submit">{t('closeDialog.submitButton')}</Button>
-                                </DialogFooter>
-                            </form>
-                        </Form>
-                    </DialogContent>
-                </Dialog>
+                <Button onClick={onProceedToClose}><LogOut className="mr-2 h-4 w-4" />{t('activeSession.closeSession')}</Button>
             </CardFooter>
+        </Card>
+    );
+}
+
+function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (values: any) => Promise<boolean>, onBack: () => void }) {
+    const t = useTranslations('CashierPage');
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+    const handleFormSubmit = async (values: CloseSessionFormValues) => {
+        setIsSubmitting(true);
+        await onSubmit(values);
+        setIsSubmitting(false);
+    };
+
+    return (
+        <Card className="w-full max-w-lg mx-auto">
+            <CardHeader>
+                <CardTitle>{t('closeDialog.title')}</CardTitle>
+                <CardDescription>{t('closeDialog.description')}</CardDescription>
+            </CardHeader>
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleFormSubmit)}>
+                    <CardContent className="space-y-4">
+                        <FormField control={form.control} name="declaradoEfectivo" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.cash')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="declaradoTarjeta" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.card')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="declaradoTransferencia" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.transfer')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="declaradoOtro" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.other')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="notas" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.notes')}</FormLabel><FormControl><Textarea placeholder={t('closeDialog.notesPlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    </CardContent>
+                    <CardFooter className="justify-between">
+                        <Button variant="outline" type="button" onClick={onBack} disabled={isSubmitting}>
+                            <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                        </Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? 'Processing...' : t('closeDialog.submitButton')}
+                        </Button>
+                    </CardFooter>
+                </form>
+            </Form>
         </Card>
     );
 }
