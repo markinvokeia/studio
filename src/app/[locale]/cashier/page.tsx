@@ -181,7 +181,8 @@ export default function CashierPage() {
 
     if(showClosingWizard) {
       return <CloseSessionWizard
-                initialStep={wizardStep}
+                currentStep={wizardStep}
+                setCurrentStep={setWizardStep}
                 onExitWizard={() => {
                   setShowClosingWizard(false);
                   setWizardStep('REVIEW');
@@ -299,7 +300,6 @@ function ActiveSessionDashboard({ session, movements, onProceedToClose }: { sess
     const { user } = useAuth();
     
     const totalIncome = React.useMemo(() => movements.filter(m => m.tipo === 'INGRESO').reduce((sum, m) => sum + m.monto, 0), [movements]);
-    const totalExpenses = React.useMemo(() => movements.filter(m => m.tipo === 'EGRESO').reduce((sum, m) => sum + m.monto, 0), [movements]);
     
     const dailyPayments = React.useMemo(() => movements.filter(m => m.tipo === 'INGRESO'), [movements]);
 
@@ -310,7 +310,7 @@ function ActiveSessionDashboard({ session, movements, onProceedToClose }: { sess
                 <CardDescription>{t('activeSession.description', { user: user?.name, location: session.puntoDeCajaId })}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">{t('activeSession.openingAmount')}</CardTitle>
@@ -328,15 +328,6 @@ function ActiveSessionDashboard({ session, movements, onProceedToClose }: { sess
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">${totalIncome.toFixed(2)}</div>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-                            <TrendingDown className="h-4 w-4 text-red-500" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">${totalExpenses.toFixed(2)}</div>
                         </CardContent>
                     </Card>
                 </div>
@@ -358,13 +349,6 @@ function ActiveSessionDashboard({ session, movements, onProceedToClose }: { sess
 
 function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (values: any) => void, onBack: () => void }) {
     const t = useTranslations('CashierPage');
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
-
-    const handleFormSubmit = async (values: CloseSessionFormValues) => {
-        setIsSubmitting(true);
-        await onSubmit(values);
-        setIsSubmitting(false);
-    };
 
     return (
         <Card className="w-full max-w-lg mx-auto">
@@ -373,7 +357,7 @@ function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (valu
                 <CardDescription>{t('closeDialog.description')}</CardDescription>
             </CardHeader>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleFormSubmit)}>
+                <form onSubmit={form.handleSubmit(onSubmit)}>
                     <CardContent className="space-y-4">
                         <FormField control={form.control} name="declaradoEfectivo" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.cash')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="declaradoTarjeta" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.card')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -382,11 +366,11 @@ function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (valu
                         <FormField control={form.control} name="notas" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.notes')}</FormLabel><FormControl><Textarea placeholder={t('closeDialog.notesPlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>)} />
                     </CardContent>
                     <CardFooter className="justify-between">
-                        <Button variant="outline" type="button" onClick={onBack} disabled={isSubmitting}>
+                        <Button variant="outline" type="button" onClick={onBack}>
                             <ArrowLeft className="mr-2 h-4 w-4" /> Back
                         </Button>
-                        <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? 'Processing...' : t('closeDialog.submitButton')}
+                        <Button type="submit">
+                            {t('closeDialog.submitButton')}
                             <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                     </CardFooter>
@@ -465,27 +449,37 @@ function CloseSessionReport({ report, onConfirm, onNewSession, onBack }: { repor
     );
 }
 
-function CloseSessionWizard({ initialStep, onExitWizard, activeSessionDashboard, blindCloseForm, closeSessionReport }: {
-    initialStep: WizardStep;
+function CloseSessionWizard({
+    currentStep,
+    setCurrentStep,
+    onExitWizard,
+    activeSessionDashboard,
+    blindCloseForm,
+    closeSessionReport
+}: {
+    currentStep: WizardStep;
+    setCurrentStep: React.Dispatch<React.SetStateAction<WizardStep>>;
     onExitWizard: () => void;
     activeSessionDashboard: React.ReactNode;
     blindCloseForm: React.ReactNode;
     closeSessionReport: React.ReactNode;
 }) {
     const t = useTranslations('CashierPage.wizard');
-    const [currentStep, setCurrentStep] = React.useState<WizardStep>(initialStep);
-
-    const handleTabChange = (value: string) => {
-        // Prevent going to a future step by clicking the tab
-        if (value === 'REPORT' && currentStep !== 'REPORT') {
-            return;
-        }
-        if (value === 'DECLARE' && currentStep === 'REVIEW') {
-            return;
-        }
-        setCurrentStep(value as WizardStep);
-    }
     
+    const handleTabChange = (value: string) => {
+        const newStep = value as WizardStep;
+        
+        // Prevent clicking future tabs
+        if (newStep === 'REPORT' && currentStep !== 'REPORT') {
+          return;
+        }
+        if (newStep === 'DECLARE' && currentStep === 'REVIEW') {
+          return;
+        }
+        
+        setCurrentStep(newStep);
+    };
+
     return (
         <Card className="w-full">
             <CardHeader>
@@ -503,7 +497,14 @@ function CloseSessionWizard({ initialStep, onExitWizard, activeSessionDashboard,
                         {React.cloneElement(activeSessionDashboard as React.ReactElement, { onProceedToClose: () => setCurrentStep('DECLARE') })}
                     </TabsContent>
                     <TabsContent value="DECLARE" className="mt-4">
-                        {React.cloneElement(blindCloseForm as React.ReactElement, { onBack: () => setCurrentStep('REVIEW'), onNext: () => setCurrentStep('REPORT') })}
+                        {React.cloneElement(blindCloseForm as React.ReactElement, {
+                            onBack: () => setCurrentStep('REVIEW'),
+                            onSubmit: (values: any) => {
+                                // This is now handled by the parent component, which calls handleCalculateReport
+                                const parent = (blindCloseForm as React.ReactElement).props;
+                                parent.onSubmit(values);
+                            },
+                        })}
                     </TabsContent>
                     <TabsContent value="REPORT" className="mt-4">
                          {React.cloneElement(closeSessionReport as React.ReactElement, { onBack: () => setCurrentStep('DECLARE'), onNewSession: onExitWizard })}
