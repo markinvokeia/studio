@@ -32,6 +32,7 @@ import {
   CalendarPlus,
   UserX,
   Box,
+  History,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -91,6 +92,10 @@ export const navItems: NavItem[] = [
     title: 'Cashier',
     href: '/cashier',
     icon: Box,
+    items: [
+        { title: 'Cashier', href: '/cashier', icon: Box, isChidren: true },
+        { title: 'CashSessions', href: '/cashier/sessions', icon: History, isChidren: true },
+    ],
   },
   {
     title: 'BusinessSetup',
