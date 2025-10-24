@@ -979,12 +979,12 @@ export default function AppointmentsPage() {
           setDoctorSearchQuery('');
         }
       }}>
-        <DialogContent className={cn("sm:max-w-md", !editingAppointment && availabilityStatus === 'unavailable' && suggestedTimes.length > 0 && "sm:max-w-4xl")}>
+        <DialogContent className={cn("sm:max-w-md", !editingAppointment && (availabilityStatus === 'unavailable' || availabilityStatus === 'checking') && "sm:max-w-4xl")}>
           <DialogHeader>
             <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
             <DialogDescription>{t('createDialog.description')}</DialogDescription>
           </DialogHeader>
-          <div className={cn("grid gap-8 py-4", !editingAppointment && availabilityStatus === 'unavailable' && suggestedTimes.length > 0 && "grid-cols-2")}>
+          <div className={cn("grid gap-8 py-4", !editingAppointment && (availabilityStatus === 'unavailable' || availabilityStatus === 'checking') && "grid-cols-2")}>
             <div className="grid gap-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="patientName" className="text-right">{t('createDialog.userName')}</Label>
@@ -1249,7 +1249,7 @@ export default function AppointmentsPage() {
                 </div>
               )}
             </div>
-            {!editingAppointment && availabilityStatus === 'unavailable' && suggestedTimes.length > 0 && (
+            {!editingAppointment && (availabilityStatus === 'unavailable' || availabilityStatus === 'checking') && (
                 <div className="border-l pl-8">
                     <h4 className="font-semibold mb-4">{t('createDialog.suggestedTimes')}</h4>
                     <RadioGroup onValueChange={(value) => {
@@ -1277,7 +1277,13 @@ export default function AppointmentsPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {suggestedTimes.length > 0 ? (
+                                    {availabilityStatus === 'checking' ? (
+                                        [...Array(5)].map((_, i) => (
+                                          <TableRow key={i}>
+                                            <TableCell colSpan={5}><Skeleton className="h-8 w-full" /></TableCell>
+                                          </TableRow>
+                                        ))
+                                    ) : suggestedTimes.length > 0 ? (
                                         suggestedTimes.map((suggestion) => (
                                             <TableRow key={suggestion.id}>
                                                 <TableCell><RadioGroupItem value={suggestion.id} id={suggestion.id} /></TableCell>
@@ -1290,7 +1296,7 @@ export default function AppointmentsPage() {
                                     ) : (
                                         <TableRow>
                                             <TableCell colSpan={5} className="text-center text-muted-foreground">
-                                                {availabilityStatus === 'checking' ? t('createDialog.searching') : tGeneral('noResults')}
+                                                {tGeneral('noResults')}
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -1324,6 +1330,8 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
 
     
 
