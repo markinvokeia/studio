@@ -52,10 +52,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+  const logout = async () => {
+    const token = localStorage.getItem('token');
+    try {
+        await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/logout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+        });
+    } catch (error) {
+        console.error("Logout request failed:", error);
+    } finally {
+        setUser(null);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+    }
   };
 
   return (
