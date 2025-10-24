@@ -99,7 +99,16 @@
       "transfer": "Transfer",
       "other": "Other",
       "notes": "Closing Notes",
-      "newSessionButton": "Start New Session"
+      "newSessionButton": "Start New Session",
+      "confirmButton": "Confirm Close"
+    },
+    "wizard": {
+      "title": "Close Session Wizard",
+      "steps": {
+        "review": "Review",
+        "declare": "Declare",
+        "report": "Report"
+      }
     }
   },
   "Header": {

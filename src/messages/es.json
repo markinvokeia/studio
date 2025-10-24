@@ -99,7 +99,16 @@
       "transfer": "Transferencia",
       "other": "Otro",
       "notes": "Notas de Cierre",
-      "newSessionButton": "Iniciar Nueva Sesión"
+      "newSessionButton": "Iniciar Nueva Sesión",
+      "confirmButton": "Confirmar Cierre"
+    },
+    "wizard": {
+      "title": "Asistente de Cierre de Sesión",
+      "steps": {
+        "review": "Revisar",
+        "declare": "Declarar",
+        "report": "Reporte"
+      }
     }
   },
   "Header": {
@@ -200,7 +209,7 @@
       "title": "Crear Nueva Cita",
       "description": "Completa los detalles a continuación para crear una nueva cita.",
       "cancelAppointmentTitle": "Cancelar Cita",
-      "cancelAppointmentDescription": "¿Estás seguro que quieres cancelar la cita para {serviceName} el {date}?",
+      "cancelAppointmentDescription": "¿Estás seguro de que quieres cancelar la cita para {serviceName} el {date}?",
       "userName": "Nombre de Usuario",
       "selectUser": "Selecciona un usuario",
       "searchUserPlaceholder": "Buscar por nombre o email...",

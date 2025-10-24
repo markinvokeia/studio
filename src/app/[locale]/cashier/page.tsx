@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Box, Briefcase, DollarSign, LogOut, TrendingDown, TrendingUp, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, Box, Briefcase, DollarSign, LogOut, TrendingDown, TrendingUp, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
@@ -59,6 +59,8 @@ export default function CashierPage() {
     const [isLoading, setIsLoading] = React.useState(true);
     const [serverError, setServerError] = React.useState<string | null>(null);
     const [wizardStep, setWizardStep] = React.useState<WizardStep>('REVIEW');
+    const [showClosingWizard, setShowClosingWizard] = React.useState(false);
+
 
     const openSessionForm = useForm<OpenSessionFormValues>({ resolver: zodResolver(openSessionSchema(t)) });
     const closeSessionForm = useForm<CloseSessionFormValues>({ resolver: zodResolver(closeSessionSchema(t)) });
@@ -123,7 +125,7 @@ export default function CashierPage() {
         return true;
     };
 
-    const handleCloseSession = async (values: CloseSessionFormValues) => {
+    const handleCalculateReport = (values: CloseSessionFormValues) => {
         if (!activeSession) return false;
         
         const totalIngresosEfectivo = sessionMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'EFECTIVO').reduce((sum, m) => sum + m.monto, 0);
@@ -156,11 +158,7 @@ export default function CashierPage() {
         };
 
         setClosedSessionReport(report);
-        setActiveSession(null);
-        setSessionMovements([]);
         setWizardStep('REPORT');
-        toast({ title: t('toast.closeSuccessTitle'), description: t('toast.closeSuccessDescription') });
-        return true;
     };
     
     if (isLoading) {
@@ -177,37 +175,60 @@ export default function CashierPage() {
         );
     }
     
-    if (wizardStep === 'REPORT' && closedSessionReport) {
-        return <CloseSessionReport report={closedSessionReport} onNewSession={() => { setClosedSessionReport(null); setWizardStep('REVIEW'); }} />;
-    }
-
     if (!activeSession) {
         return <OpenSessionDashboard form={openSessionForm} onOpenSession={handleOpenSession} />;
     }
 
-    if (wizardStep === 'REVIEW') {
-      return (
+    if(showClosingWizard) {
+      return <CloseSessionWizard
+                initialStep={wizardStep}
+                onExitWizard={() => {
+                  setShowClosingWizard(false);
+                  setWizardStep('REVIEW');
+                  setClosedSessionReport(null);
+                }}
+                activeSessionDashboard={
+                    <ActiveSessionDashboard 
+                        session={activeSession}
+                        movements={sessionMovements}
+                        expenseForm={expenseForm}
+                        onRegisterExpense={handleRegisterExpense}
+                        onProceedToClose={() => setWizardStep('DECLARE')}
+                    />
+                }
+                blindCloseForm={
+                    <BlindCloseForm
+                        form={closeSessionForm}
+                        onSubmit={handleCalculateReport}
+                        onBack={() => setWizardStep('REVIEW')}
+                    />
+                }
+                closeSessionReport={
+                    closedSessionReport ?
+                    <CloseSessionReport 
+                        report={closedSessionReport} 
+                        onConfirm={() => {
+                          // Here you would call the actual API
+                          toast({ title: t('toast.closeSuccessTitle'), description: t('toast.closeSuccessDescription') });
+                          setActiveSession(null);
+                          setSessionMovements([]);
+                          setShowClosingWizard(false);
+                        }}
+                    />
+                    : <Skeleton className="h-[400px] w-full" />
+                }
+            />
+    }
+
+    return (
         <ActiveSessionDashboard 
             session={activeSession}
             movements={sessionMovements}
             expenseForm={expenseForm}
             onRegisterExpense={handleRegisterExpense}
-            onProceedToClose={() => setWizardStep('DECLARE')}
+            onProceedToClose={() => setShowClosingWizard(true)}
         />
-      );
-    }
-
-    if (wizardStep === 'DECLARE') {
-      return (
-          <BlindCloseForm
-              form={closeSessionForm}
-              onSubmit={handleCloseSession}
-              onBack={() => setWizardStep('REVIEW')}
-          />
-      );
-    }
-
-    return null; // Should not be reached
+    );
 }
 
 // Components
@@ -384,7 +405,7 @@ function ActiveSessionDashboard({ session, movements, expenseForm, onRegisterExp
     );
 }
 
-function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (values: any) => Promise<boolean>, onBack: () => void }) {
+function BlindCloseForm({ form, onSubmit, onBack, onNext }: { form: any, onSubmit: (values: any) => void, onBack: () => void, onNext: () => void }) {
     const t = useTranslations('CashierPage');
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -392,6 +413,7 @@ function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (valu
         setIsSubmitting(true);
         await onSubmit(values);
         setIsSubmitting(false);
+        onNext();
     };
 
     return (
@@ -415,6 +437,7 @@ function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (valu
                         </Button>
                         <Button type="submit" disabled={isSubmitting}>
                             {isSubmitting ? 'Processing...' : t('closeDialog.submitButton')}
+                            <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                     </CardFooter>
                 </form>
@@ -423,8 +446,9 @@ function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (valu
     );
 }
 
-function CloseSessionReport({ report, onNewSession }: { report: CajaSesion, onNewSession: () => void }) {
+function CloseSessionReport({ report, onConfirm, onNewSession, onBack }: { report: CajaSesion, onConfirm: () => void, onNewSession: () => void, onBack: () => void }) {
     const t = useTranslations('CashierPage.report');
+    const [isConfirmed, setIsConfirmed] = React.useState(false);
     
     const formatCurrency = (value: number | null | undefined) => {
         if (value === null || value === undefined) return '$0.00';
@@ -437,6 +461,11 @@ function CloseSessionReport({ report, onNewSession }: { report: CajaSesion, onNe
         { method: t('transfer'), calculated: report.montoCierreCalculadoTransferencia, declared: report.montoCierreDeclaradoTransferencia, difference: report.descuadreTransferencia },
         { method: t('other'), calculated: report.montoCierreCalculadoOtro, declared: report.montoCierreDeclaradoOtro, difference: report.descuadreOtro },
     ];
+
+    const handleConfirm = () => {
+        onConfirm();
+        setIsConfirmed(true);
+    }
     
     return (
         <Card>
@@ -472,10 +501,62 @@ function CloseSessionReport({ report, onNewSession }: { report: CajaSesion, onNe
                     </div>
                 )}
             </CardContent>
-            <CardFooter>
-                <Button onClick={onNewSession}><Box className="mr-2 h-4 w-4" />{t('newSessionButton')}</Button>
+            <CardFooter className="justify-between">
+                 <Button variant="outline" onClick={onBack} disabled={isConfirmed}>
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                </Button>
+                {isConfirmed ? (
+                    <Button onClick={onNewSession}><Box className="mr-2 h-4 w-4" />{t('newSessionButton')}</Button>
+                ) : (
+                    <Button onClick={handleConfirm}>{t('confirmButton')}</Button>
+                )}
             </CardFooter>
         </Card>
     );
 }
 
+function CloseSessionWizard({ initialStep, onExitWizard, activeSessionDashboard, blindCloseForm, closeSessionReport }: {
+    initialStep: WizardStep;
+    onExitWizard: () => void;
+    activeSessionDashboard: React.ReactNode;
+    blindCloseForm: React.ReactNode;
+    closeSessionReport: React.ReactNode;
+}) {
+    const t = useTranslations('CashierPage.wizard');
+    const [currentStep, setCurrentStep] = React.useState<WizardStep>(initialStep);
+
+    const handleTabChange = (value: string) => {
+        // Prevent going to a future step by clicking the tab
+        if (value === 'REPORT' && currentStep !== 'REPORT') {
+            return;
+        }
+        setCurrentStep(value as WizardStep);
+    }
+    
+    return (
+        <Card className="w-full">
+            <CardHeader>
+                <CardTitle>{t('title')}</CardTitle>
+                <Button onClick={onExitWizard} variant="ghost" size="sm" className="absolute top-4 right-4">Return to Active Session</Button>
+            </CardHeader>
+            <CardContent>
+                <Tabs value={currentStep} onValueChange={handleTabChange} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="REVIEW" disabled={currentStep !== 'REVIEW' && currentStep !== 'DECLARE' && currentStep !== 'REPORT'}>{t('steps.review')}</TabsTrigger>
+                        <TabsTrigger value="DECLARE" disabled={currentStep !== 'DECLARE' && currentStep !== 'REPORT'}>{t('steps.declare')}</TabsTrigger>
+                        <TabsTrigger value="REPORT" disabled={currentStep !== 'REPORT'}>{t('steps.report')}</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="REVIEW" className="mt-4">
+                        {React.cloneElement(activeSessionDashboard as React.ReactElement, { onProceedToClose: () => setCurrentStep('DECLARE') })}
+                    </TabsContent>
+                    <TabsContent value="DECLARE" className="mt-4">
+                        {React.cloneElement(blindCloseForm as React.ReactElement, { onBack: () => setCurrentStep('REVIEW'), onNext: () => setCurrentStep('REPORT') })}
+                    </TabsContent>
+                    <TabsContent value="REPORT" className="mt-4">
+                         {React.cloneElement(closeSessionReport as React.ReactElement, { onBack: () => setCurrentStep('DECLARE'), onNewSession: onExitWizard })}
+                    </TabsContent>
+                </Tabs>
+            </CardContent>
+        </Card>
+    );
+}
