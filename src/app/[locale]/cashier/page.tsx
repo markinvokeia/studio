@@ -498,7 +498,6 @@ function CloseSessionWizard({
         <Card className="w-full">
             <CardHeader>
                 <CardTitle>{t('title')}</CardTitle>
-                <Button onClick={onExitWizard} variant="ghost" size="sm" className="absolute top-4 right-4">Return to Active Session</Button>
             </CardHeader>
             <CardContent>
                 <Tabs value={currentStep} onValueChange={handleTabChange} className="w-full">
@@ -528,13 +527,5 @@ function CloseSessionWizard({
         </Card>
     );
 }
-
-    
-
-    
-
-    
-
-    
 
     
