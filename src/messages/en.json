@@ -18,6 +18,7 @@
     "Medications": "Medications",
     "DentalConditions": "Dental Conditions",
     "DentalSurfaces": "Dental Surfaces",
+    "Cashier": "Cashier",
     "BusinessSetup": "Business Setup",
     "Services": "Services",
     "ClinicDetails": "Clinic Details",
@@ -33,6 +34,72 @@
     "AuditLog": "Audit Log",
     "AccessLog": "Access Log",
     "ErrorLog": "Error Log"
+  },
+  "CashierPage": {
+    "cancel": "Cancel",
+    "toast": {
+      "error": "Error",
+      "openSuccessTitle": "Session Opened",
+      "openSuccessDescription": "The cash session has been started successfully.",
+      "openError": "Could not open session.",
+      "expenseSuccessTitle": "Expense Registered",
+      "expenseSuccessDescription": "The expense has been registered correctly.",
+      "expenseError": "Could not register expense.",
+      "closeSuccessTitle": "Session Closed",
+      "closeSuccessDescription": "The cash session has been closed and reconciled.",
+      "closeError": "Could not close the session."
+    },
+    "validation": {
+      "openingAmountRequired": "Opening amount is required and must be positive.",
+      "amountRequired": "Amount is required.",
+      "descriptionRequired": "Description is required."
+    },
+    "openSession": {
+      "title": "Open Cash Session",
+      "description": "Enter the initial amount to start your work shift.",
+      "openingAmount": "Opening Amount",
+      "openButton": "Open Session"
+    },
+    "activeSession": {
+      "title": "Active Cash Session",
+      "description": "Session for user {user} at point of sale {location}.",
+      "openingAmount": "Opening Amount",
+      "registerExpense": "Register Expense",
+      "closeSession": "Close Session"
+    },
+    "expenseDialog": {
+      "title": "Register Expense",
+      "description": "Enter the details of the cash expense.",
+      "amount": "Amount",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "e.g., Office supplies purchase",
+      "saveButton": "Register Expense"
+    },
+    "closeDialog": {
+      "title": "Close Cash Session (Blind Close)",
+      "description": "Count the physical money and vouchers for each payment method and enter the totals below. The system will then perform the reconciliation.",
+      "cash": "Counted Cash Total",
+      "card": "Total in Card Vouchers",
+      "transfer": "Total in Transfer Vouchers",
+      "other": "Total in Other Payment Methods",
+      "notes": "Closing Notes",
+      "notesPlaceholder": "Any relevant information about the closing process...",
+      "submitButton": "Close and Reconcile Session"
+    },
+    "report": {
+      "title": "Closing Report",
+      "description": "Reconciliation summary for the session closed on {date}.",
+      "paymentMethod": "Payment Method",
+      "systemAmount": "System Amount",
+      "declaredAmount": "Declared Amount",
+      "difference": "Difference",
+      "cash": "Cash",
+      "card": "Card",
+      "transfer": "Transfer",
+      "other": "Other",
+      "notes": "Closing Notes",
+      "newSessionButton": "Start New Session"
+    }
   },
   "Header": {
     "toggleLanguage": "Toggle language",

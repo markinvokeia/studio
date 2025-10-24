@@ -31,6 +31,7 @@ import {
   Share2,
   CalendarPlus,
   UserX,
+  Box,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -85,6 +86,11 @@ export const navItems: NavItem[] = [
       { title: 'DentalConditions', href: '/clinic-catalog/dental-conditions', icon: Smile, isChidren: true },
       { title: 'DentalSurfaces', href: '/clinic-catalog/dental-surfaces', icon: Layers, isChidren: true },
     ],
+  },
+  {
+    title: 'Cashier',
+    href: '/cashier',
+    icon: Box,
   },
   {
     title: 'BusinessSetup',

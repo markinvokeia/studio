@@ -18,6 +18,7 @@
     "Medications": "Medicamentos",
     "DentalConditions": "Condiciones Dentales",
     "DentalSurfaces": "Superficies Dentales",
+    "Cashier": "Caja",
     "BusinessSetup": "Configuración",
     "Services": "Servicios",
     "ClinicDetails": "Clínicas",
@@ -33,6 +34,72 @@
     "AuditLog": "Auditoría",
     "AccessLog": "Accesos",
     "ErrorLog": "Errores"
+  },
+  "CashierPage": {
+    "cancel": "Cancelar",
+    "toast": {
+      "error": "Error",
+      "openSuccessTitle": "Sesión Abierta",
+      "openSuccessDescription": "La sesión de caja se ha iniciado con éxito.",
+      "openError": "No se pudo abrir la sesión.",
+      "expenseSuccessTitle": "Egreso Registrado",
+      "expenseSuccessDescription": "El egreso ha sido registrado correctamente.",
+      "expenseError": "No se pudo registrar el egreso.",
+      "closeSuccessTitle": "Sesión Cerrada",
+      "closeSuccessDescription": "La sesión de caja ha sido cerrada y conciliada.",
+      "closeError": "No se pudo cerrar la sesión."
+    },
+    "validation": {
+      "openingAmountRequired": "El monto de apertura es obligatorio y debe ser positivo.",
+      "amountRequired": "El monto es obligatorio.",
+      "descriptionRequired": "La descripción es obligatoria."
+    },
+    "openSession": {
+      "title": "Abrir Sesión de Caja",
+      "description": "Ingrese el monto inicial para comenzar su turno de trabajo.",
+      "openingAmount": "Monto de Apertura",
+      "openButton": "Abrir Sesión"
+    },
+    "activeSession": {
+      "title": "Sesión de Caja Activa",
+      "description": "Sesión para el usuario {user} en el punto de venta {location}.",
+      "openingAmount": "Monto de Apertura",
+      "registerExpense": "Registrar Egreso",
+      "closeSession": "Cerrar Caja"
+    },
+    "expenseDialog": {
+      "title": "Registrar Egreso",
+      "description": "Ingrese los detalles del egreso de caja.",
+      "amount": "Monto",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "ej., Compra de papelería",
+      "saveButton": "Registrar Egreso"
+    },
+    "closeDialog": {
+      "title": "Cerrar Sesión de Caja (Cierre Ciego)",
+      "description": "Cuente el dinero físico y los comprobantes de cada método de pago e ingrese los totales a continuación. El sistema realizará la conciliación.",
+      "cash": "Total Contado en Efectivo",
+      "card": "Total en Comprobantes de Tarjeta",
+      "transfer": "Total en Comprobantes de Transferencia",
+      "other": "Total en Otros Medios de Pago",
+      "notes": "Notas de Cierre",
+      "notesPlaceholder": "Cualquier información relevante sobre el cierre...",
+      "submitButton": "Cerrar y Conciliar Sesión"
+    },
+    "report": {
+      "title": "Reporte de Cierre",
+      "description": "Resumen de conciliación para la sesión cerrada el {date}.",
+      "paymentMethod": "Método de Pago",
+      "systemAmount": "Monto del Sistema",
+      "declaredAmount": "Monto Declarado",
+      "difference": "Diferencia",
+      "cash": "Efectivo",
+      "card": "Tarjeta",
+      "transfer": "Transferencia",
+      "other": "Otro",
+      "notes": "Notas de Cierre",
+      "newSessionButton": "Iniciar Nueva Sesión"
+    }
   },
   "Header": {
     "toggleLanguage": "Cambiar idioma",

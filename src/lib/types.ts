@@ -1,5 +1,4 @@
 
-
 export type User = {
   id: string;
   name: string;
@@ -388,4 +387,39 @@ export type AvailabilityException = {
     end_time: string;
     is_available: boolean;
 };
-    
+
+export type CajaSesion = {
+  id: string;
+  usuarioId: string;
+  puntoDeCajaId: string;
+  estado: 'ABIERTA' | 'CERRADA';
+  fechaApertura: string;
+  fechaCierre?: string;
+  montoApertura: number;
+  montoCierreDeclaradoEfectivo?: number;
+  montoCierreDeclaradoTarjeta?: number;
+  montoCierreDeclaradoTransferencia?: number;
+  montoCierreDeclaradoOtro?: number;
+  montoCierreCalculadoEfectivo?: number;
+  montoCierreCalculadoTarjeta?: number;
+  montoCierreCalculadoTransferencia?: number;
+  montoCierreCalculadoOtro?: number;
+  totalEgresosEfectivo?: number;
+  descuadreEfectivo?: number;
+  descuadreTarjeta?: number;
+  descuadreTransferencia?: number;
+  descuadreOtro?: number;
+  notasCierre?: string;
+};
+
+export type CajaMovimiento = {
+  id: string;
+  cajaSesionId: string;
+  tipo: 'INGRESO' | 'EGRESO';
+  metodoPago: 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'OTRO';
+  monto: number;
+  descripcion: string;
+  fecha: string;
+  usuarioId: string;
+  pagoId?: string;
+};
