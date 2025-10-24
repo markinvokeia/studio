@@ -13,12 +13,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Box, Briefcase, DollarSign, LogOut, TrendingDown, TrendingUp } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { CajaSesion, CajaMovimiento } from '@/lib/types';
+import { useTranslations } from 'next-intl';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DataTable } from '@/components/ui/data-table';
+import { ColumnDef } from '@tanstack/react-table';
 
 const openSessionSchema = (t: (key: string) => string) => z.object({
   montoApertura: z.coerce.number().positive(t('validation.openingAmountRequired')),
@@ -82,8 +85,15 @@ export default function CashierPage() {
             montoApertura: values.montoApertura,
         };
         
+        // MOCK: Simulate some income movements for demonstration
+         const mockIncome: CajaMovimiento[] = [
+            { id: `mov_${Date.now()+1}`, cajaSesionId: newSession.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 250, descripcion: 'Pago Factura F-001', fecha: new Date().toISOString(), usuarioId: newSession.usuarioId },
+            { id: `mov_${Date.now()+2}`, cajaSesionId: newSession.id, tipo: 'INGRESO', metodoPago: 'TARJETA', monto: 150, descripcion: 'Pago Factura F-002', fecha: new Date().toISOString(), usuarioId: newSession.usuarioId },
+            { id: `mov_${Date.now()+3}`, cajaSesionId: newSession.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 300, descripcion: 'Pago Factura F-003', fecha: new Date().toISOString(), usuarioId: newSession.usuarioId },
+        ];
+
         setActiveSession(newSession);
-        setSessionMovements([]); // Reset movements for new session
+        setSessionMovements(mockIncome);
         toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
         return true;
     };
@@ -109,21 +119,13 @@ export default function CashierPage() {
 
     const handleCloseSession = async (values: CloseSessionFormValues) => {
         if (!activeSession) return false;
-
-        // MOCK: Simulate some income movements for demonstration
-        const mockIncome: CajaMovimiento[] = [
-            { id: `mov_${Date.now()+1}`, cajaSesionId: activeSession.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 250, descripcion: 'Pago Factura F-001', fecha: new Date().toISOString(), usuarioId: activeSession.usuarioId },
-            { id: `mov_${Date.now()+2}`, cajaSesionId: activeSession.id, tipo: 'INGRESO', metodoPago: 'TARJETA', monto: 150, descripcion: 'Pago Factura F-002', fecha: new Date().toISOString(), usuarioId: activeSession.usuarioId },
-            { id: `mov_${Date.now()+3}`, cajaSesionId: activeSession.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 300, descripcion: 'Pago Factura F-003', fecha: new Date().toISOString(), usuarioId: activeSession.usuarioId },
-        ];
-        const allMovements = [...sessionMovements, ...mockIncome];
         
-        const totalIngresosEfectivo = allMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'EFECTIVO').reduce((sum, m) => sum + m.monto, 0);
-        const totalIngresosTarjeta = allMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'TARJETA').reduce((sum, m) => sum + m.monto, 0);
-        const totalIngresosTransferencia = allMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'TRANSFERENCIA').reduce((sum, m) => sum + m.monto, 0);
-        const totalIngresosOtro = allMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'OTRO').reduce((sum, m) => sum + m.monto, 0);
+        const totalIngresosEfectivo = sessionMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'EFECTIVO').reduce((sum, m) => sum + m.monto, 0);
+        const totalIngresosTarjeta = sessionMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'TARJETA').reduce((sum, m) => sum + m.monto, 0);
+        const totalIngresosTransferencia = sessionMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'TRANSFERENCIA').reduce((sum, m) => sum + m.monto, 0);
+        const totalIngresosOtro = sessionMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'OTRO').reduce((sum, m) => sum + m.monto, 0);
         
-        const totalEgresosEfectivo = allMovements.filter(m => m.tipo === 'EGRESO' && m.metodoPago === 'EFECTIVO').reduce((sum, m) => sum + m.monto, 0);
+        const totalEgresosEfectivo = sessionMovements.filter(m => m.tipo === 'EGRESO' && m.metodoPago === 'EFECTIVO').reduce((sum, m) => sum + m.monto, 0);
 
         const montoCalculadoEfectivo = activeSession.montoApertura + totalIngresosEfectivo - totalEgresosEfectivo;
         
@@ -175,6 +177,7 @@ export default function CashierPage() {
     return activeSession ? (
         <ActiveSessionDashboard 
             session={activeSession}
+            movements={sessionMovements}
             expenseForm={expenseForm}
             closeSessionForm={closeSessionForm}
             onRegisterExpense={handleRegisterExpense}
@@ -233,7 +236,15 @@ function OpenSessionDashboard({ form, onOpenSession }: { form: any, onOpenSessio
     );
 }
 
-function ActiveSessionDashboard({ session, expenseForm, closeSessionForm, onRegisterExpense, onCloseSession }: { session: any, expenseForm: any, closeSessionForm: any, onRegisterExpense: any, onCloseSession: any }) {
+const movementColumns: ColumnDef<CajaMovimiento>[] = [
+  { accessorKey: 'descripcion', header: 'Description' },
+  { accessorKey: 'monto', header: 'Amount', cell: ({ row }) => `$${row.original.monto.toFixed(2)}` },
+  { accessorKey: 'metodoPago', header: 'Method' },
+  { accessorKey: 'fecha', header: 'Date', cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
+];
+
+
+function ActiveSessionDashboard({ session, movements, expenseForm, closeSessionForm, onRegisterExpense, onCloseSession }: { session: any, movements: CajaMovimiento[], expenseForm: any, closeSessionForm: any, onRegisterExpense: any, onCloseSession: any }) {
     const t = useTranslations('CashierPage');
     const { user } = useAuth();
     const [isExpenseDialogOpen, setIsExpenseDialogOpen] = React.useState(false);
@@ -255,6 +266,12 @@ function ActiveSessionDashboard({ session, expenseForm, closeSessionForm, onRegi
         }
     };
 
+    const totalIncome = React.useMemo(() => movements.filter(m => m.tipo === 'INGRESO').reduce((sum, m) => sum + m.monto, 0), [movements]);
+    const totalExpenses = React.useMemo(() => movements.filter(m => m.tipo === 'EGRESO').reduce((sum, m) => sum + m.monto, 0), [movements]);
+    
+    const dailyPayments = React.useMemo(() => movements.filter(m => m.tipo === 'INGRESO'), [movements]);
+    const dailyExpenses = React.useMemo(() => movements.filter(m => m.tipo === 'EGRESO'), [movements]);
+
     return (
         <Card>
             <CardHeader>
@@ -273,7 +290,37 @@ function ActiveSessionDashboard({ session, expenseForm, closeSessionForm, onRegi
                             <p className="text-xs text-muted-foreground">{new Date(session.fechaApertura).toLocaleString()}</p>
                         </CardContent>
                     </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-green-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">${totalIncome.toFixed(2)}</div>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+                            <TrendingDown className="h-4 w-4 text-red-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">${totalExpenses.toFixed(2)}</div>
+                        </CardContent>
+                    </Card>
                 </div>
+                <Tabs defaultValue="payments">
+                    <TabsList>
+                        <TabsTrigger value="payments">Daily Payments</TabsTrigger>
+                        <TabsTrigger value="expenses">Expenses</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="payments">
+                        <DataTable columns={movementColumns} data={dailyPayments} />
+                    </TabsContent>
+                    <TabsContent value="expenses">
+                        <DataTable columns={movementColumns} data={dailyExpenses} />
+                    </TabsContent>
+                </Tabs>
             </CardContent>
             <CardFooter className="gap-2">
                  <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
