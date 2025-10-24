@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -21,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { useAuth } from '@/context/AuthContext';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 
 const openSessionSchema = (t: (key: string) => string) => z.object({
@@ -476,3 +478,4 @@ function CloseSessionReport({ report, onNewSession }: { report: CajaSesion, onNe
         </Card>
     );
 }
+
