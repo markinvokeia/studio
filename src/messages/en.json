@@ -36,6 +36,11 @@
     "AccessLog": "Access Log",
     "ErrorLog": "Error Log"
   },
+  "OpenCashSessionWidget": {
+    "title": "No Active Cash Session",
+    "description": "Click here to open a new cash session and start recording transactions.",
+    "button": "Open Session"
+  },
   "CashierPage": {
     "cancel": "Cancel",
     "toast": {

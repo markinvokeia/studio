@@ -51,6 +51,15 @@ export const navItems: NavItem[] = [
     icon: Home,
   },
   {
+    title: 'Cashier',
+    href: '/cashier',
+    icon: Box,
+    items: [
+        { title: 'Cashier', href: '/cashier', icon: Box, isChidren: true },
+        { title: 'CashSessions', href: '/cashier/sessions', icon: History, isChidren: true },
+    ],
+  },
+  {
     title: 'Appointments',
     href: '/appointments',
     icon: Calendar,
@@ -86,15 +95,6 @@ export const navItems: NavItem[] = [
       { title: 'Medications', href: '/clinic-catalog/medications', icon: Pill, isChidren: true },
       { title: 'DentalConditions', href: '/clinic-catalog/dental-conditions', icon: Smile, isChidren: true },
       { title: 'DentalSurfaces', href: '/clinic-catalog/dental-surfaces', icon: Layers, isChidren: true },
-    ],
-  },
-  {
-    title: 'Cashier',
-    href: '/cashier',
-    icon: Box,
-    items: [
-        { title: 'Cashier', href: '/cashier', icon: Box, isChidren: true },
-        { title: 'CashSessions', href: '/cashier/sessions', icon: History, isChidren: true },
     ],
   },
   {

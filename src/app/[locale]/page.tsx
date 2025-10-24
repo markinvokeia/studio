@@ -9,12 +9,17 @@ import { ReportFilters } from '@/components/dashboard/report-filters';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
 import { RecentOrdersTable } from '@/components/tables/recent-orders-table';
 import { NewUsersTable } from '@/components/tables/new-users-table';
-import { Quote, Order, User, Stat, SalesChartData, SalesByServiceChartData, InvoiceStatusData, AverageBilling, AppointmentAttendanceRate, PatientDemographics } from '@/lib/types';
+import { Quote, Order, User, Stat, SalesChartData, SalesByServiceChartData, InvoiceStatusData, AverageBilling, AppointmentAttendanceRate, PatientDemographics, CajaSesion } from '@/lib/types';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { subMonths, format } from 'date-fns';
 import { KpiRow } from '@/components/dashboard/kpi-row';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Box, AlertTriangle, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/button';
 
 type DashboardSummary = {
     stats: Stat[],
@@ -385,11 +390,55 @@ async function getUsers(): Promise<User[]> {
   }
 }
 
+const OpenCashSessionWidget = () => {
+  const t = useTranslations('OpenCashSessionWidget');
+  const locale = useLocale();
+  const { user } = useAuth();
+  const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const checkActiveSession = async () => {
+      if (!user) return;
+      setIsLoading(true);
+      // This is a mocked check. In a real app, you would fetch from your backend.
+      // For now, we assume no session is active on dashboard load.
+      setActiveSession(null); 
+      setIsLoading(false);
+    };
+    checkActiveSession();
+  }, [user]);
+
+  if (isLoading || activeSession) {
+    return null; // Don't show if loading or a session is already active
+  }
+
+  return (
+    <Alert variant="destructive" className="flex items-center justify-between">
+      <div className="flex items-center">
+        <AlertTriangle className="h-5 w-5" />
+        <div className="ml-4">
+          <AlertTitle className="font-bold">{t('title')}</AlertTitle>
+          <AlertDescription>
+            {t('description')}
+          </AlertDescription>
+        </div>
+      </div>
+       <Link href={`/${locale}/cashier`} passHref>
+          <Button>
+              <Box className="mr-2 h-4 w-4" />
+              {t('button')}
+              <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+      </Link>
+    </Alert>
+  );
+};
+
+
 export default function DashboardPage() {
   const tStats = useTranslations('Stats');
-  console.log('Translations for Stats loaded.');
   const tKpi = useTranslations('KpiRow');
-  console.log('Translations for KpiRow loaded.');
 
   const [stats, setStats] = React.useState<Stat[]>([]);
   const [salesTrend, setSalesTrend] = React.useState(0);
@@ -457,6 +506,7 @@ export default function DashboardPage() {
   return (
     <>
       <div className="space-y-4">
+        <OpenCashSessionWidget />
         <ReportFilters date={date} setDate={setDate} />
         <Stats data={stats} />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

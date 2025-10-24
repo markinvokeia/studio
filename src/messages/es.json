@@ -36,6 +36,11 @@
     "AccessLog": "Accesos",
     "ErrorLog": "Errores"
   },
+  "OpenCashSessionWidget": {
+    "title": "No hay Sesión de Caja Activa",
+    "description": "Haga clic aquí para abrir una nueva sesión de caja y comenzar a registrar transacciones.",
+    "button": "Abrir Sesión"
+  },
   "CashierPage": {
     "cancel": "Cancelar",
     "toast": {
