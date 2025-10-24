@@ -51,7 +51,7 @@ type WizardStep = 'REVIEW' | 'DECLARE' | 'REPORT';
 export default function CashierPage() {
     const t = useTranslations('CashierPage');
     const { user } = useAuth();
-    const { toast } = useToast();
+    const { toast } } from useToast();
     
     const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(null);
     const [sessionMovements, setSessionMovements] = React.useState<CajaMovimiento[]>([]);
@@ -62,7 +62,12 @@ export default function CashierPage() {
     const [showClosingWizard, setShowClosingWizard] = React.useState(false);
 
 
-    const openSessionForm = useForm<OpenSessionFormValues>({ resolver: zodResolver(openSessionSchema(t)) });
+    const openSessionForm = useForm<OpenSessionFormValues>({ 
+        resolver: zodResolver(openSessionSchema(t)),
+        defaultValues: {
+            montoApertura: 0,
+        },
+    });
     const closeSessionForm = useForm<CloseSessionFormValues>({ resolver: zodResolver(closeSessionSchema(t)) });
     const expenseForm = useForm<ExpenseFormValues>({ resolver: zodResolver(expenseSchema(t)) });
 
@@ -402,7 +407,7 @@ function CloseSessionReport({ report, onConfirm, onNewSession, onBack }: { repor
     }
     
     return (
-        <Card>
+        <Card className="w-full">
             <CardHeader>
                 <CardTitle>{t('title')}</CardTitle>
                 <CardDescription>{t('description', { date: new Date(report.fechaCierre!).toLocaleDateString() })}</CardDescription>
@@ -514,5 +519,7 @@ function CloseSessionWizard({
         </Card>
     );
 }
+
+    
 
     
