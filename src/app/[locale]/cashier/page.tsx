@@ -68,7 +68,16 @@ export default function CashierPage() {
             montoApertura: 0,
         },
     });
-    const closeSessionForm = useForm<CloseSessionFormValues>({ resolver: zodResolver(closeSessionSchema(t)) });
+    const closeSessionForm = useForm<CloseSessionFormValues>({
+        resolver: zodResolver(closeSessionSchema(t)),
+        defaultValues: {
+            declaradoEfectivo: 0,
+            declaradoTarjeta: 0,
+            declaradoTransferencia: 0,
+            declaradoOtro: 0,
+            notas: '',
+        },
+    });
     const expenseForm = useForm<ExpenseFormValues>({ resolver: zodResolver(expenseSchema(t)) });
 
     const checkActiveSession = React.useCallback(async () => {
@@ -131,7 +140,7 @@ export default function CashierPage() {
     };
 
     const handleCalculateReport = (values: CloseSessionFormValues) => {
-        if (!activeSession) return false;
+        if (!activeSession) return;
         
         const totalIngresosEfectivo = sessionMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'EFECTIVO').reduce((sum, m) => sum + m.monto, 0);
         const totalIngresosTarjeta = sessionMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'TARJETA').reduce((sum, m) => sum + m.monto, 0);
@@ -356,7 +365,7 @@ function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (valu
     const t = useTranslations('CashierPage');
 
     return (
-        <Card className="w-full">
+        <Card className="w-full border-0 shadow-none">
             <CardHeader>
                 <CardTitle>{t('closeDialog.title')}</CardTitle>
                 <CardDescription>{t('closeDialog.description')}</CardDescription>
@@ -519,6 +528,8 @@ function CloseSessionWizard({
         </Card>
     );
 }
+
+    
 
     
 
