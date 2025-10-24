@@ -51,7 +51,7 @@ type WizardStep = 'REVIEW' | 'DECLARE' | 'REPORT';
 export default function CashierPage() {
     const t = useTranslations('CashierPage');
     const { user } = useAuth();
-    const { toast } } from useToast();
+    const { toast } = useToast();
     
     const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(null);
     const [sessionMovements, setSessionMovements] = React.useState<CajaMovimiento[]>([]);
@@ -519,6 +519,10 @@ function CloseSessionWizard({
         </Card>
     );
 }
+
+    
+
+    
 
     
 
