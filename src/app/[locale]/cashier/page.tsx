@@ -351,7 +351,7 @@ function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (valu
     const t = useTranslations('CashierPage');
 
     return (
-        <Card className="w-full max-w-lg mx-auto">
+        <Card className="w-full">
             <CardHeader>
                 <CardTitle>{t('closeDialog.title')}</CardTitle>
                 <CardDescription>{t('closeDialog.description')}</CardDescription>
@@ -514,3 +514,5 @@ function CloseSessionWizard({
         </Card>
     );
 }
+
+    
