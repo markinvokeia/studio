@@ -191,8 +191,6 @@ export default function CashierPage() {
                     <ActiveSessionDashboard 
                         session={activeSession}
                         movements={sessionMovements}
-                        expenseForm={expenseForm}
-                        onRegisterExpense={handleRegisterExpense}
                         onProceedToClose={() => setWizardStep('DECLARE')}
                     />
                 }
@@ -214,6 +212,14 @@ export default function CashierPage() {
                           setSessionMovements([]);
                           setShowClosingWizard(false);
                         }}
+                        onBack={() => setWizardStep('DECLARE')}
+                        onNewSession={() => {
+                            setShowClosingWizard(false);
+                            setWizardStep('REVIEW');
+                            setClosedSessionReport(null);
+                            setActiveSession(null);
+                            setSessionMovements([]);
+                        }}
                     />
                     : <Skeleton className="h-[400px] w-full" />
                 }
@@ -224,9 +230,10 @@ export default function CashierPage() {
         <ActiveSessionDashboard 
             session={activeSession}
             movements={sessionMovements}
-            expenseForm={expenseForm}
-            onRegisterExpense={handleRegisterExpense}
-            onProceedToClose={() => setShowClosingWizard(true)}
+            onProceedToClose={() => {
+                setShowClosingWizard(true);
+                setWizardStep('DECLARE');
+            }}
         />
     );
 }
@@ -287,24 +294,14 @@ const movementColumns: ColumnDef<CajaMovimiento>[] = [
 ];
 
 
-function ActiveSessionDashboard({ session, movements, expenseForm, onRegisterExpense, onProceedToClose }: { session: any, movements: CajaMovimiento[], expenseForm: any, onRegisterExpense: any, onProceedToClose: () => void }) {
+function ActiveSessionDashboard({ session, movements, onProceedToClose }: { session: any, movements: CajaMovimiento[], onProceedToClose: () => void }) {
     const t = useTranslations('CashierPage');
     const { user } = useAuth();
-    const [isExpenseDialogOpen, setIsExpenseDialogOpen] = React.useState(false);
-
-    const onExpenseSubmit = async (values: ExpenseFormValues) => {
-        const success = await onRegisterExpense(values);
-        if (success) {
-            setIsExpenseDialogOpen(false);
-            expenseForm.reset();
-        }
-    };
     
     const totalIncome = React.useMemo(() => movements.filter(m => m.tipo === 'INGRESO').reduce((sum, m) => sum + m.monto, 0), [movements]);
     const totalExpenses = React.useMemo(() => movements.filter(m => m.tipo === 'EGRESO').reduce((sum, m) => sum + m.monto, 0), [movements]);
     
     const dailyPayments = React.useMemo(() => movements.filter(m => m.tipo === 'INGRESO'), [movements]);
-    const dailyExpenses = React.useMemo(() => movements.filter(m => m.tipo === 'EGRESO'), [movements]);
 
     return (
         <Card>
@@ -346,66 +343,20 @@ function ActiveSessionDashboard({ session, movements, expenseForm, onRegisterExp
                 <Tabs defaultValue="payments">
                     <TabsList>
                         <TabsTrigger value="payments">Daily Payments</TabsTrigger>
-                        <TabsTrigger value="expenses">Expenses</TabsTrigger>
                     </TabsList>
                     <TabsContent value="payments">
                         <DataTable columns={movementColumns} data={dailyPayments} />
                     </TabsContent>
-                    <TabsContent value="expenses">
-                        <DataTable columns={movementColumns} data={dailyExpenses} />
-                    </TabsContent>
                 </Tabs>
             </CardContent>
             <CardFooter className="gap-2">
-                 <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button variant="outline"><TrendingDown className="mr-2 h-4 w-4" />{t('activeSession.registerExpense')}</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>{t('expenseDialog.title')}</DialogTitle>
-                            <DialogDescription>{t('expenseDialog.description')}</DialogDescription>
-                        </DialogHeader>
-                        <Form {...expenseForm}>
-                            <form onSubmit={expenseForm.handleSubmit(onExpenseSubmit)} className="space-y-4 py-4">
-                                 <FormField
-                                    control={expenseForm.control}
-                                    name="monto"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('expenseDialog.amount')}</FormLabel>
-                                            <FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                 <FormField
-                                    control={expenseForm.control}
-                                    name="descripcion"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('expenseDialog.descriptionLabel')}</FormLabel>
-                                            <FormControl><Textarea placeholder={t('expenseDialog.descriptionPlaceholder')} {...field} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <DialogFooter>
-                                    <Button variant="outline" type="button" onClick={() => setIsExpenseDialogOpen(false)}>{t('cancel')}</Button>
-                                    <Button type="submit">{t('expenseDialog.saveButton')}</Button>
-                                </DialogFooter>
-                            </form>
-                        </Form>
-                    </DialogContent>
-                </Dialog>
-
                 <Button onClick={onProceedToClose}><LogOut className="mr-2 h-4 w-4" />{t('activeSession.closeSession')}</Button>
             </CardFooter>
         </Card>
     );
 }
 
-function BlindCloseForm({ form, onSubmit, onBack, onNext }: { form: any, onSubmit: (values: any) => void, onBack: () => void, onNext: () => void }) {
+function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (values: any) => void, onBack: () => void }) {
     const t = useTranslations('CashierPage');
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -413,7 +364,6 @@ function BlindCloseForm({ form, onSubmit, onBack, onNext }: { form: any, onSubmi
         setIsSubmitting(true);
         await onSubmit(values);
         setIsSubmitting(false);
-        onNext();
     };
 
     return (
@@ -530,6 +480,9 @@ function CloseSessionWizard({ initialStep, onExitWizard, activeSessionDashboard,
         if (value === 'REPORT' && currentStep !== 'REPORT') {
             return;
         }
+        if (value === 'DECLARE' && currentStep === 'REVIEW') {
+            return;
+        }
         setCurrentStep(value as WizardStep);
     }
     
@@ -542,8 +495,8 @@ function CloseSessionWizard({ initialStep, onExitWizard, activeSessionDashboard,
             <CardContent>
                 <Tabs value={currentStep} onValueChange={handleTabChange} className="w-full">
                     <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="REVIEW" disabled={currentStep !== 'REVIEW' && currentStep !== 'DECLARE' && currentStep !== 'REPORT'}>{t('steps.review')}</TabsTrigger>
-                        <TabsTrigger value="DECLARE" disabled={currentStep !== 'DECLARE' && currentStep !== 'REPORT'}>{t('steps.declare')}</TabsTrigger>
+                        <TabsTrigger value="REVIEW">{t('steps.review')}</TabsTrigger>
+                        <TabsTrigger value="DECLARE" disabled={currentStep === 'REVIEW'}>{t('steps.declare')}</TabsTrigger>
                         <TabsTrigger value="REPORT" disabled={currentStep !== 'REPORT'}>{t('steps.report')}</TabsTrigger>
                     </TabsList>
                     <TabsContent value="REVIEW" className="mt-4">
