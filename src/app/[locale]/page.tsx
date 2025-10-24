@@ -414,23 +414,23 @@ const OpenCashSessionWidget = () => {
   }
 
   return (
-    <Alert variant="destructive" className="flex items-center justify-between">
-      <div className="flex items-center">
-        <AlertTriangle className="h-5 w-5" />
-        <div className="ml-4">
-          <AlertTitle className="font-bold">{t('title')}</AlertTitle>
-          <AlertDescription>
-            {t('description')}
-          </AlertDescription>
+    <Alert variant="warning" className="flex items-center justify-between">
+        <div className="flex items-center">
+            <AlertTriangle className="h-5 w-5 text-yellow-300" />
+            <div className="ml-4">
+                <AlertTitle className="font-bold text-white">{t('title')}</AlertTitle>
+                <AlertDescription className="text-white/90">
+                    {t('description')}
+                </AlertDescription>
+            </div>
         </div>
-      </div>
-       <Link href={`/${locale}/cashier`} passHref>
-          <Button>
-              <Box className="mr-2 h-4 w-4" />
-              {t('button')}
-              <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-      </Link>
+        <Link href={`/${locale}/cashier`} passHref>
+            <Button variant="outline" className="bg-white/20 text-white hover:bg-white/30">
+                <Box className="mr-2 h-4 w-4" />
+                {t('button')}
+                <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+        </Link>
     </Alert>
   );
 };
