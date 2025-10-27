@@ -107,8 +107,8 @@ export default function CashierPage() {
                     user_name: cp.active_user_name,
                     puntoDeCajaId: String(cp.cash_point_id),
                     estado: 'ABIERTA',
-                    fechaApertura: new Date().toISOString(), 
-                    montoApertura: 0, 
+                    fechaApertura: cp.session_start_time || new Date().toISOString(), 
+                    montoApertura: cp.opening_amount || 0,
                 } : undefined,
             }));
             setCashPoints(mappedCashPoints);
@@ -148,7 +148,7 @@ export default function CashierPage() {
             
             const result = Array.isArray(data) ? data[0] : data;
 
-            if (result.code !== 200 || result.error) {
+            if (!response.ok || result.code !== 200 || result.error) {
                  toast({ variant: "destructive", title: "No se pudo abrir la caja", description: result.message || 'An unknown error occurred.' });
                  return;
             }
@@ -592,5 +592,7 @@ function CloseSessionWizard({
 
 
 
+
+    
 
     
