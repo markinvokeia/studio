@@ -423,3 +423,11 @@ export type CajaMovimiento = {
   usuarioId: string;
   pagoId?: string;
 };
+
+export type CashPoint = {
+  id: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};

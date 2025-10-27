@@ -20,6 +20,7 @@
     "DentalSurfaces": "Superficies Dentales",
     "Cashier": "Caja",
     "CashSessions": "Sesiones de Caja",
+    "PhysicalCashRegisters": "Cajas Físicas",
     "BusinessSetup": "Configuración",
     "Services": "Servicios",
     "ClinicDetails": "Clínicas",
@@ -35,6 +36,52 @@
     "AuditLog": "Auditoría",
     "AccessLog": "Accesos",
     "ErrorLog": "Errores"
+  },
+   "PhysicalCashRegistersPage": {
+    "title": "Cajas Físicas",
+    "description": "Gestionar las cajas físicas o puntos de venta.",
+    "filterPlaceholder": "Filtrar por nombre...",
+    "dialog": {
+      "createTitle": "Crear Nueva Caja",
+      "editTitle": "Editar Caja",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Recepción Principal",
+      "isActive": "Activa",
+      "cancel": "Cancelar",
+      "create": "Crear",
+      "save": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente la caja \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createTitle": "Caja Creada",
+      "editTitle": "Caja Actualizada",
+      "deleteTitle": "Caja Eliminada",
+      "successDescription": "La caja \"{name}\" ha sido guardada exitosamente.",
+      "deleteDescription": "La caja \"{name}\" ha sido eliminada.",
+      "deleteError": "No se pudo eliminar la caja."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio."
+    },
+    "columns": {
+      "id": "ID",
+      "name": "Nombre",
+      "isActive": "Activa",
+      "yes": "Sí",
+      "no": "No",
+      "createdAt": "Fecha de Creación",
+      "updatedAt": "Fecha de Actualización",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    }
   },
   "OpenCashSessionWidget": {
     "title": "No hay Sesión de Caja Activa",
@@ -1062,7 +1109,10 @@
       "selectBillingStatus": "Seleccionar un estado de facturación",
       "notInvoiced": "No Facturado",
       "partiallyInvoiced": "Facturado Parcialmente",
-      "invoiced": "Facturado"
+      "invoiced": "Facturado",
+      "cancel": "Cancelar",
+      "save": "Crear Cotización",
+      "editSave": "Guardar Cambios"
     },
     "deleteQuoteDialog": {
       "title": "¿Estás seguro?",

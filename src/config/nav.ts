@@ -33,6 +33,7 @@ import {
   UserX,
   Box,
   History,
+  Archive,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -57,6 +58,7 @@ export const navItems: NavItem[] = [
     items: [
         { title: 'Cashier', href: '/cashier', icon: Box, isChidren: true },
         { title: 'CashSessions', href: '/cashier/sessions', icon: History, isChidren: true },
+        { title: 'PhysicalCashRegisters', href: '/cashier/cash-points', icon: Archive, isChidren: true },
     ],
   },
   {
