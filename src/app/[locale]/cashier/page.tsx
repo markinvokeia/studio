@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -12,11 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Box, Briefcase, DollarSign, LogOut, TrendingDown, TrendingUp, ArrowLeft, ArrowRight } from 'lucide-react';
+import { AlertTriangle, Box, Briefcase, DollarSign, LogOut, TrendingDown, TrendingUp, ArrowLeft, ArrowRight, BookOpenCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { CajaSesion, CajaMovimiento } from '@/lib/types';
+import { CajaSesion, CajaMovimiento, CashPoint } from '@/lib/types';
 import { useTranslations } from 'next-intl';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTable } from '@/components/ui/data-table';
@@ -27,6 +26,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 
 const openSessionSchema = (t: (key: string) => string) => z.object({
   montoApertura: z.coerce.number().positive(t('validation.openingAmountRequired')),
+  cashPointId: z.string(),
 });
 
 const closeSessionSchema = (t: (key: string) => string) => z.object({
@@ -48,12 +48,19 @@ type ExpenseFormValues = z.infer<ReturnType<typeof expenseSchema>>;
 
 type WizardStep = 'REVIEW' | 'DECLARE' | 'REPORT';
 
+interface CashPointStatus extends CashPoint {
+  status: 'OPEN' | 'CLOSED';
+  session?: CajaSesion & { user_name: string };
+}
+
+
 export default function CashierPage() {
     const t = useTranslations('CashierPage');
     const { user } = useAuth();
     const { toast } = useToast();
     
     const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(null);
+    const [cashPoints, setCashPoints] = React.useState<CashPointStatus[]>([]);
     const [sessionMovements, setSessionMovements] = React.useState<CajaMovimiento[]>([]);
     const [closedSessionReport, setClosedSessionReport] = React.useState<CajaSesion | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
@@ -61,12 +68,9 @@ export default function CashierPage() {
     const [wizardStep, setWizardStep] = React.useState<WizardStep>('REVIEW');
     const [showClosingWizard, setShowClosingWizard] = React.useState(false);
 
-
     const openSessionForm = useForm<OpenSessionFormValues>({ 
         resolver: zodResolver(openSessionSchema(t)),
-        defaultValues: {
-            montoApertura: 0,
-        },
+        defaultValues: { montoApertura: 0 },
     });
     const closeSessionForm = useForm<CloseSessionFormValues>({
         resolver: zodResolver(closeSessionSchema(t)),
@@ -80,44 +84,55 @@ export default function CashierPage() {
     });
     const expenseForm = useForm<ExpenseFormValues>({ resolver: zodResolver(expenseSchema(t)) });
 
-    const checkActiveSession = React.useCallback(async () => {
+    const fetchCashPointStatus = React.useCallback(async () => {
         setIsLoading(true);
         setServerError(null);
-        // MOCK: In a real scenario, this would fetch from the backend.
-        // For now, we rely on the local state `activeSession`.
-        setTimeout(() => {
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash_points/status');
+            if (!response.ok) throw new Error('Failed to fetch cash points status');
+            const data = await response.json();
+            setCashPoints(data);
+        } catch (error) {
+            setServerError(error instanceof Error ? error.message : 'An unknown error occurred');
+        } finally {
             setIsLoading(false);
-        }, 500);
+        }
     }, []);
 
     React.useEffect(() => {
-        checkActiveSession();
-    }, [checkActiveSession]);
+        fetchCashPointStatus();
+    }, [fetchCashPointStatus]);
 
     const handleOpenSession = async (values: OpenSessionFormValues) => {
-        if (!user) return false;
-        
-        const newSession: CajaSesion = {
-            id: `ses_${Date.now()}`,
-            usuarioId: user.id,
-            puntoDeCajaId: 'Recepcion-1',
-            estado: 'ABIERTA',
-            fechaApertura: new Date().toISOString(),
-            montoApertura: values.montoApertura,
-        };
-        
-        // MOCK: Simulate some income movements for demonstration
-         const mockIncome: CajaMovimiento[] = [
-            { id: `mov_${Date.now()+1}`, cajaSesionId: newSession.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 250, descripcion: 'Pago Factura F-001', fecha: new Date().toISOString(), usuarioId: newSession.usuarioId },
-            { id: `mov_${Date.now()+2}`, cajaSesionId: newSession.id, tipo: 'INGRESO', metodoPago: 'TARJETA', monto: 150, descripcion: 'Pago Factura F-002', fecha: new Date().toISOString(), usuarioId: newSession.usuarioId },
-            { id: `mov_${Date.now()+3}`, cajaSesionId: newSession.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 300, descripcion: 'Pago Factura F-003', fecha: new Date().toISOString(), usuarioId: newSession.usuarioId },
-        ];
-
-        setActiveSession(newSession);
-        setSessionMovements(mockIncome);
-        setWizardStep('REVIEW');
-        toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
-        return true;
+        if (!user) return;
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/open', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    cash_point_id: values.cashPointId,
+                    opening_amount: values.montoApertura,
+                    user_id: user.id,
+                }),
+            });
+            const data = await response.json();
+            if (data.code !== 200) {
+                 toast({ variant: "destructive", title: "No se pudo abrir la caja", description: data.message });
+                 return;
+            }
+            
+            setActiveSession(data.session);
+            // MOCK: Simulate some income movements for demonstration
+            const mockIncome: CajaMovimiento[] = [
+                { id: `mov_${Date.now()+1}`, cajaSesionId: data.session.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 250, descripcion: 'Pago Factura F-001', fecha: new Date().toISOString(), usuarioId: data.session.usuarioId },
+                { id: `mov_${Date.now()+2}`, cajaSesionId: data.session.id, tipo: 'INGRESO', metodoPago: 'TARJETA', monto: 150, descripcion: 'Pago Factura F-002', fecha: new Date().toISOString(), usuarioId: data.session.usuarioId },
+                { id: `mov_${Date.now()+3}`, cajaSesionId: data.session.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 300, descripcion: 'Pago Factura F-003', fecha: new Date().toISOString(), usuarioId: data.session.usuarioId },
+            ];
+            setSessionMovements(mockIncome);
+            toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
+        } catch (error) {
+            toast({ variant: "destructive", title: "Error", description: error instanceof Error ? error.message : t('toast.openError') });
+        }
     };
     
     const handleRegisterExpense = async (values: ExpenseFormValues) => {
@@ -176,7 +191,11 @@ export default function CashierPage() {
     };
     
     if (isLoading) {
-        return <Skeleton className="h-[400px] w-full" />;
+        return <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Skeleton className="h-[200px] w-full" />
+            <Skeleton className="h-[200px] w-full" />
+            <Skeleton className="h-[200px] w-full" />
+        </div>;
     }
     
     if (serverError) {
@@ -189,114 +208,132 @@ export default function CashierPage() {
         );
     }
     
-    if (!activeSession) {
-        return <OpenSessionDashboard form={openSessionForm} onOpenSession={handleOpenSession} />;
-    }
+    if (activeSession) {
+        if(showClosingWizard) {
+          return <CloseSessionWizard
+                    currentStep={wizardStep}
+                    setCurrentStep={setWizardStep}
+                    onExitWizard={() => {
+                      setShowClosingWizard(false);
+                      setWizardStep('REVIEW');
+                      setClosedSessionReport(null);
+                      setActiveSession(null);
+                      fetchCashPointStatus();
+                    }}
+                    activeSessionDashboard={
+                        <ActiveSessionDashboard 
+                            session={activeSession}
+                            movements={sessionMovements}
+                            onProceedToClose={() => setWizardStep('DECLARE')}
+                        />
+                    }
+                    blindCloseForm={
+                        <BlindCloseForm
+                            form={closeSessionForm}
+                            onSubmit={handleCalculateReport}
+                            onBack={() => setWizardStep('REVIEW')}
+                        />
+                    }
+                    closeSessionReport={
+                        closedSessionReport ?
+                        <CloseSessionReport 
+                            report={closedSessionReport} 
+                            onConfirm={() => {
+                              // Here you would call the actual API
+                              toast({ title: t('toast.closeSuccessTitle'), description: t('toast.closeSuccessDescription') });
+                              setActiveSession(null);
+                              setSessionMovements([]);
+                              setShowClosingWizard(false);
+                              fetchCashPointStatus();
+                            }}
+                            onBack={() => setWizardStep('DECLARE')}
+                            onNewSession={() => {
+                                setShowClosingWizard(false);
+                                setWizardStep('REVIEW');
+                                setClosedSessionReport(null);
+                                setActiveSession(null);
+                                setSessionMovements([]);
+                                fetchCashPointStatus();
+                            }}
+                        />
+                        : <Skeleton className="h-[400px] w-full" />
+                    }
+                />
+        }
 
-    if(showClosingWizard) {
-      return <CloseSessionWizard
-                currentStep={wizardStep}
-                setCurrentStep={setWizardStep}
-                onExitWizard={() => {
-                  setShowClosingWizard(false);
-                  setWizardStep('REVIEW');
-                  setClosedSessionReport(null);
+        return (
+            <ActiveSessionDashboard 
+                session={activeSession}
+                movements={sessionMovements}
+                onProceedToClose={() => {
+                    setShowClosingWizard(true);
+                    setWizardStep('DECLARE');
                 }}
-                activeSessionDashboard={
-                    <ActiveSessionDashboard 
-                        session={activeSession}
-                        movements={sessionMovements}
-                        onProceedToClose={() => setWizardStep('DECLARE')}
-                    />
-                }
-                blindCloseForm={
-                    <BlindCloseForm
-                        form={closeSessionForm}
-                        onSubmit={handleCalculateReport}
-                        onBack={() => setWizardStep('REVIEW')}
-                    />
-                }
-                closeSessionReport={
-                    closedSessionReport ?
-                    <CloseSessionReport 
-                        report={closedSessionReport} 
-                        onConfirm={() => {
-                          // Here you would call the actual API
-                          toast({ title: t('toast.closeSuccessTitle'), description: t('toast.closeSuccessDescription') });
-                          setActiveSession(null);
-                          setSessionMovements([]);
-                          setShowClosingWizard(false);
-                        }}
-                        onBack={() => setWizardStep('DECLARE')}
-                        onNewSession={() => {
-                            setShowClosingWizard(false);
-                            setWizardStep('REVIEW');
-                            setClosedSessionReport(null);
-                            setActiveSession(null);
-                            setSessionMovements([]);
-                        }}
-                    />
-                    : <Skeleton className="h-[400px] w-full" />
-                }
             />
+        );
     }
 
-    return (
-        <ActiveSessionDashboard 
-            session={activeSession}
-            movements={sessionMovements}
-            onProceedToClose={() => {
-                setShowClosingWizard(true);
-                setWizardStep('DECLARE');
-            }}
-        />
-    );
+    return <OpenSessionDashboard cashPoints={cashPoints} form={openSessionForm} onOpenSession={handleOpenSession} setActiveSession={setActiveSession} />;
 }
 
 // Components
-function OpenSessionDashboard({ form, onOpenSession }: { form: any, onOpenSession: (values: any) => Promise<boolean> }) {
+function OpenSessionDashboard({ cashPoints, form, onOpenSession, setActiveSession }: { cashPoints: CashPointStatus[], form: any, onOpenSession: (values: any) => void, setActiveSession: (session: CajaSesion) => void }) {
     const t = useTranslations('CashierPage');
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
-    
-    const onSubmit = async (values: OpenSessionFormValues) => {
-        setIsSubmitting(true);
-        await onOpenSession(values);
-        setIsSubmitting(false);
+    const [isSubmitting, setIsSubmitting] = React.useState<string | null>(null);
+
+    const onSubmit = (cashPointId: string) => async (values: { montoApertura: number }) => {
+        setIsSubmitting(cashPointId);
+        await onOpenSession({ ...values, cashPointId });
+        setIsSubmitting(null);
     };
 
     return (
-        <div className="flex items-center justify-center h-[calc(100vh-20rem)]">
-            <Card className="w-full max-w-md">
-                <CardHeader>
-                    <CardTitle>{t('openSession.title')}</CardTitle>
-                    <CardDescription>{t('openSession.description')}</CardDescription>
-                </CardHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {cashPoints.map(cp => (
+                <Card key={cp.id} className="w-full">
+                    <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                            {cp.name}
+                            <span className={`h-3 w-3 rounded-full ${cp.status === 'OPEN' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                        </CardTitle>
+                        <CardDescription>{cp.status === 'OPEN' ? `Abierta por ${cp.session?.user_name}` : 'Cerrada'}</CardDescription>
+                    </CardHeader>
+                    {cp.status === 'CLOSED' ? (
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit(cp.id))}>
+                                <CardContent>
+                                    <FormField
+                                        control={form.control}
+                                        name="montoApertura"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{t('openSession.openingAmount')}</FormLabel>
+                                                <FormControl>
+                                                    <div className="relative">
+                                                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                        <Input type="number" placeholder="0.00" className="pl-8" {...field} />
+                                                    </div>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </CardContent>
+                                <CardFooter>
+                                    <Button type="submit" className="w-full" disabled={isSubmitting === cp.id}>{isSubmitting === cp.id ? 'Abriendo...' : t('openSession.openButton')}</Button>
+                                </CardFooter>
+                            </form>
+                        </Form>
+                    ) : (
                         <CardContent>
-                            <FormField
-                                control={form.control}
-                                name="montoApertura"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('openSession.openingAmount')}</FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                <Input type="number" placeholder="0.00" className="pl-8" {...field} />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                             <Button className="w-full" onClick={() => cp.session && setActiveSession(cp.session)}>
+                                <BookOpenCheck className="mr-2 h-4 w-4" />
+                                Abrir registro
+                             </Button>
                         </CardContent>
-                        <CardFooter>
-                            <Button type="submit" className="w-full" disabled={isSubmitting}>{t('openSession.openButton')}</Button>
-                        </CardFooter>
-                    </form>
-                </Form>
-            </Card>
+                    )}
+                </Card>
+            ))}
         </div>
     );
 }
@@ -510,13 +547,8 @@ function CloseSessionWizard({
                         {React.cloneElement(activeSessionDashboard as React.ReactElement, { onProceedToClose: () => setCurrentStep('DECLARE') })}
                     </TabsContent>
                     <TabsContent value="DECLARE" className="mt-4">
-                        {React.cloneElement(blindCloseForm as React.ReactElement, {
+                         {React.cloneElement(blindCloseForm as React.ReactElement, {
                             onBack: () => setCurrentStep('REVIEW'),
-                            onSubmit: (values: any) => {
-                                // This is now handled by the parent component, which calls handleCalculateReport
-                                const parent = (blindCloseForm as React.ReactElement).props;
-                                parent.onSubmit(values);
-                            },
                         })}
                     </TabsContent>
                     <TabsContent value="REPORT" className="mt-4">
@@ -529,3 +561,5 @@ function CloseSessionWizard({
 }
 
     
+
+      
