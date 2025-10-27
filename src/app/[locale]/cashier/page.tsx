@@ -135,9 +135,13 @@ export default function CashierPage() {
     const handleOpenSession = async (values: OpenSessionFormValues) => {
         if (!user) return;
         try {
+            const token = localStorage.getItem('token');
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/open', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     cash_point_id: values.cashPointId,
                     opening_amount: values.montoApertura,
