@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -91,7 +92,26 @@ export default function CashierPage() {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash_points/status');
             if (!response.ok) throw new Error('Failed to fetch cash points status');
             const data = await response.json();
-            setCashPoints(data);
+             const cashPointsData = (Array.isArray(data) ? data : (data.data || [])) as any[];
+
+            const mappedCashPoints: CashPointStatus[] = cashPointsData.map(cp => ({
+                id: String(cp.cash_point_id),
+                name: cp.cash_point_name,
+                is_active: cp.is_active,
+                created_at: '', 
+                updated_at: '',
+                status: cp.session_status,
+                session: cp.session_status === 'OPEN' ? {
+                    id: String(cp.active_session_id),
+                    usuarioId: cp.active_user_id,
+                    user_name: cp.active_user_name,
+                    puntoDeCajaId: String(cp.cash_point_id),
+                    estado: 'ABIERTA',
+                    fechaApertura: new Date().toISOString(), 
+                    montoApertura: 0, 
+                } : undefined,
+            }));
+            setCashPoints(mappedCashPoints);
         } catch (error) {
             setServerError(error instanceof Error ? error.message : 'An unknown error occurred');
         } finally {
@@ -224,7 +244,6 @@ export default function CashierPage() {
                         <ActiveSessionDashboard 
                             session={activeSession}
                             movements={sessionMovements}
-                            onProceedToClose={() => setWizardStep('DECLARE')}
                         />
                     }
                     blindCloseForm={
@@ -265,10 +284,6 @@ export default function CashierPage() {
             <ActiveSessionDashboard 
                 session={activeSession}
                 movements={sessionMovements}
-                onProceedToClose={() => {
-                    setShowClosingWizard(true);
-                    setWizardStep('DECLARE');
-                }}
             />
         );
     }
@@ -346,7 +361,7 @@ const movementColumns: ColumnDef<CajaMovimiento>[] = [
 ];
 
 
-function ActiveSessionDashboard({ session, movements, onProceedToClose }: { session: any, movements: CajaMovimiento[], onProceedToClose: () => void }) {
+function ActiveSessionDashboard({ session, movements }: { session: any, movements: CajaMovimiento[]}) {
     const t = useTranslations('CashierPage');
     const { user } = useAuth();
     
@@ -391,9 +406,6 @@ function ActiveSessionDashboard({ session, movements, onProceedToClose }: { sess
                     </TabsContent>
                 </Tabs>
             </CardContent>
-            <CardFooter className="gap-2">
-                <Button onClick={onProceedToClose}><LogOut className="mr-2 h-4 w-4" />{t('activeSession.closeSession')}</Button>
-            </CardFooter>
         </Card>
     );
 }
@@ -544,7 +556,7 @@ function CloseSessionWizard({
                         <TabsTrigger value="REPORT" disabled={currentStep !== 'REPORT'}>{t('steps.report')}</TabsTrigger>
                     </TabsList>
                     <TabsContent value="REVIEW" className="mt-4">
-                        {React.cloneElement(activeSessionDashboard as React.ReactElement, { onProceedToClose: () => setCurrentStep('DECLARE') })}
+                        {activeSessionDashboard}
                     </TabsContent>
                     <TabsContent value="DECLARE" className="mt-4">
                          {React.cloneElement(blindCloseForm as React.ReactElement, {
@@ -563,3 +575,5 @@ function CloseSessionWizard({
     
 
       
+
+
