@@ -145,17 +145,20 @@ export default function CashierPage() {
                 }),
             });
             const data = await response.json();
-            if (data.code !== 200) {
-                 toast({ variant: "destructive", title: "No se pudo abrir la caja", description: data.message });
+            
+            const result = Array.isArray(data) ? data[0] : data;
+
+            if (result.code !== 200 || result.error) {
+                 toast({ variant: "destructive", title: "No se pudo abrir la caja", description: result.message || 'An unknown error occurred.' });
                  return;
             }
             
-            setActiveSession(data.session);
+            setActiveSession(result.session);
             // MOCK: Simulate some income movements for demonstration
             const mockIncome: CajaMovimiento[] = [
-                { id: `mov_${Date.now()+1}`, cajaSesionId: data.session.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 250, descripcion: 'Pago Factura F-001', fecha: new Date().toISOString(), usuarioId: data.session.usuarioId },
-                { id: `mov_${Date.now()+2}`, cajaSesionId: data.session.id, tipo: 'INGRESO', metodoPago: 'TARJETA', monto: 150, descripcion: 'Pago Factura F-002', fecha: new Date().toISOString(), usuarioId: data.session.usuarioId },
-                { id: `mov_${Date.now()+3}`, cajaSesionId: data.session.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 300, descripcion: 'Pago Factura F-003', fecha: new Date().toISOString(), usuarioId: data.session.usuarioId },
+                { id: `mov_${Date.now()+1}`, cajaSesionId: result.session.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 250, descripcion: 'Pago Factura F-001', fecha: new Date().toISOString(), usuarioId: result.session.usuarioId },
+                { id: `mov_${Date.now()+2}`, cajaSesionId: result.session.id, tipo: 'INGRESO', metodoPago: 'TARJETA', monto: 150, descripcion: 'Pago Factura F-002', fecha: new Date().toISOString(), usuarioId: result.session.usuarioId },
+                { id: `mov_${Date.now()+3}`, cajaSesionId: result.session.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 300, descripcion: 'Pago Factura F-003', fecha: new Date().toISOString(), usuarioId: result.session.usuarioId },
             ];
             setSessionMovements(mockIncome);
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
@@ -588,3 +591,6 @@ function CloseSessionWizard({
 
 
 
+
+
+    
