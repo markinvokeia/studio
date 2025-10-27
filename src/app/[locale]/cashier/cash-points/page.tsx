@@ -30,7 +30,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 const cashPointFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
-    name: z.string().min(1, t('validation.nameRequired')),
+    name: z.string().min(1, t('nameRequired')),
     is_active: z.boolean().default(true),
 });
 
