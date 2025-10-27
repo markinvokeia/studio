@@ -71,7 +71,7 @@ export default function CashierPage() {
 
     const openSessionForm = useForm<OpenSessionFormValues>({ 
         resolver: zodResolver(openSessionSchema(t)),
-        defaultValues: { montoApertura: 0 },
+        defaultValues: { montoApertura: 0, cashPointId: '' },
     });
     const closeSessionForm = useForm<CloseSessionFormValues>({
         resolver: zodResolver(closeSessionSchema(t)),
@@ -157,7 +157,23 @@ export default function CashierPage() {
                  return;
             }
             
-            setActiveSession(result.session);
+            const sessionData = result.session || result.data;
+
+            if (!sessionData) {
+                toast({ variant: "destructive", title: "Error", description: "No session data received from server."});
+                return;
+            }
+
+            const newActiveSession: CajaSesion = {
+                id: String(sessionData.id),
+                usuarioId: String(sessionData.usuario_id),
+                puntoDeCajaId: String(sessionData.punto_de_caja_id),
+                estado: sessionData.estado,
+                fechaApertura: sessionData.fecha_apertura,
+                montoApertura: Number(sessionData.monto_apertura),
+            };
+
+            setActiveSession(newActiveSession);
             // MOCK: Simulate some income movements for demonstration
             const mockIncome: CajaMovimiento[] = [
                 { id: `mov_${Date.now()+1}`, cajaSesionId: result.session.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 250, descripcion: 'Pago Factura F-001', fecha: new Date().toISOString(), usuarioId: result.session.usuarioId },
@@ -166,6 +182,7 @@ export default function CashierPage() {
             ];
             setSessionMovements(mockIncome);
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
+            fetchCashPointStatus();
         } catch (error) {
             toast({ variant: "destructive", title: "Error", description: error instanceof Error ? error.message : t('toast.openError') });
         }
@@ -596,6 +613,8 @@ function CloseSessionWizard({
 
 
 
+
+    
 
     
 
