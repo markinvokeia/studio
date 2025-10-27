@@ -138,6 +138,12 @@ export default function CashierPage() {
     }, [fetchCashPointStatus]);
 
     React.useEffect(() => {
+        if (activeSession) {
+            fetchSessionMovements(activeSession.id);
+        }
+    }, [activeSession, fetchSessionMovements]);
+
+    React.useEffect(() => {
     // Reset state on component unmount to ensure fresh view on re-navigation
     return () => {
       setActiveSession(null);
@@ -188,7 +194,6 @@ export default function CashierPage() {
             };
 
             setActiveSession(newActiveSession);
-            fetchSessionMovements(newActiveSession.id);
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
             fetchCashPointStatus();
         } catch (error) {
@@ -253,7 +258,6 @@ export default function CashierPage() {
 
      const handleSetActiveSession = (session: CajaSesion) => {
         setActiveSession(session);
-        fetchSessionMovements(session.id);
     };
     
     if (isLoading) {
@@ -634,3 +638,4 @@ function CloseSessionWizard({
     
 
     
+
