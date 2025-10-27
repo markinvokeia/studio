@@ -123,6 +123,15 @@ export default function CashierPage() {
         fetchCashPointStatus();
     }, [fetchCashPointStatus]);
 
+    React.useEffect(() => {
+    // Reset state on component unmount to ensure fresh view on re-navigation
+    return () => {
+      setActiveSession(null);
+      setShowClosingWizard(false);
+      setWizardStep('REVIEW');
+    };
+  }, []);
+
     const handleOpenSession = async (values: OpenSessionFormValues) => {
         if (!user) return;
         try {
@@ -575,5 +584,6 @@ function CloseSessionWizard({
     
 
       
+
 
 
