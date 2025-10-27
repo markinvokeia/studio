@@ -119,6 +119,20 @@ export default function CashierPage() {
         }
     }, []);
 
+    const fetchSessionMovements = React.useCallback(async (sessionId: string) => {
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/movements?cash_session_id=${sessionId}`);
+            if (!response.ok) throw new Error('Failed to fetch session movements');
+            const data = await response.json();
+            const movementsData = Array.isArray(data) ? data : (data.data || []);
+            setSessionMovements(movementsData);
+        } catch (error) {
+            console.error(error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch session movements.' });
+            setSessionMovements([]);
+        }
+    }, [toast]);
+
     React.useEffect(() => {
         fetchCashPointStatus();
     }, [fetchCashPointStatus]);
@@ -174,13 +188,7 @@ export default function CashierPage() {
             };
 
             setActiveSession(newActiveSession);
-            // MOCK: Simulate some income movements for demonstration
-            const mockIncome: CajaMovimiento[] = [
-                { id: `mov_${Date.now()+1}`, cajaSesionId: result.session.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 250, descripcion: 'Pago Factura F-001', fecha: new Date().toISOString(), usuarioId: result.session.usuarioId },
-                { id: `mov_${Date.now()+2}`, cajaSesionId: result.session.id, tipo: 'INGRESO', metodoPago: 'TARJETA', monto: 150, descripcion: 'Pago Factura F-002', fecha: new Date().toISOString(), usuarioId: result.session.usuarioId },
-                { id: `mov_${Date.now()+3}`, cajaSesionId: result.session.id, tipo: 'INGRESO', metodoPago: 'EFECTIVO', monto: 300, descripcion: 'Pago Factura F-003', fecha: new Date().toISOString(), usuarioId: result.session.usuarioId },
-            ];
-            setSessionMovements(mockIncome);
+            fetchSessionMovements(newActiveSession.id);
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
             fetchCashPointStatus();
         } catch (error) {
@@ -241,6 +249,11 @@ export default function CashierPage() {
 
         setClosedSessionReport(report);
         setWizardStep('REPORT');
+    };
+
+     const handleSetActiveSession = (session: CajaSesion) => {
+        setActiveSession(session);
+        fetchSessionMovements(session.id);
     };
     
     if (isLoading) {
@@ -321,7 +334,7 @@ export default function CashierPage() {
         );
     }
 
-    return <OpenSessionDashboard cashPoints={cashPoints} form={openSessionForm} onOpenSession={handleOpenSession} setActiveSession={setActiveSession} />;
+    return <OpenSessionDashboard cashPoints={cashPoints} form={openSessionForm} onOpenSession={handleOpenSession} setActiveSession={handleSetActiveSession} />;
 }
 
 // Components
@@ -613,6 +626,8 @@ function CloseSessionWizard({
 
 
 
+
+    
 
     
 
