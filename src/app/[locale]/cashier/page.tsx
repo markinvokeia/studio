@@ -125,7 +125,16 @@ export default function CashierPage() {
             if (!response.ok) throw new Error('Failed to fetch session movements');
             const data = await response.json();
             const movementsData = Array.isArray(data) ? data : (data.data || []);
-            setSessionMovements(movementsData);
+            setSessionMovements(movementsData.map((mov: any): CajaMovimiento => ({
+                id: String(mov.movement_id),
+                cajaSesionId: sessionId,
+                tipo: mov.type === 'INFLOW' ? 'INGRESO' : 'EGRESO',
+                monto: parseFloat(mov.amount),
+                descripcion: mov.description,
+                fecha: mov.created_at,
+                usuarioId: mov.registered_by_user, // This might need adjustment if you have user IDs
+                metodoPago: (mov.payment_method_name || 'otro').toUpperCase() as any,
+            })));
         } catch (error) {
             console.error(error);
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch session movements.' });
@@ -626,16 +635,4 @@ function CloseSessionWizard({
 
       
 
-
-
-
-
-
     
-
-    
-
-    
-
-    
-
