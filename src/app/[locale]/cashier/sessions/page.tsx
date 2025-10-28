@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -21,7 +22,7 @@ async function getCashSessions(pagination: PaginationState, searchQuery: string)
             limit: pagination.pageSize.toString(),
             search: searchQuery,
         });
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash_sessions/search?${params.toString()}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/search?${params.toString()}`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
