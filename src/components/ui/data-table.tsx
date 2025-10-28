@@ -78,7 +78,6 @@ export function DataTable<TData, TValue>({
   onColumnFiltersChange: setControlledColumnFilters,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
-  console.log('Translations for General loaded.');
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
   const [internalColumnVisibility, setInternalColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -93,6 +92,8 @@ export function DataTable<TData, TValue>({
   const setSorting = setControlledSorting ?? setInternalSorting;
   const columnFilters = controlledColumnFilters ?? internalColumnFilters;
   const setColumnFilters = setControlledColumnFilters ?? setInternalColumnFilters;
+  const finalRowSelection = rowSelection ?? internalRowSelection;
+  const finalSetRowSelection = setRowSelection ?? setInternalRowSelection;
 
   const table = useReactTable({
     data,
@@ -101,13 +102,13 @@ export function DataTable<TData, TValue>({
     state: {
       sorting,
       columnVisibility: columnVisibility ?? internalColumnVisibility,
-      rowSelection: rowSelection ?? internalRowSelection,
+      rowSelection: finalRowSelection,
       columnFilters,
       ...(isControlledPagination && { pagination }),
     },
     enableRowSelection: true,
     enableMultiRowSelection: !enableSingleRowSelection,
-    onRowSelectionChange: setRowSelection ?? setInternalRowSelection,
+    onRowSelectionChange: finalSetRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: onColumnVisibilityChange ?? setInternalColumnVisibility,
@@ -125,7 +126,7 @@ export function DataTable<TData, TValue>({
       const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original);
       onRowSelectionChange(selectedRows);
     }
-  }, [rowSelection, internalRowSelection, table, onRowSelectionChange]);
+  }, [finalRowSelection, table, onRowSelectionChange]);
 
 
   return (
@@ -166,6 +167,13 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
+                  onClick={() => {
+                    if (enableSingleRowSelection) {
+                       table.toggleAllPageRowsSelected(false);
+                       row.toggleSelected(true);
+                    }
+                  }}
+                  className={enableSingleRowSelection ? 'cursor-pointer' : ''}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
