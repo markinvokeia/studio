@@ -45,7 +45,11 @@ export const CashSessionsColumnsWrapper = ({ onView }: CashSessionsColumnsProps)
         { 
           accessorKey: 'estado', 
           header: ({column}) => <DataTableColumnHeader column={column} title={t('status')} />,
-          cell: ({ row }) => <Badge variant={row.original.estado === 'ABIERTA' ? 'success' : 'outline'}>{row.original.estado}</Badge>
+          cell: ({ row }) => {
+            const status = row.original.estado.toUpperCase();
+            const variant = status === 'OPEN' ? 'success' : 'destructive';
+            return <Badge variant={variant}>{status}</Badge>;
+          }
         },
         { 
             accessorKey: 'fechaApertura', 
