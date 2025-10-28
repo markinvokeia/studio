@@ -108,7 +108,7 @@ export default function CashierPage() {
                     puntoDeCajaId: String(cp.cash_point_id),
                     estado: 'ABIERTA',
                     fechaApertura: cp.session_start_time || new Date().toISOString(), 
-                    montoApertura: cp.opening_amount || 0,
+                    montoApertura: Number(cp.opening_amount) || 0,
                 } : undefined,
             }));
             setCashPoints(mappedCashPoints);
