@@ -1125,10 +1125,7 @@
       "selectBillingStatus": "Select a billing status",
       "notInvoiced": "Not Invoiced",
       "partiallyInvoiced": "Partially Invoiced",
-      "invoiced": "Invoiced",
-      "cancel": "Cancel",
-      "save": "Create Quote",
-      "editSave": "Save Changes"
+      "invoiced": "Invoiced"
     },
     "deleteQuoteDialog": {
       "title": "Are you sure?",
@@ -1334,7 +1331,19 @@
       "createdAt": "Created At"
     }
   },
+  "DataTablePagination": {
+    "selected": "{count, plural, one {# row selected} other {# rows selected}} of {total}",
+    "rowsPerPage": "Rows per page:",
+    "all": "All",
+    "page": "Page {current} of {total}",
+    "goToFirst": "Go to first page",
+    "goToPrevious": "Go to previous page",
+    "goToNext": "Go to next page",
+    "goToLast": "Go to last page"
+  },
   "General": {
     "noResults": "No results."
   }
 }
+
+    

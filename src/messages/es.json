@@ -641,7 +641,19 @@
     "orderId": "ID Pedido",
     "createdAt": "Fecha Creación"
   },
+  "DataTablePagination": {
+    "selected": "{count, plural, one {# fila seleccionada} other {# filas seleccionadas}} de {total}",
+    "rowsPerPage": "Filas por página:",
+    "all": "Todas",
+    "page": "Página {current} de {total}",
+    "goToFirst": "Ir a la primera página",
+    "goToPrevious": "Ir a la página anterior",
+    "goToNext": "Ir a la página siguiente",
+    "goToLast": "Ir a la última página"
+  },
   "General": {
     "noResults": "No se encontraron resultados."
   }
 }
+
+    
