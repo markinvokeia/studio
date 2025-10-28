@@ -41,6 +41,9 @@
     "title": "Sesiones de Caja",
     "description": "Ver el historial de sesiones de caja.",
     "filterPlaceholder": "Filtrar por nombre de usuario...",
+    "detailsTitle": "Movimientos de la Sesión",
+    "detailsDescription": "Movimientos para la sesión #{id}",
+    "closeDetails": "Cerrar detalles",
     "columns": {
       "id": "ID",
       "user": "Usuario",
@@ -51,6 +54,12 @@
       "openingAmount": "Monto de Apertura",
       "actions": "Acciones",
       "viewDetails": "Ver Detalles"
+    },
+    "movementColumns": {
+      "description": "Descripción",
+      "amount": "Monto",
+      "method": "Método",
+      "date": "Fecha"
     }
   },
    "PhysicalCashRegistersPage": {
@@ -655,5 +664,3 @@
     "noResults": "No se encontraron resultados."
   }
 }
-
-    

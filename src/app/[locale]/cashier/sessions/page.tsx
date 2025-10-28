@@ -82,16 +82,9 @@ async function getSessionMovements(sessionId: string): Promise<CajaMovimiento[]>
     }
 }
 
-const movementColumns: ColumnDef<CajaMovimiento>[] = [
-  { accessorKey: 'descripcion', header: 'Description' },
-  { accessorKey: 'monto', header: 'Amount', cell: ({ row }) => `$${row.original.monto.toFixed(2)}` },
-  { accessorKey: 'metodoPago', header: 'Method' },
-  { accessorKey: 'fecha', header: 'Date', cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
-];
-
-
 export default function CashSessionsPage() {
     const t = useTranslations('CashSessionsPage');
+    const tMovements = useTranslations('CashSessionsPage.movementColumns');
     const { toast } = useToast();
     const [sessions, setSessions] = React.useState<CajaSesion[]>([]);
     const [sessionCount, setSessionCount] = React.useState(0);
@@ -106,6 +99,13 @@ export default function CashSessionsPage() {
     const [selectedSession, setSelectedSession] = React.useState<CajaSesion | null>(null);
     const [sessionMovements, setSessionMovements] = React.useState<CajaMovimiento[]>([]);
     const [isMovementsLoading, setIsMovementsLoading] = React.useState(false);
+
+    const movementColumns: ColumnDef<CajaMovimiento>[] = [
+      { accessorKey: 'descripcion', header: tMovements('description') },
+      { accessorKey: 'monto', header: tMovements('amount'), cell: ({ row }) => `$${row.original.monto.toFixed(2)}` },
+      { accessorKey: 'metodoPago', header: tMovements('method') },
+      { accessorKey: 'fecha', header: tMovements('date'), cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
+    ];
 
     const loadSessions = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -152,7 +152,7 @@ export default function CashSessionsPage() {
 
     return (
        <div className={cn("grid grid-cols-1 gap-4", selectedSession ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
-            <div className={cn("transition-all duration-300", selectedSession ? "lg:col-span-2" : "lg:col-span-5")}>
+            <div className={cn("transition-all duration-300", selectedSession ? "lg:col-span-2" : "lg:col-span-1")}>
                 <Card>
                     <CardHeader>
                         <CardTitle>{t('title')}</CardTitle>
@@ -187,12 +187,12 @@ export default function CashSessionsPage() {
                     <Card>
                         <CardHeader className="flex flex-row items-start justify-between">
                              <div>
-                                <CardTitle>Session Movements</CardTitle>
-                                <CardDescription>Movements for session #{selectedSession.id}</CardDescription>
+                                <CardTitle>{t('detailsTitle')}</CardTitle>
+                                <CardDescription>{t('detailsDescription', {id: selectedSession.id})}</CardDescription>
                             </div>
                             <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                                 <X className="h-5 w-5" />
-                                <span className="sr-only">Close details</span>
+                                <span className="sr-only">{t('closeDetails')}</span>
                             </Button>
                         </CardHeader>
                         <CardContent>

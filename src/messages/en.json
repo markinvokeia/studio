@@ -41,6 +41,9 @@
     "title": "Cash Sessions",
     "description": "View historical cash register sessions.",
     "filterPlaceholder": "Filter by user name...",
+    "detailsTitle": "Session Movements",
+    "detailsDescription": "Movements for session #{id}",
+    "closeDetails": "Close details",
     "columns": {
       "id": "ID",
       "user": "User",
@@ -51,6 +54,12 @@
       "openingAmount": "Opening Amount",
       "actions": "Actions",
       "viewDetails": "View Details"
+    },
+    "movementColumns": {
+      "description": "Description",
+      "amount": "Amount",
+      "method": "Method",
+      "date": "Date"
     }
   },
   "PhysicalCashRegistersPage": {
@@ -1345,5 +1354,3 @@
     "noResults": "No results."
   }
 }
-
-    
