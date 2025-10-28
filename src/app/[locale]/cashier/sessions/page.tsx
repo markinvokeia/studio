@@ -8,7 +8,7 @@ import { CajaSesion } from '@/lib/types';
 import { CashSessionsColumnsWrapper } from './columns';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslations } from 'next-intl';
-import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
+import { ColumnFiltersState, PaginationState, VisibilityState } from '@tanstack/react-table';
 
 type GetCashSessionsResponse = {
   sessions: CajaSesion[];
@@ -63,6 +63,9 @@ export default function CashSessionsPage() {
     
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+    const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
+        id: false,
+    });
 
 
     const loadSessions = React.useCallback(async () => {
@@ -105,6 +108,8 @@ export default function CashSessionsPage() {
                     filterPlaceholder={t('filterPlaceholder')}
                     onRefresh={loadSessions}
                     isRefreshing={isRefreshing}
+                    columnVisibility={columnVisibility}
+                    onColumnVisibilityChange={setColumnVisibility}
                 />
             </CardContent>
         </Card>
