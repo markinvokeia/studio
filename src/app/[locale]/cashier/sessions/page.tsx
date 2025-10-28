@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -151,7 +152,7 @@ export default function CashSessionsPage() {
 
     return (
        <div className={cn("grid grid-cols-1 gap-4", selectedSession ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
-            <div className={cn("transition-all duration-300", selectedSession ? "lg:col-span-3" : "lg:col-span-5")}>
+            <div className={cn("transition-all duration-300", selectedSession ? "lg:col-span-2" : "lg:col-span-5")}>
                 <Card>
                     <CardHeader>
                         <CardTitle>{t('title')}</CardTitle>
@@ -182,7 +183,7 @@ export default function CashSessionsPage() {
                 </Card>
             </div>
             {selectedSession && (
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-3">
                     <Card>
                         <CardHeader className="flex flex-row items-start justify-between">
                              <div>
