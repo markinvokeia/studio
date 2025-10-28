@@ -390,8 +390,10 @@ export type AvailabilityException = {
 
 export type CajaSesion = {
   id: string;
-  usuarioId: string;
-  puntoDeCajaId: string;
+  usuarioId?: string;
+  user_name?: string;
+  puntoDeCajaId?: string;
+  cash_point_name?: string;
   estado: 'ABIERTA' | 'CERRADA';
   fechaApertura: string;
   fechaCierre?: string;

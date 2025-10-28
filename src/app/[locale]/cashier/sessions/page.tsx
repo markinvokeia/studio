@@ -38,13 +38,13 @@ async function getCashSessions(pagination: PaginationState, searchQuery: string)
 
         return {
             sessions: sessionsData.map((s: any) => ({ 
-                ...s, 
                 id: String(s.id),
                 user_name: s.user_name,
                 cash_point_name: s.cash_point_name,
-                fechaApertura: s.fecha_apertura,
-                fechaCierre: s.fecha_cierre,
-                montoApertura: s.monto_apertura,
+                estado: s.status,
+                fechaApertura: s.opened_at,
+                fechaCierre: s.closed_at,
+                montoApertura: s.opening_amount,
              })),
             total
         };
