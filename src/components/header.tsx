@@ -225,9 +225,6 @@ export function Header() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>{user?.name || t('myAccount')}</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>{t('settings')}</DropdownMenuItem>
-            <DropdownMenuItem>{t('support')}</DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>{t('logout')}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
