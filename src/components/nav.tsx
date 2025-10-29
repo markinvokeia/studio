@@ -56,6 +56,7 @@ export function Nav({ items, isMinimized }: NavProps) {
       const activeItemIndex = items.findIndex(item => 
         item.items?.some(subItem => {
           if (subItem.href === '/') return effectivePathname === '/';
+          if(subItem.href === '/cashier' && (effectivePathname === '/cashier/sessions' || effectivePathname === '/cashier/cash-points')) return false;
           return effectivePathname.startsWith(subItem.href);
         })
       );
@@ -113,6 +114,7 @@ export function Nav({ items, isMinimized }: NavProps) {
     
     const isActive = item.items?.some(subItem => {
         if (subItem.href === '/') return effectivePathname === '/';
+        if (subItem.href === '/cashier' && (effectivePathname === '/cashier/sessions' || effectivePathname === '/cashier/cash-points')) return false;
         return effectivePathname.startsWith(subItem.href);
     });
 
@@ -144,7 +146,7 @@ export function Nav({ items, isMinimized }: NavProps) {
                         linkHref = `/${locale}/clinic-history/1`; // Default user
                     }
                     
-                    const isSubItemActive = getEffectivePathname(pathname, locale).startsWith(subItem.href);
+                    const isSubItemActive = effectivePathname === subItem.href;
 
                     return (
                         <Link
@@ -197,7 +199,7 @@ export function Nav({ items, isMinimized }: NavProps) {
                     linkHref = `/${locale}/clinic-history/1`; // Default user
                 }
                 
-                const isSubItemActive = getEffectivePathname(pathname, locale).startsWith(subItem.href);
+                const isSubItemActive = effectivePathname === subItem.href;
                 
                 return (
                     <DropdownMenuItem key={subItem.href} asChild>
