@@ -403,14 +403,13 @@ const OpenCashSessionWidget = () => {
             setIsLoading(true);
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/active', {
-                    method: 'POST',
+                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/active?user_id=${user.id}`, {
+                    method: 'GET',
                     mode: 'cors',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ user_id: user.id })
                 });
 
                 if (response.ok) {
