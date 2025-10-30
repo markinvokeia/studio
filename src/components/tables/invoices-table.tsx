@@ -151,6 +151,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 method: selectedMethod?.name,
                 payment_method_id: values.method,
                 status: values.status,
+                user: user,
             }),
         };
 
@@ -480,5 +481,3 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     </>
   );
 }
-
-    
