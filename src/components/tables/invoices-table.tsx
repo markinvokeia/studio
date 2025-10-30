@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { MoreHorizontal, AlertTriangle } from 'lucide-react';
+import { MoreHorizontal, AlertTriangle, ArrowRight, Box } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -33,7 +34,9 @@ import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { useTranslations } from 'next-intl';
+import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
   amount: z.coerce.number().positive(t('amountPositive')),
@@ -61,9 +64,12 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
   const tValidation = useTranslations('InvoicesPage.validation');
+  const { user } = useAuth();
+  const locale = useLocale();
 
   const { toast } = useToast();
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
+  const [isNoSessionAlertOpen, setIsNoSessionAlertOpen] = React.useState(false);
   const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = React.useState<Invoice | null>(null);
   const [paymentSubmissionError, setPaymentSubmissionError] = React.useState<string | null>(null);
 
@@ -75,16 +81,37 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   });
 
-  const handleAddPaymentClick = (invoice: Invoice) => {
-    setSelectedInvoiceForPayment(invoice);
-    form.reset({
-      amount: invoice.total,
-      method: 'credit_card',
-      status: 'completed',
-      payment_date: new Date(),
-    });
-    setPaymentSubmissionError(null);
-    setIsPaymentDialogOpen(true);
+  const handleAddPaymentClick = async (invoice: Invoice) => {
+    if (!user) return;
+
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/active?user_id=${user.id}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await response.json();
+        
+        if (data.code === 200) {
+            setSelectedInvoiceForPayment(invoice);
+            form.reset({
+                amount: invoice.total,
+                method: 'credit_card',
+                status: 'completed',
+                payment_date: new Date(),
+            });
+            setPaymentSubmissionError(null);
+            setIsPaymentDialogOpen(true);
+        } else {
+            setIsNoSessionAlertOpen(true);
+        }
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: t('toast.error'),
+            description: t('toast.sessionCheckError'),
+        });
+    }
   };
   
   const handlePaymentSubmit = async (values: PaymentFormValues) => {
@@ -406,6 +433,29 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         </Form>
       </DialogContent>
     </Dialog>
+    <AlertDialog open={isNoSessionAlertOpen} onOpenChange={setIsNoSessionAlertOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-6 w-6 text-yellow-500" />
+                    {t('noSessionDialog.title')}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                    {t('noSessionDialog.description')}
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>{t('paymentDialog.cancel')}</AlertDialogCancel>
+                <Link href={`/${locale}/cashier`} passHref>
+                    <Button>
+                        <Box className="mr-2 h-4 w-4" />
+                        {t('noSessionDialog.openCashSession')}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                </Link>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }

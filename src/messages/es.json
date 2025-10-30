@@ -54,6 +54,75 @@
     "goToNext": "Ir a la página siguiente",
     "goToLast": "Ir a la última página"
   },
+  "InvoicesPage": {
+    "title": "Facturas",
+    "description": "Gestionar todas las facturas del sistema.",
+    "filterPlaceholder": "Filtrar por ID de factura...",
+    "detailsFor": "Detalles de la Factura",
+    "invoiceId": "ID de Factura",
+    "tabs": {
+      "items": "Ítems",
+      "payments": "Pagos"
+    },
+    "toast": {
+      "error": "Error"
+    },
+    "columns": {
+      "invoiceId": "ID Factura",
+      "user": "Usuario",
+      "orderId": "ID Pedido",
+      "quoteId": "ID Cotización",
+      "total": "Total",
+      "status": "Estado",
+      "payment": "Estado de Pago",
+      "createdAt": "Fecha Creación",
+      "actions": "Acciones"
+    },
+    "status": {
+      "paid": "Pagada",
+      "sent": "Enviada",
+      "draft": "Borrador",
+      "overdue": "Vencida",
+      "unpaid": "No Pagada",
+      "partial": "Parcial",
+      "completed": "Completado",
+      "pending": "Pendiente",
+      "failed": "Fallido"
+    },
+    "methods": {
+      "credit_card": "Tarjeta de Crédito",
+      "bank_transfer": "Transferencia Bancaria",
+      "cash": "Efectivo",
+      "debit": "Débito",
+      "credit": "Crédito",
+      "mercado_pago": "Mercado Pago"
+    },
+    "paymentDialog": {
+      "title": "Añadir Pago",
+      "description": "Añadir un pago para la factura #{invoiceId}.",
+      "success": "Pago Añadido",
+      "successDescription": "El pago para la factura #{invoiceId} ha sido añadido exitosamente.",
+      "error": "No se pudo añadir el pago.",
+      "amount": "Monto",
+      "method": "Método de Pago",
+      "selectMethod": "Seleccione un método",
+      "status": "Estado",
+      "selectStatus": "Seleccione un estado",
+      "date": "Fecha de Pago",
+      "pickDate": "Seleccione una fecha",
+      "add": "Añadir Pago",
+      "cancel": "Cancelar"
+    },
+    "noSessionDialog": {
+      "title": "No hay Sesión de Caja Activa",
+      "description": "Debe tener una sesión de caja activa para registrar un pago.",
+      "openCashSession": "Abrir Caja"
+    },
+    "validation": {
+      "amountPositive": "El monto debe ser un número positivo.",
+      "dateRequired": "La fecha de pago es obligatoria."
+    }
+  },
   "CashSessionsPage": {
     "title": "Sesiones de Caja",
     "description": "Ver el historial de sesiones de caja.",

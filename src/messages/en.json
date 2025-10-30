@@ -54,6 +54,75 @@
     "goToNext": "Go to next page",
     "goToLast": "Go to last page"
   },
+   "InvoicesPage": {
+    "title": "Invoices",
+    "description": "Manage all system invoices.",
+    "filterPlaceholder": "Filter by invoice ID...",
+    "detailsFor": "Details for Invoice",
+    "invoiceId": "Invoice ID",
+    "tabs": {
+      "items": "Items",
+      "payments": "Payments"
+    },
+    "toast": {
+      "error": "Error"
+    },
+    "columns": {
+      "invoiceId": "Invoice ID",
+      "user": "User",
+      "orderId": "Order ID",
+      "quoteId": "Quote ID",
+      "total": "Total",
+      "status": "Status",
+      "payment": "Payment Status",
+      "createdAt": "Created At",
+      "actions": "Actions"
+    },
+    "status": {
+      "paid": "Paid",
+      "sent": "Sent",
+      "draft": "Draft",
+      "overdue": "Overdue",
+      "unpaid": "Unpaid",
+      "partial": "Partial",
+      "completed": "Completed",
+      "pending": "Pending",
+      "failed": "Failed"
+    },
+    "methods": {
+      "credit_card": "Credit Card",
+      "bank_transfer": "Bank Transfer",
+      "cash": "Cash",
+      "debit": "Debit",
+      "credit": "Credit",
+      "mercado_pago": "Mercado Pago"
+    },
+    "paymentDialog": {
+      "title": "Add Payment",
+      "description": "Add a payment for invoice #{invoiceId}.",
+      "success": "Payment Added",
+      "successDescription": "Payment for invoice #{invoiceId} has been successfully added.",
+      "error": "Could not add payment.",
+      "amount": "Amount",
+      "method": "Payment Method",
+      "selectMethod": "Select a method",
+      "status": "Status",
+      "selectStatus": "Select a status",
+      "date": "Payment Date",
+      "pickDate": "Pick a date",
+      "add": "Add Payment",
+      "cancel": "Cancel"
+    },
+    "noSessionDialog": {
+      "title": "No Active Cash Session",
+      "description": "You must have an active cash session to register a payment.",
+      "openCashSession": "Open Cash Session"
+    },
+    "validation": {
+      "amountPositive": "Amount must be a positive number.",
+      "dateRequired": "A payment date is required."
+    }
+  },
   "CashSessionsPage": {
     "title": "Cash Sessions",
     "description": "View historical cash register sessions.",
