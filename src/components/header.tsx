@@ -290,7 +290,7 @@ export function Header() {
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel>{tLogoutConfirm('cancel')}</AlertDialogCancel>
-                <Button variant="outline" onClick={() => router.push(`/${locale}/cashier`)}>
+                <Button variant="outline" onClick={() => {router.push(`/${locale}/cashier`); setIsLogoutAlertOpen(false);}}>
                     {tLogoutConfirm('goToCashier')}
                 </Button>
                 <AlertDialogAction onClick={handleLogout} className="bg-destructive hover:bg-destructive/90">
