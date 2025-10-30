@@ -37,6 +37,13 @@
     "AccessLog": "Accesos",
     "ErrorLog": "Errores"
   },
+  "LogoutConfirmation": {
+    "title": "Sesión de Caja Activa",
+    "description": "Tiene una sesión de caja abierta. Por favor, ciérrela antes de salir.",
+    "goToCashier": "Ir a Cerrar Sesión",
+    "logoutAnyway": "Salir de todos modos",
+    "cancel": "Cancelar"
+  },
   "DataTablePagination": {
     "selected": "{count, plural, one {# fila seleccionada} other {# filas seleccionadas}} de {total}",
     "rowsPerPage": "Filas por página:",

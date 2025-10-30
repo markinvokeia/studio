@@ -37,6 +37,13 @@
     "AccessLog": "Access Log",
     "ErrorLog": "Error Log"
   },
+  "LogoutConfirmation": {
+    "title": "Active Cash Session",
+    "description": "You have an open cash session. Please close it before logging out.",
+    "goToCashier": "Go to Close Session",
+    "logoutAnyway": "Logout Anyway",
+    "cancel": "Cancel"
+  },
   "DataTablePagination": {
     "selected": "{count, plural, one {# row selected} other {# rows selected}} of {total}",
     "rowsPerPage": "Rows per page:",

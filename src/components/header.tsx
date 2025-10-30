@@ -12,6 +12,8 @@ import {
   PanelRightClose,
   Globe,
   Check,
+  LogOut,
+  AlertTriangle,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import {
@@ -23,6 +25,16 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +63,9 @@ export function Header() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { logout, user } = useAuth();
+  const tLogoutConfirm = useTranslations('LogoutConfirmation');
+
+  const [isLogoutAlertOpen, setIsLogoutAlertOpen] = React.useState(false);
 
 
   const onSelectLocale = (newLocale: string) => {
@@ -115,7 +130,36 @@ export function Header() {
     router.push(`/${locale}/login`);
   };
 
+  const handleLogoutClick = async () => {
+    if (!user) {
+        handleLogout();
+        return;
+    }
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/active?user_id=${user.id}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.code === 200) {
+            setIsLogoutAlertOpen(true);
+        } else {
+            handleLogout();
+        }
+    } catch (error) {
+        console.error("Failed to check active session, logging out anyway:", error);
+        handleLogout();
+    }
+  };
+
   return (
+    <>
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 mt-4">
       <Sheet>
         <SheetTrigger asChild>
@@ -225,10 +269,36 @@ export function Header() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>{user?.name || t('myAccount')}</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>{t('logout')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogoutClick}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>{t('logout')}</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
     </header>
+    <AlertDialog open={isLogoutAlertOpen} onOpenChange={setIsLogoutAlertOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-6 w-6 text-yellow-500" />
+                    {tLogoutConfirm('title')}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                    {tLogoutConfirm('description')}
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>{tLogoutConfirm('cancel')}</AlertDialogCancel>
+                <Button variant="outline" onClick={() => router.push(`/${locale}/cashier`)}>
+                    {tLogoutConfirm('goToCashier')}
+                </Button>
+                <AlertDialogAction onClick={handleLogout} className="bg-destructive hover:bg-destructive/90">
+                    {tLogoutConfirm('logoutAnyway')}
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
