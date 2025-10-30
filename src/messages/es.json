@@ -131,7 +131,7 @@
     "button": "Abrir Sesión",
     "activeSession": {
       "title": "Sesión de Caja Activa",
-      "description": "La sesión del usuario {user} en {cashPoint} está actualmente activa.",
+      "description": "Tienes una sesión de caja abierta.",
       "button": "Ir a Cerrar Sesión"
     },
     "checkingStatus": "Comprobando estado de la sesión de caja..."

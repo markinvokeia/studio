@@ -131,7 +131,7 @@
     "button": "Open Session",
     "activeSession": {
       "title": "Active Cash Session",
-      "description": "Session for {user} at {cashPoint} is currently active.",
+      "description": "You have an active cash session.",
       "button": "Go to Close Session"
     },
     "checkingStatus": "Checking cash session status..."
