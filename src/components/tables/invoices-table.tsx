@@ -71,6 +71,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
   const [isNoSessionAlertOpen, setIsNoSessionAlertOpen] = React.useState(false);
   const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = React.useState<Invoice | null>(null);
+  const [activeCashSessionId, setActiveCashSessionId] = React.useState<string | null>(null);
   const [paymentSubmissionError, setPaymentSubmissionError] = React.useState<string | null>(null);
 
   const form = useForm<PaymentFormValues>({
@@ -92,8 +93,9 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         });
         const data = await response.json();
         
-        if (data.code === 200) {
+        if (data.code === 200 && data.data?.id) {
             setSelectedInvoiceForPayment(invoice);
+            setActiveCashSessionId(data.data.id);
             form.reset({
                 amount: invoice.total,
                 method: 'credit_card',
@@ -115,12 +117,13 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   };
   
   const handlePaymentSubmit = async (values: PaymentFormValues) => {
-    if (!selectedInvoiceForPayment) return;
+    if (!selectedInvoiceForPayment || !activeCashSessionId) return;
     setPaymentSubmissionError(null);
     
     try {
         const payload = {
             invoice_id: selectedInvoiceForPayment.id,
+            cash_session_id: activeCashSessionId,
             query: JSON.stringify({
                 invoice_id: parseInt(selectedInvoiceForPayment.id, 10),
                 payment_date: values.payment_date.toISOString(),
