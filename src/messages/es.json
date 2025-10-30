@@ -111,7 +111,12 @@
   "OpenCashSessionWidget": {
     "title": "No hay Sesión de Caja Activa",
     "description": "Haga clic aquí para abrir una nueva sesión de caja y comenzar a registrar transacciones.",
-    "button": "Abrir Sesión"
+    "button": "Abrir Sesión",
+    "activeSession": {
+        "title": "Sesión de Caja Activa",
+        "description": "La sesión del usuario {user} en {cashPoint} está actualmente activa.",
+        "button": "Ver Sesión"
+    }
   },
   "CashierPage": {
     "cancel": "Cancelar",
@@ -193,8 +198,6 @@
     "english": "English",
     "spanish": "Español",
     "myAccount": "Mi Cuenta",
-    "settings": "Configuración",
-    "support": "Soporte",
     "logout": "Cerrar Sesión",
     "commandPlaceholder": "Introduce un comando..."
   },

@@ -111,7 +111,12 @@
   "OpenCashSessionWidget": {
     "title": "No Active Cash Session",
     "description": "Click here to open a new cash session and start recording transactions.",
-    "button": "Open Session"
+    "button": "Open Session",
+    "activeSession": {
+      "title": "Active Cash Session",
+      "description": "Session for {user} at {cashPoint} is currently active.",
+      "button": "View Session"
+    }
   },
   "CashierPage": {
     "cancel": "Cancel",
@@ -193,8 +198,6 @@
     "english": "English",
     "spanish": "Español",
     "myAccount": "My Account",
-    "settings": "Settings",
-    "support": "Support",
     "logout": "Logout",
     "commandPlaceholder": "Enter a command..."
   },

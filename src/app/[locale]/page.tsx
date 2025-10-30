@@ -391,48 +391,94 @@ async function getUsers(): Promise<User[]> {
 }
 
 const OpenCashSessionWidget = () => {
-  const t = useTranslations('OpenCashSessionWidget');
-  const locale = useLocale();
-  const { user } = useAuth();
-  const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
+    const t = useTranslations('OpenCashSessionWidget');
+    const locale = useLocale();
+    const { user } = useAuth();
+    const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(null);
+    const [isLoading, setIsLoading] = React.useState(true);
 
-  React.useEffect(() => {
-    const checkActiveSession = async () => {
-      if (!user) return;
-      setIsLoading(true);
-      // This is a mocked check. In a real app, you would fetch from your backend.
-      // For now, we assume no session is active on dashboard load.
-      setActiveSession(null); 
-      setIsLoading(false);
-    };
-    checkActiveSession();
-  }, [user]);
+    React.useEffect(() => {
+        const checkActiveSession = async () => {
+            if (!user) return;
+            setIsLoading(true);
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/active', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ user_id: user.id })
+                });
 
-  if (isLoading || activeSession) {
-    return null; // Don't show if loading or a session is already active
-  }
+                if (response.ok) {
+                    const data = await response.json();
+                    if(data && data.code === 200) {
+                        setActiveSession(data.session);
+                    } else {
+                        setActiveSession(null);
+                    }
+                } else {
+                    setActiveSession(null);
+                }
+            } catch (error) {
+                console.error("Failed to check active session:", error);
+                setActiveSession(null);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        checkActiveSession();
+    }, [user]);
 
-  return (
-    <Alert variant="warning" className="flex items-center justify-between">
-        <div className="flex items-center">
-            <AlertTriangle className="h-5 w-5 text-yellow-300" />
-            <div className="ml-4">
-                <AlertTitle className="font-bold text-white">{t('title')}</AlertTitle>
-                <AlertDescription className="text-white/90">
-                    {t('description')}
-                </AlertDescription>
+    if (isLoading) {
+        return <Alert><AlertDescription>Checking cash session status...</AlertDescription></Alert>;
+    }
+    
+    if (activeSession) {
+        return (
+            <Alert variant="info" className="flex items-center justify-between bg-blue-900 text-white border-blue-800">
+                <div className="flex items-center">
+                    <Box className="h-5 w-5 text-blue-300" />
+                    <div className="ml-4">
+                        <AlertTitle className="font-bold">{t('activeSession.title')}</AlertTitle>
+                        <AlertDescription className="text-white/90">
+                           {t('activeSession.description', {user: activeSession.user_name, cashPoint: activeSession.cash_point_name})}
+                        </AlertDescription>
+                    </div>
+                </div>
+                <Link href={`/${locale}/cashier`} passHref>
+                    <Button variant="outline" className="bg-white/20 text-white hover:bg-white/30">
+                        <Box className="mr-2 h-4 w-4" />
+                        {t('activeSession.button')}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                </Link>
+            </Alert>
+        );
+    }
+
+    return (
+        <Alert variant="warning" className="flex items-center justify-between">
+            <div className="flex items-center">
+                <AlertTriangle className="h-5 w-5 text-yellow-300" />
+                <div className="ml-4">
+                    <AlertTitle className="font-bold text-white">{t('title')}</AlertTitle>
+                    <AlertDescription className="text-white/90">
+                        {t('description')}
+                    </AlertDescription>
+                </div>
             </div>
-        </div>
-        <Link href={`/${locale}/cashier`} passHref>
-            <Button variant="outline" className="bg-white/20 text-white hover:bg-white/30">
-                <Box className="mr-2 h-4 w-4" />
-                {t('button')}
-                <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-        </Link>
-    </Alert>
-  );
+            <Link href={`/${locale}/cashier`} passHref>
+                <Button variant="outline" className="bg-white/20 text-white hover:bg-white/30">
+                    <Box className="mr-2 h-4 w-4" />
+                    {t('button')}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+            </Link>
+        </Alert>
+    );
 };
 
 
