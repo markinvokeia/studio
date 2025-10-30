@@ -55,7 +55,7 @@
     "goToNext": "Go to next page",
     "goToLast": "Go to last page"
   },
-   "InvoicesPage": {
+  "InvoicesPage": {
     "title": "Invoices",
     "description": "Manage all system invoices.",
     "filterPlaceholder": "Filter by invoice ID...",
@@ -167,6 +167,7 @@
       "createSuccess": "Payment method created successfully.",
       "editSuccess": "Payment method updated successfully.",
       "deleteSuccess": "Payment method deleted successfully.",
+      "deleteDescription": "Payment method \"{name}\" has been deleted.",
       "deleteError": "Could not delete the payment method."
     },
     "validation": {
@@ -808,3 +809,5 @@
     "noResults": "No results."
   }
 }
+
+    
