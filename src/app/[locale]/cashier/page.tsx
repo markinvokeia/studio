@@ -16,7 +16,7 @@ import { AlertTriangle, Box, Briefcase, DollarSign, LogOut, TrendingDown, Trendi
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { CajaSesion, CajaMovimiento, CashPoint } from '@/lib/types';
+import { CajaSesion, CajaMovimiento, CashPoint, PaymentMethod } from '@/lib/types';
 import { useTranslations } from 'next-intl';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTable } from '@/components/ui/data-table';
@@ -303,6 +303,7 @@ export default function CashierPage() {
                         <ActiveSessionDashboard 
                             session={activeSession}
                             movements={sessionMovements}
+                            onCloseSession={() => setShowClosingWizard(true)}
                         />
                     }
                     blindCloseForm={
@@ -343,6 +344,7 @@ export default function CashierPage() {
             <ActiveSessionDashboard 
                 session={activeSession}
                 movements={sessionMovements}
+                onCloseSession={() => setShowClosingWizard(true)}
             />
         );
     }
@@ -420,7 +422,7 @@ const movementColumns: ColumnDef<CajaMovimiento>[] = [
 ];
 
 
-function ActiveSessionDashboard({ session, movements }: { session: any, movements: CajaMovimiento[]}) {
+function ActiveSessionDashboard({ session, movements, onCloseSession }: { session: any, movements: CajaMovimiento[], onCloseSession: () => void}) {
     const t = useTranslations('CashierPage');
     const { user } = useAuth();
     
@@ -430,9 +432,12 @@ function ActiveSessionDashboard({ session, movements }: { session: any, movement
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle>{t('activeSession.title')}</CardTitle>
-                <CardDescription>{t('activeSession.description', { user: user?.name, location: session.puntoDeCajaId })}</CardDescription>
+            <CardHeader className="flex flex-row items-start justify-between">
+                <div>
+                    <CardTitle>{t('activeSession.title')}</CardTitle>
+                    <CardDescription>{t('activeSession.description', { user: user?.name, location: session.puntoDeCajaId })}</CardDescription>
+                </div>
+                <Button onClick={onCloseSession}>{t('activeSession.closeSession')}</Button>
             </CardHeader>
             <CardContent className="space-y-4">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -471,6 +476,30 @@ function ActiveSessionDashboard({ session, movements }: { session: any, movement
 
 function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (values: any) => void, onBack: () => void }) {
     const t = useTranslations('CashierPage');
+    const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
+
+    React.useEffect(() => {
+        const fetchPaymentMethods = async () => {
+            try {
+                const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/metodospago/all');
+                const data = await response.json();
+                const methodsData = Array.isArray(data) ? data : (data.payment_methods || data.data || []);
+                setPaymentMethods(methodsData);
+            } catch (error) {
+                console.error("Failed to fetch payment methods:", error);
+            }
+        };
+        fetchPaymentMethods();
+    }, []);
+
+    const getFieldName = (methodName: string): keyof CloseSessionFormValues => {
+        const name = methodName.toLowerCase();
+        if (name.includes('efectivo')) return 'declaradoEfectivo';
+        if (name.includes('tarjeta')) return 'declaradoTarjeta';
+        if (name.includes('transferencia')) return 'declaradoTransferencia';
+        return 'declaradoOtro';
+    };
+
 
     return (
         <Card className="w-full border-0 shadow-none">
@@ -636,4 +665,5 @@ function CloseSessionWizard({
       
 
     
+
 
