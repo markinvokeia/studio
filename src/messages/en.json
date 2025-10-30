@@ -87,6 +87,7 @@
       "overdue": "Overdue",
       "unpaid": "Unpaid",
       "partial": "Partial",
+      "partially_paid": "Partially Paid",
       "completed": "Completed",
       "pending": "Pending",
       "failed": "Failed"
@@ -997,5 +998,3 @@
     }
   }
 }
-
-    
