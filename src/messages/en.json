@@ -37,6 +37,16 @@
     "AccessLog": "Access Log",
     "ErrorLog": "Error Log"
   },
+  "DataTablePagination": {
+    "selected": "{count, plural, one {# row selected} other {# rows selected}} of {total}",
+    "rowsPerPage": "Rows per page:",
+    "all": "All",
+    "page": "Page {current} of {total}",
+    "goToFirst": "Go to first page",
+    "goToPrevious": "Go to previous page",
+    "goToNext": "Go to next page",
+    "goToLast": "Go to last page"
+  },
   "CashSessionsPage": {
     "title": "Cash Sessions",
     "description": "View historical cash register sessions.",
@@ -671,5 +681,3 @@
     "noResults": "No results."
   }
 }
-
-    

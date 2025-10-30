@@ -37,6 +37,16 @@
     "AccessLog": "Accesos",
     "ErrorLog": "Errores"
   },
+  "DataTablePagination": {
+    "selected": "{count, plural, one {# fila seleccionada} other {# filas seleccionadas}} de {total}",
+    "rowsPerPage": "Filas por página:",
+    "all": "Todas",
+    "page": "Página {current} de {total}",
+    "goToFirst": "Ir a la primera página",
+    "goToPrevious": "Ir a la página anterior",
+    "goToNext": "Ir a la página siguiente",
+    "goToLast": "Ir a la última página"
+  },
   "CashSessionsPage": {
     "title": "Sesiones de Caja",
     "description": "Ver el historial de sesiones de caja.",
@@ -658,5 +668,3 @@
     "noResults": "No se encontraron resultados."
   }
 }
-
-    
