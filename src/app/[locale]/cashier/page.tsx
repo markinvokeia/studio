@@ -304,6 +304,7 @@ export default function CashierPage() {
                             session={activeSession}
                             movements={sessionMovements}
                             onCloseSession={() => setWizardStep('DECLARE')}
+                            isWizardOpen={true}
                         />
                     }
                     blindCloseForm={
@@ -422,7 +423,7 @@ const movementColumns: ColumnDef<CajaMovimiento>[] = [
 ];
 
 
-function ActiveSessionDashboard({ session, movements, onCloseSession }: { session: any, movements: CajaMovimiento[], onCloseSession: () => void}) {
+function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOpen = false }: { session: any, movements: CajaMovimiento[], onCloseSession: () => void, isWizardOpen?: boolean }) {
     const t = useTranslations('CashierPage');
     const { user } = useAuth();
     
@@ -471,7 +472,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession }: { sessio
             </CardContent>
              <CardFooter className="justify-end">
                 <Button onClick={onCloseSession}>
-                    {t('wizard.startClosing')} <ArrowRight className="ml-2 h-4 w-4" />
+                    {isWizardOpen ? t('wizard.next') : t('wizard.startClosing')}
+                    <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
             </CardFooter>
         </Card>
