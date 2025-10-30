@@ -405,6 +405,7 @@ const OpenCashSessionWidget = () => {
                 const token = localStorage.getItem('token');
                 const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/active', {
                     method: 'POST',
+                    mode: 'cors',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
