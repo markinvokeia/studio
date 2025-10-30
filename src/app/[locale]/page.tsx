@@ -456,7 +456,7 @@ const OpenCashSessionWidget = () => {
     }
 
     return (
-        <Alert variant="destructive" className="flex items-center justify-between">
+        <Alert variant="warning" className="flex items-center justify-between">
             <div className="flex items-center">
                 <AlertTriangle className="h-5 w-5" />
                 <div className="ml-4">
@@ -467,7 +467,7 @@ const OpenCashSessionWidget = () => {
                 </div>
             </div>
             <Link href={`/${locale}/cashier`} passHref>
-                <Button variant="outline" className="bg-white/20 hover:bg-white/30">
+                <Button variant="outline" className="bg-white/20 hover:bg-white/30 text-white">
                     <Box className="mr-2 h-4 w-4" />
                     {t('button')}
                     <ArrowRight className="ml-2 h-4 w-4" />
