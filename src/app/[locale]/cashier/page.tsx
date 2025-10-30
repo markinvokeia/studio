@@ -265,6 +265,46 @@ export default function CashierPage() {
         setWizardStep('REPORT');
     };
 
+    const handleConfirmClose = async (report: CajaSesion) => {
+        try {
+            const totalCashInflow = (report.montoCierreCalculadoEfectivo ?? 0) - report.montoApertura + (report.totalEgresosEfectivo ?? 0);
+            const payload = {
+              cash_session_id: report.id,
+              openingAmount: report.montoApertura,
+              declaredCash: report.montoCierreDeclaradoEfectivo,
+              totalCashInflow: totalCashInflow,
+              totalCashOutflow: report.totalEgresosEfectivo,
+              totalCardInflow: report.montoCierreCalculadoTarjeta,
+              totalTransferInflow: report.montoCierreCalculadoTransferencia,
+              totalOtherInflow: report.montoCierreCalculadoOtro,
+              calculatedCash: report.montoCierreCalculadoEfectivo,
+              calculatedCard: report.montoCierreCalculadoTarjeta,
+              calculatedTransfer: report.montoCierreCalculadoTransferencia,
+              calculatedOther: report.montoCierreCalculadoOtro,
+              cashDiscrepancy: report.descuadreEfectivo,
+              notes: report.notasCierre,
+            };
+
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            
+            const responseData = await response.json();
+            if (!response.ok || (responseData.error || (Array.isArray(responseData) && responseData[0]?.code >= 400))) {
+                throw new Error(responseData.message || t('toast.closeError'));
+            }
+
+            toast({ title: t('toast.closeSuccessTitle'), description: t('toast.closeSuccessDescription') });
+            return true;
+        } catch (error) {
+             toast({ variant: 'destructive', title: t('toast.error'), description: error instanceof Error ? error.message : t('toast.closeError') });
+             return false;
+        }
+    };
+
+
      const handleSetActiveSession = (session: CajaSesion) => {
         setActiveSession(session);
     };
@@ -318,13 +358,15 @@ export default function CashierPage() {
                         closedSessionReport ?
                         <CloseSessionReport 
                             report={closedSessionReport} 
-                            onConfirm={() => {
-                              // Here you would call the actual API
-                              toast({ title: t('toast.closeSuccessTitle'), description: t('toast.closeSuccessDescription') });
-                              setActiveSession(null);
-                              setSessionMovements([]);
-                              setShowClosingWizard(false);
-                              fetchCashPointStatus();
+                            onConfirm={async () => {
+                                const success = await handleConfirmClose(closedSessionReport);
+                                if(success) {
+                                    setActiveSession(null);
+                                    setSessionMovements([]);
+                                    setShowClosingWizard(false);
+                                    fetchCashPointStatus();
+                                }
+                                return success;
                             }}
                             onBack={() => setWizardStep('DECLARE')}
                             onNewSession={() => {
@@ -537,7 +579,7 @@ function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (valu
     );
 }
 
-function CloseSessionReport({ report, onConfirm, onNewSession, onBack }: { report: CajaSesion, onConfirm: () => void, onNewSession: () => void, onBack: () => void }) {
+function CloseSessionReport({ report, onConfirm, onNewSession, onBack }: { report: CajaSesion, onConfirm: () => Promise<boolean>, onNewSession: () => void, onBack: () => void }) {
     const t = useTranslations('CashierPage.report');
     const tWizard = useTranslations('CashierPage.wizard');
     const [isConfirmed, setIsConfirmed] = React.useState(false);
@@ -554,9 +596,11 @@ function CloseSessionReport({ report, onConfirm, onNewSession, onBack }: { repor
         { method: t('other'), calculated: report.montoCierreCalculadoOtro, declared: report.montoCierreDeclaradoOtro, difference: report.descuadreOtro },
     ];
 
-    const handleConfirm = () => {
-        onConfirm();
-        setIsConfirmed(true);
+    const handleConfirm = async () => {
+        const success = await onConfirm();
+        if (success) {
+            setIsConfirmed(true);
+        }
     }
     
     return (
