@@ -429,7 +429,7 @@ const OpenCashSessionWidget = () => {
     }, [user]);
 
     if (isLoading) {
-        return <Alert><AlertDescription>Checking cash session status...</AlertDescription></Alert>;
+        return <Alert><AlertDescription>{t('checkingStatus')}</AlertDescription></Alert>;
     }
     
     if (activeSession) {
@@ -445,9 +445,9 @@ const OpenCashSessionWidget = () => {
                     </div>
                 </div>
                 <Link href={`/${locale}/cashier`} passHref>
-                    <Button variant="outline" className="bg-white/20 hover:bg-white/30">
+                    <Button variant="outline">
                         <Box className="mr-2 h-4 w-4" />
-                        Go to Close Session
+                        {t('activeSession.button')}
                         <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                 </Link>
@@ -578,3 +578,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    

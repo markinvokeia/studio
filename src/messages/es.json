@@ -62,7 +62,7 @@
       "date": "Fecha"
     }
   },
-   "PhysicalCashRegistersPage": {
+  "PhysicalCashRegistersPage": {
     "title": "Cajas Físicas",
     "description": "Gestionar las cajas físicas o puntos de venta.",
     "filterPlaceholder": "Filtrar por nombre...",
@@ -113,10 +113,11 @@
     "description": "Haga clic aquí para abrir una nueva sesión de caja y comenzar a registrar transacciones.",
     "button": "Abrir Sesión",
     "activeSession": {
-        "title": "Sesión de Caja Activa",
-        "description": "La sesión del usuario {user} en {cashPoint} está actualmente activa.",
-        "button": "Ver Sesión"
-    }
+      "title": "Sesión de Caja Activa",
+      "description": "La sesión del usuario {user} en {cashPoint} está actualmente activa.",
+      "button": "Ir a Cerrar Sesión"
+    },
+    "checkingStatus": "Comprobando estado de la sesión de caja..."
   },
   "CashierPage": {
     "cancel": "Cancelar",
@@ -653,17 +654,9 @@
     "orderId": "ID Pedido",
     "createdAt": "Fecha Creación"
   },
-  "DataTablePagination": {
-    "selected": "{count, plural, one {# fila seleccionada} other {# filas seleccionadas}} de {total}",
-    "rowsPerPage": "Filas por página:",
-    "all": "Todas",
-    "page": "Página {current} de {total}",
-    "goToFirst": "Ir a la primera página",
-    "goToPrevious": "Ir a la página anterior",
-    "goToNext": "Ir a la página siguiente",
-    "goToLast": "Ir a la última página"
-  },
   "General": {
     "noResults": "No se encontraron resultados."
   }
 }
+
+    
