@@ -330,7 +330,9 @@
         "review": "Review",
         "declare": "Declare",
         "report": "Report"
-      }
+      },
+      "next": "Next",
+      "back": "Back"
     }
   },
   "Header": {

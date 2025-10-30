@@ -330,7 +330,9 @@
         "review": "Revisar",
         "declare": "Declarar",
         "report": "Reporte"
-      }
+      },
+      "next": "Siguiente",
+      "back": "Atrás"
     }
   },
   "Header": {

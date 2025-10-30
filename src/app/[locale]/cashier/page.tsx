@@ -303,7 +303,7 @@ export default function CashierPage() {
                         <ActiveSessionDashboard 
                             session={activeSession}
                             movements={sessionMovements}
-                            onCloseSession={() => setShowClosingWizard(true)}
+                            onCloseSession={() => setWizardStep('DECLARE')}
                         />
                     }
                     blindCloseForm={
@@ -470,6 +470,11 @@ function ActiveSessionDashboard({ session, movements, onCloseSession }: { sessio
                     </TabsContent>
                 </Tabs>
             </CardContent>
+             <CardFooter className="justify-end">
+                <Button onClick={onCloseSession}>
+                    {t('wizard.next')} <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+            </CardFooter>
         </Card>
     );
 }
@@ -518,7 +523,7 @@ function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (valu
                     </CardContent>
                     <CardFooter className="justify-between">
                         <Button variant="outline" type="button" onClick={onBack}>
-                            <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                            <ArrowLeft className="mr-2 h-4 w-4" /> {t('wizard.back')}
                         </Button>
                         <Button type="submit">
                             {t('closeDialog.submitButton')}
@@ -533,6 +538,7 @@ function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (valu
 
 function CloseSessionReport({ report, onConfirm, onNewSession, onBack }: { report: CajaSesion, onConfirm: () => void, onNewSession: () => void, onBack: () => void }) {
     const t = useTranslations('CashierPage.report');
+    const tWizard = useTranslations('CashierPage.wizard');
     const [isConfirmed, setIsConfirmed] = React.useState(false);
     
     const formatCurrency = (value: number | null | undefined) => {
@@ -588,7 +594,7 @@ function CloseSessionReport({ report, onConfirm, onNewSession, onBack }: { repor
             </CardContent>
             <CardFooter className="justify-between">
                  <Button variant="outline" onClick={onBack} disabled={isConfirmed}>
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                    <ArrowLeft className="mr-2 h-4 w-4" /> {tWizard('back')}
                 </Button>
                 {isConfirmed ? (
                     <Button onClick={onNewSession}><Box className="mr-2 h-4 w-4" />{t('newSessionButton')}</Button>
@@ -659,11 +665,3 @@ function CloseSessionWizard({
         </Card>
     );
 }
-
-    
-
-      
-
-    
-
-
