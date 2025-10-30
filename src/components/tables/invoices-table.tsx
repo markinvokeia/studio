@@ -84,12 +84,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
   const fetchPaymentMethods = async () => {
     try {
-      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/metodospago/all', {
-        method: 'GET',
-        headers: {
-            'Accept': 'application/json',
-        },
-      });
+      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/metodospago/all');
       if (!response.ok) throw new Error('Failed to fetch payment methods');
       const data = await response.json();
       const methodsData = Array.isArray(data) ? data : (data.payment_methods || data.data || []);
@@ -485,3 +480,5 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     </>
   );
 }
+
+    

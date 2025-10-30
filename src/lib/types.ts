@@ -126,6 +126,9 @@ export type Payment = {
 export type PaymentMethod = {
     id: string;
     name: string;
+    code: string;
+    is_cash_equivalent: boolean;
+    is_active: boolean;
 }
 
 export type Service = {
@@ -438,3 +441,5 @@ export type CashPoint = {
   created_at: string;
   updated_at: string;
 };
+
+    
