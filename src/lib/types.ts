@@ -117,11 +117,16 @@ export type Payment = {
   quote_id: string;
   user_name: string;
   amount: number;
-  method: 'credit_card' | 'bank_transfer' | 'cash' | 'debit' | 'credit' | 'mercado_pago';
+  method: string;
   status: 'pending' | 'completed' | 'failed';
   createdAt: string;
   updatedAt: string;
 };
+
+export type PaymentMethod = {
+    id: string;
+    name: string;
+}
 
 export type Service = {
   id: string;

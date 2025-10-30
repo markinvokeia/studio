@@ -5,7 +5,7 @@ import * as React from 'react';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Invoice } from '@/lib/types';
+import { Invoice, PaymentMethod } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -40,7 +40,7 @@ import { useLocale, useTranslations } from 'next-intl';
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
   amount: z.coerce.number().positive(t('amountPositive')),
-  method: z.enum(['credit_card', 'bank_transfer', 'cash', 'debit', 'credit', 'mercado_pago']),
+  method: z.string().min(1, t('methodRequired')),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
     required_error: t('dateRequired'),
@@ -73,14 +73,31 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = React.useState<Invoice | null>(null);
   const [activeCashSessionId, setActiveCashSessionId] = React.useState<string | null>(null);
   const [paymentSubmissionError, setPaymentSubmissionError] = React.useState<string | null>(null);
+  const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
 
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentFormSchema(tValidation)),
     defaultValues: {
-      method: 'credit_card',
       status: 'completed',
     }
   });
+
+  const fetchPaymentMethods = async () => {
+    try {
+      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/payment_methods');
+      if (!response.ok) throw new Error('Failed to fetch payment methods');
+      const data = await response.json();
+      const methodsData = Array.isArray(data) ? data : (data.payment_methods || data.data || []);
+      setPaymentMethods(methodsData.map((m: any) => ({ ...m, id: String(m.id) })));
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not load payment methods.'
+      });
+    }
+  };
 
   const handleAddPaymentClick = async (invoice: Invoice) => {
     if (!user) return;
@@ -96,9 +113,10 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         if (data.code === 200 && data.data?.id) {
             setSelectedInvoiceForPayment(invoice);
             setActiveCashSessionId(data.data.id);
+            fetchPaymentMethods();
             form.reset({
                 amount: invoice.total,
-                method: 'credit_card',
+                method: '',
                 status: 'completed',
                 payment_date: new Date(),
             });
@@ -120,6 +138,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     if (!selectedInvoiceForPayment || !activeCashSessionId) return;
     setPaymentSubmissionError(null);
     
+    const selectedMethod = paymentMethods.find(pm => pm.id === values.method);
+
     try {
         const payload = {
             invoice_id: selectedInvoiceForPayment.id,
@@ -128,7 +148,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 invoice_id: parseInt(selectedInvoiceForPayment.id, 10),
                 payment_date: values.payment_date.toISOString(),
                 amount: values.amount,
-                method: values.method,
+                method: selectedMethod?.name,
+                payment_method_id: values.method,
                 status: values.status,
             }),
         };
@@ -356,12 +377,9 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="credit_card">{tMethods('credit_card')}</SelectItem>
-                        <SelectItem value="bank_transfer">{tMethods('bank_transfer')}</SelectItem>
-                        <SelectItem value="cash">{tMethods('cash')}</SelectItem>
-                        <SelectItem value="debit">{tMethods('debit')}</SelectItem>
-                        <SelectItem value="credit">{tMethods('credit')}</SelectItem>
-                        <SelectItem value="mercado_pago">{tMethods('mercado_pago')}</SelectItem>
+                        {paymentMethods.map(method => (
+                           <SelectItem key={method.id} value={method.id}>{method.name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

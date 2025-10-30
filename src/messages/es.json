@@ -65,7 +65,8 @@
       "payments": "Pagos"
     },
     "toast": {
-      "error": "Error"
+      "error": "Error",
+      "sessionCheckError": "No se pudo verificar la sesión de caja activa."
     },
     "columns": {
       "invoiceId": "ID Factura",
@@ -120,7 +121,8 @@
     },
     "validation": {
       "amountPositive": "El monto debe ser un número positivo.",
-      "dateRequired": "La fecha de pago es obligatoria."
+      "dateRequired": "La fecha de pago es obligatoria.",
+      "methodRequired": "El método de pago es obligatorio."
     }
   },
   "CashSessionsPage": {

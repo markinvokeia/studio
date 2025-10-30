@@ -65,7 +65,8 @@
       "payments": "Payments"
     },
     "toast": {
-      "error": "Error"
+      "error": "Error",
+      "sessionCheckError": "Could not verify active cash session."
     },
     "columns": {
       "invoiceId": "Invoice ID",
@@ -120,7 +121,8 @@
     },
     "validation": {
       "amountPositive": "Amount must be a positive number.",
-      "dateRequired": "A payment date is required."
+      "dateRequired": "A payment date is required.",
+      "methodRequired": "A payment method is required."
     }
   },
   "CashSessionsPage": {
