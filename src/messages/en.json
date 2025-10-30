@@ -331,6 +331,7 @@
         "declare": "Declare",
         "report": "Report"
       },
+      "startClosing": "Start Session Closing",
       "next": "Next",
       "back": "Back"
     }

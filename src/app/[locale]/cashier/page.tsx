@@ -437,7 +437,6 @@ function ActiveSessionDashboard({ session, movements, onCloseSession }: { sessio
                     <CardTitle>{t('activeSession.title')}</CardTitle>
                     <CardDescription>{t('activeSession.description', { user: user?.name, location: session.puntoDeCajaId })}</CardDescription>
                 </div>
-                <Button onClick={onCloseSession}>{t('activeSession.closeSession')}</Button>
             </CardHeader>
             <CardContent className="space-y-4">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -472,7 +471,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession }: { sessio
             </CardContent>
              <CardFooter className="justify-end">
                 <Button onClick={onCloseSession}>
-                    {t('wizard.next')} <ArrowRight className="ml-2 h-4 w-4" />
+                    {t('wizard.startClosing')} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
             </CardFooter>
         </Card>
@@ -526,7 +525,7 @@ function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (valu
                             <ArrowLeft className="mr-2 h-4 w-4" /> {t('wizard.back')}
                         </Button>
                         <Button type="submit">
-                            {t('closeDialog.submitButton')}
+                            {t('wizard.next')}
                             <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                     </CardFooter>
@@ -645,9 +644,9 @@ function CloseSessionWizard({
             <CardContent>
                 <Tabs value={currentStep} onValueChange={handleTabChange} className="w-full">
                     <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="REVIEW">{t('steps.review')}</TabsTrigger>
-                        <TabsTrigger value="DECLARE" disabled={currentStep === 'REVIEW'}>{t('steps.declare')}</TabsTrigger>
-                        <TabsTrigger value="REPORT" disabled={currentStep !== 'REPORT'}>{t('steps.report')}</TabsTrigger>
+                        <TabsTrigger value="REVIEW" className={cn(currentStep === 'REVIEW' && 'bg-primary text-primary-foreground')}>{t('steps.review')}</TabsTrigger>
+                        <TabsTrigger value="DECLARE" className={cn(currentStep === 'DECLARE' && 'bg-primary text-primary-foreground')} disabled={currentStep === 'REVIEW'}>{t('steps.declare')}</TabsTrigger>
+                        <TabsTrigger value="REPORT" className={cn(currentStep === 'REPORT' && 'bg-primary text-primary-foreground')} disabled={currentStep !== 'REPORT'}>{t('steps.report')}</TabsTrigger>
                     </TabsList>
                     <TabsContent value="REVIEW" className="mt-4">
                         {activeSessionDashboard}
