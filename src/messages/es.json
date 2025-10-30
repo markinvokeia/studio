@@ -167,6 +167,7 @@
       "createSuccess": "Método de pago creado con éxito.",
       "editSuccess": "Método de pago actualizado con éxito.",
       "deleteSuccess": "Método de pago eliminado con éxito.",
+      "deleteDescription": "El método de pago \"{name}\" ha sido eliminado.",
       "deleteError": "No se pudo eliminar el método de pago."
     },
     "validation": {
@@ -942,7 +943,8 @@
     "status": {
       "scheduled": "Programado",
       "completed": "Completado",
-      "cancelled": "Cancelado"
+      "cancelled": "Cancelado",
+      "invoiced": "Facturado"
     },
     "actions": {
       "openMenu": "Abrir Menú",
@@ -983,4 +985,4 @@
   }
 }
 
-      
+    
