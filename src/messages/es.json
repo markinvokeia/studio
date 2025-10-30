@@ -13,6 +13,7 @@
     "Orders": "Pedidos",
     "Invoices": "Facturas",
     "Payments": "Pagos",
+    "PaymentMethods": "Métodos de Pago",
     "ClinicCatalog": "Catálogo Clínico",
     "Ailments": "Padecimientos",
     "Medications": "Medicamentos",
@@ -123,6 +124,54 @@
       "amountPositive": "El monto debe ser un número positivo.",
       "dateRequired": "La fecha de pago es obligatoria.",
       "methodRequired": "El método de pago es obligatorio."
+    }
+  },
+  "PaymentMethodsPage": {
+    "title": "Métodos de Pago",
+    "description": "Gestionar los métodos de pago disponibles en el sistema.",
+    "filterPlaceholder": "Filtrar por nombre...",
+    "columns": {
+      "id": "ID",
+      "name": "Nombre",
+      "code": "Código",
+      "isCashEquivalent": "Equivalente a Efectivo",
+      "isActive": "Activo",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "yes": "Sí",
+      "no": "No"
+    },
+    "dialog": {
+      "createTitle": "Crear Método de Pago",
+      "editTitle": "Editar Método de Pago",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Tarjeta de Crédito",
+      "code": "Código",
+      "codePlaceholder": "ej., TARJETA_CREDITO",
+      "isCashEquivalent": "¿Es equivalente a efectivo?",
+      "isActive": "¿Está activo?",
+      "cancel": "Cancelar",
+      "create": "Crear",
+      "save": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente el método de pago \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccess": "Método de pago creado con éxito.",
+      "editSuccess": "Método de pago actualizado con éxito.",
+      "deleteSuccess": "Método de pago eliminado con éxito.",
+      "deleteError": "No se pudo eliminar el método de pago."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio.",
+      "codeRequired": "El código es obligatorio."
     }
   },
   "CashSessionsPage": {

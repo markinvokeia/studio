@@ -86,6 +86,7 @@ export const navItems: NavItem[] = [
       { title: 'Orders', href: '/sales/orders', icon: ShoppingCart, isChidren: true },
       { title: 'Invoices', href: '/sales/invoices', icon: Receipt, isChidren: true },
       { title: 'Payments', href: '/sales/payments', icon: CreditCard, isChidren: true },
+      { title: 'PaymentMethods', href: '/sales/payment-methods', icon: CreditCard, isChidren: true },
     ],
   },
    {

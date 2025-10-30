@@ -13,6 +13,7 @@
     "Orders": "Orders",
     "Invoices": "Invoices",
     "Payments": "Payments",
+    "PaymentMethods": "Payment Methods",
     "ClinicCatalog": "Clinic Catalog",
     "Ailments": "Ailments",
     "Medications": "Medications",
@@ -123,6 +124,54 @@
       "amountPositive": "Amount must be a positive number.",
       "dateRequired": "A payment date is required.",
       "methodRequired": "A payment method is required."
+    }
+  },
+  "PaymentMethodsPage": {
+    "title": "Payment Methods",
+    "description": "Manage the payment methods available in the system.",
+    "filterPlaceholder": "Filter by name...",
+    "columns": {
+      "id": "ID",
+      "name": "Name",
+      "code": "Code",
+      "isCashEquivalent": "Cash Equivalent",
+      "isActive": "Active",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "dialog": {
+      "createTitle": "Create Payment Method",
+      "editTitle": "Edit Payment Method",
+      "name": "Name",
+      "namePlaceholder": "e.g., Credit Card",
+      "code": "Code",
+      "codePlaceholder": "e.g., CREDIT_CARD",
+      "isCashEquivalent": "Is cash equivalent?",
+      "isActive": "Is Active?",
+      "cancel": "Cancel",
+      "create": "Create",
+      "save": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the payment method \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccess": "Payment method created successfully.",
+      "editSuccess": "Payment method updated successfully.",
+      "deleteSuccess": "Payment method deleted successfully.",
+      "deleteError": "Could not delete the payment method."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "codeRequired": "Code is required."
     }
   },
   "CashSessionsPage": {
