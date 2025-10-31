@@ -314,6 +314,7 @@
       "openDate": "Fecha de Apertura",
       "closeDate": "Fecha de Cierre",
       "openingAmount": "Monto de Apertura",
+      "closingAmount": "Monto de Cierre",
       "actions": "Acciones",
       "viewDetails": "Ver Detalles"
     },
@@ -322,7 +323,11 @@
       "amount": "Monto",
       "method": "Método",
       "date": "Fecha"
-    }
+    },
+    "denominationDetails": "Detalles de Denominación",
+    "openingDenominations": "Denominaciones de Apertura",
+    "closingDenominations": "Denominaciones de Cierre",
+    "reconciliationSummary": "Resumen de Conciliación"
   },
   "PhysicalCashRegistersPage": {
     "title": "Cajas Físicas",
@@ -574,10 +579,10 @@
       "title": "Crear Nueva Cita",
       "description": "Completa los detalles a continuación para crear una nueva cita.",
       "cancelAppointmentTitle": "Cancelar Cita",
-      "cancelAppointmentDescription": "¿Estás seguro de que quieres cancelar la cita para {serviceName} el {date}?",
+      "cancelAppointmentDescription": "¿Estás seguro que quieres cancelar la cita para {serviceName} el {date}?",
       "userName": "Nombre de Usuario",
       "selectUser": "Seleccionar un usuario",
-      "searchUserPlaceholder": "Buscar por nombre o email...",
+      "searchUserPlaceholder": "Buscar por nombre o correo...",
       "searching": "Buscando...",
       "serviceName": "Servicio(s)",
       "selectServices": "Seleccionar servicios",

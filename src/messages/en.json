@@ -314,6 +314,7 @@
       "openDate": "Open Date",
       "closeDate": "Close Date",
       "openingAmount": "Opening Amount",
+      "closingAmount": "Closing Amount",
       "actions": "Actions",
       "viewDetails": "View Details"
     },
@@ -322,7 +323,11 @@
       "amount": "Amount",
       "method": "Method",
       "date": "Date"
-    }
+    },
+    "denominationDetails": "Denomination Details",
+    "openingDenominations": "Opening Denominations",
+    "closingDenominations": "Closing Denominations",
+    "reconciliationSummary": "Reconciliation Summary"
   },
   "PhysicalCashRegistersPage": {
     "title": "Physical Cash Registers",

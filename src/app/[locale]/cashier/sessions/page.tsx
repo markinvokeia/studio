@@ -11,11 +11,13 @@ import { useTranslations } from 'next-intl';
 import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState, RowSelectionState } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+import { X, ChevronDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, parseISO } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
 
 type GetCashSessionsResponse = {
   sessions: CajaSesion[];
@@ -83,6 +85,9 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
         if (value === null || value === undefined) return '$0.00';
         return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
     };
+    
+    const totalDeclaredAmount = (session.montoCierreDeclaradoEfectivo || 0) + (session.montoCierreDeclaradoTarjeta || 0) + (session.montoCierreDeclaradoTransferencia || 0) + (session.montoCierreDeclaradoOtro || 0);
+
 
     const DenominationTable = ({ title, details }: { title: string, details: string | object | null | undefined }) => {
         if (!details) return null;
@@ -98,7 +103,9 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
             parsedDetails = details as Record<string, number>;
         }
         
-        const denominations = Object.entries(parsedDetails).map(([key, value]) => ({ denomination: Number(key), quantity: Number(value) }));
+        const denominations = Object.entries(parsedDetails).map(([key, value]) => ({ denomination: Number(key), quantity: Number(value) })).filter(item => item.quantity > 0);
+        if (denominations.length === 0) return null;
+        
         const total = denominations.reduce((acc, { denomination, quantity }) => acc + (denomination * quantity), 0);
 
         return (
@@ -120,9 +127,12 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
                                 <TableCell className="text-right">{formatCurrency(denomination * quantity)}</TableCell>
                             </TableRow>
                         ))}
+                         <TableRow className="font-bold border-t">
+                            <TableCell colSpan={2}>Total</TableCell>
+                            <TableCell className="text-right">{formatCurrency(total)}</TableCell>
+                        </TableRow>
                     </TableBody>
                 </Table>
-                <p className="text-right font-bold">Total: {formatCurrency(total)}</p>
             </div>
         );
     };
@@ -146,35 +156,51 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
                 <div><span className="font-semibold">{t('columns.openDate')}:</span> {format(parseISO(session.fechaApertura), 'Pp')}</div>
                 <div><span className="font-semibold">{t('columns.closeDate')}:</span> {session.fechaCierre ? format(parseISO(session.fechaCierre), 'Pp') : 'N/A'}</div>
                 <div><span className="font-semibold">{t('columns.openingAmount')}:</span> {formatCurrency(session.montoApertura)}</div>
+                {session.fechaCierre && <div><span className="font-semibold">{t('columns.closingAmount')}:</span> {formatCurrency(totalDeclaredAmount)}</div>}
             </div>
 
-            {session.fechaCierre && (
-                <div>
-                    <h4 className="font-semibold mb-2">Reconciliation Summary</h4>
-                     <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Payment Method</TableHead>
-                                <TableHead className="text-right">System</TableHead>
-                                <TableHead className="text-right">Declared</TableHead>
-                                <TableHead className="text-right">Difference</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <DifferenceRow label="Cash" calculated={session.montoCierreCalculadoEfectivo} declared={session.montoCierreDeclaradoEfectivo} difference={session.descuadreEfectivo} />
-                            <DifferenceRow label="Card" calculated={session.montoCierreCalculadoTarjeta} declared={session.montoCierreDeclaradoTarjeta} difference={session.descuadreTarjeta} />
-                            <DifferenceRow label="Transfer" calculated={session.montoCierreCalculadoTransferencia} declared={session.montoCierreDeclaradoTransferencia} difference={session.descuadreTransferencia} />
-                            <DifferenceRow label="Other" calculated={session.montoCierreCalculadoOtro} declared={session.montoCierreDeclaradoOtro} difference={session.descuadreOtro} />
-                        </TableBody>
-                    </Table>
-                    {session.notasCierre && <p className="mt-2 text-sm"><span className="font-semibold">Notes:</span> {session.notasCierre}</p>}
-                </div>
+            {(session.opening_details || session.closing_denominations) && (
+                 <Collapsible>
+                    <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted px-4 py-2 text-sm font-semibold">
+                        {t('denominationDetails')}
+                        <ChevronDown className="h-4 w-4" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pt-4">
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <DenominationTable title={t('openingDenominations')} details={session.opening_details} />
+                            <DenominationTable title={t('closingDenominations')} details={session.closing_denominations} />
+                        </div>
+                    </CollapsibleContent>
+                </Collapsible>
             )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <DenominationTable title="Opening Denominations" details={session.opening_details} />
-                <DenominationTable title="Closing Denominations" details={session.closing_denominations} />
-            </div>
+
+            {session.fechaCierre && (
+                 <Collapsible defaultOpen>
+                    <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted px-4 py-2 text-sm font-semibold">
+                        {t('reconciliationSummary')}
+                        <ChevronDown className="h-4 w-4" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pt-4">
+                         <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Payment Method</TableHead>
+                                    <TableHead className="text-right">System</TableHead>
+                                    <TableHead className="text-right">Declared</TableHead>
+                                    <TableHead className="text-right">Difference</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <DifferenceRow label="Cash" calculated={session.montoCierreCalculadoEfectivo} declared={session.montoCierreDeclaradoEfectivo} difference={session.descuadreEfectivo} />
+                                <DifferenceRow label="Card" calculated={session.montoCierreCalculadoTarjeta} declared={session.montoCierreDeclaradoTarjeta} difference={session.descuadreTarjeta} />
+                                <DifferenceRow label="Transfer" calculated={session.montoCierreCalculadoTransferencia} declared={session.montoCierreDeclaradoTransferencia} difference={session.descuadreTransferencia} />
+                                <DifferenceRow label="Other" calculated={session.montoCierreCalculadoOtro} declared={session.montoCierreDeclaradoOtro} difference={session.descuadreOtro} />
+                            </TableBody>
+                        </Table>
+                        {session.notasCierre && <p className="mt-4 text-sm"><span className="font-semibold">Notes:</span> {session.notasCierre}</p>}
+                    </CollapsibleContent>
+                </Collapsible>
+            )}
         </div>
     );
 };
@@ -262,4 +288,3 @@ export default function CashSessionsPage() {
         </>
     );
 }
-
