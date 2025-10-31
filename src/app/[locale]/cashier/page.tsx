@@ -127,7 +127,7 @@ export default function CashierPage() {
                     estado: 'ABIERTA',
                     fechaApertura: cp.session_start_time || new Date().toISOString(), 
                     montoApertura: Number(cp.opening_amount) || 0,
-                    opening_details: cp.denominations_details,
+                    opening_details: cp.opening_details,
                 } : undefined,
             }));
             setCashPoints(mappedCashPoints);
@@ -599,7 +599,6 @@ function OpenSessionDashboard({ cashPoints, onOpenSession, setActiveSession, sho
 
 function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOpen = false, onViewAllCashPoints }: { session: CajaSesion, movements: CajaMovimiento[], onCloseSession: () => void, isWizardOpen?: boolean, onViewAllCashPoints: () => void; }) {
     const t = useTranslations('CashierPage');
-    const { user } = useAuth();
     
     const totalIncome = React.useMemo(() => movements.filter(m => m.tipo === 'INGRESO').reduce((sum, m) => sum + m.monto, 0), [movements]);
     
@@ -660,15 +659,13 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 <Tabs defaultValue="payments">
                     <TabsList>
                         <TabsTrigger value="payments">{t('activeSession.dailyPayments')}</TabsTrigger>
-                        {openingDetails && openingDetails.length > 0 && (
-                            <TabsTrigger value="opening_details">{t('activeSession.openingDetails')}</TabsTrigger>
-                        )}
+                         <TabsTrigger value="opening_details">{t('activeSession.openingDetails')}</TabsTrigger>
                     </TabsList>
                     <TabsContent value="payments">
                         <DataTable columns={movementColumns} data={dailyPayments} />
                     </TabsContent>
-                    {openingDetails && openingDetails.length > 0 && (
-                        <TabsContent value="opening_details">
+                    <TabsContent value="opening_details">
+                        {openingDetails && openingDetails.length > 0 ? (
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -687,8 +684,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                                     ))}
                                 </TableBody>
                             </Table>
-                        </TabsContent>
-                    )}
+                        ) : <p className="text-muted-foreground p-4 text-center">No denomination details available for this session.</p>}
+                    </TabsContent>
                 </Tabs>
             </CardContent>
              <CardFooter className="justify-between">
@@ -890,3 +887,5 @@ function CloseSessionWizard({
         </Card>
     );
 }
+
+    
