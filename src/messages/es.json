@@ -88,6 +88,7 @@
       "selectPaymentStatus": "Seleccione estado de pago",
       "unpaid": "No Pagado",
       "paid": "Pagado",
+      "partially_paid": "Parcialmente Pagada",
       "partial": "Parcial",
       "billingStatus": "Estado de Facturación",
       "selectBillingStatus": "Seleccione estado de facturación",
@@ -195,7 +196,8 @@
       "cash": "Efectivo",
       "debit": "Débito",
       "credit": "Crédito",
-      "mercado_pago": "Mercado Pago"
+      "mercado_pago": "Mercado Pago",
+      "mobile_payment": "Pago Móvil"
     },
     "paymentDialog": {
       "title": "Añadir Pago",
@@ -1005,3 +1007,5 @@
     "noResults": "No se encontraron resultados."
   }
 }
+
+  

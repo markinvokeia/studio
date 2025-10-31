@@ -88,12 +88,16 @@
       "selectPaymentStatus": "Select payment status",
       "unpaid": "Unpaid",
       "paid": "Paid",
+      "partially_paid": "Partially Paid",
       "partial": "Partial",
       "billingStatus": "Billing Status",
       "selectBillingStatus": "Select billing status",
       "notInvoiced": "Not Invoiced",
       "partiallyInvoiced": "Partially Invoiced",
-      "invoiced": "Invoiced"
+      "invoiced": "Invoiced",
+      "cancel": "Cancel",
+      "save": "Create Quote",
+      "editSave": "Save Changes"
     },
     "itemDialog": {
       "createTitle": "Add Item to Quote",
@@ -192,7 +196,8 @@
       "cash": "Cash",
       "debit": "Debit",
       "credit": "Credit",
-      "mercado_pago": "Mercado Pago"
+      "mercado_pago": "Mercado Pago",
+      "mobile_payment": "Mobile Payment"
     },
     "paymentDialog": {
       "title": "Add Payment",
@@ -1015,3 +1020,5 @@
     "noResults": "No results."
   }
 }
+
+  
