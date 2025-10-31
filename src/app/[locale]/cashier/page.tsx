@@ -231,41 +231,71 @@ export default function CashierPage() {
         return true;
     };
 
-    const handleCalculateReport = (values: CloseSessionFormValues) => {
+    const handleCalculateReport = async (values: CloseSessionFormValues) => {
         if (!activeSession) return;
-        
-        const totalIngresosEfectivo = sessionMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'EFECTIVO').reduce((sum, m) => sum + m.monto, 0);
-        const totalIngresosTarjeta = sessionMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'TARJETA').reduce((sum, m) => sum + m.monto, 0);
-        const totalIngresosTransferencia = sessionMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'TRANSFERENCIA').reduce((sum, m) => sum + m.monto, 0);
-        const totalIngresosOtro = sessionMovements.filter(m => m.tipo === 'INGRESO' && m.metodoPago === 'OTRO').reduce((sum, m) => sum + m.monto, 0);
-        
-        const totalEgresosEfectivo = sessionMovements.filter(m => m.tipo === 'EGRESO' && m.metodoPago === 'EFECTIVO').reduce((sum, m) => sum + m.monto, 0);
 
-        const montoCalculadoEfectivo = activeSession.montoApertura + totalIngresosEfectivo - totalEgresosEfectivo;
-        
-        const report: CajaSesion = {
-            ...activeSession,
-            estado: 'CERRADA',
-            fechaCierre: new Date().toISOString(),
-            montoCierreDeclaradoEfectivo: values.declaradoEfectivo,
-            montoCierreDeclaradoTarjeta: values.declaradoTarjeta,
-            montoCierreDeclaradoTransferencia: values.declaradoTransferencia,
-            montoCierreDeclaradoOtro: values.declaradoOtro,
-            montoCierreCalculadoEfectivo: montoCalculadoEfectivo,
-            montoCierreCalculadoTarjeta: totalIngresosTarjeta,
-            montoCierreCalculadoTransferencia: totalIngresosTransferencia,
-            montoCierreCalculadoOtro: totalIngresosOtro,
-            totalEgresosEfectivo: totalEgresosEfectivo,
-            descuadreEfectivo: values.declaradoEfectivo - montoCalculadoEfectivo,
-            descuadreTarjeta: values.declaradoTarjeta - totalIngresosTarjeta,
-            descuadreTransferencia: values.declaradoTransferencia - totalIngresosTransferencia,
-            descuadreOtro: values.declaradoOtro - totalIngresosOtro,
-            notasCierre: values.notas,
-        };
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/totales?cash_session_id=${activeSession.id}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch session totals');
+            }
+            const totalsData = await response.json();
+            
+            let montoCalculadoEfectivo = 0;
+            let montoCalculadoTarjeta = 0;
+            let montoCalculadoTransferencia = 0;
+            let montoCalculadoOtro = 0;
 
-        setClosedSessionReport(report);
-        setWizardStep('REPORT');
+            const totals = Array.isArray(totalsData) ? totalsData : (totalsData.data || []);
+            
+            totals.forEach((item: any) => {
+                const total = parseFloat(item.total);
+                if (item.is_cash_equivalent) {
+                    montoCalculadoEfectivo += total;
+                } else if (item.code === 'CREDIT_CARD' || item.code === 'DEBIT_CARD') {
+                    montoCalculadoTarjeta += total;
+                } else if (item.code === 'BANK_TRANSFER') {
+                    montoCalculadoTransferencia += total;
+                } else {
+                    montoCalculadoOtro += total;
+                }
+            });
+
+            const totalEgresosEfectivo = sessionMovements.filter(m => m.tipo === 'EGRESO').reduce((sum, m) => sum + m.monto, 0);
+            montoCalculadoEfectivo += activeSession.montoApertura - totalEgresosEfectivo;
+
+            const report: CajaSesion = {
+                ...activeSession,
+                estado: 'CERRADA',
+                fechaCierre: new Date().toISOString(),
+                montoCierreDeclaradoEfectivo: values.declaradoEfectivo,
+                montoCierreDeclaradoTarjeta: values.declaradoTarjeta,
+                montoCierreDeclaradoTransferencia: values.declaradoTransferencia,
+                montoCierreDeclaradoOtro: values.declaradoOtro,
+                montoCierreCalculadoEfectivo: montoCalculadoEfectivo,
+                montoCierreCalculadoTarjeta: montoCalculadoTarjeta,
+                montoCierreCalculadoTransferencia: montoCalculadoTransferencia,
+                montoCierreCalculadoOtro: montoCalculadoOtro,
+                totalEgresosEfectivo: totalEgresosEfectivo,
+                descuadreEfectivo: values.declaradoEfectivo - montoCalculadoEfectivo,
+                descuadreTarjeta: values.declaradoTarjeta - montoCalculadoTarjeta,
+                descuadreTransferencia: values.declaradoTransferencia - montoCalculadoTransferencia,
+                descuadreOtro: values.declaradoOtro - montoCalculadoOtro,
+                notasCierre: values.notas,
+            };
+
+            setClosedSessionReport(report);
+            setWizardStep('REPORT');
+        } catch (error) {
+            console.error('Error calculating report:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Could not calculate session report. Please try again.'
+            });
+        }
     };
+
 
     const handleConfirmClose = async (report: CajaSesion) => {
         try {
@@ -742,3 +772,4 @@ function CloseSessionWizard({
     
 
     
+
