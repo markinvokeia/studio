@@ -368,7 +368,7 @@
     "button": "Abrir Sesión",
     "activeSession": {
       "title": "Sesión de Caja Activa",
-      "description": "Tienes una sesión de caja abierta.",
+      "description": "Sesión para el usuario {user} en el punto de venta {cashPoint}",
       "button": "Ir a Cerrar Sesión"
     },
     "checkingStatus": "Comprobando estado de la sesión de caja..."
@@ -560,19 +560,19 @@
       "title": "Crear Nueva Cita",
       "description": "Completa los detalles a continuación para crear una nueva cita.",
       "cancelAppointmentTitle": "Cancelar Cita",
-      "cancelAppointmentDescription": "¿Estás seguro de que quieres cancelar la cita para {serviceName} el {date}?",
+      "cancelAppointmentDescription": "¿Estás seguro que quieres cancelar la cita de {serviceName} para el día {date}?",
       "userName": "Nombre de Usuario",
-      "selectUser": "Seleccionar un usuario",
+      "selectUser": "Seleccionar usuario",
       "searchUserPlaceholder": "Buscar por nombre o email...",
       "searching": "Buscando...",
       "serviceName": "Servicio(s)",
       "selectServices": "Seleccionar servicios",
       "servicesSelected": "{count, plural, one {# servicio seleccionado} other {# servicios seleccionados}}",
       "searchServicePlaceholder": "Buscar un servicio...",
-      "selectDoctor": "Seleccionar un doctor",
+      "selectDoctor": "Seleccionar doctor",
       "searchDoctorPlaceholder": "Buscar un doctor...",
       "none": "Ninguno",
-      "allCalendars": "Todos los Calendarios",
+      "allCalendars": "Todos los calendarios",
       "date": "Fecha",
       "time": "Hora",
       "descriptionLabel": "Descripción",
@@ -1027,6 +1027,65 @@
       "quantity": "Cantidad",
       "unitPrice": "Precio Unitario",
       "total": "Total"
+    }
+  },
+  "ConfigurationsPage": {
+    "title": "Configuraciones del Sistema",
+    "description": "Gestionar las configuraciones y ajustes de todo el sistema.",
+    "filterPlaceholder": "Filtrar por clave...",
+    "columns": {
+      "id": "ID",
+      "key": "Clave",
+      "value": "Valor",
+      "description": "Descripción",
+      "type": "Tipo de Dato",
+      "isPublic": "¿Es Público?",
+      "yes": "Sí",
+      "no": "No",
+      "updatedBy": "Actualizado Por",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+    "dialog": {
+      "createTitle": "Crear Configuración",
+      "createDescription": "Añadir un nuevo par clave-valor a la configuración del sistema.",
+      "editTitle": "Editar Configuración",
+      "editDescription": "Actualizar el valor para esta clave de configuración.",
+      "key": "Clave",
+      "keyPlaceholder": "ej., SITE_NAME",
+      "value": "Valor",
+      "valuePlaceholder": "ej., Mi Increíble App",
+      "description": "Descripción",
+      "descriptionPlaceholder": "Una breve explicación de lo que hace esta clave.",
+      "dataType": "Tipo de Dato",
+      "selectDataType": "Seleccione un tipo de dato",
+      "isPublic": "Accesible Públicamente",
+      "isPublicDescription": "Si está marcado, esta configuración puede ser accedida por el código del lado del cliente.",
+      "cancel": "Cancelar",
+      "save": "Guardar Cambios",
+      "create": "Crear"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente la clave de configuración \"{key}\". Esta acción es irreversible.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createTitle": "Configuración Creada",
+      "editTitle": "Configuración Actualizada",
+      "deleteTitle": "Configuración Eliminada",
+      "successDescription": "La configuración \"{key}\" se ha guardado correctamente.",
+      "deleteDescription": "La configuración \"{key}\" ha sido eliminada.",
+      "deleteError": "No se pudo eliminar la configuración."
+    },
+    "validation": {
+      "keyRequired": "La clave es obligatoria.",
+      "valueRequired": "El valor es obligatorio.",
+      "dataTypeRequired": "El tipo de dato es obligatorio."
     }
   },
   "General": {
