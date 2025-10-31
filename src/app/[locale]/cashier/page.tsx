@@ -189,7 +189,7 @@ export default function CashierPage() {
                 toast({ variant: "destructive", title: "Error", description: "No session data received from server."});
                 return;
             }
-
+            
             const cashPoint = cashPoints.find(cp => cp.id === values.cashPointId);
 
             const newActiveSession: CajaSesion = {
@@ -206,6 +206,7 @@ export default function CashierPage() {
             setActiveSession(newActiveSession);
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
             fetchCashPointStatus();
+
         } catch (error) {
             toast({ variant: "destructive", title: "Error", description: error instanceof Error ? error.message : t('toast.openError') });
         }
@@ -728,6 +729,8 @@ function CloseSessionWizard({
     );
 }
 
+
+    
 
     
 
