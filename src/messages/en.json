@@ -1,5 +1,4 @@
 
-      
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -94,10 +93,7 @@
       "selectBillingStatus": "Select billing status",
       "notInvoiced": "Not Invoiced",
       "partiallyInvoiced": "Partially Invoiced",
-      "invoiced": "Invoiced",
-      "cancel": "Cancel",
-      "save": "Create Quote",
-      "editSave": "Save Changes"
+      "invoiced": "Invoiced"
     },
     "itemDialog": {
       "createTitle": "Add Item to Quote",
@@ -1019,7 +1015,3 @@
     "noResults": "No results."
   }
 }
-
-    
-
-    
