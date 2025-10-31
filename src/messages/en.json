@@ -402,8 +402,16 @@
       "title": "Active Cash Session",
       "description": "Session for user {user} at point of sale {location}.",
       "openingAmount": "Opening Amount",
+      "totalIncome": "Total Income",
+      "dailyPayments": "Daily Payments",
       "registerExpense": "Register Expense",
-      "closeSession": "Close Session"
+      "closeSession": "Close Session",
+      "columns": {
+        "description": "Description",
+        "amount": "Amount",
+        "method": "Method",
+        "date": "Date"
+      }
     },
     "expenseDialog": {
       "title": "Register Expense",
@@ -1022,3 +1030,5 @@
 }
 
   
+
+    

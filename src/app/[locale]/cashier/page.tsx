@@ -475,14 +475,6 @@ function OpenSessionDashboard({ cashPoints, onOpenSession, setActiveSession }: {
     );
 }
 
-const movementColumns: ColumnDef<CajaMovimiento>[] = [
-  { accessorKey: 'descripcion', header: 'Description' },
-  { accessorKey: 'monto', header: 'Amount', cell: ({ row }) => `$${row.original.monto.toFixed(2)}` },
-  { accessorKey: 'metodoPago', header: 'Method' },
-  { accessorKey: 'fecha', header: 'Date', cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
-];
-
-
 function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOpen = false }: { session: CajaSesion, movements: CajaMovimiento[], onCloseSession: () => void, isWizardOpen?: boolean }) {
     const t = useTranslations('CashierPage');
     const { user } = useAuth();
@@ -490,6 +482,15 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     const totalIncome = React.useMemo(() => movements.filter(m => m.tipo === 'INGRESO').reduce((sum, m) => sum + m.monto, 0), [movements]);
     
     const dailyPayments = React.useMemo(() => movements.filter(m => m.tipo === 'INGRESO'), [movements]);
+
+    const tColumns = useTranslations('CashierPage.activeSession.columns');
+    const movementColumns: ColumnDef<CajaMovimiento>[] = [
+      { accessorKey: 'descripcion', header: tColumns('description') },
+      { accessorKey: 'monto', header: tColumns('amount'), cell: ({ row }) => `$${row.original.monto.toFixed(2)}` },
+      { accessorKey: 'metodoPago', header: tColumns('method') },
+      { accessorKey: 'fecha', header: tColumns('date'), cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
+    ];
+
 
     return (
         <Card>
@@ -513,7 +514,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+                            <CardTitle className="text-sm font-medium">{t('activeSession.totalIncome')}</CardTitle>
                             <TrendingUp className="h-4 w-4 text-green-500" />
                         </CardHeader>
                         <CardContent>
@@ -523,7 +524,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 </div>
                 <Tabs defaultValue="payments">
                     <TabsList>
-                        <TabsTrigger value="payments">Daily Payments</TabsTrigger>
+                        <TabsTrigger value="payments">{t('activeSession.dailyPayments')}</TabsTrigger>
                     </TabsList>
                     <TabsContent value="payments">
                         <DataTable columns={movementColumns} data={dailyPayments} />
@@ -729,6 +730,8 @@ function CloseSessionWizard({
     );
 }
 
+
+    
 
     
 

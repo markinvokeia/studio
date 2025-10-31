@@ -402,8 +402,16 @@
       "title": "Sesión de Caja Activa",
       "description": "Sesión para el usuario {user} en el punto de venta {location}.",
       "openingAmount": "Monto de Apertura",
+      "totalIncome": "Ingresos Totales",
+      "dailyPayments": "Pagos del Día",
       "registerExpense": "Registrar Egreso",
-      "closeSession": "Cerrar Caja"
+      "closeSession": "Cerrar Caja",
+      "columns": {
+        "description": "Descripción",
+        "amount": "Monto",
+        "method": "Método",
+        "date": "Fecha"
+      }
     },
     "expenseDialog": {
       "title": "Registrar Egreso",
@@ -1009,3 +1017,5 @@
 }
 
   
+
+    
