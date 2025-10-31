@@ -56,6 +56,99 @@
     "goToNext": "Go to next page",
     "goToLast": "Go to last page"
   },
+  "QuotesPage": {
+    "title": "Quotes",
+    "description": "Manage all quotes.",
+    "detailsFor": "Details for Quote",
+    "quoteId": "Quote ID",
+    "tabs": {
+      "items": "Items",
+      "orders": "Orders",
+      "invoices": "Invoices",
+      "payments": "Payments"
+    },
+    "quoteDialog": {
+      "createTitle": "Create New Quote",
+      "editTitle": "Edit Quote",
+      "description": "Fill in the details to create a new quote.",
+      "editDescription": "Update the details for this quote.",
+      "user": "User",
+      "selectUser": "Select a user",
+      "searchUser": "Search for a user...",
+      "noUserFound": "No user found.",
+      "total": "Total",
+      "status": "Status",
+      "selectStatus": "Select a status",
+      "draft": "Draft",
+      "sent": "Sent",
+      "accepted": "Accepted",
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "rejected": "Rejected",
+      "paymentStatus": "Payment Status",
+      "selectPaymentStatus": "Select payment status",
+      "unpaid": "Unpaid",
+      "paid": "Paid",
+      "partial": "Partial",
+      "billingStatus": "Billing Status",
+      "selectBillingStatus": "Select billing status",
+      "notInvoiced": "Not Invoiced",
+      "partiallyInvoiced": "Partially Invoiced",
+      "invoiced": "Invoiced",
+      "cancel": "Cancel",
+      "save": "Create Quote",
+      "editSave": "Save Changes"
+    },
+    "itemDialog": {
+      "createTitle": "Add Item to Quote",
+      "editTitle": "Edit Quote Item",
+      "description": "Select a service and specify the quantity.",
+      "service": "Service",
+      "selectService": "Select a service",
+      "searchService": "Search for a service...",
+      "noServiceFound": "No service found.",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "total": "Total",
+      "cancel": "Cancel",
+      "save": "Add Item",
+      "editSave": "Save Changes"
+    },
+    "deleteQuoteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete quote #{id}. This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "deleteItemDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete this item from the quote. This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "error": "Error",
+      "quoteError": "Could not save the quote.",
+      "itemError": "Could not save the quote item.",
+      "quoteCreated": "Quote Created",
+      "quoteUpdated": "Quote Updated",
+      "quoteSaveSuccess": "The quote has been saved successfully.",
+      "quoteDeleted": "Quote Deleted",
+      "quoteDeleteSuccess": "Quote #{id} has been deleted.",
+      "quoteDeleteError": "Could not delete the quote.",
+      "itemAdded": "Item Added",
+      "itemUpdated": "Item Updated",
+      "itemSaveSuccess": "The item has been successfully added to the quote.",
+      "itemDeleted": "Item Deleted",
+      "itemDeleteSuccess": "The item has been removed from the quote.",
+      "itemDeleteError": "Could not remove the item from the quote.",
+      "quoteConfirmed": "Quote Confirmed",
+      "quoteConfirmSuccess": "Quote #{id} has been confirmed and an order has been created.",
+      "quoteRejected": "Quote Rejected",
+      "quoteRejectSuccess": "Quote #{id} has been rejected.",
+      "quoteActionError": "Could not perform action on quote."
+    }
+  },
   "InvoicesPage": {
     "title": "Invoices",
     "description": "Manage all system invoices.",
@@ -906,5 +999,7 @@
     "noResults": "No results."
   }
 }
+
+    
 
     

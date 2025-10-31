@@ -56,6 +56,99 @@
     "goToNext": "Ir a la página siguiente",
     "goToLast": "Ir a la última página"
   },
+  "QuotesPage": {
+    "title": "Cotizaciones",
+    "description": "Gestionar todas las cotizaciones.",
+    "detailsFor": "Detalles de la Cotización",
+    "quoteId": "ID de Cotización",
+    "tabs": {
+      "items": "Ítems",
+      "orders": "Pedidos",
+      "invoices": "Facturas",
+      "payments": "Pagos"
+    },
+    "quoteDialog": {
+      "createTitle": "Crear Nueva Cotización",
+      "editTitle": "Editar Cotización",
+      "description": "Complete los detalles para crear una nueva cotización.",
+      "editDescription": "Actualice los detalles de esta cotización.",
+      "user": "Usuario",
+      "selectUser": "Seleccione un usuario",
+      "searchUser": "Buscar un usuario...",
+      "noUserFound": "No se encontró ningún usuario.",
+      "total": "Total",
+      "status": "Estado",
+      "selectStatus": "Seleccione un estado",
+      "draft": "Borrador",
+      "sent": "Enviada",
+      "accepted": "Aceptada",
+      "pending": "Pendiente",
+      "confirmed": "Confirmada",
+      "rejected": "Rechazada",
+      "paymentStatus": "Estado de Pago",
+      "selectPaymentStatus": "Seleccione estado de pago",
+      "unpaid": "No Pagado",
+      "paid": "Pagado",
+      "partial": "Parcial",
+      "billingStatus": "Estado de Facturación",
+      "selectBillingStatus": "Seleccione estado de facturación",
+      "notInvoiced": "No Facturado",
+      "partiallyInvoiced": "Parcialmente Facturado",
+      "invoiced": "Facturado",
+      "cancel": "Cancelar",
+      "save": "Crear Cotización",
+      "editSave": "Guardar Cambios"
+    },
+    "itemDialog": {
+      "createTitle": "Añadir Ítem a la Cotización",
+      "editTitle": "Editar Ítem de la Cotización",
+      "description": "Seleccione un servicio y especifique la cantidad.",
+      "service": "Servicio",
+      "selectService": "Seleccione un servicio",
+      "searchService": "Buscar un servicio...",
+      "noServiceFound": "No se encontró ningún servicio.",
+      "quantity": "Cantidad",
+      "unitPrice": "Precio Unitario",
+      "total": "Total",
+      "cancel": "Cancelar",
+      "save": "Añadir Ítem",
+      "editSave": "Guardar Cambios"
+    },
+    "deleteQuoteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente la cotización #{id}. Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "deleteItemDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente este ítem de la cotización. Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "error": "Error",
+      "quoteError": "No se pudo guardar la cotización.",
+      "itemError": "No se pudo guardar el ítem de la cotización.",
+      "quoteCreated": "Cotización Creada",
+      "quoteUpdated": "Cotización Actualizada",
+      "quoteSaveSuccess": "La cotización ha sido guardada exitosamente.",
+      "quoteDeleted": "Cotización Eliminada",
+      "quoteDeleteSuccess": "La cotización #{id} ha sido eliminada.",
+      "quoteDeleteError": "No se pudo eliminar la cotización.",
+      "itemAdded": "Ítem Añadido",
+      "itemUpdated": "Ítem Actualizado",
+      "itemSaveSuccess": "El ítem ha sido añadido a la cotización exitosamente.",
+      "itemDeleted": "Ítem Eliminado",
+      "itemDeleteSuccess": "El ítem ha sido eliminado de la cotización.",
+      "itemDeleteError": "No se pudo eliminar el ítem de la cotización.",
+      "quoteConfirmed": "Cotización Confirmada",
+      "quoteConfirmSuccess": "La cotización #{id} ha sido confirmada y se ha creado un pedido.",
+      "quoteRejected": "Cotización Rechazada",
+      "quoteRejectSuccess": "La cotización #{id} ha sido rechazada.",
+      "quoteActionError": "No se pudo realizar la acción en la cotización."
+    }
+  },
   "InvoicesPage": {
     "title": "Facturas",
     "description": "Gestionar todas las facturas del sistema.",
@@ -893,5 +986,7 @@
     "noResults": "No se encontraron resultados."
   }
 }
+
+    
 
     
