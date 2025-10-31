@@ -223,6 +223,17 @@
       "methodRequired": "A payment method is required."
     }
   },
+  "InvoiceItemsTable": {
+    "title": "Invoice Items for {id}",
+    "filterPlaceholder": "Filter by service...",
+    "columns": {
+      "id": "Item ID",
+      "service": "Service",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "total": "Total"
+    }
+  },
   "PaymentsPage": {
     "title": "Payments",
     "description": "Manage all payments in the system.",
@@ -292,8 +303,8 @@
     "title": "Cash Sessions",
     "description": "View historical cash register sessions.",
     "filterPlaceholder": "Filter by user name...",
-    "detailsTitle": "Session Movements",
-    "detailsDescription": "Movements for session #{id}",
+    "detailsTitle": "Session Details",
+    "detailsDescription": "Details for session #{id}",
     "closeDetails": "Close details",
     "columns": {
       "id": "ID",
@@ -1003,4 +1014,3 @@
     "noResults": "No results."
   }
 }
-

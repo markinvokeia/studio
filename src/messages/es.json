@@ -223,6 +223,17 @@
       "methodRequired": "El método de pago es obligatorio."
     }
   },
+  "InvoiceItemsTable": {
+    "title": "Ítems de la Factura {id}",
+    "filterPlaceholder": "Filtrar por servicio...",
+    "columns": {
+      "id": "ID Ítem",
+      "service": "Servicio",
+      "quantity": "Cantidad",
+      "unitPrice": "Precio Unitario",
+      "total": "Total"
+    }
+  },
   "PaymentsPage": {
     "title": "Pagos",
     "description": "Gestionar todos los pagos en el sistema.",
@@ -292,8 +303,8 @@
     "title": "Sesiones de Caja",
     "description": "Ver el historial de sesiones de caja.",
     "filterPlaceholder": "Filtrar por nombre de usuario...",
-    "detailsTitle": "Movimientos de la Sesión",
-    "detailsDescription": "Movimientos para la sesión #{id}",
+    "detailsTitle": "Detalles de la Sesión",
+    "detailsDescription": "Detalles para la sesión #{id}",
     "closeDetails": "Cerrar detalles",
     "columns": {
       "id": "ID",
@@ -1003,4 +1014,3 @@
     "noResults": "No se encontraron resultados."
   }
 }
-
