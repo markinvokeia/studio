@@ -89,7 +89,6 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
     const totalDeclaredAmount = (session.montoCierreDeclaradoEfectivo || 0) + (session.montoCierreDeclaradoTarjeta || 0) + (session.montoCierreDeclaradoTransferencia || 0) + (session.montoCierreDeclaradoOtro || 0);
 
     const DenominationTable = ({ title, details }: { title: string, details: string | object | null | undefined }) => {
-        if (!details) return null;
         let parsedDetails: Record<string, number> = {};
         if (typeof details === 'string') {
             try {
@@ -101,10 +100,11 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
         } else if (typeof details === 'object' && details !== null) {
             parsedDetails = details as Record<string, number>;
         }
-        
-        const denominations = Object.entries(parsedDetails).map(([key, value]) => ({ denomination: Number(key), quantity: Number(value) })).filter(item => item.quantity > 0);
-        if (denominations.length === 0) return null;
-        
+
+        const denominations = Object.entries(parsedDetails)
+            .map(([key, value]) => ({ denomination: Number(key), quantity: Number(value) }))
+            .filter(item => !isNaN(item.denomination));
+
         const total = denominations.reduce((acc, { denomination, quantity }) => acc + (denomination * quantity), 0);
 
         return (
@@ -119,13 +119,19 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {denominations.map(({ denomination, quantity }) => (
-                            <TableRow key={denomination}>
-                                <TableCell>{formatCurrency(denomination)}</TableCell>
-                                <TableCell className="text-right">{quantity}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(denomination * quantity)}</TableCell>
+                        {denominations.length > 0 && denominations.some(d => d.quantity > 0) ? (
+                            denominations.filter(d => d.quantity > 0).map(({ denomination, quantity }) => (
+                                <TableRow key={denomination}>
+                                    <TableCell>{formatCurrency(denomination)}</TableCell>
+                                    <TableCell className="text-right">{quantity}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(denomination * quantity)}</TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={3} className="text-center text-muted-foreground">No details</TableCell>
                             </TableRow>
-                        ))}
+                        )}
                          <TableRow className="font-bold border-t">
                             <TableCell colSpan={2}>Total</TableCell>
                             <TableCell className="text-right">{formatCurrency(total)}</TableCell>
@@ -158,20 +164,18 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
                 {session.fechaCierre && <div><span className="font-semibold">{t('columns.closingAmount')}:</span> {formatCurrency(totalDeclaredAmount)}</div>}
             </div>
             
-            {(session.opening_details || session.closing_denominations) && (
-                 <Collapsible>
-                    <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted px-4 py-2 text-sm font-semibold">
-                        {t('denominationDetails')}
-                        <ChevronDown className="h-4 w-4" />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pt-4">
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <DenominationTable title={t('openingDenominations')} details={session.opening_details} />
-                            <DenominationTable title={t('closingDenominations')} details={session.closing_denominations} />
-                        </div>
-                    </CollapsibleContent>
-                </Collapsible>
-            )}
+             <Collapsible>
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted px-4 py-2 text-sm font-semibold">
+                    {t('denominationDetails')}
+                    <ChevronDown className="h-4 w-4" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <DenominationTable title={t('openingDenominations')} details={session.opening_details} />
+                        <DenominationTable title={t('closingDenominations')} details={session.closing_denominations} />
+                    </div>
+                </CollapsibleContent>
+            </Collapsible>
 
             {session.fechaCierre && (
                  <Collapsible defaultOpen>
