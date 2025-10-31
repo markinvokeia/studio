@@ -69,10 +69,6 @@ export default function CashierPage() {
     const [wizardStep, setWizardStep] = React.useState<WizardStep>('REVIEW');
     const [showClosingWizard, setShowClosingWizard] = React.useState(false);
 
-    const openSessionForm = useForm<OpenSessionFormValues>({ 
-        resolver: zodResolver(openSessionSchema(t)),
-        defaultValues: { montoApertura: 0, cashPointId: '' },
-    });
     const closeSessionForm = useForm<CloseSessionFormValues>({
         resolver: zodResolver(closeSessionSchema(t)),
         defaultValues: {
@@ -392,20 +388,60 @@ export default function CashierPage() {
         );
     }
 
-    return <OpenSessionDashboard cashPoints={cashPoints} form={openSessionForm} onOpenSession={handleOpenSession} setActiveSession={handleSetActiveSession} />;
+    return <OpenSessionDashboard cashPoints={cashPoints} onOpenSession={handleOpenSession} setActiveSession={handleSetActiveSession} />;
+}
+
+function CashPointCardForm({ cashPoint, onOpenSession }: { cashPoint: CashPointStatus, onOpenSession: (values: any) => void }) {
+    const t = useTranslations('CashierPage');
+    const form = useForm<{ montoApertura: number }>({
+        resolver: zodResolver(z.object({
+            montoApertura: z.coerce.number().positive(t('validation.openingAmountRequired')),
+        })),
+        defaultValues: { montoApertura: 0 }
+    });
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+    const onSubmit = async (values: { montoApertura: number }) => {
+        setIsSubmitting(true);
+        await onOpenSession({ ...values, cashPointId: cashPoint.id });
+        setIsSubmitting(false);
+    };
+
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+                <CardContent>
+                    <FormField
+                        control={form.control}
+                        name="montoApertura"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>{t('openSession.openingAmount')}</FormLabel>
+                                <FormControl>
+                                    <div className="relative">
+                                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input type="number" placeholder="0.00" className="pl-8" {...field} />
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </CardContent>
+                <CardFooter>
+                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                        {isSubmitting ? 'Abriendo...' : t('openSession.openButton')}
+                    </Button>
+                </CardFooter>
+            </form>
+        </Form>
+    );
 }
 
 // Components
-function OpenSessionDashboard({ cashPoints, form, onOpenSession, setActiveSession }: { cashPoints: CashPointStatus[], form: any, onOpenSession: (values: any) => void, setActiveSession: (session: CajaSesion) => void }) {
+function OpenSessionDashboard({ cashPoints, onOpenSession, setActiveSession }: { cashPoints: CashPointStatus[], onOpenSession: (values: any) => void, setActiveSession: (session: CajaSesion) => void }) {
     const t = useTranslations('CashierPage');
-    const [isSubmitting, setIsSubmitting] = React.useState<string | null>(null);
-
-    const onSubmit = (cashPointId: string) => async (values: { montoApertura: number }) => {
-        setIsSubmitting(cashPointId);
-        await onOpenSession({ ...values, cashPointId });
-        setIsSubmitting(null);
-    };
-
+    
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {cashPoints.map(cp => (
@@ -418,31 +454,7 @@ function OpenSessionDashboard({ cashPoints, form, onOpenSession, setActiveSessio
                         <CardDescription>{cp.status === 'OPEN' ? `Abierta por ${cp.session?.user_name}` : 'Cerrada'}</CardDescription>
                     </CardHeader>
                     {cp.status === 'CLOSED' ? (
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit(cp.id))}>
-                                <CardContent>
-                                    <FormField
-                                        control={form.control}
-                                        name="montoApertura"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>{t('openSession.openingAmount')}</FormLabel>
-                                                <FormControl>
-                                                    <div className="relative">
-                                                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                        <Input type="number" placeholder="0.00" className="pl-8" {...field} />
-                                                    </div>
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </CardContent>
-                                <CardFooter>
-                                    <Button type="submit" className="w-full" disabled={isSubmitting === cp.id}>{isSubmitting === cp.id ? 'Abriendo...' : t('openSession.openButton')}</Button>
-                                </CardFooter>
-                            </form>
-                        </Form>
+                       <CashPointCardForm cashPoint={cp} onOpenSession={onOpenSession} />
                     ) : (
                         <CardContent>
                              <Button className="w-full" onClick={() => cp.session && setActiveSession(cp.session)}>
@@ -480,11 +492,6 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                     <CardTitle>{t('activeSession.title')}</CardTitle>
                     <CardDescription>{t('activeSession.description', { user: user?.name, location: session.puntoDeCajaId })}</CardDescription>
                 </div>
-                 {!isWizardOpen && (
-                    <Button onClick={onCloseSession} variant="outline">
-                        {t('activeSession.closeSession')}
-                    </Button>
-                )}
             </CardHeader>
             <CardContent className="space-y-4">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -519,7 +526,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
             </CardContent>
              <CardFooter className="justify-end">
                 <Button onClick={onCloseSession}>
-                    {isWizardOpen ? t('wizard.next') : t('wizard.startClosing')}
+                     {isWizardOpen ? t('wizard.next') : t('wizard.startClosing')}
                     <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
             </CardFooter>
@@ -715,3 +722,6 @@ function CloseSessionWizard({
         </Card>
     );
 }
+
+
+    
