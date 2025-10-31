@@ -373,6 +373,7 @@
   "CashierPage": {
     "cancel": "Cancelar",
     "openSessionButton": "Abrir Sesión",
+    "viewAllCashPoints": "Ver todas las cajas",
     "toast": {
       "error": "Error",
       "openSuccessTitle": "Sesión Abierta",

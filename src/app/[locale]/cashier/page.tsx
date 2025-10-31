@@ -402,6 +402,7 @@ export default function CashierPage() {
                             movements={sessionMovements}
                             onCloseSession={() => setWizardStep('DECLARE')}
                             isWizardOpen={true}
+                            onViewAllCashPoints={() => setActiveSession(null)}
                         />
                     }
                     blindCloseForm={
@@ -445,6 +446,7 @@ export default function CashierPage() {
                 session={activeSession}
                 movements={sessionMovements}
                 onCloseSession={() => setShowClosingWizard(true)}
+                onViewAllCashPoints={() => setActiveSession(null)}
             />
         );
     }
@@ -595,7 +597,7 @@ function OpenSessionDashboard({ cashPoints, onOpenSession, setActiveSession, sho
     );
 }
 
-function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOpen = false }: { session: CajaSesion, movements: CajaMovimiento[], onCloseSession: () => void, isWizardOpen?: boolean }) {
+function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOpen = false, onViewAllCashPoints }: { session: CajaSesion, movements: CajaMovimiento[], onCloseSession: () => void, isWizardOpen?: boolean, onViewAllCashPoints: () => void; }) {
     const t = useTranslations('CashierPage');
     const { user } = useAuth();
     
@@ -689,7 +691,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                     )}
                 </Tabs>
             </CardContent>
-             <CardFooter className="justify-end">
+             <CardFooter className="justify-between">
+                <Button variant="outline" onClick={onViewAllCashPoints}>{t('viewAllCashPoints')}</Button>
                 <Button onClick={onCloseSession}>
                     {isWizardOpen ? t('wizard.next') : t('wizard.startClosing')}
                     <ArrowRight className="ml-2 h-4 w-4" />

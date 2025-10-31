@@ -373,6 +373,7 @@
   "CashierPage": {
     "cancel": "Cancel",
     "openSessionButton": "Open Session",
+    "viewAllCashPoints": "View All Cash Registers",
     "toast": {
       "error": "Error",
       "openSuccessTitle": "Session Opened",
