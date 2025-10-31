@@ -480,6 +480,11 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                     <CardTitle>{t('activeSession.title')}</CardTitle>
                     <CardDescription>{t('activeSession.description', { user: user?.name, location: session.puntoDeCajaId })}</CardDescription>
                 </div>
+                 {!isWizardOpen && (
+                    <Button onClick={onCloseSession} variant="outline">
+                        {t('activeSession.closeSession')}
+                    </Button>
+                )}
             </CardHeader>
             <CardContent className="space-y-4">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
