@@ -112,7 +112,11 @@
       "total": "Total",
       "cancel": "Cancelar",
       "save": "Añadir Ítem",
-      "editSave": "Guardar Cambios"
+      "editSave": "Guardar Cambios",
+      "id": "ID Ítem",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
     },
     "deleteQuoteDialog": {
       "title": "¿Estás seguro?",
@@ -219,6 +223,22 @@
       "amountPositive": "El monto debe ser un número positivo.",
       "dateRequired": "La fecha de pago es obligatoria.",
       "methodRequired": "El método de pago es obligatorio."
+    }
+  },
+  "PaymentsPage": {
+    "title": "Pagos",
+    "description": "Gestionar todos los pagos en el sistema.",
+    "filterPlaceholder": "Filtrar por ID de factura...",
+    "columns": {
+        "id": "ID",
+        "quoteId": "ID Cotización",
+        "orderId": "ID Pedido",
+        "invoiceId": "ID Factura",
+        "user": "Usuario",
+        "amount": "Monto",
+        "method": "Método",
+        "status": "Estado",
+        "createdAt": "Fecha Creación"
     }
   },
   "PaymentMethodsPage": {

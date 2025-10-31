@@ -112,7 +112,11 @@
       "total": "Total",
       "cancel": "Cancel",
       "save": "Add Item",
-      "editSave": "Save Changes"
+      "editSave": "Save Changes",
+      "id": "Item ID",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
     },
     "deleteQuoteDialog": {
       "title": "Are you sure?",
@@ -219,6 +223,22 @@
       "amountPositive": "Amount must be a positive number.",
       "dateRequired": "A payment date is required.",
       "methodRequired": "A payment method is required."
+    }
+  },
+  "PaymentsPage": {
+    "title": "Payments",
+    "description": "Manage all payments in the system.",
+    "filterPlaceholder": "Filter by invoice ID...",
+    "columns": {
+        "id": "ID",
+        "quoteId": "Quote ID",
+        "orderId": "Order ID",
+        "invoiceId": "Invoice ID",
+        "user": "User",
+        "amount": "Amount",
+        "method": "Method",
+        "status": "Status",
+        "createdAt": "Created At"
     }
   },
   "PaymentMethodsPage": {
