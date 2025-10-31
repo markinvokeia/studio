@@ -1,4 +1,5 @@
 
+      
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -809,7 +810,101 @@
     "orderId": "Order ID",
     "createdAt": "Created At"
   },
+  "OrdersPage": {
+    "title": "Orders",
+    "description": "Manage all sales orders.",
+    "filterPlaceholder": "Filter by user name...",
+    "detailsFor": "Details for Order",
+    "orderId": "Order ID",
+    "createTitle": "Create New Order",
+    "createDescription": "Select a user and a quote to create an order.",
+    "selectUser": "Select a user",
+    "searchUser": "Search for a user...",
+    "noUserFound": "No user found.",
+    "selectQuote": "Select a quote",
+    "searchQuote": "Search for a quote...",
+    "noQuoteFound": "No quote found for this user.",
+    "status": {
+      "label": "Status",
+      "select": "Select a status",
+      "pending": "Pending",
+      "processing": "Processing",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "cancel": "Cancel",
+    "create": "Create Order",
+    "invoiceDialog": {
+      "title": "Create Invoice",
+      "description": "Select a date to create an invoice for order #{orderId}.",
+      "error": "Error",
+      "createError": "Could not create the invoice.",
+      "invoiceSuccess": "Invoice Created",
+      "invoiceSuccessDesc": "Invoice has been successfully created for order #{orderId}.",
+      "confirm": "Create Invoice",
+      "cancel": "Cancel"
+    }
+  },
+  "OrderItemsTable": {
+    "title": "Items for Order #{id}",
+    "filterPlaceholder": "Filter by service...",
+    "columns": {
+      "id": "Item ID",
+      "service": "Service",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "total": "Total",
+      "status": "Status",
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "invoiced": "Invoiced"
+    },
+    "status": {
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "invoiced": "Invoiced"
+    },
+    "actions": {
+      "openMenu": "Open menu",
+      "title": "Actions",
+      "schedule": "Schedule",
+      "complete": "Mark as Completed"
+    },
+    "dateDialog": {
+      "title": {
+        "schedule": "Schedule Item",
+        "complete": "Complete Item"
+      },
+      "description": {
+        "schedule": "Select a date to schedule this item.",
+        "complete": "Select a date to mark this item as completed."
+      },
+      "save": "Save Date",
+      "cancel": "Cancel"
+    },
+    "toast": {
+      "error": "Error",
+      "updateError": "Could not update the item.",
+      "scheduledTitle": "Item Scheduled",
+      "completedTitle": "Item Completed",
+      "updateSuccess": "The item has been updated successfully."
+    }
+  },
+  "InvoiceItemsTable": {
+    "title": "Items for Invoice #{id}",
+    "filterPlaceholder": "Filter by service...",
+    "columns": {
+      "id": "Item ID",
+      "service": "Service",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "total": "Total"
+    }
+  },
   "General": {
     "noResults": "No results."
   }
 }
+
+    
