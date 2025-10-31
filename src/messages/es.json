@@ -431,6 +431,7 @@
     "closeDialog": {
       "title": "Cerrar Sesión de Caja (Cierre Ciego)",
       "description": "Cuente el dinero físico y los comprobantes de cada método de pago e ingrese los totales a continuación. El sistema realizará la conciliación.",
+      "cashDenominations": "Denominaciones de Efectivo",
       "cash": "Total Contado en Efectivo",
       "card": "Total en Comprobantes de Tarjeta",
       "transfer": "Total en Comprobantes de Transferencia",
@@ -1002,3 +1003,4 @@
     "noResults": "No se encontraron resultados."
   }
 }
+

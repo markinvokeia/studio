@@ -40,6 +40,7 @@ const closeSessionSchema = (t: (key: string) => string) => z.object({
     declaradoTransferencia: z.coerce.number().min(0, t('validation.amountRequired')),
     declaradoOtro: z.coerce.number().min(0, t('validation.amountRequired')),
     notas: z.string().optional(),
+    closing_denominations: z.record(z.number()).optional(),
 });
 
 const expenseSchema = (t: (key: string) => string) => z.object({
@@ -307,6 +308,7 @@ export default function CashierPage() {
                 descuadreTransferencia: values.declaradoTransferencia - montoCalculadoTransferencia,
                 descuadreOtro: values.declaradoOtro - montoCalculadoOtro,
                 notasCierre: values.notas,
+                closing_denominations: values.closing_denominations,
             };
 
             setClosedSessionReport(report);
@@ -325,7 +327,7 @@ export default function CashierPage() {
     const handleConfirmClose = async (report: CajaSesion) => {
         try {
             const totalCashInflow = (report.montoCierreCalculadoEfectivo ?? 0) - report.montoApertura + (report.totalEgresosEfectivo ?? 0);
-            const payload = {
+            const payload: any = {
               cash_session_id: report.id,
               openingAmount: report.montoApertura,
               declaredCash: report.montoCierreDeclaradoEfectivo,
@@ -341,6 +343,10 @@ export default function CashierPage() {
               cashDiscrepancy: report.descuadreEfectivo,
               notes: report.notasCierre,
             };
+            
+            if (report.closing_denominations) {
+                payload.closing_denominations = JSON.stringify(report.closing_denominations);
+            }
 
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close', {
                 method: 'POST',
@@ -410,6 +416,7 @@ export default function CashierPage() {
                             form={closeSessionForm}
                             onSubmit={handleCalculateReport}
                             onBack={() => setWizardStep('REVIEW')}
+                            showDenominations={showDenominations}
                         />
                     }
                     closeSessionReport={
@@ -638,7 +645,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">{t('activeSession.openingAmount')}</CardTitle>
+                            <CardTitle className="text-sm font-medium">{t('openSession.openingAmount')}</CardTitle>
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -659,7 +666,9 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 <Tabs defaultValue="payments">
                     <TabsList>
                         <TabsTrigger value="payments">{t('activeSession.dailyPayments')}</TabsTrigger>
-                         <TabsTrigger value="opening_details">{t('activeSession.openingDetails')}</TabsTrigger>
+                        {openingDetails && openingDetails.length > 0 && (
+                            <TabsTrigger value="opening_details">{t('activeSession.openingDetails')}</TabsTrigger>
+                        )}
                     </TabsList>
                     <TabsContent value="payments">
                         <DataTable columns={movementColumns} data={dailyPayments} />
@@ -699,32 +708,31 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     );
 }
 
-function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (values: any) => void, onBack: () => void }) {
+function BlindCloseForm({ form, onSubmit, onBack, showDenominations }: { form: any, onSubmit: (values: any) => void, onBack: () => void, showDenominations: boolean }) {
     const t = useTranslations('CashierPage');
-    const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
+    const [denominationQuantities, setDenominationQuantities] = React.useState<Record<string, number>>(() =>
+        Object.fromEntries(denominations.map(d => [d.toString(), 0]))
+    );
 
-    React.useEffect(() => {
-        const fetchPaymentMethods = async () => {
-            try {
-                const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/metodospago/all');
-                const data = await response.json();
-                const methodsData = Array.isArray(data) ? data : (data.payment_methods || data.data || []);
-                setPaymentMethods(methodsData);
-            } catch (error) {
-                console.error("Failed to fetch payment methods:", error);
-            }
-        };
-        fetchPaymentMethods();
-    }, []);
-
-    const getFieldName = (methodName: string): keyof CloseSessionFormValues => {
-        const name = methodName.toLowerCase();
-        if (name.includes('efectivo')) return 'declaradoEfectivo';
-        if (name.includes('tarjeta')) return 'declaradoTarjeta';
-        if (name.includes('transferencia')) return 'declaradoTransferencia';
-        return 'declaradoOtro';
+    const handleDenominationChange = (denomination: number, quantity: string) => {
+        const numQuantity = parseInt(quantity, 10) || 0;
+        setDenominationQuantities(prev => ({ ...prev, [denomination]: numQuantity }));
     };
 
+    React.useEffect(() => {
+        if (showDenominations) {
+            const total = denominations.reduce((acc, den) => acc + (denominationQuantities[den] * den), 0);
+            form.setValue('declaradoEfectivo', total);
+        }
+    }, [denominationQuantities, form, showDenominations]);
+
+    const handleFormSubmit = (values: CloseSessionFormValues) => {
+        const payload: CloseSessionFormValues = { ...values };
+        if (showDenominations) {
+            payload.closing_denominations = denominationQuantities;
+        }
+        onSubmit(payload);
+    };
 
     return (
         <Card className="w-full border-0 shadow-none">
@@ -733,13 +741,40 @@ function BlindCloseForm({ form, onSubmit, onBack }: { form: any, onSubmit: (valu
                 <CardDescription>{t('closeDialog.description')}</CardDescription>
             </CardHeader>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)}>
-                    <CardContent className="space-y-4">
-                        <FormField control={form.control} name="declaradoEfectivo" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.cash')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="declaradoTarjeta" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.card')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="declaradoTransferencia" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.transfer')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="declaradoOtro" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.other')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="notas" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.notes')}</FormLabel><FormControl><Textarea placeholder={t('closeDialog.notesPlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <form onSubmit={form.handleSubmit(handleFormSubmit)}>
+                    <CardContent className={cn("space-y-4", showDenominations && "grid grid-cols-2 gap-8")}>
+                        {showDenominations && (
+                            <div className="space-y-4">
+                                <h4 className="font-medium">{t('closeDialog.cashDenominations')}</h4>
+                                <ScrollArea className="h-96">
+                                    <div className="space-y-3 p-1">
+                                        {denominations.map(den => (
+                                            <div key={den} className="grid grid-cols-3 items-center gap-2">
+                                                <Label htmlFor={`den-close-${den}`} className="text-right">$ {den}</Label>
+                                                <Input
+                                                    id={`den-close-${den}`}
+                                                    type="number"
+                                                    placeholder="Qty"
+                                                    min="0"
+                                                    value={denominationQuantities[den] || ''}
+                                                    onChange={(e) => handleDenominationChange(den, e.target.value)}
+                                                />
+                                                <span className="text-sm text-muted-foreground font-mono w-20 text-right">
+                                                    $ {(denominationQuantities[den] * den).toFixed(2)}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            </div>
+                        )}
+                        <div className="space-y-4">
+                            <FormField control={form.control} name="declaradoEfectivo" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.cash')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} readOnly={showDenominations} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="declaradoTarjeta" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.card')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="declaradoTransferencia" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.transfer')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="declaradoOtro" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.other')}</FormLabel><FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="notas" render={({ field }) => (<FormItem><FormLabel>{t('closeDialog.notes')}</FormLabel><FormControl><Textarea placeholder={t('closeDialog.notesPlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        </div>
                     </CardContent>
                     <CardFooter className="justify-between">
                         <Button variant="outline" type="button" onClick={onBack}>
