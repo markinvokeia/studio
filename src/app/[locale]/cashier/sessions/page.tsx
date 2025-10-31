@@ -47,7 +47,11 @@ async function getCashSessions(pagination: PaginationState, searchQuery: string)
         const total = Number(data.total) || 0;
 
         return {
-            sessions: sessionsData.map((s: any) => ({ 
+            sessions: sessionsData.map((s: any) => {
+              const openingDetails = typeof s.opening_details === 'string' ? JSON.parse(s.opening_details) : s.opening_details;
+              const closingDetails = typeof s.closing_details === 'string' ? JSON.parse(s.closing_details) : s.closing_details;
+
+              return { 
                 id: String(s.id),
                 user_name: s.user_name,
                 cash_point_name: s.cash_point_name,
@@ -55,7 +59,7 @@ async function getCashSessions(pagination: PaginationState, searchQuery: string)
                 fechaApertura: s.opened_at,
                 fechaCierre: s.closed_at,
                 montoApertura: s.opening_amount,
-                opening_details: s.opening_details,
+                opening_details: openingDetails,
                 montoCierreDeclaradoEfectivo: s.declared_cash,
                 montoCierreCalculadoEfectivo: s.calculated_cash,
                 montoCierreDeclaradoTarjeta: s.declared_card,
@@ -68,9 +72,10 @@ async function getCashSessions(pagination: PaginationState, searchQuery: string)
                 descuadreTarjeta: s.card_discrepancy,
                 descuadreTransferencia: s.transfer_discrepancy,
                 descuadreOtro: s.other_discrepancy,
-                closing_denominations: s.closing_details,
+                closing_denominations: closingDetails,
                 notasCierre: s.notes,
-             })),
+             }
+            }),
             total
         };
     } catch (error) {
@@ -113,6 +118,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
     const totalDeclaredAmount = (session.montoCierreDeclaradoEfectivo || 0) + (session.montoCierreDeclaradoTarjeta || 0) + (session.montoCierreDeclaradoTransferencia || 0) + (session.montoCierreDeclaradoOtro || 0);
 
     const DenominationTable = ({ title, details }: { title: string, details: string | object | null | undefined }) => {
+        const tDenominations = useTranslations('CashSessionsPage.denominationDetails');
         let parsedDetails: Record<string, number> = {};
         if (typeof details === 'string') {
             try {
@@ -138,9 +144,9 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Denomination</TableHead>
-                            <TableHead className="text-right">Quantity</TableHead>
-                            <TableHead className="text-right">Subtotal</TableHead>
+                            <TableHead>{tDenominations('denomination')}</TableHead>
+                            <TableHead className="text-right">{tDenominations('quantity')}</TableHead>
+                            <TableHead className="text-right">{tDenominations('subtotal')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -154,11 +160,11 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={3} className="text-center text-muted-foreground">No details</TableCell>
+                                <TableCell colSpan={3} className="text-center text-muted-foreground">{t('noDetails')}</TableCell>
                             </TableRow>
                         )}
                          <TableRow className="font-bold border-t">
-                            <TableCell colSpan={2}>Total</TableCell>
+                            <TableCell colSpan={2}>{tDenominations('total')}</TableCell>
                             <TableCell className="text-right">{formatCurrency(total)}</TableCell>
                         </TableRow>
                     </TableBody>
@@ -188,7 +194,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
     return (
         <div className="space-y-6">
             <div className="space-y-4 rounded-lg border bg-card p-4 shadow-sm">
-                <h3 className="font-semibold text-lg">Session Information</h3>
+                <h3 className="font-semibold text-lg">{t('sessionInfo')}</h3>
                  <div className="grid grid-cols-2 gap-4 text-sm">
                     <div><span className="font-semibold">{t('columns.user')}:</span> {session.user_name}</div>
                     <div><span className="font-semibold">{t('columns.cashPoint')}:</span> {session.cash_point_name}</div>
@@ -205,7 +211,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                     <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pt-4 pl-4">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border bg-card p-4 rounded-md shadow-sm">
                         <DenominationTable title={t('openingDenominations')} details={session.opening_details} />
                         <DenominationTable title={t('closingDenominations')} details={session.closing_denominations} />
                     </div>
@@ -232,20 +238,20 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                          <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Payment Method</TableHead>
-                                    <TableHead className="text-right">System</TableHead>
-                                    <TableHead className="text-right">Declared</TableHead>
-                                    <TableHead className="text-right">Difference</TableHead>
+                                    <TableHead>{t('reconciliation.paymentMethod')}</TableHead>
+                                    <TableHead className="text-right">{t('reconciliation.system')}</TableHead>
+                                    <TableHead className="text-right">{t('reconciliation.declared')}</TableHead>
+                                    <TableHead className="text-right">{t('reconciliation.difference')}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                <DifferenceRow label="Cash" calculated={session.montoCierreCalculadoEfectivo} declared={session.montoCierreDeclaradoEfectivo} difference={session.descuadreEfectivo} />
-                                <DifferenceRow label="Card" calculated={session.montoCierreCalculadoTarjeta} declared={session.montoCierreDeclaradoTarjeta} difference={session.descuadreTarjeta} />
-                                <DifferenceRow label="Transfer" calculated={session.montoCierreCalculadoTransferencia} declared={session.montoCierreDeclaradoTransferencia} difference={session.descuadreTransferencia} />
-                                <DifferenceRow label="Other" calculated={session.montoCierreCalculadoOtro} declared={session.montoCierreDeclaradoOtro} difference={session.descuadreOtro} />
+                                <DifferenceRow label={t('reconciliation.cash')} calculated={session.montoCierreCalculadoEfectivo} declared={session.montoCierreDeclaradoEfectivo} difference={session.descuadreEfectivo} />
+                                <DifferenceRow label={t('reconciliation.card')} calculated={session.montoCierreCalculadoTarjeta} declared={session.montoCierreDeclaradoTarjeta} difference={session.descuadreTarjeta} />
+                                <DifferenceRow label={t('reconciliation.transfer')} calculated={session.montoCierreCalculadoTransferencia} declared={session.montoCierreDeclaradoTransferencia} difference={session.descuadreTransferencia} />
+                                <DifferenceRow label={t('reconciliation.other')} calculated={session.montoCierreCalculadoOtro} declared={session.montoCierreDeclaradoOtro} difference={session.descuadreOtro} />
                             </TableBody>
                         </Table>
-                        {session.notasCierre && <p className="mt-4 text-sm"><span className="font-semibold">Notes:</span> {session.notasCierre}</p>}
+                        {session.notasCierre && <p className="mt-4 text-sm"><span className="font-semibold">{t('reconciliation.notes')}:</span> {session.notasCierre}</p>}
                     </CollapsibleContent>
                 </Collapsible>
             )}

@@ -306,6 +306,8 @@
     "detailsTitle": "Detalles de la Sesión",
     "detailsDescription": "Detalles para la sesión #{id}",
     "closeDetails": "Cerrar detalles",
+    "noDetails": "Sin detalles",
+    "sessionInfo": "Información de la Sesión",
     "columns": {
       "id": "ID",
       "user": "Usuario",
@@ -324,11 +326,28 @@
       "method": "Método",
       "date": "Fecha"
     },
-    "denominationDetails": "Detalles de Denominación",
+    "denominationDetails": {
+      "title": "Detalles de Denominación",
+      "denomination": "Denominación",
+      "quantity": "Cantidad",
+      "subtotal": "Subtotal",
+      "total": "Total"
+    },
     "openingDenominations": "Denominaciones de Apertura",
     "closingDenominations": "Denominaciones de Cierre",
     "reconciliationSummary": "Resumen de Conciliación",
-    "movements": "Movimientos"
+    "movements": "Movimientos",
+    "reconciliation": {
+      "paymentMethod": "Método de Pago",
+      "system": "Sistema",
+      "declared": "Declarado",
+      "difference": "Diferencia",
+      "cash": "Efectivo",
+      "card": "Tarjeta",
+      "transfer": "Transferencia",
+      "other": "Otro",
+      "notes": "Notas"
+    }
   },
   "PhysicalCashRegistersPage": {
     "title": "Cajas Físicas",

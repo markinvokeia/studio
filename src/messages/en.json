@@ -306,6 +306,8 @@
     "detailsTitle": "Session Details",
     "detailsDescription": "Details for session #{id}",
     "closeDetails": "Close details",
+    "noDetails": "No details",
+    "sessionInfo": "Session Information",
     "columns": {
       "id": "ID",
       "user": "User",
@@ -324,11 +326,28 @@
       "method": "Method",
       "date": "Date"
     },
-    "denominationDetails": "Denomination Details",
+    "denominationDetails": {
+      "title": "Denomination Details",
+      "denomination": "Denomination",
+      "quantity": "Quantity",
+      "subtotal": "Subtotal",
+      "total": "Total"
+    },
     "openingDenominations": "Opening Denominations",
     "closingDenominations": "Closing Denominations",
     "reconciliationSummary": "Reconciliation Summary",
-    "movements": "Movements"
+    "movements": "Movements",
+    "reconciliation": {
+      "paymentMethod": "Payment Method",
+      "system": "System",
+      "declared": "Declared",
+      "difference": "Difference",
+      "cash": "Cash",
+      "card": "Card",
+      "transfer": "Transfer",
+      "other": "Other",
+      "notes": "Notes"
+    }
   },
   "PhysicalCashRegistersPage": {
     "title": "Physical Cash Registers",
