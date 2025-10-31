@@ -16,18 +16,21 @@ import { AlertTriangle, Box, Briefcase, DollarSign, LogOut, TrendingDown, Trendi
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { CajaSesion, CajaMovimiento, CashPoint, PaymentMethod } from '@/lib/types';
+import { CajaSesion, CajaMovimiento, CashPoint, PaymentMethod, SystemConfiguration } from '@/lib/types';
 import { useTranslations } from 'next-intl';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { useAuth } from '@/context/AuthContext';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
+const denominations = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000];
 
 const openSessionSchema = (t: (key: string) => string) => z.object({
   montoApertura: z.coerce.number().positive(t('validation.openingAmountRequired')),
   cashPointId: z.string(),
+  denominations_details: z.record(z.number()).optional(),
 });
 
 const closeSessionSchema = (t: (key: string) => string) => z.object({
@@ -68,6 +71,7 @@ export default function CashierPage() {
     const [serverError, setServerError] = React.useState<string | null>(null);
     const [wizardStep, setWizardStep] = React.useState<WizardStep>('REVIEW');
     const [showClosingWizard, setShowClosingWizard] = React.useState(false);
+    const [showDenominations, setShowDenominations] = React.useState(false);
 
     const closeSessionForm = useForm<CloseSessionFormValues>({
         resolver: zodResolver(closeSessionSchema(t)),
@@ -80,6 +84,22 @@ export default function CashierPage() {
         },
     });
     const expenseForm = useForm<ExpenseFormValues>({ resolver: zodResolver(expenseSchema(t)) });
+
+    const fetchSystemConfigs = React.useCallback(async () => {
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/configs');
+            if (response.ok) {
+                const data = await response.json();
+                const configsData = Array.isArray(data) ? data : (data.configs || data.data || data.result || []);
+                const denominationsConfig = configsData.find((c: SystemConfiguration) => c.key === 'show-denominations');
+                if (denominationsConfig && denominationsConfig.value === 'true') {
+                    setShowDenominations(true);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to fetch system configurations", error);
+        }
+    }, []);
 
     const fetchCashPointStatus = React.useCallback(async () => {
         setIsLoading(true);
@@ -140,8 +160,9 @@ export default function CashierPage() {
     }, [toast]);
 
     React.useEffect(() => {
+        fetchSystemConfigs();
         fetchCashPointStatus();
-    }, [fetchCashPointStatus]);
+    }, [fetchSystemConfigs, fetchCashPointStatus]);
 
     React.useEffect(() => {
         if (activeSession) {
@@ -172,6 +193,7 @@ export default function CashierPage() {
                     cash_point_id: values.cashPointId,
                     opening_amount: values.montoApertura,
                     user_id: user.id,
+                    denominations_details: values.denominations_details ? JSON.stringify(values.denominations_details) : undefined,
                 }),
             });
             const data = await response.json();
@@ -424,11 +446,15 @@ export default function CashierPage() {
         );
     }
 
-    return <OpenSessionDashboard cashPoints={cashPoints} onOpenSession={handleOpenSession} setActiveSession={handleSetActiveSession} />;
+    return <OpenSessionDashboard cashPoints={cashPoints} onOpenSession={handleOpenSession} setActiveSession={handleSetActiveSession} showDenominations={showDenominations} />;
 }
 
-function CashPointCardForm({ cashPoint, onOpenSession }: { cashPoint: CashPointStatus, onOpenSession: (values: any) => void }) {
+function CashPointCardForm({ cashPoint, onOpenSession, showDenominations }: { cashPoint: CashPointStatus, onOpenSession: (values: any) => void, showDenominations: boolean }) {
     const t = useTranslations('CashierPage');
+    const [denominationQuantities, setDenominationQuantities] = React.useState<Record<string, number>>(() =>
+        Object.fromEntries(denominations.map(d => [d.toString(), 0]))
+    );
+
     const form = useForm<{ montoApertura: number }>({
         resolver: zodResolver(z.object({
             montoApertura: z.coerce.number().positive(t('validation.openingAmountRequired')),
@@ -437,9 +463,28 @@ function CashPointCardForm({ cashPoint, onOpenSession }: { cashPoint: CashPointS
     });
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
+    const handleDenominationChange = (denomination: number, quantity: string) => {
+        const numQuantity = parseInt(quantity, 10) || 0;
+        setDenominationQuantities(prev => ({ ...prev, [denomination]: numQuantity }));
+    };
+
+    React.useEffect(() => {
+        if (showDenominations) {
+            const total = denominations.reduce((acc, den) => acc + (denominationQuantities[den] * den), 0);
+            form.setValue('montoApertura', total);
+        }
+    }, [denominationQuantities, form, showDenominations]);
+
     const onSubmit = async (values: { montoApertura: number }) => {
         setIsSubmitting(true);
-        await onOpenSession({ ...values, cashPointId: cashPoint.id });
+        const payload: OpenSessionFormValues = {
+            ...values,
+            cashPointId: cashPoint.id,
+        };
+        if (showDenominations) {
+            payload.denominations_details = denominationQuantities;
+        }
+        await onOpenSession(payload);
         setIsSubmitting(false);
     };
 
@@ -447,22 +492,65 @@ function CashPointCardForm({ cashPoint, onOpenSession }: { cashPoint: CashPointS
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
                 <CardContent>
-                    <FormField
-                        control={form.control}
-                        name="montoApertura"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{t('openSession.openingAmount')}</FormLabel>
-                                <FormControl>
-                                    <div className="relative">
-                                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <Input type="number" placeholder="0.00" className="pl-8" {...field} />
-                                    </div>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    {showDenominations ? (
+                        <div className="space-y-4">
+                            <ScrollArea className="h-64">
+                                <div className="space-y-3 p-1">
+                                    {denominations.map(den => (
+                                        <div key={den} className="grid grid-cols-3 items-center gap-2">
+                                            <Label htmlFor={`den-${den}`} className="text-right">
+                                                $ {den}
+                                            </Label>
+                                            <Input
+                                                id={`den-${den}`}
+                                                type="number"
+                                                placeholder="Qty"
+                                                min="0"
+                                                value={denominationQuantities[den] || ''}
+                                                onChange={(e) => handleDenominationChange(den, e.target.value)}
+                                            />
+                                            <span className="text-sm text-muted-foreground font-mono w-20 text-right">
+                                                $ {(denominationQuantities[den] * den).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                            <FormField
+                                control={form.control}
+                                name="montoApertura"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('openSession.openingAmount')}</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                <Input type="number" placeholder="0.00" className="pl-8" {...field} readOnly />
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                    ) : (
+                        <FormField
+                            control={form.control}
+                            name="montoApertura"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('openSession.openingAmount')}</FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input type="number" placeholder="0.00" className="pl-8" {...field} />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
                 </CardContent>
                 <CardFooter>
                     <Button type="submit" className="w-full" disabled={isSubmitting}>
@@ -474,8 +562,7 @@ function CashPointCardForm({ cashPoint, onOpenSession }: { cashPoint: CashPointS
     );
 }
 
-// Components
-function OpenSessionDashboard({ cashPoints, onOpenSession, setActiveSession }: { cashPoints: CashPointStatus[], onOpenSession: (values: any) => void, setActiveSession: (session: CajaSesion) => void }) {
+function OpenSessionDashboard({ cashPoints, onOpenSession, setActiveSession, showDenominations }: { cashPoints: CashPointStatus[], onOpenSession: (values: any) => void, setActiveSession: (session: CajaSesion) => void, showDenominations: boolean }) {
     const t = useTranslations('CashierPage');
     
     return (
@@ -490,7 +577,7 @@ function OpenSessionDashboard({ cashPoints, onOpenSession, setActiveSession }: {
                         <CardDescription>{cp.status === 'OPEN' ? t('openSession.openBy', { user: cp.session?.user_name }) : t('openSession.closed')}</CardDescription>
                     </CardHeader>
                     {cp.status === 'CLOSED' ? (
-                       <CashPointCardForm cashPoint={cp} onOpenSession={onOpenSession} />
+                       <CashPointCardForm cashPoint={cp} onOpenSession={onOpenSession} showDenominations={showDenominations} />
                     ) : (
                         <CardContent>
                              <Button className="w-full" onClick={() => cp.session && setActiveSession(cp.session)}>
@@ -772,4 +859,6 @@ function CloseSessionWizard({
     
 
     
+
+
 
