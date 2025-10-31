@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -24,7 +25,6 @@ import { ColumnDef } from '@tanstack/react-table';
 import { useAuth } from '@/context/AuthContext';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Label } from '@/components/ui/label';
 
 const denominations = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000];
 
@@ -127,6 +127,7 @@ export default function CashierPage() {
                     estado: 'ABIERTA',
                     fechaApertura: cp.session_start_time || new Date().toISOString(), 
                     montoApertura: Number(cp.opening_amount) || 0,
+                    opening_details: cp.denominations_details,
                 } : undefined,
             }));
             setCashPoints(mappedCashPoints);
@@ -224,6 +225,7 @@ export default function CashierPage() {
                 estado: sessionData.status,
                 fechaApertura: sessionData.opened_at,
                 montoApertura: Number(sessionData.opening_amount),
+                opening_details: sessionData.denominations_details,
             };
 
             setActiveSession(newActiveSession);
@@ -608,6 +610,19 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
       { accessorKey: 'metodoPago', header: tColumns('method') },
       { accessorKey: 'fecha', header: tColumns('date'), cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
     ];
+    
+    const openingDetails = React.useMemo(() => {
+        if (!session.opening_details) return null;
+        try {
+            const details = typeof session.opening_details === 'string' 
+                ? JSON.parse(session.opening_details) 
+                : session.opening_details;
+            return Object.entries(details).filter(([, qty]) => Number(qty) > 0);
+        } catch (e) {
+            console.error("Failed to parse opening_details", e);
+            return null;
+        }
+    }, [session.opening_details]);
 
 
     return (
@@ -643,10 +658,35 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 <Tabs defaultValue="payments">
                     <TabsList>
                         <TabsTrigger value="payments">{t('activeSession.dailyPayments')}</TabsTrigger>
+                        {openingDetails && openingDetails.length > 0 && (
+                            <TabsTrigger value="opening_details">{t('activeSession.openingDetails')}</TabsTrigger>
+                        )}
                     </TabsList>
                     <TabsContent value="payments">
                         <DataTable columns={movementColumns} data={dailyPayments} />
                     </TabsContent>
+                    {openingDetails && openingDetails.length > 0 && (
+                        <TabsContent value="opening_details">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>{t('activeSession.denomination')}</TableHead>
+                                        <TableHead className="text-right">{t('activeSession.quantity')}</TableHead>
+                                        <TableHead className="text-right">{t('activeSession.subtotal')}</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {openingDetails.map(([den, qty]) => (
+                                        <TableRow key={den}>
+                                            <TableCell>$ {den}</TableCell>
+                                            <TableCell className="text-right">{Number(qty)}</TableCell>
+                                            <TableCell className="text-right">$ {(Number(den) * Number(qty)).toFixed(2)}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </TabsContent>
+                    )}
                 </Tabs>
             </CardContent>
              <CardFooter className="justify-end">
@@ -847,21 +887,3 @@ function CloseSessionWizard({
         </Card>
     );
 }
-
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-
-
-
-

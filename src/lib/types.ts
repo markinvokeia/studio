@@ -406,6 +406,7 @@ export type CajaSesion = {
   fechaApertura: string;
   fechaCierre?: string;
   montoApertura: number;
+  opening_details?: string | object;
   montoCierreDeclaradoEfectivo?: number;
   montoCierreDeclaradoTarjeta?: number;
   montoCierreDeclaradoTransferencia?: number;

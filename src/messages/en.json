@@ -94,10 +94,7 @@
       "selectBillingStatus": "Select billing status",
       "notInvoiced": "Not Invoiced",
       "partiallyInvoiced": "Partially Invoiced",
-      "invoiced": "Invoiced",
-      "cancel": "Cancel",
-      "save": "Create Quote",
-      "editSave": "Save Changes"
+      "invoiced": "Invoiced"
     },
     "itemDialog": {
       "createTitle": "Add Item to Quote",
@@ -409,6 +406,10 @@
       "openingAmount": "Opening Amount",
       "totalIncome": "Total Income",
       "dailyPayments": "Daily Payments",
+      "openingDetails": "Opening Details",
+      "denomination": "Denomination",
+      "quantity": "Quantity",
+      "subtotal": "Subtotal",
       "registerExpense": "Register Expense",
       "closeSession": "Close Session",
       "columns": {

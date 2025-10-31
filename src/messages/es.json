@@ -94,10 +94,7 @@
       "selectBillingStatus": "Seleccione estado de facturación",
       "notInvoiced": "No Facturado",
       "partiallyInvoiced": "Parcialmente Facturado",
-      "invoiced": "Facturado",
-      "cancel": "Cancelar",
-      "save": "Crear Cotización",
-      "editSave": "Guardar Cambios"
+      "invoiced": "Facturado"
     },
     "itemDialog": {
       "createTitle": "Añadir Ítem a la Cotización",
@@ -409,6 +406,10 @@
       "openingAmount": "Monto de Apertura",
       "totalIncome": "Ingresos Totales",
       "dailyPayments": "Pagos del Día",
+      "openingDetails": "Detalles de Apertura",
+      "denomination": "Denominación",
+      "quantity": "Cantidad",
+      "subtotal": "Subtotal",
       "registerExpense": "Registrar Egreso",
       "closeSession": "Cerrar Caja",
       "columns": {
@@ -560,16 +561,16 @@
       "title": "Crear Nueva Cita",
       "description": "Completa los detalles a continuación para crear una nueva cita.",
       "cancelAppointmentTitle": "Cancelar Cita",
-      "cancelAppointmentDescription": "¿Estás seguro que quieres cancelar la cita de {serviceName} para el día {date}?",
+      "cancelAppointmentDescription": "¿Estás seguro de que quieres cancelar la cita para {serviceName} el {date}?",
       "userName": "Nombre de Usuario",
-      "selectUser": "Seleccionar usuario",
+      "selectUser": "Seleccionar un usuario",
       "searchUserPlaceholder": "Buscar por nombre o email...",
       "searching": "Buscando...",
       "serviceName": "Servicio(s)",
       "selectServices": "Seleccionar servicios",
       "servicesSelected": "{count, plural, one {# servicio seleccionado} other {# servicios seleccionados}}",
       "searchServicePlaceholder": "Buscar un servicio...",
-      "selectDoctor": "Seleccionar doctor",
+      "selectDoctor": "Seleccionar un doctor",
       "searchDoctorPlaceholder": "Buscar un doctor...",
       "none": "Ninguno",
       "allCalendars": "Todos los calendarios",
@@ -936,98 +937,6 @@
   "OrderColumns": {
     "orderId": "ID Pedido",
     "createdAt": "Fecha Creación"
-  },
-  "OrdersPage": {
-    "title": "Pedidos",
-    "description": "Gestionar todos los pedidos de venta.",
-    "filterPlaceholder": "Filtrar por nombre de usuario...",
-    "detailsFor": "Detalles del Pedido",
-    "orderId": "ID Pedido",
-    "createTitle": "Crear Nuevo Pedido",
-    "createDescription": "Seleccione un usuario y una cotización para crear un pedido.",
-    "selectUser": "Seleccionar un usuario",
-    "searchUser": "Buscar un usuario...",
-    "noUserFound": "No se encontró ningún usuario.",
-    "selectQuote": "Seleccionar una cotización",
-    "searchQuote": "Buscar una cotización...",
-    "noQuoteFound": "No se encontró ninguna cotización para este usuario.",
-    "status": {
-      "label": "Estado",
-      "select": "Seleccionar un estado",
-      "pending": "Pendiente",
-      "processing": "En Proceso",
-      "completed": "Completado",
-      "cancelled": "Cancelado"
-    },
-    "cancel": "Cancelar",
-    "create": "Crear Pedido",
-    "invoiceDialog": {
-      "title": "Crear Factura",
-      "description": "Seleccione una fecha para crear una factura para el pedido #{orderId}.",
-      "error": "Error",
-      "createError": "No se pudo crear la factura.",
-      "invoiceSuccess": "Factura Creada",
-      "invoiceSuccessDesc": "La factura ha sido creada exitosamente para el pedido #{orderId}.",
-      "confirm": "Crear Factura",
-      "cancel": "Cancelar"
-    }
-  },
-  "OrderItemsTable": {
-    "title": "Ítems del Pedido #{id}",
-    "filterPlaceholder": "Filtrar por servicio...",
-    "columns": {
-      "id": "ID Ítem",
-      "service": "Servicio",
-      "quantity": "Cantidad",
-      "unitPrice": "Precio Unitario",
-      "total": "Total",
-      "status": "Estado",
-      "scheduled": "Programado",
-      "completed": "Completado",
-      "invoiced": "Facturado"
-    },
-    "status": {
-      "scheduled": "Programado",
-      "completed": "Completado",
-      "cancelled": "Cancelado",
-      "invoiced": "Facturado"
-    },
-    "actions": {
-      "openMenu": "Abrir menú",
-      "title": "Acciones",
-      "schedule": "Programar",
-      "complete": "Marcar como Completado"
-    },
-    "dateDialog": {
-      "title": {
-        "schedule": "Programar Ítem",
-        "complete": "Completar Ítem"
-      },
-      "description": {
-        "schedule": "Seleccione una fecha para programar este ítem.",
-        "complete": "Seleccione una fecha para marcar este ítem como completado."
-      },
-      "save": "Guardar Fecha",
-      "cancel": "Cancelar"
-    },
-    "toast": {
-      "error": "Error",
-      "updateError": "No se pudo actualizar el ítem.",
-      "scheduledTitle": "Ítem Programado",
-      "completedTitle": "Ítem Completado",
-      "updateSuccess": "El ítem ha sido actualizado exitosamente."
-    }
-  },
-  "InvoiceItemsTable": {
-    "title": "Ítems de la Factura #{id}",
-    "filterPlaceholder": "Filtrar por servicio...",
-    "columns": {
-      "id": "ID Ítem",
-      "service": "Servicio",
-      "quantity": "Cantidad",
-      "unitPrice": "Precio Unitario",
-      "total": "Total"
-    }
   },
   "ConfigurationsPage": {
     "title": "Configuraciones del Sistema",
