@@ -137,28 +137,6 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
             .map(([key, value]) => ({ denomination: Number(key), quantity: Number(value) }))
             .filter(item => !isNaN(item.denomination) && item.quantity > 0);
 
-        if (denominations.length === 0) {
-            return (
-                <div className="space-y-2">
-                    <h4 className="font-semibold">{title}</h4>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>{tDenominations('denomination')}</TableHead>
-                                <TableHead className="text-right">{tDenominations('quantity')}</TableHead>
-                                <TableHead className="text-right">{tDenominations('subtotal')}</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell colSpan={3} className="text-center text-muted-foreground">{t('noDetails')}</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </div>
-            );
-        }
-        
         const total = denominations.reduce((acc, { denomination, quantity }) => acc + (denomination * quantity), 0);
 
         return (
@@ -173,14 +151,18 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {denominations.map(({ denomination, quantity }) => (
+                        {denominations.length > 0 ? denominations.map(({ denomination, quantity }) => (
                             <TableRow key={denomination}>
                                 <TableCell>{formatCurrency(denomination)}</TableCell>
                                 <TableCell className="text-right">{quantity}</TableCell>
                                 <TableCell className="text-right">{formatCurrency(denomination * quantity)}</TableCell>
                             </TableRow>
-                        ))}
-                         <TableRow className="font-bold border-t">
+                        )) : (
+                            <TableRow>
+                                <TableCell colSpan={3} className="text-center text-muted-foreground">{t('noDetails')}</TableCell>
+                            </TableRow>
+                        )}
+                        <TableRow className="font-bold border-t">
                             <TableCell colSpan={2}>{tDenominations('total')}</TableCell>
                             <TableCell className="text-right">{formatCurrency(total)}</TableCell>
                         </TableRow>
@@ -223,21 +205,21 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                 </div>
             </div>
             
-             <Collapsible className="space-y-2">
-                <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold rounded-lg border bg-card p-4 shadow-sm">
+            <Collapsible className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
+                <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold">
                     {t('denominationDetails.title')}
                     <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pt-4">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border bg-card p-4 rounded-md shadow-sm">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <DenominationTable title={t('openingDenominations')} details={session.opening_details} />
                         <DenominationTable title={t('closingDenominations')} details={session.closing_denominations} />
                     </div>
                 </CollapsibleContent>
             </Collapsible>
 
-            <Collapsible defaultOpen className="space-y-2">
-                <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold rounded-lg border bg-card p-4 shadow-sm">
+            <Collapsible className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
+                <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold">
                     {t('movements')}
                     <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
@@ -247,8 +229,8 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
             </Collapsible>
 
             {session.fechaCierre && (
-                 <Collapsible defaultOpen className="space-y-2">
-                    <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold rounded-lg border bg-card p-4 shadow-sm">
+                 <Collapsible defaultOpen className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
+                    <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold">
                         {t('reconciliationSummary')}
                         <ChevronDown className="h-4 w-4" />
                     </CollapsibleTrigger>
