@@ -63,11 +63,11 @@ async function getCashSessions(pagination: PaginationState, searchQuery: string)
                 montoCierreCalculadoTransferencia: s.calculated_transfer,
                 montoCierreDeclaradoOtro: s.declared_other,
                 montoCierreCalculadoOtro: s.calculated_other,
-                descuadreEfectivo: s.cash_discrepancy,
+                descuadreEfectivo: s.cash_discrepancy || s.cash_variance,
                 descuadreTarjeta: s.card_discrepancy,
                 descuadreTransferencia: s.transfer_discrepancy,
                 descuadreOtro: s.other_discrepancy,
-                closing_denominations: s.closing_denominations,
+                closing_denominations: s.closing_details,
                 notasCierre: s.notes,
              })),
             total
