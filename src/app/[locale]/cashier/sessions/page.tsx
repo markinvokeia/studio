@@ -112,7 +112,9 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
 
     const formatCurrency = (value: number | null | undefined) => {
         if (value === null || value === undefined) return '$0.00';
-        return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+        const numValue = Number(value);
+        if (isNaN(numValue)) return '$0.00';
+        return numValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
     };
     
     const totalDeclaredAmount = (session.montoCierreDeclaradoEfectivo || 0) + (session.montoCierreDeclaradoTarjeta || 0) + (session.montoCierreDeclaradoTransferencia || 0) + (session.montoCierreDeclaradoOtro || 0);
@@ -126,7 +128,6 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                 parsedDetails = JSON.parse(details);
             } catch (e) {
                 console.error("Failed to parse details", e);
-                return null;
             }
         } else if (typeof details === 'object' && details !== null) {
             parsedDetails = details as Record<string, number>;
@@ -227,7 +228,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                     {t('denominationDetails.title')}
                     <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
-                <CollapsibleContent className="pt-4 pl-4">
+                <CollapsibleContent className="pt-4">
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border bg-card p-4 rounded-md shadow-sm">
                         <DenominationTable title={t('openingDenominations')} details={session.opening_details} />
                         <DenominationTable title={t('closingDenominations')} details={session.closing_denominations} />
@@ -240,7 +241,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                     {t('movements')}
                     <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
-                <CollapsibleContent className="pt-4 pl-4">
+                <CollapsibleContent className="pt-4">
                     <DataTable columns={movementColumns} data={movements} />
                 </CollapsibleContent>
             </Collapsible>
@@ -251,7 +252,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                         {t('reconciliationSummary')}
                         <ChevronDown className="h-4 w-4" />
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="pt-4 pl-4">
+                    <CollapsibleContent className="pt-4">
                          <Table>
                             <TableHeader>
                                 <TableRow>
