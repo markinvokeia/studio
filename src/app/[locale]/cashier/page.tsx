@@ -191,11 +191,11 @@ export default function CashierPage() {
 
             const newActiveSession: CajaSesion = {
                 id: String(sessionData.id),
-                usuarioId: String(sessionData.usuario_id),
-                puntoDeCajaId: String(sessionData.punto_de_caja_id),
-                estado: sessionData.estado,
-                fechaApertura: sessionData.fecha_apertura,
-                montoApertura: Number(sessionData.monto_apertura),
+                usuarioId: String(sessionData.user_id),
+                puntoDeCajaId: String(sessionData.cash_point_id),
+                estado: sessionData.status,
+                fechaApertura: sessionData.opened_at,
+                montoApertura: Number(sessionData.opening_amount),
             };
 
             setActiveSession(newActiveSession);
@@ -492,6 +492,12 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                     <CardTitle>{t('activeSession.title')}</CardTitle>
                     <CardDescription>{t('activeSession.description', { user: user?.name, location: session.puntoDeCajaId })}</CardDescription>
                 </div>
+                 {!isWizardOpen && (
+                    <Button onClick={onCloseSession}>
+                        {t('wizard.startClosing')}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                )}
             </CardHeader>
             <CardContent className="space-y-4">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -524,12 +530,14 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                     </TabsContent>
                 </Tabs>
             </CardContent>
-             <CardFooter className="justify-end">
-                <Button onClick={onCloseSession}>
-                     {isWizardOpen ? t('wizard.next') : t('wizard.startClosing')}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-            </CardFooter>
+             {isWizardOpen && (
+                <CardFooter className="justify-end">
+                    <Button onClick={onCloseSession}>
+                        {t('wizard.next')}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                </CardFooter>
+            )}
         </Card>
     );
 }
@@ -723,5 +731,9 @@ function CloseSessionWizard({
     );
 }
 
+
+    
+
+    
 
     
