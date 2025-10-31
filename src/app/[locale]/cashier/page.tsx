@@ -102,6 +102,7 @@ export default function CashierPage() {
                     usuarioId: cp.active_user_id,
                     user_name: cp.active_user_name,
                     puntoDeCajaId: String(cp.cash_point_id),
+                    cash_point_name: cp.cash_point_name,
                     estado: 'ABIERTA',
                     fechaApertura: cp.session_start_time || new Date().toISOString(), 
                     montoApertura: Number(cp.opening_amount) || 0,
@@ -189,10 +190,14 @@ export default function CashierPage() {
                 return;
             }
 
+            const cashPoint = cashPoints.find(cp => cp.id === values.cashPointId);
+
             const newActiveSession: CajaSesion = {
                 id: String(sessionData.id),
                 usuarioId: String(sessionData.user_id),
+                user_name: user.name,
                 puntoDeCajaId: String(sessionData.cash_point_id),
+                cash_point_name: cashPoint?.name || '',
                 estado: sessionData.status,
                 fechaApertura: sessionData.opened_at,
                 montoApertura: Number(sessionData.opening_amount),
@@ -477,7 +482,7 @@ const movementColumns: ColumnDef<CajaMovimiento>[] = [
 ];
 
 
-function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOpen = false }: { session: any, movements: CajaMovimiento[], onCloseSession: () => void, isWizardOpen?: boolean }) {
+function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOpen = false }: { session: CajaSesion, movements: CajaMovimiento[], onCloseSession: () => void, isWizardOpen?: boolean }) {
     const t = useTranslations('CashierPage');
     const { user } = useAuth();
     
@@ -490,14 +495,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
             <CardHeader className="flex flex-row items-start justify-between">
                 <div>
                     <CardTitle>{t('activeSession.title')}</CardTitle>
-                    <CardDescription>{t('activeSession.description', { user: user?.name, location: session.puntoDeCajaId })}</CardDescription>
+                    <CardDescription>{t('activeSession.description', { user: session.user_name, location: session.cash_point_name })}</CardDescription>
                 </div>
-                 {!isWizardOpen && (
-                    <Button onClick={onCloseSession}>
-                        {t('wizard.startClosing')}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                )}
             </CardHeader>
             <CardContent className="space-y-4">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -530,14 +529,12 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                     </TabsContent>
                 </Tabs>
             </CardContent>
-             {isWizardOpen && (
-                <CardFooter className="justify-end">
-                    <Button onClick={onCloseSession}>
-                        {t('wizard.next')}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                </CardFooter>
-            )}
+             <CardFooter className="justify-end">
+                <Button onClick={onCloseSession}>
+                    {isWizardOpen ? t('wizard.next') : t('wizard.startClosing')}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+            </CardFooter>
         </Card>
     );
 }
@@ -731,6 +728,8 @@ function CloseSessionWizard({
     );
 }
 
+
+    
 
     
 
