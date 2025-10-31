@@ -516,10 +516,18 @@
     "email": "Correo electrónico",
     "password": "Contraseña",
     "signIn": "Iniciar Sesión",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "recoverPasswordTitle": "Recuperar Contraseña",
+    "recoverPasswordDescription": "Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.",
+    "recoverPasswordButton": "Recuperar Contraseña",
+    "backToLogin": "Volver al inicio de sesión",
+    "recoverSuccessTitle": "Correo Enviado",
+    "recoverSuccessDescription": "Se ha enviado un enlace de recuperación de contraseña a tu dirección de correo electrónico.",
     "errors": {
       "title": "Falló el inicio de sesión",
       "invalidCredentials": "Credenciales inválidas",
-      "unexpected": "Ocurrió un error inesperado."
+      "unexpected": "Ocurrió un error inesperado.",
+      "recoverError": "No se pudo enviar el correo de recuperación. Por favor, inténtalo de nuevo."
     }
   },
   "ReportFilters": {
@@ -599,10 +607,10 @@
       "title": "Crear Nueva Cita",
       "description": "Completa los detalles a continuación para crear una nueva cita.",
       "cancelAppointmentTitle": "Cancelar Cita",
-      "cancelAppointmentDescription": "¿Estás seguro de que quieres cancelar la cita para {serviceName} el {date}?",
+      "cancelAppointmentDescription": "¿Estás seguro que quieres cancelar la cita para {serviceName} el {date}?",
       "userName": "Nombre de Usuario",
       "selectUser": "Seleccionar un usuario",
-      "searchUserPlaceholder": "Buscar por nombre o correo electrónico...",
+      "searchUserPlaceholder": "Buscar por nombre o correo...",
       "searching": "Buscando...",
       "serviceName": "Servicio(s)",
       "selectServices": "Seleccionar servicios",

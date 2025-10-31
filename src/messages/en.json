@@ -516,10 +516,18 @@
     "email": "Email",
     "password": "Password",
     "signIn": "Sign In",
+    "forgotPassword": "Forgot password?",
+    "recoverPasswordTitle": "Recover Password",
+    "recoverPasswordDescription": "Enter your email and we'll send you a link to reset your password.",
+    "recoverPasswordButton": "Recover Password",
+    "backToLogin": "Back to login",
+    "recoverSuccessTitle": "Email Sent",
+    "recoverSuccessDescription": "A password recovery link has been sent to your email address.",
     "errors": {
       "title": "Login Failed",
       "invalidCredentials": "Invalid credentials",
-      "unexpected": "An unexpected error occurred."
+      "unexpected": "An unexpected error occurred.",
+      "recoverError": "Could not send recovery email. Please try again."
     }
   },
   "ReportFilters": {
