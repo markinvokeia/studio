@@ -28,7 +28,7 @@ async function getPayments(): Promise<Payment[]> {
             amount: apiPayment.amount || 0,
             method: apiPayment.method || 'credit_card',
             status: apiPayment.status || 'pending',
-            createdAt: apiPayment.createdAt || new Date().toISOString().split('T')[0],
+            createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
         }));
     } catch (error) {

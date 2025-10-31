@@ -144,6 +144,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         const payload = {
             invoice_id: selectedInvoiceForPayment.id,
             cash_session_id: activeCashSessionId,
+            user: user,
             query: JSON.stringify({
                 invoice_id: parseInt(selectedInvoiceForPayment.id, 10),
                 payment_date: values.payment_date.toISOString(),
@@ -272,6 +273,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           paid: 'success',
           partial: 'info',
           unpaid: 'outline',
+          partially_paid: 'info'
         }[status?.toLowerCase() ?? ('default' as any)];
         return <Badge variant={variant} className="capitalize">{status ? tStatus(status.toLowerCase()) : ''}</Badge>;
       },
