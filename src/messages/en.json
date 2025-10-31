@@ -396,7 +396,11 @@
       "title": "Open Cash Session",
       "description": "Enter the initial amount to start your work shift.",
       "openingAmount": "Opening Amount",
-      "openButton": "Open Session"
+      "openButton": "Open Session",
+      "openingButton": "Opening...",
+      "closed": "Closed",
+      "openBy": "Open by {user}",
+      "viewLog": "View Log"
     },
     "activeSession": {
       "title": "Active Cash Session",
@@ -1030,5 +1034,7 @@
 }
 
   
+
+    
 
     

@@ -436,7 +436,7 @@ function CashPointCardForm({ cashPoint, onOpenSession }: { cashPoint: CashPointS
                 </CardContent>
                 <CardFooter>
                     <Button type="submit" className="w-full" disabled={isSubmitting}>
-                        {isSubmitting ? 'Abriendo...' : t('openSession.openButton')}
+                        {isSubmitting ? t('openSession.openingButton') : t('openSession.openButton')}
                     </Button>
                 </CardFooter>
             </form>
@@ -457,7 +457,7 @@ function OpenSessionDashboard({ cashPoints, onOpenSession, setActiveSession }: {
                             {cp.name}
                             <span className={`h-3 w-3 rounded-full ${cp.status === 'OPEN' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
                         </CardTitle>
-                        <CardDescription>{cp.status === 'OPEN' ? `Abierta por ${cp.session?.user_name}` : 'Cerrada'}</CardDescription>
+                        <CardDescription>{cp.status === 'OPEN' ? t('openSession.openBy', { user: cp.session?.user_name }) : t('openSession.closed')}</CardDescription>
                     </CardHeader>
                     {cp.status === 'CLOSED' ? (
                        <CashPointCardForm cashPoint={cp} onOpenSession={onOpenSession} />
@@ -465,7 +465,7 @@ function OpenSessionDashboard({ cashPoints, onOpenSession, setActiveSession }: {
                         <CardContent>
                              <Button className="w-full" onClick={() => cp.session && setActiveSession(cp.session)}>
                                 <BookOpenCheck className="mr-2 h-4 w-4" />
-                                Abrir registro
+                                {t('openSession.viewLog')}
                              </Button>
                         </CardContent>
                     )}

@@ -396,7 +396,11 @@
       "title": "Abrir Sesión de Caja",
       "description": "Ingrese el monto inicial para comenzar su turno de trabajo.",
       "openingAmount": "Monto de Apertura",
-      "openButton": "Abrir Sesión"
+      "openButton": "Abrir Sesión",
+      "openingButton": "Abriendo...",
+      "closed": "Cerrada",
+      "openBy": "Abierta por {user}",
+      "viewLog": "Ver Registro"
     },
     "activeSession": {
       "title": "Sesión de Caja Activa",
