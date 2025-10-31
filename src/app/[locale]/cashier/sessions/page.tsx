@@ -88,7 +88,6 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
     
     const totalDeclaredAmount = (session.montoCierreDeclaradoEfectivo || 0) + (session.montoCierreDeclaradoTarjeta || 0) + (session.montoCierreDeclaradoTransferencia || 0) + (session.montoCierreDeclaradoOtro || 0);
 
-
     const DenominationTable = ({ title, details }: { title: string, details: string | object | null | undefined }) => {
         if (!details) return null;
         let parsedDetails: Record<string, number> = {};
@@ -99,7 +98,7 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
                 console.error("Failed to parse details", e);
                 return <p>Could not load denomination details.</p>;
             }
-        } else if (typeof details === 'object') {
+        } else if (typeof details === 'object' && details !== null) {
             parsedDetails = details as Record<string, number>;
         }
         
@@ -158,7 +157,7 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
                 <div><span className="font-semibold">{t('columns.openingAmount')}:</span> {formatCurrency(session.montoApertura)}</div>
                 {session.fechaCierre && <div><span className="font-semibold">{t('columns.closingAmount')}:</span> {formatCurrency(totalDeclaredAmount)}</div>}
             </div>
-
+            
             {(session.opening_details || session.closing_denominations) && (
                  <Collapsible>
                     <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted px-4 py-2 text-sm font-semibold">
