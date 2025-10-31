@@ -40,7 +40,7 @@ const closeSessionSchema = (t: (key: string) => string) => z.object({
     declaradoTransferencia: z.coerce.number().min(0, t('validation.amountRequired')),
     declaradoOtro: z.coerce.number().min(0, t('validation.amountRequired')),
     notas: z.string().optional(),
-    closing_denominations: z.record(z.number()).optional(),
+    closing_denominations: z.record(z.any()).optional(),
 });
 
 const expenseSchema = (t: (key: string) => string) => z.object({
@@ -208,28 +208,6 @@ export default function CashierPage() {
                  return;
             }
             
-            const sessionData = result.session || result.data;
-
-            if (!sessionData) {
-                toast({ variant: "destructive", title: "Error", description: "No session data received from server."});
-                return;
-            }
-            
-            const cashPoint = cashPoints.find(cp => cp.id === values.cashPointId);
-
-            const newActiveSession: CajaSesion = {
-                id: String(sessionData.id),
-                usuarioId: String(sessionData.user_id),
-                user_name: user.name,
-                puntoDeCajaId: String(sessionData.cash_point_id),
-                cash_point_name: cashPoint?.name || '',
-                estado: sessionData.status,
-                fechaApertura: sessionData.opened_at,
-                montoApertura: Number(sessionData.opening_amount),
-                opening_details: sessionData.denominations_details,
-            };
-
-            setActiveSession(newActiveSession);
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
             fetchCashPointStatus();
 
@@ -461,7 +439,7 @@ export default function CashierPage() {
     return <OpenSessionDashboard cashPoints={cashPoints} onOpenSession={handleOpenSession} setActiveSession={handleSetActiveSession} showDenominations={showDenominations} />;
 }
 
-function CashPointCardForm({ cashPoint, onOpenSession, showDenominations }: { cashPoint: CashPointStatus, onOpenSession: (values: any) => void, showDenominations: boolean }) {
+function CashPointCardForm({ cashPoint, onOpenSession, showDenominations, disabled = false }: { cashPoint: CashPointStatus, onOpenSession: (values: any) => void, showDenominations: boolean, disabled?: boolean }) {
     const t = useTranslations('CashierPage');
     const [denominationQuantities, setDenominationQuantities] = React.useState<Record<string, number>>(() =>
         Object.fromEntries(denominations.map(d => [d.toString(), 0]))
@@ -520,6 +498,7 @@ function CashPointCardForm({ cashPoint, onOpenSession, showDenominations }: { ca
                                                 min="0"
                                                 value={denominationQuantities[den] || ''}
                                                 onChange={(e) => handleDenominationChange(den, e.target.value)}
+                                                disabled={disabled}
                                             />
                                             <span className="text-sm text-muted-foreground font-mono w-20 text-right">
                                                 $ {(denominationQuantities[den] * den).toFixed(2)}
@@ -537,7 +516,7 @@ function CashPointCardForm({ cashPoint, onOpenSession, showDenominations }: { ca
                                         <FormControl>
                                             <div className="relative">
                                                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                <Input type="number" placeholder="0.00" className="pl-8" {...field} readOnly />
+                                                <Input type="number" placeholder="0.00" className="pl-8" {...field} readOnly disabled={disabled} />
                                             </div>
                                         </FormControl>
                                         <FormMessage />
@@ -555,7 +534,7 @@ function CashPointCardForm({ cashPoint, onOpenSession, showDenominations }: { ca
                                     <FormControl>
                                         <div className="relative">
                                             <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input type="number" placeholder="0.00" className="pl-8" {...field} />
+                                            <Input type="number" placeholder="0.00" className="pl-8" {...field} disabled={disabled}/>
                                         </div>
                                     </FormControl>
                                     <FormMessage />
@@ -565,7 +544,7 @@ function CashPointCardForm({ cashPoint, onOpenSession, showDenominations }: { ca
                     )}
                 </CardContent>
                 <CardFooter>
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    <Button type="submit" className="w-full" disabled={isSubmitting || disabled}>
                         {isSubmitting ? t('openSession.openingButton') : t('openSession.openButton')}
                     </Button>
                 </CardFooter>
@@ -576,30 +555,47 @@ function CashPointCardForm({ cashPoint, onOpenSession, showDenominations }: { ca
 
 function OpenSessionDashboard({ cashPoints, onOpenSession, setActiveSession, showDenominations }: { cashPoints: CashPointStatus[], onOpenSession: (values: any) => void, setActiveSession: (session: CajaSesion) => void, showDenominations: boolean }) {
     const t = useTranslations('CashierPage');
-    
+    const { user } = useAuth();
+
+    const userHasActiveSession = React.useMemo(() => 
+        cashPoints.some(cp => cp.status === 'OPEN' && cp.session?.usuarioId === user?.id),
+    [cashPoints, user]);
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {cashPoints.map(cp => (
-                <Card key={cp.id} className="w-full">
-                    <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                            {cp.name}
-                            <span className={`h-3 w-3 rounded-full ${cp.status === 'OPEN' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                        </CardTitle>
-                        <CardDescription>{cp.status === 'OPEN' ? t('openSession.openBy', { user: cp.session?.user_name }) : t('openSession.closed')}</CardDescription>
-                    </CardHeader>
-                    {cp.status === 'CLOSED' ? (
-                       <CashPointCardForm cashPoint={cp} onOpenSession={onOpenSession} showDenominations={showDenominations} />
-                    ) : (
-                        <CardContent>
-                             <Button className="w-full" onClick={() => cp.session && setActiveSession(cp.session)}>
-                                <BookOpenCheck className="mr-2 h-4 w-4" />
-                                {t('openSession.viewLog')}
-                             </Button>
-                        </CardContent>
-                    )}
-                </Card>
-            ))}
+            {cashPoints.map(cp => {
+                const isThisUsersSession = cp.status === 'OPEN' && cp.session?.usuarioId === user?.id;
+                const isDisabled = userHasActiveSession && !isThisUsersSession;
+
+                return (
+                    <Card key={cp.id} className={cn("w-full", isDisabled && "bg-muted/50 opacity-60")}>
+                        <CardHeader>
+                            <CardTitle className="flex items-center justify-between">
+                                {cp.name}
+                                <span className={`h-3 w-3 rounded-full ${cp.status === 'OPEN' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                            </CardTitle>
+                            <CardDescription>
+                                {cp.status === 'OPEN'
+                                    ? isThisUsersSession 
+                                        ? `You have an active session here.`
+                                        : t('openSession.openBy', { user: cp.session?.user_name })
+                                    : t('openSession.closed')
+                                }
+                            </CardDescription>
+                        </CardHeader>
+                        {cp.status === 'CLOSED' ? (
+                           <CashPointCardForm cashPoint={cp} onOpenSession={onOpenSession} showDenominations={showDenominations} disabled={isDisabled} />
+                        ) : (
+                            <CardContent>
+                                 <Button className="w-full" onClick={() => cp.session && setActiveSession(cp.session)} disabled={!isThisUsersSession}>
+                                    <BookOpenCheck className="mr-2 h-4 w-4" />
+                                    {isThisUsersSession ? t('openSession.viewLog') : 'View Session (Read-Only)'}
+                                 </Button>
+                            </CardContent>
+                        )}
+                    </Card>
+                )
+            })}
         </div>
     );
 }
@@ -922,5 +918,7 @@ function CloseSessionWizard({
         </Card>
     );
 }
+
+    
 
     
