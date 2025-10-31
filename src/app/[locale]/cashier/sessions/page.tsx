@@ -120,12 +120,13 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
     const DenominationTable = ({ title, details }: { title: string, details: string | object | null | undefined }) => {
         const tDenominations = useTranslations('CashSessionsPage.denominationDetails');
         let parsedDetails: Record<string, number> = {};
+
         if (typeof details === 'string') {
             try {
                 parsedDetails = JSON.parse(details);
             } catch (e) {
                 console.error("Failed to parse details", e);
-                parsedDetails = {};
+                return null;
             }
         } else if (typeof details === 'object' && details !== null) {
             parsedDetails = details as Record<string, number>;
@@ -133,13 +134,34 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
 
         const denominations = Object.entries(parsedDetails)
             .map(([key, value]) => ({ denomination: Number(key), quantity: Number(value) }))
-            .filter(item => !isNaN(item.denomination));
+            .filter(item => !isNaN(item.denomination) && item.quantity > 0);
 
+        if (denominations.length === 0) {
+            return (
+                <div className="space-y-2">
+                    <h4 className="font-semibold">{title}</h4>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>{tDenominations('denomination')}</TableHead>
+                                <TableHead className="text-right">{tDenominations('quantity')}</TableHead>
+                                <TableHead className="text-right">{tDenominations('subtotal')}</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell colSpan={3} className="text-center text-muted-foreground">{t('noDetails')}</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </div>
+            );
+        }
+        
         const total = denominations.reduce((acc, { denomination, quantity }) => acc + (denomination * quantity), 0);
-        const hasDenominations = denominations.length > 0 && denominations.some(d => d.quantity > 0);
 
         return (
-             <div className="space-y-2">
+            <div className="space-y-2">
                 <h4 className="font-semibold">{title}</h4>
                 <Table>
                     <TableHeader>
@@ -150,19 +172,13 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                         {hasDenominations ? (
-                            denominations.filter(d => d.quantity > 0).map(({ denomination, quantity }) => (
-                                <TableRow key={denomination}>
-                                    <TableCell>{formatCurrency(denomination)}</TableCell>
-                                    <TableCell className="text-right">{quantity}</TableCell>
-                                    <TableCell className="text-right">{formatCurrency(denomination * quantity)}</TableCell>
-                                </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell colSpan={3} className="text-center text-muted-foreground">{t('noDetails')}</TableCell>
+                        {denominations.map(({ denomination, quantity }) => (
+                            <TableRow key={denomination}>
+                                <TableCell>{formatCurrency(denomination)}</TableCell>
+                                <TableCell className="text-right">{quantity}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(denomination * quantity)}</TableCell>
                             </TableRow>
-                        )}
+                        ))}
                          <TableRow className="font-bold border-t">
                             <TableCell colSpan={2}>{tDenominations('total')}</TableCell>
                             <TableCell className="text-right">{formatCurrency(total)}</TableCell>
@@ -172,6 +188,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
             </div>
         );
     };
+
 
     const DifferenceRow = ({ label, calculated, declared, difference }: { label: string, calculated?: number, declared?: number, difference?: number }) => (
         <TableRow>
@@ -207,7 +224,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
             
              <Collapsible className="space-y-2">
                 <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold rounded-lg border bg-card p-4 shadow-sm">
-                    {t('denominationDetails')}
+                    {t('denominationDetails.title')}
                     <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pt-4 pl-4">
@@ -345,5 +362,3 @@ export default function CashSessionsPage() {
         </>
     );
 }
-
-    
