@@ -24,6 +24,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { useAuth } from '@/context/AuthContext';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Label } from '@/components/ui/label';
 
 const denominations = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000];
 
@@ -743,7 +744,7 @@ function CloseSessionReport({ report, onConfirm, onNewSession, onBack }: { repor
         <Card className="w-full">
             <CardHeader>
                 <CardTitle>{t('title')}</CardTitle>
-                <CardDescription>{t('description', { date: new Date(report.fechaCierre!).toLocaleDateString() })}</CardDescription>
+                <CardDescription>{report.fechaCierre ? t('description', { date: new Date(report.fechaCierre).toLocaleDateString() }) : ''}</CardDescription>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -859,6 +860,8 @@ function CloseSessionWizard({
     
 
     
+
+
 
 
 
