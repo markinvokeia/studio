@@ -421,7 +421,7 @@ export type CajaSesion = {
   descuadreTransferencia?: number;
   descuadreOtro?: number;
   notasCierre?: string;
-  closing_denominations?: Record<string, number>;
+  closing_denominations?: string | object;
 };
 
 export type CajaMovimiento = {

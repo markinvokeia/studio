@@ -4,16 +4,17 @@
 import * as React from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { CajaSesion, CajaMovimiento } from '@/lib/types';
+import { CajaSesion } from '@/lib/types';
 import { CashSessionsColumnsWrapper } from './columns';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslations } from 'next-intl';
 import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState, RowSelectionState } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { X, MoreHorizontal } from 'lucide-react';
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { format, parseISO } from 'date-fns';
 
 type GetCashSessionsResponse = {
   sessions: CajaSesion[];
@@ -50,6 +51,21 @@ async function getCashSessions(pagination: PaginationState, searchQuery: string)
                 fechaApertura: s.opened_at,
                 fechaCierre: s.closed_at,
                 montoApertura: s.opening_amount,
+                opening_details: s.opening_details,
+                montoCierreDeclaradoEfectivo: s.declared_cash,
+                montoCierreCalculadoEfectivo: s.calculated_cash,
+                montoCierreDeclaradoTarjeta: s.declared_card,
+                montoCierreCalculadoTarjeta: s.calculated_card,
+                montoCierreDeclaradoTransferencia: s.declared_transfer,
+                montoCierreCalculadoTransferencia: s.calculated_transfer,
+                montoCierreDeclaradoOtro: s.declared_other,
+                montoCierreCalculadoOtro: s.calculated_other,
+                descuadreEfectivo: s.cash_discrepancy,
+                descuadreTarjeta: s.card_discrepancy,
+                descuadreTransferencia: s.transfer_discrepancy,
+                descuadreOtro: s.other_discrepancy,
+                closing_denominations: s.closing_denominations,
+                notasCierre: s.notes,
              })),
             total
         };
@@ -59,32 +75,112 @@ async function getCashSessions(pagination: PaginationState, searchQuery: string)
     }
 }
 
-async function getSessionMovements(sessionId: string): Promise<CajaMovimiento[]> {
-    if(!sessionId) return [];
-    try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/movements?cash_session_id=${sessionId}`);
-        if (!response.ok) throw new Error('Failed to fetch session movements');
-        const data = await response.json();
-        const movementsData = Array.isArray(data) ? data : (data.data || []);
-        return movementsData.map((mov: any): CajaMovimiento => ({
-            id: String(mov.movement_id),
-            cajaSesionId: sessionId,
-            tipo: mov.type === 'INFLOW' ? 'INGRESO' : 'EGRESO',
-            monto: parseFloat(mov.amount),
-            descripcion: mov.description,
-            fecha: mov.created_at,
-            usuarioId: mov.registered_by_user,
-            metodoPago: (mov.payment_method_name || 'otro').toUpperCase() as any,
-        }));
-    } catch (error) {
-        console.error(error);
-        return [];
-    }
-}
+const SessionDetails = ({ session }: { session: CajaSesion }) => {
+    const t = useTranslations('CashSessionsPage');
+
+    const formatCurrency = (value: number | null | undefined) => {
+        if (value === null || value === undefined) return '$0.00';
+        return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    };
+
+    const DenominationTable = ({ title, details }: { title: string, details: string | object | null | undefined }) => {
+        if (!details) return null;
+        let parsedDetails: Record<string, number> = {};
+        if (typeof details === 'string') {
+            try {
+                parsedDetails = JSON.parse(details);
+            } catch (e) {
+                console.error("Failed to parse details", e);
+                return <p>Could not load denomination details.</p>;
+            }
+        } else if (typeof details === 'object') {
+            parsedDetails = details as Record<string, number>;
+        }
+        
+        const denominations = Object.entries(parsedDetails).map(([key, value]) => ({ denomination: Number(key), quantity: Number(value) }));
+        const total = denominations.reduce((acc, { denomination, quantity }) => acc + (denomination * quantity), 0);
+
+        return (
+            <div className="space-y-2">
+                <h4 className="font-semibold">{title}</h4>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Denomination</TableHead>
+                            <TableHead className="text-right">Quantity</TableHead>
+                            <TableHead className="text-right">Subtotal</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {denominations.map(({ denomination, quantity }) => (
+                            <TableRow key={denomination}>
+                                <TableCell>{formatCurrency(denomination)}</TableCell>
+                                <TableCell className="text-right">{quantity}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(denomination * quantity)}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+                <p className="text-right font-bold">Total: {formatCurrency(total)}</p>
+            </div>
+        );
+    };
+
+    const DifferenceRow = ({ label, calculated, declared, difference }: { label: string, calculated?: number, declared?: number, difference?: number }) => (
+        <TableRow>
+            <TableCell className="font-medium">{label}</TableCell>
+            <TableCell className="text-right">{formatCurrency(calculated)}</TableCell>
+            <TableCell className="text-right">{formatCurrency(declared)}</TableCell>
+            <TableCell className={cn("text-right font-semibold", (difference ?? 0) < 0 ? "text-destructive" : (difference ?? 0) > 0 ? "text-green-600" : "")}>
+                {formatCurrency(difference)}
+            </TableCell>
+        </TableRow>
+    );
+
+    return (
+        <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+                <div><span className="font-semibold">{t('columns.user')}:</span> {session.user_name}</div>
+                <div><span className="font-semibold">{t('columns.cashPoint')}:</span> {session.cash_point_name}</div>
+                <div><span className="font-semibold">{t('columns.openDate')}:</span> {format(parseISO(session.fechaApertura), 'Pp')}</div>
+                <div><span className="font-semibold">{t('columns.closeDate')}:</span> {session.fechaCierre ? format(parseISO(session.fechaCierre), 'Pp') : 'N/A'}</div>
+                <div><span className="font-semibold">{t('columns.openingAmount')}:</span> {formatCurrency(session.montoApertura)}</div>
+            </div>
+
+            {session.fechaCierre && (
+                <div>
+                    <h4 className="font-semibold mb-2">Reconciliation Summary</h4>
+                     <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Payment Method</TableHead>
+                                <TableHead className="text-right">System</TableHead>
+                                <TableHead className="text-right">Declared</TableHead>
+                                <TableHead className="text-right">Difference</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <DifferenceRow label="Cash" calculated={session.montoCierreCalculadoEfectivo} declared={session.montoCierreDeclaradoEfectivo} difference={session.descuadreEfectivo} />
+                            <DifferenceRow label="Card" calculated={session.montoCierreCalculadoTarjeta} declared={session.montoCierreDeclaradoTarjeta} difference={session.descuadreTarjeta} />
+                            <DifferenceRow label="Transfer" calculated={session.montoCierreCalculadoTransferencia} declared={session.montoCierreDeclaradoTransferencia} difference={session.descuadreTransferencia} />
+                            <DifferenceRow label="Other" calculated={session.montoCierreCalculadoOtro} declared={session.montoCierreDeclaradoOtro} difference={session.descuadreOtro} />
+                        </TableBody>
+                    </Table>
+                    {session.notasCierre && <p className="mt-2 text-sm"><span className="font-semibold">Notes:</span> {session.notasCierre}</p>}
+                </div>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <DenominationTable title="Opening Denominations" details={session.opening_details} />
+                <DenominationTable title="Closing Denominations" details={session.closing_denominations} />
+            </div>
+        </div>
+    );
+};
+
 
 export default function CashSessionsPage() {
     const t = useTranslations('CashSessionsPage');
-    const tMovements = useTranslations('CashSessionsPage.movementColumns');
     const { toast } = useToast();
     const [sessions, setSessions] = React.useState<CajaSesion[]>([]);
     const [sessionCount, setSessionCount] = React.useState(0);
@@ -97,15 +193,7 @@ export default function CashSessionsPage() {
     });
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedSession, setSelectedSession] = React.useState<CajaSesion | null>(null);
-    const [sessionMovements, setSessionMovements] = React.useState<CajaMovimiento[]>([]);
-    const [isMovementsLoading, setIsMovementsLoading] = React.useState(false);
-
-    const movementColumns: ColumnDef<CajaMovimiento>[] = [
-      { accessorKey: 'descripcion', header: tMovements('description') },
-      { accessorKey: 'monto', header: tMovements('amount'), cell: ({ row }) => `$${row.original.monto.toFixed(2)}` },
-      { accessorKey: 'metodoPago', header: tMovements('method') },
-      { accessorKey: 'fecha', header: tMovements('date'), cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
-    ];
+    const [isDetailsLoading, setIsDetailsLoading] = React.useState(false);
 
     const loadSessions = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -130,16 +218,6 @@ export default function CashSessionsPage() {
         setRowSelection({});
     };
 
-    React.useEffect(() => {
-        if(selectedSession) {
-            setIsMovementsLoading(true);
-            getSessionMovements(selectedSession.id).then(movements => {
-                setSessionMovements(movements);
-                setIsMovementsLoading(false);
-            });
-        }
-    }, [selectedSession]);
-    
     const handleView = (session: CajaSesion) => {
         setSelectedSession(session);
         const rowIndex = sessions.findIndex(s => s.id === session.id);
@@ -196,14 +274,14 @@ export default function CashSessionsPage() {
                             </Button>
                         </CardHeader>
                         <CardContent>
-                            {isMovementsLoading ? (
+                            {isDetailsLoading ? (
                                 <div className="space-y-2">
                                     <Skeleton className="h-10 w-full" />
                                     <Skeleton className="h-10 w-full" />
                                     <Skeleton className="h-10 w-full" />
                                 </div>
                             ) : (
-                                <DataTable columns={movementColumns} data={sessionMovements} />
+                                <SessionDetails session={selectedSession} />
                             )}
                         </CardContent>
                     </Card>
@@ -212,3 +290,4 @@ export default function CashSessionsPage() {
         </div>
     );
 }
+
