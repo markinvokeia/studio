@@ -132,12 +132,17 @@ export default function CashierPage() {
                 } : undefined,
             }));
             setCashPoints(mappedCashPoints);
+
+            const activeUserSession = mappedCashPoints.find(cp => cp.status === 'OPEN' && cp.session?.usuarioId === user?.id);
+            if(activeUserSession && activeUserSession.session){
+                setActiveSession(activeUserSession.session);
+            }
         } catch (error) {
             setServerError(error instanceof Error ? error.message : 'An unknown error occurred');
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [user]);
 
     const fetchSessionMovements = React.useCallback(async (sessionId: string) => {
         try {
@@ -237,7 +242,7 @@ export default function CashierPage() {
 
     const handleCalculateReport = async (values: CloseSessionFormValues) => {
         if (!activeSession) return;
-
+    
         try {
             const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/totales?cash_session_id=${activeSession.id}`);
             if (!response.ok) {
@@ -249,12 +254,14 @@ export default function CashierPage() {
             let montoCalculadoTarjeta = 0;
             let montoCalculadoTransferencia = 0;
             let montoCalculadoOtro = 0;
-
+    
             const totals = Array.isArray(totalsData) ? totalsData : (totalsData.data || []);
             
+            const cashEquivalentCodes = ['CASH'];
+    
             totals.forEach((item: any) => {
-                const total = parseFloat(item.total);
-                if (item.is_cash_equivalent) {
+                const total = parseFloat(item.total) || 0;
+                if (item.is_cash_equivalent || cashEquivalentCodes.includes(item.code)) {
                     montoCalculadoEfectivo += total;
                 } else if (item.code === 'CREDIT_CARD' || item.code === 'DEBIT_CARD') {
                     montoCalculadoTarjeta += total;
@@ -264,10 +271,10 @@ export default function CashierPage() {
                     montoCalculadoOtro += total;
                 }
             });
-
+    
             const totalEgresosEfectivo = sessionMovements.filter(m => m.tipo === 'EGRESO').reduce((sum, m) => sum + m.monto, 0);
             montoCalculadoEfectivo += activeSession.montoApertura - totalEgresosEfectivo;
-
+    
             const report: CajaSesion = {
                 ...activeSession,
                 estado: 'CERRADA',
@@ -288,7 +295,7 @@ export default function CashierPage() {
                 notasCierre: values.notas,
                 closing_denominations: values.closing_denominations,
             };
-
+    
             setClosedSessionReport(report);
             setWizardStep('REPORT');
         } catch (error) {
@@ -918,6 +925,8 @@ function CloseSessionWizard({
         </Card>
     );
 }
+
+    
 
     
 
