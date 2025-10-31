@@ -231,15 +231,15 @@
     "description": "Gestionar todos los pagos en el sistema.",
     "filterPlaceholder": "Filtrar por ID de factura...",
     "columns": {
-        "id": "ID",
-        "quoteId": "ID Cotización",
-        "orderId": "ID Pedido",
-        "invoiceId": "ID Factura",
-        "user": "Usuario",
-        "amount": "Monto",
-        "method": "Método",
-        "status": "Estado",
-        "createdAt": "Fecha Creación"
+      "id": "ID",
+      "quoteId": "ID Cotización",
+      "orderId": "ID Pedido",
+      "invoiceId": "ID Factura",
+      "user": "Usuario",
+      "amount": "Monto",
+      "method": "Método",
+      "status": "Estado",
+      "createdAt": "Fecha Creación"
     }
   },
   "PaymentMethodsPage": {
@@ -375,6 +375,7 @@
   },
   "CashierPage": {
     "cancel": "Cancelar",
+    "openSessionButton": "Abrir Sesión",
     "toast": {
       "error": "Error",
       "openSuccessTitle": "Sesión Abierta",
@@ -558,10 +559,23 @@
     "createDialog": {
       "title": "Crear Nueva Cita",
       "description": "Completa los detalles a continuación para crear una nueva cita.",
+      "cancelAppointmentTitle": "Cancelar Cita",
+      "cancelAppointmentDescription": "¿Estás seguro de que quieres cancelar la cita para {serviceName} el {date}?",
       "userName": "Nombre de Usuario",
-      "serviceName": "Nombre del Servicio",
+      "selectUser": "Seleccionar un usuario",
+      "searchUserPlaceholder": "Buscar por nombre o email...",
+      "searching": "Buscando...",
+      "serviceName": "Servicio(s)",
+      "selectServices": "Seleccionar servicios",
+      "servicesSelected": "{count, plural, one {# servicio seleccionado} other {# servicios seleccionados}}",
+      "searchServicePlaceholder": "Buscar un servicio...",
+      "selectDoctor": "Seleccionar un doctor",
+      "searchDoctorPlaceholder": "Buscar un doctor...",
+      "none": "Ninguno",
+      "allCalendars": "Todos los Calendarios",
       "date": "Fecha",
       "time": "Hora",
+      "descriptionLabel": "Descripción",
       "save": "Guardar",
       "cancel": "Cancelar",
       "calendar": "Calendario",
@@ -1019,7 +1033,3 @@
     "noResults": "No se encontraron resultados."
   }
 }
-
-  
-
-    

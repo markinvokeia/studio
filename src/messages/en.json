@@ -231,15 +231,15 @@
     "description": "Manage all payments in the system.",
     "filterPlaceholder": "Filter by invoice ID...",
     "columns": {
-        "id": "ID",
-        "quoteId": "Quote ID",
-        "orderId": "Order ID",
-        "invoiceId": "Invoice ID",
-        "user": "User",
-        "amount": "Amount",
-        "method": "Method",
-        "status": "Status",
-        "createdAt": "Created At"
+      "id": "ID",
+      "quoteId": "Quote ID",
+      "orderId": "Order ID",
+      "invoiceId": "Invoice ID",
+      "user": "User",
+      "amount": "Amount",
+      "method": "Method",
+      "status": "Status",
+      "createdAt": "Created At"
     }
   },
   "PaymentMethodsPage": {
@@ -375,6 +375,7 @@
   },
   "CashierPage": {
     "cancel": "Cancel",
+    "openSessionButton": "Open Session",
     "toast": {
       "error": "Error",
       "openSuccessTitle": "Session Opened",
@@ -1032,9 +1033,3 @@
     "noResults": "No results."
   }
 }
-
-  
-
-    
-
-    
