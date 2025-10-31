@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -83,7 +84,7 @@ export default function LoginPage() {
     setError('');
     setIsLoading(true);
     try {
-      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook-test/api/auth/recover/email', {
+      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/recover/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
