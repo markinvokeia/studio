@@ -106,6 +106,7 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
             .filter(item => !isNaN(item.denomination));
 
         const total = denominations.reduce((acc, { denomination, quantity }) => acc + (denomination * quantity), 0);
+        const hasDenominations = denominations.length > 0 && denominations.some(d => d.quantity > 0);
 
         return (
             <div className="space-y-2">
@@ -119,7 +120,7 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {denominations.length > 0 && denominations.some(d => d.quantity > 0) ? (
+                        {hasDenominations ? (
                             denominations.filter(d => d.quantity > 0).map(({ denomination, quantity }) => (
                                 <TableRow key={denomination}>
                                     <TableCell>{formatCurrency(denomination)}</TableCell>
@@ -154,18 +155,21 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
     );
 
     return (
-        <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-                <div><span className="font-semibold">{t('columns.user')}:</span> {session.user_name}</div>
-                <div><span className="font-semibold">{t('columns.cashPoint')}:</span> {session.cash_point_name}</div>
-                <div><span className="font-semibold">{t('columns.openDate')}:</span> {format(parseISO(session.fechaApertura), 'Pp')}</div>
-                <div><span className="font-semibold">{t('columns.closeDate')}:</span> {session.fechaCierre ? format(parseISO(session.fechaCierre), 'Pp') : 'N/A'}</div>
-                <div><span className="font-semibold">{t('columns.openingAmount')}:</span> {formatCurrency(session.montoApertura)}</div>
-                {session.fechaCierre && <div><span className="font-semibold">{t('columns.closingAmount')}:</span> {formatCurrency(totalDeclaredAmount)}</div>}
+        <div className="space-y-6">
+            <div className="space-y-4 rounded-lg border bg-card p-4 shadow-sm">
+                <h3 className="font-semibold text-lg">Session Information</h3>
+                 <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div><span className="font-semibold">{t('columns.user')}:</span> {session.user_name}</div>
+                    <div><span className="font-semibold">{t('columns.cashPoint')}:</span> {session.cash_point_name}</div>
+                    <div><span className="font-semibold">{t('columns.openDate')}:</span> {format(parseISO(session.fechaApertura), 'Pp')}</div>
+                    <div><span className="font-semibold">{t('columns.closeDate')}:</span> {session.fechaCierre ? format(parseISO(session.fechaCierre), 'Pp') : 'N/A'}</div>
+                    <div><span className="font-semibold">{t('columns.openingAmount')}:</span> {formatCurrency(session.montoApertura)}</div>
+                    {session.fechaCierre && <div><span className="font-semibold">{t('columns.closingAmount')}:</span> {formatCurrency(totalDeclaredAmount)}</div>}
+                </div>
             </div>
             
-             <Collapsible>
-                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted px-4 py-2 text-sm font-semibold">
+             <Collapsible className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
+                <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold">
                     {t('denominationDetails')}
                     <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
@@ -178,8 +182,8 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
             </Collapsible>
 
             {session.fechaCierre && (
-                 <Collapsible defaultOpen>
-                    <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted px-4 py-2 text-sm font-semibold">
+                 <Collapsible defaultOpen className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
+                    <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold">
                         {t('reconciliationSummary')}
                         <ChevronDown className="h-4 w-4" />
                     </CollapsibleTrigger>
@@ -291,3 +295,5 @@ export default function CashSessionsPage() {
         </>
     );
 }
+
+    
