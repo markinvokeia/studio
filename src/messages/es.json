@@ -327,7 +327,8 @@
     "denominationDetails": "Detalles de Denominación",
     "openingDenominations": "Denominaciones de Apertura",
     "closingDenominations": "Denominaciones de Cierre",
-    "reconciliationSummary": "Resumen de Conciliación"
+    "reconciliationSummary": "Resumen de Conciliación",
+    "movements": "Movimientos"
   },
   "PhysicalCashRegistersPage": {
     "title": "Cajas Físicas",
@@ -1019,5 +1020,3 @@
     "noResults": "No se encontraron resultados."
   }
 }
-
-    

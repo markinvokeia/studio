@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { CajaSesion } from '@/lib/types';
+import { CajaSesion, CajaMovimiento } from '@/lib/types';
 import { CashSessionsColumnsWrapper } from './columns';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslations } from 'next-intl';
@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format, parseISO } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 
 
 type GetCashSessionsResponse = {
@@ -78,8 +79,31 @@ async function getCashSessions(pagination: PaginationState, searchQuery: string)
     }
 }
 
-const SessionDetails = ({ session }: { session: CajaSesion }) => {
+async function getSessionMovements(sessionId: string): Promise<CajaMovimiento[]> {
+  try {
+    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/movements?cash_session_id=${sessionId}`);
+    if (!response.ok) throw new Error('Failed to fetch session movements');
+    const data = await response.json();
+    const movementsData = Array.isArray(data) ? data : (data.data || []);
+    return movementsData.map((mov: any): CajaMovimiento => ({
+        id: String(mov.movement_id),
+        cajaSesionId: sessionId,
+        tipo: mov.type === 'INFLOW' ? 'INGRESO' : 'EGRESO',
+        monto: parseFloat(mov.amount),
+        descripcion: mov.description,
+        fecha: mov.created_at,
+        usuarioId: mov.registered_by_user,
+        metodoPago: (mov.payment_method_name || 'otro').toUpperCase() as any,
+    }));
+  } catch(error) {
+    console.error("Failed to fetch session movements:", error);
+    return [];
+  }
+}
+
+const SessionDetails = ({ session, movements }: { session: CajaSesion, movements: CajaMovimiento[] }) => {
     const t = useTranslations('CashSessionsPage');
+    const tMovementColumns = useTranslations('CashierPage.activeSession.columns');
 
     const formatCurrency = (value: number | null | undefined) => {
         if (value === null || value === undefined) return '$0.00';
@@ -95,7 +119,7 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
                 parsedDetails = JSON.parse(details);
             } catch (e) {
                 console.error("Failed to parse details", e);
-                return <p>Could not load denomination details.</p>;
+                parsedDetails = {};
             }
         } else if (typeof details === 'object' && details !== null) {
             parsedDetails = details as Record<string, number>;
@@ -109,7 +133,7 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
         const hasDenominations = denominations.length > 0 && denominations.some(d => d.quantity > 0);
 
         return (
-            <div className="space-y-2">
+             <div className="space-y-2">
                 <h4 className="font-semibold">{title}</h4>
                 <Table>
                     <TableHeader>
@@ -120,7 +144,7 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {hasDenominations ? (
+                         {hasDenominations ? (
                             denominations.filter(d => d.quantity > 0).map(({ denomination, quantity }) => (
                                 <TableRow key={denomination}>
                                     <TableCell>{formatCurrency(denomination)}</TableCell>
@@ -154,6 +178,13 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
         </TableRow>
     );
 
+    const movementColumns: ColumnDef<CajaMovimiento>[] = [
+      { accessorKey: 'descripcion', header: ({column}) => <DataTableColumnHeader column={column} title={tMovementColumns('description')} /> },
+      { accessorKey: 'monto', header: ({column}) => <DataTableColumnHeader column={column} title={tMovementColumns('amount')} />, cell: ({ row }) => `$${row.original.monto.toFixed(2)}` },
+      { accessorKey: 'metodoPago', header: ({column}) => <DataTableColumnHeader column={column} title={tMovementColumns('method')} /> },
+      { accessorKey: 'fecha', header: ({column}) => <DataTableColumnHeader column={column} title={tMovementColumns('date')} />, cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
+    ];
+
     return (
         <div className="space-y-6">
             <div className="space-y-4 rounded-lg border bg-card p-4 shadow-sm">
@@ -168,12 +199,12 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
                 </div>
             </div>
             
-             <Collapsible className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
-                <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold">
+             <Collapsible className="space-y-2">
+                <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold rounded-lg border bg-card p-4 shadow-sm">
                     {t('denominationDetails')}
                     <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
-                <CollapsibleContent className="pt-4">
+                <CollapsibleContent className="pt-4 pl-4">
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <DenominationTable title={t('openingDenominations')} details={session.opening_details} />
                         <DenominationTable title={t('closingDenominations')} details={session.closing_denominations} />
@@ -181,13 +212,23 @@ const SessionDetails = ({ session }: { session: CajaSesion }) => {
                 </CollapsibleContent>
             </Collapsible>
 
+            <Collapsible defaultOpen className="space-y-2">
+                <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold rounded-lg border bg-card p-4 shadow-sm">
+                    {t('movements')}
+                    <ChevronDown className="h-4 w-4" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-4 pl-4">
+                    <DataTable columns={movementColumns} data={movements} />
+                </CollapsibleContent>
+            </Collapsible>
+
             {session.fechaCierre && (
-                 <Collapsible defaultOpen className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
-                    <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold">
+                 <Collapsible defaultOpen className="space-y-2">
+                    <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold rounded-lg border bg-card p-4 shadow-sm">
                         {t('reconciliationSummary')}
                         <ChevronDown className="h-4 w-4" />
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="pt-4">
+                    <CollapsibleContent className="pt-4 pl-4">
                          <Table>
                             <TableHeader>
                                 <TableRow>
@@ -217,6 +258,7 @@ export default function CashSessionsPage() {
     const t = useTranslations('CashSessionsPage');
     const { toast } = useToast();
     const [sessions, setSessions] = React.useState<CajaSesion[]>([]);
+    const [movements, setMovements] = React.useState<CajaMovimiento[]>([]);
     const [sessionCount, setSessionCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     
@@ -242,8 +284,10 @@ export default function CashSessionsPage() {
         loadSessions();
     }, [loadSessions]);
 
-    const handleView = (session: CajaSesion) => {
+    const handleView = async (session: CajaSesion) => {
         setSelectedSession(session);
+        const sessionMovements = await getSessionMovements(session.id);
+        setMovements(sessionMovements);
         setIsDetailsDialogOpen(true);
     };
 
@@ -286,7 +330,7 @@ export default function CashSessionsPage() {
                         <DialogDescription>{t('detailsDescription', {id: selectedSession.id})}</DialogDescription>
                     </DialogHeader>
                     <div className="py-4 max-h-[70vh] overflow-y-auto">
-                        <SessionDetails session={selectedSession} />
+                        <SessionDetails session={selectedSession} movements={movements} />
                     </div>
                     </>
                  )}

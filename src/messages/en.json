@@ -327,7 +327,8 @@
     "denominationDetails": "Denomination Details",
     "openingDenominations": "Opening Denominations",
     "closingDenominations": "Closing Denominations",
-    "reconciliationSummary": "Reconciliation Summary"
+    "reconciliationSummary": "Reconciliation Summary",
+    "movements": "Movements"
   },
   "PhysicalCashRegistersPage": {
     "title": "Physical Cash Registers",
@@ -1019,5 +1020,3 @@
     "noResults": "No results."
   }
 }
-
-    
