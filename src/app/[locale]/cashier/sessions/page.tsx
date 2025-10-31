@@ -15,6 +15,7 @@ import { X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, parseISO } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 type GetCashSessionsResponse = {
   sessions: CajaSesion[];
@@ -191,9 +192,9 @@ export default function CashSessionsPage() {
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
         id: false,
     });
-    const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    
     const [selectedSession, setSelectedSession] = React.useState<CajaSesion | null>(null);
-    const [isDetailsLoading, setIsDetailsLoading] = React.useState(false);
+    const [isDetailsDialogOpen, setIsDetailsDialogOpen] = React.useState(false);
 
     const loadSessions = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -208,86 +209,57 @@ export default function CashSessionsPage() {
         loadSessions();
     }, [loadSessions]);
 
-    const handleRowSelectionChange = (selectedRows: CajaSesion[]) => {
-        const session = selectedRows.length > 0 ? selectedRows[0] : null;
-        setSelectedSession(session);
-    };
-
-    const handleCloseDetails = () => {
-        setSelectedSession(null);
-        setRowSelection({});
-    };
-
     const handleView = (session: CajaSesion) => {
         setSelectedSession(session);
-        const rowIndex = sessions.findIndex(s => s.id === session.id);
-        if(rowIndex !== -1) {
-             setRowSelection({[rowIndex]: true});
-        }
+        setIsDetailsDialogOpen(true);
     };
 
     const columns = CashSessionsColumnsWrapper({ onView: handleView });
 
     return (
-       <div className={cn("grid grid-cols-1 gap-4", selectedSession ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
-            <div className={cn("transition-all duration-300", selectedSession ? "lg:col-span-2" : "lg:col-span-1")}>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>{t('title')}</CardTitle>
-                        <CardDescription>{t('description')}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <DataTable 
-                            columns={columns} 
-                            data={sessions} 
-                            pageCount={Math.ceil(sessionCount / pagination.pageSize)}
-                            pagination={pagination}
-                            onPaginationChange={setPagination}
-                            columnFilters={columnFilters}
-                            onColumnFiltersChange={setColumnFilters}
-                            manualPagination={true}
-                            filterColumnId="user_name" 
-                            filterPlaceholder={t('filterPlaceholder')}
-                            onRefresh={loadSessions}
-                            isRefreshing={isRefreshing}
-                            columnVisibility={columnVisibility}
-                            onColumnVisibilityChange={setColumnVisibility}
-                            onRowSelectionChange={handleRowSelectionChange}
-                            rowSelection={rowSelection}
-                            setRowSelection={setRowSelection}
-                            enableSingleRowSelection
-                        />
-                    </CardContent>
-                </Card>
-            </div>
-            {selectedSession && (
-                <div className="lg:col-span-3">
-                    <Card>
-                        <CardHeader className="flex flex-row items-start justify-between">
-                             <div>
-                                <CardTitle>{t('detailsTitle')}</CardTitle>
-                                <CardDescription>{t('detailsDescription', {id: selectedSession.id})}</CardDescription>
-                            </div>
-                            <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
-                                <X className="h-5 w-5" />
-                                <span className="sr-only">{t('closeDetails')}</span>
-                            </Button>
-                        </CardHeader>
-                        <CardContent>
-                            {isDetailsLoading ? (
-                                <div className="space-y-2">
-                                    <Skeleton className="h-10 w-full" />
-                                    <Skeleton className="h-10 w-full" />
-                                    <Skeleton className="h-10 w-full" />
-                                </div>
-                            ) : (
-                                <SessionDetails session={selectedSession} />
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
-        </div>
+       <>
+        <Card>
+            <CardHeader>
+                <CardTitle>{t('title')}</CardTitle>
+                <CardDescription>{t('description')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <DataTable 
+                    columns={columns} 
+                    data={sessions} 
+                    pageCount={Math.ceil(sessionCount / pagination.pageSize)}
+                    pagination={pagination}
+                    onPaginationChange={setPagination}
+                    columnFilters={columnFilters}
+                    onColumnFiltersChange={setColumnFilters}
+                    manualPagination={true}
+                    filterColumnId="user_name" 
+                    filterPlaceholder={t('filterPlaceholder')}
+                    onRefresh={loadSessions}
+                    isRefreshing={isRefreshing}
+                    columnVisibility={columnVisibility}
+                    onColumnVisibilityChange={setColumnVisibility}
+                    enableSingleRowSelection={false}
+                />
+            </CardContent>
+        </Card>
+        
+        <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+            <DialogContent className="max-w-4xl">
+                 {selectedSession && (
+                    <>
+                    <DialogHeader>
+                        <DialogTitle>{t('detailsTitle')}</DialogTitle>
+                        <DialogDescription>{t('detailsDescription', {id: selectedSession.id})}</DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 max-h-[70vh] overflow-y-auto">
+                        <SessionDetails session={selectedSession} />
+                    </div>
+                    </>
+                 )}
+            </DialogContent>
+        </Dialog>
+        </>
     );
 }
 
