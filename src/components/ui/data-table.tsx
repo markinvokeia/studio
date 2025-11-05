@@ -77,7 +77,7 @@ export function DataTable<TData, TValue>({
   onSortingChange: setControlledSorting,
   columnFilters: controlledColumnFilters,
   onColumnFiltersChange: setControlledColumnFilters,
-  columnTranslations,
+  columnTranslations = {},
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   const [internalRowSelection, setInternalRowSelection] = React.useState({});

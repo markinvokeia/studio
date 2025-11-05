@@ -50,9 +50,10 @@ interface OrdersTableProps {
   onCreate?: () => void;
   rowSelection?: RowSelectionState;
   setRowSelection?: (selection: RowSelectionState) => void;
+  columnTranslations?: { [key: string]: string };
 }
 
-export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection }: OrdersTableProps) {
+export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, columnTranslations }: OrdersTableProps) {
     const t = useTranslations();
     const tOrderColumns = useTranslations('OrderColumns');
     const tUserColumns = useTranslations('UserColumns');
@@ -94,7 +95,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
                      setInvoiceSubmissionError(responseData.message);
                      return;
                 }
-                throw new Error(responseData.message || tOrdersPage('invoiceDialog.createError'));
+                throw new Error(tOrdersPage('invoiceDialog.createError'));
             }
 
             toast({
@@ -204,14 +205,6 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
         }
       }
     ];
-
-    const columnTranslations = {
-      id: tOrderColumns('orderId'),
-      user_name: tUserColumns('name'),
-      quote_id: tQuoteColumns('quoteId'),
-      status: tUserColumns('status'),
-      createdAt: tOrderColumns('createdAt'),
-    };
 
     if (isLoading) {
     return (
@@ -485,5 +478,3 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated }: Crea
     </Dialog>
   );
 }
-
-    
