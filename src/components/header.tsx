@@ -67,6 +67,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { UyFlagIcon } from './icons/uy-flag-icon';
 import { UsFlagIcon } from './icons/us-flag-icon';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 
 const passwordFormSchema = (t: (key: string) => string) => z.object({
@@ -94,6 +95,7 @@ export function Header() {
   const { logout, user } = useAuth();
   const tLogoutConfirm = useTranslations('LogoutConfirmation');
   const tChangePassword = useTranslations('ChangePasswordDialog');
+  const { toast } = useToast();
 
   const [isLogoutAlertOpen, setIsLogoutAlertOpen] = React.useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
@@ -107,8 +109,6 @@ export function Header() {
       confirm_password: '',
     },
   });
-
-  const { toast } = useTranslations();
 
   const onSelectLocale = (newLocale: string) => {
     const newPathname = pathname.replace(`/${locale}`, `/${newLocale}`);
