@@ -140,7 +140,13 @@ const getColumns = (
         'not invoiced': 'outline',
       }[status.toLowerCase()] ?? ('default'as any);
 
-      const toCamelCase = (s: string) => s.replace(/ \w/g, (c) => c.substring(1).toUpperCase());
+      const toCamelCase = (s: string) => s.replace(/([-_ ][a-z])/ig, ($1) => {
+        return $1.toUpperCase()
+          .replace('-', '')
+          .replace('_', '')
+          .replace(' ', '');
+      });
+
       const translationKey = `QuotesPage.quoteDialog.${toCamelCase(status.toLowerCase())}`;
 
       return (
