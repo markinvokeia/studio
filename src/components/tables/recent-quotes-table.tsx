@@ -140,7 +140,9 @@ const getColumns = (
         'not invoiced': 'outline',
       }[status.toLowerCase()] ?? ('default'as any);
 
-      const translationKey = `QuotesPage.quoteDialog.${status.toLowerCase().replace(/ /g, '')}`;
+      const toCamelCase = (s: string) => s.replace(/ \w/g, (c) => c.substring(1).toUpperCase());
+      const translationKey = `QuotesPage.quoteDialog.${toCamelCase(status.toLowerCase())}`;
+
       return (
         <Badge variant={variant} className="capitalize">
           {t(translationKey)}
