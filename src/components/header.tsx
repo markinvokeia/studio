@@ -68,17 +68,18 @@ import { UyFlagIcon } from './icons/uy-flag-icon';
 import { UsFlagIcon } from './icons/us-flag-icon';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 
 
 const passwordFormSchema = (t: (key: string) => string) => z.object({
-    old_password: z.string().min(1, t('ChangePasswordDialog.validation.oldPasswordRequired')),
+    old_password: z.string().min(1, t('validation.oldPasswordRequired')),
     new_password: z.string()
-        .min(8, t('ChangePasswordDialog.validation.newPasswordMin'))
-        .regex(/[A-Z]/, t('ChangePasswordDialog.validation.newPasswordUpper'))
-        .regex(/[0-9]/, t('ChangePasswordDialog.validation.newPasswordNumber')),
+        .min(8, t('validation.newPasswordMin'))
+        .regex(/[A-Z]/, t('validation.newPasswordUpper'))
+        .regex(/[0-9]/, t('validation.newPasswordNumber')),
     confirm_password: z.string(),
 }).refine(data => data.new_password === data.confirm_password, {
-    message: t('ChangePasswordDialog.validation.passwordsMismatch'),
+    message: t('validation.passwordsMismatch'),
     path: ['confirm_password'],
 });
 
@@ -218,28 +219,24 @@ export function Header() {
             }),
         });
 
+        const responseData = await response.json().catch(() => ({}));
+        
         if (!response.ok) {
-            const responseData = await response.json().catch(() => ({})); // Catch if response is not valid JSON
             let errorMessage = tChangePassword('errors.generic');
-
             if (response.status === 401) {
-                errorMessage = responseData.message || tChangePassword('errors.incorrectOldPassword');
-            } else if (response.status === 400) {
-                errorMessage = responseData.message || tChangePassword('errors.invalidNewPassword');
-            } else if (responseData.message) {
-                errorMessage = responseData.message;
+                errorMessage = tChangePassword('errors.incorrectOldPassword');
+            } else if (response.status === 400 && responseData.message) {
+                 errorMessage = responseData.message;
             }
-            
             throw new Error(errorMessage);
         }
-        
-        const responseData = await response.json();
 
         toast({
             title: tChangePassword('success.title'),
             description: responseData.message || tChangePassword('success.description'),
         });
         setIsChangePasswordOpen(false);
+        form.reset();
 
     } catch (error) {
         setPasswordChangeError(error instanceof Error ? error.message : tChangePassword('errors.generic'));
@@ -397,8 +394,8 @@ export function Header() {
             <DialogHeader>
                 <DialogTitle>{tChangePassword('title')}</DialogTitle>
             </DialogHeader>
-            <form onSubmit={form.handleSubmit(handleChangePasswordSubmit)}>
-                <div className="grid gap-4 py-4">
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleChangePasswordSubmit)} className="space-y-4 py-4">
                     {passwordChangeError && (
                         <Alert variant="destructive">
                             <AlertTriangle className="h-4 w-4" />
@@ -406,27 +403,51 @@ export function Header() {
                             <AlertDescription>{passwordChangeError}</AlertDescription>
                         </Alert>
                     )}
-                    <div className="space-y-2">
-                        <Label htmlFor="old_password">{tChangePassword('oldPassword')}</Label>
-                        <Input id="old_password" type="password" {...form.register('old_password')} />
-                        {form.formState.errors.old_password && <p className="text-sm text-destructive">{form.formState.errors.old_password.message}</p>}
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="new_password">{tChangePassword('newPassword')}</Label>
-                        <Input id="new_password" type="password" {...form.register('new_password')} />
-                        {form.formState.errors.new_password && <p className="text-sm text-destructive">{form.formState.errors.new_password.message}</p>}
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="confirm_password">{tChangePassword('confirmPassword')}</Label>
-                        <Input id="confirm_password" type="password" {...form.register('confirm_password')} />
-                        {form.formState.errors.confirm_password && <p className="text-sm text-destructive">{form.formState.errors.confirm_password.message}</p>}
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsChangePasswordOpen(false)}>{tChangePassword('cancel')}</Button>
-                    <Button type="submit" disabled={form.formState.isSubmitting}>{tChangePassword('save')}</Button>
-                </DialogFooter>
-            </form>
+                    <FormField
+                        control={form.control}
+                        name="old_password"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>{tChangePassword('oldPassword')}</FormLabel>
+                                <FormControl>
+                                    <Input type="password" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="new_password"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>{tChangePassword('newPassword')}</FormLabel>
+                                <FormControl>
+                                    <Input type="password" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="confirm_password"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>{tChangePassword('confirmPassword')}</FormLabel>
+                                <FormControl>
+                                    <Input type="password" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setIsChangePasswordOpen(false)}>{tChangePassword('cancel')}</Button>
+                        <Button type="submit" disabled={form.formState.isSubmitting}>{tChangePassword('save')}</Button>
+                    </DialogFooter>
+                </form>
+            </Form>
         </DialogContent>
     </Dialog>
     </>
