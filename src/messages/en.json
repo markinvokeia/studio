@@ -92,6 +92,7 @@
       "unpaid": "Unpaid",
       "paid": "Paid",
       "partial": "Partial",
+      "partially_paid": "Partially Paid",
       "billingStatus": "Billing Status",
       "selectBillingStatus": "Select billing status",
       "notInvoiced": "Not Invoiced",
