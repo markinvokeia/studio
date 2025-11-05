@@ -22,6 +22,7 @@ interface DataTableToolbarProps<TData> {
   onCreate?: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  columnTranslations?: { [key: string]: string };
 }
 
 export function DataTableToolbar<TData>({
@@ -31,6 +32,7 @@ export function DataTableToolbar<TData>({
   onCreate,
   onRefresh,
   isRefreshing,
+  columnTranslations = {},
 }: DataTableToolbarProps<TData>) {
   const t = useTranslations('DataTableToolbar');
   return (
@@ -81,6 +83,7 @@ export function DataTableToolbar<TData>({
                   typeof column.accessorFn !== 'undefined' && column.getCanHide()
               )
               .map((column) => {
+                const translatedHeader = columnTranslations[column.id] || column.id;
                 return (
                   <DropdownMenuCheckboxItem
                     key={column.id}
@@ -88,7 +91,7 @@ export function DataTableToolbar<TData>({
                     checked={column.getIsVisible()}
                     onCheckedChange={(value) => column.toggleVisibility(!!value)}
                   >
-                    {column.id}
+                    {translatedHeader}
                   </DropdownMenuCheckboxItem>
                 );
               })}

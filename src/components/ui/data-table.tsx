@@ -52,6 +52,7 @@ interface DataTableProps<TData, TValue> {
   onSortingChange?: React.Dispatch<React.SetStateAction<SortingState>>;
   columnFilters?: ColumnFiltersState;
   onColumnFiltersChange?: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
+  columnTranslations?: { [key: string]: string };
 }
 
 export function DataTable<TData, TValue>({
@@ -76,6 +77,7 @@ export function DataTable<TData, TValue>({
   onSortingChange: setControlledSorting,
   columnFilters: controlledColumnFilters,
   onColumnFiltersChange: setControlledColumnFilters,
+  columnTranslations,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
@@ -139,6 +141,7 @@ export function DataTable<TData, TValue>({
           onCreate={onCreate}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
+          columnTranslations={columnTranslations}
         />
       )}
       <div className="rounded-md border">

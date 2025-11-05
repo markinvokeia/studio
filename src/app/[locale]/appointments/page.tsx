@@ -748,6 +748,15 @@ export default function AppointmentsPage() {
     }
 };
 
+  const columnTranslations: { [key: string]: string } = {
+    service_name: tColumns('service'),
+    patientName: tColumns('patient'),
+    doctorName: tColumns('doctor'),
+    calendar_name: tColumns('calendar'),
+    date: tColumns('date'),
+    time: tColumns('time'),
+    status: tColumns('status'),
+  };
 
   return (
     <>
@@ -964,6 +973,7 @@ export default function AppointmentsPage() {
                     onRefresh={loadAppointments}
                     isRefreshing={isRefreshing}
                     onCreate={() => setCreateOpen(true)}
+                    columnTranslations={columnTranslations}
                 />
                 </TabsContent>
             </CardContent>
