@@ -45,6 +45,9 @@
     "logoutAnyway": "Salir de todos modos",
     "cancel": "Cancelar"
   },
+  "DataTableToolbar": {
+    "toggleColumns": "Alternar columnas"
+  },
   "DataTablePagination": {
     "selected": "{count, plural, one {# fila seleccionada} other {# filas seleccionadas}} de {total}",
     "rowsPerPage": "Filas por página:",

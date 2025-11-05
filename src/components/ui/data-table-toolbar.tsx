@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { PlusCircle, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -31,7 +32,7 @@ export function DataTableToolbar<TData>({
   onRefresh,
   isRefreshing,
 }: DataTableToolbarProps<TData>) {
-
+  const t = useTranslations('DataTableToolbar');
   return (
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center space-x-2">
@@ -71,7 +72,7 @@ export function DataTableToolbar<TData>({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('toggleColumns')}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {table
               .getAllColumns()
