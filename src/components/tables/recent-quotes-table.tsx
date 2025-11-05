@@ -143,9 +143,9 @@ const getColumns = (
       const statusKeyMap: { [key: string]: string } = {
         'not invoiced': 'notInvoiced',
         'partially invoiced': 'partiallyInvoiced',
-        invoiced: 'invoiced',
+        'invoiced': 'invoiced',
       };
-
+      
       const camelCaseStatus = statusKeyMap[status.toLowerCase()] || status;
       const translationKey = `QuotesPage.quoteDialog.${camelCaseStatus}`;
 
@@ -168,7 +168,7 @@ const getColumns = (
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
+            <Button variant="ghost" className="h-8 w-8 p-0" disabled={!isDraft}>
               <span className="sr-only">Open menu</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
