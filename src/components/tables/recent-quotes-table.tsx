@@ -119,7 +119,13 @@ const getColumns = (
         unpaid: 'outline',
       }[status.toLowerCase()] ?? ('default'as any);
       
-      const translationKey = `QuotesPage.quoteDialog.${status.toLowerCase().replace(/ /g, '_')}`;
+      const statusKeyMap: { [key: string]: string } = {
+        'partially paid': 'partially_paid'
+      };
+      
+      const normalizedStatus = statusKeyMap[status.toLowerCase()] || status.toLowerCase();
+      const translationKey = `QuotesPage.quoteDialog.${normalizedStatus}`;
+
       return (
         <Badge variant={variant} className="capitalize">
           {t(translationKey)}
@@ -143,7 +149,7 @@ const getColumns = (
       const statusKeyMap: { [key: string]: string } = {
         'not invoiced': 'notInvoiced',
         'partially invoiced': 'partiallyInvoiced',
-        'invoiced': 'invoiced',
+        invoiced: 'invoiced',
       };
       
       const camelCaseStatus = statusKeyMap[status.toLowerCase()] || status.toLowerCase();
