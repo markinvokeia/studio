@@ -205,6 +205,14 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
       }
     ];
 
+    const columnTranslations = {
+      id: tOrderColumns('orderId'),
+      user_name: tUserColumns('name'),
+      quote_id: tQuoteColumns('quoteId'),
+      status: tUserColumns('status'),
+      createdAt: tOrderColumns('createdAt'),
+    };
+
     if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
@@ -231,6 +239,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
           onCreate={onCreate}
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
+          columnTranslations={columnTranslations}
         />
       </CardContent>
     </Card>
