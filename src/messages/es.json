@@ -58,6 +58,30 @@
     "goToNext": "Ir a la página siguiente",
     "goToLast": "Ir a la última página"
   },
+  "ChangePasswordDialog": {
+      "title": "Cambiar Contraseña",
+      "oldPassword": "Contraseña Actual",
+      "newPassword": "Nueva Contraseña",
+      "confirmPassword": "Confirmar Nueva Contraseña",
+      "cancel": "Cancelar",
+      "save": "Guardar Cambios",
+      "validation": {
+          "oldPasswordRequired": "La contraseña actual es requerida.",
+          "newPasswordMin": "La nueva contraseña debe tener al menos 8 caracteres.",
+          "newPasswordUpper": "La nueva contraseña debe contener una letra mayúscula.",
+          "newPasswordNumber": "La nueva contraseña debe contener un número.",
+          "passwordsMismatch": "Las contraseñas no coinciden."
+      },
+      "errors": {
+          "title": "Error",
+          "noToken": "No se encontró el token de autenticación. Por favor, inicie sesión de nuevo.",
+          "generic": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo."
+      },
+      "success": {
+          "title": "Éxito",
+          "description": "Su contraseña ha sido cambiada exitosamente."
+      }
+  },
   "QuotesPage": {
     "title": "Cotizaciones",
     "description": "Gestionar todas las cotizaciones.",
@@ -175,7 +199,8 @@
       "confirm": "Crear Factura",
       "invoiceSuccess": "Factura Creada",
       "invoiceSuccessDesc": "La factura para el pedido #{orderId} ha sido creada exitosamente.",
-      "createError": "No se pudo crear la factura."
+      "createError": "No se pudo crear la factura.",
+      "error": "Error"
     },
     "status": {
       "label": "Estado",
@@ -590,6 +615,7 @@
     "english": "English",
     "spanish": "Español",
     "myAccount": "Mi Cuenta",
+    "changePassword": "Cambiar Contraseña",
     "logout": "Cerrar Sesión",
     "commandPlaceholder": "Introduce un comando..."
   },

@@ -58,6 +58,30 @@
     "goToNext": "Go to next page",
     "goToLast": "Go to last page"
   },
+  "ChangePasswordDialog": {
+    "title": "Change Password",
+    "oldPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "cancel": "Cancel",
+    "save": "Save Changes",
+    "validation": {
+        "oldPasswordRequired": "Current password is required.",
+        "newPasswordMin": "New password must be at least 8 characters.",
+        "newPasswordUpper": "New password must contain an uppercase letter.",
+        "newPasswordNumber": "New password must contain a number.",
+        "passwordsMismatch": "Passwords do not match."
+    },
+    "errors": {
+        "title": "Error",
+        "noToken": "Authentication token not found. Please log in again.",
+        "generic": "An unexpected error occurred. Please try again."
+    },
+    "success": {
+        "title": "Success",
+        "description": "Your password has been changed successfully."
+    }
+  },
   "QuotesPage": {
     "title": "Quotes",
     "description": "Manage all quotes.",
@@ -175,7 +199,8 @@
       "confirm": "Create Invoice",
       "invoiceSuccess": "Invoice Created",
       "invoiceSuccessDesc": "Invoice for order #{orderId} has been successfully created.",
-      "createError": "Could not create invoice."
+      "createError": "Could not create invoice.",
+      "error": "Error"
     },
     "status": {
       "label": "Status",
@@ -590,6 +615,7 @@
     "english": "English",
     "spanish": "Español",
     "myAccount": "My Account",
+    "changePassword": "Change Password",
     "logout": "Logout",
     "commandPlaceholder": "Enter a command..."
   },

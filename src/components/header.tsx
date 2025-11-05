@@ -14,6 +14,7 @@ import {
   Check,
   LogOut,
   AlertTriangle,
+  KeyRound,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import {
@@ -36,6 +37,20 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useForm, SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -54,6 +69,20 @@ import { UsFlagIcon } from './icons/us-flag-icon';
 import { useAuth } from '@/context/AuthContext';
 
 
+const passwordFormSchema = (t: (key: string) => string) => z.object({
+    old_password: z.string().min(1, t('ChangePasswordDialog.validation.oldPasswordRequired')),
+    new_password: z.string()
+        .min(8, t('ChangePasswordDialog.validation.newPasswordMin'))
+        .regex(/[A-Z]/, t('ChangePasswordDialog.validation.newPasswordUpper'))
+        .regex(/[0-9]/, t('ChangePasswordDialog.validation.newPasswordNumber')),
+    confirm_password: z.string(),
+}).refine(data => data.new_password === data.confirm_password, {
+    message: t('ChangePasswordDialog.validation.passwordsMismatch'),
+    path: ['confirm_password'],
+});
+
+type PasswordFormValues = z.infer<ReturnType<typeof passwordFormSchema>>;
+
 export function Header() {
   const pathname = usePathname();
   const { setTheme } = useTheme();
@@ -64,9 +93,22 @@ export function Header() {
   const searchParams = useSearchParams();
   const { logout, user } = useAuth();
   const tLogoutConfirm = useTranslations('LogoutConfirmation');
+  const tChangePassword = useTranslations('ChangePasswordDialog');
 
   const [isLogoutAlertOpen, setIsLogoutAlertOpen] = React.useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
+  const [passwordChangeError, setPasswordChangeError] = React.useState<string | null>(null);
 
+  const form = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordFormSchema(tChangePassword)),
+    defaultValues: {
+      old_password: '',
+      new_password: '',
+      confirm_password: '',
+    },
+  });
+
+  const { toast } = useTranslations();
 
   const onSelectLocale = (newLocale: string) => {
     const newPathname = pathname.replace(`/${locale}`, `/${newLocale}`);
@@ -155,6 +197,41 @@ export function Header() {
     } catch (error) {
         console.error("Failed to check active session, logging out anyway:", error);
         handleLogout();
+    }
+  };
+
+  const handleChangePasswordSubmit: SubmitHandler<PasswordFormValues> = async (data) => {
+    setPasswordChangeError(null);
+    const token = localStorage.getItem('token');
+    if (!token) {
+        setPasswordChangeError(tChangePassword('errors.noToken'));
+        return;
+    }
+
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/password-change?token=${token}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                old_password: data.old_password,
+                new_password: data.new_password,
+            }),
+        });
+
+        const responseData = await response.json();
+
+        if (!response.ok) {
+            throw new Error(responseData.message || tChangePassword('errors.generic'));
+        }
+
+        toast({
+            title: tChangePassword('success.title'),
+            description: responseData.message || tChangePassword('success.description'),
+        });
+        setIsChangePasswordOpen(false);
+
+    } catch (error) {
+        setPasswordChangeError(error instanceof Error ? error.message : tChangePassword('errors.generic'));
     }
   };
 
@@ -269,6 +346,10 @@ export function Header() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>{user?.name || t('myAccount')}</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setIsChangePasswordOpen(true)}>
+                <KeyRound className="mr-2 h-4 w-4" />
+                <span>{t('changePassword')}</span>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleLogoutClick}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>{t('logout')}</span>
@@ -299,6 +380,44 @@ export function Header() {
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
+
+    <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+                <DialogTitle>{tChangePassword('title')}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={form.handleSubmit(handleChangePasswordSubmit)}>
+                <div className="grid gap-4 py-4">
+                    {passwordChangeError && (
+                        <Alert variant="destructive">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>{tChangePassword('errors.title')}</AlertTitle>
+                            <AlertDescription>{passwordChangeError}</AlertDescription>
+                        </Alert>
+                    )}
+                    <div className="space-y-2">
+                        <Label htmlFor="old_password">{tChangePassword('oldPassword')}</Label>
+                        <Input id="old_password" type="password" {...form.register('old_password')} />
+                        {form.formState.errors.old_password && <p className="text-sm text-destructive">{form.formState.errors.old_password.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="new_password">{tChangePassword('newPassword')}</Label>
+                        <Input id="new_password" type="password" {...form.register('new_password')} />
+                        {form.formState.errors.new_password && <p className="text-sm text-destructive">{form.formState.errors.new_password.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="confirm_password">{tChangePassword('confirmPassword')}</Label>
+                        <Input id="confirm_password" type="password" {...form.register('confirm_password')} />
+                        {form.formState.errors.confirm_password && <p className="text-sm text-destructive">{form.formState.errors.confirm_password.message}</p>}
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsChangePasswordOpen(false)}>{tChangePassword('cancel')}</Button>
+                    <Button type="submit" disabled={form.formState.isSubmitting}>{tChangePassword('save')}</Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    </Dialog>
     </>
   );
 }
