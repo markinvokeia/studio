@@ -75,7 +75,9 @@
       "errors": {
           "title": "Error",
           "noToken": "No se encontró el token de autenticación. Por favor, inicie sesión de nuevo.",
-          "generic": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo."
+          "generic": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
+          "incorrectOldPassword": "La contraseña actual no es correcta.",
+          "invalidNewPassword": "La nueva contraseña no es válida."
       },
       "success": {
           "title": "Éxito",

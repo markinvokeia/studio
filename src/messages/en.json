@@ -75,7 +75,9 @@
     "errors": {
         "title": "Error",
         "noToken": "Authentication token not found. Please log in again.",
-        "generic": "An unexpected error occurred. Please try again."
+        "generic": "An unexpected error occurred. Please try again.",
+        "incorrectOldPassword": "The current password is not correct.",
+        "invalidNewPassword": "The new password is not valid."
     },
     "success": {
         "title": "Success",

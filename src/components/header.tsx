@@ -218,12 +218,22 @@ export function Header() {
             }),
         });
 
-        const responseData = await response.json();
-        
         if (!response.ok) {
-            // Use the specific message from the API response if available
-            throw new Error(responseData.message || tChangePassword('errors.generic'));
+            const responseData = await response.json().catch(() => ({})); // Catch if response is not valid JSON
+            let errorMessage = tChangePassword('errors.generic');
+
+            if (response.status === 401) {
+                errorMessage = responseData.message || tChangePassword('errors.incorrectOldPassword');
+            } else if (response.status === 400) {
+                errorMessage = responseData.message || tChangePassword('errors.invalidNewPassword');
+            } else if (responseData.message) {
+                errorMessage = responseData.message;
+            }
+            
+            throw new Error(errorMessage);
         }
+        
+        const responseData = await response.json();
 
         toast({
             title: tChangePassword('success.title'),
