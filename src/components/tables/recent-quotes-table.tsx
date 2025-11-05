@@ -146,7 +146,7 @@ const getColumns = (
         'invoiced': 'invoiced',
       };
       
-      const camelCaseStatus = statusKeyMap[status.toLowerCase()] || status;
+      const camelCaseStatus = statusKeyMap[status.toLowerCase()] || status.toLowerCase();
       const translationKey = `QuotesPage.quoteDialog.${camelCaseStatus}`;
 
       return (
