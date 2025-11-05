@@ -140,14 +140,14 @@ const getColumns = (
         'not invoiced': 'outline',
       }[status.toLowerCase()] ?? ('default'as any);
 
-      const toCamelCase = (s: string) => s.replace(/([-_ ][a-z])/ig, ($1) => {
-        return $1.toUpperCase()
-          .replace('-', '')
-          .replace('_', '')
-          .replace(' ', '');
-      });
+      const statusKeyMap: { [key: string]: string } = {
+        'not invoiced': 'notInvoiced',
+        'partially invoiced': 'partiallyInvoiced',
+        'invoiced': 'invoiced'
+      };
 
-      const translationKey = `QuotesPage.quoteDialog.${toCamelCase(status.toLowerCase())}`;
+      const camelCaseStatus = statusKeyMap[status.toLowerCase()] || status;
+      const translationKey = `QuotesPage.quoteDialog.${camelCaseStatus}`;
 
       return (
         <Badge variant={variant} className="capitalize">
