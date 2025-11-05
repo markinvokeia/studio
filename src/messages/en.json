@@ -614,7 +614,7 @@
       "description": "Fill in the details below to create a new appointment.",
       "cancelAppointmentTitle": "Cancel Appointment",
       "cancelAppointmentDescription": "Are you sure you want to cancel the appointment for {serviceName} on {date}?",
-      "confirmCancel": "Cancel appointment",
+      "confirmCancel": "Cancel Appointment",
       "close": "Close",
       "userName": "User Name",
       "selectUser": "Select a user",
