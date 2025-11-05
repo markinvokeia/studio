@@ -118,10 +118,11 @@ const getColumns = (
         unpaid: 'outline',
         partially_paid: 'info',
       }[status.toLowerCase()] ?? ('default'as any);
-
+      
+      const translationKey = `QuotesPage.quoteDialog.${status.toLowerCase().replace(/ /g, '')}`;
       return (
         <Badge variant={variant} className="capitalize">
-          {t(`QuotesPage.quoteDialog.${status.toLowerCase()}`)}
+          {t(translationKey)}
         </Badge>
       );
     },
@@ -139,9 +140,10 @@ const getColumns = (
         'not invoiced': 'outline',
       }[status.toLowerCase()] ?? ('default'as any);
 
+      const translationKey = `QuotesPage.quoteDialog.${status.toLowerCase().replace(/ /g, '')}`;
       return (
         <Badge variant={variant} className="capitalize">
-          {t(`QuotesPage.quoteDialog.${status.toLowerCase().replace(/ /g, '')}`)}
+          {t(translationKey)}
         </Badge>
       );
     },
