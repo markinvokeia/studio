@@ -155,6 +155,7 @@ const getColumns = (
       const camelCaseStatus = statusKeyMap[status.toLowerCase()] || status.toLowerCase();
       const translationKey = `QuotesPage.quoteDialog.${camelCaseStatus}`;
 
+
       return (
         <Badge variant={variant} className="capitalize">
           {t(translationKey)}

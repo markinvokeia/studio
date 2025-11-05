@@ -91,7 +91,6 @@
       "selectPaymentStatus": "Select payment status",
       "unpaid": "Unpaid",
       "paid": "Paid",
-      "partially_paid": "Partially Paid",
       "partial": "Partial",
       "billingStatus": "Billing Status",
       "selectBillingStatus": "Select billing status",
