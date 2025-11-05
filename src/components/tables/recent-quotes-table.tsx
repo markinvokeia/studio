@@ -115,8 +115,8 @@ const getColumns = (
       const variant = {
         paid: 'success',
         partial: 'info',
-        partially_paid: 'info',
         unpaid: 'outline',
+        partially_paid: 'info'
       }[status.toLowerCase()] ?? ('default'as any);
       
       const statusKeyMap: { [key: string]: string } = {
@@ -152,8 +152,8 @@ const getColumns = (
         invoiced: 'invoiced',
       };
       
-      const camelCaseStatus = statusKeyMap[status.toLowerCase()] || status.toLowerCase();
-      const translationKey = `QuotesPage.quoteDialog.${camelCaseStatus}`;
+      const normalizedStatus = status.toLowerCase();
+      const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[normalizedStatus] || normalizedStatus}`;
 
 
       return (
@@ -238,3 +238,5 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
     </Card>
   );
 }
+
+    
