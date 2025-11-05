@@ -115,11 +115,11 @@ const getColumns = (
       const variant = {
         paid: 'success',
         partial: 'info',
-        unpaid: 'outline',
         partially_paid: 'info',
+        unpaid: 'outline',
       }[status.toLowerCase()] ?? ('default'as any);
       
-      const translationKey = `QuotesPage.quoteDialog.${status.toLowerCase().replace(/ /g, '')}`;
+      const translationKey = `QuotesPage.quoteDialog.${status.toLowerCase().replace(/ /g, '_')}`;
       return (
         <Badge variant={variant} className="capitalize">
           {t(translationKey)}
@@ -143,7 +143,7 @@ const getColumns = (
       const statusKeyMap: { [key: string]: string } = {
         'not invoiced': 'notInvoiced',
         'partially invoiced': 'partiallyInvoiced',
-        'invoiced': 'invoiced'
+        invoiced: 'invoiced',
       };
 
       const camelCaseStatus = statusKeyMap[status.toLowerCase()] || status;
