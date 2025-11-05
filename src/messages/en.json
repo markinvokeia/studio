@@ -92,15 +92,12 @@
       "unpaid": "Unpaid",
       "paid": "Paid",
       "partial": "Partial",
-      "partially_paid": "Partially Paid",
+      "partiallyPaid": "Partially Paid",
       "billingStatus": "Billing Status",
       "selectBillingStatus": "Select billing status",
       "notInvoiced": "Not Invoiced",
       "partiallyInvoiced": "Partially Invoiced",
-      "invoiced": "Invoiced",
-      "cancel": "Cancel",
-      "save": "Create Quote",
-      "editSave": "Save Changes"
+      "invoiced": "Invoiced"
     },
     "itemDialog": {
       "createTitle": "Add Item to Quote",
@@ -154,6 +151,82 @@
       "quoteRejected": "Quote Rejected",
       "quoteRejectSuccess": "Quote #{id} has been rejected.",
       "quoteActionError": "Could not perform action on quote."
+    }
+  },
+  "OrdersPage": {
+    "title": "Orders",
+    "description": "Manage all orders.",
+    "filterPlaceholder": "Filter by user name...",
+    "detailsFor": "Details for Order",
+    "orderId": "Order ID",
+    "createTitle": "Create Order",
+    "createDescription": "Select a user and a quote to create a new order.",
+    "selectUser": "Select User",
+    "searchUser": "Search user...",
+    "noUserFound": "No user found.",
+    "selectQuote": "Select Quote",
+    "searchQuote": "Search quote...",
+    "noQuoteFound": "No quote found for this user.",
+    "cancel": "Cancel",
+    "create": "Create Order",
+    "invoiceDialog": {
+      "title": "Create Invoice",
+      "description": "Select a date to create an invoice for order #{orderId}.",
+      "confirm": "Create Invoice",
+      "invoiceSuccess": "Invoice Created",
+      "invoiceSuccessDesc": "Invoice for order #{orderId} has been successfully created.",
+      "createError": "Could not create invoice."
+    },
+    "status": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "OrderItemsTable": {
+    "title": "Order Items for #{id}",
+    "filterPlaceholder": "Filter by service...",
+    "columns": {
+      "id": "Item ID",
+      "service": "Service",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "total": "Total",
+      "status": "Status",
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "invoiced": "Invoiced"
+    },
+    "status": {
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "actions": {
+      "openMenu": "Open menu",
+      "title": "Actions",
+      "schedule": "Schedule",
+      "complete": "Mark as Complete"
+    },
+    "dateDialog": {
+      "title": {
+        "schedule": "Schedule Item",
+        "complete": "Complete Item"
+      },
+      "description": {
+        "schedule": "Select a date to schedule this item.",
+        "complete": "Select a date to mark this item as complete."
+      },
+      "save": "Save Date",
+      "cancel": "Cancel"
+    },
+    "toast": {
+      "error": "Error",
+      "scheduledTitle": "Item Scheduled",
+      "completedTitle": "Item Completed",
+      "updateSuccess": "The item has been updated successfully.",
+      "updateError": "Could not update the item."
     }
   },
   "InvoicesPage": {
@@ -1055,3 +1128,5 @@
     "noResults": "No results."
   }
 }
+
+    

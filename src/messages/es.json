@@ -92,15 +92,12 @@
       "unpaid": "No Pagado",
       "paid": "Pagado",
       "partial": "Parcial",
-      "partially_paid": "Parcialmente Pagada",
+      "partiallyPaid": "Parcialmente Pagada",
       "billingStatus": "Estado de Facturación",
       "selectBillingStatus": "Seleccione estado de facturación",
       "notInvoiced": "No Facturado",
       "partiallyInvoiced": "Parcialmente Facturado",
-      "invoiced": "Facturado",
-      "cancel": "Cancelar",
-      "save": "Crear Cotización",
-      "editSave": "Guardar Cambios"
+      "invoiced": "Facturado"
     },
     "itemDialog": {
       "createTitle": "Añadir Ítem a la Cotización",
@@ -154,6 +151,82 @@
       "quoteRejected": "Cotización Rechazada",
       "quoteRejectSuccess": "La cotización #{id} ha sido rechazada.",
       "quoteActionError": "No se pudo realizar la acción en la cotización."
+    }
+  },
+  "OrdersPage": {
+    "title": "Pedidos",
+    "description": "Gestionar todos los pedidos.",
+    "filterPlaceholder": "Filtrar por nombre de usuario...",
+    "detailsFor": "Detalles del Pedido",
+    "orderId": "ID de Pedido",
+    "createTitle": "Crear Pedido",
+    "createDescription": "Seleccione un usuario y una cotización para crear un nuevo pedido.",
+    "selectUser": "Seleccionar Usuario",
+    "searchUser": "Buscar usuario...",
+    "noUserFound": "No se encontró ningún usuario.",
+    "selectQuote": "Seleccionar Cotización",
+    "searchQuote": "Buscar cotización...",
+    "noQuoteFound": "No se encontró ninguna cotización para este usuario.",
+    "cancel": "Cancelar",
+    "create": "Crear Pedido",
+    "invoiceDialog": {
+      "title": "Crear Factura",
+      "description": "Seleccione una fecha para crear una factura para el pedido #{orderId}.",
+      "confirm": "Crear Factura",
+      "invoiceSuccess": "Factura Creada",
+      "invoiceSuccessDesc": "La factura para el pedido #{orderId} ha sido creada exitosamente.",
+      "createError": "No se pudo crear la factura."
+    },
+    "status": {
+      "pending": "Pendiente",
+      "processing": "Procesando",
+      "completed": "Completado",
+      "cancelled": "Cancelado"
+    }
+  },
+  "OrderItemsTable": {
+    "title": "Ítems del Pedido #{id}",
+    "filterPlaceholder": "Filtrar por servicio...",
+    "columns": {
+      "id": "ID Ítem",
+      "service": "Servicio",
+      "quantity": "Cantidad",
+      "unitPrice": "Precio Unitario",
+      "total": "Total",
+      "status": "Estado",
+      "scheduled": "Programado",
+      "completed": "Completado",
+      "invoiced": "Facturado"
+    },
+    "status": {
+      "scheduled": "Programado",
+      "completed": "Completado",
+      "cancelled": "Cancelado"
+    },
+    "actions": {
+      "openMenu": "Abrir menú",
+      "title": "Acciones",
+      "schedule": "Programar",
+      "complete": "Marcar como Completado"
+    },
+    "dateDialog": {
+      "title": {
+        "schedule": "Programar Ítem",
+        "complete": "Completar Ítem"
+      },
+      "description": {
+        "schedule": "Seleccione una fecha para programar este ítem.",
+        "complete": "Seleccione una fecha para marcar este ítem como completado."
+      },
+      "save": "Guardar Fecha",
+      "cancel": "Cancelar"
+    },
+    "toast": {
+      "error": "Error",
+      "scheduledTitle": "Ítem Programado",
+      "completedTitle": "Ítem Completado",
+      "updateSuccess": "El ítem ha sido actualizado exitosamente.",
+      "updateError": "No se pudo actualizar el ítem."
     }
   },
   "InvoicesPage": {
@@ -1055,3 +1128,5 @@
     "noResults": "No se encontraron resultados."
   }
 }
+
+    
