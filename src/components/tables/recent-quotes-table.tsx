@@ -88,7 +88,7 @@ const getColumns = (
       <DataTableColumnHeader column={column} title={t('UserColumns.status')} />
     ),
     cell: ({ row }) => {
-      const status = row.getValue('status') as string;
+      const status = (row.getValue('status') as string) || '';
       const variant = {
         accepted: 'success',
         confirmed: 'success',
@@ -98,9 +98,11 @@ const getColumns = (
         rejected: 'destructive',
       }[status.toLowerCase()] ?? ('default' as any);
 
+      const translationKey = `QuotesPage.quoteDialog.${status.toLowerCase()}`;
+
       return (
         <Badge variant={variant} className="capitalize">
-          {t(`QuotesPage.quoteDialog.${status.toLowerCase()}`)}
+          {t(translationKey)}
         </Badge>
       );
     },
@@ -111,7 +113,7 @@ const getColumns = (
       <DataTableColumnHeader column={column} title={t('Navigation.Payments')} />
     ),
      cell: ({ row }) => {
-      const status = row.getValue('payment_status') as string;
+      const status = (row.getValue('payment_status') as string) || '';
       const variant = {
         paid: 'success',
         partial: 'info',
@@ -120,11 +122,13 @@ const getColumns = (
       }[status.toLowerCase()] ?? ('default'as any);
       
       const statusKeyMap: { [key: string]: string } = {
-        'partially paid': 'partially_paid'
+        'partially paid': 'partiallyPaid',
+        'unpaid': 'unpaid',
+        'paid': 'paid',
+        'partial': 'partial',
       };
       
-      const normalizedStatus = statusKeyMap[status.toLowerCase()] || status.toLowerCase();
-      const translationKey = `QuotesPage.quoteDialog.${normalizedStatus}`;
+      const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[status.toLowerCase()] || status.toLowerCase()}`;
 
       return (
         <Badge variant={variant} className="capitalize">
@@ -139,7 +143,7 @@ const getColumns = (
       <DataTableColumnHeader column={column} title={t('QuoteColumns.billingStatus')} />
     ),
      cell: ({ row }) => {
-      const status = row.getValue('billing_status') as string;
+      const status = (row.getValue('billing_status') as string) || '';
       const variant = {
         invoiced: 'success',
         'partially invoiced': 'info',
@@ -149,12 +153,10 @@ const getColumns = (
       const statusKeyMap: { [key: string]: string } = {
         'not invoiced': 'notInvoiced',
         'partially invoiced': 'partiallyInvoiced',
-        invoiced: 'invoiced',
+        'invoiced': 'invoiced'
       };
-      
-      const normalizedStatus = status.toLowerCase();
-      const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[normalizedStatus] || normalizedStatus}`;
 
+      const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[status.toLowerCase()] || status.toLowerCase()}`;
 
       return (
         <Badge variant={variant} className="capitalize">
@@ -238,5 +240,3 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
     </Card>
   );
 }
-
-    

@@ -613,7 +613,9 @@
       "title": "Crear Nueva Cita",
       "description": "Completa los detalles a continuación para crear una nueva cita.",
       "cancelAppointmentTitle": "Cancelar Cita",
-      "cancelAppointmentDescription": "¿Estás seguro que quieres cancelar la cita para {serviceName} el {date}?",
+      "cancelAppointmentDescription": "¿Estás seguro de que quieres cancelar la cita para {serviceName} el {date}?",
+      "confirmCancel": "Cancelar cita",
+      "close": "Cerrar",
       "userName": "Nombre de Usuario",
       "selectUser": "Seleccionar un usuario",
       "searchUserPlaceholder": "Buscar por nombre o correo...",
@@ -1053,5 +1055,3 @@
     "noResults": "No se encontraron resultados."
   }
 }
-
-    

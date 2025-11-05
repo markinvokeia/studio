@@ -614,6 +614,8 @@
       "description": "Fill in the details below to create a new appointment.",
       "cancelAppointmentTitle": "Cancel Appointment",
       "cancelAppointmentDescription": "Are you sure you want to cancel the appointment for {serviceName} on {date}?",
+      "confirmCancel": "Cancel appointment",
+      "close": "Close",
       "userName": "User Name",
       "selectUser": "Select a user",
       "searchUserPlaceholder": "Search by name or email...",
@@ -1053,5 +1055,3 @@
     "noResults": "No results."
   }
 }
-
-    
