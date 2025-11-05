@@ -97,7 +97,10 @@
       "selectBillingStatus": "Seleccione estado de facturación",
       "notInvoiced": "No Facturado",
       "partiallyInvoiced": "Parcialmente Facturado",
-      "invoiced": "Facturado"
+      "invoiced": "Facturado",
+      "cancel": "Cancelar",
+      "save": "Crear Cotización",
+      "editSave": "Guardar Cambios"
     },
     "itemDialog": {
       "createTitle": "Añadir Ítem a la Cotización",
