@@ -219,8 +219,9 @@ export function Header() {
         });
 
         const responseData = await response.json();
-
+        
         if (!response.ok) {
+            // Use the specific message from the API response if available
             throw new Error(responseData.message || tChangePassword('errors.generic'));
         }
 
