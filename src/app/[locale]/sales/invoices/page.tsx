@@ -155,6 +155,17 @@ export default function InvoicesPage() {
         setSelectedInvoice(null);
         setRowSelection({});
     };
+    
+    const columnTranslations = {
+        id: t('columns.invoiceId'),
+        user_name: t('columns.user'),
+        order_id: t('columns.orderId'),
+        quote_id: t('columns.quoteId'),
+        total: t('columns.total'),
+        status: t('columns.status'),
+        payment_status: t('columns.payment'),
+        createdAt: t('columns.createdAt'),
+    };
 
     return (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
@@ -173,6 +184,7 @@ export default function InvoicesPage() {
                             isRefreshing={isLoadingInvoices}
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}
+                            columnTranslations={columnTranslations}
                         />
                     </CardContent>
                 </Card>

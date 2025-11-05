@@ -57,9 +57,10 @@ interface InvoicesTableProps {
   isRefreshing?: boolean;
   rowSelection?: RowSelectionState;
   setRowSelection?: (selection: RowSelectionState) => void;
+  columnTranslations?: { [key: string]: string };
 }
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, rowSelection, setRowSelection }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, rowSelection, setRowSelection, columnTranslations }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
@@ -333,6 +334,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           isRefreshing={isRefreshing}
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
+          columnTranslations={columnTranslations}
         />
       </CardContent>
     </Card>
