@@ -201,7 +201,8 @@
     "status": {
       "scheduled": "Scheduled",
       "completed": "Completed",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "invoiced": "Invoiced"
     },
     "actions": {
       "openMenu": "Open menu",
@@ -1128,5 +1129,3 @@
     "noResults": "No results."
   }
 }
-
-    

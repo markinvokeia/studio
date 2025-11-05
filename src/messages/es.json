@@ -201,7 +201,8 @@
     "status": {
       "scheduled": "Programado",
       "completed": "Completado",
-      "cancelled": "Cancelado"
+      "cancelled": "Cancelado",
+      "invoiced": "Facturado"
     },
     "actions": {
       "openMenu": "Abrir menú",
@@ -686,7 +687,7 @@
       "title": "Crear Nueva Cita",
       "description": "Completa los detalles a continuación para crear una nueva cita.",
       "cancelAppointmentTitle": "Cancelar Cita",
-      "cancelAppointmentDescription": "¿Estás seguro de que quieres cancelar la cita para {serviceName} el {date}?",
+      "cancelAppointmentDescription": "¿Estás seguro que deseas cancelar la cita para {serviceName} el {date}?",
       "confirmCancel": "Cancelar cita",
       "close": "Cerrar",
       "userName": "Nombre de Usuario",
@@ -1128,5 +1129,3 @@
     "noResults": "No se encontraron resultados."
   }
 }
-
-    
