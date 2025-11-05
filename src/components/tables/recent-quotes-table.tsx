@@ -100,7 +100,7 @@ const getColumns = (
 
       return (
         <Badge variant={variant} className="capitalize">
-          {status}
+          {t(`QuotesPage.quoteDialog.${status.toLowerCase()}`)}
         </Badge>
       );
     },
@@ -116,11 +116,12 @@ const getColumns = (
         paid: 'success',
         partial: 'info',
         unpaid: 'outline',
+        partially_paid: 'info',
       }[status.toLowerCase()] ?? ('default'as any);
 
       return (
         <Badge variant={variant} className="capitalize">
-          {status}
+          {t(`QuotesPage.quoteDialog.${status.toLowerCase()}`)}
         </Badge>
       );
     },
@@ -140,7 +141,7 @@ const getColumns = (
 
       return (
         <Badge variant={variant} className="capitalize">
-          {status}
+          {t(`QuotesPage.quoteDialog.${status.toLowerCase().replace(/ /g, '')}`)}
         </Badge>
       );
     },
