@@ -178,6 +178,8 @@
       "createError": "Could not create invoice."
     },
     "status": {
+      "label": "Status",
+      "select": "Select a status",
       "pending": "Pending",
       "processing": "Processing",
       "completed": "Completed",

@@ -178,6 +178,8 @@
       "createError": "No se pudo crear la factura."
     },
     "status": {
+      "label": "Estado",
+      "select": "Seleccionar un estado",
       "pending": "Pendiente",
       "processing": "Procesando",
       "completed": "Completado",
