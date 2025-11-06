@@ -59,30 +59,29 @@
     "goToLast": "Ir a la última página"
   },
   "ChangePasswordDialog": {
-      "title": "Cambiar Contraseña",
-      "oldPassword": "Contraseña Actual",
-      "newPassword": "Nueva Contraseña",
-      "confirmPassword": "Confirmar Nueva Contraseña",
-      "cancel": "Cancelar",
-      "save": "Guardar Cambios",
-      "validation": {
-          "oldPasswordRequired": "La contraseña actual es requerida.",
-          "newPasswordMin": "La nueva contraseña debe tener al menos 8 caracteres, incluir una mayúscula y un número.",
-          "newPasswordUpper": "La nueva contraseña debe contener una letra mayúscula.",
-          "newPasswordNumber": "La nueva contraseña debe contener un número.",
-          "passwordsMismatch": "Las contraseñas no coinciden."
-      },
-      "errors": {
-          "title": "Error",
-          "noToken": "No se encontró el token de autenticación. Por favor, inicie sesión de nuevo.",
-          "generic": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
-          "incorrectOldPassword": "La contraseña actual no es correcta.",
-          "invalidNewPassword": "La nueva contraseña no es válida."
-      },
-      "success": {
-          "title": "Éxito",
-          "description": "Su contraseña ha sido cambiada exitosamente."
-      }
+    "title": "Cambiar Contraseña",
+    "oldPassword": "Contraseña Actual",
+    "newPassword": "Nueva Contraseña",
+    "confirmPassword": "Confirmar Nueva Contraseña",
+    "cancel": "Cancelar",
+    "save": "Guardar Cambios",
+    "validation": {
+      "oldPasswordRequired": "La contraseña actual es requerida.",
+      "newPasswordMin": "La nueva contraseña debe tener al menos 8 caracteres.",
+      "newPasswordUpper": "La nueva contraseña debe contener una letra mayúscula.",
+      "newPasswordNumber": "La nueva contraseña debe contener un número.",
+      "passwordsMismatch": "Las contraseñas no coinciden."
+    },
+    "errors": {
+      "title": "Error",
+      "noToken": "No se encontró el token de autenticación. Por favor, inicie sesión de nuevo.",
+      "generic": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
+      "incorrectOldPassword": "La contraseña actual no es correcta."
+    },
+    "success": {
+      "title": "Éxito",
+      "description": "Su contraseña ha sido cambiada exitosamente."
+    }
   },
   "QuotesPage": {
     "title": "Cotizaciones",
@@ -620,7 +619,8 @@
     "settings": "Configuración",
     "support": "Soporte",
     "logout": "Cerrar Sesión",
-    "commandPlaceholder": "Introduce un comando..."
+    "commandPlaceholder": "Introduce un comando...",
+    "changePassword": "Cambiar Contraseña"
   },
   "LoginPage": {
     "title": "Bienvenido de Nuevo",
