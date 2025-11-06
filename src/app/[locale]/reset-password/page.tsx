@@ -69,7 +69,8 @@ export default function ResetPasswordPage() {
   const onSelectLocale = (newLocale: string) => {
     localStorage.setItem('locale', newLocale);
     const newPathname = pathname.replace(`/${locale}`, `/${newLocale}`);
-    router.replace(newPathname);
+    const newUrl = `${newPathname}?${searchParams.toString()}`;
+    router.replace(newUrl);
   };
 
   const onSubmit: SubmitHandler<PasswordResetFormValues> = async (data) => {
