@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -101,62 +102,73 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="relative h-screen w-screen flex items-center justify-center bg-muted">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-            <Image
-              src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp"
-              width={80}
-              height={80}
-              alt="InvokeIA Logo"
-              className="mx-auto mb-4"
-            />
-          <CardTitle>Set New Password</CardTitle>
-          <CardDescription>Enter your new password below.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="new_password"
-                render={({ field }) => (
-                  <FormItem>
-                    <Label htmlFor="new_password">New Password</Label>
-                    <FormControl>
-                      <Input id="new_password" type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="confirm_password"
-                render={({ field }) => (
-                  <FormItem>
-                    <Label htmlFor="confirm_password">Confirm New Password</Label>
-                    <FormControl>
-                      <Input id="confirm_password" type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={isLoading || !token}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Set New Password'}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+    <div className="relative h-screen w-screen overflow-hidden">
+        <video
+            className="absolute top-0 left-0 w-full h-full object-cover"
+            src="/videos/login_promo.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+        />
+        <div className="absolute top-0 left-0 w-full h-full bg-black opacity-50" />
+      <div className="relative h-screen w-screen flex items-center justify-center">
+        <Card className="w-full max-w-sm">
+            <CardHeader className="text-center">
+                <Image
+                src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp"
+                width={80}
+                height={80}
+                alt="InvokeIA Logo"
+                className="mx-auto mb-4"
+                />
+            <CardTitle>Set New Password</CardTitle>
+            <CardDescription>Enter your new password below.</CardDescription>
+            </CardHeader>
+            <CardContent>
+            {error && (
+                <Alert variant="destructive" className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            )}
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                    control={form.control}
+                    name="new_password"
+                    render={({ field }) => (
+                    <FormItem>
+                        <Label htmlFor="new_password">New Password</Label>
+                        <FormControl>
+                        <Input id="new_password" type="password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="confirm_password"
+                    render={({ field }) => (
+                    <FormItem>
+                        <Label htmlFor="confirm_password">Confirm New Password</Label>
+                        <FormControl>
+                        <Input id="confirm_password" type="password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <Button type="submit" className="w-full" disabled={isLoading || !token}>
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Set New Password'}
+                </Button>
+                </form>
+            </Form>
+            </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
