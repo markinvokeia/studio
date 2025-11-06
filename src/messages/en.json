@@ -83,6 +83,31 @@
       "description": "Your password has been changed successfully."
     }
   },
+  "ResetPasswordPage": {
+    "title": "Set New Password",
+    "description": "Enter your new password below.",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "submitButton": "Set New Password",
+    "validation": {
+      "newPasswordMin": "Password must be at least 8 characters long.",
+      "newPasswordUpper": "Password must contain at least one uppercase letter.",
+      "newPasswordNumber": "Password must contain at least one number.",
+      "passwordsMismatch": "Passwords don't match."
+    },
+    "errors": {
+      "title": "Error",
+      "tokenMissing": "No recovery token provided. Please request a new password recovery link.",
+      "invalidToken": "The recovery token is invalid or has expired. Please request a new one.",
+      "invalidPassword": "The new password is not valid.",
+      "serverError": "A server error occurred. Please try again later.",
+      "generic": "An unexpected error occurred."
+    },
+    "success": {
+      "title": "Password Reset Successful",
+      "description": "You can now log in with your new password."
+    }
+  },
   "QuotesPage": {
     "title": "Quotes",
     "description": "Manage all quotes.",

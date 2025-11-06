@@ -83,6 +83,31 @@
       "description": "Su contraseña ha sido cambiada exitosamente."
     }
   },
+  "ResetPasswordPage": {
+    "title": "Establecer Nueva Contraseña",
+    "description": "Ingrese su nueva contraseña a continuación.",
+    "newPassword": "Nueva Contraseña",
+    "confirmPassword": "Confirmar Nueva Contraseña",
+    "submitButton": "Establecer Nueva Contraseña",
+    "validation": {
+      "newPasswordMin": "La contraseña debe tener al menos 8 caracteres.",
+      "newPasswordUpper": "La contraseña debe contener al menos una letra mayúscula.",
+      "newPasswordNumber": "La contraseña debe contener al menos un número.",
+      "passwordsMismatch": "Las contraseñas no coinciden."
+    },
+    "errors": {
+      "title": "Error",
+      "tokenMissing": "No se proporcionó un token de recuperación. Por favor, solicite un nuevo enlace.",
+      "invalidToken": "El token de recuperación no es válido o ha expirado. Por favor, solicite uno nuevo.",
+      "invalidPassword": "La nueva contraseña no es válida.",
+      "serverError": "Ocurrió un error en el servidor. Por favor, inténtelo de nuevo más tarde.",
+      "generic": "Ocurrió un error inesperado."
+    },
+    "success": {
+      "title": "Contraseña Restablecida con Éxito",
+      "description": "Ahora puede iniciar sesión con su nueva contraseña."
+    }
+  },
   "QuotesPage": {
     "title": "Cotizaciones",
     "description": "Gestionar todas las cotizaciones.",
