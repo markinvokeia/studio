@@ -111,6 +111,17 @@ export function Header() {
     },
   });
 
+  React.useEffect(() => {
+    if (isChangePasswordOpen) {
+      form.reset({
+        old_password: '',
+        new_password: '',
+        confirm_password: '',
+      });
+      setPasswordChangeError(null);
+    }
+  }, [isChangePasswordOpen, form]);
+
   const onSelectLocale = (newLocale: string) => {
     const newPathname = pathname.replace(`/${locale}`, `/${newLocale}`);
     const newUrl = `${newPathname}?${searchParams.toString()}`;
@@ -236,7 +247,6 @@ export function Header() {
             description: responseData.message || tChangePassword('success.description'),
         });
         setIsChangePasswordOpen(false);
-        form.reset();
 
     } catch (error) {
         setPasswordChangeError(error instanceof Error ? error.message : tChangePassword('errors.generic'));
@@ -453,3 +463,5 @@ export function Header() {
     </>
   );
 }
+
+    
