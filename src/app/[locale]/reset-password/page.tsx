@@ -117,22 +117,13 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden">
-        <video
-            className="absolute top-0 left-0 w-full h-full object-cover"
-            src="/videos/login_promo.mp4"
-            autoPlay
-            muted
-            loop
-            playsInline
-        />
-        <div className="absolute top-0 left-0 w-full h-full bg-black opacity-50" />
+    <div className="relative h-screen w-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
          <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="bg-white/20 text-white backdrop-blur-sm">
-                <Globe className="h-[1.2rem] w-[1.2rem]" />
-                <span className="sr-only">{tHeader('toggleLanguage')}</span>
+                <Button variant="outline" size="icon">
+                    <Globe className="h-[1.2rem] w-[1.2rem]" />
+                    <span className="sr-only">{tHeader('toggleLanguage')}</span>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -158,10 +149,10 @@ export default function ResetPasswordPage() {
             </DropdownMenu>
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="bg-white/20 text-white backdrop-blur-sm">
-                <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                <span className="sr-only">Toggle theme</span>
+                <Button variant="outline" size="icon">
+                    <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                    <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                    <span className="sr-only">Toggle theme</span>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -171,7 +162,6 @@ export default function ResetPasswordPage() {
             </DropdownMenuContent>
             </DropdownMenu>
       </div>
-      <div className="relative h-screen w-screen flex items-center justify-center">
         <Card className="w-full max-w-sm">
             <CardHeader className="text-center">
                 <Image
@@ -227,7 +217,6 @@ export default function ResetPasswordPage() {
             </Form>
             </CardContent>
         </Card>
-      </div>
     </div>
   );
 }
