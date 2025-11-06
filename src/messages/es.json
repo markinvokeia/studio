@@ -67,7 +67,7 @@
       "save": "Guardar Cambios",
       "validation": {
           "oldPasswordRequired": "La contraseña actual es requerida.",
-          "newPasswordMin": "La nueva contraseña debe tener al menos 8 caracteres.",
+          "newPasswordMin": "La nueva contraseña debe tener al menos 8 caracteres, incluir una mayúscula y un número.",
           "newPasswordUpper": "La nueva contraseña debe contener una letra mayúscula.",
           "newPasswordNumber": "La nueva contraseña debe contener un número.",
           "passwordsMismatch": "Las contraseñas no coinciden."
@@ -617,7 +617,8 @@
     "english": "English",
     "spanish": "Español",
     "myAccount": "Mi Cuenta",
-    "changePassword": "Cambiar Contraseña",
+    "settings": "Configuración",
+    "support": "Soporte",
     "logout": "Cerrar Sesión",
     "commandPlaceholder": "Introduce un comando..."
   },

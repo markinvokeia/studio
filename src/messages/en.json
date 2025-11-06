@@ -67,7 +67,7 @@
     "save": "Save Changes",
     "validation": {
         "oldPasswordRequired": "Current password is required.",
-        "newPasswordMin": "New password must be at least 8 characters.",
+        "newPasswordMin": "New password must be at least 8 characters, include an uppercase letter and a number.",
         "newPasswordUpper": "New password must contain an uppercase letter.",
         "newPasswordNumber": "New password must contain a number.",
         "passwordsMismatch": "Passwords do not match."
@@ -617,7 +617,8 @@
     "english": "English",
     "spanish": "Español",
     "myAccount": "My Account",
-    "changePassword": "Change Password",
+    "settings": "Settings",
+    "support": "Support",
     "logout": "Logout",
     "commandPlaceholder": "Enter a command..."
   },
