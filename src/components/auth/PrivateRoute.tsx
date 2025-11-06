@@ -16,19 +16,19 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const locale = useLocale();
 
-  const isLoginPage = pathname === `/${locale}/login`;
+  const isPublicPage = pathname === `/${locale}/login` || pathname.startsWith(`/${locale}/reset-password`);
 
   React.useEffect(() => {
     if (!isLoading) {
-      if (!user && !isLoginPage) {
+      if (!user && !isPublicPage) {
         router.replace(`/${locale}/login`);
-      } else if (user && isLoginPage) {
+      } else if (user && isPublicPage && !pathname.startsWith(`/${locale}/reset-password`)) { // Allow authenticated users on reset-password
         router.replace(`/${locale}`);
       }
     }
-  }, [user, isLoading, isLoginPage, router, locale]);
+  }, [user, isLoading, isPublicPage, pathname, router, locale]);
 
-  if (isLoading && !isLoginPage) {
+  if (isLoading && !isPublicPage) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <p>Loading...</p>
@@ -36,15 +36,15 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
     );
   }
   
-  if (!user && !isLoginPage) {
+  if (!user && !isPublicPage) {
     return null; // or a loading spinner, since the redirect is happening
   }
 
-  if (user && isLoginPage) {
+  if (user && isPublicPage && !pathname.startsWith(`/${locale}/reset-password`)) {
      return null;
   }
 
-  if (isLoginPage) {
+  if (isPublicPage) {
     return <>{children}</>;
   }
   
