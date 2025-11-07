@@ -21,7 +21,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { UsFlagIcon } from '@/components/icons/us-flag-icon';
 import { UyFlagIcon } from '@/components/icons/uy-flag-icon';
 
-const passwordResetSchema = (t: (key: string) => string) => z.object({
+const setFirstPasswordSchema = (t: (key: string) => string) => z.object({
     new_password: z.string()
         .min(8, t('validation.newPasswordMin'))
         .regex(/[A-Z]/, t('validation.newPasswordUpper'))
@@ -32,15 +32,15 @@ const passwordResetSchema = (t: (key: string) => string) => z.object({
     path: ['confirm_password'],
 });
 
-type PasswordResetFormValues = z.infer<ReturnType<typeof passwordResetSchema>>;
+type SetFirstPasswordFormValues = z.infer<ReturnType<typeof setFirstPasswordSchema>>;
 
-export default function ResetPasswordPage() {
+export default function SetFirstPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const locale = useLocale();
   const pathname = usePathname();
-  const t = useTranslations('ResetPasswordPage');
+  const t = useTranslations('SetFirstPasswordPage');
   const tHeader = useTranslations('Header');
   const { setTheme } = useTheme();
 
@@ -48,8 +48,8 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const form = useForm<PasswordResetFormValues>({
-    resolver: zodResolver(passwordResetSchema(t)),
+  const form = useForm<SetFirstPasswordFormValues>({
+    resolver: zodResolver(setFirstPasswordSchema(t)),
     defaultValues: {
       new_password: '',
       confirm_password: '',
@@ -72,7 +72,7 @@ export default function ResetPasswordPage() {
     router.replace(newUrl);
   };
 
-  const onSubmit: SubmitHandler<PasswordResetFormValues> = async (data) => {
+  const onSubmit: SubmitHandler<SetFirstPasswordFormValues> = async (data) => {
     if (!token) {
         setError(t('errors.tokenMissing'));
         return;
@@ -81,20 +81,26 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
 
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/recover/change?token=${token}`, {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/set-first-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ new_password: data.new_password }),
+            body: JSON.stringify({ 
+                token: token,
+                new_password: data.new_password,
+                confirm_password: data.confirm_password
+            }),
         });
 
         const responseData = await response.json().catch(() => ({}));
 
         if (!response.ok) {
             let errorMessage = t('errors.generic');
-            if (response.status === 400) {
-                errorMessage = responseData.message || t('errors.invalidPassword');
+             if (response.status === 400) {
+                errorMessage = responseData.error || t('errors.invalidPassword');
             } else if (response.status === 401) {
-                errorMessage = t('errors.invalidToken');
+                errorMessage = responseData.error || t('errors.invalidToken');
+            } else if (response.status === 403) {
+                errorMessage = responseData.error || t('errors.alreadySet');
             } else if (response.status === 500) {
                 errorMessage = t('errors.serverError');
             }

@@ -108,6 +108,32 @@
       "description": "You can now log in with your new password."
     }
   },
+  "SetFirstPasswordPage": {
+    "title": "Set Your Password",
+    "description": "Create a password for your new account.",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "submitButton": "Set Password",
+    "validation": {
+      "newPasswordMin": "Password must be at least 8 characters.",
+      "newPasswordUpper": "Password must contain at least one uppercase letter.",
+      "newPasswordNumber": "Password must contain at least one number.",
+      "passwordsMismatch": "Passwords do not match."
+    },
+    "errors": {
+      "title": "Error",
+      "tokenMissing": "No invitation token provided. Please use the link from your email.",
+      "invalidToken": "The invitation token is invalid or has expired. Please contact support.",
+      "invalidPassword": "The provided password is not valid.",
+      "alreadySet": "A password has already been set for this account.",
+      "serverError": "A server error occurred. Please try again later.",
+      "generic": "An unexpected error occurred."
+    },
+    "success": {
+      "title": "Password Set Successfully",
+      "description": "You can now log in with your new password."
+    }
+  },
   "QuotesPage": {
     "title": "Quotes",
     "description": "Manage all quotes.",

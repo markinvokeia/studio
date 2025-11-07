@@ -108,6 +108,32 @@
       "description": "Ahora puede iniciar sesión con su nueva contraseña."
     }
   },
+  "SetFirstPasswordPage": {
+    "title": "Establece tu Contraseña",
+    "description": "Crea una contraseña para tu nueva cuenta.",
+    "newPassword": "Nueva Contraseña",
+    "confirmPassword": "Confirmar Contraseña",
+    "submitButton": "Establecer Contraseña",
+    "validation": {
+      "newPasswordMin": "La contraseña debe tener al menos 8 caracteres.",
+      "newPasswordUpper": "La contraseña debe contener al menos una letra mayúscula.",
+      "newPasswordNumber": "La contraseña debe contener al menos un número.",
+      "passwordsMismatch": "Las contraseñas no coinciden."
+    },
+    "errors": {
+      "title": "Error",
+      "tokenMissing": "No se proporcionó un token de invitación. Por favor, utiliza el enlace de tu correo.",
+      "invalidToken": "El token de invitación no es válido o ha expirado. Por favor, contacta a soporte.",
+      "invalidPassword": "La contraseña proporcionada no es válida.",
+      "alreadySet": "Ya se ha establecido una contraseña para esta cuenta.",
+      "serverError": "Ocurrió un error en el servidor. Por favor, inténtalo de nuevo más tarde.",
+      "generic": "Ocurrió un error inesperado."
+    },
+    "success": {
+      "title": "Contraseña Establecida con Éxito",
+      "description": "Ahora puedes iniciar sesión con tu nueva contraseña."
+    }
+  },
   "QuotesPage": {
     "title": "Cotizaciones",
     "description": "Gestionar todas las cotizaciones.",
