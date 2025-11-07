@@ -175,6 +175,7 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+  const [canSetFirstPassword, setCanSetFirstPassword] = React.useState(false);
 
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -286,14 +287,41 @@ export default function UsersPage() {
     setSelectedUser(user);
   };
 
-  React.useEffect(() => {
+    React.useEffect(() => {
+    const checkFirstPasswordRequirements = async () => {
+        if (!selectedUser) {
+            setCanSetFirstPassword(false);
+            return;
+        }
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setCanSetFirstPassword(false);
+            return;
+        }
+
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/check-requirements-first-password?user_id=${selectedUser.id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            setCanSetFirstPassword(response.ok);
+        } catch (error) {
+            console.error("Failed to check first password requirements:", error);
+            setCanSetFirstPassword(false);
+        }
+    };
+
     if (selectedUser) {
       loadUserRoles(selectedUser.id);
+      checkFirstPasswordRequirements();
     } else {
       setSelectedUserRoles([]);
+      setCanSetFirstPassword(false);
     }
   }, [selectedUser, loadUserRoles]);
-  
+
   const handleCloseDetails = () => {
     setSelectedUser(null);
     setRowSelection({});
@@ -341,11 +369,6 @@ export default function UsersPage() {
         }
     }
   };
-
-  const userHasNonPatientRole = React.useMemo(() => {
-    if (!selectedUserRoles || selectedUserRoles.length === 0) return false;
-    return selectedUserRoles.some(role => role.name.toLowerCase() !== 'paciente' && role.is_active);
-  }, [selectedUserRoles]);
 
   const handleSendInitialPassword = async () => {
     if (!selectedUser) return;
@@ -414,7 +437,7 @@ export default function UsersPage() {
                     <CardTitle>{t('UsersPage.detailsFor', {name: selectedUser.name})}</CardTitle>
                 </div>
                  <div className="flex items-center gap-2">
-                    {userHasNonPatientRole && (
+                    {canSetFirstPassword && (
                         <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
                             <KeyRound className="mr-2 h-4 w-4" />
                             {t('UsersPage.setInitialPassword')}
