@@ -134,6 +134,63 @@
       "description": "You can now log in with your new password."
     }
   },
+  "SchedulesPage": {
+    "title": "Clinic Schedules",
+    "description": "Manage standard opening hours for the clinic.",
+    "filterPlaceholder": "Filter by day...",
+    "createDialog": {
+      "title": "Create New Schedule",
+      "description": "Define a new schedule for a day of the week.",
+      "editTitle": "Edit Schedule",
+      "editDescription": "Update the schedule for this day.",
+      "dayOfWeek": "Day of the Week",
+      "selectDay": "Select a day",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "cancel": "Cancel",
+      "save": "Create Schedule",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the schedule. This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Schedule Created",
+      "editSuccessTitle": "Schedule Updated",
+      "successDescription": "The schedule has been saved successfully.",
+      "deleteSuccessTitle": "Schedule Deleted",
+      "deleteSuccessDescription": "The schedule has been deleted.",
+      "deleteErrorDescription": "Could not delete the schedule."
+    },
+    "validation": {
+      "dayRequired": "Day of the week is required.",
+      "startRequired": "Start time is required.",
+      "endRequired": "End time is required."
+    },
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "columns": {
+      "id": "ID",
+      "dayOfWeek": "Day of Week",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    }
+  },
   "QuotesPage": {
     "title": "Quotes",
     "description": "Manage all quotes.",
