@@ -29,7 +29,7 @@ import { UserQuotes } from '@/components/users/user-quotes';
 import { UserMessages } from '@/components/users/user-messages';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserLogs } from '@/components/users/user-logs';
-import { X, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle, KeyRound } from 'lucide-react';
 import { RowSelectionState, PaginationState, ColumnFiltersState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
@@ -342,10 +342,37 @@ export default function UsersPage() {
     }
   };
 
-  const userHasMedicoRole = React.useMemo(() => {
-    return selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active);
+  const userHasNonPatientRole = React.useMemo(() => {
+    if (!selectedUserRoles || selectedUserRoles.length === 0) return false;
+    return selectedUserRoles.some(role => role.name.toLowerCase() !== 'paciente' && role.is_active);
   }, [selectedUserRoles]);
-  
+
+  const handleSendInitialPassword = async () => {
+    if (!selectedUser) return;
+    const token = localStorage.getItem('token');
+    if (!token) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Authentication token not found.' });
+        return;
+    }
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/first-time-password-token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ user_id: selectedUser.id }),
+        });
+        const responseData = await response.json();
+        if (!response.ok) {
+            throw new Error(responseData.message || 'Failed to send password email.');
+        }
+        toast({ title: 'Email Sent', description: responseData.message });
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'An unexpected error occurred.' });
+    }
+  };
+
   return (
     <>
     <div className={cn("grid grid-cols-1 gap-4", selectedUser ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
@@ -386,16 +413,24 @@ export default function UsersPage() {
                 <div>
                     <CardTitle>{t('UsersPage.detailsFor', {name: selectedUser.name})}</CardTitle>
                 </div>
-                <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
-                    <X className="h-5 w-5" />
-                    <span className="sr-only">{t('UsersPage.close')}</span>
-                </Button>
+                 <div className="flex items-center gap-2">
+                    {userHasNonPatientRole && (
+                        <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
+                            <KeyRound className="mr-2 h-4 w-4" />
+                            {t('UsersPage.setInitialPassword')}
+                        </Button>
+                    )}
+                    <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
+                        <X className="h-5 w-5" />
+                        <span className="sr-only">{t('UsersPage.close')}</span>
+                    </Button>
+                </div>
             </CardHeader>
               <CardContent>
                 <Tabs defaultValue="roles" className="w-full">
                    <TabsList className="h-auto items-center justify-start flex-wrap">
                     <TabsTrigger value="roles">{t('UsersPage.tabs.roles')}</TabsTrigger>
-                    {userHasMedicoRole && (
+                    {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
                         <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
                     )}
                     <TabsTrigger value="quotes">{t('UsersPage.tabs.quotes')}</TabsTrigger>
@@ -412,7 +447,7 @@ export default function UsersPage() {
                         onRolesChange={() => loadUserRoles(selectedUser.id)}
                     />
                   </TabsContent>
-                  {userHasMedicoRole && (
+                  {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
                     <TabsContent value="services">
                       <UserServices userId={selectedUser.id} />
                     </TabsContent>
