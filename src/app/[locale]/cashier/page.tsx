@@ -443,7 +443,7 @@ export default function CashierPage() {
         );
     }
 
-    return <OpenSessionDashboard cashPoints={cashPoints} onOpenSession={handleOpenSession} setActiveSession={handleSetActiveSession} showDenominations={showDenominations} />;
+    return <OpenSessionDashboard cashPoints={cashPoints} onOpenSession={handleOpenSession} setActiveSession={setActiveSession} showDenominations={showDenominations} />;
 }
 
 function CashPointCardForm({ cashPoint, onOpenSession, showDenominations, disabled = false }: { cashPoint: CashPointStatus, onOpenSession: (values: any) => void, showDenominations: boolean, disabled?: boolean }) {
@@ -491,7 +491,7 @@ function CashPointCardForm({ cashPoint, onOpenSession, showDenominations, disabl
                 <CardContent>
                     {showDenominations ? (
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-x-8 gap-y-3 p-1">
+                            <div className="grid grid-cols-2 gap-x-8 gap-y-3 p-1 min-w-[500px]">
                                 {denominations.map(den => (
                                     <div key={den} className="grid grid-cols-3 items-center gap-2">
                                         <Label htmlFor={`den-${den}`} className="text-right">
