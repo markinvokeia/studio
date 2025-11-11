@@ -491,29 +491,27 @@ function CashPointCardForm({ cashPoint, onOpenSession, showDenominations, disabl
                 <CardContent>
                     {showDenominations ? (
                         <div className="space-y-4">
-                            <ScrollArea className="h-64">
-                                <div className="space-y-3 p-1">
-                                    {denominations.map(den => (
-                                        <div key={den} className="grid grid-cols-3 items-center gap-2">
-                                            <Label htmlFor={`den-${den}`} className="text-right">
-                                                $ {den}
-                                            </Label>
-                                            <Input
-                                                id={`den-${den}`}
-                                                type="number"
-                                                placeholder="Qty"
-                                                min="0"
-                                                value={denominationQuantities[den] || ''}
-                                                onChange={(e) => handleDenominationChange(den, e.target.value)}
-                                                disabled={disabled}
-                                            />
-                                            <span className="text-sm text-muted-foreground font-mono w-20 text-right">
-                                                $ {(denominationQuantities[den] * den).toFixed(2)}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </ScrollArea>
+                            <div className="grid grid-cols-2 gap-x-8 gap-y-3 p-1">
+                                {denominations.map(den => (
+                                    <div key={den} className="grid grid-cols-3 items-center gap-2">
+                                        <Label htmlFor={`den-${den}`} className="text-right">
+                                            $ {den}
+                                        </Label>
+                                        <Input
+                                            id={`den-${den}`}
+                                            type="number"
+                                            placeholder="Qty"
+                                            min="0"
+                                            value={denominationQuantities[den] || ''}
+                                            onChange={(e) => handleDenominationChange(den, e.target.value)}
+                                            disabled={disabled}
+                                        />
+                                        <span className="text-sm text-muted-foreground font-mono w-20 text-right">
+                                            $ {(denominationQuantities[den] * den).toFixed(2)}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
                             <FormField
                                 control={form.control}
                                 name="montoApertura"
@@ -925,6 +923,8 @@ function CloseSessionWizard({
         </Card>
     );
 }
+
+    
 
     
 
