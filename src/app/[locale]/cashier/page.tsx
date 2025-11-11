@@ -491,7 +491,7 @@ function CashPointCardForm({ cashPoint, onOpenSession, showDenominations, disabl
                 <CardContent>
                     {showDenominations ? (
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-x-8 gap-y-3 p-1 min-w-[500px]">
+                            <div className="grid grid-cols-2 gap-x-8 gap-y-3 p-1">
                                 {denominations.map(den => (
                                     <div key={den} className="grid grid-cols-3 items-center gap-2">
                                         <Label htmlFor={`den-${den}`} className="text-right">
@@ -931,3 +931,4 @@ function CloseSessionWizard({
     
 
     
+
