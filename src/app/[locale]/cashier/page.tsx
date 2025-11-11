@@ -567,7 +567,7 @@ function OpenSessionDashboard({ cashPoints, onOpenSession, setActiveSession, sho
     [cashPoints, user]);
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
             {cashPoints.map(cp => {
                 const isThisUsersSession = cp.status === 'OPEN' && cp.session?.usuarioId === user?.id;
                 const isDisabled = userHasActiveSession && !isThisUsersSession;
@@ -931,4 +931,5 @@ function CloseSessionWizard({
     
 
     
+
 
