@@ -51,9 +51,10 @@ interface OrdersTableProps {
   rowSelection?: RowSelectionState;
   setRowSelection?: (selection: RowSelectionState) => void;
   columnTranslations?: { [key: string]: string };
+  columnsToHide?: string[];
 }
 
-export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, columnTranslations }: OrdersTableProps) {
+export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, columnTranslations, columnsToHide = [] }: OrdersTableProps) {
     const t = useTranslations();
     const tOrderColumns = useTranslations('OrderColumns');
     const tUserColumns = useTranslations('UserColumns');
@@ -216,12 +217,13 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
       </div>
     );
   }
+  const filteredColumns = columns.filter(col => !columnsToHide.includes(col.accessorKey as string));
   return (
     <>
     <Card>
       <CardContent className="p-4">
         <DataTable
-          columns={columns}
+          columns={filteredColumns}
           data={orders}
           filterColumnId="user_name"
           filterPlaceholder={tOrdersPage('filterPlaceholder')}

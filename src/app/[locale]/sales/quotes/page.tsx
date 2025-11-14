@@ -740,6 +740,7 @@ export default function QuotesPage() {
                                         onRowSelectionChange={handleOrderSelectionChange} 
                                         onRefresh={loadOrders}
                                         isRefreshing={isLoadingOrders}
+                                        columnsToHide={['user_name', 'quote_id']}
                                     />
                                     {selectedOrder && (
                                         <div className="mt-4">
