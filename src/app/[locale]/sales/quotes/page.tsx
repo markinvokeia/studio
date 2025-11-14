@@ -49,7 +49,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
   user_id: z.string().min(1, t('quoteDialog.user')),
   total: z.coerce.number().min(0, 'Total must be a positive number'),
   status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed']),
-  payment_status: z.enum(['unpaid', 'paid', 'partial']),
+  payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially paid']),
   billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced']),
 });
 
@@ -344,7 +344,7 @@ async function getUsers(): Promise<User[]> {
   }
   
 async function upsertQuote(quoteData: QuoteFormValues) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3-easypanel.host/webhook/quote/upsert', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quotes/upsert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(quoteData),
