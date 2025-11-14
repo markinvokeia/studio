@@ -156,7 +156,7 @@ const getColumns = (
         'invoiced': 'invoiced'
       };
 
-      const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[status.toLowerCase()]}`;
+      const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[status.toLowerCase()] || 'notInvoiced'}`;
 
       return (
         <Badge variant={variant} className="capitalize">
