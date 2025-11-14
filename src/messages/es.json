@@ -1077,6 +1077,7 @@
     "filterPlaceholder": "Filtrar usuarios por email...",
     "detailsFor": "Detalles de {name}",
     "close": "Cerrar detalles",
+    "setInitialPassword": "Establecer Contraseña Inicial",
     "tabs": {
       "roles": "Roles",
       "services": "Servicios",
@@ -1207,65 +1208,6 @@
   "OrderColumns": {
     "orderId": "ID Pedido",
     "createdAt": "Fecha Creación"
-  },
-  "ConfigurationsPage": {
-    "title": "Configuraciones del Sistema",
-    "description": "Gestionar las configuraciones y ajustes de todo el sistema.",
-    "filterPlaceholder": "Filtrar por clave...",
-    "columns": {
-      "id": "ID",
-      "key": "Clave",
-      "value": "Valor",
-      "description": "Descripción",
-      "type": "Tipo de Dato",
-      "isPublic": "¿Es Público?",
-      "yes": "Sí",
-      "no": "No",
-      "updatedBy": "Actualizado Por",
-      "actions": "Acciones",
-      "edit": "Editar",
-      "delete": "Eliminar"
-    },
-    "dialog": {
-      "createTitle": "Crear Configuración",
-      "createDescription": "Añadir un nuevo par clave-valor a la configuración del sistema.",
-      "editTitle": "Editar Configuración",
-      "editDescription": "Actualizar el valor para esta clave de configuración.",
-      "key": "Clave",
-      "keyPlaceholder": "ej., SITE_NAME",
-      "value": "Valor",
-      "valuePlaceholder": "ej., Mi Increíble App",
-      "description": "Descripción",
-      "descriptionPlaceholder": "Una breve explicación de lo que hace esta clave.",
-      "dataType": "Tipo de Dato",
-      "selectDataType": "Seleccione un tipo de dato",
-      "isPublic": "Accesible Públicamente",
-      "isPublicDescription": "Si está marcado, esta configuración puede ser accedida por el código del lado del cliente.",
-      "cancel": "Cancelar",
-      "save": "Guardar Cambios",
-      "create": "Crear"
-    },
-    "deleteDialog": {
-      "title": "¿Estás seguro?",
-      "description": "Esto eliminará permanentemente la clave de configuración \"{key}\". Esta acción es irreversible.",
-      "cancel": "Cancelar",
-      "confirm": "Eliminar"
-    },
-    "toast": {
-      "errorTitle": "Error",
-      "genericError": "Ocurrió un error inesperado.",
-      "createTitle": "Configuración Creada",
-      "editTitle": "Configuración Actualizada",
-      "deleteTitle": "Configuración Eliminada",
-      "successDescription": "La configuración \"{key}\" se ha guardado correctamente.",
-      "deleteDescription": "La configuración \"{key}\" ha sido eliminada.",
-      "deleteError": "No se pudo eliminar la configuración."
-    },
-    "validation": {
-      "keyRequired": "La clave es obligatoria.",
-      "valueRequired": "El valor es obligatorio.",
-      "dataTypeRequired": "El tipo de dato es obligatorio."
-    }
   },
   "General": {
     "noResults": "No se encontraron resultados."
