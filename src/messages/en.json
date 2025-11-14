@@ -1077,7 +1077,6 @@
     "filterPlaceholder": "Filter users by email...",
     "detailsFor": "Details for {name}",
     "close": "Close details",
-    "setInitialPassword": "Set Initial Password",
     "tabs": {
       "roles": "Roles",
       "services": "Services",
@@ -1208,65 +1207,6 @@
   "OrderColumns": {
     "orderId": "Order ID",
     "createdAt": "Created At"
-  },
-  "ConfigurationsPage": {
-    "title": "System Configurations",
-    "description": "Manage system-wide configurations and settings.",
-    "filterPlaceholder": "Filter by key...",
-    "columns": {
-      "id": "ID",
-      "key": "Key",
-      "value": "Value",
-      "description": "Description",
-      "type": "Data Type",
-      "isPublic": "Is Public?",
-      "yes": "Yes",
-      "no": "No",
-      "updatedBy": "Updated By",
-      "actions": "Actions",
-      "edit": "Edit",
-      "delete": "Delete"
-    },
-    "dialog": {
-      "createTitle": "Create Configuration",
-      "createDescription": "Add a new key-value pair to the system configuration.",
-      "editTitle": "Edit Configuration",
-      "editDescription": "Update the value for this configuration key.",
-      "key": "Key",
-      "keyPlaceholder": "e.g., SITE_NAME",
-      "value": "Value",
-      "valuePlaceholder": "e.g., My Awesome App",
-      "description": "Description",
-      "descriptionPlaceholder": "A short explanation of what this key does.",
-      "dataType": "Data Type",
-      "selectDataType": "Select a data type",
-      "isPublic": "Publicly Accessible",
-      "isPublicDescription": "If checked, this configuration can be accessed by client-side code.",
-      "cancel": "Cancel",
-      "save": "Save Changes",
-      "create": "Create"
-    },
-    "deleteDialog": {
-      "title": "Are you sure?",
-      "description": "This will permanently delete the configuration key \"{key}\". This action is irreversible.",
-      "cancel": "Cancel",
-      "confirm": "Delete"
-    },
-    "toast": {
-      "errorTitle": "Error",
-      "genericError": "An unexpected error occurred.",
-      "createTitle": "Configuration Created",
-      "editTitle": "Configuration Updated",
-      "deleteTitle": "Configuration Deleted",
-      "successDescription": "Configuration \"{key}\" has been saved successfully.",
-      "deleteDescription": "Configuration \"{key}\" has been deleted.",
-      "deleteError": "Could not delete the configuration."
-    },
-    "validation": {
-      "keyRequired": "Key is required.",
-      "valueRequired": "Value is required.",
-      "dataTypeRequired": "Data type is required."
-    }
   },
   "General": {
     "noResults": "No results."
