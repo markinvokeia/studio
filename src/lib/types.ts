@@ -51,6 +51,7 @@ export type Quote = {
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'pending' | 'confirmed';
   payment_status: 'unpaid' | 'paid' | 'partial';
   billing_status: string;
+  currency?: 'URU' | 'USD';
   user_name?: string;
   userEmail?: string;
   createdAt: string;
@@ -71,6 +72,7 @@ export type Order = {
   user_id: string;
   quote_id: string;
   user_name?: string;
+  currency?: 'URU' | 'USD';
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   createdAt: string;
   updatedAt: string;
@@ -95,6 +97,7 @@ export type Invoice = {
   quote_id: string;
   user_name: string;
   total: number;
+  currency?: 'URU' | 'USD';
   status: 'draft' | 'sent' | 'paid' | 'overdue';
   payment_status: 'unpaid' | 'paid' | 'partial';
   createdAt: string;
@@ -117,6 +120,7 @@ export type Payment = {
   quote_id: string;
   user_name: string;
   amount: number;
+  currency?: 'URU' | 'USD';
   method: string;
   status: 'pending' | 'completed' | 'failed';
   createdAt: string;
@@ -443,5 +447,3 @@ export type CashPoint = {
   created_at: string;
   updated_at: string;
 };
-
-    

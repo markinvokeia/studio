@@ -233,7 +233,9 @@
       "invoiced": "Facturado",
       "cancel": "Cancelar",
       "save": "Crear Cotización",
-      "editSave": "Guardar Cambios"
+      "editSave": "Guardar Cambios",
+      "currency": "Moneda",
+      "selectCurrency": "Seleccionar moneda"
     },
     "itemDialog": {
       "createTitle": "Añadir Ítem a la Cotización",
@@ -389,6 +391,7 @@
       "orderId": "ID Pedido",
       "quoteId": "ID Cotización",
       "total": "Total",
+      "currency": "Moneda",
       "status": "Estado",
       "payment": "Estado de Pago",
       "createdAt": "Fecha Creación",
@@ -464,6 +467,7 @@
       "invoiceId": "ID Factura",
       "user": "Usuario",
       "amount": "Monto",
+      "currency": "Moneda",
       "method": "Método",
       "status": "Estado",
       "createdAt": "Fecha Creación"
@@ -1203,6 +1207,7 @@
   "QuoteColumns": {
     "quoteId": "ID Cotización",
     "total": "Total",
+    "currency": "Moneda",
     "billingStatus": "Estado Facturación"
   },
   "OrderColumns": {

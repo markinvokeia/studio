@@ -233,7 +233,9 @@
       "invoiced": "Invoiced",
       "cancel": "Cancel",
       "save": "Create Quote",
-      "editSave": "Save Changes"
+      "editSave": "Save Changes",
+      "currency": "Currency",
+      "selectCurrency": "Select currency"
     },
     "itemDialog": {
       "createTitle": "Add Item to Quote",
@@ -389,6 +391,7 @@
       "orderId": "Order ID",
       "quoteId": "Quote ID",
       "total": "Total",
+      "currency": "Currency",
       "status": "Status",
       "payment": "Payment Status",
       "createdAt": "Created At",
@@ -464,6 +467,7 @@
       "invoiceId": "Invoice ID",
       "user": "User",
       "amount": "Amount",
+      "currency": "Currency",
       "method": "Method",
       "status": "Status",
       "createdAt": "Created At"
@@ -1203,6 +1207,7 @@
   "QuoteColumns": {
     "quoteId": "Quote ID",
     "total": "Total",
+    "currency": "Currency",
     "billingStatus": "Billing Status"
   },
   "OrderColumns": {
