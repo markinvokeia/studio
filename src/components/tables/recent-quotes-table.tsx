@@ -87,6 +87,7 @@ const getColumns = (
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t('QuoteColumns.currency')} />
     ),
+    cell: ({ row }) => row.original.currency,
   },
   {
     accessorKey: 'status',
@@ -162,7 +163,7 @@ const getColumns = (
         'invoiced': 'invoiced'
       };
 
-      const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[status.toLowerCase()] || 'notInvoiced'}`;
+      const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[status.toLowerCase()] || status.toLowerCase()}`;
 
       return (
         <Badge variant={variant} className="capitalize">
