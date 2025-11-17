@@ -36,6 +36,7 @@ async function getOrders(): Promise<Order[]> {
             quote_id: apiOrder.quote_id,
             user_name: apiOrder.user_name || 'N/A',
             status: apiOrder.status,
+            currency: apiOrder.currency,
             createdAt: apiOrder.createdAt || new Date().toISOString().split('T')[0],
             updatedAt: apiOrder.updatedAt || new Date().toISOString().split('T')[0],
         }));
@@ -125,7 +126,7 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
             amount: apiPayment.amount || 0,
             method: apiPayment.method || 'credit_card',
             status: apiPayment.status || 'pending',
-            createdAt: apiPayment.createdAt || new Date().toISOString().split('T')[0],
+            createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
         }));
     } catch (error) {
@@ -236,7 +237,7 @@ export default function OrdersPage() {
     }, [selectedOrder, loadOrderItems, loadInvoices, loadPayments]);
 
     React.useEffect(() => {
-        if (selectedInvoice) {
+        if(selectedInvoice) {
             loadInvoiceItems();
         } else {
             setInvoiceItems([]);

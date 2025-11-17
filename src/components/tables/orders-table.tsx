@@ -161,7 +161,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title={t('QuoteColumns.currency')} />
         ),
-        cell: ({ row }) => row.original.currency,
+        cell: ({ row }) => row.original.currency || 'N/A',
       },
       {
         accessorKey: 'status',
