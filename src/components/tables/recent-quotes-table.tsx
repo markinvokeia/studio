@@ -106,10 +106,11 @@ const getColumns = (
       }[status.toLowerCase()] ?? ('default' as any);
 
       const translationKey = `QuotesPage.quoteDialog.${status.toLowerCase()}`;
+      const translatedStatus = t(translationKey as any);
 
       return (
         <Badge variant={variant} className="capitalize">
-          {t(translationKey)}
+          {translatedStatus === translationKey ? status : translatedStatus}
         </Badge>
       );
     },
@@ -136,10 +137,11 @@ const getColumns = (
       };
       
       const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[status.toLowerCase()] || status.toLowerCase()}`;
+      const translatedStatus = t(translationKey as any);
 
       return (
         <Badge variant={variant} className="capitalize">
-          {t(translationKey)}
+          {translatedStatus === translationKey ? status : translatedStatus}
         </Badge>
       );
     },
@@ -165,11 +167,11 @@ const getColumns = (
 
       const normalizedStatus = status.toLowerCase();
       const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[normalizedStatus]}`;
-      const variant = variantMap[normalizedStatus] ?? 'default';
+      const translatedStatus = t(translationKey as any);
 
       return (
-        <Badge variant={variant} className="capitalize">
-          {t(translationKey)}
+        <Badge variant={variantMap[normalizedStatus] ?? 'default'} className="capitalize">
+          {translatedStatus === translationKey ? status : translatedStatus}
         </Badge>
       );
     },
@@ -249,3 +251,5 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
     </Card>
   );
 }
+
+    
