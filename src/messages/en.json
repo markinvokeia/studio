@@ -224,8 +224,8 @@
       "selectPaymentStatus": "Select payment status",
       "unpaid": "Unpaid",
       "paid": "Paid",
-      "partial": "Partial",
       "partiallyPaid": "Partially Paid",
+      "partial": "Partial",
       "billingStatus": "Billing Status",
       "selectBillingStatus": "Select billing status",
       "notInvoiced": "Not Invoiced",
@@ -1075,6 +1075,61 @@
     "edit": "Edit",
     "delete": "Delete"
   },
+  "ServicesPage": {
+    "title": "Services",
+    "description": "Manage all services offered by the clinic.",
+    "filterPlaceholder": "Filter services by name...",
+    "createDialog": {
+      "title": "Create New Service",
+      "editTitle": "Edit Service",
+      "description": "Fill in the details below to add a new service.",
+      "editDescription": "Update the details for this service.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Dental Cleaning",
+      "category": "Category",
+      "categoryPlaceholder": "e.g., Preventive",
+      "price": "Price",
+      "duration": "Duration (minutes)",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "A brief description of the service...",
+      "indicationsLabel": "Indications",
+      "indicationsPlaceholder": "Pre-service or post-service indications...",
+      "cancel": "Cancel",
+      "save": "Create Service",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the service \"{name}\". This action cannot be undone.",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Service Created",
+      "editSuccessTitle": "Service Updated",
+      "successDescription": "Service \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Service Deleted",
+      "deleteSuccessDescription": "Service \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the service."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "categoryRequired": "Category is required.",
+      "pricePositive": "Price must be a positive number.",
+      "durationInteger": "Duration must be a positive integer."
+    }
+  },
+  "ServicesColumns": {
+    "id": "ID",
+    "name": "Name",
+    "category": "Category",
+    "price": "Price",
+    "duration": "Duration (min)",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
   "UsersPage": {
     "title": "Users",
     "description": "Manage all users in the system.",
@@ -1218,3 +1273,5 @@
     "noResults": "No results."
   }
 }
+
+    
