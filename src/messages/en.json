@@ -1103,6 +1103,7 @@
     "deleteDialog": {
       "title": "Are you sure?",
       "description": "This will permanently delete the service \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
       "confirm": "Delete"
     },
     "toast": {
@@ -1277,4 +1278,4 @@
   }
 }
 
-    
+  

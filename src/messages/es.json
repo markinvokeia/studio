@@ -1103,6 +1103,7 @@
     "deleteDialog": {
       "title": "¿Estás seguro?",
       "description": "Esto eliminará permanentemente el servicio \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
     "toast": {
@@ -1277,4 +1278,4 @@
   }
 }
 
-    
+  
