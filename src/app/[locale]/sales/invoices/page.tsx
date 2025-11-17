@@ -35,6 +35,7 @@ async function getInvoices(): Promise<Invoice[]> {
             payment_status: apiInvoice.payment_status || 'unpaid',
             createdAt: apiInvoice.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
+            currency: apiInvoice.currency || 'URU',
         }));
     } catch (error) {
         console.error("Failed to fetch invoices:", error);
@@ -91,6 +92,7 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
             status: apiPayment.status || 'pending',
             createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
+            currency: apiPayment.currency || 'URU',
         }));
     } catch (error) {
         console.error("Failed to fetch payments for invoice:", error);

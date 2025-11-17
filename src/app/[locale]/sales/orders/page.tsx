@@ -36,7 +36,7 @@ async function getOrders(): Promise<Order[]> {
             quote_id: apiOrder.quote_id,
             user_name: apiOrder.user_name || 'N/A',
             status: apiOrder.status,
-            currency: apiOrder.currency,
+            currency: apiOrder.currency || 'URU',
             createdAt: apiOrder.createdAt || new Date().toISOString().split('T')[0],
             updatedAt: apiOrder.updatedAt || new Date().toISOString().split('T')[0],
         }));
@@ -98,6 +98,7 @@ async function getInvoicesForOrder(orderId: string): Promise<Invoice[]> {
             payment_status: apiInvoice.payment_status || 'unpaid',
             createdAt: apiInvoice.createdAt || new Date().toISOString().split('T')[0],
             updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
+            currency: apiInvoice.currency || 'URU',
         }));
     } catch (error) {
         console.error("Failed to fetch invoices for order:", error);
@@ -128,6 +129,7 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
             status: apiPayment.status || 'pending',
             createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
+            currency: apiPayment.currency || 'URU',
         }));
     } catch (error) {
         console.error("Failed to fetch payments for order:", error);

@@ -30,6 +30,7 @@ async function getPayments(): Promise<Payment[]> {
             status: apiPayment.status || 'pending',
             createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
+            currency: apiPayment.currency || 'URU',
         }));
     } catch (error) {
         console.error("Failed to fetch payments:", error);

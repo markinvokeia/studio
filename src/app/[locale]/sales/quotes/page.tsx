@@ -46,7 +46,7 @@ import { useTranslations } from 'next-intl';
 
 const quoteFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  user_id: z.string().min(1, t('quoteDialog.user')),
+  user_id: z.string().min(1, t('QuotesPage.quoteDialog.user')),
   total: z.coerce.number().min(0, 'Total must be a positive number'),
   status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed']),
   payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially paid']),
@@ -58,7 +58,7 @@ type QuoteFormValues = z.infer<ReturnType<typeof quoteFormSchema>>;
 const quoteItemFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     quote_id: z.string(),
-    service_id: z.string().min(1, t('itemDialog.service')),
+    service_id: z.string().min(1, t('QuotesPage.itemDialog.service')),
     quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
     unit_price: z.coerce.number().min(0, 'Unit price must be positive'),
     total: z.coerce.number().min(0, 'Total must be positive'),
@@ -92,6 +92,7 @@ async function getQuotes(): Promise<Quote[]> {
       status: apiQuote.status || 'draft',
       payment_status: apiQuote.payment_status || 'unpaid',
       billing_status: apiQuote.billing_status || 'not invoiced',
+      currency: apiQuote.currency || 'URU',
       user_name: apiQuote.user_name || 'No Name',
       userEmail: apiQuote.userEmail || 'no-email@example.com',
       createdAt: apiQuote.created_at || new Date().toISOString().split('T')[0],
@@ -201,6 +202,7 @@ async function getOrders(quoteId: string): Promise<Order[]> {
             user_id: apiOrder.user_id,
             status: apiOrder.status,
             createdAt: apiOrder.createdAt || new Date().toISOString().split('T')[0],
+            currency: apiOrder.currency || 'URU',
         }));
     } catch (error) {
         console.error("Failed to fetch orders:", error);
@@ -256,6 +258,11 @@ async function getInvoices(quoteId: string): Promise<Invoice[]> {
             total: apiInvoice.total || 0,
             status: apiInvoice.status || 'draft',
             createdAt: apiInvoice.createdAt || new Date().toISOString().split('T')[0],
+            currency: apiInvoice.currency || 'URU',
+            order_id: apiInvoice.order_id,
+            user_name: apiInvoice.user_name || 'N/A',
+            payment_status: apiInvoice.payment_status || 'unpaid',
+            updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0]
         }));
     } catch (error) {
         console.error("Failed to fetch invoices:", error);
@@ -309,6 +316,11 @@ async function getPayments(quoteId: string): Promise<Payment[]> {
             method: apiPayment.method || 'credit_card',
             status: apiPayment.status || 'pending',
             createdAt: apiPayment.createdAt || new Date().toISOString().split('T')[0],
+            currency: apiPayment.currency || 'URU',
+            order_id: apiPayment.order_id,
+            quote_id: apiPayment.quote_id,
+            user_name: apiPayment.user_name || 'N/A',
+            updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0]
         }));
     } catch (error) {
         console.error("Failed to fetch payments:", error);
