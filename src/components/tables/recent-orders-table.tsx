@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
@@ -17,6 +18,13 @@ const getColumns = (
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />
     ),
+  },
+  {
+    accessorKey: 'currency',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('QuoteColumns.currency')} />
+    ),
+    cell: ({ row }) => row.original.currency,
   },
   {
     accessorKey: 'createdAt',

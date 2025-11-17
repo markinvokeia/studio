@@ -32,6 +32,9 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useTranslations } from 'next-intl';
+import { ArrowRight, Box } from 'lucide-react';
+import Link from 'next/link';
+import { useLocale } from 'next-intl';
 
 const orderFormSchema = (t: (key: string) => string) => z.object({
   user_id: z.string().min(1, 'User is required'),
@@ -65,6 +68,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
     const [selectedOrderForInvoice, setSelectedOrderForInvoice] = React.useState<Order | null>(null);
     const [invoiceDate, setInvoiceDate] = React.useState<Date | undefined>(new Date());
     const [invoiceSubmissionError, setInvoiceSubmissionError] = React.useState<string | null>(null);
+    const locale = useLocale();
 
     const handleInvoiceClick = (order: Order) => {
         setSelectedOrderForInvoice(order);
@@ -151,6 +155,13 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
       {
         accessorKey: 'quote_id',
         header: ({ column }) => <DataTableColumnHeader column={column} title={tQuoteColumns('quoteId')} />,
+      },
+      {
+        accessorKey: 'currency',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('QuoteColumns.currency')} />
+        ),
+        cell: ({ row }) => row.original.currency,
       },
       {
         accessorKey: 'status',

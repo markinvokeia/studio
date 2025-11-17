@@ -239,10 +239,17 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         const amount = parseFloat(row.getValue('total'));
         const formatted = new Intl.NumberFormat('en-US', {
           style: 'currency',
-          currency: 'USD',
+          currency: row.original.currency || 'USD',
         }).format(amount);
         return <div className="font-medium">{formatted}</div>;
       },
+    },
+    {
+        accessorKey: 'currency',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('columns.currency')} />
+        ),
+        cell: ({ row }) => row.original.currency,
     },
     {
       accessorKey: 'status',
