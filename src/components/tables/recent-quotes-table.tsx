@@ -87,7 +87,7 @@ const getColumns = (
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t('QuoteColumns.currency')} />
     ),
-    cell: ({ row }) => row.original.currency,
+    cell: ({ row }) => row.original.currency || 'N/A',
   },
   {
     accessorKey: 'status',
@@ -151,19 +151,21 @@ const getColumns = (
     ),
      cell: ({ row }) => {
       const status = (row.getValue('billing_status') as string) || '';
-      const variant = {
-        invoiced: 'success',
-        'partially invoiced': 'info',
-        'not invoiced': 'outline',
-      }[status.toLowerCase()] ?? ('default'as any);
 
       const statusKeyMap: { [key: string]: string } = {
-        'not invoiced': 'notInvoiced',
+        'invoiced': 'invoiced',
         'partially invoiced': 'partiallyInvoiced',
-        'invoiced': 'invoiced'
+        'not invoiced': 'notInvoiced',
+      };
+      const variantMap: { [key: string]: any } = {
+        'invoiced': 'success',
+        'partially invoiced': 'info',
+        'not invoiced': 'outline',
       };
 
-      const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[status.toLowerCase()] || status.toLowerCase()}`;
+      const normalizedStatus = status.toLowerCase();
+      const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[normalizedStatus]}`;
+      const variant = variantMap[normalizedStatus] ?? 'default';
 
       return (
         <Badge variant={variant} className="capitalize">

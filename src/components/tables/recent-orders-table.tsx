@@ -24,7 +24,7 @@ const getColumns = (
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t('QuoteColumns.currency')} />
     ),
-    cell: ({ row }) => row.original.currency,
+    cell: ({ row }) => row.original.currency || 'N/A',
   },
   {
     accessorKey: 'createdAt',

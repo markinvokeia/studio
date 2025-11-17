@@ -76,7 +76,7 @@ const getColumns = (
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title={t('currency')} />
         ),
-        cell: ({ row }) => row.original.currency,
+        cell: ({ row }) => row.original.currency || 'N/A',
       },
       {
         accessorKey: 'method',

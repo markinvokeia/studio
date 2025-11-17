@@ -249,7 +249,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title={t('columns.currency')} />
         ),
-        cell: ({ row }) => row.original.currency,
+        cell: ({ row }) => row.original.currency || 'N/A',
     },
     {
       accessorKey: 'status',
