@@ -26,12 +26,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const serviceFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   name: z.string().min(1, t('nameRequired')),
   category: z.string().min(1, t('categoryRequired')),
   price: z.coerce.number().positive(t('pricePositive')),
+  currency: z.enum(['URU', 'USD']).default('USD'),
   duration_minutes: z.coerce.number().int().positive(t('durationInteger')),
   description: z.string().optional(),
   indications: z.string().optional(),
@@ -62,6 +64,7 @@ async function getServices(): Promise<Service[]> {
       name: apiService.name || 'No Name',
       category: apiService.category || 'No Category',
       price: apiService.price || 0,
+      currency: apiService.currency || 'USD',
       duration_minutes: apiService.duration_minutes || 0,
       description: apiService.description,
       indications: apiService.indications,
@@ -135,6 +138,7 @@ export default function ServicesPage() {
       name: '',
       category: '',
       price: 0,
+      currency: 'USD',
       duration_minutes: 60,
       description: '',
       indications: '',
@@ -150,6 +154,7 @@ export default function ServicesPage() {
         name: service.name,
         category: service.category,
         price: service.price,
+        currency: service.currency || 'USD',
         duration_minutes: service.duration_minutes,
         description: service.description,
         indications: service.indications,
@@ -264,19 +269,42 @@ export default function ServicesPage() {
                         </FormItem>
                     )}
                 />
-                <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>{t('createDialog.price')}</FormLabel>
-                        <FormControl>
-                            <Input type="number" placeholder="0.00" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                      control={form.control}
+                      name="price"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>{t('createDialog.price')}</FormLabel>
+                          <FormControl>
+                              <Input type="number" placeholder="0.00" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                  />
+                   <FormField
+                      control={form.control}
+                      name="currency"
+                      render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>{t('createDialog.currency')}</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                  <SelectTrigger>
+                                      <SelectValue placeholder={t('createDialog.selectCurrency')} />
+                                  </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                  <SelectItem value="USD">USD</SelectItem>
+                                  <SelectItem value="URU">URU</SelectItem>
+                              </SelectContent>
+                              </Select>
+                              <FormMessage />
+                          </FormItem>
+                      )}
+                  />
+                </div>
                 <FormField
                     control={form.control}
                     name="duration_minutes"

@@ -140,6 +140,7 @@ export type Service = {
   name: string;
   category: string;
   price: number;
+  currency?: 'URU' | 'USD';
   duration_minutes: number;
   description?: string;
   indications?: string;

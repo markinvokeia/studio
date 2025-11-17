@@ -51,6 +51,12 @@ export const ServicesColumnsWrapper = ({ onEdit, onDelete }: ServicesColumnsProp
       cell: ({ row }) => `$${row.original.price}`,
     },
     {
+      accessorKey: 'currency',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('currency')} />
+      ),
+    },
+    {
       accessorKey: 'duration_minutes',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('duration')} />
