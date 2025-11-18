@@ -40,6 +40,7 @@ import Calendar from '@/components/calendar/Calendar';
 import { cn } from '@/lib/utils';
 import { getAppointmentColumns } from './columns';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 async function getAppointments(calendarGoogleIds: string[], startDate: Date, endDate: Date): Promise<Appointment[]> {
@@ -277,7 +278,7 @@ export default function AppointmentsPage() {
 
 
     setIsRefreshing(false);
-  }, [selectedCalendarIds, fetchRange, calendars]);
+  }, [selectedCalendarIds, fetchRange, calendars, fetchedDateRange]);
 
   const forceRefresh = React.useCallback(() => {
     setFetchedDateRange(null); // This will force loadAppointments to run
@@ -733,10 +734,19 @@ export default function AppointmentsPage() {
           onViewChange={setCurrentView}
         >
             <div className="flex items-center gap-2">
-                <Button onClick={() => setCreateOpen(true)}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    {t('newAppointment')}
-                </Button>
+                 <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" onClick={() => setCreateOpen(true)}>
+                                <PlusCircle className="h-4 w-4" />
+                                <span className="sr-only">{t('newAppointment')}</span>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{t('newAppointment')}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
                 <Button onClick={forceRefresh} variant="outline" size="icon" disabled={isRefreshing}>
                     <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 </Button>
