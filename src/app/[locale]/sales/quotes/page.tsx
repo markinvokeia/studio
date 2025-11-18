@@ -48,6 +48,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   user_id: z.string().min(1, t('QuotesPage.quoteDialog.user')),
   total: z.coerce.number().min(0, 'Total must be a positive number'),
+  currency: z.enum(['URU', 'USD']).default('USD'),
   status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed']),
   payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially paid']),
   billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced']),
@@ -535,7 +536,7 @@ export default function QuotesPage() {
 
     const handleCreateQuote = () => {
         setEditingQuote(null);
-        quoteForm.reset({ user_id: '', total: 0, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced' });
+        quoteForm.reset({ user_id: '', total: 0, currency: 'USD', status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced' });
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
       };
@@ -546,7 +547,7 @@ export default function QuotesPage() {
             return;
         }
         setEditingQuote(quote);
-        quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, status: quote.status, payment_status: quote.payment_status, billing_status: quote.billing_status as any });
+        quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status, billing_status: quote.billing_status as any });
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
     };
@@ -855,19 +856,38 @@ export default function QuotesPage() {
                                 </FormItem>
                             )}
                         />
-                         <FormField
-                            control={quoteForm.control}
-                            name="total"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('quoteDialog.total')}</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" placeholder="0.00" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={quoteForm.control}
+                                name="total"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('quoteDialog.total')}</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" placeholder="0.00" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={quoteForm.control}
+                                name="currency"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('quoteDialog.currency')}</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectCurrency')} /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="USD">USD</SelectItem>
+                                            <SelectItem value="URU">URU</SelectItem>
+                                        </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
                          <FormField
                             control={quoteForm.control}
                             name="status"
