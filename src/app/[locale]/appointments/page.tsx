@@ -158,8 +158,8 @@ export default function AppointmentsPage() {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [calendarColors, setCalendarColors] = React.useState<{[key: string]: string}>({});
   const [fetchRange, setFetchRange] = React.useState<{ from: Date; to: Date }>({
-    from: addMonths(new Date(), -1),
-    to: addMonths(new Date(), 1),
+    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    to: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
   });
 
   const [editingAppointment, setEditingAppointment] = React.useState<Appointment | null>(null);
@@ -267,18 +267,28 @@ export default function AppointmentsPage() {
   }, [calendars]);
 
   const loadAppointments = React.useCallback(async () => {
-    if (selectedCalendarIds.length === 0) {
-        setAppointments([]);
-        return;
-    };
+    if (selectedCalendarIds.length === 0 && calendars.length > 0) {
+      // If no calendars are selected but calendars have loaded, explicitly don't fetch.
+      setAppointments([]);
+      return;
+    }
+    if (calendars.length === 0) {
+      // If calendars haven't loaded yet, wait.
+      return;
+    }
     setIsRefreshing(true);
     const googleCalendarIds = selectedCalendarIds.map(id => {
       const cal = calendars.find(c => c.id === id);
       return cal?.google_calendar_id;
     }).filter((id): id is string => !!id);
-
-    const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.from, fetchRange.to);
-    setAppointments(fetchedAppointments);
+    
+    // Only fetch if there are google calendar ids to fetch for
+    if (googleCalendarIds.length > 0) {
+        const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.from, fetchRange.to);
+        setAppointments(fetchedAppointments);
+    } else {
+        setAppointments([]);
+    }
     setIsRefreshing(false);
   }, [selectedCalendarIds, fetchRange, calendars]);
   
@@ -462,21 +472,6 @@ export default function AppointmentsPage() {
     };
   }, [doctorSearchQuery, isDoctorSearchOpen]);
 
-  React.useEffect(() => {
-    if (isCreateOpen && !editingAppointment) {
-      const tomorrow = addDays(new Date(), 1);
-      setNewAppointment({
-        user: null,
-        services: [],
-        doctor: null,
-        calendar: null,
-        date: format(tomorrow, 'yyyy-MM-dd'),
-        time: '09:00',
-        description: '',
-      });
-    }
-  }, [isCreateOpen, editingAppointment]);
-
   const checkAvailability = React.useCallback(async (appointmentData: typeof newAppointment) => {
     const { date, time, services, user, doctor, calendar } = appointmentData;
     if (!date || !time || (!user && !editingAppointment)) {
@@ -580,6 +575,28 @@ export default function AppointmentsPage() {
         setAvailabilityStatus('idle');
     }
   }, [editingAppointment, doctorSearchResults]);
+  
+   React.useEffect(() => {
+        if(isCreateOpen) {
+            if (editingAppointment) {
+                 const tomorrow = addDays(new Date(), 1);
+                setNewAppointment({
+                    user: null,
+                    services: [],
+                    doctor: null,
+                    calendar: null,
+                    date: format(tomorrow, 'yyyy-MM-dd'),
+                    time: '09:00',
+                    description: '',
+                });
+            } else {
+                 const { user, services, doctor, calendar, date, time } = newAppointment;
+                if(user && services.length > 0 && date && time) {
+                    checkAvailability(newAppointment);
+                }
+            }
+        }
+    }, [isCreateOpen, editingAppointment, newAppointment, checkAvailability]);
 
 
   const handleSaveAppointment = async () => {
@@ -713,63 +730,47 @@ export default function AppointmentsPage() {
   return (
     <>
       <Card>
-        <Tabs defaultValue="calendar">
-            <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-                <CardTitle>{t('title')}</CardTitle>
-                <CardDescription>{t('description')}</CardDescription>
-            </div>
-            </CardHeader>
-            <CardContent>
-                <TabsContent value="calendar" className="pt-4">
-                    <Calendar 
-                         events={appointments.map(a => ({ 
-                            id: a.id,
-                            title: a.service_name,
-                            start: parseISO(`${a.date}T${a.time}`),
-                            end: addMinutes(parseISO(`${a.date}T${a.time}`), 30), // Assuming 30min duration
-                            backgroundColor: a.calendar_id ? calendarColors[a.calendar_id] : '#ccc'
-                        }))}
-                        onDateChange={(range) => setFetchRange({from: range.start, to: range.end})}
-                    >
-                        <div className='flex items-center gap-2'>
-                           <Button
-                                variant="outline"
-                                className="h-8"
-                                onClick={() => setCreateOpen(true)}
-                            >
-                                <PlusCircle className="h-4 w-4 mr-2" />
-                                {t('newAppointment')}
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={loadAppointments}
-                                disabled={isRefreshing}
-                            >
-                                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                                <span className="sr-only">Refresh</span>
-                            </Button>
-                        </div>
-                    </Calendar>
-                </TabsContent>
-                <TabsContent value="list" className="pt-4 space-y-4">
-                    <DataTable 
-                        columns={appointmentColumns} 
-                        data={appointments} 
-                        filterColumnId='service_name'
-                        filterPlaceholder={t('filterByService')}
-                        sorting={sorting}
-                        onSortingChange={setSorting}
-                        onRefresh={loadAppointments}
-                        isRefreshing={isRefreshing}
-                        onCreate={() => setCreateOpen(true)}
-                        columnTranslations={columnTranslations}
+        <CardContent className="p-0">
+          <Calendar
+            events={appointments.map((a) => ({
+              id: a.id,
+              title: a.service_name,
+              start: parseISO(`${a.date}T${a.time}`),
+              end: addMinutes(parseISO(`${a.date}T${a.time}`), 30),
+              backgroundColor: a.calendar_id
+                ? calendarColors[a.calendar_id]
+                : '#ccc',
+            }))}
+            onDateChange={(range) =>
+              setFetchRange({ from: range.start, to: range.end })
+            }
+          >
+            <div className="flex items-center gap-2">
+                <Button
+                    variant="outline"
+                    className="h-8"
+                    onClick={() => setCreateOpen(true)}
+                >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    {t('newAppointment')}
+                </Button>
+                <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={loadAppointments}
+                    disabled={isRefreshing}
+                >
+                    <RefreshCw
+                    className={`h-4 w-4 ${
+                        isRefreshing ? 'animate-spin' : ''
+                    }`}
                     />
-                </TabsContent>
-            </CardContent>
-        </Tabs>
+                    <span className="sr-only">Refresh</span>
+                </Button>
+            </div>
+            </Calendar>
+        </CardContent>
       </Card>
       <Dialog open={isCreateOpen} onOpenChange={(isOpen) => {
         setCreateOpen(isOpen);
