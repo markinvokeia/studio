@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { DocumentTextIcon } from '../icons/document-text-icon';
 import { useTranslations } from 'next-intl';
+import { format, parseISO } from 'date-fns';
 
 const getColumns = (
     t: (key: string) => string,
@@ -73,6 +74,13 @@ const getColumns = (
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t('QuoteColumns.createdAt')} />
     ),
+    cell: ({ row }) => {
+        try {
+            return format(parseISO(row.getValue('createdAt')), 'yyyy-MM-dd HH:mm');
+        } catch (e) {
+            return row.getValue('createdAt');
+        }
+    }
   },
   {
     accessorKey: 'total',
@@ -122,6 +130,36 @@ const getColumns = (
     },
   },
   {
+    accessorKey: 'billing_status',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('QuoteColumns.billingStatus')} />
+    ),
+     cell: ({ row }) => {
+      const status = (row.getValue('billing_status') as string) || '';
+
+      const statusKeyMap: { [key: string]: string } = {
+        'invoiced': 'invoiced',
+        'partially invoiced': 'partiallyInvoiced',
+        'not invoiced': 'notInvoiced',
+      };
+      const variantMap: { [key: string]: any } = {
+        'invoiced': 'success',
+        'partially invoiced': 'info',
+        'not invoiced': 'outline',
+      };
+
+      const normalizedStatus = status.toLowerCase();
+      const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[normalizedStatus]}`;
+      const translatedStatus = t(translationKey as any);
+      
+      return (
+        <Badge variant={variantMap[normalizedStatus] ?? 'default'} className="capitalize">
+          {translationKey === translationKey ? status : translatedStatus}
+        </Badge>
+      );
+    },
+  },
+  {
     accessorKey: 'payment_status',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t('Navigation.Payments')} />
@@ -148,36 +186,6 @@ const getColumns = (
       return (
         <Badge variant={variant} className="capitalize">
           {translatedStatus === translationKey ? status : translatedStatus}
-        </Badge>
-      );
-    },
-  },
-  {
-    accessorKey: 'billing_status',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('QuoteColumns.billingStatus')} />
-    ),
-     cell: ({ row }) => {
-      const status = (row.getValue('billing_status') as string) || '';
-
-      const statusKeyMap: { [key: string]: string } = {
-        'invoiced': 'invoiced',
-        'partially invoiced': 'partiallyInvoiced',
-        'not invoiced': 'notInvoiced',
-      };
-      const variantMap: { [key: string]: any } = {
-        'invoiced': 'success',
-        'partially invoiced': 'info',
-        'not invoiced': 'outline',
-      };
-
-      const normalizedStatus = status.toLowerCase();
-      const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[normalizedStatus]}`;
-      const translatedStatus = t(translationKey as any);
-      
-      return (
-        <Badge variant={variantMap[normalizedStatus] ?? 'default'} className="capitalize">
-          {translationKey === translationKey ? status : translatedStatus}
         </Badge>
       );
     },
