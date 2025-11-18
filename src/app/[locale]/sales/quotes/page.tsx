@@ -150,7 +150,7 @@ async function getServices(): Promise<Service[]> {
     if (!response.ok) return [];
     const data = await response.json();
     const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
-    return servicesData.map((s: any) => ({ ...s, id: String(s.id) }));
+    return servicesData.map((s: any) => ({ ...s, id: String(s.id), currency: s.currency || 'USD' }));
   } catch (error) {
     console.error("Failed to fetch services:", error);
     return [];
@@ -429,6 +429,12 @@ export default function QuotesPage() {
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
+    const [exchangeRate, setExchangeRate] = React.useState<number>(1);
+    const [showConversion, setShowConversion] = React.useState(false);
+    const [originalServicePrice, setOriginalServicePrice] = React.useState(0);
+    const [originalServiceCurrency, setOriginalServiceCurrency] = React.useState('');
+
+
     const quoteForm = useForm<QuoteFormValues>({ resolver: zodResolver(quoteFormSchema(t)) });
     const quoteItemForm = useForm<QuoteItemFormValues>({ resolver: zodResolver(quoteItemFormSchema(t)) });
 
@@ -592,6 +598,8 @@ export default function QuotesPage() {
         setEditingQuoteItem(null);
         quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
         setQuoteItemSubmissionError(null);
+        setShowConversion(false);
+        setExchangeRate(1);
         setIsQuoteItemDialogOpen(true);
     };
     
@@ -606,7 +614,14 @@ export default function QuotesPage() {
             unit_price: item.unit_price, 
             total: item.total 
         });
-        if(service) quoteItemForm.setValue('unit_price', service.price);
+        if(service) {
+          const quoteCurrency = selectedQuote?.currency || 'USD';
+          const serviceCurrency = service.currency || 'USD';
+          const conversionNeeded = quoteCurrency !== serviceCurrency;
+          setShowConversion(conversionNeeded);
+          setOriginalServicePrice(service.price);
+          setOriginalServiceCurrency(serviceCurrency);
+        }
         setQuoteItemSubmissionError(null);
         setIsQuoteItemDialogOpen(true);
     };
@@ -681,20 +696,35 @@ export default function QuotesPage() {
         setRowSelection({});
     };
 
-    // Auto-calculate total for quote item form
     const watchedServiceId = quoteItemForm.watch('service_id');
     const watchedQuantity = quoteItemForm.watch('quantity');
 
     React.useEffect(() => {
         const service = allServices.find(s => String(s.id) === watchedServiceId);
-        if (service) {
-            const unitPrice = service.price;
+        if (service && selectedQuote) {
+            const quoteCurrency = selectedQuote.currency || 'USD';
+            const serviceCurrency = service.currency || 'USD';
+            const conversionNeeded = quoteCurrency !== serviceCurrency;
+            
+            setShowConversion(conversionNeeded);
+            setOriginalServicePrice(service.price);
+            setOriginalServiceCurrency(serviceCurrency);
+
+            let newUnitPrice = service.price;
+            if (conversionNeeded) {
+                if (quoteCurrency === 'UYU' && serviceCurrency === 'USD') {
+                    newUnitPrice = service.price * exchangeRate;
+                } else if (quoteCurrency === 'USD' && serviceCurrency === 'UYU') {
+                    newUnitPrice = exchangeRate > 0 ? service.price / exchangeRate : 0;
+                }
+            }
+            
             const quantity = Number(watchedQuantity) || 0;
-            quoteItemForm.setValue('unit_price', unitPrice);
-            quoteItemForm.setValue('total', unitPrice * quantity);
+            quoteItemForm.setValue('unit_price', newUnitPrice);
+            quoteItemForm.setValue('total', newUnitPrice * quantity);
         }
-    }, [watchedServiceId, watchedQuantity, allServices, quoteItemForm]);
-    
+    }, [watchedServiceId, watchedQuantity, allServices, selectedQuote, quoteItemForm, exchangeRate]);
+
     return (
         <>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
@@ -856,7 +886,7 @@ export default function QuotesPage() {
                                 </FormItem>
                             )}
                         />
-                        <div className="grid grid-cols-2 gap-4">
+                         <div className="grid grid-cols-2 gap-4">
                             {editingQuote && (
                                 <FormField
                                     control={quoteForm.control}
@@ -1020,6 +1050,20 @@ export default function QuotesPage() {
                                 </FormItem>
                             )}
                         />
+                         {showConversion && (
+                            <>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormItem>
+                                        <FormLabel>Original Price</FormLabel>
+                                        <Input value={`${originalServicePrice.toFixed(2)} ${originalServiceCurrency}`} readOnly disabled />
+                                    </FormItem>
+                                    <FormItem>
+                                        <FormLabel>Exchange Rate</FormLabel>
+                                        <Input type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value))} />
+                                    </FormItem>
+                                </div>
+                            </>
+                        )}
                         <FormField control={quoteItemForm.control} name="quantity" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>{t('itemDialog.quantity')}</FormLabel>
@@ -1064,3 +1108,4 @@ export default function QuotesPage() {
         </>
     );
 }
+
