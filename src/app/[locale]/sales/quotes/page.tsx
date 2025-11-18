@@ -596,24 +596,30 @@ export default function QuotesPage() {
     const handleCreateQuoteItem = async () => {
         if (!selectedQuote) return;
         setEditingQuoteItem(null);
-        setAllServices(await getServices());
-        quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
         setQuoteItemSubmissionError(null);
         setShowConversion(false);
         setOriginalServicePrice(null);
         setOriginalServiceCurrency('');
         setExchangeRate(1);
+        quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
+
+        const fetchedServices = await getServices();
+        setAllServices(fetchedServices);
         setIsQuoteItemDialogOpen(true);
     };
     
     const handleEditQuoteItem = async (item: QuoteItem) => {
         setEditingQuoteItem(item);
-        setIsQuoteItemDialogOpen(false); // Close it first
+        setQuoteItemSubmissionError(null);
+        setShowConversion(false);
+        setOriginalServicePrice(null);
+        setOriginalServiceCurrency('');
+        setExchangeRate(1);
+
         const fetchedServices = await getServices();
         setAllServices(fetchedServices);
-
         const service = fetchedServices.find(s => String(s.id) === String(item.service_id));
-        setOriginalServicePrice(service ? service.price : null); // Set to null if no service
+        setOriginalServicePrice(service ? service.price : 0); 
         
         quoteItemForm.reset({ 
             id: item.id, 
@@ -633,7 +639,6 @@ export default function QuotesPage() {
           setOriginalServiceCurrency(serviceCurrency);
         }
         
-        setQuoteItemSubmissionError(null);
         setIsQuoteItemDialogOpen(true);
     };
 
@@ -1066,7 +1071,7 @@ export default function QuotesPage() {
                                 <FormItem>
                                     <FormLabel>{t('itemDialog.originalPrice')} ({originalServiceCurrency})</FormLabel>
                                     <Input
-                                        value={originalServicePrice !== null ? originalServicePrice.toFixed(2) : ''}
+                                        value={originalServicePrice !== null ? Number(originalServicePrice).toFixed(2) : ''}
                                         readOnly
                                         disabled
                                     />
@@ -1123,6 +1128,8 @@ export default function QuotesPage() {
 }
 
 
+
+    
 
     
 
