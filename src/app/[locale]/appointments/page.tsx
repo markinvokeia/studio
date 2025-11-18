@@ -61,7 +61,10 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
             method: 'GET',
             mode: 'cors',
-            headers: { 'Accept': 'application/json' },
+            headers: { 
+                'Accept': 'application/json',
+                'origin': 'https://n8n-project-n8n.7ig1i3.easypanel.host'
+            },
             cache: 'no-store',
         });
 
@@ -673,7 +676,7 @@ export default function AppointmentsPage() {
 };
 
   const onDateChange = React.useCallback((newRange: { start: Date; end: Date }) => {
-    if (!fetchRange || !newRange.start || !newRange.end || !fetchRange.from || !fetchRange.to) {
+    if (!fetchRange || !fetchRange.start || !fetchRange.to || !newRange.start || !newRange.end) {
         setFetchRange(newRange);
         return;
     }
@@ -707,11 +710,13 @@ export default function AppointmentsPage() {
 
  const handleSelectAssignee = React.useCallback((assigneeId: string, checked: boolean) => {
     setSelectedAssignees(prev => {
+        const newSelection = new Set(prev);
         if (checked) {
-            return [...prev, assigneeId];
+            newSelection.add(assigneeId);
         } else {
-            return prev.filter(id => id !== assigneeId);
+            newSelection.delete(assigneeId);
         }
+        return Array.from(newSelection);
     });
 }, []);
 
