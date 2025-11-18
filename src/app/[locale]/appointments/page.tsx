@@ -197,6 +197,12 @@ export default function AppointmentsPage() {
   const [suggestedTimes, setSuggestedTimes] = React.useState<any[]>([]);
   const [currentView, setCurrentView] = React.useState('month');
 
+  React.useEffect(() => {
+    if (selectedAssignees.length === 0) {
+      setGroup(false);
+    }
+  }, [selectedAssignees]);
+
   const handleEventClick = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
     setIsDetailViewOpen(true);
@@ -1032,4 +1038,3 @@ export default function AppointmentsPage() {
 }
 
     
-
