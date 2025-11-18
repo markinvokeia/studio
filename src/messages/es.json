@@ -196,6 +196,7 @@
     "description": "Gestionar todas las cotizaciones.",
     "detailsFor": "Detalles de la Cotización",
     "quoteId": "ID de Cotización",
+    "print": "Imprimir",
     "tabs": {
       "items": "Ítems",
       "orders": "Pedidos",

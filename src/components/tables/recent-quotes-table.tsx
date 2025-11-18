@@ -24,16 +24,18 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Printer } from 'lucide-react';
 import { DocumentTextIcon } from '../icons/document-text-icon';
 import { useTranslations } from 'next-intl';
 import { format, parseISO } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 const getColumns = (
     t: (key: string) => string,
     onEdit: (quote: Quote) => void,
     onDelete: (quote: Quote) => void,
     onQuoteAction: (quote: Quote, action: 'confirm' | 'reject') => void,
+    onPrint: (quote: Quote) => void
 ): ColumnDef<Quote>[] => [
   {
     id: 'select',
@@ -194,6 +196,7 @@ const getColumns = (
     id: 'actions',
     cell: ({ row }) => {
       const t = useTranslations('UserColumns');
+      const tQuotes = useTranslations('QuotesPage');
       const quote = row.original;
       const status = (quote.status || '').toLowerCase();
       const isDraft = status === 'draft';
@@ -202,15 +205,24 @@ const getColumns = (
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0" disabled={!isDraft && !isPending}>
+            <Button variant="ghost" className="h-8 w-8 p-0">
               <span className="sr-only">Open menu</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => onEdit(quote)} disabled={!isDraft}>Edit Quote</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDelete(quote)} className="text-destructive" disabled={!isDraft}>Delete Quote</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onPrint(quote)}>
+              <Printer className="mr-2 h-4 w-4" />
+              <span>{tQuotes('print')}</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onEdit(quote)} disabled={!isDraft}>
+              {t('edit')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onDelete(quote)} className="text-destructive" disabled={!isDraft}>
+              {t('delete')}
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onQuoteAction(quote, 'confirm')} disabled={!isDraft && !isPending}>Confirm</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onQuoteAction(quote, 'reject')} className="text-destructive" disabled={!isDraft && !isPending}>Reject</DropdownMenuItem>
@@ -237,7 +249,51 @@ interface RecentQuotesTableProps {
 
 export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRefresh, isRefreshing, rowSelection, setRowSelection, onEdit = () => {}, onDelete = () => {}, onQuoteAction = () => {} }: RecentQuotesTableProps) {
   const t = useTranslations();
-  const columns = React.useMemo(() => getColumns(t, onEdit, onDelete, onQuoteAction), [t, onEdit, onDelete, onQuoteAction]);
+  const { toast } = useToast();
+
+  const handlePrintQuote = async (quote: Quote) => {
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/quote/print', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ quoteId: quote.id }),
+        });
+
+        if (response.status === 400) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to generate PDF.');
+        }
+
+        if (!response.ok) {
+            throw new Error('An unexpected error occurred while generating the PDF.');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Quote-${quote.id}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        
+        toast({
+          title: "Download Started",
+          description: `Your PDF for Quote #${quote.id} is downloading.`,
+        });
+
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Print Error',
+            description: error instanceof Error ? error.message : 'Could not print the quote.',
+        });
+    }
+  };
+  
+  const columns = React.useMemo(() => getColumns(t, onEdit, onDelete, onQuoteAction, handlePrintQuote), [t, onEdit, onDelete, onQuoteAction]);
+  
   return (
     <Card>
       <CardHeader>

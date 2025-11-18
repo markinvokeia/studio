@@ -196,6 +196,7 @@
     "description": "Manage all quotes.",
     "detailsFor": "Details for Quote",
     "quoteId": "Quote ID",
+    "print": "Print",
     "tabs": {
       "items": "Items",
       "orders": "Orders",
