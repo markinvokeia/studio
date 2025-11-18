@@ -213,7 +213,7 @@ export default function InvoicesPage() {
                                 </TabsList>
                                 <TabsContent value="items">
                                     <div className="flex items-center justify-between mb-2">
-                                        <h4 className="text-md font-semibold">{t('tabs.items')} {selectedInvoice.id}</h4>
+                                        <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', {id: selectedInvoice.id})}</h4>
                                         <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
                                             <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
                                         </Button>
