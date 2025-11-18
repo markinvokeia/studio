@@ -46,7 +46,7 @@ import { useTranslations } from 'next-intl';
 
 const quoteFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  user_id: z.string().min(1, t('QuotesPage.quoteDialog.user')),
+  user_id: z.string().min(1, t('validation.userRequired')),
   total: z.coerce.number().min(0, 'Total must be a positive number'),
   currency: z.enum(['URU', 'USD']).default('USD'),
   status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed']),
@@ -59,7 +59,7 @@ type QuoteFormValues = z.infer<ReturnType<typeof quoteFormSchema>>;
 const quoteItemFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     quote_id: z.string(),
-    service_id: z.string().min(1, t('QuotesPage.itemDialog.service')),
+    service_id: z.string().min(1, t('validation.serviceRequired')),
     quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
     unit_price: z.coerce.number().min(0, 'Unit price must be positive'),
     total: z.coerce.number().min(0, 'Total must be positive'),
@@ -387,6 +387,7 @@ async function deleteQuote(id: string) {
 
 export default function QuotesPage() {
     const t = useTranslations('QuotesPage');
+    const tVal = useTranslations('QuotesPage.validation');
     const { toast } = useToast();
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
@@ -431,12 +432,12 @@ export default function QuotesPage() {
 
     const [exchangeRate, setExchangeRate] = React.useState<number>(1);
     const [showConversion, setShowConversion] = React.useState(false);
-    const [originalServicePrice, setOriginalServicePrice] = React.useState(0);
+    const [originalServicePrice, setOriginalServicePrice] = React.useState<number | null>(null);
     const [originalServiceCurrency, setOriginalServiceCurrency] = React.useState('');
 
 
-    const quoteForm = useForm<QuoteFormValues>({ resolver: zodResolver(quoteFormSchema(t)) });
-    const quoteItemForm = useForm<QuoteItemFormValues>({ resolver: zodResolver(quoteItemFormSchema(t)) });
+    const quoteForm = useForm<QuoteFormValues>({ resolver: zodResolver(quoteFormSchema(tVal)) });
+    const quoteItemForm = useForm<QuoteItemFormValues>({ resolver: zodResolver(quoteItemFormSchema(tVal)) });
 
     const watchedQuoteStatus = quoteForm.watch("status");
     const isStatusDraft = watchedQuoteStatus === 'draft';
@@ -599,6 +600,7 @@ export default function QuotesPage() {
         quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
         setQuoteItemSubmissionError(null);
         setShowConversion(false);
+        setOriginalServicePrice(null);
         setExchangeRate(1);
         setIsQuoteItemDialogOpen(true);
     };
@@ -1050,7 +1052,7 @@ export default function QuotesPage() {
                                 </FormItem>
                             )}
                         />
-                         {showConversion && (
+                         {showConversion && originalServicePrice !== null && (
                             <>
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormItem>

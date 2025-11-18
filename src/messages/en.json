@@ -202,6 +202,10 @@
       "invoices": "Invoices",
       "payments": "Payments"
     },
+    "validation": {
+        "userRequired": "User is required.",
+        "serviceRequired": "Service is required."
+    },
     "quoteDialog": {
       "createTitle": "Create New Quote",
       "editTitle": "Edit Quote",
@@ -1081,7 +1085,6 @@
     "filterPlaceholder": "Filter users by email...",
     "detailsFor": "Details for {name}",
     "close": "Close details",
-    "setInitialPassword": "Set Initial Password",
     "tabs": {
       "roles": "Roles",
       "services": "Services",
