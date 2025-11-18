@@ -101,13 +101,6 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
     setCurrentDate(new Date());
   };
   
-  const handleGroupChange = (checked: boolean | 'indeterminate') => {
-    if (typeof checked === 'boolean') {
-      onGroupChange(checked);
-    }
-  };
-
-
   const headerTitle = useMemo(() => {
     switch(view) {
         case 'day': return format(currentDate, 'MMMM d, yyyy');
@@ -122,76 +115,6 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
         default: return format(currentDate, 'MMMM yyyy');
     }
   }, [currentDate, view]);
-
-  const renderHeader = () => (
-    <div className="calendar-header">
-      <div className='flex items-center gap-4'>
-        <h2 className='text-xl font-bold'>Calendar</h2>
-        <Button variant="outline" size="sm" onClick={handleToday}>Today</Button>
-        <div className='flex items-center gap-1'>
-            <Button variant="ghost" size="icon" onClick={handlePrev}><ChevronLeft className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" onClick={handleNext}><ChevronRight className="h-4 w-4" /></Button>
-        </div>
-        <h3 className='font-semibold'>{headerTitle}</h3>
-      </div>
-      <div className='flex items-center gap-2'>
-        {children}
-        <div className="flex items-center gap-2">
-            <Checkbox id="group-by-assignee" checked={group} onCheckedChange={handleGroupChange} />
-            <Label htmlFor="group-by-assignee">Group by Assignee</Label>
-        </div>
-        <Popover>
-            <PopoverTrigger asChild>
-                <Button variant="outline">Filter Assignees</Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-56 p-2">
-                <Command>
-                    <CommandList>
-                        <CommandGroup>
-                             <CommandItem onSelect={() => onSelectedAssigneesChange(assignees.map(a => a.id))}>Select All</CommandItem>
-                             <CommandItem onSelect={() => onSelectedAssigneesChange([])}>Deselect All</CommandItem>
-                             <DropdownMenuSeparator />
-                            {assignees.map((assignee) => (
-                                <CommandItem key={assignee.id} onSelect={() => {
-                                    onSelectedAssigneesChange((prev: string[]) => 
-                                        prev.includes(assignee.id) 
-                                            ? prev.filter(id => id !== assignee.id)
-                                            : [...prev, assignee.id]
-                                    )
-                                }}>
-                                    <div className="flex items-center">
-                                        <Checkbox checked={selectedAssignees.includes(assignee.id)} className="mr-2" />
-                                        <span>{assignee.name}</span>
-                                    </div>
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="outline">{view.charAt(0).toUpperCase() + view.slice(1)}</Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-                <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>Day</DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
-                        <DropdownMenuItem onSelect={() => setView('day')}>Day</DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setView('2-day')}>2 Days</DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setView('3-day')}>3 Days</DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                </DropdownMenuSub>
-                <DropdownMenuItem onSelect={() => setView('week')}>Week</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setView('month')}>Month</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setView('year')}>Year</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setView('schedule')}>Schedule</DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
-  );
 
     const renderDayOrWeekView = (numDays: number) => {
         const days = Array.from({ length: numDays }, (_, i) => addDays(startOfWeek(currentDate, { weekStartsOn: 1 }), i));
@@ -430,7 +353,39 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
 
   return (
     <div className="calendar-container">
-      {renderHeader()}
+      <div className="calendar-header">
+        <div className='flex items-center gap-4'>
+            <h2 className='text-xl font-bold'>Calendar</h2>
+            <Button variant="outline" size="sm" onClick={handleToday}>Today</Button>
+            <div className='flex items-center gap-1'>
+                <Button variant="ghost" size="icon" onClick={handlePrev}><ChevronLeft className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={handleNext}><ChevronRight className="h-4 w-4" /></Button>
+            </div>
+            <h3 className='font-semibold'>{headerTitle}</h3>
+        </div>
+        <div className='flex items-center gap-2'>
+            {children}
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline">{view.charAt(0).toUpperCase() + view.slice(1)}</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                    <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>Day</DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                            <DropdownMenuItem onSelect={() => setView('day')}>Day</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setView('2-day')}>2 Days</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setView('3-day')}>3 Days</DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                    <DropdownMenuItem onSelect={() => setView('week')}>Week</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setView('month')}>Month</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setView('year')}>Year</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setView('schedule')}>Schedule</DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+      </div>
       <div className="calendar-body">
         {renderView()}
       </div>
@@ -439,4 +394,3 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
 };
 
 export default Calendar;
-

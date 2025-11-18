@@ -666,8 +666,7 @@ export default function AppointmentsPage() {
 };
 
  const onDateChange = React.useCallback((newRange: { start: Date; end: Date }) => {
-    // Only update if the range has actually changed to prevent loops
-    if (!fetchRange || !fetchRange.from || !newRange.start || fetchRange.from.getTime() !== newRange.start.getTime() || !fetchRange.to || !newRange.end || fetchRange.to.getTime() !== newRange.end.getTime()) {
+    if (!fetchRange || !fetchRange.start || !newRange.start || fetchRange.start.getTime() !== newRange.start.getTime() || !fetchRange.end || !newRange.end || fetchRange.end.getTime() !== newRange.end.getTime()) {
       setFetchRange(newRange);
     }
   }, [fetchRange]);
@@ -703,13 +702,49 @@ export default function AppointmentsPage() {
           group={group}
           onGroupChange={setGroup}
         >
-          <Button onClick={() => setCreateOpen(true)}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            {t('newAppointment')}
-          </Button>
-          <Button onClick={forceRefresh} variant="outline" size="icon" disabled={isRefreshing}>
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </Button>
+            <div className="flex items-center gap-2">
+                <Button onClick={() => setCreateOpen(true)}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    {t('newAppointment')}
+                </Button>
+                <Button onClick={forceRefresh} variant="outline" size="icon" disabled={isRefreshing}>
+                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </Button>
+                <div className="flex items-center gap-2">
+                    <Checkbox id="group-by-assignee" checked={group} onCheckedChange={(checked) => onGroupChange(typeof checked === 'boolean' ? checked : false)} />
+                    <Label htmlFor="group-by-assignee">Group by Assignee</Label>
+                </div>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline">Filter Assignees</Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-2">
+                        <Command>
+                            <CommandList>
+                                <CommandGroup>
+                                    <CommandItem onSelect={() => setSelectedAssignees(assignees.map(a => a.id))}>Select All</CommandItem>
+                                    <CommandItem onSelect={() => setSelectedAssignees([])}>Deselect All</CommandItem>
+                                    <hr className="my-2" />
+                                    {assignees.map((assignee) => (
+                                        <CommandItem key={assignee.id} onSelect={() => {
+                                            setSelectedAssignees((prev: string[]) => 
+                                                prev.includes(assignee.id) 
+                                                    ? prev.filter(id => id !== assignee.id)
+                                                    : [...prev, assignee.id]
+                                            )
+                                        }}>
+                                            <div className="flex items-center">
+                                                <Checkbox checked={selectedAssignees.includes(assignee.id)} className="mr-2" />
+                                                <span>{assignee.name}</span>
+                                            </div>
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
+            </div>
         </Calendar>
       </CardContent>
       <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
