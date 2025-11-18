@@ -404,19 +404,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
               )}
                 <FormField
                   control={form.control}
-                  name="invoice_currency"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Invoice Currency</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly disabled />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="amount"
                   render={({ field }) => (
                     <FormItem>
@@ -428,7 +415,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="payment_currency"
@@ -447,6 +434,19 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                         </SelectContent>
                       </Select>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="invoice_currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Invoice Currency</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly disabled />
+                      </FormControl>
                     </FormItem>
                   )}
                 />
