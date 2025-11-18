@@ -749,7 +749,7 @@ export default function AppointmentsPage() {
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button variant="outline" className="flex items-center gap-2">
-                                    Filter Assignees
+                                    Assignees
                                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
                                 </Button>
                             </PopoverTrigger>
