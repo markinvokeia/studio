@@ -24,7 +24,7 @@ import {
 import { Checkbox } from '../ui/checkbox';
 import './Calendar.css';
 import { Skeleton } from '../ui/skeleton';
-import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDate, getDay, getDaysInMonth, getHours, getMinutes, getMonth, isSameDay, isSameMonth, startOfDay, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
+import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDate, getDay, getDaysInMonth, getHours, getMinutes, isSameDay, isSameMonth, startOfDay, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { User } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -261,17 +261,19 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     const renderDays = () => {
-      let days = [];
-      const totalRows = 6;
+      const dayElements = [];
+      const totalGridCells = 42; // 6 rows * 7 days
       
+      // Days from previous month
       for (let i = 0; i < dayOffset; i++) {
-        days.push(<div key={`empty-prev-${i}`} className="calendar-day other-month"></div>);
+        dayElements.push(<div key={`empty-prev-${i}`} className="calendar-day other-month"></div>);
       }
 
+      // Days of current month
       for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month, day);
         const dayEvents = events.filter(e => isSameDay(new Date(e.start), date));
-        days.push(
+        dayElements.push(
           <div key={day} className="calendar-day">
             <span className='font-semibold'>{day}</span>
             <div className='mt-1 space-y-1'>
@@ -289,14 +291,12 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
         );
       }
       
-      const totalSlots = dayOffset + daysInMonth;
-      const remainingSlots = (totalRows * 7) - totalSlots;
-
-      for (let i = 0; i < remainingSlots; i++) {
-        days.push(<div key={`empty-next-${i}`} className="calendar-day other-month"></div>);
+      // Days from next month
+      while (dayElements.length < totalGridCells) {
+        dayElements.push(<div key={`empty-next-${dayElements.length}`} className="calendar-day other-month"></div>);
       }
 
-      return days;
+      return dayElements;
     }
 
     if (isLoading) {
@@ -360,6 +360,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
   
   const renderScheduleView = () => {
       const groupedEvents = events.reduce((acc, event) => {
+          if (!event.start) return acc;
           const date = format(new Date(event.start), 'yyyy-MM-dd');
           if (!acc[date]) acc[date] = [];
           acc[date].push(event);
