@@ -516,12 +516,12 @@ export default function AppointmentsPage() {
             
             if (result.suggestedTimes) {
                 
-                const processedSuggestions = result.suggestedTimes.flatMap((suggestion, suggestionIndex) => {
-                    const doctorsInSuggestion = suggestion.json.user_name.split(',').map(name => name.trim());
+                const processedSuggestions = result.suggestedTimes.flatMap((suggestion:any, suggestionIndex:number) => {
+                    const doctorsInSuggestion = suggestion.json.user_name.split(',').map((name:string) => name.trim());
                     const doctorIds = suggestion.json.user_id.split(',');
                     const doctorEmails = suggestion.json.user_email.split(',');
 
-                    return doctorsInSuggestion.map((docName, docIndex) => ({
+                    return doctorsInSuggestion.map((docName:string, docIndex:number) => ({
                         id: `sugg-${doctorIds[docIndex]}-${suggestion.json.fecha_cita}-${suggestion.json.hora_cita}-${suggestionIndex}-${docIndex}`,
                         calendar: suggestion.json.calendario,
                         date: suggestion.json.fecha_cita,
@@ -704,13 +704,16 @@ export default function AppointmentsPage() {
     }).filter(Boolean) as ({ id: string; title: string; start: Date; end: Date; assignee: string | undefined; data: Appointment; })[];
   }, [appointments]);
 
-  const handleSelectAssignee = React.useCallback((assigneeId: string) => {
-    setSelectedAssignees(prev =>
-      prev.includes(assigneeId)
-        ? prev.filter(id => id !== assigneeId)
-        : [...prev, assigneeId]
-    );
-  }, []);
+ const handleSelectAssignee = useCallback((assigneeId: string, checked: boolean) => {
+    setSelectedAssignees(prev => {
+        if (checked) {
+            return [...prev, assigneeId];
+        } else {
+            return prev.filter(id => id !== assigneeId);
+        }
+    });
+}, []);
+
 
   return (
     <Card>
@@ -750,9 +753,9 @@ export default function AppointmentsPage() {
                                     <CommandItem onSelect={() => setSelectedAssignees([])}>Deselect All</CommandItem>
                                     <hr className="my-2" />
                                     {assignees.map((assignee) => (
-                                        <CommandItem key={assignee.id} onSelect={() => handleSelectAssignee(assignee.id)}>
+                                        <CommandItem key={assignee.id} onSelect={() => handleSelectAssignee(assignee.id, !selectedAssignees.includes(assignee.id))}>
                                             <div className="flex items-center">
-                                                <Checkbox checked={selectedAssignees.includes(assignee.id)} className="mr-2" onCheckedChange={() => handleSelectAssignee(assignee.id)} />
+                                                <Checkbox checked={selectedAssignees.includes(assignee.id)} className="mr-2" onCheckedChange={(checked) => handleSelectAssignee(assignee.id, !!checked)} />
                                                 <span>{assignee.name}</span>
                                             </div>
                                         </CommandItem>
