@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   ChevronLeft,
@@ -18,18 +18,22 @@ import {
 import './Calendar.css';
 import { Skeleton } from '../ui/skeleton';
 
-const Calendar = ({ events = [], onDateChange, children, isLoading = false }) => {
+const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEventClick }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState('month'); // 'day', 'week', 'month', 'year'
   const [showWeekends, setShowWeekends] = useState(true);
 
-  useEffect(() => {
+  const handleDateChange = useCallback(() => {
     if (onDateChange) {
       const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
       onDateChange({ start, end });
     }
   }, [currentDate, onDateChange]);
+
+  useEffect(() => {
+    handleDateChange();
+  }, [handleDateChange]);
 
   const handlePrev = () => {
     if (view === 'month') {
@@ -101,15 +105,12 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false }) =>
 
     const renderDays = () => {
       let days = [];
-      // Calculate the number of leading empty slots
-      let startingDay = firstDayOfMonth; // 0 for Sunday, 1 for Monday, etc.
+      let startingDay = firstDayOfMonth;
 
-      // Add empty cells for the days before the first of the month
       for (let i = 0; i < startingDay; i++) {
         days.push(<div key={`empty-prev-${i}`} className="calendar-day other-month"></div>);
       }
 
-      // Add cells for each day of the month
       for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month, day);
         const dayEvents = events.filter(e => new Date(e.start).toDateString() === date.toDateString());
@@ -118,7 +119,12 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false }) =>
             <span className='font-semibold'>{day}</span>
             <div className='mt-1 space-y-1'>
               {dayEvents.map(event => (
-                <div key={event.id} style={{ backgroundColor: event.backgroundColor }} className="event">
+                <div 
+                    key={event.id} 
+                    style={{ backgroundColor: event.backgroundColor }} 
+                    className="event"
+                    onClick={() => onEventClick(event)}
+                >
                   {event.title}
                 </div>
               ))}
@@ -127,7 +133,6 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false }) =>
         );
       }
 
-      // Fill the rest of the grid to ensure 6 rows
       const totalSlots = days.length;
       const slotsNeededFor6Rows = 42; 
       const remainingSlots = slotsNeededFor6Rows - totalSlots > 0 ? slotsNeededFor6Rows - totalSlots : 0;
@@ -167,17 +172,14 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false }) =>
   };
 
   const renderWeekView = () => {
-    // Simplified week view
     return <div className='p-4'>Week View Not Implemented</div>
   };
   
   const renderDayView = () => {
-    // Simplified day view
     return <div className='p-4'>Day View Not Implemented</div>
   };
 
   const renderYearView = () => {
-    // Simplified year view
     return <div className='p-4'>Year View Not Implemented</div>
   };
 

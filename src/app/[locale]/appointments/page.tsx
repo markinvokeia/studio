@@ -52,11 +52,8 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
     const params = new URLSearchParams({
         startingDateAndTime: formatDateForAPI(startDate),
         endingDateAndTime: formatDateForAPI(endDate),
+        calendar_ids: calendarGoogleIds.join(','),
     });
-
-    if (calendarGoogleIds.length > 0) {
-      params.append('calendar_ids', calendarGoogleIds.join(','));
-    }
 
     try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
@@ -183,6 +180,9 @@ export default function AppointmentsPage() {
   const [doctorSearchQuery, setDoctorSearchQuery] = React.useState('');
   const [doctorSearchResults, setDoctorSearchResults] = React.useState<UserType[]>([]);
   const [isSearchingDoctors, setIsSearchingDoctors] = React.useState(false);
+  
+  const [selectedAppointment, setSelectedAppointment] = React.useState<Appointment | null>(null);
+  const [isDetailViewOpen, setIsDetailViewOpen] = React.useState(false);
 
 
   // New Appointment Dialog State
@@ -199,6 +199,11 @@ export default function AppointmentsPage() {
   const [isCalendarSearchOpen, setCalendarSearchOpen] = React.useState(false);
   const [availabilityStatus, setAvailabilityStatus] = React.useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
   const [suggestedTimes, setSuggestedTimes] = React.useState<any[]>([]);
+
+  const handleEventClick = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setIsDetailViewOpen(true);
+  };
 
   const handleEdit = (appointment: Appointment) => {
     setEditingAppointment(appointment);
@@ -711,8 +716,10 @@ export default function AppointmentsPage() {
               backgroundColor: a.calendar_id
                 ? calendarColors[a.calendar_id]
                 : '#ccc',
+              data: a,
             }))}
             onDateChange={onDateChange}
+            onEventClick={(event) => handleEventClick(event.data)}
             isLoading={isRefreshing}
           >
             <div className="flex items-center gap-2">
@@ -1103,6 +1110,29 @@ export default function AppointmentsPage() {
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
+      <Dialog open={isDetailViewOpen} onOpenChange={setIsDetailViewOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>{selectedAppointment?.service_name}</DialogTitle>
+                <DialogDescription>
+                    {t('createDialog.title')}
+                </DialogDescription>
+            </DialogHeader>
+            {selectedAppointment && (
+                <div className="grid gap-4 py-4">
+                    <p><strong>{tColumns('date')}:</strong> {selectedAppointment.date}</p>
+                    <p><strong>{tColumns('time')}:</strong> {selectedAppointment.time}</p>
+                    <p><strong>{tColumns('patient')}:</strong> {selectedAppointment.patientName}</p>
+                    <p><strong>{tColumns('doctor')}:</strong> {selectedAppointment.doctorName || 'N/A'}</p>
+                    <p><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name || 'N/A'}</p>
+                    <p><strong>{t('createDialog.descriptionLabel')}:</strong> {selectedAppointment.description || 'N/A'}</p>
+                </div>
+            )}
+            <DialogFooter>
+                <Button onClick={() => setIsDetailViewOpen(false)}>{t('createDialog.close')}</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -1112,3 +1142,4 @@ export default function AppointmentsPage() {
     
 
     
+
