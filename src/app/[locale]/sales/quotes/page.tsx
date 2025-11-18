@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -594,7 +595,6 @@ export default function QuotesPage() {
 
     const handleCreateQuoteItem = async () => {
         if (!selectedQuote) return;
-        
         setEditingQuoteItem(null);
         setQuoteItemSubmissionError(null);
         setShowConversion(false);
@@ -602,7 +602,6 @@ export default function QuotesPage() {
         setOriginalServiceCurrency('');
         setExchangeRate(1);
         quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
-
         const fetchedServices = await getServices();
         setAllServices(fetchedServices);
         setIsQuoteItemDialogOpen(true);
@@ -610,13 +609,10 @@ export default function QuotesPage() {
     
     const handleEditQuoteItem = async (item: QuoteItem) => {
         if (!selectedQuote) return;
-
+    
         setEditingQuoteItem(item);
         setQuoteItemSubmissionError(null);
         setShowConversion(false);
-        setOriginalServicePrice(null);
-        setOriginalServiceCurrency('');
-        setExchangeRate(1);
     
         const fetchedServices = await getServices();
         setAllServices(fetchedServices);
@@ -624,13 +620,18 @@ export default function QuotesPage() {
         const service = fetchedServices.find(s => String(s.id) === String(item.service_id));
         
         if (service) {
-            setOriginalServicePrice(service.price);
+            const servicePrice = Number(service.price);
+            setOriginalServicePrice(servicePrice);
             setOriginalServiceCurrency(service.currency || 'USD');
             
             const quoteCurrency = selectedQuote.currency || 'USD';
             const serviceCurrency = service.currency || 'USD';
             const conversionNeeded = quoteCurrency !== serviceCurrency;
             setShowConversion(conversionNeeded);
+            setExchangeRate(1); 
+        } else {
+            setOriginalServicePrice(null);
+            setOriginalServiceCurrency('');
         }
         
         quoteItemForm.reset({ 
@@ -721,20 +722,22 @@ export default function QuotesPage() {
     React.useEffect(() => {
         const service = allServices.find(s => String(s.id) === watchedServiceId);
         if (service && selectedQuote) {
+            const servicePrice = Number(service.price);
+            setOriginalServicePrice(servicePrice);
+            
             const quoteCurrency = selectedQuote.currency || 'USD';
             const serviceCurrency = service.currency || 'USD';
-            const conversionNeeded = quoteCurrency !== serviceCurrency;
-            
-            setShowConversion(conversionNeeded);
-            setOriginalServicePrice(service.price);
             setOriginalServiceCurrency(serviceCurrency);
 
-            let newUnitPrice = service.price;
+            const conversionNeeded = quoteCurrency !== serviceCurrency;
+            setShowConversion(conversionNeeded);
+
+            let newUnitPrice = servicePrice;
             if (conversionNeeded) {
                 if (quoteCurrency === 'UYU' && serviceCurrency === 'USD') {
-                    newUnitPrice = service.price * exchangeRate;
+                    newUnitPrice = servicePrice * exchangeRate;
                 } else if (quoteCurrency === 'USD' && serviceCurrency === 'UYU') {
-                    newUnitPrice = exchangeRate > 0 ? service.price / exchangeRate : 0;
+                    newUnitPrice = exchangeRate > 0 ? servicePrice / exchangeRate : 0;
                 }
             }
             
@@ -1071,7 +1074,7 @@ export default function QuotesPage() {
                         />
                          {showConversion && (
                             <div className="grid grid-cols-2 gap-4 rounded-md border p-4">
-                                <FormItem>
+                               <FormItem>
                                     <FormLabel>{t('itemDialog.originalPrice')} ({originalServiceCurrency})</FormLabel>
                                     <Input
                                         value={originalServicePrice !== null ? Number(originalServicePrice).toFixed(2) : ''}
@@ -1079,10 +1082,20 @@ export default function QuotesPage() {
                                         disabled
                                     />
                                 </FormItem>
-                                <FormItem>
-                                    <FormLabel>{t('itemDialog.exchangeRate')}</FormLabel>
-                                    <Input type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value) || 1)} />
-                                </FormItem>
+                                <FormField
+                                    control={quoteItemForm.control}
+                                    name="unit_price"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('itemDialog.exchangeRate')}</FormLabel>
+                                        <Input
+                                        type="number"
+                                        value={exchangeRate}
+                                        onChange={(e) => setExchangeRate(Number(e.target.value) || 1)}
+                                        />
+                                    </FormItem>
+                                    )}
+                                />
                             </div>
                         )}
                         <FormField control={quoteItemForm.control} name="quantity" render={({ field }) => (
@@ -1094,7 +1107,7 @@ export default function QuotesPage() {
                         )}/>
                         <FormField control={quoteItemForm.control} name="unit_price" render={({ field }) => (
                             <FormItem>
-                                <FormLabel>{t('itemDialog.unitPrice')}</FormLabel>
+                                <FormLabel>{t('itemDialog.unitPrice')} ({selectedQuote?.currency})</FormLabel>
                                 <FormControl><Input type="number" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -1137,4 +1150,5 @@ export default function QuotesPage() {
     
 
     
+
 
