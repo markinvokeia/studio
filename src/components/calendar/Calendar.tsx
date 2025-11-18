@@ -129,7 +129,8 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
         const timeSlots = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
         
         const columns = group ? assignees.filter((a: User) => selectedAssignees.includes(a.id)) : [{id: 'all', name: 'All', email: 'all'}];
-        
+        const numColumnsPerDay = group ? columns.length : 1;
+
         const getEventStyle = (event: any) => {
             const start = new Date(event.start);
             const end = new Date(event.end);
@@ -144,11 +145,27 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
 
         return (
             <div className="day-view-container">
-                <div className="day-view-header" style={{ '--num-days': days.length * (group ? columns.length : 1) } as React.CSSProperties}>
-                    <div />
-                    {days.map(day => (
-                        group && columns.length > 0 ? columns.map(col => <div key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}>{col.name} - {format(day, 'EEE d')}</div>) : <div key={format(day, 'yyyy-MM-dd')}>{format(day, 'EEE d')}</div>
-                    ))}
+                <div className="day-view-header-wrapper">
+                    <div className='day-view-header-dates' style={{ gridTemplateColumns: `60px repeat(${days.length}, 1fr)`}}>
+                         <div />
+                         {days.map(day => (
+                            <div key={`date-${format(day, 'yyyy-MM-dd')}`} className="day-view-date-cell">
+                                {format(day, 'EEE, MMM d')}
+                            </div>
+                        ))}
+                    </div>
+                     {group && (
+                        <div className="day-view-header-assignees" style={{ gridTemplateColumns: `60px repeat(${days.length * numColumnsPerDay}, 1fr)`}}>
+                             <div/>
+                            {days.map(day => (
+                                columns.length > 0 ? columns.map(col => (
+                                    <div key={`assignee-${format(day, 'yyyy-MM-dd')}-${col.id}`} className="day-view-assignee-cell">
+                                        {col.name}
+                                    </div>
+                                )) : <div key={`assignee-empty-${format(day, 'yyyy-MM-dd')}`} className="day-view-assignee-cell"></div>
+                            ))}
+                        </div>
+                    )}
                 </div>
                 <div className="day-view-body" style={{ '--num-days': days.length * (group ? columns.length : 1) } as React.CSSProperties}>
                     <div className="time-column">
