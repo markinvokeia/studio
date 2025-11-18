@@ -704,9 +704,9 @@ export default function AppointmentsPage() {
   }, []);
 
   return (
-    <>
-      <Card>
-        <CardContent className="p-0">
+    <div className="flex flex-col h-full">
+      <Card className="flex-1 flex flex-col">
+        <CardContent className="p-0 flex-1 flex flex-col">
           <Calendar
             events={appointments.map((a) => ({
               id: a.id,
@@ -1133,7 +1133,7 @@ export default function AppointmentsPage() {
             </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
 
@@ -1142,4 +1142,3 @@ export default function AppointmentsPage() {
     
 
     
-
