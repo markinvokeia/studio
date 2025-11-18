@@ -45,6 +45,17 @@ const paymentFormSchema = (t: (key: string) => string) => z.object({
   payment_date: z.date({
     required_error: t('dateRequired'),
   }),
+  invoice_currency: z.string(),
+  payment_currency: z.string(),
+  exchange_rate: z.coerce.number().optional(),
+}).refine(data => {
+    if (data.invoice_currency !== data.payment_currency) {
+        return data.exchange_rate && data.exchange_rate > 0;
+    }
+    return true;
+}, {
+    message: 'Exchange rate is required when currencies are different.',
+    path: ['exchange_rate'],
 });
 
 type PaymentFormValues = z.infer<ReturnType<typeof paymentFormSchema>>;
@@ -82,6 +93,24 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       status: 'completed',
     }
   });
+  
+  const watchedPaymentCurrency = form.watch('payment_currency');
+  const watchedInvoiceCurrency = form.watch('invoice_currency');
+  const watchedAmount = form.watch('amount');
+  const watchedExchangeRate = form.watch('exchange_rate');
+
+  const showExchangeRate = watchedInvoiceCurrency && watchedPaymentCurrency && watchedInvoiceCurrency !== watchedPaymentCurrency;
+
+  const equivalentAmount = React.useMemo(() => {
+    if (!showExchangeRate || !watchedAmount || !watchedExchangeRate) return null;
+    if (watchedInvoiceCurrency === 'USD' && watchedPaymentCurrency === 'URU') {
+      return watchedAmount / watchedExchangeRate;
+    }
+    if (watchedInvoiceCurrency === 'URU' && watchedPaymentCurrency === 'USD') {
+      return watchedAmount * watchedExchangeRate;
+    }
+    return null;
+  }, [showExchangeRate, watchedAmount, watchedExchangeRate, watchedInvoiceCurrency, watchedPaymentCurrency]);
 
   const fetchPaymentMethods = async () => {
     try {
@@ -120,6 +149,9 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 method: '',
                 status: 'completed',
                 payment_date: new Date(),
+                invoice_currency: invoice.currency || 'USD',
+                payment_currency: invoice.currency || 'USD',
+                exchange_rate: 1,
             });
             setPaymentSubmissionError(null);
             setIsPaymentDialogOpen(true);
@@ -141,6 +173,11 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     
     const selectedMethod = paymentMethods.find(pm => pm.id === values.method);
 
+    let finalAmount = values.amount;
+    if (showExchangeRate && equivalentAmount) {
+        finalAmount = equivalentAmount;
+    }
+
     try {
         const payload = {
             invoice_id: selectedInvoiceForPayment.id,
@@ -149,11 +186,13 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             query: JSON.stringify({
                 invoice_id: parseInt(selectedInvoiceForPayment.id, 10),
                 payment_date: values.payment_date.toISOString(),
-                amount: values.amount,
+                amount: finalAmount,
                 method: selectedMethod?.name,
                 payment_method_id: values.method,
                 status: values.status,
                 user: user,
+                payment_currency: values.payment_currency,
+                exchange_rate: values.exchange_rate,
             }),
         };
 
@@ -363,19 +402,82 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                       <AlertDescription>{paymentSubmissionError}</AlertDescription>
                   </Alert>
               )}
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('paymentDialog.amount')}</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                <FormField
+                  control={form.control}
+                  name="invoice_currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Invoice Currency</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly disabled />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('paymentDialog.amount')}</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="payment_currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payment Currency</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select payment currency" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="URU">URU</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {showExchangeRate && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="exchange_rate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Exchange Rate</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {equivalentAmount !== null && (
+                       <FormItem>
+                          <FormLabel>Equivalent Amount ({watchedInvoiceCurrency})</FormLabel>
+                          <FormControl>
+                            <Input type="number" value={equivalentAmount.toFixed(2)} readOnly disabled />
+                          </FormControl>
+                        </FormItem>
+                    )}
+                  </>
                 )}
-              />
+
+
               <FormField
                 control={form.control}
                 name="method"
