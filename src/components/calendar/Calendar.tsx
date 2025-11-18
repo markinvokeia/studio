@@ -68,7 +68,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
         end = endOfMonth(currentDate);
         break;
     }
-    if (view !== 'year') {
+    if (view !== 'year' && start && end) {
         handleDateChange(start, end);
     }
   }, [currentDate, view, handleDateChange]);
@@ -100,6 +100,13 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
   const handleToday = () => {
     setCurrentDate(new Date());
   };
+  
+  const handleGroupChange = (checked: boolean | 'indeterminate') => {
+    if (typeof checked === 'boolean') {
+      onGroupChange(checked);
+    }
+  };
+
 
   const headerTitle = useMemo(() => {
     switch(view) {
@@ -130,7 +137,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
       <div className='flex items-center gap-2'>
         {children}
         <div className="flex items-center gap-2">
-            <Checkbox id="group-by-assignee" checked={group} onCheckedChange={onGroupChange} />
+            <Checkbox id="group-by-assignee" checked={group} onCheckedChange={handleGroupChange} />
             <Label htmlFor="group-by-assignee">Group by Assignee</Label>
         </div>
         <Popover>
@@ -433,4 +440,3 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
 
 export default Calendar;
 
-    
