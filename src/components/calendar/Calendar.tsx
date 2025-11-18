@@ -262,7 +262,6 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
 
     const renderDays = () => {
       const dayElements = [];
-      const totalGridCells = 42; // 6 rows * 7 days
       
       // Days from previous month
       for (let i = 0; i < dayOffset; i++) {
@@ -272,7 +271,11 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
       // Days of current month
       for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month, day);
-        const dayEvents = events.filter(e => isSameDay(new Date(e.start), date));
+        const dayEvents = events.filter(e => {
+            if (!e.start) return false;
+            return isSameDay(new Date(e.start), date);
+        });
+        
         dayElements.push(
           <div key={day} className="calendar-day">
             <span className='font-semibold'>{day}</span>
@@ -291,9 +294,19 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
         );
       }
       
-      // Days from next month
-      while (dayElements.length < totalGridCells) {
-        dayElements.push(<div key={`empty-next-${dayElements.length}`} className="calendar-day other-month"></div>);
+      // Ensure grid is filled to 6 weeks for consistent height
+      const totalGridCells = dayOffset + daysInMonth;
+      const remainingCells = (7 - (totalGridCells % 7)) % 7;
+      
+      for (let i = 0; i < remainingCells; i++) {
+        dayElements.push(<div key={`empty-next-${i}`} className="calendar-day other-month"></div>);
+      }
+      
+      // If we have 5 rows, add another one for consistent height
+      if (dayElements.length === 35) {
+          for(let i=0; i<7; i++) {
+               dayElements.push(<div key={`extra-empty-${i}`} className="calendar-day other-month"></div>);
+          }
       }
 
       return dayElements;
