@@ -1,11 +1,13 @@
-
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   ChevronLeft,
   ChevronRight,
+  Sun,
+  Moon,
+  Users,
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -13,55 +15,99 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
     DropdownMenuSeparator,
-    DropdownMenuCheckboxItem
+    DropdownMenuCheckboxItem,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger
 } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '../ui/checkbox';
 import './Calendar.css';
 import { Skeleton } from '../ui/skeleton';
+import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDate, getDay, getDaysInMonth, getHours, getMinutes, getYear, isSameDay, isSameMonth, startOfDay, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
+import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
+import { User } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
-const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEventClick }) => {
+type View = 'day' | '2-day' | '3-day' | 'week' | 'month' | 'year' | 'schedule';
+
+const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEventClick, assignees = [], selectedAssignees, onSelectedAssigneesChange, group, onGroupChange }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState('month'); // 'day', 'week', 'month', 'year'
-  const [showWeekends, setShowWeekends] = useState(true);
+  const [view, setView] = useState<View>('month');
 
-  const handleDateChange = useCallback(() => {
+  const handleDateChange = useCallback((start: Date, end: Date) => {
     if (onDateChange) {
-      const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
       onDateChange({ start, end });
     }
-  }, [currentDate, onDateChange]);
+  }, [onDateChange]);
 
   useEffect(() => {
-    handleDateChange();
-  }, [handleDateChange]);
+    let start, end;
+    switch (view) {
+      case 'day':
+      case '2-day':
+      case '3-day':
+        start = startOfDay(currentDate);
+        end = endOfDay(addDays(currentDate, parseInt(view[0] as string, 10) - 1));
+        break;
+      case 'week':
+        start = startOfWeek(currentDate, { weekStartsOn: 1 });
+        end = endOfWeek(currentDate, { weekStartsOn: 1 });
+        break;
+      case 'year':
+        start = startOfYear(currentDate);
+        end = endOfYear(currentDate);
+        break;
+      case 'month':
+      default:
+        start = startOfMonth(currentDate);
+        end = endOfMonth(currentDate);
+        break;
+    }
+    handleDateChange(start, end);
+  }, [currentDate, view, handleDateChange]);
 
   const handlePrev = () => {
-    if (view === 'month') {
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-    } else if (view === 'week') {
-        setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 7)));
-    } else if (view === 'day') {
-        setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 1)));
-    } else if (view === 'year') {
-        setCurrentDate(new Date(currentDate.getFullYear() - 1, 0, 1));
+    switch(view) {
+      case 'day': setCurrentDate(addDays(currentDate, -1)); break;
+      case '2-day': setCurrentDate(addDays(currentDate, -2)); break;
+      case '3-day': setCurrentDate(addDays(currentDate, -3)); break;
+      case 'week': setCurrentDate(addWeeks(currentDate, -1)); break;
+      case 'year': setCurrentDate(addYears(currentDate, -1)); break;
+      case 'month':
+      default: setCurrentDate(addMonths(currentDate, -1));
     }
   };
 
   const handleNext = () => {
-    if (view === 'month') {
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-    } else if (view === 'week') {
-        setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 7)));
-    } else if (view === 'day') {
-        setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 1)));
-    } else if (view === 'year') {
-        setCurrentDate(new Date(currentDate.getFullYear() + 1, 0, 1));
+    switch(view) {
+      case 'day': setCurrentDate(addDays(currentDate, 1)); break;
+      case '2-day': setCurrentDate(addDays(currentDate, 2)); break;
+      case '3-day': setCurrentDate(addDays(currentDate, 3)); break;
+      case 'week': setCurrentDate(addWeeks(currentDate, 1)); break;
+      case 'year': setCurrentDate(addYears(currentDate, 1)); break;
+      case 'month':
+      default: setCurrentDate(addMonths(currentDate, 1));
     }
   };
 
   const handleToday = () => {
     setCurrentDate(new Date());
   };
+
+  const headerTitle = useMemo(() => {
+    switch(view) {
+        case 'day': return format(currentDate, 'MMMM d, yyyy');
+        case '2-day': return `${format(currentDate, 'MMMM d')} - ${format(addDays(currentDate, 1), 'd, yyyy')}`;
+        case '3-day': return `${format(currentDate, 'MMMM d')} - ${format(addDays(currentDate, 2), 'd, yyyy')}`;
+        case 'week':
+            const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+            const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+            return `${format(start, 'MMMM d')} - ${format(end, 'd, yyyy')}`;
+        case 'year': return format(currentDate, 'yyyy');
+        case 'month': 
+        default: return format(currentDate, 'MMMM yyyy');
+    }
+  }, [currentDate, view]);
 
   const renderHeader = () => (
     <div className="calendar-header">
@@ -72,48 +118,155 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
             <Button variant="ghost" size="icon" onClick={handlePrev}><ChevronLeft className="h-4 w-4" /></Button>
             <Button variant="ghost" size="icon" onClick={handleNext}><ChevronRight className="h-4 w-4" /></Button>
         </div>
-        <h3 className='font-semibold'>{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+        <h3 className='font-semibold'>{headerTitle}</h3>
       </div>
       <div className='flex items-center gap-2'>
         {children}
+        <div className="flex items-center gap-2">
+            <Checkbox id="group-by-assignee" checked={group} onCheckedChange={onGroupChange} />
+            <Label htmlFor="group-by-assignee">Group by Assignee</Label>
+        </div>
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button variant="outline">Filter Assignees</Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2">
+                <Command>
+                    <CommandList>
+                        <CommandGroup>
+                             <CommandItem onSelect={() => onSelectedAssigneesChange(assignees.map(a => a.id))}>Select All</CommandItem>
+                             <CommandItem onSelect={() => onSelectedAssigneesChange([])}>Deselect All</CommandItem>
+                             <DropdownMenuSeparator />
+                            {assignees.map((assignee) => (
+                                <CommandItem key={assignee.id} onSelect={() => {
+                                    onSelectedAssigneesChange((prev: string[]) => 
+                                        prev.includes(assignee.id) 
+                                            ? prev.filter(id => id !== assignee.id)
+                                            : [...prev, assignee.id]
+                                    )
+                                }}>
+                                    <div className="flex items-center">
+                                        <Checkbox checked={selectedAssignees.includes(assignee.id)} className="mr-2" />
+                                        <span>{assignee.name}</span>
+                                    </div>
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="outline">{view.charAt(0).toUpperCase() + view.slice(1)}</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-                <DropdownMenuItem onSelect={() => setView('day')}>Day</DropdownMenuItem>
+                <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>Day</DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                        <DropdownMenuItem onSelect={() => setView('day')}>Day</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setView('2-day')}>2 Days</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setView('3-day')}>3 Days</DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 <DropdownMenuItem onSelect={() => setView('week')}>Week</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setView('month')}>Month</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setView('year')}>Year</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem checked={showWeekends} onCheckedChange={setShowWeekends}>
-                    Show Weekends
-                </DropdownMenuCheckboxItem>
+                <DropdownMenuItem onSelect={() => setView('schedule')}>Schedule</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
       </div>
     </div>
   );
 
-  const renderMonthView = () => {
+    const renderDayOrWeekView = (numDays: number) => {
+        const days = Array.from({ length: numDays }, (_, i) => addDays(currentDate, i));
+        
+        const timeSlots = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+        
+        const columns = group ? assignees.filter(a => selectedAssignees.includes(a.id)) : [{id: 'all', name: 'All'}];
+
+        const getEventStyle = (event: any) => {
+            const start = new Date(event.start);
+            const end = new Date(event.end);
+            const top = (getHours(start) + getMinutes(start) / 60) * 60;
+            const duration = (end.getTime() - start.getTime()) / (1000 * 60);
+            const height = duration;
+            return {
+                top: `${top}px`,
+                height: `${height}px`,
+            };
+        };
+
+        return (
+            <div className="day-view-container">
+                <div className="day-view-header" style={{ '--num-days': days.length * (group ? columns.length : 1) } as React.CSSProperties}>
+                    <div />
+                    {days.map(day => (
+                        group ? columns.map(col => <div key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}>{col.name}</div>) : <div key={format(day, 'yyyy-MM-dd')}>{format(day, 'EEE d')}</div>
+                    ))}
+                </div>
+                <div className="day-view-body" style={{ '--num-days': days.length * (group ? columns.length : 1) } as React.CSSProperties}>
+                    <div className="time-column">
+                        {timeSlots.map(time => (
+                            <div key={time} className="time-slot">
+                                <span className="time-slot-label">{time}</span>
+                            </div>
+                        ))}
+                    </div>
+                    {days.map(day => (
+                        group ? columns.map(col => (
+                            <div key={`${format(day, 'yyyy-MM-dd')}-${col.id}`} className="day-column">
+                                {timeSlots.map(time => <div key={`${time}-${col.id}`} className="time-slot" />)}
+                                {events
+                                    .filter(e => isSameDay(new Date(e.start), day) && e.assignee === col.email)
+                                    .map(event => (
+                                        <div key={event.id} className="event-in-day-view" style={getEventStyle(event)} onClick={() => onEventClick(event.data)}>
+                                            {event.title}
+                                        </div>
+                                    ))
+                                }
+                            </div>
+                        )) : (
+                            <div key={format(day, 'yyyy-MM-dd')} className="day-column">
+                                {timeSlots.map(time => <div key={time} className="time-slot" />)}
+                                {events
+                                    .filter(e => isSameDay(new Date(e.start), day))
+                                    .map(event => (
+                                        <div key={event.id} className="event-in-day-view" style={getEventStyle(event)} onClick={() => onEventClick(event.data)}>
+                                            {event.title}
+                                        </div>
+                                    ))
+                                }
+                            </div>
+                        )
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    const renderMonthView = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-    const firstDayOfMonth = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDayOfWeek = 1; // Monday
+    const firstDayOfMonth = getDay(new Date(year, month, 1));
+    let dayOffset = (firstDayOfMonth - firstDayOfWeek + 7) % 7;
 
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const daysInMonth = getDaysInMonth(currentDate);
+
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     const renderDays = () => {
       let days = [];
-      let startingDay = firstDayOfMonth;
-
-      for (let i = 0; i < startingDay; i++) {
+      
+      for (let i = 0; i < dayOffset; i++) {
         days.push(<div key={`empty-prev-${i}`} className="calendar-day other-month"></div>);
       }
 
       for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month, day);
-        const dayEvents = events.filter(e => new Date(e.start).toDateString() === date.toDateString());
+        const dayEvents = events.filter(e => isSameDay(new Date(e.start), date));
         days.push(
           <div key={day} className="calendar-day">
             <span className='font-semibold'>{day}</span>
@@ -121,9 +274,9 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
               {dayEvents.map(event => (
                 <div 
                     key={event.id} 
-                    style={{ backgroundColor: event.backgroundColor }} 
+                    style={{ backgroundColor: event.data.calendar_id ? calendarColors[event.data.calendar_id] : '#ccc' }} 
                     className="event"
-                    onClick={() => onEventClick(event)}
+                    onClick={() => onEventClick(event.data)}
                 >
                   {event.title}
                 </div>
@@ -132,17 +285,18 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
           </div>
         );
       }
-
-      const totalSlots = days.length;
-      const slotsNeededFor6Rows = 42; 
-      const remainingSlots = slotsNeededFor6Rows - totalSlots > 0 ? slotsNeededFor6Rows - totalSlots : 0;
+      
+      const totalSlots = dayOffset + daysInMonth;
+      const slotsFor6Rows = 42;
+      const remainingSlots = totalSlots > 35 ? slotsFor6Rows - totalSlots : 35 - totalSlots;
 
       for (let i = 0; i < remainingSlots; i++) {
         days.push(<div key={`empty-next-${i}`} className="calendar-day other-month"></div>);
       }
+
       return days;
     }
-    
+
     if (isLoading) {
         const skeletonDays = Array.from({ length: 42 }).map((_, i) => (
             <div key={`skel-${i}`} className="calendar-day">
@@ -153,41 +307,96 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
         ));
          return (
              <>
-                <div className="calendar-grid-header">
-                    {dayNames.map(name => <div key={name} className="calendar-day-name">{name}</div>)}
+                <div className="calendar-day-name-grid">
+                    {dayNames.map(name => <div key={name}>{name}</div>)}
                 </div>
                 <div className="calendar-grid month-view">{skeletonDays}</div>
             </>
         );
     }
-    
+
     return (
         <>
-         <div className="calendar-grid-header">
-            {dayNames.map(name => <div key={name} className="calendar-day-name">{name}</div>)}
+         <div className="calendar-day-name-grid">
+            {dayNames.map(name => <div key={name}>{name}</div>)}
           </div>
           <div className="calendar-grid month-view">{renderDays()}</div>
         </>
     )
   };
 
-  const renderWeekView = () => {
-    return <div className='p-4'>Week View Not Implemented</div>
+  const renderYearView = () => {
+    const year = getYear(currentDate);
+    const months = Array.from({ length: 12 }, (_, i) => new Date(year, i, 1));
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 overflow-y-auto">
+        {months.map(month => (
+          <div key={format(month, 'yyyy-MM')}>
+            <h4 className="font-semibold text-center mb-2">{format(month, 'MMMM')}</h4>
+            <div className="grid grid-cols-7 text-xs text-center text-muted-foreground">
+              {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => <div key={i}>{day}</div>)}
+            </div>
+            <div className="grid grid-cols-7 text-sm text-center">
+              {Array.from({length: (getDay(month) + 6) % 7}).map((_, i) => <div key={`empty-${i}`}></div>)}
+              {Array.from({length: getDaysInMonth(month)}).map((_, day) => {
+                const date = new Date(year, getMonth(month), day + 1);
+                const dayEvents = events.filter(e => isSameDay(new Date(e.start), date));
+                return (
+                  <div key={day} className={cn("relative rounded-full aspect-square flex items-center justify-center", dayEvents.length > 0 && "bg-primary/20", isSameDay(date, new Date()) && "bg-primary text-primary-foreground")}>
+                    {day + 1}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
   
-  const renderDayView = () => {
-    return <div className='p-4'>Day View Not Implemented</div>
-  };
+  const renderScheduleView = () => {
+      const groupedEvents = events.reduce((acc, event) => {
+          const date = format(new Date(event.start), 'yyyy-MM-dd');
+          if (!acc[date]) acc[date] = [];
+          acc[date].push(event);
+          return acc;
+      }, {} as Record<string, typeof events>);
 
-  const renderYearView = () => {
-    return <div className='p-4'>Year View Not Implemented</div>
-  };
+      const sortedDates = Object.keys(groupedEvents).sort();
+
+      return (
+        <div className="overflow-y-auto p-4">
+            {sortedDates.map(date => (
+                <div key={date} className="mb-4">
+                    <h3 className="font-bold text-lg mb-2">{format(new Date(date), 'EEEE, MMMM d, yyyy')}</h3>
+                    <div className="space-y-2">
+                        {groupedEvents[date].map(event => (
+                            <div key={event.id} className="p-2 rounded-md bg-muted flex items-center gap-4" onClick={() => onEventClick(event.data)}>
+                                <div className="w-24 text-sm font-semibold">{format(new Date(event.start), 'p')}</div>
+                                <div className="flex-1 text-sm">{event.title}</div>
+                                {event.assignee && (
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <Users className="h-3 w-3" />
+                                        <span>{assignees.find(a => a.email === event.assignee)?.name || event.assignee}</span>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ))}
+        </div>
+      );
+  }
 
   const renderView = () => {
     switch (view) {
-      case 'day': return renderDayView();
-      case 'week': return renderWeekView();
+      case 'day': return renderDayOrWeekView(1);
+      case '2-day': return renderDayOrWeekView(2);
+      case '3-day': return renderDayOrWeekView(3);
+      case 'week': return renderDayOrWeekView(7);
       case 'year': return renderYearView();
+      case 'schedule': return renderScheduleView();
       case 'month':
       default:
         return renderMonthView();
@@ -195,9 +404,11 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
   };
 
   return (
-    <div className="calendar">
+    <div className="calendar-container">
       {renderHeader()}
-      {renderView()}
+      <div className="calendar-body">
+        {renderView()}
+      </div>
     </div>
   );
 };

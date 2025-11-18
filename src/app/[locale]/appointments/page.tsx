@@ -1,8 +1,7 @@
-
 'use client';
 
 import * as React from 'react';
-import { addDays, addMinutes, addMonths, format, parse, parseISO, isSameDay } from 'date-fns';
+import { addDays, addMinutes, addMonths, format, parse, parseISO, isSameDay, startOfWeek, endOfWeek, startOfDay, endOfDay } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType, User as UserType, Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -52,8 +51,13 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
     const params = new URLSearchParams({
         startingDateAndTime: formatDateForAPI(startDate),
         endingDateAndTime: formatDateForAPI(endDate),
-        calendar_ids: calendarGoogleIds.join(','),
     });
+
+    if (calendarGoogleIds.length > 0) {
+        params.append('calendar_ids', calendarGoogleIds.join(','));
+    } else {
+        params.append('calendar_ids', '');
+    }
 
     try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
@@ -183,6 +187,10 @@ export default function AppointmentsPage() {
   
   const [selectedAppointment, setSelectedAppointment] = React.useState<Appointment | null>(null);
   const [isDetailViewOpen, setIsDetailViewOpen] = React.useState(false);
+
+  const [assignees, setAssignees] = React.useState<UserType[]>([]);
+  const [selectedAssignees, setSelectedAssignees] = React.useState<string[]>([]);
+  const [group, setGroup] = React.useState(false);
 
 
   // New Appointment Dialog State
@@ -417,54 +425,56 @@ export default function AppointmentsPage() {
   }, [serviceSearchQuery, isServiceSearchOpen]);
   
   // Debounced search effect for doctors
+  const loadDoctors = React.useCallback(async (query: string) => {
+    setIsSearchingDoctors(true);
+    try {
+      const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors?search=${query}`, {
+        method: 'GET',
+        mode: 'cors',
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error('Network response was not ok for doctors');
+      }
+      const data = await response.json();
+      const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || []);
+      
+      const newDocs = doctorsData.map((apiUser: any): UserType => ({
+        id: apiUser.user_id ? String(apiUser.user_id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+        name: apiUser.name || 'No Name',
+        email: apiUser.email || 'no-email@example.com',
+        phone_number: apiUser.phone_number || '000-000-0000',
+        is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+        avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
+      }));
+
+      setDoctorSearchResults(newDocs);
+      setAssignees(newDocs); // This could be improved to merge instead of replace
+      setSelectedAssignees(newDocs.map(d => d.id));
+
+    } catch (error) {
+      console.error("Failed to fetch doctors:", error);
+    } finally {
+      setIsSearchingDoctors(false);
+    }
+  }, []);
+
   React.useEffect(() => {
-    const handler = setTimeout(async () => {
-        if (!isDoctorSearchOpen && doctorSearchQuery.length === 0) {
-            if (isDoctorSearchOpen) { // Load all if opened with no query
-                 // continue to fetch
-            } else {
-                setDoctorSearchResults([]);
-                return;
-            }
-        }
-        setIsSearchingDoctors(true);
-        try {
-          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors?search=${doctorSearchQuery}`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-          });
-          if (!response.ok) {
-            throw new Error('Network response was not ok for doctors');
-          }
-          const data = await response.json();
-          const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || []);
-          
-          setDoctorSearchResults(prev => {
-            const existingIds = new Set(prev.map(d => d.id));
-            const newDoctors = doctorsData
-                .map((apiUser: any): UserType => ({
-                    id: apiUser.user_id ? String(apiUser.user_id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
-                    name: apiUser.name || 'No Name',
-                    email: apiUser.email || 'no-email@example.com',
-                    phone_number: apiUser.phone_number || '000-000-0000',
-                    is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
-                    avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
-                }))
-                .filter((doc: UserType) => !existingIds.has(doc.id));
-            return [...prev, ...newDoctors];
-          });
-        } catch (error) {
-          console.error("Failed to fetch doctors:", error);
-        } finally {
-          setIsSearchingDoctors(false);
-        }
+    const handler = setTimeout(() => {
+      if (doctorSearchQuery.length > 1 || (isDoctorSearchOpen && doctorSearchQuery.length === 0)) {
+        loadDoctors(doctorSearchQuery);
+      } else if (doctorSearchQuery.length === 0) {
+        setDoctorSearchResults([]);
+      }
     }, 300);
 
-    return () => {
-        clearTimeout(handler);
-    };
-  }, [doctorSearchQuery, isDoctorSearchOpen]);
+    return () => clearTimeout(handler);
+  }, [doctorSearchQuery, isDoctorSearchOpen, loadDoctors]);
+
+  React.useEffect(() => {
+    loadDoctors(''); // Load all doctors initially
+  }, [loadDoctors]);
+
 
   const checkAvailability = React.useCallback(async (appointmentData: typeof newAppointment) => {
     const { date, time, services, user, doctor, calendar } = appointmentData;
@@ -537,9 +547,6 @@ export default function AppointmentsPage() {
             isAvailable = result.isAvailable === true;
             
             if (result.suggestedTimes) {
-                const allDocs = [...doctorSearchResults, ...result.suggestedTimes.map((s:any) => ({ id: s.json.user_id, name: s.json.user_name, email: s.json.user_email, is_active: true, phone_number: '', avatar: ''}))];
-                const uniqueDocs = Array.from(new Map(allDocs.map(item => [item.id, item])).values());
-                setDoctorSearchResults(uniqueDocs);
                 
                 const processedSuggestions = result.suggestedTimes.flatMap((suggestion: any, suggestionIndex: number) => {
                     const doctorsInSuggestion = suggestion.json.user_name.split(',').map((name: string) => name.trim());
@@ -568,8 +575,15 @@ export default function AppointmentsPage() {
         console.error("Failed to check availability:", error);
         setAvailabilityStatus('idle');
     }
-  }, [editingAppointment, doctorSearchResults]);
+  }, [editingAppointment]);
   
+  React.useEffect(() => {
+    const { date, time } = newAppointment;
+    if (date && time) {
+        checkAvailability(newAppointment);
+    }
+  }, [newAppointment.date, newAppointment.time, newAppointment.doctor, newAppointment.calendar, checkAvailability]);
+
 
   const handleSaveAppointment = async () => {
     const { user, doctor, services, calendar, date, time, description } = newAppointment;
@@ -705,50 +719,49 @@ export default function AppointmentsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Card className="flex-1 flex flex-col">
-        <CardContent className="p-0 flex-1 flex flex-col">
-          <Calendar
-            events={appointments.map((a) => ({
-              id: a.id,
-              title: a.service_name,
-              start: parseISO(`${a.date}T${a.time}`),
-              end: addMinutes(parseISO(`${a.date}T${a.time}`), 30),
-              backgroundColor: a.calendar_id
-                ? calendarColors[a.calendar_id]
-                : '#ccc',
-              data: a,
-            }))}
-            onDateChange={onDateChange}
-            onEventClick={(event) => handleEventClick(event.data)}
-            isLoading={isRefreshing}
-          >
-            <div className="flex items-center gap-2">
-                <Button
-                    variant="outline"
-                    className="h-8"
-                    onClick={() => setCreateOpen(true)}
-                >
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    {t('newAppointment')}
-                </Button>
-                <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={loadAppointments}
-                    disabled={isRefreshing}
-                >
-                    <RefreshCw
-                    className={`h-4 w-4 ${
-                        isRefreshing ? 'animate-spin' : ''
-                    }`}
-                    />
-                    <span className="sr-only">Refresh</span>
-                </Button>
-            </div>
-            </Calendar>
-        </CardContent>
-      </Card>
+      <Calendar
+        events={appointments.map((a) => ({
+            id: a.id,
+            title: a.service_name,
+            start: parseISO(`${a.date}T${a.time}`),
+            end: addMinutes(parseISO(`${a.date}T${a.time}`), a.service_name.split(',').length * 30), // Example duration
+            assignee: a.doctorEmail,
+            data: a,
+        }))}
+        onDateChange={onDateChange}
+        onEventClick={(event) => handleEventClick(event.data)}
+        isLoading={isRefreshing}
+        assignees={assignees}
+        selectedAssignees={selectedAssignees}
+        onSelectedAssigneesChange={setSelectedAssignees}
+        group={group}
+        onGroupChange={setGroup}
+      >
+        <div className="flex items-center gap-2">
+            <Button
+                variant="outline"
+                className="h-8"
+                onClick={() => setCreateOpen(true)}
+            >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                {t('newAppointment')}
+            </Button>
+            <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={loadAppointments}
+                disabled={isRefreshing}
+            >
+                <RefreshCw
+                className={`h-4 w-4 ${
+                    isRefreshing ? 'animate-spin' : ''
+                }`}
+                />
+                <span className="sr-only">Refresh</span>
+            </Button>
+        </div>
+        </Calendar>
       <Dialog open={isCreateOpen} onOpenChange={(isOpen) => {
         setCreateOpen(isOpen);
         if (!isOpen) {
@@ -1001,7 +1014,7 @@ export default function AppointmentsPage() {
               </div>
                <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="date" className="text-right">{t('createDialog.date')}</Label>
-                <Input id="date" type="date" className="col-span-3" value={newAppointment.date} onChange={e => setNewAppointment(prev => ({...prev, date: e.target.value}))} onBlur={() => checkAvailability(newAppointment)} />
+                <Input id="date" type="date" className="col-span-3" value={newAppointment.date} onChange={e => setNewAppointment(prev => ({...prev, date: e.target.value}))} />
               </div>
                <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="time" className="text-right">{t('createDialog.time')}</Label>
@@ -1015,7 +1028,6 @@ export default function AppointmentsPage() {
                     )}
                     value={newAppointment.time} 
                     onChange={e => setNewAppointment(prev => ({...prev, time: e.target.value}))}
-                    onBlur={() => checkAvailability(newAppointment)}
                 />
               </div>
               {editingAppointment && (
@@ -1045,7 +1057,6 @@ export default function AppointmentsPage() {
                                 doctor: fullDoctorObject,
                             };
                             setNewAppointment(updatedAppointment);
-                            checkAvailability(updatedAppointment);
                         }
                     }}>
                         <ScrollArea className="h-64">
@@ -1136,9 +1147,3 @@ export default function AppointmentsPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    
