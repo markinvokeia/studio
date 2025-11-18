@@ -672,12 +672,12 @@ export default function AppointmentsPage() {
 };
 
  const onDateChange = React.useCallback((newRange: { start: Date; end: Date }) => {
-    if (!fetchRange || !fetchRange.start || !fetchRange.to || !newRange.start || !newRange.end) {
+    if (!fetchRange || !fetchRange.start || !fetchRange.end || !newRange.start || !newRange.end) {
       setFetchRange(newRange);
       return;
     }
     
-    if (fetchRange.start.getTime() !== newRange.start.getTime() || fetchRange.to.getTime() !== newRange.end.getTime()) {
+    if (fetchRange.start.getTime() !== newRange.start.getTime() || fetchRange.end.getTime() !== newRange.end.getTime()) {
       setFetchRange(newRange);
     }
   }, [fetchRange]);
@@ -704,7 +704,7 @@ export default function AppointmentsPage() {
     }).filter(Boolean) as ({ id: string; title: string; start: Date; end: Date; assignee: string | undefined; data: Appointment; })[];
   }, [appointments]);
 
- const handleSelectAssignee = useCallback((assigneeId: string, checked: boolean) => {
+ const handleSelectAssignee = React.useCallback((assigneeId: string, checked: boolean) => {
     setSelectedAssignees(prev => {
         if (checked) {
             return [...prev, assigneeId];
