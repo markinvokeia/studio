@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { addDays, addMinutes, addMonths, format, parse, parseISO, isWithinInterval, isValid, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { addMinutes, format, parse, parseISO, isWithinInterval, isValid, startOfDay, endOfDay } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType, User as UserType, Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -30,11 +30,9 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslations } from 'next-intl';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
@@ -242,7 +240,7 @@ export default function AppointmentsPage() {
   const appointmentColumns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns({ t: tColumns, tStatus, onEdit: handleEdit, onCancel: handleCancel }), [tColumns, tStatus]);
 
   const loadAppointments = React.useCallback(async (force = false) => {
-    if (!fetchRange || !isValid(fetchRange.start) || !isValid(fetchRange.end)) {
+    if (!fetchRange || !fetchRange.start || !fetchRange.end || !isValid(fetchRange.start) || !isValid(fetchRange.end)) {
       return;
     }
     
@@ -280,7 +278,7 @@ export default function AppointmentsPage() {
 
 
     setIsRefreshing(false);
-  }, [selectedCalendarIds, fetchRange, calendars, fetchedDateRange]);
+  }, [selectedCalendarIds, fetchRange, calendars]);
 
   const forceRefresh = React.useCallback(() => {
     setFetchedDateRange(null); // This will force loadAppointments to run
