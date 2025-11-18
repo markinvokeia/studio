@@ -349,6 +349,8 @@ async function getUsers(): Promise<User[]> {
         email: apiUser.email || 'no-email@example.com',
         phone_number: apiUser.phone_number || '000-000-0000',
         is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+        avatar: '',
+        identity_document: ''
       }));
     } catch (error) {
       console.error("Failed to fetch users:", error);
@@ -462,11 +464,6 @@ export default function QuotesPage() {
         loadQuotes();
     }, [loadQuotes]);
 
-    React.useEffect(() => {
-        if (isQuoteDialogOpen) getUsers().then(setAllUsers);
-        if (isQuoteItemDialogOpen) getServices().then(setAllServices);
-    }, [isQuoteDialogOpen, isQuoteItemDialogOpen]);
-
     const loadQuoteItems = React.useCallback(async () => {
         if (!selectedQuote) return;
         setIsLoadingItems(true);
@@ -541,14 +538,15 @@ export default function QuotesPage() {
         }
     }, [selectedInvoice, loadInvoiceItems]);
 
-    const handleCreateQuote = () => {
+    const handleCreateQuote = async () => {
         setEditingQuote(null);
         quoteForm.reset({ user_id: '', total: 0, currency: 'USD', status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced' });
         setQuoteSubmissionError(null);
+        setAllUsers(await getUsers());
         setIsQuoteDialogOpen(true);
       };
       
-    const handleEditQuote = (quote: Quote) => {
+    const handleEditQuote = async (quote: Quote) => {
         if (quote.status.toLowerCase() !== 'draft') {
             toast({ variant: 'destructive', title: 'Cannot Edit Quote', description: 'You can only edit quotes that are in "Draft" status.' });
             return;
@@ -556,6 +554,7 @@ export default function QuotesPage() {
         setEditingQuote(quote);
         quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status, billing_status: quote.billing_status as any });
         setQuoteSubmissionError(null);
+        setAllUsers(await getUsers());
         setIsQuoteDialogOpen(true);
     };
     
@@ -594,7 +593,7 @@ export default function QuotesPage() {
         }
     };
 
-    const handleCreateQuoteItem = () => {
+    const handleCreateQuoteItem = async () => {
         if (!selectedQuote) return;
         setEditingQuoteItem(null);
         quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
@@ -602,12 +601,16 @@ export default function QuotesPage() {
         setShowConversion(false);
         setOriginalServicePrice(null);
         setExchangeRate(1);
+        setAllServices(await getServices());
         setIsQuoteItemDialogOpen(true);
     };
     
-    const handleEditQuoteItem = (item: QuoteItem) => {
+    const handleEditQuoteItem = async (item: QuoteItem) => {
         setEditingQuoteItem(item);
-        const service = allServices.find(s => String(s.id) === String(item.service_id));
+        const fetchedServices = await getServices();
+        setAllServices(fetchedServices);
+
+        const service = fetchedServices.find(s => String(s.id) === String(item.service_id));
         quoteItemForm.reset({ 
             id: item.id, 
             quote_id: selectedQuote!.id, 
@@ -1053,22 +1056,18 @@ export default function QuotesPage() {
                             )}
                         />
                          {showConversion && (
-                          <>
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormItem>
-                                    <FormLabel>Unit Price ({originalServiceCurrency})</FormLabel>
-                                    <Input value={originalServicePrice !== null ? originalServicePrice.toFixed(2) : ''} readOnly disabled />
-                                </FormItem>
-                                <FormItem>
-                                  <FormLabel>Currency</FormLabel>
-                                  <Input value={originalServiceCurrency} readOnly disabled />
-                                </FormItem>
-                            </div>
-                            <FormItem>
-                                <FormLabel>Exchange Rate</FormLabel>
-                                <Input type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value) || 1)} />
-                            </FormItem>
-                          </>
+                          <div className="space-y-4 rounded-md border p-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                  <FormItem>
+                                      <FormLabel>Unit Price ({originalServiceCurrency})</FormLabel>
+                                      <Input value={typeof originalServicePrice === 'number' ? originalServicePrice.toFixed(2) : ''} readOnly disabled />
+                                  </FormItem>
+                                  <FormItem>
+                                    <FormLabel>Exchange Rate</FormLabel>
+                                    <Input type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value) || 1)} />
+                                  </FormItem>
+                              </div>
+                          </div>
                         )}
                         <FormField control={quoteItemForm.control} name="quantity" render={({ field }) => (
                             <FormItem>
