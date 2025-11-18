@@ -171,7 +171,7 @@ const getColumns = (
       
       return (
         <Badge variant={variantMap[normalizedStatus] ?? 'default'} className="capitalize">
-          {translationKey === translatedStatus ? status : translatedStatus}
+          {translationKey === translationKey ? status : translatedStatus}
         </Badge>
       );
     },

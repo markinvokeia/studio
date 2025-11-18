@@ -1075,72 +1075,12 @@
     "edit": "Editar",
     "delete": "Eliminar"
   },
-  "ServicesPage": {
-    "title": "Servicios",
-    "description": "Gestionar todos los servicios ofrecidos por la clínica.",
-    "filterPlaceholder": "Filtrar servicios por nombre...",
-    "createDialog": {
-      "title": "Crear Nuevo Servicio",
-      "editTitle": "Editar Servicio",
-      "description": "Rellene los detalles a continuación para añadir un nuevo servicio.",
-      "editDescription": "Actualice los detalles de este servicio.",
-      "name": "Nombre",
-      "namePlaceholder": "ej., Limpieza Dental",
-      "category": "Categoría",
-      "categoryPlaceholder": "ej., Preventivo",
-      "price": "Precio",
-      "currency": "Moneda",
-      "selectCurrency": "Seleccionar una moneda",
-      "duration": "Duración (minutos)",
-      "descriptionLabel": "Descripción",
-      "descriptionPlaceholder": "Una breve descripción del servicio...",
-      "indicationsLabel": "Indicaciones",
-      "indicationsPlaceholder": "Indicaciones pre-servicio o post-servicio...",
-      "cancel": "Cancelar",
-      "save": "Crear Servicio",
-      "editSave": "Guardar Cambios"
-    },
-    "deleteDialog": {
-      "title": "¿Estás seguro?",
-      "description": "Esto eliminará permanentemente el servicio \"{name}\". Esta acción no se puede deshacer.",
-      "cancel": "Cancelar",
-      "confirm": "Eliminar"
-    },
-    "toast": {
-      "errorTitle": "Error",
-      "genericError": "Ocurrió un error inesperado.",
-      "createSuccessTitle": "Servicio Creado",
-      "editSuccessTitle": "Servicio Actualizado",
-      "successDescription": "El servicio \"{name}\" ha sido guardado exitosamente.",
-      "deleteSuccessTitle": "Servicio Eliminado",
-      "deleteSuccessDescription": "El servicio \"{name}\" ha sido eliminado.",
-      "deleteErrorDescription": "No se pudo eliminar el servicio."
-    },
-    "validation": {
-      "nameRequired": "El nombre es obligatorio.",
-      "categoryRequired": "La categoría es obligatoria.",
-      "pricePositive": "El precio debe ser un número positivo.",
-      "durationInteger": "La duración debe ser un número entero positivo."
-    }
-  },
-  "ServicesColumns": {
-    "id": "ID",
-    "name": "Nombre",
-    "category": "Categoría",
-    "price": "Precio",
-    "currency": "Moneda",
-    "duration": "Duración (min)",
-    "actions": "Acciones",
-    "edit": "Editar",
-    "delete": "Eliminar"
-  },
   "UsersPage": {
     "title": "Usuarios",
     "description": "Gestiona todos los usuarios del sistema.",
     "filterPlaceholder": "Filtrar usuarios por email...",
     "detailsFor": "Detalles de {name}",
     "close": "Cerrar detalles",
-    "setInitialPassword": "Establecer Contraseña Inicial",
     "tabs": {
       "roles": "Roles",
       "services": "Servicios",
@@ -1277,7 +1217,3 @@
     "noResults": "No se encontraron resultados."
   }
 }
-
-  
-
-    
