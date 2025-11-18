@@ -1085,6 +1085,7 @@
     "filterPlaceholder": "Filtrar usuarios por email...",
     "detailsFor": "Detalles de {name}",
     "close": "Cerrar detalles",
+    "setInitialPassword": "Establecer Contraseña Inicial",
     "tabs": {
       "roles": "Roles",
       "services": "Servicios",

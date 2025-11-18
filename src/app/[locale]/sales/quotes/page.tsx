@@ -810,7 +810,7 @@ export default function QuotesPage() {
                                     {selectedInvoice && (
                                         <div className="mt-4">
                                             <div className="flex items-center justify-between mb-2">
-                                                <h4 className="text-md font-semibold">Invoice Items for {selectedInvoice.id}</h4>
+                                                <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', {id: selectedInvoice.id})}</h4>
                                                 <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
                                                     <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
                                                 </Button>
@@ -1052,7 +1052,7 @@ export default function QuotesPage() {
                                 </FormItem>
                             )}
                         />
-                         {showConversion && originalServicePrice !== null && (
+                         {showConversion && originalServicePrice !== null && typeof originalServicePrice === 'number' && (
                             <>
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormItem>
