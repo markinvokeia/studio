@@ -198,6 +198,7 @@ export default function AppointmentsPage() {
   const [isCalendarSearchOpen, setCalendarSearchOpen] = React.useState(false);
   const [availabilityStatus, setAvailabilityStatus] = React.useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
   const [suggestedTimes, setSuggestedTimes] = React.useState<any[]>([]);
+  const [currentView, setCurrentView] = React.useState('month');
 
   const handleEventClick = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
@@ -296,10 +297,10 @@ export default function AppointmentsPage() {
   }, [loadCalendars]);
   
   React.useEffect(() => {
-    if (selectedCalendarIds.length > 0) {
+    if (selectedCalendarIds.length > 0 && fetchRange) {
       loadAppointments();
     }
-  }, [loadAppointments, selectedCalendarIds]);
+  }, [loadAppointments, selectedCalendarIds, fetchRange]);
   
   
   // Debounced search effect for users
@@ -671,13 +672,13 @@ export default function AppointmentsPage() {
     }
 };
 
- const onDateChange = React.useCallback((newRange: { start: Date; end: Date }) => {
-    if (!fetchRange || !fetchRange.start || !fetchRange.end || !newRange.start || !newRange.end) {
-      setFetchRange(newRange);
-      return;
+  const onDateChange = React.useCallback((newRange: { start: Date; end: Date }) => {
+    if (!fetchRange || !newRange.start || !newRange.end || !fetchRange.from || !fetchRange.to) {
+        setFetchRange(newRange);
+        return;
     }
     
-    if (fetchRange.start.getTime() !== newRange.start.getTime() || fetchRange.end.getTime() !== newRange.end.getTime()) {
+    if (fetchRange.start.getTime() !== newRange.start.getTime() || fetchRange.to.getTime() !== newRange.end.getTime()) {
       setFetchRange(newRange);
     }
   }, [fetchRange]);
@@ -714,6 +715,7 @@ export default function AppointmentsPage() {
     });
 }, []);
 
+ const showGroupControls = ['day', '2-day', '3-day', 'week'].includes(currentView);
 
   return (
     <Card>
@@ -728,6 +730,7 @@ export default function AppointmentsPage() {
           onSelectedAssigneesChange={setSelectedAssignees}
           group={group}
           onGroupChange={setGroup}
+          onViewChange={setCurrentView}
         >
             <div className="flex items-center gap-2">
                 <Button onClick={() => setCreateOpen(true)}>
@@ -737,34 +740,38 @@ export default function AppointmentsPage() {
                 <Button onClick={forceRefresh} variant="outline" size="icon" disabled={isRefreshing}>
                     <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 </Button>
-                <div className="flex items-center gap-2">
-                    <Checkbox id="group-by-assignee" checked={group} onCheckedChange={(checked) => setGroup(typeof checked === 'boolean' ? checked : false)} />
-                    <Label htmlFor="group-by-assignee">Group by Assignee</Label>
-                </div>
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button variant="outline">Filter Assignees</Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-2">
-                        <Command>
-                            <CommandList>
-                                <CommandGroup>
-                                    <CommandItem onSelect={() => setSelectedAssignees(assignees.map(a => a.id))}>Select All</CommandItem>
-                                    <CommandItem onSelect={() => setSelectedAssignees([])}>Deselect All</CommandItem>
-                                    <hr className="my-2" />
-                                    {assignees.map((assignee) => (
-                                        <CommandItem key={assignee.id} onSelect={() => handleSelectAssignee(assignee.id, !selectedAssignees.includes(assignee.id))}>
-                                            <div className="flex items-center">
-                                                <Checkbox checked={selectedAssignees.includes(assignee.id)} className="mr-2" onCheckedChange={(checked) => handleSelectAssignee(assignee.id, !!checked)} />
-                                                <span>{assignee.name}</span>
-                                            </div>
-                                        </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                            </CommandList>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
+                {showGroupControls && (
+                    <>
+                        <div className="flex items-center gap-2">
+                            <Checkbox id="group-by-assignee" checked={group} onCheckedChange={(checked) => setGroup(typeof checked === 'boolean' ? checked : false)} />
+                            <Label htmlFor="group-by-assignee">Group by Assignee</Label>
+                        </div>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline">Filter Assignees</Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-56 p-2">
+                                <Command>
+                                    <CommandList>
+                                        <CommandGroup>
+                                            <CommandItem onSelect={() => setSelectedAssignees(assignees.map(a => a.id))}>Select All</CommandItem>
+                                            <CommandItem onSelect={() => setSelectedAssignees([])}>Deselect All</CommandItem>
+                                            <hr className="my-2" />
+                                            {assignees.map((assignee) => (
+                                                <CommandItem key={assignee.id} onSelect={() => handleSelectAssignee(assignee.id, !selectedAssignees.includes(assignee.id))}>
+                                                    <div className="flex items-center">
+                                                        <Checkbox checked={selectedAssignees.includes(assignee.id)} onCheckedChange={(checked) => handleSelectAssignee(assignee.id, !!checked)} />
+                                                        <span className="ml-2">{assignee.name}</span>
+                                                    </div>
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </>
+                )}
             </div>
         </Calendar>
       </CardContent>
