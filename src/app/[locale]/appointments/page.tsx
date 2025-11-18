@@ -52,11 +52,8 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
     const params = new URLSearchParams({
         startingDateAndTime: formatDateForAPI(startDate),
         endingDateAndTime: formatDateForAPI(endDate),
+        calendar_ids: calendarGoogleIds.join(','),
     });
-    
-    if (calendarGoogleIds.length > 0) {
-        params.append('calendar_ids', calendarGoogleIds.join(','));
-    }
 
     try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
@@ -267,11 +264,7 @@ export default function AppointmentsPage() {
   }, [calendars]);
 
   const loadAppointments = React.useCallback(async () => {
-    if (selectedCalendarIds.length === 0 && calendars.length > 0) {
-      setAppointments([]);
-      return;
-    }
-    if (calendars.length === 0) {
+    if (calendars.length === 0 && selectedCalendarIds.length === 0) {
       return;
     }
     setIsRefreshing(true);
@@ -280,12 +273,8 @@ export default function AppointmentsPage() {
       return cal?.google_calendar_id;
     }).filter((id): id is string => !!id);
     
-    if (googleCalendarIds.length > 0) {
-        const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.from, fetchRange.to);
-        setAppointments(fetchedAppointments);
-    } else {
-        setAppointments([]);
-    }
+    const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.from, fetchRange.to);
+    setAppointments(fetchedAppointments);
     setIsRefreshing(false);
   }, [selectedCalendarIds, fetchRange, calendars]);
   
@@ -1113,6 +1102,8 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
 
     
 
