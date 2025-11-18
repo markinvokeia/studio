@@ -52,8 +52,11 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
     const params = new URLSearchParams({
         startingDateAndTime: formatDateForAPI(startDate),
         endingDateAndTime: formatDateForAPI(endDate),
-        calendar_ids: calendarGoogleIds.join(','),
     });
+
+    if (calendarGoogleIds.length > 0) {
+        params.append('calendar_ids', calendarGoogleIds.join(','));
+    }
 
     try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
@@ -289,28 +292,25 @@ export default function AppointmentsPage() {
     
     const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.from, fetchRange.to);
     
-    if (force) {
-        setAppointments(fetchedAppointments);
-    } else {
-        const newAppointments = [...appointments, ...fetchedAppointments];
+    setAppointments(prev => {
+        const newAppointments = [...(force ? [] : prev), ...fetchedAppointments];
         const uniqueAppointments = Array.from(new Map(newAppointments.map(item => [item.id, item])).values());
-        setAppointments(uniqueAppointments);
-    }
+        return uniqueAppointments;
+    });
     
-    if (fetchedDateRange) {
+    if (force || !fetchedDateRange) {
+        setFetchedDateRange({ start: fetchRange.from, end: fetchRange.to });
+    } else {
         setFetchedDateRange({
             start: new Date(Math.min(fetchedDateRange.start.getTime(), fetchRange.from.getTime())),
             end: new Date(Math.max(fetchedDateRange.end.getTime(), fetchRange.to.getTime())),
         });
-    } else {
-        setFetchedDateRange({ start: fetchRange.from, end: fetchRange.to });
     }
 
     setIsRefreshing(false);
-  }, [selectedCalendarIds, fetchRange, calendars, fetchedDateRange, appointments, currentView]);
+  }, [selectedCalendarIds, fetchRange, calendars, fetchedDateRange, currentView]);
 
   const forceRefresh = () => {
-    setAppointments([]);
     setFetchedDateRange(null);
     loadAppointments(true);
   };
@@ -573,7 +573,7 @@ export default function AppointmentsPage() {
         console.error("Failed to check availability:", error);
         setAvailabilityStatus('idle');
     }
-  }, [editingAppointment, doctorSearchResults]);
+  }, [editingAppointment]);
   
   React.useEffect(() => {
     const { date, time } = newAppointment;
@@ -706,10 +706,27 @@ export default function AppointmentsPage() {
     setCurrentView(view);
   }, []);
 
+  const calendarEvents = React.useMemo(() => {
+    return appointments.map(appt => {
+      const start = parse(`${appt.date} ${appt.time}`, 'yyyy-MM-dd HH:mm', new Date());
+      // Assuming a default duration if not available, e.g., 30 minutes
+      const end = addMinutes(start, 30);
+      return {
+        id: appt.id,
+        title: `${appt.patientName} - ${appt.service_name}`,
+        start,
+        end,
+        assignee: appt.doctorEmail,
+        data: appt
+      };
+    });
+  }, [appointments]);
+
+
   return (
     <div className="flex flex-col h-full">
       <Calendar
-        events={appointments}
+        events={calendarEvents}
         onDateChange={onDateChange}
         onEventClick={(event) => handleEventClick(event.data)}
         isLoading={isRefreshing}
@@ -1129,3 +1146,5 @@ export default function AppointmentsPage() {
     </div>
   );
 }
+
+    
