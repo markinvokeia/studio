@@ -52,8 +52,11 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
     const params = new URLSearchParams({
         startingDateAndTime: formatDateForAPI(startDate),
         endingDateAndTime: formatDateForAPI(endDate),
-        calendar_ids: calendarGoogleIds.join(','),
     });
+
+    if (calendarGoogleIds.length > 0) {
+      params.append('calendar_ids', calendarGoogleIds.join(','));
+    }
 
     try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
@@ -710,6 +713,7 @@ export default function AppointmentsPage() {
                 : '#ccc',
             }))}
             onDateChange={onDateChange}
+            isLoading={isRefreshing}
           >
             <div className="flex items-center gap-2">
                 <Button

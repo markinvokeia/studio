@@ -16,8 +16,9 @@ import {
     DropdownMenuCheckboxItem
 } from '@/components/ui/dropdown-menu';
 import './Calendar.css';
+import { Skeleton } from '../ui/skeleton';
 
-const Calendar = ({ events = [], onDateChange, children }) => {
+const Calendar = ({ events = [], onDateChange, children, isLoading = false }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState('month'); // 'day', 'week', 'month', 'year'
   const [showWeekends, setShowWeekends] = useState(true);
@@ -91,6 +92,16 @@ const Calendar = ({ events = [], onDateChange, children }) => {
   );
 
   const renderMonthView = () => {
+    if (isLoading) {
+        const days = Array.from({ length: 35 }).map((_, i) => (
+            <div key={`skel-${i}`} className="calendar-day">
+                <Skeleton className="h-4 w-6 mb-2" />
+                <Skeleton className="h-5 w-full" />
+            </div>
+        ));
+         return <div className="calendar-grid month-view">{days}</div>;
+    }
+    
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const firstDay = new Date(year, month, 1).getDay();
