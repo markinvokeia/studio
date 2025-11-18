@@ -51,7 +51,7 @@ export type Quote = {
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'pending' | 'confirmed';
   payment_status: 'unpaid' | 'paid' | 'partial';
   billing_status: string;
-  currency?: 'URU' | 'USD';
+  currency?: 'UYU' | 'USD';
   user_name?: string;
   userEmail?: string;
   createdAt: string;
@@ -72,7 +72,7 @@ export type Order = {
   user_id: string;
   quote_id: string;
   user_name?: string;
-  currency?: 'URU' | 'USD';
+  currency?: 'UYU' | 'USD';
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   createdAt: string;
   updatedAt: string;
@@ -97,7 +97,7 @@ export type Invoice = {
   quote_id: string;
   user_name: string;
   total: number;
-  currency?: 'URU' | 'USD';
+  currency?: 'UYU' | 'USD';
   status: 'draft' | 'sent' | 'paid' | 'overdue';
   payment_status: 'unpaid' | 'paid' | 'partial';
   createdAt: string;
@@ -120,7 +120,7 @@ export type Payment = {
   quote_id: string;
   user_name: string;
   amount: number;
-  currency?: 'URU' | 'USD';
+  currency?: 'UYU' | 'USD';
   method: string;
   status: 'pending' | 'completed' | 'failed';
   createdAt: string;
@@ -140,7 +140,7 @@ export type Service = {
   name: string;
   category: string;
   price: number;
-  currency?: 'URU' | 'USD';
+  currency?: 'UYU' | 'USD';
   duration_minutes: number;
   description?: string;
   indications?: string;
@@ -262,6 +262,7 @@ export type Appointment = {
   doctorEmail?: string;
   calendar_id: string;
   calendar_name?: string;
+  color?: string;
 };
 
 export type UserLog = {
@@ -327,6 +328,7 @@ export type Calendar = {
   name: string;
   google_calendar_id: string;
   is_active: boolean;
+  color?: string;
 };
 
 export type Ailment = {

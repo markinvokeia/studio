@@ -42,8 +42,16 @@ import { getAppointmentColumns } from './columns';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
+const CALENDAR_COLORS = [
+    'hsl(var(--chart-1))',
+    'hsl(var(--chart-2))',
+    'hsl(var(--chart-3))',
+    'hsl(var(--chart-4))',
+    'hsl(var(--chart-5))',
+    'hsl(var(--primary))',
+];
 
-async function getAppointments(calendarGoogleIds: string[], startDate: Date, endDate: Date): Promise<Appointment[]> {
+async function getAppointments(calendarGoogleIds: string[], startDate: Date, endDate: Date, calendars: CalendarType[]): Promise<Appointment[]> {
     if (!isValid(startDate) || !isValid(endDate)) {
         console.error("Invalid start or end date provided to getAppointments");
         return [];
@@ -92,6 +100,9 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
             const appointmentDateTime = parseISO(appointmentDateTimeStr);
             if (isNaN(appointmentDateTime.getTime())) return null;
             
+            const calendarId = apiAppt.organizer?.email;
+            const calendar = calendars.find(c => c.google_calendar_id === calendarId);
+
             return {
                 id: apiAppt.id,
                 patientName: apiAppt.patientName || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a:any) => a.email).join(', ') : 'N/A'),
@@ -104,8 +115,9 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
                 status: apiAppt.status || 'confirmed',
                 patientPhone: apiAppt.patientPhone,
                 doctorName: apiAppt.doctorName,
-                calendar_id: apiAppt.organizer?.email,
+                calendar_id: calendarId,
                 calendar_name: apiAppt.organizer?.displayName,
+                color: calendar?.color,
             };
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
@@ -124,11 +136,12 @@ async function getCalendars(): Promise<CalendarType[]> {
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
-        return calendarsData.map((apiCalendar: any) => ({
+        return calendarsData.map((apiCalendar: any, index: number) => ({
             id: apiCalendar.id || apiCalendar.google_calendar_id,
             name: apiCalendar.name,
             google_calendar_id: apiCalendar.google_calendar_id,
             is_active: apiCalendar.is_active,
+            color: CALENDAR_COLORS[index % CALENDAR_COLORS.length],
         }));
     } catch (error) {
         console.error("Failed to fetch calendars:", error);
@@ -254,7 +267,7 @@ export default function AppointmentsPage() {
       return cal?.google_calendar_id;
     }).filter((id): id is string => !!id);
     
-    const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.start, fetchRange.end);
+    const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.start, fetchRange.end, calendars);
     setAppointments(fetchedAppointments);
     
     setIsRefreshing(false);
@@ -664,13 +677,14 @@ export default function AppointmentsPage() {
           start,
           end,
           assignee: appt.doctorEmail,
-          data: appt
+          data: appt,
+          color: appt.color,
         };
       } catch (e) {
         console.error("Error parsing date/time for appointment", appt);
         return null;
       }
-    }).filter(Boolean) as ({ id: string; title: string; start: Date; end: Date; assignee: string | undefined; data: Appointment; })[];
+    }).filter(Boolean) as ({ id: string; title: string; start: Date; end: Date; assignee: string | undefined; data: Appointment; color?: string; })[];
   }, [appointments]);
 
  const handleSelectAssignee = React.useCallback((assigneeId: string, checked: boolean) => {
@@ -1069,4 +1083,5 @@ export default function AppointmentsPage() {
     
 
     
+
 
