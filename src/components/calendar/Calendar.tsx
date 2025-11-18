@@ -28,7 +28,7 @@ import { Command, CommandItem, CommandList, CommandGroup } from '../ui/command';
 
 type View = 'day' | '2-day' | '3-day' | 'week' | 'month' | 'year' | 'schedule';
 
-const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEventClick }) => {
+const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEventClick, onViewChange, assignees = [], selectedAssignees = [], onSelectedAssigneesChange, group = false, onGroupChange }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<View>('month');
 
@@ -99,14 +99,21 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
   const handleToday = () => {
     setCurrentDate(new Date());
   };
+
+  const handleViewChange = (newView: View) => {
+    setView(newView);
+    if(onViewChange) {
+        onViewChange(newView);
+    }
+  }
   
   const headerTitle = useMemo(() => {
+    const start = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
     switch(view) {
         case 'day': return format(currentDate, 'MMMM d, yyyy');
-        case '2-day': return `${format(currentDate, 'MMMM d')} - ${format(addDays(currentDate, 1), 'd, yyyy')}`;
-        case '3-day': return `${format(currentDate, 'MMMM d')} - ${format(addDays(currentDate, 2), 'd, yyyy')}`;
+        case '2-day': return `${format(start, 'MMMM d')} - ${format(addDays(start, 1), 'd, yyyy')}`;
+        case '3-day': return `${format(start, 'MMMM d')} - ${format(addDays(start, 2), 'd, yyyy')}`;
         case 'week':
-            const start = startOfWeek(currentDate, { weekStartsOn: 1 });
             const end = endOfWeek(currentDate, { weekStartsOn: 1 });
             return `${format(start, 'MMMM d')} - ${format(end, 'd, yyyy')}`;
         case 'year': return format(currentDate, 'yyyy');
@@ -121,9 +128,8 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
         
         const timeSlots = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
         
-        const { group = false, assignees = [], selectedAssignees = [] } = children.props;
-        const columns = group ? assignees.filter(a => selectedAssignees.includes(a.id)) : [{id: 'all', name: 'All', email: 'all'}];
-
+        const columns = group ? assignees.filter((a: User) => selectedAssignees.includes(a.id)) : [{id: 'all', name: 'All', email: 'all'}];
+        
         const getEventStyle = (event: any) => {
             const start = new Date(event.start);
             const end = new Date(event.end);
@@ -141,7 +147,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                 <div className="day-view-header" style={{ '--num-days': days.length * (group ? columns.length : 1) } as React.CSSProperties}>
                     <div />
                     {days.map(day => (
-                        group ? columns.map(col => <div key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}>{col.name}</div>) : <div key={format(day, 'yyyy-MM-dd')}>{format(day, 'EEE d')}</div>
+                        group && columns.length > 0 ? columns.map(col => <div key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}>{col.name} - {format(day, 'EEE d')}</div>) : <div key={format(day, 'yyyy-MM-dd')}>{format(day, 'EEE d')}</div>
                     ))}
                 </div>
                 <div className="day-view-body" style={{ '--num-days': days.length * (group ? columns.length : 1) } as React.CSSProperties}>
@@ -153,12 +159,12 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                         ))}
                     </div>
                     {days.map(day => (
-                        group ? columns.map(col => (
+                        group && columns.length > 0 ? columns.map(col => (
                             <div key={`${format(day, 'yyyy-MM-dd')}-${col.id}`} className="day-column">
                                 {timeSlots.map(time => <div key={`${time}-${col.id}`} className="time-slot" />)}
                                 {events
-                                    .filter(e => isSameDay(new Date(e.start), day) && e.assignee === col.email)
-                                    .map(event => (
+                                    .filter((e: any) => isSameDay(new Date(e.start), day) && e.assignee === col.email)
+                                    .map((event: any) => (
                                         <div key={event.id} className="event-in-day-view" style={getEventStyle(event)} onClick={() => onEventClick(event.data)}>
                                             {event.title}
                                         </div>
@@ -169,8 +175,8 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                             <div key={format(day, 'yyyy-MM-dd')} className="day-column">
                                 {timeSlots.map(time => <div key={time} className="time-slot" />)}
                                 {events
-                                    .filter(e => isSameDay(new Date(e.start), day))
-                                    .map(event => (
+                                    .filter((e: any) => isSameDay(new Date(e.start), day))
+                                    .map((event: any) => (
                                         <div key={event.id} className="event-in-day-view" style={getEventStyle(event)} onClick={() => onEventClick(event.data)}>
                                             {event.title}
                                         </div>
@@ -204,7 +210,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
 
       for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month, day);
-        const dayEvents = events.filter(e => {
+        const dayEvents = events.filter((e: any) => {
             if (!e.start) return false;
             try {
                 return isSameDay(new Date(e.start), date);
@@ -218,7 +224,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
           <div key={day} className="calendar-day">
             <span className='font-semibold'>{day}</span>
             <div className='mt-1 space-y-1'>
-              {dayEvents.map((event, index) => (
+              {dayEvents.map((event: any, index: number) => (
                 <div 
                     key={`${event.id}-${index}`} 
                     className="event"
@@ -285,7 +291,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
               {Array.from({length: (getDay(month) + 6) % 7}).map((_, i) => <div key={`empty-${i}`}></div>)}
               {Array.from({length: getDaysInMonth(month)}).map((_, day) => {
                 const date = new Date(year, getMonth(month), day + 1);
-                const dayEvents = events.filter(e => isSameDay(new Date(e.start), date));
+                const dayEvents = events.filter((e: any) => isSameDay(new Date(e.start), date));
                 return (
                   <div key={day} className={cn("relative rounded-full aspect-square flex items-center justify-center", dayEvents.length > 0 && "bg-primary/20", isSameDay(date, new Date()) && "bg-primary text-primary-foreground")}>
                     {day + 1}
@@ -300,7 +306,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
   };
   
   const renderScheduleView = () => {
-      const groupedEvents = events.reduce((acc, event) => {
+      const groupedEvents = events.reduce((acc, event: any) => {
           if (!event.start) return acc;
           try {
             const date = format(new Date(event.start), 'yyyy-MM-dd');
@@ -310,7 +316,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
             console.error("Invalid event start date for schedule view:", event.start);
           }
           return acc;
-      }, {} as Record<string, typeof events>);
+      }, {} as Record<string, any[]>);
 
       const sortedDates = Object.keys(groupedEvents).sort();
 
@@ -326,7 +332,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                                 <div className="flex-1 text-sm">{event.title}</div>
                                 {event.assignee && (
                                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <span>{children.props.assignees.find((a: any) => a.email === event.assignee)?.name || event.assignee}</span>
+                                        <span>{assignees.find((a: any) => a.email === event.assignee)?.name || event.assignee}</span>
                                     </div>
                                 )}
                             </div>
@@ -374,15 +380,15 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                     <DropdownMenuSub>
                         <DropdownMenuSubTrigger>Day</DropdownMenuSubTrigger>
                         <DropdownMenuSubContent>
-                            <DropdownMenuItem onSelect={() => setView('day')}>Day</DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => setView('2-day')}>2 Days</DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => setView('3-day')}>3 Days</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleViewChange('day')}>Day</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleViewChange('2-day')}>2 Days</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleViewChange('3-day')}>3 Days</DropdownMenuItem>
                         </DropdownMenuSubContent>
                     </DropdownMenuSub>
-                    <DropdownMenuItem onSelect={() => setView('week')}>Week</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setView('month')}>Month</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setView('year')}>Year</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setView('schedule')}>Schedule</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleViewChange('week')}>Week</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleViewChange('month')}>Month</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleViewChange('year')}>Year</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleViewChange('schedule')}>Schedule</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
