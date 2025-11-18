@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { addDays, addMinutes, addMonths, format, parse, parseISO, isSameDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { addDays, addMinutes, addMonths, format, parse, parseISO, isSameDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isWithinInterval, isValid } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType, User as UserType, Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,10 @@ import Calendar from '@/components/calendar/Calendar';
 
 
 async function getAppointments(calendarGoogleIds: string[], startDate: Date, endDate: Date): Promise<Appointment[]> {
+    if (!isValid(startDate) || !isValid(endDate)) {
+        console.error("Invalid start or end date provided to getAppointments");
+        return [];
+    }
     const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
     
     const params = new URLSearchParams({
@@ -56,6 +60,8 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
 
     if (calendarGoogleIds.length > 0) {
         params.append('calendar_ids', calendarGoogleIds.join(','));
+    } else {
+        params.append('calendar_ids', '');
     }
 
     try {
@@ -293,9 +299,11 @@ export default function AppointmentsPage() {
     const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.from, fetchRange.to);
     
     setAppointments(prev => {
-        const newAppointments = [...(force ? [] : prev), ...fetchedAppointments];
-        const uniqueAppointments = Array.from(new Map(newAppointments.map(item => [item.id, item])).values());
-        return uniqueAppointments;
+        const appointmentMap = new Map(prev.map(item => [item.id, item]));
+        fetchedAppointments.forEach(item => {
+            appointmentMap.set(item.id, item);
+        });
+        return Array.from(appointmentMap.values());
     });
     
     if (force || !fetchedDateRange) {
@@ -310,10 +318,10 @@ export default function AppointmentsPage() {
     setIsRefreshing(false);
   }, [selectedCalendarIds, fetchRange, calendars, fetchedDateRange, currentView]);
 
-  const forceRefresh = () => {
+  const forceRefresh = React.useCallback(() => {
     setFetchedDateRange(null);
     loadAppointments(true);
-  };
+  }, [loadAppointments]);
   
   const loadCalendars = React.useCallback(async () => {
     setIsCalendarsLoading(true);
@@ -573,7 +581,7 @@ export default function AppointmentsPage() {
         console.error("Failed to check availability:", error);
         setAvailabilityStatus('idle');
     }
-  }, [editingAppointment]);
+  }, [editingAppointment, doctorSearchResults]);
   
   React.useEffect(() => {
     const { date, time } = newAppointment;
@@ -642,7 +650,7 @@ export default function AppointmentsPage() {
         setCreateOpen(false);
         setEditingAppointment(null);
         setOriginalCalendarId(undefined);
-        loadAppointments();
+        forceRefresh();
       } else {
         const errorDetails = result?.error || result;
         const errorMessage = errorDetails?.description || errorDetails?.message || 'An unknown error occurred.';
@@ -687,7 +695,7 @@ export default function AppointmentsPage() {
             });
             setIsDeleteAlertOpen(false);
             setDeletingAppointment(null);
-            loadAppointments();
+            forceRefresh();
         } else {
             const errorMessage = result.message || 'Failed to delete appointment';
             throw new Error(errorMessage);
@@ -1146,5 +1154,7 @@ export default function AppointmentsPage() {
     </div>
   );
 }
+
+    
 
     
