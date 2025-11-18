@@ -63,6 +63,7 @@ const quoteItemFormSchema = (t: (key: string) => string) => z.object({
     quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
     unit_price: z.coerce.number().min(0, 'Unit price must be positive'),
     total: z.coerce.number().min(0, 'Total must be positive'),
+    exchange_rate: z.coerce.number().optional(),
 });
 
 type QuoteItemFormValues = z.infer<ReturnType<typeof quoteItemFormSchema>>;
@@ -613,13 +614,13 @@ export default function QuotesPage() {
     
     const handleEditQuoteItem = async (item: QuoteItem) => {
         if (!selectedQuote) return;
-        setEditingQuoteItem(item);
-        setQuoteItemSubmissionError(null);
-        setShowConversion(false);
-
         try {
             const fetchedServices = await getServices();
             setAllServices(fetchedServices);
+            setEditingQuoteItem(item);
+            setQuoteItemSubmissionError(null);
+            setShowConversion(false);
+
             const service = fetchedServices.find(s => String(s.id) === String(item.service_id));
             
             if (service) {
@@ -747,7 +748,6 @@ export default function QuotesPage() {
                     newUnitPrice = exchangeRate > 0 ? servicePrice / exchangeRate : 0;
                 }
             } else {
-                // If currencies match, ensure no exchange rate is applied
                 setExchangeRate(1);
             }
             
@@ -1083,10 +1083,10 @@ export default function QuotesPage() {
                             )}
                         />
                          {showConversion && (
-                            <div className="grid grid-cols-2 gap-4 rounded-md border p-4">
-                                <FormItem>
+                            <div className="grid grid-cols-2 gap-4">
+                               <FormItem>
                                     <FormLabel>{t('itemDialog.originalPrice')} ({originalServiceCurrency})</FormLabel>
-                                     <Input
+                                    <Input
                                         value={originalServicePrice !== null ? Number(originalServicePrice).toFixed(2) : ''}
                                         readOnly
                                         disabled
