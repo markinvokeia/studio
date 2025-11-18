@@ -253,24 +253,27 @@ export default function AppointmentsPage() {
       return cal?.google_calendar_id;
     }).filter((id): id is string => !!id);
     
-    const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.start, fetchRange.end);
-    
-    setAppointments(prev => {
-        const appointmentMap = new Map(prev.map(item => [item.id, item]));
-        fetchedAppointments.forEach(item => {
-            appointmentMap.set(item.id, item);
+    if (googleCalendarIds.length > 0) {
+        const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.start, fetchRange.end);
+        
+        setAppointments(prev => {
+            const appointmentMap = new Map(prev.map(item => [item.id, item]));
+            fetchedAppointments.forEach(item => {
+                appointmentMap.set(item.id, item);
+            });
+            return Array.from(appointmentMap.values());
         });
-        return Array.from(appointmentMap.values());
-    });
-    
-    if (force || !fetchedDateRange) {
-        setFetchedDateRange({ start: fetchRange.start, end: fetchRange.end });
-    } else {
-        setFetchedDateRange({
-            start: new Date(Math.min(fetchedDateRange.start.getTime(), fetchRange.start.getTime())),
-            end: new Date(Math.max(fetchedDateRange.end.getTime(), fetchRange.end.getTime())),
-        });
+        
+        if (force || !fetchedDateRange) {
+            setFetchedDateRange({ start: fetchRange.start, end: fetchRange.end });
+        } else {
+            setFetchedDateRange({
+                start: new Date(Math.min(fetchedDateRange.start.getTime(), fetchRange.start.getTime())),
+                end: new Date(Math.max(fetchedDateRange.end.getTime(), fetchRange.end.getTime())),
+            });
+        }
     }
+
 
     setIsRefreshing(false);
   }, [selectedCalendarIds, fetchRange, calendars, fetchedDateRange]);
@@ -293,8 +296,10 @@ export default function AppointmentsPage() {
   }, [loadCalendars]);
   
   React.useEffect(() => {
-    loadAppointments();
-  }, [loadAppointments]);
+    if (selectedCalendarIds.length > 0) {
+      loadAppointments();
+    }
+  }, [loadAppointments, selectedCalendarIds]);
   
   
   // Debounced search effect for users
@@ -667,7 +672,13 @@ export default function AppointmentsPage() {
 };
 
  const onDateChange = React.useCallback((newRange: { start: Date; end: Date }) => {
-    if (!fetchRange || !newRange.start || !newRange.end || fetchRange.start.getTime() !== newRange.start.getTime() || fetchRange.to.getTime() !== newRange.end.getTime()) {
+    if (!fetchRange || !newRange.start || !newRange.end || !fetchRange.to) {
+      setFetchRange(newRange);
+      return;
+    }
+    
+    // Only update if the range has actually changed to prevent loops
+    if (fetchRange.start.getTime() !== newRange.start.getTime() || fetchRange.to.getTime() !== newRange.end.getTime()) {
       setFetchRange(newRange);
     }
   }, [fetchRange]);
@@ -1009,4 +1020,3 @@ export default function AppointmentsPage() {
     </Card>
   );
 }
-
