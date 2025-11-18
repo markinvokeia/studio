@@ -573,15 +573,6 @@ export default function AppointmentsPage() {
     }
   }, [editingAppointment, doctorSearchResults]);
   
-  React.useEffect(() => {
-    if (isCreateOpen) {
-        const { user, services, date, time } = newAppointment;
-        if (user && services.length > 0 && date && time) {
-            checkAvailability(newAppointment);
-        }
-    }
-  }, [newAppointment.user, newAppointment.services, newAppointment.date, newAppointment.time, checkAvailability, isCreateOpen]);
-
 
   const handleSaveAppointment = async () => {
     const { user, doctor, services, calendar, date, time, description } = newAppointment;
@@ -710,6 +701,10 @@ export default function AppointmentsPage() {
     time: tColumns('time'),
     status: tColumns('status'),
   };
+  
+  const onDateChange = React.useCallback((range: { start: Date; end: Date }) => {
+    setFetchRange({ from: range.start, to: range.end });
+  }, []);
 
   return (
     <>
@@ -725,9 +720,7 @@ export default function AppointmentsPage() {
                 ? calendarColors[a.calendar_id]
                 : '#ccc',
             }))}
-            onDateChange={(range) =>
-              setFetchRange({ from: range.start, to: range.end })
-            }
+            onDateChange={onDateChange}
           >
             <div className="flex items-center gap-2">
                 <Button
@@ -1120,5 +1113,7 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
 
     
