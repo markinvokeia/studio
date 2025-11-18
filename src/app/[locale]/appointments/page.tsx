@@ -2,11 +2,11 @@
 'use client';
 
 import * as React from 'react';
-import { addDays, addMinutes, addMonths, format, parse, parseISO, isSameDay, isToday, isThisMonth, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { addDays, addMinutes, addMonths, format, parse, parseISO, isSameDay } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType, User as UserType, Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Calendar as CalendarIcon, User, Phone, Stethoscope, RefreshCw, CalendarDays, List, Search, ChevronsUpDown, Check, X, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, RefreshCw, List, Search, ChevronsUpDown, Check, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -44,7 +43,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Calendar from '@/components/calendar/Calendar';
 
 
@@ -153,17 +151,15 @@ export default function AppointmentsPage() {
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
   const [selectedCalendarIds, setSelectedCalendarIds] = React.useState<string[]>([]);
   const [isCalendarsLoading, setIsCalendarsLoading] = React.useState(true);
-  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
   const [isCreateOpen, setCreateOpen] = React.useState(false);
-  const [dateFilter, setDateFilter] = React.useState<'today' | 'this_week' | 'this_month'>('today');
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'date', desc: false },
   ]);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [calendarColors, setCalendarColors] = React.useState<{[key: string]: string}>({});
   const [fetchRange, setFetchRange] = React.useState<{ from: Date; to: Date }>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date()),
+    from: addMonths(new Date(), -1),
+    to: addMonths(new Date(), 1),
   });
 
   const [editingAppointment, setEditingAppointment] = React.useState<Appointment | null>(null);
@@ -302,47 +298,6 @@ export default function AppointmentsPage() {
     loadAppointments();
   }, [loadAppointments]);
   
-  React.useEffect(() => {
-    if (selectedDate) {
-        const newFrom = startOfMonth(selectedDate);
-        const newTo = endOfMonth(selectedDate);
-
-        if (newFrom < fetchRange.from) {
-            setFetchRange(prev => ({ from: newFrom, to: prev.to }));
-        }
-        if (newTo > fetchRange.to) {
-            setFetchRange(prev => ({ from: prev.from, to: newTo }));
-        }
-    }
-  }, [selectedDate, fetchRange.from, fetchRange.to]);
-
-
-  const selectedDayAppointments = React.useMemo(() => {
-    if (!selectedDate) return [];
-    return appointments
-      .filter(apt => isSameDay(parseISO(`${apt.date}T${apt.time}`), selectedDate))
-      .sort((a, b) => a.time.localeCompare(b.time));
-  }, [appointments, selectedDate]);
-  
-  const filteredAppointments = React.useMemo(() => {
-    return appointments.filter(apt => {
-        const aptDate = parseISO(`${apt.date}T${apt.time}`);
-        switch (dateFilter) {
-            case 'today':
-                return isToday(aptDate);
-            case 'this_week': {
-                const now = new Date();
-                const weekStart = startOfWeek(now, { weekStartsOn: 0 });
-                const weekEnd = endOfWeek(now, { weekStartsOn: 0 });
-                return isWithinInterval(aptDate, { start: weekStart, end: weekEnd });
-            }
-            case 'this_month':
-                return isThisMonth(aptDate);
-            default:
-                return true;
-        }
-    });
-  }, [appointments, dateFilter]);
   
   const getStatusVariant = (status: Appointment['status']) => {
     return {
@@ -767,141 +722,54 @@ export default function AppointmentsPage() {
                 <CardTitle>{t('title')}</CardTitle>
                 <CardDescription>{t('description')}</CardDescription>
             </div>
-            <div className="flex items-center gap-2">
-                <Button
-                    variant="outline"
-                    className="h-8"
-                    onClick={() => setCreateOpen(true)}
-                >
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    {t('newAppointment')}
-                </Button>
-                <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={loadAppointments}
-                    disabled={isRefreshing}
-                >
-                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    <span className="sr-only">Refresh</span>
-                </Button>
-                <TooltipProvider>
-                    <TabsList>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <TabsTrigger value="calendar">
-                                    <CalendarDays className="h-4 w-4" />
-                                    <span className="sr-only">{t('calendarView')}</span>
-                                </TabsTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{t('calendarView')}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <TabsTrigger value="list">
-                                    <List className="h-4 w-4" />
-                                    <span className="sr-only">{t('listView')}</span>
-                                </TabsTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{t('listView')}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TabsList>
-                </TooltipProvider>
-            </div>
             </CardHeader>
             <CardContent>
                 <TabsContent value="calendar" className="pt-4">
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr]">
-                    <div>
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-base flex items-center gap-2">
-                                <CalendarIcon className="h-5 w-5"/>
-                                {t('calendars')}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {isCalendarsLoading ? (
-                                <div className="space-y-2">
-                                    <Skeleton className="h-5 w-full" />
-                                    <Skeleton className="h-5 w-full" />
-                                    <Skeleton className="h-5 w-full" />
-                                </div>
-                                ) : (
-                                <div className="space-y-2">
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox 
-                                            id="select-all"
-                                            checked={selectedCalendarIds.length === calendars.filter(c => c.id).length}
-                                            onCheckedChange={handleSelectAllCalendars}
-                                        />
-                                        <Label htmlFor="select-all" className="font-semibold">{t('selectAll')}</Label>
-                                    </div>
-                                    <Separator />
-                                    <ScrollArea className="h-32">
-                                        {calendars.map(calendar => (
-                                          <div key={calendar.id} className="flex items-center space-x-2 py-1">
-                                              <Checkbox 
-                                                  id={calendar.id}
-                                                  checked={selectedCalendarIds.includes(calendar.id)}
-                                                  onCheckedChange={(checked) => handleCalendarSelection(calendar.id, !!checked)}
-                                              />
-                                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: calendar.id ? calendarColors[calendar.id] : '#ccc' }} />
-                                              <Label htmlFor={calendar.id}>{calendar.name}</Label>
-                                          </div>
-                                        ))}
-                                    </ScrollArea>
-                                </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-                    <div className="min-h-[600px]">
-                        <Calendar
-                            onDateChange={setSelectedDate}
-                            events={appointments.map(a => ({ date: `${a.date}T${a.time}`, title: a.service_name, color: a.calendar_id ? calendarColors[a.calendar_id] : '#ccc' }))}
-                        />
-                    </div>
-                </div>
+                    <Calendar 
+                         events={appointments.map(a => ({ 
+                            id: a.id,
+                            title: a.service_name,
+                            start: parseISO(`${a.date}T${a.time}`),
+                            end: addMinutes(parseISO(`${a.date}T${a.time}`), 30), // Assuming 30min duration
+                            backgroundColor: a.calendar_id ? calendarColors[a.calendar_id] : '#ccc'
+                        }))}
+                        onDateChange={(range) => setFetchRange({from: range.start, to: range.end})}
+                    >
+                        <div className='flex items-center gap-2'>
+                           <Button
+                                variant="outline"
+                                className="h-8"
+                                onClick={() => setCreateOpen(true)}
+                            >
+                                <PlusCircle className="h-4 w-4 mr-2" />
+                                {t('newAppointment')}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={loadAppointments}
+                                disabled={isRefreshing}
+                            >
+                                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                <span className="sr-only">Refresh</span>
+                            </Button>
+                        </div>
+                    </Calendar>
                 </TabsContent>
                 <TabsContent value="list" className="pt-4 space-y-4">
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant={dateFilter === 'today' ? 'default' : 'outline'}
-                            onClick={() => setDateFilter('today')}
-                        >
-                            {t('today')}
-                        </Button>
-                        <Button
-                            variant={dateFilter === 'this_week' ? 'default' : 'outline'}
-                            onClick={() => setDateFilter('this_week')}
-                        >
-                            {t('thisWeek')}
-                        </Button>
-                        <Button
-                            variant={dateFilter === 'this_month' ? 'default' : 'outline'}
-                            onClick={() => setDateFilter('this_month')}
-                        >
-                            {t('thisMonth')}
-                        </Button>
-                    </div>
-                <DataTable 
-                    columns={appointmentColumns} 
-                    data={filteredAppointments} 
-                    filterColumnId='service_name'
-                    filterPlaceholder={t('filterByService')}
-                    sorting={sorting}
-                    onSortingChange={setSorting}
-                    onRefresh={loadAppointments}
-                    isRefreshing={isRefreshing}
-                    onCreate={() => setCreateOpen(true)}
-                    columnTranslations={columnTranslations}
-                />
+                    <DataTable 
+                        columns={appointmentColumns} 
+                        data={appointments} 
+                        filterColumnId='service_name'
+                        filterPlaceholder={t('filterByService')}
+                        sorting={sorting}
+                        onSortingChange={setSorting}
+                        onRefresh={loadAppointments}
+                        isRefreshing={isRefreshing}
+                        onCreate={() => setCreateOpen(true)}
+                        columnTranslations={columnTranslations}
+                    />
                 </TabsContent>
             </CardContent>
         </Tabs>
@@ -1267,11 +1135,3 @@ export default function AppointmentsPage() {
     </>
   );
 }
-
-    
-
-    
-
-    
-
-
