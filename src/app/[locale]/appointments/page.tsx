@@ -60,9 +60,6 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
             method: 'GET',
             mode: 'cors',
-            headers: { 
-                'Accept': 'application/json'
-            },
             cache: 'no-store',
         });
 
@@ -119,7 +116,6 @@ async function getCalendars(): Promise<CalendarType[]> {
         const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/calendars', {
             method: 'GET',
             mode: 'cors',
-            headers: { 'Accept': 'application/json' },
             cache: 'no-store',
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -278,7 +274,7 @@ export default function AppointmentsPage() {
 
 
     setIsRefreshing(false);
-  }, [selectedCalendarIds, fetchRange, calendars, fetchedDateRange]);
+  }, [selectedCalendarIds, fetchRange, calendars]);
 
   const forceRefresh = React.useCallback(() => {
     setFetchedDateRange(null); // This will force loadAppointments to run
@@ -316,9 +312,6 @@ export default function AppointmentsPage() {
           const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/filter_users?search=${userSearchQuery}`, {
             method: 'GET',
             mode: 'cors',
-            headers: {
-              'Accept': 'application/json',
-            },
           });
           if (!response.ok) {
             throw new Error('Network response was not ok');
@@ -364,7 +357,6 @@ export default function AppointmentsPage() {
           const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?search=${serviceSearchQuery}`, {
             method: 'GET',
             mode: 'cors',
-            headers: { 'Accept': 'application/json' },
           });
           if (!response.ok) {
             throw new Error('Network response was not ok for services');
@@ -401,7 +393,6 @@ export default function AppointmentsPage() {
       const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors?search=${query}`, {
         method: 'GET',
         mode: 'cors',
-        headers: { 'Accept': 'application/json' },
       });
       if (!response.ok) {
         throw new Error('Network response was not ok for doctors');
@@ -674,15 +665,8 @@ export default function AppointmentsPage() {
 };
 
   const onDateChange = React.useCallback((newRange: { start: Date; end: Date }) => {
-    if (!fetchRange || !fetchRange.start || !newRange.start || !newRange.end) {
-        setFetchRange(newRange);
-        return;
-    }
-    
-    if (fetchRange.start.getTime() !== newRange.start.getTime() || fetchRange.end.getTime() !== newRange.end.getTime()) {
-      setFetchRange(newRange);
-    }
-  }, [fetchRange]);
+    setFetchRange(newRange);
+  }, []);
 
   const calendarEvents = React.useMemo(() => {
     return appointments.map(appt => {
@@ -1046,3 +1030,5 @@ export default function AppointmentsPage() {
     </Card>
   );
 }
+
+    
