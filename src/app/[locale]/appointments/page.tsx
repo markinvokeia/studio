@@ -1019,7 +1019,6 @@ export default function AppointmentsPage() {
           <DialogContent>
               <DialogHeader>
                   <DialogTitle>{selectedAppointment?.service_name}</DialogTitle>
-                  <DialogDescription>{t('createDialog.title')}</DialogDescription>
               </DialogHeader>
               {selectedAppointment && (
                   <div className="grid gap-4 py-4">
