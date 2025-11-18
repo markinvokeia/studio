@@ -53,8 +53,11 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
     const params = new URLSearchParams({
         startingDateAndTime: formatDateForAPI(startDate),
         endingDateAndTime: formatDateForAPI(endDate),
-        calendar_ids: calendarGoogleIds.join(','),
     });
+
+    if (calendarGoogleIds.length > 0) {
+      params.append('calendar_ids', calendarGoogleIds.join(','));
+    }
 
     try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
@@ -149,7 +152,6 @@ export default function AppointmentsPage() {
   const [isCreateOpen, setCreateOpen] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [fetchRange, setFetchRange] = React.useState<{ start: Date; end: Date } | null>(null);
-  const [fetchedDateRange, setFetchedDateRange] = React.useState<{ start: Date; end: Date } | null>(null);
   
   const [editingAppointment, setEditingAppointment] = React.useState<Appointment | null>(null);
   const [deletingAppointment, setDeletingAppointment] = React.useState<Appointment | null>(null);
@@ -241,50 +243,25 @@ export default function AppointmentsPage() {
   
   const appointmentColumns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns({ t: tColumns, tStatus, onEdit: handleEdit, onCancel: handleCancel }), [tColumns, tStatus]);
 
-  const loadAppointments = React.useCallback(async (force = false) => {
+  const loadAppointments = React.useCallback(async () => {
     if (!fetchRange || !fetchRange.start || !fetchRange.end || !isValid(fetchRange.start) || !isValid(fetchRange.end)) {
       return;
     }
     
-    // Avoid fetching if data for the current range is already present, unless forced
-    if (fetchedDateRange && isWithinInterval(fetchRange.start, fetchedDateRange) && isWithinInterval(fetchRange.end, fetchedDateRange) && !force) {
-        return;
-    }
-
     setIsRefreshing(true);
     const googleCalendarIds = selectedCalendarIds.map(id => {
       const cal = calendars.find(c => c.id === id);
       return cal?.google_calendar_id;
     }).filter((id): id is string => !!id);
     
-    if (googleCalendarIds.length > 0) {
-        const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.start, fetchRange.end);
-        
-        setAppointments(prev => {
-            const appointmentMap = new Map(prev.map(item => [item.id, item]));
-            fetchedAppointments.forEach(item => {
-                appointmentMap.set(item.id, item);
-            });
-            return Array.from(appointmentMap.values());
-        });
-        
-        if (force || !fetchedDateRange) {
-            setFetchedDateRange({ start: fetchRange.start, end: fetchRange.end });
-        } else {
-            setFetchedDateRange({
-                start: new Date(Math.min(fetchedDateRange.start.getTime(), fetchRange.start.getTime())),
-                end: new Date(Math.max(fetchedDateRange.end.getTime(), fetchRange.end.getTime())),
-            });
-        }
-    }
-
-
+    const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.start, fetchRange.end);
+    setAppointments(fetchedAppointments);
+    
     setIsRefreshing(false);
-  }, [selectedCalendarIds, fetchRange, calendars, fetchedDateRange]);
-
+  }, [selectedCalendarIds, fetchRange, calendars]);
+  
   const forceRefresh = React.useCallback(() => {
-    setFetchedDateRange(null); // This will force loadAppointments to run
-    loadAppointments(true);
+    loadAppointments();
   }, [loadAppointments]);
   
   const loadCalendars = React.useCallback(async () => {
@@ -300,7 +277,7 @@ export default function AppointmentsPage() {
   }, [loadCalendars]);
   
   React.useEffect(() => {
-    if (selectedCalendarIds.length > 0 && fetchRange) {
+    if (fetchRange) {
       loadAppointments();
     }
   }, [loadAppointments, selectedCalendarIds, fetchRange]);
@@ -718,6 +695,9 @@ export default function AppointmentsPage() {
     });
   }, []);
 
+  React.useEffect(() => {
+    setAppointments([]);
+  }, [selectedCalendarIds]);
 
   return (
     <Card>
@@ -766,7 +746,7 @@ export default function AppointmentsPage() {
                                     <CommandItem onSelect={() => setSelectedCalendarIds([])}>Deselect All</CommandItem>
                                     <hr className="my-2" />
                                     {calendars.map((calendar) => (
-                                        <CommandItem key={calendar.id} onSelect={() => handleSelectCalendar(calendar.id, !selectedCalendarIds.includes(calendar.id))}>
+                                        <CommandItem key={calendar.id} onSelect={(e) => e.preventDefault()}>
                                             <div className="flex items-center">
                                                 <Checkbox checked={selectedCalendarIds.includes(calendar.id)} onCheckedChange={(checked) => handleSelectCalendar(calendar.id, !!checked)} />
                                                 <span className="ml-2">{calendar.name}</span>
@@ -1068,7 +1048,7 @@ export default function AppointmentsPage() {
                       <p><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></p>
                   </div>
               )}
-              <DialogFooter>
+              <DialogFooter className="justify-between">
                   <Button variant="outline" onClick={() => setIsDetailViewOpen(false)}>{t('createDialog.close')}</Button>
                   <Button onClick={() => {
                       if (selectedAppointment) {
@@ -1089,3 +1069,4 @@ export default function AppointmentsPage() {
     
 
     
+
