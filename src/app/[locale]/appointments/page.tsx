@@ -150,7 +150,7 @@ export default function AppointmentsPage() {
   const [isCalendarsLoading, setIsCalendarsLoading] = React.useState(true);
   const [isCreateOpen, setCreateOpen] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const [fetchRange, setFetchRange] = React.useState<{ from: Date; to: Date } | null>(null);
+  const [fetchRange, setFetchRange] = React.useState<{ start: Date; end: Date } | null>(null);
   const [fetchedDateRange, setFetchedDateRange] = React.useState<{ start: Date; end: Date } | null>(null);
   
   const [editingAppointment, setEditingAppointment] = React.useState<Appointment | null>(null);
@@ -237,12 +237,12 @@ export default function AppointmentsPage() {
   const appointmentColumns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns({ t: tColumns, tStatus, onEdit: handleEdit, onCancel: handleCancel }), [tColumns, tStatus]);
 
   const loadAppointments = React.useCallback(async (force = false) => {
-    if (!fetchRange || !isValid(fetchRange.from) || !isValid(fetchRange.to)) {
+    if (!fetchRange || !isValid(fetchRange.start) || !isValid(fetchRange.end)) {
       return;
     }
     
     // Avoid fetching if data for the current range is already present, unless forced
-    if (fetchedDateRange && isWithinInterval(fetchRange.from, fetchedDateRange) && isWithinInterval(fetchRange.to, fetchedDateRange) && !force) {
+    if (fetchedDateRange && isWithinInterval(fetchRange.start, fetchedDateRange) && isWithinInterval(fetchRange.end, fetchedDateRange) && !force) {
         return;
     }
 
@@ -252,7 +252,7 @@ export default function AppointmentsPage() {
       return cal?.google_calendar_id;
     }).filter((id): id is string => !!id);
     
-    const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.from, fetchRange.to);
+    const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.start, fetchRange.end);
     
     setAppointments(prev => {
         const appointmentMap = new Map(prev.map(item => [item.id, item]));
@@ -263,11 +263,11 @@ export default function AppointmentsPage() {
     });
     
     if (force || !fetchedDateRange) {
-        setFetchedDateRange({ start: fetchRange.from, end: fetchRange.to });
+        setFetchedDateRange({ start: fetchRange.start, end: fetchRange.end });
     } else {
         setFetchedDateRange({
-            start: new Date(Math.min(fetchedDateRange.start.getTime(), fetchRange.from.getTime())),
-            end: new Date(Math.max(fetchedDateRange.end.getTime(), fetchRange.to.getTime())),
+            start: new Date(Math.min(fetchedDateRange.start.getTime(), fetchRange.start.getTime())),
+            end: new Date(Math.max(fetchedDateRange.end.getTime(), fetchRange.end.getTime())),
         });
     }
 
@@ -665,9 +665,9 @@ export default function AppointmentsPage() {
     }
 };
 
- const onDateChange = React.useCallback((newRange) => {
+ const onDateChange = React.useCallback((newRange: { start: Date; end: Date }) => {
     // Only update if the range has actually changed to prevent loops
-    if (!fetchRange || fetchRange.from.getTime() !== newRange.start.getTime() || fetchRange.to.getTime() !== newRange.end.getTime()) {
+    if (!fetchRange || !fetchRange.from || !newRange.start || fetchRange.from.getTime() !== newRange.start.getTime() || !fetchRange.to || !newRange.end || fetchRange.to.getTime() !== newRange.end.getTime()) {
       setFetchRange(newRange);
     }
   }, [fetchRange]);
