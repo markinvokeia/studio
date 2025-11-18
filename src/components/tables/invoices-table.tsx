@@ -173,9 +173,9 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     
     const selectedMethod = paymentMethods.find(pm => pm.id === values.method);
 
-    let finalAmount = values.amount;
+    let convertedAmount = values.amount;
     if (showExchangeRate && equivalentAmount) {
-        finalAmount = equivalentAmount;
+        convertedAmount = equivalentAmount;
     }
 
     try {
@@ -186,13 +186,14 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             query: JSON.stringify({
                 invoice_id: parseInt(selectedInvoiceForPayment.id, 10),
                 payment_date: values.payment_date.toISOString(),
-                amount: finalAmount,
+                amount: values.amount,
+                converted_amount: convertedAmount,
                 method: selectedMethod?.name,
                 payment_method_id: values.method,
                 status: values.status,
                 user: user,
                 payment_currency: values.payment_currency,
-                exchange_rate: values.exchange_rate,
+                exchange_rate: values.exchange_rate || 1,
             }),
         };
 
