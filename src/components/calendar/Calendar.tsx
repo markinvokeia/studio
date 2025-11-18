@@ -12,7 +12,6 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-    DropdownMenuSeparator,
     DropdownMenuSub,
     DropdownMenuSubContent,
     DropdownMenuSubTrigger
@@ -29,7 +28,7 @@ import { Command, CommandItem, CommandList, CommandGroup } from '../ui/command';
 
 type View = 'day' | '2-day' | '3-day' | 'week' | 'month' | 'year' | 'schedule';
 
-const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEventClick, assignees = [], selectedAssignees, onSelectedAssigneesChange, group, onGroupChange }) => {
+const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEventClick }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<View>('month');
 
@@ -117,10 +116,12 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
   }, [currentDate, view]);
 
     const renderDayOrWeekView = (numDays: number) => {
-        const days = Array.from({ length: numDays }, (_, i) => addDays(startOfWeek(currentDate, { weekStartsOn: 1 }), i));
+        const startDay = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
+        const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
         
         const timeSlots = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
         
+        const { group = false, assignees = [], selectedAssignees = [] } = children.props;
         const columns = group ? assignees.filter(a => selectedAssignees.includes(a.id)) : [{id: 'all', name: 'All', email: 'all'}];
 
         const getEventStyle = (event: any) => {
@@ -231,7 +232,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
         );
       }
       
-      const totalCells = 42; // Always render 6 weeks
+      const totalCells = dayElements.length > 35 ? 42 : 35;
       while(dayElements.length < totalCells) {
            dayElements.push(<div key={`empty-next-${dayElements.length}`} className="calendar-day other-month"></div>);
       }
@@ -325,7 +326,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                                 <div className="flex-1 text-sm">{event.title}</div>
                                 {event.assignee && (
                                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <span>{assignees.find(a => a.email === event.assignee)?.name || event.assignee}</span>
+                                        <span>{children.props.assignees.find((a: any) => a.email === event.assignee)?.name || event.assignee}</span>
                                     </div>
                                 )}
                             </div>
