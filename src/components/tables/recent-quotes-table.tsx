@@ -174,7 +174,7 @@ const getColumns = (
       }[status.toLowerCase()] ?? ('default'as any);
       
       const statusKeyMap: { [key: string]: string } = {
-        'partially paid': 'partiallyPaid',
+        'partially_paid': 'partiallyPaid',
         'unpaid': 'unpaid',
         'paid': 'paid',
         'partial': 'partial',
