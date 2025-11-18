@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -391,7 +392,10 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
             {children}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="outline">{view.charAt(0).toUpperCase() + view.slice(1)}</Button>
+                    <Button variant="outline" className="flex items-center gap-2">
+                        {view.charAt(0).toUpperCase() + view.slice(1)}
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                     <DropdownMenuSub>

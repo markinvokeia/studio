@@ -6,7 +6,7 @@ import { addMinutes, format, parse, parseISO, isWithinInterval, isValid, startOf
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType, User as UserType, Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, RefreshCw, ChevronsUpDown, Check, X } from 'lucide-react';
+import { PlusCircle, RefreshCw, ChevronsUpDown, Check, X, ChevronDown } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -748,7 +748,10 @@ export default function AppointmentsPage() {
                         </div>
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="outline">Filter Assignees</Button>
+                                <Button variant="outline" className="flex items-center gap-2">
+                                    Filter Assignees
+                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-56 p-2">
                                 <Command>
@@ -1036,5 +1039,3 @@ export default function AppointmentsPage() {
     </Card>
   );
 }
-
-    
