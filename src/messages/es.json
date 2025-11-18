@@ -1207,7 +1207,8 @@
     "quoteId": "ID Cotización",
     "total": "Total",
     "currency": "Moneda",
-    "billingStatus": "Estado Facturación"
+    "billingStatus": "Estado Facturación",
+    "createdAt": "Fecha"
   },
   "OrderColumns": {
     "orderId": "ID Pedido",

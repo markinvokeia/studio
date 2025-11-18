@@ -1207,7 +1207,8 @@
     "quoteId": "Quote ID",
     "total": "Total",
     "currency": "Currency",
-    "billingStatus": "Billing Status"
+    "billingStatus": "Billing Status",
+    "createdAt": "Date"
   },
   "OrderColumns": {
     "orderId": "Order ID",

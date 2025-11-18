@@ -69,6 +69,12 @@ const getColumns = (
     ),
   },
   {
+    accessorKey: 'createdAt',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('QuoteColumns.createdAt')} />
+    ),
+  },
+  {
     accessorKey: 'total',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t('QuoteColumns.total')} />
