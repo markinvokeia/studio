@@ -268,12 +268,10 @@ export default function AppointmentsPage() {
 
   const loadAppointments = React.useCallback(async () => {
     if (selectedCalendarIds.length === 0 && calendars.length > 0) {
-      // If no calendars are selected but calendars have loaded, explicitly don't fetch.
       setAppointments([]);
       return;
     }
     if (calendars.length === 0) {
-      // If calendars haven't loaded yet, wait.
       return;
     }
     setIsRefreshing(true);
@@ -282,7 +280,6 @@ export default function AppointmentsPage() {
       return cal?.google_calendar_id;
     }).filter((id): id is string => !!id);
     
-    // Only fetch if there are google calendar ids to fetch for
     if (googleCalendarIds.length > 0) {
         const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.from, fetchRange.to);
         setAppointments(fetchedAppointments);
@@ -576,27 +573,14 @@ export default function AppointmentsPage() {
     }
   }, [editingAppointment, doctorSearchResults]);
   
-   React.useEffect(() => {
-        if(isCreateOpen) {
-            if (editingAppointment) {
-                 const tomorrow = addDays(new Date(), 1);
-                setNewAppointment({
-                    user: null,
-                    services: [],
-                    doctor: null,
-                    calendar: null,
-                    date: format(tomorrow, 'yyyy-MM-dd'),
-                    time: '09:00',
-                    description: '',
-                });
-            } else {
-                 const { user, services, doctor, calendar, date, time } = newAppointment;
-                if(user && services.length > 0 && date && time) {
-                    checkAvailability(newAppointment);
-                }
-            }
+  React.useEffect(() => {
+    if (isCreateOpen) {
+        const { user, services, date, time } = newAppointment;
+        if (user && services.length > 0 && date && time) {
+            checkAvailability(newAppointment);
         }
-    }, [isCreateOpen, editingAppointment, newAppointment, checkAvailability]);
+    }
+  }, [newAppointment.user, newAppointment.services, newAppointment.date, newAppointment.time, checkAvailability, isCreateOpen]);
 
 
   const handleSaveAppointment = async () => {
