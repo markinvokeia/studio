@@ -596,15 +596,13 @@ export default function QuotesPage() {
     const handleCreateQuoteItem = async () => {
         if (!selectedQuote) return;
         setEditingQuoteItem(null);
+        setAllServices(await getServices());
         quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
         setQuoteItemSubmissionError(null);
         setShowConversion(false);
         setOriginalServicePrice(null);
         setOriginalServiceCurrency('');
         setExchangeRate(1);
-        setIsQuoteItemDialogOpen(false);
-        const services = await getServices();
-        setAllServices(services);
         setIsQuoteItemDialogOpen(true);
     };
     
@@ -615,7 +613,7 @@ export default function QuotesPage() {
         setAllServices(fetchedServices);
 
         const service = fetchedServices.find(s => String(s.id) === String(item.service_id));
-        setOriginalServicePrice(service ? service.price : 0);
+        setOriginalServicePrice(service ? service.price : null); // Set to null if no service
         
         quoteItemForm.reset({ 
             id: item.id, 
@@ -626,8 +624,8 @@ export default function QuotesPage() {
             total: item.total 
         });
         
-        if(service) {
-          const quoteCurrency = selectedQuote?.currency || 'USD';
+        if(service && selectedQuote) {
+          const quoteCurrency = selectedQuote.currency || 'USD';
           const serviceCurrency = service.currency || 'USD';
           const conversionNeeded = quoteCurrency !== serviceCurrency;
           
@@ -1064,17 +1062,18 @@ export default function QuotesPage() {
                             )}
                         />
                          {showConversion && (
-                          <div className="space-y-4 rounded-md border p-4">
+                          <div className="grid grid-cols-2 gap-4">
                               <FormItem>
                                   <FormLabel>Unit Price ({originalServiceCurrency})</FormLabel>
-                                  <Input value={typeof originalServicePrice === 'number' ? originalServicePrice.toFixed(2) : ''} readOnly disabled />
+                                  <Input 
+                                      value={originalServicePrice !== null ? originalServicePrice : ''}
+                                      onChange={(e) => setOriginalServicePrice(Number(e.target.value))}
+                                  />
                               </FormItem>
-                              <div className="grid grid-cols-2 gap-4">
-                                  <FormItem>
-                                    <FormLabel>Exchange Rate</FormLabel>
-                                    <Input type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value) || 1)} />
-                                  </FormItem>
-                              </div>
+                              <FormItem>
+                                <FormLabel>Exchange Rate</FormLabel>
+                                <Input type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value) || 1)} />
+                              </FormItem>
                           </div>
                         )}
                         <FormField control={quoteItemForm.control} name="quantity" render={({ field }) => (
