@@ -280,7 +280,7 @@ export default function AppointmentsPage() {
 
 
     setIsRefreshing(false);
-  }, [selectedCalendarIds, fetchRange, calendars]);
+  }, [selectedCalendarIds, fetchRange, calendars, fetchedDateRange]);
 
   const forceRefresh = React.useCallback(() => {
     setFetchedDateRange(null); // This will force loadAppointments to run
@@ -542,7 +542,7 @@ export default function AppointmentsPage() {
         console.error("Failed to check availability:", error);
         setAvailabilityStatus('idle');
     }
-  }, [editingAppointment, doctorSearchResults]);
+  }, [editingAppointment]);
   
   React.useEffect(() => {
     const { date, time } = newAppointment;
@@ -708,6 +708,17 @@ export default function AppointmentsPage() {
 
  const showGroupControls = ['day', '2-day', '3-day', 'week'].includes(currentView);
 
+ const handleSelectCalendar = React.useCallback((calendarId: string, checked: boolean) => {
+    setSelectedCalendarIds(prev => {
+        if (checked) {
+            return [...prev, calendarId];
+        } else {
+            return prev.filter(id => id !== calendarId);
+        }
+    });
+  }, []);
+
+
   return (
     <Card>
       <CardContent className="p-0 h-[calc(100vh-10rem)]">
@@ -740,6 +751,33 @@ export default function AppointmentsPage() {
                 <Button onClick={forceRefresh} variant="outline" size="icon" disabled={isRefreshing}>
                     <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 </Button>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" className="flex items-center gap-2">
+                            {t('calendars')}
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-2">
+                        <Command>
+                            <CommandList>
+                                <CommandGroup>
+                                    <CommandItem onSelect={() => setSelectedCalendarIds(calendars.map(c => c.id))}>{t('selectAll')}</CommandItem>
+                                    <CommandItem onSelect={() => setSelectedCalendarIds([])}>Deselect All</CommandItem>
+                                    <hr className="my-2" />
+                                    {calendars.map((calendar) => (
+                                        <CommandItem key={calendar.id} onSelect={() => handleSelectCalendar(calendar.id, !selectedCalendarIds.includes(calendar.id))}>
+                                            <div className="flex items-center">
+                                                <Checkbox checked={selectedCalendarIds.includes(calendar.id)} onCheckedChange={(checked) => handleSelectCalendar(calendar.id, !!checked)} />
+                                                <span className="ml-2">{calendar.name}</span>
+                                            </div>
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
                 {showGroupControls && (
                     <>
                         <div className="flex items-center gap-2">
@@ -1047,5 +1085,7 @@ export default function AppointmentsPage() {
     </Card>
   );
 }
+
+    
 
     
