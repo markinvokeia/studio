@@ -41,6 +41,7 @@ import { Textarea } from '@/components/ui/textarea';
 import Calendar from '@/components/calendar/Calendar';
 import { cn } from '@/lib/utils';
 import { getAppointmentColumns } from './columns';
+import { Badge } from '@/components/ui/badge';
 
 
 async function getAppointments(calendarGoogleIds: string[], startDate: Date, endDate: Date): Promise<Appointment[]> {
@@ -666,7 +667,7 @@ export default function AppointmentsPage() {
 };
 
  const onDateChange = React.useCallback((newRange: { start: Date; end: Date }) => {
-    if (!fetchRange || !fetchRange.start || !newRange.start || fetchRange.start.getTime() !== newRange.start.getTime() || !fetchRange.end || !newRange.end || fetchRange.end.getTime() !== newRange.end.getTime()) {
+    if (!fetchRange || !newRange.start || !newRange.end || fetchRange.start.getTime() !== newRange.start.getTime() || fetchRange.to.getTime() !== newRange.end.getTime()) {
       setFetchRange(newRange);
     }
   }, [fetchRange]);
@@ -1008,3 +1009,4 @@ export default function AppointmentsPage() {
     </Card>
   );
 }
+
