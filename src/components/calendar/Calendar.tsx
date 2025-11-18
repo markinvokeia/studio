@@ -13,7 +13,6 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
     DropdownMenuSeparator,
-    DropdownMenuCheckboxItem,
     DropdownMenuSub,
     DropdownMenuSubContent,
     DropdownMenuSubTrigger
@@ -21,7 +20,7 @@ import {
 import { Checkbox } from '../ui/checkbox';
 import './Calendar.css';
 import { Skeleton } from '../ui/skeleton';
-import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDate, getDay, getDaysInMonth, getHours, getMinutes, isSameDay, isSameMonth, startOfDay, startOfMonth, startOfWeek, startOfYear, getYear } from 'date-fns';
+import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDate, getDay, getDaysInMonth, getHours, getMinutes, isSameDay, startOfDay, startOfMonth, startOfWeek, startOfYear, getYear } from 'date-fns';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { User } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -34,20 +33,26 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<View>('month');
 
-  const handleDateChange = useCallback((start: Date, end: Date, view: View) => {
+  const handleDateChange = useCallback((start: Date, end: Date) => {
     if (onDateChange) {
-      onDateChange({ start, end }, view);
+      onDateChange({ start, end });
     }
   }, [onDateChange]);
 
-  useEffect(() => {
+ useEffect(() => {
     let start, end;
     switch (view) {
       case 'day':
+        start = startOfDay(currentDate);
+        end = endOfDay(currentDate);
+        break;
       case '2-day':
+        start = startOfDay(currentDate);
+        end = endOfDay(addDays(currentDate, 1));
+        break;
       case '3-day':
         start = startOfDay(currentDate);
-        end = endOfDay(addDays(currentDate, parseInt(view[0] as string, 10) - 1));
+        end = endOfDay(addDays(currentDate, 2));
         break;
       case 'week':
         start = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -63,7 +68,9 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
         end = endOfMonth(currentDate);
         break;
     }
-    handleDateChange(start, end, view);
+    if (view !== 'year') {
+        handleDateChange(start, end);
+    }
   }, [currentDate, view, handleDateChange]);
 
   const handlePrev = () => {
@@ -180,11 +187,11 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
   );
 
     const renderDayOrWeekView = (numDays: number) => {
-        const days = Array.from({ length: numDays }, (_, i) => addDays(currentDate, i));
+        const days = Array.from({ length: numDays }, (_, i) => addDays(startOfWeek(currentDate, { weekStartsOn: 1 }), i));
         
         const timeSlots = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
         
-        const columns = group ? assignees.filter(a => selectedAssignees.includes(a.id)) : [{id: 'all', name: 'All'}];
+        const columns = group ? assignees.filter(a => selectedAssignees.includes(a.id)) : [{id: 'all', name: 'All', email: 'all'}];
 
         const getEventStyle = (event: any) => {
             const start = new Date(event.start);
@@ -250,7 +257,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const firstDayOfWeek = 1; // Monday
-    const firstDayOfMonth = getDay(new Date(year, month, 1));
+    const firstDayOfMonth = new Date(year, month, 1).getDay(); // Sunday is 0
     let dayOffset = (firstDayOfMonth - firstDayOfWeek + 7) % 7;
 
     const daysInMonth = getDaysInMonth(currentDate);
@@ -260,17 +267,20 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
     const renderDays = () => {
       const dayElements = [];
       
-      // Days from previous month
       for (let i = 0; i < dayOffset; i++) {
         dayElements.push(<div key={`empty-prev-${i}`} className="calendar-day other-month"></div>);
       }
 
-      // Days of current month
       for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month, day);
         const dayEvents = events.filter(e => {
             if (!e.start) return false;
-            return isSameDay(new Date(e.start), date);
+            try {
+                return isSameDay(new Date(e.start), date);
+            } catch (error) {
+                console.error("Invalid event start date:", e.start);
+                return false;
+            }
         });
         
         dayElements.push(
@@ -291,19 +301,9 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
         );
       }
       
-      // Ensure grid is filled to 6 weeks for consistent height
-      const totalGridCells = dayOffset + daysInMonth;
-      const remainingCells = (7 - (totalGridCells % 7)) % 7;
-      
-      for (let i = 0; i < remainingCells; i++) {
-        dayElements.push(<div key={`empty-next-${i}`} className="calendar-day other-month"></div>);
-      }
-      
-      // If we have 5 rows, add another one for consistent height
-      if (dayElements.length === 35) {
-          for(let i=0; i<7; i++) {
-               dayElements.push(<div key={`extra-empty-${i}`} className="calendar-day other-month"></div>);
-          }
+      const totalCells = 42; // Always render 6 weeks
+      while(dayElements.length < totalCells) {
+           dayElements.push(<div key={`empty-next-${dayElements.length}`} className="calendar-day other-month"></div>);
       }
 
       return dayElements;
@@ -371,9 +371,13 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
   const renderScheduleView = () => {
       const groupedEvents = events.reduce((acc, event) => {
           if (!event.start) return acc;
-          const date = format(new Date(event.start), 'yyyy-MM-dd');
-          if (!acc[date]) acc[date] = [];
-          acc[date].push(event);
+          try {
+            const date = format(new Date(event.start), 'yyyy-MM-dd');
+            if (!acc[date]) acc[date] = [];
+            acc[date].push(event);
+          } catch (e) {
+            console.error("Invalid event start date for schedule view:", event.start);
+          }
           return acc;
       }, {} as Record<string, typeof events>);
 
@@ -391,7 +395,6 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                                 <div className="flex-1 text-sm">{event.title}</div>
                                 {event.assignee && (
                                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <Users className="h-3 w-3" />
                                         <span>{assignees.find(a => a.email === event.assignee)?.name || event.assignee}</span>
                                     </div>
                                 )}

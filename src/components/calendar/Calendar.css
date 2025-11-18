@@ -27,11 +27,11 @@
   flex-grow: 1;
   display: grid;
   overflow: auto;
+  grid-template-rows: repeat(6, minmax(0, 1fr));
 }
 
 .month-view {
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  grid-auto-rows: minmax(120px, 1fr);
 }
 
 .calendar-day-name-grid {
@@ -50,6 +50,8 @@
   border-bottom: 1px solid hsl(var(--border));
   padding: 0.5rem;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .calendar-day:nth-child(7n) { border-right: none; }
@@ -137,3 +139,5 @@
   cursor: pointer;
   z-index: 10;
 }
+
+    

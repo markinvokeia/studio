@@ -2,11 +2,11 @@
 'use client';
 
 import * as React from 'react';
-import { addDays, addMinutes, addMonths, format, parse, parseISO, isSameDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isWithinInterval, isValid } from 'date-fns';
+import { addDays, addMinutes, addMonths, format, parse, parseISO, isWithinInterval, isValid, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType, User as UserType, Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, RefreshCw, List, Search, ChevronsUpDown, Check, X } from 'lucide-react';
+import { PlusCircle, RefreshCw, ChevronsUpDown, Check, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -28,12 +28,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DataTable } from '@/components/ui/data-table';
-import { getAppointmentColumns } from './columns';
-import { cn } from '@/lib/utils';
-import { SortingState, ColumnDef } from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslations } from 'next-intl';
@@ -44,6 +39,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import Calendar from '@/components/calendar/Calendar';
+import { cn } from '@/lib/utils';
+import { getAppointmentColumns } from './columns';
 
 
 async function getAppointments(calendarGoogleIds: string[], startDate: Date, endDate: Date): Promise<Appointment[]> {
@@ -56,13 +53,8 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
     const params = new URLSearchParams({
         startingDateAndTime: formatDateForAPI(startDate),
         endingDateAndTime: formatDateForAPI(endDate),
+        calendar_ids: calendarGoogleIds.join(','),
     });
-
-    if (calendarGoogleIds.length > 0) {
-        params.append('calendar_ids', calendarGoogleIds.join(','));
-    } else {
-        params.append('calendar_ids', '');
-    }
 
     try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
@@ -149,7 +141,6 @@ export default function AppointmentsPage() {
   const tColumns = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
   const tGeneral = useTranslations('General');
-  const tUsers = useTranslations('UsersPage');
 
   const { toast } = useToast();
 
@@ -159,12 +150,9 @@ export default function AppointmentsPage() {
   const [isCalendarsLoading, setIsCalendarsLoading] = React.useState(true);
   const [isCreateOpen, setCreateOpen] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const [calendarColors, setCalendarColors] = React.useState<{[key: string]: string}>({});
   const [fetchRange, setFetchRange] = React.useState<{ from: Date; to: Date } | null>(null);
   const [fetchedDateRange, setFetchedDateRange] = React.useState<{ start: Date; end: Date } | null>(null);
-  const [currentView, setCurrentView] = React.useState('month');
-
-
+  
   const [editingAppointment, setEditingAppointment] = React.useState<Appointment | null>(null);
   const [deletingAppointment, setDeletingAppointment] = React.useState<Appointment | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false);
@@ -248,44 +236,12 @@ export default function AppointmentsPage() {
   
   const appointmentColumns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns({ t: tColumns, tStatus, onEdit: handleEdit, onCancel: handleCancel }), [tColumns, tStatus]);
 
-  const suggestionColumns: ColumnDef<any>[] = [
-    {
-      id: 'select',
-      cell: ({ row }) => (
-        <RadioGroupItem value={row.id} id={row.id} />
-      ),
-    },
-    { accessorKey: 'calendar', header: t('createDialog.suggested.calendar') },
-    { accessorKey: 'doctor.name', header: tColumns('doctor') },
-    { accessorKey: 'date', header: t('createDialog.suggested.date') },
-    { accessorKey: 'time', header: t('createDialog.suggested.time') },
-  ];
-
-  const generateColor = (str: string | undefined) => {
-    if (!str) return '#ccc';
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-    return `#${"00000".substring(0, 6 - c.length)}${c}`;
-  };
-
-  React.useEffect(() => {
-    const colors: {[key: string]: string} = {};
-    calendars.forEach(cal => {
-        if(cal.id) {
-          colors[cal.id] = generateColor(cal.id);
-        }
-    });
-    setCalendarColors(colors);
-  }, [calendars]);
-
   const loadAppointments = React.useCallback(async (force = false) => {
-    if (!fetchRange || (currentView === 'year' && !force)) {
-      return;
+    if (!fetchRange) {
+        return;
     }
     
+    // Avoid fetching if data for the current range is already present, unless forced
     if (fetchedDateRange && isWithinInterval(fetchRange.from, fetchedDateRange) && isWithinInterval(fetchRange.to, fetchedDateRange) && !force) {
         return;
     }
@@ -316,10 +272,10 @@ export default function AppointmentsPage() {
     }
 
     setIsRefreshing(false);
-  }, [selectedCalendarIds, fetchRange, calendars, fetchedDateRange, currentView]);
+  }, [selectedCalendarIds, fetchRange, calendars, fetchedDateRange]);
 
   const forceRefresh = React.useCallback(() => {
-    setFetchedDateRange(null);
+    setFetchedDateRange(null); // This will force loadAppointments to run
     loadAppointments(true);
   }, [loadAppointments]);
   
@@ -709,10 +665,12 @@ export default function AppointmentsPage() {
     }
 };
 
-  const onDateChange = React.useCallback((range: { start: Date; end: Date }, view: string) => {
-    setFetchRange({ from: range.start, to: range.end });
-    setCurrentView(view);
-  }, []);
+ const onDateChange = React.useCallback((newRange: { start: Date; end: Date }) => {
+    // Only update if the range has actually changed to prevent loops
+    if (!fetchRange || fetchRange.from.getTime() !== newRange.start.getTime() || fetchRange.to.getTime() !== newRange.end.getTime()) {
+      setFetchRange(newRange);
+    }
+  }, [fetchRange]);
 
   const calendarEvents = React.useMemo(() => {
     return appointments.map(appt => {
@@ -1154,9 +1112,5 @@ export default function AppointmentsPage() {
     </div>
   );
 }
-
-    
-
-    
 
     
