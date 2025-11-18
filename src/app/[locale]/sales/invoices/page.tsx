@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Invoice, InvoiceItem, Payment } from '@/lib/types';
+import { Invoice, InvoiceItem, Payment, PaymentMethod } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -35,7 +35,7 @@ async function getInvoices(): Promise<Invoice[]> {
             payment_status: apiInvoice.payment_status || 'unpaid',
             createdAt: apiInvoice.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
-            currency: apiInvoice.currency || 'URU',
+            currency: apiInvoice.currency || 'USD',
         }));
     } catch (error) {
         console.error("Failed to fetch invoices:", error);
@@ -92,7 +92,7 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
             status: apiPayment.status || 'pending',
             createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
-            currency: apiPayment.currency || 'URU',
+            currency: apiPayment.currency || 'USD',
         }));
     } catch (error) {
         console.error("Failed to fetch payments for invoice:", error);

@@ -103,10 +103,10 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
   const equivalentAmount = React.useMemo(() => {
     if (!showExchangeRate || !watchedAmount || !watchedExchangeRate) return null;
-    if (watchedInvoiceCurrency === 'USD' && watchedPaymentCurrency === 'URU') {
+    if (watchedInvoiceCurrency === 'USD' && watchedPaymentCurrency === 'UYU') {
       return watchedAmount / watchedExchangeRate;
     }
-    if (watchedInvoiceCurrency === 'URU' && watchedPaymentCurrency === 'USD') {
+    if (watchedInvoiceCurrency === 'UYU' && watchedPaymentCurrency === 'USD') {
       return watchedAmount * watchedExchangeRate;
     }
     return null;
@@ -402,57 +402,45 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                       <AlertDescription>{paymentSubmissionError}</AlertDescription>
                   </Alert>
               )}
-                <FormField
-                  control={form.control}
-                  name="amount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('paymentDialog.amount')}</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="payment_currency"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Payment Currency</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <div className="grid grid-cols-3 gap-4">
+                    <FormField
+                    control={form.control}
+                    name="amount"
+                    render={({ field }) => (
+                        <FormItem className="col-span-2">
+                        <FormLabel>{t('paymentDialog.amount')} ({watchedPaymentCurrency})</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select payment currency" />
-                          </SelectTrigger>
+                            <Input type="number" step="0.01" {...field} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="USD">USD</SelectItem>
-                          <SelectItem value="URU">URU</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="invoice_currency"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Invoice Currency</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly disabled />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="payment_currency"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Currency</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select currency" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            <SelectItem value="USD">USD</SelectItem>
+                            <SelectItem value="UYU">UYU</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </div>
 
                 {showExchangeRate && (
-                  <>
+                  <div className="grid grid-cols-2 gap-4 rounded-md border p-4">
                     <FormField
                       control={form.control}
                       name="exchange_rate"
@@ -474,9 +462,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                           </FormControl>
                         </FormItem>
                     )}
-                  </>
+                  </div>
                 )}
-
 
               <FormField
                 control={form.control}
