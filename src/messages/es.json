@@ -203,8 +203,8 @@
       "payments": "Pagos"
     },
     "validation": {
-        "userRequired": "El usuario es requerido.",
-        "serviceRequired": "El servicio es requerido."
+      "userRequired": "El usuario es requerido.",
+      "serviceRequired": "El servicio es requerido."
     },
     "quoteDialog": {
       "createTitle": "Crear Nueva Cotización",
@@ -1225,3 +1225,5 @@
     "noResults": "No se encontraron resultados."
   }
 }
+
+    
