@@ -50,7 +50,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
   total: z.coerce.number().min(0, 'Total must be a positive number'),
   currency: z.enum(['URU', 'USD']).default('USD'),
   status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed']),
-  payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially paid']),
+  payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially paid', 'partially_paid']),
   billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced']),
 });
 
@@ -552,7 +552,7 @@ export default function QuotesPage() {
             return;
         }
         setEditingQuote(quote);
-        quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status, billing_status: quote.billing_status as any });
+        quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status as any, billing_status: quote.billing_status as any });
         setQuoteSubmissionError(null);
         setAllUsers(await getUsers());
         setIsQuoteDialogOpen(true);
@@ -600,8 +600,10 @@ export default function QuotesPage() {
         setQuoteItemSubmissionError(null);
         setShowConversion(false);
         setOriginalServicePrice(null);
+        setOriginalServiceCurrency('');
         setExchangeRate(1);
-        setAllServices(await getServices());
+        const services = await getServices();
+        setAllServices(services);
         setIsQuoteItemDialogOpen(true);
     };
     
@@ -611,6 +613,7 @@ export default function QuotesPage() {
         setAllServices(fetchedServices);
 
         const service = fetchedServices.find(s => String(s.id) === String(item.service_id));
+        
         quoteItemForm.reset({ 
             id: item.id, 
             quote_id: selectedQuote!.id, 
@@ -619,14 +622,17 @@ export default function QuotesPage() {
             unit_price: item.unit_price, 
             total: item.total 
         });
+        
         if(service) {
           const quoteCurrency = selectedQuote?.currency || 'USD';
           const serviceCurrency = service.currency || 'USD';
           const conversionNeeded = quoteCurrency !== serviceCurrency;
+          
           setShowConversion(conversionNeeded);
           setOriginalServicePrice(service.price);
           setOriginalServiceCurrency(serviceCurrency);
         }
+        
         setQuoteItemSubmissionError(null);
         setIsQuoteItemDialogOpen(true);
     };
@@ -954,7 +960,7 @@ export default function QuotesPage() {
                                     <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectPaymentStatus')} /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         <SelectItem value="unpaid">{t('quoteDialog.unpaid')}</SelectItem>
-                                        <SelectItem value="partial">{t('quoteDialog.partial')}</SelectItem>
+                                        <SelectItem value="partially_paid">{t('quoteDialog.partiallyPaid')}</SelectItem>
                                         <SelectItem value="paid">{t('quoteDialog.paid')}</SelectItem>
                                     </SelectContent>
                                     </Select>
@@ -1060,7 +1066,7 @@ export default function QuotesPage() {
                               <div className="grid grid-cols-2 gap-4">
                                   <FormItem>
                                       <FormLabel>Unit Price ({originalServiceCurrency})</FormLabel>
-                                      <Input value={typeof originalServicePrice === 'number' ? originalServicePrice.toFixed(2) : ''} readOnly disabled />
+                                       <Input value={typeof originalServicePrice === 'number' ? originalServicePrice.toFixed(2) : ''} readOnly disabled />
                                   </FormItem>
                                   <FormItem>
                                     <FormLabel>Exchange Rate</FormLabel>
@@ -1114,3 +1120,6 @@ export default function QuotesPage() {
     );
 }
 
+
+
+    
