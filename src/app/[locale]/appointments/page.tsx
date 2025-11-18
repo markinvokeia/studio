@@ -683,7 +683,7 @@ export default function AppointmentsPage() {
         const end = addMinutes(start, 30);
         return {
           id: appt.id,
-          title: `${appt.patientName} - ${appt.service_name}`,
+          title: appt.service_name,
           start,
           end,
           assignee: appt.doctorEmail,
