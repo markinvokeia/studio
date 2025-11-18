@@ -1052,19 +1052,23 @@ export default function QuotesPage() {
                                 </FormItem>
                             )}
                         />
-                         {showConversion && originalServicePrice !== null && typeof originalServicePrice === 'number' && (
-                            <>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormItem>
-                                        <FormLabel>Original Price</FormLabel>
-                                        <Input value={`${originalServicePrice.toFixed(2)} ${originalServiceCurrency}`} readOnly disabled />
-                                    </FormItem>
-                                    <FormItem>
-                                        <FormLabel>Exchange Rate</FormLabel>
-                                        <Input type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value))} />
-                                    </FormItem>
-                                </div>
-                            </>
+                         {showConversion && (
+                          <>
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormItem>
+                                    <FormLabel>Unit Price ({originalServiceCurrency})</FormLabel>
+                                    <Input value={originalServicePrice !== null ? originalServicePrice.toFixed(2) : ''} readOnly disabled />
+                                </FormItem>
+                                <FormItem>
+                                  <FormLabel>Currency</FormLabel>
+                                  <Input value={originalServiceCurrency} readOnly disabled />
+                                </FormItem>
+                            </div>
+                            <FormItem>
+                                <FormLabel>Exchange Rate</FormLabel>
+                                <Input type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value) || 1)} />
+                            </FormItem>
+                          </>
                         )}
                         <FormField control={quoteItemForm.control} name="quantity" render={({ field }) => (
                             <FormItem>
