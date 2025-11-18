@@ -292,8 +292,9 @@ export default function AppointmentsPage() {
     if (force) {
         setAppointments(fetchedAppointments);
     } else {
-        const newAppointments = fetchedAppointments.filter(newApt => !appointments.some(existingApt => existingApt.id === newApt.id));
-        setAppointments(prev => [...prev, ...newAppointments]);
+        const newAppointments = [...appointments, ...fetchedAppointments];
+        const uniqueAppointments = Array.from(new Map(newAppointments.map(item => [item.id, item])).values());
+        setAppointments(uniqueAppointments);
     }
     
     if (fetchedDateRange) {
@@ -572,7 +573,7 @@ export default function AppointmentsPage() {
         console.error("Failed to check availability:", error);
         setAvailabilityStatus('idle');
     }
-  }, [editingAppointment]);
+  }, [editingAppointment, doctorSearchResults]);
   
   React.useEffect(() => {
     const { date, time } = newAppointment;
@@ -708,14 +709,7 @@ export default function AppointmentsPage() {
   return (
     <div className="flex flex-col h-full">
       <Calendar
-        events={appointments.map((a) => ({
-            id: a.id,
-            title: a.service_name,
-            start: parseISO(`${a.date}T${a.time}`),
-            end: addMinutes(parseISO(`${a.date}T${a.time}`), a.service_name.split(',').length * 30), // Example duration
-            assignee: a.doctorEmail,
-            data: a,
-        }))}
+        events={appointments}
         onDateChange={onDateChange}
         onEventClick={(event) => handleEventClick(event.data)}
         isLoading={isRefreshing}
