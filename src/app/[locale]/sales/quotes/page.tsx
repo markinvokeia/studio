@@ -1062,19 +1062,20 @@ export default function QuotesPage() {
                             )}
                         />
                          {showConversion && (
-                          <div className="grid grid-cols-2 gap-4">
-                              <FormItem>
-                                  <FormLabel>Unit Price ({originalServiceCurrency})</FormLabel>
-                                  <Input 
-                                      value={originalServicePrice !== null ? originalServicePrice : ''}
-                                      onChange={(e) => setOriginalServicePrice(Number(e.target.value))}
-                                  />
-                              </FormItem>
-                              <FormItem>
-                                <FormLabel>Exchange Rate</FormLabel>
-                                <Input type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value) || 1)} />
-                              </FormItem>
-                          </div>
+                            <div className="grid grid-cols-2 gap-4 rounded-md border p-4">
+                                <FormItem>
+                                    <FormLabel>{t('itemDialog.originalPrice')} ({originalServiceCurrency})</FormLabel>
+                                    <Input
+                                        value={originalServicePrice !== null ? originalServicePrice.toFixed(2) : ''}
+                                        readOnly
+                                        disabled
+                                    />
+                                </FormItem>
+                                <FormItem>
+                                    <FormLabel>{t('itemDialog.exchangeRate')}</FormLabel>
+                                    <Input type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value) || 1)} />
+                                </FormItem>
+                            </div>
                         )}
                         <FormField control={quoteItemForm.control} name="quantity" render={({ field }) => (
                             <FormItem>
