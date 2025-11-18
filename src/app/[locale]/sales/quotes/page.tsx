@@ -857,24 +857,26 @@ export default function QuotesPage() {
                             )}
                         />
                         <div className="grid grid-cols-2 gap-4">
-                            <FormField
-                                control={quoteForm.control}
-                                name="total"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('quoteDialog.total')}</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" placeholder="0.00" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            {editingQuote && (
+                                <FormField
+                                    control={quoteForm.control}
+                                    name="total"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('quoteDialog.total')}</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" placeholder="0.00" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
                             <FormField
                                 control={quoteForm.control}
                                 name="currency"
                                 render={({ field }) => (
-                                    <FormItem>
+                                    <FormItem className={cn(!editingQuote && 'col-span-2')}>
                                         <FormLabel>{t('quoteDialog.currency')}</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectCurrency')} /></SelectTrigger></FormControl>
