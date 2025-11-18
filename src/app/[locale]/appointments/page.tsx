@@ -672,12 +672,11 @@ export default function AppointmentsPage() {
 };
 
  const onDateChange = React.useCallback((newRange: { start: Date; end: Date }) => {
-    if (!fetchRange || !newRange.start || !newRange.end || !fetchRange.to) {
+    if (!fetchRange || !fetchRange.start || !fetchRange.to || !newRange.start || !newRange.end) {
       setFetchRange(newRange);
       return;
     }
     
-    // Only update if the range has actually changed to prevent loops
     if (fetchRange.start.getTime() !== newRange.start.getTime() || fetchRange.to.getTime() !== newRange.end.getTime()) {
       setFetchRange(newRange);
     }
@@ -685,20 +684,33 @@ export default function AppointmentsPage() {
 
   const calendarEvents = React.useMemo(() => {
     return appointments.map(appt => {
-      const start = parse(`${appt.date} ${appt.time}`, 'yyyy-MM-dd HH:mm', new Date());
-      // Assuming a default duration if not available, e.g., 30 minutes
-      const end = addMinutes(start, 30);
-      return {
-        id: appt.id,
-        title: `${appt.patientName} - ${appt.service_name}`,
-        start,
-        end,
-        assignee: appt.doctorEmail,
-        data: appt
-      };
-    });
+      if (!appt.date || !appt.time) return null;
+      try {
+        const start = parse(`${appt.date} ${appt.time}`, 'yyyy-MM-dd HH:mm', new Date());
+        if(!isValid(start)) return null;
+        const end = addMinutes(start, 30);
+        return {
+          id: appt.id,
+          title: `${appt.patientName} - ${appt.service_name}`,
+          start,
+          end,
+          assignee: appt.doctorEmail,
+          data: appt
+        };
+      } catch (e) {
+        console.error("Error parsing date/time for appointment", appt);
+        return null;
+      }
+    }).filter(Boolean) as ({ id: string; title: string; start: Date; end: Date; assignee: string | undefined; data: Appointment; })[];
   }, [appointments]);
 
+  const handleSelectAssignee = React.useCallback((assigneeId: string) => {
+    setSelectedAssignees(prev =>
+      prev.includes(assigneeId)
+        ? prev.filter(id => id !== assigneeId)
+        : [...prev, assigneeId]
+    );
+  }, []);
 
   return (
     <Card>
@@ -723,7 +735,7 @@ export default function AppointmentsPage() {
                     <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 </Button>
                 <div className="flex items-center gap-2">
-                    <Checkbox id="group-by-assignee" checked={group} onCheckedChange={(checked) => onGroupChange(typeof checked === 'boolean' ? checked : false)} />
+                    <Checkbox id="group-by-assignee" checked={group} onCheckedChange={(checked) => setGroup(typeof checked === 'boolean' ? checked : false)} />
                     <Label htmlFor="group-by-assignee">Group by Assignee</Label>
                 </div>
                 <Popover>
@@ -738,15 +750,9 @@ export default function AppointmentsPage() {
                                     <CommandItem onSelect={() => setSelectedAssignees([])}>Deselect All</CommandItem>
                                     <hr className="my-2" />
                                     {assignees.map((assignee) => (
-                                        <CommandItem key={assignee.id} onSelect={() => {
-                                            setSelectedAssignees((prev: string[]) => 
-                                                prev.includes(assignee.id) 
-                                                    ? prev.filter(id => id !== assignee.id)
-                                                    : [...prev, assignee.id]
-                                            )
-                                        }}>
+                                        <CommandItem key={assignee.id} onSelect={() => handleSelectAssignee(assignee.id)}>
                                             <div className="flex items-center">
-                                                <Checkbox checked={selectedAssignees.includes(assignee.id)} className="mr-2" />
+                                                <Checkbox checked={selectedAssignees.includes(assignee.id)} className="mr-2" onCheckedChange={() => handleSelectAssignee(assignee.id)} />
                                                 <span>{assignee.name}</span>
                                             </div>
                                         </CommandItem>
