@@ -48,7 +48,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   user_id: z.string().min(1, t('validation.userRequired')),
   total: z.coerce.number().min(0, 'Total must be a positive number'),
-  currency: z.enum(['URU', 'USD']).default('USD'),
+  currency: z.enum(['UYU', 'USD']).default('USD'),
   status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed']),
   payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid']),
   billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced']),
@@ -93,7 +93,7 @@ async function getQuotes(): Promise<Quote[]> {
       status: apiQuote.status || 'draft',
       payment_status: apiQuote.payment_status || 'unpaid',
       billing_status: apiQuote.billing_status || 'not invoiced',
-      currency: apiQuote.currency || 'URU',
+      currency: apiQuote.currency || 'UYU',
       user_name: apiQuote.user_name || 'No Name',
       userEmail: apiQuote.userEmail || 'no-email@example.com',
       createdAt: apiQuote.created_at || new Date().toISOString().split('T')[0],
@@ -203,7 +203,7 @@ async function getOrders(quoteId: string): Promise<Order[]> {
             user_id: apiOrder.user_id,
             status: apiOrder.status,
             createdAt: apiOrder.createdAt || new Date().toISOString().split('T')[0],
-            currency: apiOrder.currency || 'URU',
+            currency: apiOrder.currency || 'UYU',
         }));
     } catch (error) {
         console.error("Failed to fetch orders:", error);
@@ -259,7 +259,7 @@ async function getInvoices(quoteId: string): Promise<Invoice[]> {
             total: apiInvoice.total || 0,
             status: apiInvoice.status || 'draft',
             createdAt: apiInvoice.createdAt || new Date().toISOString().split('T')[0],
-            currency: apiInvoice.currency || 'URU',
+            currency: apiInvoice.currency || 'UYU',
             order_id: apiInvoice.order_id,
             user_name: apiInvoice.user_name || 'N/A',
             payment_status: apiInvoice.payment_status || 'unpaid',
@@ -317,7 +317,7 @@ async function getPayments(quoteId: string): Promise<Payment[]> {
             method: apiPayment.method || 'credit_card',
             status: apiPayment.status || 'pending',
             createdAt: apiPayment.createdAt || new Date().toISOString().split('T')[0],
-            currency: apiPayment.currency || 'URU',
+            currency: apiPayment.currency || 'UYU',
             order_id: apiPayment.order_id,
             quote_id: apiPayment.quote_id,
             user_name: apiPayment.user_name || 'N/A',
@@ -389,7 +389,7 @@ async function deleteQuote(id: string) {
 
 export default function QuotesPage() {
     const t = useTranslations('QuotesPage');
-    const tVal = useTranslations('QuotesPage.validation');
+    const tVal = useTranslations('QuotesPage');
     const { toast } = useToast();
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
@@ -601,49 +601,55 @@ export default function QuotesPage() {
         setOriginalServicePrice(null);
         setOriginalServiceCurrency('');
         setExchangeRate(1);
-        quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
-        const fetchedServices = await getServices();
-        setAllServices(fetchedServices);
-        setIsQuoteItemDialogOpen(true);
+        try {
+            const fetchedServices = await getServices();
+            setAllServices(fetchedServices);
+            quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
+            setIsQuoteItemDialogOpen(true);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not load services.' });
+        }
     };
     
     const handleEditQuoteItem = async (item: QuoteItem) => {
         if (!selectedQuote) return;
-    
         setEditingQuoteItem(item);
         setQuoteItemSubmissionError(null);
         setShowConversion(false);
-    
-        const fetchedServices = await getServices();
-        setAllServices(fetchedServices);
-        
-        const service = fetchedServices.find(s => String(s.id) === String(item.service_id));
-        
-        if (service) {
-            const servicePrice = Number(service.price);
-            setOriginalServicePrice(servicePrice);
-            setOriginalServiceCurrency(service.currency || 'USD');
+
+        try {
+            const fetchedServices = await getServices();
+            setAllServices(fetchedServices);
+            const service = fetchedServices.find(s => String(s.id) === String(item.service_id));
             
-            const quoteCurrency = selectedQuote.currency || 'USD';
-            const serviceCurrency = service.currency || 'USD';
-            const conversionNeeded = quoteCurrency !== serviceCurrency;
-            setShowConversion(conversionNeeded);
-            setExchangeRate(1); 
-        } else {
-            setOriginalServicePrice(null);
-            setOriginalServiceCurrency('');
+            if (service) {
+                const servicePrice = Number(service.price);
+                setOriginalServicePrice(servicePrice);
+                setOriginalServiceCurrency(service.currency || 'USD');
+                
+                const quoteCurrency = selectedQuote.currency || 'USD';
+                const serviceCurrency = service.currency || 'USD';
+                const conversionNeeded = quoteCurrency !== serviceCurrency;
+                setShowConversion(conversionNeeded);
+                setExchangeRate(1); 
+            } else {
+                setOriginalServicePrice(null);
+                setOriginalServiceCurrency('');
+            }
+            
+            quoteItemForm.reset({ 
+                id: item.id, 
+                quote_id: selectedQuote.id, 
+                service_id: String(item.service_id), 
+                quantity: item.quantity, 
+                unit_price: item.unit_price, 
+                total: item.total 
+            });
+            
+            setIsQuoteItemDialogOpen(true);
+        } catch(error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not load service data for editing.' });
         }
-        
-        quoteItemForm.reset({ 
-            id: item.id, 
-            quote_id: selectedQuote.id, 
-            service_id: String(item.service_id), 
-            quantity: item.quantity, 
-            unit_price: item.unit_price, 
-            total: item.total 
-        });
-        
-        setIsQuoteItemDialogOpen(true);
     };
 
     const handleDeleteQuoteItem = (item: QuoteItem) => {
@@ -723,6 +729,7 @@ export default function QuotesPage() {
         const service = allServices.find(s => String(s.id) === watchedServiceId);
         if (service && selectedQuote) {
             const servicePrice = Number(service.price);
+            
             setOriginalServicePrice(servicePrice);
             
             const quoteCurrency = selectedQuote.currency || 'USD';
@@ -739,6 +746,9 @@ export default function QuotesPage() {
                 } else if (quoteCurrency === 'USD' && serviceCurrency === 'UYU') {
                     newUnitPrice = exchangeRate > 0 ? servicePrice / exchangeRate : 0;
                 }
+            } else {
+                // If currencies match, ensure no exchange rate is applied
+                setExchangeRate(1);
             }
             
             const quantity = Number(watchedQuantity) || 0;
@@ -934,7 +944,7 @@ export default function QuotesPage() {
                                         <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectCurrency')} /></SelectTrigger></FormControl>
                                         <SelectContent>
                                             <SelectItem value="USD">USD</SelectItem>
-                                            <SelectItem value="URU">URU</SelectItem>
+                                            <SelectItem value="UYU">UYU</SelectItem>
                                         </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -1074,9 +1084,9 @@ export default function QuotesPage() {
                         />
                          {showConversion && (
                             <div className="grid grid-cols-2 gap-4 rounded-md border p-4">
-                               <FormItem>
+                                <FormItem>
                                     <FormLabel>{t('itemDialog.originalPrice')} ({originalServiceCurrency})</FormLabel>
-                                    <Input
+                                     <Input
                                         value={originalServicePrice !== null ? Number(originalServicePrice).toFixed(2) : ''}
                                         readOnly
                                         disabled
@@ -1084,15 +1094,15 @@ export default function QuotesPage() {
                                 </FormItem>
                                 <FormField
                                     control={quoteItemForm.control}
-                                    name="unit_price"
+                                    name="exchange_rate"
                                     render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('itemDialog.exchangeRate')}</FormLabel>
-                                        <Input
-                                        type="number"
-                                        value={exchangeRate}
-                                        onChange={(e) => setExchangeRate(Number(e.target.value) || 1)}
-                                        />
+                                         <Input
+                                            type="number"
+                                            value={exchangeRate}
+                                            onChange={(e) => setExchangeRate(Number(e.target.value) || 1)}
+                                            />
                                     </FormItem>
                                     )}
                                 />
@@ -1143,12 +1153,4 @@ export default function QuotesPage() {
     );
 }
 
-
-
     
-
-    
-
-    
-
-
