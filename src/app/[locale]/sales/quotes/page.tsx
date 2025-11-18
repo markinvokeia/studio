@@ -50,7 +50,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
   total: z.coerce.number().min(0, 'Total must be a positive number'),
   currency: z.enum(['URU', 'USD']).default('USD'),
   status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed']),
-  payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially paid', 'partially_paid']),
+  payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid']),
   billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced']),
 });
 
@@ -602,6 +602,7 @@ export default function QuotesPage() {
         setOriginalServicePrice(null);
         setOriginalServiceCurrency('');
         setExchangeRate(1);
+        setIsQuoteItemDialogOpen(false);
         const services = await getServices();
         setAllServices(services);
         setIsQuoteItemDialogOpen(true);
@@ -609,10 +610,12 @@ export default function QuotesPage() {
     
     const handleEditQuoteItem = async (item: QuoteItem) => {
         setEditingQuoteItem(item);
+        setIsQuoteItemDialogOpen(false); // Close it first
         const fetchedServices = await getServices();
         setAllServices(fetchedServices);
 
         const service = fetchedServices.find(s => String(s.id) === String(item.service_id));
+        setOriginalServicePrice(service ? service.price : 0);
         
         quoteItemForm.reset({ 
             id: item.id, 
@@ -629,7 +632,6 @@ export default function QuotesPage() {
           const conversionNeeded = quoteCurrency !== serviceCurrency;
           
           setShowConversion(conversionNeeded);
-          setOriginalServicePrice(service.price);
           setOriginalServiceCurrency(serviceCurrency);
         }
         
@@ -1063,11 +1065,11 @@ export default function QuotesPage() {
                         />
                          {showConversion && (
                           <div className="space-y-4 rounded-md border p-4">
+                              <FormItem>
+                                  <FormLabel>Unit Price ({originalServiceCurrency})</FormLabel>
+                                  <Input value={typeof originalServicePrice === 'number' ? originalServicePrice.toFixed(2) : ''} readOnly disabled />
+                              </FormItem>
                               <div className="grid grid-cols-2 gap-4">
-                                  <FormItem>
-                                      <FormLabel>Unit Price ({originalServiceCurrency})</FormLabel>
-                                       <Input value={typeof originalServicePrice === 'number' ? originalServicePrice.toFixed(2) : ''} readOnly disabled />
-                                  </FormItem>
                                   <FormItem>
                                     <FormLabel>Exchange Rate</FormLabel>
                                     <Input type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value) || 1)} />
@@ -1121,5 +1123,7 @@ export default function QuotesPage() {
 }
 
 
+
+    
 
     
