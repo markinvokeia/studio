@@ -737,8 +737,8 @@ export default function AppointmentsPage() {
                 {showGroupControls && (
                     <>
                         <div className="flex items-center gap-2">
-                            <Checkbox id="group-by-assignee" checked={group} onCheckedChange={(checked) => setGroup(typeof checked === 'boolean' ? checked : false)} />
-                            <Label htmlFor="group-by-assignee">Group by Assignee</Label>
+                            <Checkbox id="group-by-assignee" checked={group} onCheckedChange={(checked) => setGroup(typeof checked === 'boolean' ? checked : false)} disabled={selectedAssignees.length === 0} />
+                            <Label htmlFor="group-by-assignee" className={cn(selectedAssignees.length === 0 && 'text-muted-foreground')}>Group by Assignee</Label>
                         </div>
                         <Popover>
                             <PopoverTrigger asChild>
@@ -1032,3 +1032,4 @@ export default function AppointmentsPage() {
 }
 
     
+
