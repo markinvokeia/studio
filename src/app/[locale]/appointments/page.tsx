@@ -436,18 +436,22 @@ export default function AppointmentsPage() {
           const data = await response.json();
           const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || []);
           
-          const mappedDoctors = doctorsData.map((apiUser: any): UserType => ({
-            id: apiUser.user_id ? String(apiUser.user_id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
-            name: apiUser.name || 'No Name',
-            email: apiUser.email || 'no-email@example.com',
-            phone_number: apiUser.phone_number || '000-000-0000',
-            is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
-            avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
-          }));
-          setDoctorSearchResults(mappedDoctors);
+          setDoctorSearchResults(prev => {
+            const existingIds = new Set(prev.map(d => d.id));
+            const newDoctors = doctorsData
+                .map((apiUser: any): UserType => ({
+                    id: apiUser.user_id ? String(apiUser.user_id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+                    name: apiUser.name || 'No Name',
+                    email: apiUser.email || 'no-email@example.com',
+                    phone_number: apiUser.phone_number || '000-000-0000',
+                    is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+                    avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
+                }))
+                .filter((doc: UserType) => !existingIds.has(doc.id));
+            return [...prev, ...newDoctors];
+          });
         } catch (error) {
           console.error("Failed to fetch doctors:", error);
-          setDoctorSearchResults([]);
         } finally {
           setIsSearchingDoctors(false);
         }
@@ -473,8 +477,8 @@ export default function AppointmentsPage() {
     }
   }, [isCreateOpen, editingAppointment]);
 
-  const checkAvailability = React.useCallback(async () => {
-    const { date, time, services, user, doctor, calendar } = newAppointment;
+  const checkAvailability = React.useCallback(async (appointmentData: typeof newAppointment) => {
+    const { date, time, services, user, doctor, calendar } = appointmentData;
     if (!date || !time || (!user && !editingAppointment)) {
       return;
     }
@@ -575,14 +579,7 @@ export default function AppointmentsPage() {
         console.error("Failed to check availability:", error);
         setAvailabilityStatus('idle');
     }
-  }, [newAppointment.date, newAppointment.time, newAppointment.services, newAppointment.user, newAppointment.doctor, newAppointment.calendar, editingAppointment, doctorSearchResults]);
-  
-  React.useEffect(() => {
-    const handler = setTimeout(() => {
-      checkAvailability();
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [newAppointment.date, newAppointment.time, newAppointment.services.length, newAppointment.user, newAppointment.doctor, newAppointment.calendar]);
+  }, [editingAppointment, doctorSearchResults]);
 
 
   const handleSaveAppointment = async () => {
@@ -654,7 +651,7 @@ export default function AppointmentsPage() {
                 title: "Slot Unavailable",
                 description: "The selected time is no longer available. Please choose a different time.",
             });
-            checkAvailability(); // Re-check for new suggestions
+            checkAvailability(newAppointment); // Re-check for new suggestions
         } else {
             throw new Error(errorMessage);
         }
@@ -1026,7 +1023,7 @@ export default function AppointmentsPage() {
               </div>
                <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="date" className="text-right">{t('createDialog.date')}</Label>
-                <Input id="date" type="date" className="col-span-3" value={newAppointment.date} onChange={e => setNewAppointment(prev => ({...prev, date: e.target.value}))} />
+                <Input id="date" type="date" className="col-span-3" value={newAppointment.date} onChange={e => setNewAppointment(prev => ({...prev, date: e.target.value}))} onBlur={() => checkAvailability(newAppointment)} />
               </div>
                <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="time" className="text-right">{t('createDialog.time')}</Label>
@@ -1040,6 +1037,7 @@ export default function AppointmentsPage() {
                     )}
                     value={newAppointment.time} 
                     onChange={e => setNewAppointment(prev => ({...prev, time: e.target.value}))}
+                    onBlur={() => checkAvailability(newAppointment)}
                 />
               </div>
               {editingAppointment && (
@@ -1061,13 +1059,15 @@ export default function AppointmentsPage() {
                         const suggestion = suggestedTimes.find(s => s.id === value);
                         if (suggestion) {
                             const fullDoctorObject = doctorSearchResults.find(d => d.id === suggestion.doctor.id) || null;
-                            setNewAppointment(prev => ({
-                                ...prev,
+                            const updatedAppointment = {
+                                ...newAppointment,
                                 date: suggestion.date,
                                 time: suggestion.time,
-                                calendar: calendars.find(c => c.name === suggestion.calendar) || prev.calendar,
+                                calendar: calendars.find(c => c.name === suggestion.calendar) || newAppointment.calendar,
                                 doctor: fullDoctorObject,
-                            }))
+                            };
+                            setNewAppointment(updatedAppointment);
+                            checkAvailability(updatedAppointment);
                         }
                     }}>
                         <ScrollArea className="h-64">
@@ -1135,3 +1135,5 @@ export default function AppointmentsPage() {
     </>
   );
 }
+
+    
