@@ -6,9 +6,6 @@ import { Button } from '@/components/ui/button';
 import {
   ChevronLeft,
   ChevronRight,
-  Sun,
-  Moon,
-  Users,
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -24,7 +21,7 @@ import {
 import { Checkbox } from '../ui/checkbox';
 import './Calendar.css';
 import { Skeleton } from '../ui/skeleton';
-import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDate, getDay, getDaysInMonth, getHours, getMinutes, isSameDay, isSameMonth, startOfDay, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
+import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDate, getDay, getDaysInMonth, getHours, getMinutes, isSameDay, isSameMonth, startOfDay, startOfMonth, startOfWeek, startOfYear, getYear } from 'date-fns';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { User } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -432,3 +429,5 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
 };
 
 export default Calendar;
+
+    
