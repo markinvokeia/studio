@@ -168,10 +168,10 @@ const getColumns = (
       const normalizedStatus = status.toLowerCase();
       const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[normalizedStatus]}`;
       const translatedStatus = t(translationKey as any);
-
+      
       return (
         <Badge variant={variantMap[normalizedStatus] ?? 'default'} className="capitalize">
-          {translatedStatus === translationKey ? status : translatedStatus}
+          {translationKey === translatedStatus ? status : translatedStatus}
         </Badge>
       );
     },
@@ -251,5 +251,3 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
     </Card>
   );
 }
-
-    
