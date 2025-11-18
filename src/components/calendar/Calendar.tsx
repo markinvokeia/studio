@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -23,10 +24,12 @@ import {
 import { Checkbox } from '../ui/checkbox';
 import './Calendar.css';
 import { Skeleton } from '../ui/skeleton';
-import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDate, getDay, getDaysInMonth, getHours, getMinutes, getYear, isSameDay, isSameMonth, startOfDay, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
+import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDate, getDay, getDaysInMonth, getHours, getMinutes, getMonth, isSameDay, isSameMonth, startOfDay, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { User } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { Label } from '../ui/label';
+import { Command, CommandItem, CommandList, CommandGroup } from '../ui/command';
 
 type View = 'day' | '2-day' | '3-day' | 'week' | 'month' | 'year' | 'schedule';
 
@@ -259,6 +262,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
 
     const renderDays = () => {
       let days = [];
+      const totalRows = 6;
       
       for (let i = 0; i < dayOffset; i++) {
         days.push(<div key={`empty-prev-${i}`} className="calendar-day other-month"></div>);
@@ -274,7 +278,6 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
               {dayEvents.map(event => (
                 <div 
                     key={event.id} 
-                    style={{ backgroundColor: event.data.calendar_id ? calendarColors[event.data.calendar_id] : '#ccc' }} 
                     className="event"
                     onClick={() => onEventClick(event.data)}
                 >
@@ -287,8 +290,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
       }
       
       const totalSlots = dayOffset + daysInMonth;
-      const slotsFor6Rows = 42;
-      const remainingSlots = totalSlots > 35 ? slotsFor6Rows - totalSlots : 35 - totalSlots;
+      const remainingSlots = (totalRows * 7) - totalSlots;
 
       for (let i = 0; i < remainingSlots; i++) {
         days.push(<div key={`empty-next-${i}`} className="calendar-day other-month"></div>);
@@ -328,6 +330,8 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
   const renderYearView = () => {
     const year = getYear(currentDate);
     const months = Array.from({ length: 12 }, (_, i) => new Date(year, i, 1));
+    const getMonth = (date: Date) => date.getMonth();
+
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 overflow-y-auto">
         {months.map(month => (
