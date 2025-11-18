@@ -149,12 +149,12 @@ const getColumns = (
       };
 
       const normalizedStatus = status.toLowerCase();
-      const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[normalizedStatus]}`;
+      const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[normalizedStatus] || normalizedStatus}`;
       const translatedStatus = t(translationKey as any);
       
       return (
         <Badge variant={variantMap[normalizedStatus] ?? 'default'} className="capitalize">
-          {translationKey === translationKey ? status : translatedStatus}
+          {translatedStatus === translationKey ? status : translatedStatus}
         </Badge>
       );
     },

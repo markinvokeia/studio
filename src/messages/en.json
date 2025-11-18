@@ -251,6 +251,8 @@
       "noServiceFound": "No service found.",
       "quantity": "Quantity",
       "unitPrice": "Unit Price",
+      "originalPrice": "Original Unit Price",
+      "exchangeRate": "Exchange Rate",
       "total": "Total",
       "cancel": "Cancel",
       "save": "Add Item",
@@ -1085,7 +1087,6 @@
     "filterPlaceholder": "Filter users by email...",
     "detailsFor": "Details for {name}",
     "close": "Close details",
-    "setInitialPassword": "Set Initial Password",
     "tabs": {
       "roles": "Roles",
       "services": "Services",

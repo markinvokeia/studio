@@ -615,11 +615,15 @@ export default function QuotesPage() {
         setOriginalServicePrice(null);
         setOriginalServiceCurrency('');
         setExchangeRate(1);
-
+    
         const fetchedServices = await getServices();
         setAllServices(fetchedServices);
+        
         const service = fetchedServices.find(s => String(s.id) === String(item.service_id));
-        setOriginalServicePrice(service ? service.price : 0); 
+        
+        if (service) {
+            setOriginalServicePrice(service.price);
+        }
         
         quoteItemForm.reset({ 
             id: item.id, 
@@ -1071,7 +1075,7 @@ export default function QuotesPage() {
                                 <FormItem>
                                     <FormLabel>{t('itemDialog.originalPrice')} ({originalServiceCurrency})</FormLabel>
                                     <Input
-                                        value={originalServicePrice !== null ? Number(originalServicePrice).toFixed(2) : ''}
+                                        value={originalServicePrice !== null ? originalServicePrice.toFixed(2) : ''}
                                         readOnly
                                         disabled
                                     />
@@ -1092,7 +1096,7 @@ export default function QuotesPage() {
                         <FormField control={quoteItemForm.control} name="unit_price" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>{t('itemDialog.unitPrice')}</FormLabel>
-                                <FormControl><Input type="number" readOnly disabled {...field} /></FormControl>
+                                <FormControl><Input type="number" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}/>
