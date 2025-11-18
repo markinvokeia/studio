@@ -1,7 +1,8 @@
+
 'use client';
 
 import * as React from 'react';
-import { addDays, addMinutes, addMonths, format, parse, parseISO, isSameDay, startOfWeek, endOfWeek, startOfDay, endOfDay } from 'date-fns';
+import { addDays, addMinutes, addMonths, format, parse, parseISO, isSameDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType, User as UserType, Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -51,13 +52,8 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
     const params = new URLSearchParams({
         startingDateAndTime: formatDateForAPI(startDate),
         endingDateAndTime: formatDateForAPI(endDate),
+        calendar_ids: calendarGoogleIds.join(','),
     });
-
-    if (calendarGoogleIds.length > 0) {
-        params.append('calendar_ids', calendarGoogleIds.join(','));
-    } else {
-        params.append('calendar_ids', '');
-    }
 
     try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
@@ -153,15 +149,12 @@ export default function AppointmentsPage() {
   const [selectedCalendarIds, setSelectedCalendarIds] = React.useState<string[]>([]);
   const [isCalendarsLoading, setIsCalendarsLoading] = React.useState(true);
   const [isCreateOpen, setCreateOpen] = React.useState(false);
-  const [sorting, setSorting] = React.useState<SortingState>([
-    { id: 'date', desc: false },
-  ]);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [calendarColors, setCalendarColors] = React.useState<{[key: string]: string}>({});
-  const [fetchRange, setFetchRange] = React.useState<{ from: Date; to: Date }>({
-    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-    to: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
-  });
+  const [fetchRange, setFetchRange] = React.useState<{ from: Date; to: Date } | null>(null);
+  const [fetchedDateRange, setFetchedDateRange] = React.useState<{ start: Date; end: Date } | null>(null);
+  const [currentView, setCurrentView] = React.useState('month');
+
 
   const [editingAppointment, setEditingAppointment] = React.useState<Appointment | null>(null);
   const [deletingAppointment, setDeletingAppointment] = React.useState<Appointment | null>(null);
@@ -279,10 +272,15 @@ export default function AppointmentsPage() {
     setCalendarColors(colors);
   }, [calendars]);
 
-  const loadAppointments = React.useCallback(async () => {
-    if (calendars.length === 0 && selectedCalendarIds.length === 0) {
+  const loadAppointments = React.useCallback(async (force = false) => {
+    if (!fetchRange || (currentView === 'year' && !force)) {
       return;
     }
+    
+    if (fetchedDateRange && isWithinInterval(fetchRange.from, fetchedDateRange) && isWithinInterval(fetchRange.to, fetchedDateRange) && !force) {
+        return;
+    }
+
     setIsRefreshing(true);
     const googleCalendarIds = selectedCalendarIds.map(id => {
       const cal = calendars.find(c => c.id === id);
@@ -290,9 +288,31 @@ export default function AppointmentsPage() {
     }).filter((id): id is string => !!id);
     
     const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.from, fetchRange.to);
-    setAppointments(fetchedAppointments);
+    
+    if (force) {
+        setAppointments(fetchedAppointments);
+    } else {
+        const newAppointments = fetchedAppointments.filter(newApt => !appointments.some(existingApt => existingApt.id === newApt.id));
+        setAppointments(prev => [...prev, ...newAppointments]);
+    }
+    
+    if (fetchedDateRange) {
+        setFetchedDateRange({
+            start: new Date(Math.min(fetchedDateRange.start.getTime(), fetchRange.from.getTime())),
+            end: new Date(Math.max(fetchedDateRange.end.getTime(), fetchRange.to.getTime())),
+        });
+    } else {
+        setFetchedDateRange({ start: fetchRange.from, end: fetchRange.to });
+    }
+
     setIsRefreshing(false);
-  }, [selectedCalendarIds, fetchRange, calendars]);
+  }, [selectedCalendarIds, fetchRange, calendars, fetchedDateRange, appointments, currentView]);
+
+  const forceRefresh = () => {
+    setAppointments([]);
+    setFetchedDateRange(null);
+    loadAppointments(true);
+  };
   
   const loadCalendars = React.useCallback(async () => {
     setIsCalendarsLoading(true);
@@ -310,29 +330,6 @@ export default function AppointmentsPage() {
     loadAppointments();
   }, [loadAppointments]);
   
-  
-  const getStatusVariant = (status: Appointment['status']) => {
-    return {
-        completed: 'success',
-        confirmed: 'default',
-        pending: 'info',
-        cancelled: 'destructive',
-    }[status] || 'default';
-  };
-
-  const handleSelectAllCalendars = (checked: boolean | 'indeterminate') => {
-    if (checked) {
-        setSelectedCalendarIds(calendars.map(c => c.id).filter(id => id));
-    } else {
-        setSelectedCalendarIds([]);
-    }
-  };
-
-  const handleCalendarSelection = (calendarId: string, checked: boolean) => {
-    setSelectedCalendarIds(prev => 
-        checked ? [...prev, calendarId] : prev.filter(id => id !== calendarId)
-    );
-  };
   
   // Debounced search effect for users
   React.useEffect(() => {
@@ -703,18 +700,9 @@ export default function AppointmentsPage() {
     }
 };
 
-  const columnTranslations: { [key: string]: string } = {
-    service_name: tColumns('service'),
-    patientName: tColumns('patient'),
-    doctorName: tColumns('doctor'),
-    calendar_name: tColumns('calendar'),
-    date: tColumns('date'),
-    time: tColumns('time'),
-    status: tColumns('status'),
-  };
-  
-  const onDateChange = React.useCallback((range: { start: Date; end: Date }) => {
+  const onDateChange = React.useCallback((range: { start: Date; end: Date }, view: string) => {
     setFetchRange({ from: range.start, to: range.end });
+    setCurrentView(view);
   }, []);
 
   return (
@@ -750,7 +738,7 @@ export default function AppointmentsPage() {
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
-                onClick={loadAppointments}
+                onClick={forceRefresh}
                 disabled={isRefreshing}
             >
                 <RefreshCw
