@@ -39,6 +39,7 @@
 .month-view {
   grid-template-columns: repeat(7, 1fr);
   grid-template-rows: repeat(6, minmax(0, 1fr));
+  height: 100%;
 }
 
 .calendar-day {
@@ -48,6 +49,8 @@
   position: relative;
   background-color: hsl(var(--card));
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .calendar-day:nth-child(7n) {

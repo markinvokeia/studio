@@ -92,54 +92,76 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false }) =>
   );
 
   const renderMonthView = () => {
-    if (isLoading) {
-        const days = Array.from({ length: 35 }).map((_, i) => (
-            <div key={`skel-${i}`} className="calendar-day">
-                <Skeleton className="h-4 w-6 mb-2" />
-                <Skeleton className="h-5 w-full" />
-            </div>
-        ));
-         return <div className="calendar-grid month-view">{days}</div>;
-    }
-    
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
-    let days = [];
-    for (let i = 0; i < firstDay; i++) {
-        days.push(<div key={`empty-prev-${i}`} className="calendar-day other-month"></div>);
-    }
-    for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(year, month, day);
-        const dayEvents = events.filter(e => new Date(e.start).toDateString() === date.toDateString());
-        days.push(
-            <div key={day} className="calendar-day">
-                <span className='font-semibold'>{day}</span>
-                <div className='mt-1 space-y-1'>
-                    {dayEvents.map(event => (
-                        <div key={event.id} style={{backgroundColor: event.backgroundColor}} className="event">
-                            {event.title}
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    }
-    const remainingSlots = 42 - days.length;
-    for (let i = 0; i < remainingSlots; i++) {
-        days.push(<div key={`empty-next-${i}`} className="calendar-day other-month"></div>);
-    }
 
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+    const renderDays = () => {
+      let days = [];
+      // Calculate the number of leading empty slots
+      let startingDay = firstDayOfMonth; // 0 for Sunday, 1 for Monday, etc.
+
+      // Add empty cells for the days before the first of the month
+      for (let i = 0; i < startingDay; i++) {
+        days.push(<div key={`empty-prev-${i}`} className="calendar-day other-month"></div>);
+      }
+
+      // Add cells for each day of the month
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        const dayEvents = events.filter(e => new Date(e.start).toDateString() === date.toDateString());
+        days.push(
+          <div key={day} className="calendar-day">
+            <span className='font-semibold'>{day}</span>
+            <div className='mt-1 space-y-1'>
+              {dayEvents.map(event => (
+                <div key={event.id} style={{ backgroundColor: event.backgroundColor }} className="event">
+                  {event.title}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      // Fill the rest of the grid to ensure 6 rows
+      const totalSlots = days.length;
+      const slotsNeededFor6Rows = 42; 
+      const remainingSlots = slotsNeededFor6Rows - totalSlots > 0 ? slotsNeededFor6Rows - totalSlots : 0;
+
+      for (let i = 0; i < remainingSlots; i++) {
+        days.push(<div key={`empty-next-${i}`} className="calendar-day other-month"></div>);
+      }
+      return days;
+    }
+    
+    if (isLoading) {
+        const skeletonDays = Array.from({ length: 42 }).map((_, i) => (
+            <div key={`skel-${i}`} className="calendar-day">
+                <Skeleton className="h-4 w-6 mb-2" />
+                <Skeleton className="h-5 w-full mt-2" />
+                <Skeleton className="h-5 w-full mt-1" />
+            </div>
+        ));
+         return (
+             <>
+                <div className="calendar-grid-header">
+                    {dayNames.map(name => <div key={name} className="calendar-day-name">{name}</div>)}
+                </div>
+                <div className="calendar-grid month-view">{skeletonDays}</div>
+            </>
+        );
+    }
+    
     return (
         <>
          <div className="calendar-grid-header">
             {dayNames.map(name => <div key={name} className="calendar-day-name">{name}</div>)}
           </div>
-          <div className="calendar-grid month-view">{days}</div>
+          <div className="calendar-grid month-view">{renderDays()}</div>
         </>
     )
   };
