@@ -37,9 +37,9 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<View>('month');
 
-  const handleDateChange = useCallback((start: Date, end: Date) => {
+  const handleDateChange = useCallback((start: Date, end: Date, view: View) => {
     if (onDateChange) {
-      onDateChange({ start, end });
+      onDateChange({ start, end }, view);
     }
   }, [onDateChange]);
 
@@ -66,7 +66,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
         end = endOfMonth(currentDate);
         break;
     }
-    handleDateChange(start, end);
+    handleDateChange(start, end, view);
   }, [currentDate, view, handleDateChange]);
 
   const handlePrev = () => {
@@ -275,9 +275,9 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
           <div key={day} className="calendar-day">
             <span className='font-semibold'>{day}</span>
             <div className='mt-1 space-y-1'>
-              {dayEvents.map(event => (
+              {dayEvents.map((event, index) => (
                 <div 
-                    key={event.id} 
+                    key={`${event.id}-${index}`} 
                     className="event"
                     onClick={() => onEventClick(event.data)}
                 >
