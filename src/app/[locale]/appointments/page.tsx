@@ -6,7 +6,7 @@ import { addMinutes, format, parse, parseISO, isWithinInterval, isValid, startOf
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType, User as UserType, Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, RefreshCw, ChevronsUpDown, Check, X, ChevronDown } from 'lucide-react';
+import { PlusCircle, RefreshCw, ChevronsUpDown, Check, X, ChevronDown, Edit } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -1031,10 +1031,21 @@ export default function AppointmentsPage() {
                   </div>
               )}
               <DialogFooter>
-                  <Button onClick={() => setIsDetailViewOpen(false)}>{t('createDialog.close')}</Button>
+                  <Button variant="outline" onClick={() => setIsDetailViewOpen(false)}>{t('createDialog.close')}</Button>
+                  <Button onClick={() => {
+                      if (selectedAppointment) {
+                          handleEdit(selectedAppointment);
+                          setIsDetailViewOpen(false);
+                      }
+                  }}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      {tColumns('edit')}
+                  </Button>
               </DialogFooter>
           </DialogContent>
       </Dialog>
     </Card>
   );
 }
+
+    
