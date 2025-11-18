@@ -27,7 +27,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -46,6 +45,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import Calendar from '@/components/calendar/Calendar';
 
 
 async function getAppointments(calendarGoogleIds: string[], startDate: Date, endDate: Date): Promise<Appointment[]> {
@@ -804,11 +804,8 @@ export default function AppointmentsPage() {
                     <Card>
                         <CardContent className="p-0 flex justify-center">
                             <Calendar
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={setSelectedDate}
-                                className="rounded-md w-auto"
-                                initialFocus
+                                onDateChange={setSelectedDate}
+                                events={appointments.map(a => ({ date: a.date, title: a.service_name }))}
                             />
                         </CardContent>
                     </Card>
@@ -1346,3 +1343,4 @@ export default function AppointmentsPage() {
     
 
     
+
