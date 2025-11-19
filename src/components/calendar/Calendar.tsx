@@ -22,6 +22,12 @@ import { Skeleton } from '../ui/skeleton';
 import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDate, getDay, getDaysInMonth, getHours, getMinutes, isSameDay, startOfDay, startOfMonth, startOfWeek, startOfYear, getYear, set } from 'date-fns';
 import { User } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 type View = 'day' | '2-day' | '3-day' | 'week' | 'month' | 'year' | 'schedule';
 
@@ -142,8 +148,8 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
   }, [currentDate, view]);
 
   const EventComponent = ({ event }: { event: any }) => (
-    <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+    <ContextMenu>
+        <ContextMenuTrigger>
             <div
                 className="event"
                 style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
@@ -152,8 +158,8 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                 <span className='mr-2' style={{ backgroundColor: event.color }}>&nbsp;</span>
                 {event.title}
             </div>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
              <div className="grid grid-cols-4 gap-2 p-2">
                 {EVENT_COLORS.map(color => (
                     <div 
@@ -164,13 +170,13 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                     />
                 ))}
             </div>
-        </DropdownMenuContent>
-    </DropdownMenu>
+        </ContextMenuContent>
+    </ContextMenu>
 );
 
 const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CSSProperties }) => (
-    <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+    <ContextMenu>
+        <ContextMenuTrigger>
             <div 
                 className="event-in-day-view" 
                 style={style}
@@ -178,8 +184,8 @@ const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CS
             >
                 {event.title}
             </div>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
              <div className="grid grid-cols-4 gap-2 p-2">
                 {EVENT_COLORS.map(color => (
                     <div 
@@ -190,8 +196,8 @@ const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CS
                     />
                 ))}
             </div>
-        </DropdownMenuContent>
-    </DropdownMenu>
+        </ContextMenuContent>
+    </ContextMenu>
 );
 
     const renderDayOrWeekView = (numDays: number) => {
