@@ -241,7 +241,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
         
         dayElements.push(
           <div key={day} className="calendar-day">
-            <span className='font-semibold'>{day}</span>
+            <span className={cn('font-semibold', isSameDay(date, new Date()) && 'bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center')}>{day}</span>
             <div className='mt-1 space-y-1'>
               {dayEvents.map((event: any, index: number) => (
                 <div 
