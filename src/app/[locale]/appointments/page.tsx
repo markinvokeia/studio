@@ -1059,12 +1059,12 @@ export default function AppointmentsPage() {
               </DialogHeader>
               {selectedAppointment && (
                   <div className="grid gap-4 py-4">
-                      <p><strong>{tColumns('patient')}:</strong> {selectedAppointment.patientName}</p>
-                      <p><strong>{tColumns('doctor')}:</strong> {selectedAppointment.doctorName}</p>
-                      <p><strong>{tColumns('date')}:</strong> {selectedAppointment.date}</p>
-                      <p><strong>{tColumns('time')}:</strong> {selectedAppointment.time}</p>
-                      <p><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</p>
-                      <p><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></p>
+                      <div><strong>{tColumns('patient')}:</strong> {selectedAppointment.patientName}</div>
+                      <div><strong>{tColumns('doctor')}:</strong> {selectedAppointment.doctorName}</div>
+                      <div><strong>{tColumns('date')}:</strong> {selectedAppointment.date}</div>
+                      <div><strong>{tColumns('time')}:</strong> {selectedAppointment.time}</div>
+                      <div><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>
+                      <div className="flex items-center gap-2"><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></div>
                   </div>
               )}
               <DialogFooter className="justify-between">
@@ -1091,6 +1091,8 @@ export default function AppointmentsPage() {
 
 
 
+
+    
 
     
 
