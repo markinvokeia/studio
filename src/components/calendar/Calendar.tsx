@@ -193,12 +193,6 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                         group && columns.length > 0 ? columns.map(col => (
                             <div key={`${format(day, 'yyyy-MM-dd')}-${col.id}`} className="day-column">
                                 {timeSlots.map(time => <div key={`${time}-${col.id}`} className="time-slot" />)}
-                                {showTimeIndicator && isSameDay(day, currentTime) && (
-                                    <div className="current-time-indicator" style={{ top: `${currentTimePosition}px` }}>
-                                        <div className="current-time-dot"></div>
-                                        <div className="current-time-line"></div>
-                                    </div>
-                                )}
                                 {events
                                     .filter((e: any) => isSameDay(new Date(e.start), day) && e.assignee === col.email)
                                     .map((event: any) => (
@@ -211,12 +205,6 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                         )) : (
                             <div key={format(day, 'yyyy-MM-dd')} className="day-column">
                                 {timeSlots.map(time => <div key={time} className="time-slot" />)}
-                                {showTimeIndicator && isSameDay(day, currentTime) && dayIndex === 0 && (
-                                    <div className="current-time-indicator" style={{ top: `${currentTimePosition}px` }}>
-                                        <div className="current-time-dot"></div>
-                                        <div className="current-time-line"></div>
-                                    </div>
-                                )}
                                 {events
                                     .filter((e: any) => isSameDay(new Date(e.start), day))
                                     .map((event: any) => (
@@ -228,6 +216,12 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                             </div>
                         )
                     ))}
+                    {showTimeIndicator && (
+                        <div className="current-time-indicator" style={{ top: `${currentTimePosition}px` }}>
+                            <div className="current-time-dot"></div>
+                            <div className="current-time-line"></div>
+                        </div>
+                    )}
                 </div>
             </div>
         );

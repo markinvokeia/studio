@@ -197,7 +197,8 @@
 
 .current-time-indicator {
     position: absolute;
-    width: 100%;
+    left: 60px; /* Width of time column */
+    right: 0;
     display: flex;
     align-items: center;
     z-index: 20;
@@ -216,4 +217,5 @@
     height: 2px;
     background-color: #F44336;
 }
+
 
