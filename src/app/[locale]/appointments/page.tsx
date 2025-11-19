@@ -43,13 +43,15 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const CALENDAR_COLORS = [
-    'hsl(var(--chart-1))',
-    'hsl(var(--chart-2))',
-    'hsl(var(--chart-3))',
-    'hsl(var(--chart-4))',
-    'hsl(var(--chart-5))',
-    'hsl(var(--primary))',
+    'hsl(210, 80%, 55%)',
+    'hsl(150, 70%, 45%)',
+    'hsl(340, 80%, 60%)',
+    'hsl(45, 90%, 55%)',
+    'hsl(270, 70%, 65%)',
+    'hsl(180, 60%, 40%)',
+    'hsl(0, 75%, 55%)',
 ];
+
 
 async function getAppointments(calendarGoogleIds: string[], startDate: Date, endDate: Date, calendars: CalendarType[]): Promise<Appointment[]> {
     if (!isValid(startDate) || !isValid(endDate)) {
@@ -761,9 +763,12 @@ export default function AppointmentsPage() {
                                     <hr className="my-2" />
                                     {calendars.map((calendar) => (
                                         <CommandItem key={calendar.id} onSelect={(e) => e.preventDefault()}>
-                                            <div className="flex items-center">
-                                                <Checkbox checked={selectedCalendarIds.includes(calendar.id)} onCheckedChange={(checked) => handleSelectCalendar(calendar.id, !!checked)} />
-                                                <span className="ml-2">{calendar.name}</span>
+                                            <div className="flex items-center justify-between w-full">
+                                                <div className='flex items-center'>
+                                                    <Checkbox checked={selectedCalendarIds.includes(calendar.id)} onCheckedChange={(checked) => handleSelectCalendar(calendar.id, !!checked)} />
+                                                    <span className="ml-2">{calendar.name}</span>
+                                                </div>
+                                                <div className="h-4 w-4 rounded-full" style={{ backgroundColor: calendar.color }} />
                                             </div>
                                         </CommandItem>
                                     ))}
@@ -1085,3 +1090,6 @@ export default function AppointmentsPage() {
     
 
 
+
+
+    
