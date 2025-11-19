@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { DollarSign } from 'lucide-react';
+import Image from 'next/image';
 import { Skeleton } from './ui/skeleton';
 
 // Mock data, as we cannot fetch from external URL directly.
@@ -29,7 +29,7 @@ export function ExchangeRate() {
   if (isLoading) {
     return (
       <div className="flex h-10 w-auto items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium">
-        <DollarSign className="h-5 w-5 text-muted-foreground" />
+        <Skeleton className="h-5 w-5 rounded-full" />
         <Skeleton className="h-4 w-12" />
         <span className="text-muted-foreground">/</span>
         <Skeleton className="h-4 w-12" />
@@ -43,7 +43,7 @@ export function ExchangeRate() {
 
   return (
     <div className="flex h-10 w-auto items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium">
-      <DollarSign className="h-5 w-5 text-muted-foreground" />
+      <Image src="https://www.brou.com.uy/brou-tmf-portlet/images/USD.png" width={20} height={20} alt="USD Flag" />
       <div className="flex items-baseline">
         <span className="text-xs text-muted-foreground mr-1">C:</span>
         <span className="font-semibold">{rate.buy.toFixed(2)}</span>
