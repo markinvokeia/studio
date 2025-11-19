@@ -31,6 +31,7 @@ const calendarFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     name: z.string().min(1, t('nameRequired')),
     google_calendar_id: z.string().email(t('emailInvalid')),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/, t('colorInvalid')).optional(),
     is_active: z.boolean().default(false),
 });
 
@@ -57,6 +58,7 @@ async function getCalendars(): Promise<Calendar[]> {
             name: apiCalendar.name,
             google_calendar_id: apiCalendar.google_calendar_id,
             is_active: apiCalendar.is_active,
+            color: apiCalendar.color
         }));
     } catch (error) {
         console.error("Failed to fetch calendars:", error);
@@ -109,7 +111,7 @@ export default function CalendarsPage() {
 
     const form = useForm<CalendarFormValues>({
         resolver: zodResolver(calendarFormSchema(tValidation)),
-        defaultValues: { name: '', google_calendar_id: '', is_active: false },
+        defaultValues: { name: '', google_calendar_id: '', color: '#ffffff', is_active: false },
     });
 
     const loadCalendars = React.useCallback(async () => {
@@ -125,14 +127,17 @@ export default function CalendarsPage() {
     
     const handleCreate = () => {
         setEditingCalendar(null);
-        form.reset({ name: '', google_calendar_id: '', is_active: false });
+        form.reset({ name: '', google_calendar_id: '', color: '#ffffff', is_active: false });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
 
     const handleEdit = (calendar: Calendar) => {
         setEditingCalendar(calendar);
-        form.reset(calendar);
+        form.reset({
+            ...calendar,
+            color: calendar.color || '#ffffff'
+        });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -236,6 +241,22 @@ export default function CalendarsPage() {
                                     <FormLabel>{t('dialog.googleCalendarId')}</FormLabel>
                                     <FormControl>
                                         <Input type="email" placeholder={t('dialog.googleCalendarIdPlaceholder')} {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="color"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('dialog.color')}</FormLabel>
+                                    <FormControl>
+                                        <div className="flex items-center gap-2">
+                                            <Input type="color" className="p-1 h-10 w-14" {...field} />
+                                            <Input placeholder="#FFFFFF" {...field} />
+                                        </div>
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

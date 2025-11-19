@@ -28,6 +28,19 @@ export const CalendarsColumnsWrapper = ({ onEdit, onDelete }: CalendarsColumnsPr
         { accessorKey: 'name', header: ({column}) => <DataTableColumnHeader column={column} title={t('name')} /> },
         { accessorKey: 'google_calendar_id', header: ({column}) => <DataTableColumnHeader column={column} title={t('googleCalendarId')} /> },
         { 
+            accessorKey: 'color', 
+            header: ({column}) => <DataTableColumnHeader column={column} title={t('color')} />,
+            cell: ({ row }) => {
+                const color = row.original.color || '#ffffff';
+                return (
+                    <div className="flex items-center gap-2">
+                        <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: color }} />
+                        <span>{color}</span>
+                    </div>
+                );
+            }
+        },
+        { 
         accessorKey: 'is_active', 
         header: ({column}) => <DataTableColumnHeader column={column} title={t('active')} />,
         cell: ({ row }) => <Badge variant={row.original.is_active ? 'success' : 'outline'}>{row.original.is_active ? t('yes') : t('no')}</Badge>,
