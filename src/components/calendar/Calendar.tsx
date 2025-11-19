@@ -15,7 +15,7 @@ import {
     DropdownMenuTrigger,
     DropdownMenuSub,
     DropdownMenuSubContent,
-    DropdownMenuSubTrigger
+    DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu';
 import './Calendar.css';
 import { Skeleton } from '../ui/skeleton';
@@ -25,7 +25,20 @@ import { cn } from '@/lib/utils';
 
 type View = 'day' | '2-day' | '3-day' | 'week' | 'month' | 'year' | 'schedule';
 
-const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEventClick, onViewChange, assignees = [], selectedAssignees = [], onSelectedAssigneesChange, group = false, onGroupChange }) => {
+const EVENT_COLORS = [
+    '#039be5', // Blue
+    '#7986cb', // Indigo
+    '#33b679', // Green
+    '#8e24aa', // Purple
+    '#e67c73', // Red
+    '#f6c026', // Yellow
+    '#f5511d', // Orange
+    '#009688', // Teal
+    '#616161', // Gray
+];
+
+
+const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEventClick, onViewChange, assignees = [], selectedAssignees = [], onSelectedAssigneesChange, group = false, onGroupChange, onEventColorChange }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<View>('month');
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -128,6 +141,59 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
     }
   }, [currentDate, view]);
 
+  const EventComponent = ({ event }: { event: any }) => (
+    <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+            <div
+                className="event"
+                style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
+                onClick={() => onEventClick(event.data)}
+            >
+                <span className='mr-2' style={{ backgroundColor: event.color }}>&nbsp;</span>
+                {event.title}
+            </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+             <div className="grid grid-cols-4 gap-2 p-2">
+                {EVENT_COLORS.map(color => (
+                    <div 
+                        key={color} 
+                        className="w-6 h-6 rounded-full cursor-pointer hover:opacity-80"
+                        style={{ backgroundColor: color }}
+                        onClick={() => onEventColorChange(event.data, color)}
+                    />
+                ))}
+            </div>
+        </DropdownMenuContent>
+    </DropdownMenu>
+);
+
+const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CSSProperties }) => (
+    <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+            <div 
+                className="event-in-day-view" 
+                style={style}
+                onClick={() => onEventClick(event.data)}
+            >
+                {event.title}
+            </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+             <div className="grid grid-cols-4 gap-2 p-2">
+                {EVENT_COLORS.map(color => (
+                    <div 
+                        key={color} 
+                        className="w-6 h-6 rounded-full cursor-pointer hover:opacity-80"
+                        style={{ backgroundColor: color }}
+                        onClick={() => onEventColorChange(event.data, color)}
+                    />
+                ))}
+            </div>
+        </DropdownMenuContent>
+    </DropdownMenu>
+);
+
     const renderDayOrWeekView = (numDays: number) => {
         const startDay = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
         const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
@@ -196,9 +262,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                                 {events
                                     .filter((e: any) => isSameDay(new Date(e.start), day) && e.assignee === col.email)
                                     .map((event: any) => (
-                                        <div key={event.id} className="event-in-day-view" style={getEventStyle(event)} onClick={() => onEventClick(event.data)}>
-                                            {event.title}
-                                        </div>
+                                        <EventInDayViewComponent key={event.id} event={event} style={getEventStyle(event)} />
                                     ))
                                 }
                             </div>
@@ -208,9 +272,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                                 {events
                                     .filter((e: any) => isSameDay(new Date(e.start), day))
                                     .map((event: any) => (
-                                        <div key={event.id} className="event-in-day-view" style={getEventStyle(event)} onClick={() => onEventClick(event.data)}>
-                                            {event.title}
-                                        </div>
+                                        <EventInDayViewComponent key={event.id} event={event} style={getEventStyle(event)} />
                                     ))
                                 }
                             </div>
@@ -262,15 +324,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
             <span className={cn('font-semibold w-6 h-6 flex items-center justify-center rounded-full', isSameDay(date, new Date()) && 'current-day-month-view')}>{day}</span>
             <div className='mt-1 space-y-1'>
               {dayEvents.map((event: any, index: number) => (
-                <div 
-                    key={`${event.id}-${index}`} 
-                    className="event"
-                    style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
-                    onClick={() => onEventClick(event.data)}
-                >
-                  <span className='mr-2' style={{ backgroundColor: event.color }}>&nbsp;</span>
-                  {event.title}
-                </div>
+                <EventComponent key={`${event.id}-${index}`} event={event} />
               ))}
             </div>
           </div>
