@@ -69,6 +69,7 @@ import { UsFlagIcon } from './icons/us-flag-icon';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
+import { ExchangeRate } from './exchange-rate';
 
 
 const passwordFormSchema = (t: (key: string) => string) => z.object({
@@ -296,6 +297,7 @@ export function Header() {
         </BreadcrumbList>
       </Breadcrumb>
       <div className="relative ml-auto flex flex-1 items-center justify-end gap-2 md:grow-0">
+        <ExchangeRate />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon">
@@ -463,5 +465,3 @@ export function Header() {
     </>
   );
 }
-
-    
