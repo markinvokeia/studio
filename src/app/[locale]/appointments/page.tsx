@@ -119,7 +119,7 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
                 doctorName: apiAppt.doctorName,
                 calendar_id: calendarId,
                 calendar_name: apiAppt.organizer?.displayName,
-                color: calendar?.color,
+                color: apiAppt.color,
             };
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
@@ -559,36 +559,71 @@ export default function AppointmentsPage() {
   }, [newAppointment.date, newAppointment.time, newAppointment.doctor, newAppointment.calendar, checkAvailability]);
 
 
-  const handleSaveAppointment = async () => {
+  const handleSaveAppointment = async (appointmentDetails: Partial<Appointment> & {color?: string}) => {
     const { user, doctor, services, calendar, date, time, description } = newAppointment;
-    if (!user || (!editingAppointment && services.length === 0) || !date || !time) {
-      toast({
-        variant: "destructive",
-        title: "Missing Information",
-        description: "Please fill out all required fields.",
-      });
-      return;
+
+    if (!date || !time) {
+        toast({ variant: "destructive", title: "Missing Information", description: "Date and time are required."});
+        return;
     }
 
     const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
-    const totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
+    let totalDuration = 0;
+    if (services) {
+      totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
+    } else if (editingAppointment) {
+      // Find the existing appointment to estimate duration if services aren't loaded
+      const existing = appointments.find(a => a.id === editingAppointment.id);
+      if (existing) {
+          // You might need a default duration or fetch service details
+          totalDuration = 30; // default duration
+      }
+    }
     const endDateTime = addMinutes(startDateTime, totalDuration);
 
-    const payload = {
+    const isEditing = !!editingAppointment;
+
+    const payload: any = {
       startingDateAndTime: startDateTime.toISOString(),
       endingDateAndTime: endDateTime.toISOString(),
-      doctorId: doctor?.id || '',
-      doctorEmail: doctor?.email || '',
-      userId: user.id,
-      userEmail: user.email,
-      userName: user.name,
-      serviceName: services.map(s => s.name).join(', '),
-      description: description || services.map(s => s.name).join(', '),
-      mode: editingAppointment ? 'update' : 'create',
-      ...(calendar && { calendarId: calendar.google_calendar_id }),
-      ...(editingAppointment && { eventId: editingAppointment.id }),
-      ...(editingAppointment && originalCalendarId && { oldCalendarId: originalCalendarId }),
+      mode: isEditing ? 'update' : 'create',
+      ...(appointmentDetails.color && { color: appointmentDetails.color }),
     };
+
+    // Populate payload based on what's available
+    if (isEditing) {
+        payload.eventId = editingAppointment!.id;
+        if (originalCalendarId) {
+            payload.oldCalendarId = originalCalendarId;
+        }
+        payload.doctorId = doctor?.id || '';
+        payload.doctorEmail = doctor?.email || editingAppointment!.doctorEmail;
+        payload.userId = user?.id || '';
+        payload.userEmail = user?.email || editingAppointment!.patientEmail;
+        payload.userName = user?.name || editingAppointment!.patientName;
+        payload.serviceName = services.length > 0 ? services.map(s => s.name).join(', ') : editingAppointment!.service_name;
+        payload.description = description || editingAppointment!.description || services.map(s => s.name).join(', ');
+        if (calendar?.google_calendar_id) {
+            payload.calendarId = calendar.google_calendar_id;
+        } else if (originalCalendarId) {
+            payload.calendarId = originalCalendarId;
+        }
+    } else { // Creating new
+        if (!user || services.length === 0) {
+            toast({ variant: "destructive", title: "Missing Information", description: "Please fill out all required fields."});
+            return;
+        }
+        payload.doctorId = doctor?.id || '';
+        payload.doctorEmail = doctor?.email || '';
+        payload.userId = user.id;
+        payload.userEmail = user.email;
+        payload.userName = user.name;
+        payload.serviceName = services.map(s => s.name).join(', ');
+        payload.description = description || services.map(s => s.name).join(', ');
+        if (calendar?.google_calendar_id) {
+          payload.calendarId = calendar.google_calendar_id;
+        }
+    }
 
     try {
       const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments/upsert', {
@@ -602,8 +637,8 @@ export default function AppointmentsPage() {
 
       if (response.ok && (result.code === 200 || result.status === 'success')) {
         toast({
-          title: editingAppointment ? "Appointment Updated" : "Appointment Created",
-          description: result.message || `The appointment has been successfully ${editingAppointment ? 'updated' : 'saved'}.`,
+          title: isEditing ? "Appointment Updated" : "Appointment Created",
+          description: result.message || `The appointment has been successfully ${isEditing ? 'updated' : 'saved'}.`,
         });
 
         setCreateOpen(false);
@@ -633,6 +668,18 @@ export default function AppointmentsPage() {
         description: error instanceof Error ? error.message : "An unexpected error occurred.",
       });
     }
+  };
+
+  const handleEventColorChange = (appointment: Appointment, color: string) => {
+    // Optimistically update UI
+    setAppointments(prev => prev.map(a => a.id === appointment.id ? { ...a, color } : a));
+
+    // Persist change to backend
+    const payload = {
+        ...appointment,
+        color: color,
+    };
+    handleSaveAppointment(payload);
   };
   
   const confirmDeleteAppointment = async () => {
@@ -729,6 +776,7 @@ export default function AppointmentsPage() {
           onDateChange={onDateChange}
           isLoading={isRefreshing}
           onEventClick={handleEventClick}
+          onEventColorChange={handleEventColorChange}
           assignees={assignees}
           selectedAssignees={selectedAssignees}
           onSelectedAssigneesChange={setSelectedAssignees}
@@ -1042,7 +1090,7 @@ export default function AppointmentsPage() {
             )}
             <DialogFooter>
                 <Button variant="outline" onClick={() => setCreateOpen(false)}>{t('createDialog.cancel')}</Button>
-                <Button onClick={handleSaveAppointment}>{editingAppointment ? tColumns('edit') : t('createDialog.save')}</Button>
+                <Button onClick={() => handleSaveAppointment(newAppointment)}>{editingAppointment ? tColumns('edit') : t('createDialog.save')}</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>
