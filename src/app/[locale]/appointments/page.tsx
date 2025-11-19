@@ -69,7 +69,14 @@ const GOOGLE_CALENDAR_COLORS = [
 const colorMap = new Map(GOOGLE_CALENDAR_COLORS.map(c => [c.id, c.hex]));
 
 
-async function getAppointments(calendarGoogleIds: string[], startDate: Date, endDate: Date, calendars: CalendarType[]): Promise<Appointment[]> {
+async function getAppointments(
+    calendarGoogleIds: string[], 
+    startDate: Date, 
+    endDate: Date, 
+    calendars: CalendarType[],
+    services: Service[],
+    doctors: UserType[]
+): Promise<Appointment[]> {
     if (!isValid(startDate) || !isValid(endDate)) {
         console.error("Invalid start or end date provided to getAppointments");
         return [];
@@ -121,8 +128,11 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
             const calendarId = apiAppt.organizer?.email;
             const calendar = calendars.find(c => c.google_calendar_id === calendarId);
 
-            const appointmentColorId = apiAppt.colorId || apiAppt.color;
-            let finalColor = colorMap.get(appointmentColorId) || apiAppt.service_color || apiAppt.doctor_color || calendar?.color;
+            const appointmentColorId = apiAppt.colorId;
+            const service = services.find(s => s.name === apiAppt.summary);
+            const doctor = doctors.find(d => d.email === apiAppt.doctorEmail);
+
+            let finalColor = colorMap.get(appointmentColorId) || service?.color || doctor?.color || calendar?.color;
 
             return {
                 id: apiAppt.id,
@@ -171,6 +181,40 @@ async function getCalendars(): Promise<CalendarType[]> {
     }
 }
 
+async function getServices(): Promise<Service[]> {
+  try {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services', {
+      method: 'GET',
+      mode: 'cors',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store',
+    });
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+    const data = await response.json();
+    const servicesData = Array.isArray(data) ? data : (data.services || data.data || data.result || []);
+    return servicesData.map((s: any) => ({ ...s, id: String(s.id) }));
+  } catch (error) {
+    console.error("Failed to fetch services:", error);
+    return [];
+  }
+}
+
+async function getDoctors(): Promise<UserType[]> {
+  try {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors', {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-store',
+    });
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+    const data = await response.json();
+    const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || []);
+    return doctorsData.map((d: any) => ({ ...d, id: String(d.id) }));
+  } catch (error) {
+    console.error("Failed to fetch doctors:", error);
+    return [];
+  }
+}
 
 export default function AppointmentsPage() {
   const t = useTranslations('AppointmentsPage');
@@ -183,8 +227,10 @@ export default function AppointmentsPage() {
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
+  const [services, setServices] = React.useState<Service[]>([]);
+  const [doctors, setDoctors] = React.useState<UserType[]>([]);
   const [selectedCalendarIds, setSelectedCalendarIds] = React.useState<string[]>([]);
-  const [isCalendarsLoading, setIsCalendarsLoading] = React.useState(true);
+  const [isDataLoading, setIsDataLoading] = React.useState(true);
   const [isCreateOpen, setCreateOpen] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [fetchRange, setFetchRange] = React.useState<{ start: Date; end: Date } | null>(null);
@@ -294,7 +340,7 @@ export default function AppointmentsPage() {
   const appointmentColumns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns({ t: tColumns, tStatus, onEdit: handleEdit, onCancel: handleCancel }), [tColumns, tStatus]);
 
   const loadAppointments = React.useCallback(async () => {
-    if (!fetchRange || !fetchRange.start || !fetchRange.end || !isValid(fetchRange.start) || !isValid(fetchRange.end)) {
+    if (!fetchRange || !fetchRange.start || !fetchRange.end || !isValid(fetchRange.start) || !isValid(fetchRange.end) || calendars.length === 0) {
       return;
     }
     
@@ -304,33 +350,37 @@ export default function AppointmentsPage() {
       return cal?.google_calendar_id;
     }).filter((id): id is string => !!id);
     
-    const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.start, fetchRange.end, calendars);
+    const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors);
     setAppointments(fetchedAppointments);
     
     setIsRefreshing(false);
-  }, [selectedCalendarIds, fetchRange, calendars]);
+  }, [selectedCalendarIds, fetchRange, calendars, services, doctors]);
   
   const forceRefresh = React.useCallback(() => {
     loadAppointments();
   }, [loadAppointments]);
   
-  const loadCalendars = React.useCallback(async () => {
-    setIsCalendarsLoading(true);
-    const fetchedCalendars = await getCalendars();
+  const loadInitialData = React.useCallback(async () => {
+    setIsDataLoading(true);
+    const [fetchedCalendars, fetchedServices, fetchedDoctors] = await Promise.all([getCalendars(), getServices(), getDoctors()]);
     setCalendars(fetchedCalendars);
+    setServices(fetchedServices);
+    setDoctors(fetchedDoctors);
+    setAssignees(fetchedDoctors);
+    setSelectedAssignees(fetchedDoctors.map(d => d.id));
     setSelectedCalendarIds(fetchedCalendars.map(c => c.id).filter(id => id));
-    setIsCalendarsLoading(false);
+    setIsDataLoading(false);
   }, []);
 
   React.useEffect(() => {
-    loadCalendars();
-  }, [loadCalendars]);
+    loadInitialData();
+  }, [loadInitialData]);
   
   React.useEffect(() => {
-    if (fetchRange) {
+    if (!isDataLoading && fetchRange) {
       loadAppointments();
     }
-  }, [loadAppointments, selectedCalendarIds, fetchRange]);
+  }, [loadAppointments, selectedCalendarIds, fetchRange, isDataLoading]);
   
   
   // Debounced search effect for users
@@ -420,7 +470,7 @@ export default function AppointmentsPage() {
   }, [serviceSearchQuery, isServiceSearchOpen]);
   
   // Debounced search effect for doctors
-  const loadDoctors = React.useCallback(async (query: string) => {
+  const loadDoctorsDebounced = React.useCallback(async (query: string) => {
     setIsSearchingDoctors(true);
     try {
       const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors?search=${query}`, {
@@ -443,8 +493,6 @@ export default function AppointmentsPage() {
       }));
 
       setDoctorSearchResults(newDocs);
-      setAssignees(newDocs); // This could be improved to merge instead of replace
-      setSelectedAssignees(newDocs.map(d => d.id));
 
     } catch (error) {
       console.error("Failed to fetch doctors:", error);
@@ -456,18 +504,14 @@ export default function AppointmentsPage() {
   React.useEffect(() => {
     const handler = setTimeout(() => {
       if (doctorSearchQuery.length > 1 || (isDoctorSearchOpen && doctorSearchQuery.length === 0)) {
-        loadDoctors(doctorSearchQuery);
+        loadDoctorsDebounced(doctorSearchQuery);
       } else if (doctorSearchQuery.length === 0) {
         setDoctorSearchResults([]);
       }
     }, 300);
 
     return () => clearTimeout(handler);
-  }, [doctorSearchQuery, isDoctorSearchOpen, loadDoctors]);
-
-  React.useEffect(() => {
-    loadDoctors(''); // Load all doctors initially
-  }, [loadDoctors]);
+  }, [doctorSearchQuery, isDoctorSearchOpen, loadDoctorsDebounced]);
 
 
   const checkAvailability = React.useCallback(async (appointmentData: typeof newAppointment) => {

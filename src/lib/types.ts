@@ -7,6 +7,7 @@ export type User = {
   is_active: boolean;
   avatar: string;
   identity_document?: string;
+  color?: string;
 };
 
 export type Role = {
@@ -145,6 +146,7 @@ export type Service = {
   description?: string;
   indications?: string;
   is_active: boolean;
+  color?: string;
 };
 
 export type Clinic = {
