@@ -348,7 +348,10 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                     <div className="space-y-2">
                         {groupedEvents[date].map(event => (
                             <div key={event.id} className="p-2 rounded-md flex items-center gap-4" style={{ backgroundColor: event.color ? `${event.color}20` : 'var(--muted)' }} onClick={() => onEventClick(event.data)}>
-                                <div className="w-24 text-sm font-semibold">{format(new Date(event.start), 'p')}</div>
+                                <div className="flex items-center gap-2 w-28 text-sm font-semibold">
+                                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: event.color || 'hsl(var(--primary))' }} />
+                                  {format(new Date(event.start), 'p')}
+                                </div>
                                 <div className="flex-1 text-sm">{event.title}</div>
                                 {event.assignee && (
                                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -424,3 +427,5 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
 };
 
 export default Calendar;
+
+    
