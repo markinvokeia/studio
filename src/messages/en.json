@@ -191,6 +191,58 @@
       "delete": "Delete"
     }
   },
+  "CalendarsPage": {
+    "title": "Calendars",
+    "description": "Manage clinic calendars and their properties.",
+    "filterPlaceholder": "Filter by name...",
+    "dialog": {
+      "createTitle": "Create New Calendar",
+      "editTitle": "Edit Calendar",
+      "description": "Fill in the details to add a new calendar.",
+      "editDescription": "Update the details for this calendar.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Doctor's Office 1",
+      "googleCalendarId": "Google Calendar ID",
+      "googleCalendarIdPlaceholder": "e.g., your-calendar@group.calendar.google.com",
+      "color": "Color",
+      "active": "Active",
+      "cancel": "Cancel",
+      "save": "Save",
+      "create": "Create Calendar"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the calendar \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "delete": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Calendar Created",
+      "editSuccessTitle": "Calendar Updated",
+      "successDescription": "Calendar \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Calendar Deleted",
+      "deleteSuccessDescription": "Calendar \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the calendar."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "emailInvalid": "Must be a valid Google Calendar email address.",
+      "colorInvalid": "Invalid hex color format."
+    },
+    "columns": {
+      "name": "Name",
+      "googleCalendarId": "Google Calendar ID",
+      "color": "Color",
+      "active": "Active",
+      "yes": "Yes",
+      "no": "No",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    }
+  },
   "QuotesPage": {
     "title": "Quotes",
     "description": "Manage all quotes.",

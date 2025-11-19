@@ -191,6 +191,58 @@
       "delete": "Eliminar"
     }
   },
+  "CalendarsPage": {
+    "title": "Calendarios",
+    "description": "Gestionar los calendarios de la clínica y sus propiedades.",
+    "filterPlaceholder": "Filtrar por nombre...",
+    "dialog": {
+      "createTitle": "Crear Nuevo Calendario",
+      "editTitle": "Editar Calendario",
+      "description": "Complete los detalles para agregar un nuevo calendario.",
+      "editDescription": "Actualice los detalles de este calendario.",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Consultorio 1",
+      "googleCalendarId": "ID de Google Calendar",
+      "googleCalendarIdPlaceholder": "ej., tu-calendario@group.calendar.google.com",
+      "color": "Color",
+      "active": "Activo",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "create": "Crear Calendario"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente el calendario \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "delete": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Calendario Creado",
+      "editSuccessTitle": "Calendario Actualizado",
+      "successDescription": "El calendario \"{name}\" ha sido guardado exitosamente.",
+      "deleteSuccessTitle": "Calendario Eliminado",
+      "deleteSuccessDescription": "El calendario \"{name}\" ha sido eliminado.",
+      "deleteErrorDescription": "No se pudo eliminar el calendario."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio.",
+      "emailInvalid": "Debe ser una dirección de correo electrónico de Google Calendar válida.",
+      "colorInvalid": "Formato de color hexadecimal no válido."
+    },
+    "columns": {
+      "name": "Nombre",
+      "googleCalendarId": "ID de Google Calendar",
+      "color": "Color",
+      "active": "Activo",
+      "yes": "Sí",
+      "no": "No",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    }
+  },
   "QuotesPage": {
     "title": "Cotizaciones",
     "description": "Gestionar todas las cotizaciones.",
