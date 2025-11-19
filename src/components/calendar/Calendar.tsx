@@ -17,21 +17,26 @@ import {
     DropdownMenuSubContent,
     DropdownMenuSubTrigger
 } from '@/components/ui/dropdown-menu';
-import { Checkbox } from '../ui/checkbox';
 import './Calendar.css';
 import { Skeleton } from '../ui/skeleton';
-import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDate, getDay, getDaysInMonth, getHours, getMinutes, isSameDay, startOfDay, startOfMonth, startOfWeek, startOfYear, getYear } from 'date-fns';
-import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
+import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDate, getDay, getDaysInMonth, getHours, getMinutes, isSameDay, startOfDay, startOfMonth, startOfWeek, startOfYear, getYear, set } from 'date-fns';
 import { User } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Label } from '../ui/label';
-import { Command, CommandItem, CommandList, CommandGroup } from '../ui/command';
 
 type View = 'day' | '2-day' | '3-day' | 'week' | 'month' | 'year' | 'schedule';
 
 const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEventClick, onViewChange, assignees = [], selectedAssignees = [], onSelectedAssigneesChange, group = false, onGroupChange }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<View>('month');
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, []);
+
 
   const handleDateChange = useCallback((start: Date, end: Date) => {
     if (onDateChange) {
@@ -145,14 +150,21 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
             };
         };
 
+        const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * 60;
+        const showTimeIndicator = days.some(day => isSameDay(day, currentTime));
+
+
         return (
             <div className="day-view-container">
                 <div className="day-view-header-wrapper">
                     <div className='day-view-header-dates' style={{ gridTemplateColumns: `60px repeat(${days.length}, 1fr)`}}>
-                         <div />
+                         <div className="time-zone-label">GMT-03</div>
                          {days.map(day => (
-                            <div key={`date-${format(day, 'yyyy-MM-dd')}`} className={cn("day-view-date-cell", isSameDay(day, new Date()) && "current-day")}>
-                                {format(day, 'EEE, MMM d')}
+                            <div key={`date-${format(day, 'yyyy-MM-dd')}`} className="day-view-date-cell">
+                                <span className='day-name'>{format(day, 'EEE').toUpperCase()}</span>
+                                <span className={cn("day-number", isSameDay(day, new Date()) && "current-day")}>
+                                    {format(day, 'd')}
+                                </span>
                             </div>
                         ))}
                     </div>
@@ -173,14 +185,20 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                     <div className="time-column">
                         {timeSlots.map(time => (
                             <div key={time} className="time-slot">
-                                <span className="time-slot-label">{time}</span>
+                                <span className="time-slot-label">{time.split(':')[0]} AM</span>
                             </div>
                         ))}
                     </div>
-                    {days.map(day => (
+                    {days.map((day, dayIndex) => (
                         group && columns.length > 0 ? columns.map(col => (
                             <div key={`${format(day, 'yyyy-MM-dd')}-${col.id}`} className="day-column">
                                 {timeSlots.map(time => <div key={`${time}-${col.id}`} className="time-slot" />)}
+                                {showTimeIndicator && isSameDay(day, currentTime) && (
+                                    <div className="current-time-indicator" style={{ top: `${currentTimePosition}px` }}>
+                                        <div className="current-time-dot"></div>
+                                        <div className="current-time-line"></div>
+                                    </div>
+                                )}
                                 {events
                                     .filter((e: any) => isSameDay(new Date(e.start), day) && e.assignee === col.email)
                                     .map((event: any) => (
@@ -193,6 +211,12 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                         )) : (
                             <div key={format(day, 'yyyy-MM-dd')} className="day-column">
                                 {timeSlots.map(time => <div key={time} className="time-slot" />)}
+                                {showTimeIndicator && isSameDay(day, currentTime) && dayIndex === 0 && (
+                                    <div className="current-time-indicator" style={{ top: `${currentTimePosition}px` }}>
+                                        <div className="current-time-dot"></div>
+                                        <div className="current-time-line"></div>
+                                    </div>
+                                )}
                                 {events
                                     .filter((e: any) => isSameDay(new Date(e.start), day))
                                     .map((event: any) => (

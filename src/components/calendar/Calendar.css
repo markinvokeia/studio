@@ -106,7 +106,22 @@
 .day-view-date-cell:last-child {
   border-right: none;
 }
-.day-view-date-cell.current-day {
+.day-view-date-cell .day-name {
+    font-size: 0.75rem;
+    color: hsl(var(--muted-foreground));
+    margin-bottom: 0.25rem;
+    display: block;
+}
+.day-view-date-cell .day-number {
+    font-size: 1.25rem;
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+}
+.day-view-date-cell .current-day {
   background-color: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
 }
@@ -139,6 +154,12 @@
   color: hsl(var(--muted-foreground));
   text-align: right;
   padding-right: 0.5rem;
+}
+.time-zone-label {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+    color: hsl(var(--muted-foreground));
+    text-align: center;
 }
 
 .time-slot {
@@ -173,3 +194,26 @@
   cursor: pointer;
   z-index: 10;
 }
+
+.current-time-indicator {
+    position: absolute;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    z-index: 20;
+    pointer-events: none;
+}
+.current-time-dot {
+    width: 12px;
+    height: 12px;
+    background-color: #F44336;
+    border-radius: 9999px;
+    position: absolute;
+    left: -6px;
+}
+.current-time-line {
+    width: 100%;
+    height: 2px;
+    background-color: #F44336;
+}
+
