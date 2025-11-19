@@ -330,7 +330,7 @@ export default function AppointmentsPage() {
             throw new Error('Network response was not ok');
           }
           const data = await response.json();
-          const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
+          const usersData = (Array.isArray(data) && data.length > 0 && data[0].json) ? data[0].json.data : (data.data || []);
           
           const mappedUsers = usersData.map((apiUser: any): UserType => ({
             id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
@@ -1053,8 +1053,8 @@ export default function AppointmentsPage() {
                   <AlertDialogDescription>{t('createDialog.cancelAppointmentDescription', { serviceName: deletingAppointment?.service_name, date: deletingAppointment?.date })}</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>{t('createDialog.cancel')}</AlertDialogCancel>
-                  <AlertDialogAction onClick={confirmDeleteAppointment}>{tUserRoles('dialog.assign')}</AlertDialogAction>
+                  <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>{t('createDialog.close')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={confirmDeleteAppointment}>{t('createDialog.confirmCancel')}</AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
