@@ -61,6 +61,10 @@
 }
 .calendar-day.other-month { background-color: hsl(var(--muted) / 0.5); }
 .calendar-day.selected { background-color: hsl(var(--accent) / 0.2); }
+.current-day-month-view {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
 
 .event {
   color: white;
@@ -166,3 +170,5 @@
   cursor: pointer;
   z-index: 10;
 }
+
+    

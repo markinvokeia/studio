@@ -151,7 +151,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                     <div className='day-view-header-dates' style={{ gridTemplateColumns: `60px repeat(${days.length}, 1fr)`}}>
                          <div />
                          {days.map(day => (
-                            <div key={`date-${format(day, 'yyyy-MM-dd')}`} className={cn("day-view-date-cell", isSameDay(day, new Date()) && "bg-primary text-primary-foreground")}>
+                            <div key={`date-${format(day, 'yyyy-MM-dd')}`} className={cn("day-view-date-cell", isSameDay(day, new Date()) && "current-day")}>
                                 {format(day, 'EEE, MMM d')}
                             </div>
                         ))}
@@ -241,7 +241,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
         
         dayElements.push(
           <div key={day} className="calendar-day">
-            <span className={cn('font-semibold w-6 h-6 flex items-center justify-center rounded-full', isSameDay(date, new Date()) && 'bg-primary text-primary-foreground')}>{day}</span>
+            <span className={cn('font-semibold w-6 h-6 flex items-center justify-center rounded-full', isSameDay(date, new Date()) && 'current-day-month-view')}>{day}</span>
             <div className='mt-1 space-y-1'>
               {dayEvents.map((event: any, index: number) => (
                 <div 
@@ -427,3 +427,5 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
 };
 
 export default Calendar;
+
+    
