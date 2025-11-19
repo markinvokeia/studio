@@ -1074,14 +1074,14 @@ export default function AppointmentsPage() {
                   </div>
               )}
               <DialogFooter className="justify-between">
-                  <Button variant="outline" onClick={() => setIsDetailViewOpen(false)}>{t('createDialog.close')}</Button>
+                  <Button variant="outline" onClick={() => setIsDetailViewOpen(false)} className="w-24">{t('createDialog.close')}</Button>
                   <div className="flex gap-2">
                     <Button variant="destructive" onClick={() => {
                         if (selectedAppointment) {
                             handleCancel(selectedAppointment);
                             setIsDetailViewOpen(false);
                         }
-                    }}>
+                    }} className="w-28">
                         <Trash2 className="mr-2 h-4 w-4" />
                         {tColumns('cancel')}
                     </Button>
@@ -1090,7 +1090,7 @@ export default function AppointmentsPage() {
                             handleEdit(selectedAppointment);
                             setIsDetailViewOpen(false);
                         }
-                    }}>
+                    }} className="w-24">
                         <Edit className="mr-2 h-4 w-4" />
                         {tColumns('edit')}
                     </Button>
