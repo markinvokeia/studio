@@ -28,7 +28,7 @@ export function ExchangeRate() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 text-sm font-medium">
+      <div className="flex h-10 w-auto items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium">
         <DollarSign className="h-5 w-5 text-muted-foreground" />
         <Skeleton className="h-4 w-12" />
         <span className="text-muted-foreground">/</span>
@@ -42,16 +42,16 @@ export function ExchangeRate() {
   }
 
   return (
-    <div className="flex items-center gap-2 text-sm font-medium">
+    <div className="flex h-10 w-auto items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium">
       <DollarSign className="h-5 w-5 text-muted-foreground" />
       <div className="flex items-baseline">
-        <span className="text-muted-foreground mr-1">C:</span>
-        <span>{rate.buy.toFixed(2)}</span>
+        <span className="text-xs text-muted-foreground mr-1">C:</span>
+        <span className="font-semibold">{rate.buy.toFixed(2)}</span>
       </div>
       <span className="text-muted-foreground">/</span>
       <div className="flex items-baseline">
-        <span className="text-muted-foreground mr-1">V:</span>
-        <span>{rate.sell.toFixed(2)}</span>
+        <span className="text-xs text-muted-foreground mr-1">V:</span>
+        <span className="font-semibold">{rate.sell.toFixed(2)}</span>
       </div>
     </div>
   );
