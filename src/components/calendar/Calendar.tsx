@@ -250,6 +250,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
                     style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
                     onClick={() => onEventClick(event.data)}
                 >
+                  <span className='mr-2' style={{ backgroundColor: event.color }}>&nbsp;</span>
                   {event.title}
                 </div>
               ))}
@@ -427,5 +428,3 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
 };
 
 export default Calendar;
-
-    
