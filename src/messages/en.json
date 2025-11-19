@@ -902,6 +902,7 @@
       "serviceName": "Service(s)",
       "selectServices": "Select services",
       "servicesSelected": "{count, plural, one {# service selected} other {# services selected}}",
+      "selectedServices": "Selected Services",
       "searchServicePlaceholder": "Search for a service...",
       "selectDoctor": "Select a doctor",
       "searchDoctorPlaceholder": "Search for a doctor...",

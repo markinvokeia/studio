@@ -215,6 +215,20 @@ export default function AppointmentsPage() {
   const [currentView, setCurrentView] = React.useState('month');
 
   React.useEffect(() => {
+    if (isCreateOpen && !editingAppointment) {
+      setNewAppointment({
+        user: null,
+        services: [],
+        doctor: null,
+        calendar: null,
+        date: format(new Date(), 'yyyy-MM-dd'),
+        time: format(new Date(), 'HH:mm'),
+        description: '',
+      });
+    }
+  }, [isCreateOpen, editingAppointment]);
+
+  React.useEffect(() => {
     if (selectedAssignees.length === 0) {
       setGroup(false);
     }
@@ -890,23 +904,23 @@ export default function AppointmentsPage() {
                                     </CommandGroup>
                                     </CommandList>
                                 </Command>
-                                {newAppointment.services.length > 0 && (
-                                    <div className="p-2 border-t">
-                                        <p className="text-sm font-medium mb-1">Selected Services:</p>
-                                        <div className="flex flex-wrap gap-1">
-                                        {newAppointment.services.map(service => (
-                                            <Badge key={service.id} variant="secondary">
-                                                {service.name}
-                                                <Button variant="ghost" size="icon" className="h-4 w-4 ml-1" onClick={() => setNewAppointment(prev => ({...prev, services: prev.services.filter(s => s.id !== service.id)}))}>
-                                                    <X className="h-3 w-3" />
-                                                </Button>
-                                            </Badge>
-                                        ))}
-                                        </div>
-                                    </div>
-                                )}
                             </PopoverContent>
                         </Popover>
+                        {newAppointment.services.length > 0 && (
+                            <div className="p-2 border-t mt-2">
+                                <p className="text-sm font-medium mb-1">{t('createDialog.selectedServices')}:</p>
+                                <div className="flex flex-wrap gap-1">
+                                {newAppointment.services.map(service => (
+                                    <Badge key={service.id} variant="secondary">
+                                        {service.name}
+                                        <Button variant="ghost" size="icon" className="h-4 w-4 ml-1" onClick={() => setNewAppointment(prev => ({...prev, services: prev.services.filter(s => s.id !== service.id)}))}>
+                                            <X className="h-3 w-3" />
+                                        </Button>
+                                    </Badge>
+                                ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
                 <div className="space-y-2">
@@ -1075,17 +1089,3 @@ export default function AppointmentsPage() {
     </Card>
   );
 }
-
-    
-
-    
-
-
-
-
-    
-
-    
-
-    
-
