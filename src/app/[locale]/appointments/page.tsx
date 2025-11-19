@@ -204,8 +204,8 @@ export default function AppointmentsPage() {
     services: [] as Service[],
     doctor: null as UserType | null,
     calendar: null as CalendarType | null,
-    date: '',
-    time: '',
+    date: format(new Date(), 'yyyy-MM-dd'),
+    time: format(new Date(), 'HH:mm'),
     description: '',
   });
   const [originalCalendarId, setOriginalCalendarId] = React.useState<string | undefined>(undefined);
@@ -821,49 +821,49 @@ export default function AppointmentsPage() {
         </Calendar>
       </CardContent>
       <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="max-w-[800px] w-full">
             <DialogHeader>
                 <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
                 <DialogDescription>{t('createDialog.description')}</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                    <Label>{t('createDialog.userName')}</Label>
-                    <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-start">
-                                {newAppointment.user
-                                ? newAppointment.user.name
-                                : t('createDialog.selectUser')}
-                                <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                            <Command>
-                                <CommandInput placeholder={t('createDialog.searchUserPlaceholder')} onValueChange={setUserSearchQuery} />
-                                <CommandList>
-                                <CommandEmpty>{isSearchingUsers ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
-                                <CommandGroup>
-                                    {userSearchResults.map(user => (
-                                        <CommandItem
-                                            key={user.id}
-                                            value={user.name}
-                                            onSelect={() => {
-                                                setNewAppointment(prev => ({...prev, user}));
-                                                setUserSearchOpen(false);
-                                            }}
-                                        >
-                                            <Check className={cn("mr-2 h-4 w-4", newAppointment.user?.id === user.id ? "opacity-100" : "opacity-0")}/>
-                                            {user.name}
-                                        </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
-                </div>
-                {!editingAppointment && (
+            <div className="flex gap-8">
+                <div className="flex-1 space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label>{t('createDialog.userName')}</Label>
+                        <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full justify-start">
+                                    {newAppointment.user
+                                    ? newAppointment.user.name
+                                    : t('createDialog.selectUser')}
+                                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                <Command>
+                                    <CommandInput placeholder={t('createDialog.searchUserPlaceholder')} onValueChange={setUserSearchQuery} />
+                                    <CommandList>
+                                    <CommandEmpty>{isSearchingUsers ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
+                                    <CommandGroup>
+                                        {userSearchResults.map(user => (
+                                            <CommandItem
+                                                key={user.id}
+                                                value={user.name}
+                                                onSelect={() => {
+                                                    setNewAppointment(prev => ({...prev, user}));
+                                                    setUserSearchOpen(false);
+                                                }}
+                                            >
+                                                <Check className={cn("mr-2 h-4 w-4", newAppointment.user?.id === user.id ? "opacity-100" : "opacity-0")}/>
+                                                {user.name}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
                     <div className="space-y-2">
                         <Label>{t('createDialog.serviceName')}</Label>
                         <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
@@ -922,123 +922,121 @@ export default function AppointmentsPage() {
                             </div>
                         )}
                     </div>
-                )}
-                <div className="space-y-2">
-                    <Label>{tColumns('doctor')}</Label>
-                    <Popover open={isDoctorSearchOpen} onOpenChange={setDoctorSearchOpen}>
-                        <PopoverTrigger asChild>
-                             <Button variant="outline" className="w-full justify-start">
-                                {newAppointment.doctor ? newAppointment.doctor.name : t('createDialog.selectDoctor')}
-                                <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                             <Command>
-                                <CommandInput placeholder={t('createDialog.searchDoctorPlaceholder')} onValueChange={setDoctorSearchQuery} />
-                                <CommandList>
-                                <CommandEmpty>{isSearchingDoctors ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
-                                <CommandGroup>
-                                    <CommandItem onSelect={() => {setNewAppointment(prev => ({...prev, doctor: null})); setDoctorSearchOpen(false);}}>
-                                        <Check className={cn("mr-2 h-4 w-4", !newAppointment.doctor ? "opacity-100" : "opacity-0")}/>
-                                        {t('createDialog.none')}
-                                    </CommandItem>
-                                    {doctorSearchResults.map(doctor => (
-                                        <CommandItem
-                                            key={doctor.id}
-                                            value={doctor.name}
-                                            onSelect={() => {
-                                                setNewAppointment(prev => ({...prev, doctor}));
-                                                setDoctorSearchOpen(false);
-                                            }}
-                                        >
-                                            <Check className={cn("mr-2 h-4 w-4", newAppointment.doctor?.id === doctor.id ? "opacity-100" : "opacity-0")}/>
-                                            {doctor.name}
+                    <div className="space-y-2">
+                        <Label>{tColumns('doctor')}</Label>
+                        <Popover open={isDoctorSearchOpen} onOpenChange={setDoctorSearchOpen}>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full justify-start">
+                                    {newAppointment.doctor ? newAppointment.doctor.name : t('createDialog.selectDoctor')}
+                                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                <Command>
+                                    <CommandInput placeholder={t('createDialog.searchDoctorPlaceholder')} onValueChange={setDoctorSearchQuery} />
+                                    <CommandList>
+                                    <CommandEmpty>{isSearchingDoctors ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
+                                    <CommandGroup>
+                                        <CommandItem onSelect={() => {setNewAppointment(prev => ({...prev, doctor: null})); setDoctorSearchOpen(false);}}>
+                                            <Check className={cn("mr-2 h-4 w-4", !newAppointment.doctor ? "opacity-100" : "opacity-0")}/>
+                                            {t('createDialog.none')}
                                         </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
-                </div>
-                 <div className="space-y-2">
-                    <Label>{t('createDialog.calendar')}</Label>
-                     <Popover open={isCalendarSearchOpen} onOpenChange={setCalendarSearchOpen}>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-start">
-                                {newAppointment.calendar ? newAppointment.calendar.name : t('createDialog.allCalendars')}
-                                <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                            <Command>
-                                <CommandList>
-                                <CommandGroup>
-                                    <CommandItem onSelect={() => {setNewAppointment(prev => ({...prev, calendar: null})); setCalendarSearchOpen(false);}}>
-                                        <Check className={cn("mr-2 h-4 w-4", !newAppointment.calendar ? "opacity-100" : "opacity-0")}/>
-                                        {t('createDialog.allCalendars')}
-                                    </CommandItem>
-                                    {calendars.map(calendar => (
-                                        <CommandItem
-                                            key={calendar.id}
-                                            value={calendar.name}
-                                            onSelect={() => {
-                                                setNewAppointment(prev => ({...prev, calendar}));
-                                                setCalendarSearchOpen(false);
-                                            }}
-                                        >
-                                            <Check className={cn("mr-2 h-4 w-4", newAppointment.calendar?.id === calendar.id ? "opacity-100" : "opacity-0")}/>
-                                            {calendar.name}
+                                        {doctorSearchResults.map(doctor => (
+                                            <CommandItem
+                                                key={doctor.id}
+                                                value={doctor.name}
+                                                onSelect={() => {
+                                                    setNewAppointment(prev => ({...prev, doctor}));
+                                                    setDoctorSearchOpen(false);
+                                                }}
+                                            >
+                                                <Check className={cn("mr-2 h-4 w-4", newAppointment.doctor?.id === doctor.id ? "opacity-100" : "opacity-0")}/>
+                                                {doctor.name}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>{t('createDialog.calendar')}</Label>
+                        <Popover open={isCalendarSearchOpen} onOpenChange={setCalendarSearchOpen}>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full justify-start">
+                                    {newAppointment.calendar ? newAppointment.calendar.name : t('createDialog.allCalendars')}
+                                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                <Command>
+                                    <CommandList>
+                                    <CommandGroup>
+                                        <CommandItem onSelect={() => {setNewAppointment(prev => ({...prev, calendar: null})); setCalendarSearchOpen(false);}}>
+                                            <Check className={cn("mr-2 h-4 w-4", !newAppointment.calendar ? "opacity-100" : "opacity-0")}/>
+                                            {t('createDialog.allCalendars')}
                                         </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="date">{t('createDialog.date')}</Label>
-                    <Input id="date" type="date" value={newAppointment.date} onChange={e => setNewAppointment(prev => ({...prev, date: e.target.value}))} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="time">{t('createDialog.time')}</Label>
-                    <Input id="time" type="time" value={newAppointment.time} onChange={e => setNewAppointment(prev => ({...prev, time: e.target.value}))} />
-                </div>
-                {editingAppointment && (
+                                        {calendars.map(calendar => (
+                                            <CommandItem
+                                                key={calendar.id}
+                                                value={calendar.name}
+                                                onSelect={() => {
+                                                    setNewAppointment(prev => ({...prev, calendar}));
+                                                    setCalendarSearchOpen(false);
+                                                }}
+                                            >
+                                                <Check className={cn("mr-2 h-4 w-4", newAppointment.calendar?.id === calendar.id ? "opacity-100" : "opacity-0")}/>
+                                                {calendar.name}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="date">{t('createDialog.date')}</Label>
+                        <Input id="date" type="date" value={newAppointment.date} onChange={e => setNewAppointment(prev => ({...prev, date: e.target.value}))} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="time">{t('createDialog.time')}</Label>
+                        <Input id="time" type="time" value={newAppointment.time} onChange={e => setNewAppointment(prev => ({...prev, time: e.target.value}))} />
+                    </div>
                     <div className="space-y-2">
                         <Label htmlFor="description">{t('createDialog.descriptionLabel')}</Label>
                         <Textarea id="description" value={newAppointment.description} onChange={e => setNewAppointment(prev => ({...prev, description: e.target.value}))} />
                     </div>
+                </div>
+                {!editingAppointment && (availabilityStatus === 'unavailable' || availabilityStatus === 'checking') && (
+                    <div className="flex-1 border-l pl-8">
+                        <h3 className="text-lg font-medium mb-4">{t('createDialog.suggestedTimes')}</h3>
+                        <ScrollArea className="h-96">
+                            {availabilityStatus === 'checking' ? <p>Checking...</p> : (
+                                <RadioGroup onValueChange={(value) => {
+                                    const [date, time, doctorId, calendarId] = value.split('|');
+                                    const doctor = assignees.find(d => d.id === doctorId);
+                                    const calendar = calendars.find(c => c.id === calendarId);
+                                    setNewAppointment(prev => ({...prev, date, time, doctor: doctor || null, calendar: calendar || null}));
+                                }}>
+                                    {suggestedTimes.map((suggestion, index) => (
+                                        <div key={suggestion.id} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
+                                            <RadioGroupItem value={`${suggestion.date}|${suggestion.time}|${suggestion.doctor.id}|${suggestion.calendar}`} id={suggestion.id} />
+                                            <Label htmlFor={suggestion.id} className="font-normal text-sm">
+                                                {suggestion.date} at {suggestion.time} with {suggestion.doctor.name} in {suggestion.calendar}
+                                            </Label>
+                                        </div>
+                                    ))}
+                                </RadioGroup>
+                            )}
+                            {availabilityStatus === 'unavailable' && suggestedTimes.length === 0 && (
+                                <p className="text-sm text-muted-foreground">No suggestions available for the selected criteria.</p>
+                            )}
+                        </ScrollArea>
+                    </div>
                 )}
             </div>
-            {!editingAppointment && (availabilityStatus === 'unavailable' || availabilityStatus === 'checking') && (
-                <div className="border-t pt-4">
-                    <h3 className="text-sm font-medium mb-2">{t('createDialog.suggestedTimes')}</h3>
-                    <ScrollArea className="h-40">
-                        {availabilityStatus === 'checking' ? <p>Checking...</p> : (
-                            <RadioGroup onValueChange={(value) => {
-                                const [date, time, doctorId, calendarId] = value.split('|');
-                                const doctor = assignees.find(d => d.id === doctorId);
-                                const calendar = calendars.find(c => c.id === calendarId);
-                                setNewAppointment(prev => ({...prev, date, time, doctor: doctor || null, calendar: calendar || null}));
-                            }}>
-                                {suggestedTimes.map((suggestion, index) => (
-                                    <div key={suggestion.id} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
-                                        <RadioGroupItem value={`${suggestion.date}|${suggestion.time}|${suggestion.doctor.id}|${suggestion.calendar}`} id={suggestion.id} />
-                                        <Label htmlFor={suggestion.id} className="font-normal text-sm">
-                                            {suggestion.date} at {suggestion.time} with {suggestion.doctor.name} in {suggestion.calendar}
-                                        </Label>
-                                    </div>
-                                ))}
-                            </RadioGroup>
-                        )}
-                        {availabilityStatus === 'unavailable' && suggestedTimes.length === 0 && (
-                            <p className="text-sm text-muted-foreground">No suggestions available for the selected criteria.</p>
-                        )}
-                    </ScrollArea>
-                </div>
-            )}
             <DialogFooter>
                 <Button variant="outline" onClick={() => setCreateOpen(false)}>{t('createDialog.cancel')}</Button>
                 <Button onClick={handleSaveAppointment}>{editingAppointment ? tColumns('edit') : t('createDialog.save')}</Button>
@@ -1089,3 +1087,4 @@ export default function AppointmentsPage() {
     </Card>
   );
 }
+
