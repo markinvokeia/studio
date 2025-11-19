@@ -498,8 +498,8 @@ export default function AppointmentsPage() {
         params.attendeesEmails = attendeeEmails.join(',');
     }
     
-    if (calendar?.id) {
-        params.calendarIds = calendar.id;
+    if (calendar?.google_calendar_id) {
+        params.calendarIds = calendar.google_calendar_id;
     }
 
     try {
@@ -646,7 +646,7 @@ export default function AppointmentsPage() {
         const responseData = await response.json();
         const result = Array.isArray(responseData) ? responseData[0] : responseData;
 
-        if (response.ok && result.code === 200) {
+        if (response.ok && (result.code === 200 || result.success)) {
             toast({
                 title: "Appointment Cancelled",
                 description: result.message || "The appointment has been successfully cancelled.",
@@ -1066,11 +1066,11 @@ export default function AppointmentsPage() {
               </DialogHeader>
               {selectedAppointment && (
                   <div className="grid gap-4 py-4">
-                      <div><strong>{tColumns('patient')}:</strong> {selectedAppointment.patientName}</div>
-                      <div><strong>{tColumns('doctor')}:</strong> {selectedAppointment.doctorName}</div>
-                      <div><strong>{tColumns('date')}:</strong> {selectedAppointment.date}</div>
-                      <div><strong>{tColumns('time')}:</strong> {selectedAppointment.time}</div>
-                      <div><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>
+                      <div className='flex gap-2'><strong>{tColumns('patient')}:</strong> {selectedAppointment.patientName}</div>
+                      <div className='flex gap-2'><strong>{tColumns('doctor')}:</strong> {selectedAppointment.doctorName}</div>
+                      <div className='flex gap-2'><strong>{tColumns('date')}:</strong> {selectedAppointment.date}</div>
+                      <div className='flex gap-2'><strong>{tColumns('time')}:</strong> {selectedAppointment.time}</div>
+                      <div className='flex gap-2'><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>
                       <div className="flex items-center gap-2"><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></div>
                   </div>
               )}
