@@ -29,18 +29,18 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 
-type View = 'day' | '2-day' | '3-day' | 'week' | 'month' | 'year' | 'schedule';
-
-const EVENT_COLORS = [
-    '#039be5', // Blue
-    '#7986cb', // Indigo
-    '#33b679', // Green
-    '#8e24aa', // Purple
-    '#e67c73', // Red
-    '#f6c026', // Yellow
-    '#f5511d', // Orange
-    '#009688', // Teal
-    '#616161', // Gray
+const GOOGLE_CALENDAR_COLORS = [
+    { id: "1", hex: "#a4bdfc" }, // Lavender
+    { id: "2", hex: "#7ae7bf" }, // Sage
+    { id: "3", hex: "#dbadff" }, // Grape
+    { id: "4", hex: "#ff887c" }, // Flamingo
+    { id: "5", hex: "#fbd75b" }, // Banana
+    { id: "6", hex: "#ffb878" }, // Tangerine
+    { id: "7", hex: "#46d6db" }, // Peacock
+    { id: "8", hex: "#e1e1e1" }, // Graphite
+    { id: "9", hex: "#5484ed" }, // Blueberry
+    { id: "10", hex: "#51b749" },// Basil
+    { id: "11", hex: "#dc2127" },// Tomato
 ];
 
 
@@ -149,30 +149,30 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
 
   const EventComponent = ({ event }: { event: any }) => (
     <ContextMenu>
-        <ContextMenuTrigger>
+      <ContextMenuTrigger>
+        <div
+          className="event"
+          style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
+          onClick={() => onEventClick(event.data)}
+        >
+          <span className='mr-2' style={{ backgroundColor: event.color }}>&nbsp;</span>
+          {event.title}
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <div className="grid grid-cols-4 gap-2 p-2">
+          {GOOGLE_CALENDAR_COLORS.map(color => (
             <div
-                className="event"
-                style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
-                onClick={() => onEventClick(event.data)}
-            >
-                <span className='mr-2' style={{ backgroundColor: event.color }}>&nbsp;</span>
-                {event.title}
-            </div>
-        </ContextMenuTrigger>
-        <ContextMenuContent>
-             <div className="grid grid-cols-4 gap-2 p-2">
-                {EVENT_COLORS.map(color => (
-                    <div 
-                        key={color} 
-                        className="w-6 h-6 rounded-full cursor-pointer hover:opacity-80"
-                        style={{ backgroundColor: color }}
-                        onClick={() => onEventColorChange(event.data, color)}
-                    />
-                ))}
-            </div>
-        </ContextMenuContent>
+              key={color.id}
+              className="w-6 h-6 rounded-full cursor-pointer hover:opacity-80"
+              style={{ backgroundColor: color.hex }}
+              onClick={() => onEventColorChange(event.data, color.id)}
+            />
+          ))}
+        </div>
+      </ContextMenuContent>
     </ContextMenu>
-);
+  );
 
 const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CSSProperties }) => (
     <ContextMenu>
@@ -180,19 +180,22 @@ const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CS
             <div 
                 className="event-in-day-view" 
                 style={style}
-                onClick={() => onEventClick(event.data)}
+                onClick={(e) => {
+                  e.stopPropagation(); // prevent triggering other click listeners
+                  onEventClick(event.data);
+                }}
             >
                 {event.title}
             </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
              <div className="grid grid-cols-4 gap-2 p-2">
-                {EVENT_COLORS.map(color => (
+                {GOOGLE_CALENDAR_COLORS.map(color => (
                     <div 
-                        key={color} 
+                        key={color.id} 
                         className="w-6 h-6 rounded-full cursor-pointer hover:opacity-80"
-                        style={{ backgroundColor: color }}
-                        onClick={() => onEventColorChange(event.data, color)}
+                        style={{ backgroundColor: color.hex }}
+                        onClick={() => onEventColorChange(event.data, color.id)}
                     />
                 ))}
             </div>

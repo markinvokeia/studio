@@ -52,6 +52,22 @@ const CALENDAR_COLORS = [
     'hsl(0, 75%, 55%)',
 ];
 
+const GOOGLE_CALENDAR_COLORS = [
+    { id: "1", hex: "#a4bdfc" }, // Lavender
+    { id: "2", hex: "#7ae7bf" }, // Sage
+    { id: "3", hex: "#dbadff" }, // Grape
+    { id: "4", hex: "#ff887c" }, // Flamingo
+    { id: "5", hex: "#fbd75b" }, // Banana
+    { id: "6", hex: "#ffb878" }, // Tangerine
+    { id: "7", hex: "#46d6db" }, // Peacock
+    { id: "8", hex: "#e1e1e1" }, // Graphite
+    { id: "9", hex: "#5484ed" }, // Blueberry
+    { id: "10", hex: "#51b749" },// Basil
+    { id: "11", hex: "#dc2127" },// Tomato
+];
+
+const colorMap = new Map(GOOGLE_CALENDAR_COLORS.map(c => [c.id, c.hex]));
+
 
 async function getAppointments(calendarGoogleIds: string[], startDate: Date, endDate: Date, calendars: CalendarType[]): Promise<Appointment[]> {
     if (!isValid(startDate) || !isValid(endDate)) {
@@ -105,6 +121,9 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
             const calendarId = apiAppt.organizer?.email;
             const calendar = calendars.find(c => c.google_calendar_id === calendarId);
 
+            const appointmentColorId = apiAppt.colorId || apiAppt.color;
+            let finalColor = colorMap.get(appointmentColorId) || apiAppt.service_color || apiAppt.doctor_color || calendar?.color;
+
             return {
                 id: apiAppt.id,
                 patientName: apiAppt.patientName || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a:any) => a.email).join(', ') : 'N/A'),
@@ -119,7 +138,8 @@ async function getAppointments(calendarGoogleIds: string[], startDate: Date, end
                 doctorName: apiAppt.doctorName,
                 calendar_id: calendarId,
                 calendar_name: apiAppt.organizer?.displayName,
-                color: apiAppt.color,
+                color: finalColor,
+                colorId: appointmentColorId,
             };
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
@@ -559,7 +579,7 @@ export default function AppointmentsPage() {
   }, [newAppointment.date, newAppointment.time, newAppointment.doctor, newAppointment.calendar, checkAvailability]);
 
 
-  const handleSaveAppointment = async (appointmentDetails: Partial<Appointment> & {color?: string}) => {
+  const handleSaveAppointment = async (appointmentDetails: Partial<Appointment> & {color?: string; colorId?: string}) => {
     const { user, doctor, services, calendar, date, time, description } = newAppointment;
 
     if (!date || !time) {
@@ -587,7 +607,7 @@ export default function AppointmentsPage() {
       startingDateAndTime: startDateTime.toISOString(),
       endingDateAndTime: endDateTime.toISOString(),
       mode: isEditing ? 'update' : 'create',
-      ...(appointmentDetails.color && { color: appointmentDetails.color }),
+      ...(appointmentDetails.colorId && { colorId: appointmentDetails.colorId }),
     };
 
     // Populate payload based on what's available
@@ -656,7 +676,11 @@ export default function AppointmentsPage() {
             });
             checkAvailability(newAppointment); // Re-check for new suggestions
         } else {
-            throw new Error(errorMessage);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: errorMessage,
+            });
         }
       }
 
@@ -670,14 +694,15 @@ export default function AppointmentsPage() {
     }
   };
 
-  const handleEventColorChange = (appointment: Appointment, color: string) => {
+  const handleEventColorChange = (appointment: Appointment, colorId: string) => {
+    const colorHex = colorMap.get(colorId);
     // Optimistically update UI
-    setAppointments(prev => prev.map(a => a.id === appointment.id ? { ...a, color } : a));
+    setAppointments(prev => prev.map(a => a.id === appointment.id ? { ...a, color: colorHex, colorId: colorId } : a));
 
     // Persist change to backend
     const payload = {
         ...appointment,
-        color: color,
+        colorId: colorId,
     };
     handleSaveAppointment(payload);
   };
@@ -734,12 +759,13 @@ export default function AppointmentsPage() {
           assignee: appt.doctorEmail,
           data: appt,
           color: appt.color,
+          colorId: appt.colorId,
         };
       } catch (e) {
         console.error("Error parsing date/time for appointment", appt);
         return null;
       }
-    }).filter(Boolean) as ({ id: string; title: string; start: Date; end: Date; assignee: string | undefined; data: Appointment; color?: string; })[];
+    }).filter(Boolean) as ({ id: string; title: string; start: Date; end: Date; assignee: string | undefined; data: Appointment; color?: string; colorId?: string })[];
   }, [appointments]);
 
  const handleSelectAssignee = React.useCallback((assigneeId: string, checked: boolean) => {
@@ -871,12 +897,15 @@ export default function AppointmentsPage() {
       </CardContent>
       <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-4xl w-full">
-            <DialogHeader>
-                <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
-                <DialogDescription>{t('createDialog.description')}</DialogDescription>
-            </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
-                {/* Left Column */}
+          <DialogHeader>
+            <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
+            <DialogDescription>{t('createDialog.description')}</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-4">
+            {/* Left & Middle Column */}
+            <div className="md:col-span-2 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Left */}
                 <div className="space-y-4">
                     <div className="space-y-2">
                         <Label>{t('createDialog.userName')}</Label>
@@ -913,6 +942,47 @@ export default function AppointmentsPage() {
                         </Popover>
                     </div>
                     <div className="space-y-2">
+                        <Label>{tColumns('doctor')}</Label>
+                        <Popover open={isDoctorSearchOpen} onOpenChange={setDoctorSearchOpen}>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full justify-start">
+                                    {newAppointment.doctor ? newAppointment.doctor.name : t('createDialog.selectDoctor')}
+                                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                <Command>
+                                    <CommandInput placeholder={t('createDialog.searchDoctorPlaceholder')} onValueChange={setDoctorSearchQuery} />
+                                    <CommandList>
+                                    <CommandEmpty>{isSearchingDoctors ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
+                                    <CommandGroup>
+                                        <CommandItem onSelect={() => {setNewAppointment(prev => ({...prev, doctor: null})); setDoctorSearchOpen(false);}}>
+                                            <Check className={cn("mr-2 h-4 w-4", !newAppointment.doctor ? "opacity-100" : "opacity-0")}/>
+                                            {t('createDialog.none')}
+                                        </CommandItem>
+                                        {doctorSearchResults.map(doctor => (
+                                            <CommandItem
+                                                key={doctor.id}
+                                                value={doctor.name}
+                                                onSelect={() => {
+                                                    setNewAppointment(prev => ({...prev, doctor}));
+                                                    setDoctorSearchOpen(false);
+                                                }}
+                                            >
+                                                <Check className={cn("mr-2 h-4 w-4", newAppointment.doctor?.id === doctor.id ? "opacity-100" : "opacity-0")}/>
+                                                {doctor.name}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                </div>
+                {/* Right */}
+                <div className="space-y-4">
+                    <div className="space-y-2">
                         <Label>{t('createDialog.serviceName')}</Label>
                         <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
                             <PopoverTrigger asChild>
@@ -947,58 +1017,6 @@ export default function AppointmentsPage() {
                                                     className="mr-2"
                                                 />
                                                 <span>{service.name}</span>
-                                            </CommandItem>
-                                        ))}
-                                    </CommandGroup>
-                                    </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
-                        {newAppointment.services.length > 0 && (
-                            <div className="p-2 border-t mt-2">
-                                <div className="flex flex-wrap gap-1">
-                                {newAppointment.services.map(service => (
-                                    <Badge key={service.id} variant="secondary">
-                                        {service.name}
-                                        <Button variant="ghost" size="icon" className="h-4 w-4 ml-1" onClick={() => setNewAppointment(prev => ({...prev, services: prev.services.filter(s => s.id !== service.id)}))}>
-                                            <X className="h-3 w-3" />
-                                        </Button>
-                                    </Badge>
-                                ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    <div className="space-y-2">
-                        <Label>{tColumns('doctor')}</Label>
-                        <Popover open={isDoctorSearchOpen} onOpenChange={setDoctorSearchOpen}>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-full justify-start">
-                                    {newAppointment.doctor ? newAppointment.doctor.name : t('createDialog.selectDoctor')}
-                                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                                <Command>
-                                    <CommandInput placeholder={t('createDialog.searchDoctorPlaceholder')} onValueChange={setDoctorSearchQuery} />
-                                    <CommandList>
-                                    <CommandEmpty>{isSearchingDoctors ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
-                                    <CommandGroup>
-                                        <CommandItem onSelect={() => {setNewAppointment(prev => ({...prev, doctor: null})); setDoctorSearchOpen(false);}}>
-                                            <Check className={cn("mr-2 h-4 w-4", !newAppointment.doctor ? "opacity-100" : "opacity-0")}/>
-                                            {t('createDialog.none')}
-                                        </CommandItem>
-                                        {doctorSearchResults.map(doctor => (
-                                            <CommandItem
-                                                key={doctor.id}
-                                                value={doctor.name}
-                                                onSelect={() => {
-                                                    setNewAppointment(prev => ({...prev, doctor}));
-                                                    setDoctorSearchOpen(false);
-                                                }}
-                                            >
-                                                <Check className={cn("mr-2 h-4 w-4", newAppointment.doctor?.id === doctor.id ? "opacity-100" : "opacity-0")}/>
-                                                {doctor.name}
                                             </CommandItem>
                                         ))}
                                     </CommandGroup>
@@ -1044,54 +1062,70 @@ export default function AppointmentsPage() {
                         </Popover>
                     </div>
                 </div>
-                {/* Right Column */}
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="date">{t('createDialog.date')}</Label>
-                        <Input id="date" type="date" value={newAppointment.date} onChange={e => setNewAppointment(prev => ({...prev, date: e.target.value}))} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="time">{t('createDialog.time')}</Label>
-                        <Input id="time" type="time" value={newAppointment.time} onChange={e => setNewAppointment(prev => ({...prev, time: e.target.value}))} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="description">{t('createDialog.descriptionLabel')}</Label>
-                        <Textarea id="description" value={newAppointment.description} onChange={e => setNewAppointment(prev => ({...prev, description: e.target.value}))} />
+              </div>
+              {newAppointment.services.length > 0 && (
+                <div className="p-2 border rounded-md mt-2">
+                    <Label className="text-xs text-muted-foreground">{t('createDialog.selectedServices')}</Label>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                    {newAppointment.services.map(service => (
+                        <Badge key={service.id} variant="secondary">
+                            {service.name}
+                            <Button variant="ghost" size="icon" className="h-4 w-4 ml-1 hover:bg-transparent" onClick={() => setNewAppointment(prev => ({...prev, services: prev.services.filter(s => s.id !== service.id)}))}>
+                                <X className="h-3 w-3" />
+                            </Button>
+                        </Badge>
+                    ))}
                     </div>
                 </div>
+              )}
+               <div className="space-y-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="date">{t('createDialog.date')}</Label>
+                      <Input id="date" type="date" value={newAppointment.date} onChange={e => setNewAppointment(prev => ({...prev, date: e.target.value}))} />
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="time">{t('createDialog.time')}</Label>
+                      <Input id="time" type="time" value={newAppointment.time} onChange={e => setNewAppointment(prev => ({...prev, time: e.target.value}))} />
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="description">{t('createDialog.descriptionLabel')}</Label>
+                      <Textarea id="description" value={newAppointment.description} onChange={e => setNewAppointment(prev => ({...prev, description: e.target.value}))} />
+                  </div>
+              </div>
             </div>
-
+            {/* Right Column for suggestions */}
             {!editingAppointment && (availabilityStatus === 'unavailable' || availabilityStatus === 'checking') && (
-                <div className="border-t pt-4">
-                    <h3 className="text-lg font-medium mb-4">{t('createDialog.suggestedTimes')}</h3>
-                    <ScrollArea className="h-48">
-                        {availabilityStatus === 'checking' ? <p>Checking...</p> : (
-                            <RadioGroup onValueChange={(value) => {
-                                const [date, time, doctorId, calendarId] = value.split('|');
-                                const doctor = assignees.find(d => d.id === doctorId);
-                                const calendar = calendars.find(c => c.id === calendarId);
-                                setNewAppointment(prev => ({...prev, date, time, doctor: doctor || null, calendar: calendar || null}));
-                            }}>
-                                {suggestedTimes.map((suggestion, index) => (
-                                    <div key={suggestion.id} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
-                                        <RadioGroupItem value={`${suggestion.date}|${suggestion.time}|${suggestion.doctor.id}|${suggestion.calendar}`} id={suggestion.id} />
-                                        <Label htmlFor={suggestion.id} className="font-normal text-sm">
-                                            {suggestion.date} at {suggestion.time} with {suggestion.doctor.name} in {suggestion.calendar}
-                                        </Label>
-                                    </div>
-                                ))}
-                            </RadioGroup>
-                        )}
-                        {availabilityStatus === 'unavailable' && suggestedTimes.length === 0 && (
-                            <p className="text-sm text-muted-foreground">No suggestions available for the selected criteria.</p>
-                        )}
-                    </ScrollArea>
-                </div>
+              <div className="border-l pl-8">
+                  <h3 className="text-lg font-medium mb-4 text-center">{t('createDialog.suggestedTimes')}</h3>
+                  <ScrollArea className="h-96">
+                      {availabilityStatus === 'checking' ? <p>Checking...</p> : (
+                          <RadioGroup onValueChange={(value) => {
+                              const [date, time, doctorId, calendarId] = value.split('|');
+                              const doctor = assignees.find(d => d.id === doctorId);
+                              const calendar = calendars.find(c => c.id === calendarId);
+                              setNewAppointment(prev => ({...prev, date, time, doctor: doctor || null, calendar: calendar || null}));
+                          }}>
+                              {suggestedTimes.map((suggestion, index) => (
+                                  <div key={suggestion.id} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
+                                      <RadioGroupItem value={`${suggestion.date}|${suggestion.time}|${suggestion.doctor.id}|${suggestion.calendar}`} id={suggestion.id} />
+                                      <Label htmlFor={suggestion.id} className="font-normal text-sm">
+                                          {suggestion.date} at {suggestion.time} with {suggestion.doctor.name} in {suggestion.calendar}
+                                      </Label>
+                                  </div>
+                              ))}
+                          </RadioGroup>
+                      )}
+                      {availabilityStatus === 'unavailable' && suggestedTimes.length === 0 && (
+                          <p className="text-sm text-muted-foreground text-center pt-10">No suggestions available for the selected criteria.</p>
+                      )}
+                  </ScrollArea>
+              </div>
             )}
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setCreateOpen(false)}>{t('createDialog.cancel')}</Button>
-                <Button onClick={() => handleSaveAppointment(newAppointment)}>{editingAppointment ? tColumns('edit') : t('createDialog.save')}</Button>
-            </DialogFooter>
+          </div>
+          <DialogFooter>
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>{t('createDialog.cancel')}</Button>
+              <Button onClick={() => handleSaveAppointment(newAppointment)}>{editingAppointment ? tColumns('edit') : t('createDialog.save')}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
@@ -1131,7 +1165,7 @@ export default function AppointmentsPage() {
                         }
                     }} className="w-28">
                         <Trash2 className="mr-2 h-4 w-4" />
-                        {tColumns('cancel')}
+                        {t('AppointmentsColumns.cancel')}
                     </Button>
                     <Button onClick={() => {
                         if (selectedAppointment) {

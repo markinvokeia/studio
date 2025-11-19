@@ -263,6 +263,7 @@ export type Appointment = {
   calendar_id: string;
   calendar_name?: string;
   color?: string;
+  colorId?: string;
 };
 
 export type UserLog = {
