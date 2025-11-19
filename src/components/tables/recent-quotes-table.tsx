@@ -24,18 +24,29 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Printer } from 'lucide-react';
+import { MoreHorizontal, Printer, Send } from 'lucide-react';
 import { DocumentTextIcon } from '../icons/document-text-icon';
 import { useTranslations } from 'next-intl';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const getColumns = (
     t: (key: string) => string,
     onEdit: (quote: Quote) => void,
     onDelete: (quote: Quote) => void,
     onQuoteAction: (quote: Quote, action: 'confirm' | 'reject') => void,
-    onPrint: (quote: Quote) => void
+    onPrint: (quote: Quote) => void,
+    onSendEmail: (quote: Quote) => void
 ): ColumnDef<Quote>[] => [
   {
     id: 'select',
@@ -216,6 +227,10 @@ const getColumns = (
               <Printer className="mr-2 h-4 w-4" />
               <span>{tQuotes('print')}</span>
             </DropdownMenuItem>
+             <DropdownMenuItem onClick={() => onSendEmail(quote)}>
+              <Send className="mr-2 h-4 w-4" />
+              <span>{tQuotes('sendEmail')}</span>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onEdit(quote)} disabled={!isDraft}>
               {t('edit')}
@@ -250,6 +265,9 @@ interface RecentQuotesTableProps {
 export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRefresh, isRefreshing, rowSelection, setRowSelection, onEdit = () => {}, onDelete = () => {}, onQuoteAction = () => {} }: RecentQuotesTableProps) {
   const t = useTranslations();
   const { toast } = useToast();
+  const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
+  const [selectedQuoteForEmail, setSelectedQuoteForEmail] = React.useState<Quote | null>(null);
+  const [emailRecipients, setEmailRecipients] = React.useState('');
 
   const handlePrintQuote = async (quote: Quote) => {
     try {
@@ -292,9 +310,56 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
     }
   };
   
-  const columns = React.useMemo(() => getColumns(t, onEdit, onDelete, onQuoteAction, handlePrintQuote), [t, onEdit, onDelete, onQuoteAction]);
+  const handleSendEmailClick = (quote: Quote) => {
+    setSelectedQuoteForEmail(quote);
+    setEmailRecipients(quote.userEmail || '');
+    setIsSendEmailDialogOpen(true);
+  };
+
+  const handleConfirmSendEmail = async () => {
+    if (!selectedQuoteForEmail) return;
+
+    const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
+    if (emails.length === 0) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Please enter at least one recipient email.' });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/quote/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ quoteId: selectedQuoteForEmail.id, emails }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send email.');
+      }
+
+      toast({
+        title: 'Email Sent',
+        description: `The quote has been successfully sent to ${emails.join(', ')}.`,
+      });
+
+      setIsSendEmailDialogOpen(false);
+      
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+      });
+    }
+  };
+  
+  const columns = React.useMemo(() => getColumns(t, onEdit, onDelete, onQuoteAction, handlePrintQuote, handleSendEmailClick), [t, onEdit, onDelete, onQuoteAction]);
   
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
@@ -319,5 +384,29 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
         />
       </CardContent>
     </Card>
+    
+    <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('QuotesPage.sendEmailDialog.title')}</DialogTitle>
+          <DialogDescription>{t('QuotesPage.sendEmailDialog.description', { id: selectedQuoteForEmail?.id })}</DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <Label htmlFor="email-recipients">{t('QuotesPage.sendEmailDialog.recipients')}</Label>
+          <Input
+            id="email-recipients"
+            value={emailRecipients}
+            onChange={(e) => setEmailRecipients(e.target.value)}
+            placeholder={t('QuotesPage.sendEmailDialog.placeholder')}
+          />
+           <p className="text-sm text-muted-foreground mt-1">{t('QuotesPage.sendEmailDialog.helperText')}</p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>{t('QuotesPage.quoteDialog.cancel')}</Button>
+          <Button onClick={handleConfirmSendEmail}>{t('QuotesPage.sendEmail')}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
