@@ -232,7 +232,7 @@ export default function AppointmentsPage() {
 
   React.useEffect(() => {
     if (editingAppointment && calendars.length > 0) {
-        let foundCalendar = calendars.find(c => c.id === editingAppointment.calendar_id);
+        let foundCalendar = calendars.find(c => c.google_calendar_id === editingAppointment.calendar_id);
         
         if (!foundCalendar) {
             foundCalendar = calendars.find(c => c.name === editingAppointment.calendar_name);
@@ -318,7 +318,7 @@ export default function AppointmentsPage() {
           const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
           
           const mappedUsers = usersData.map((apiUser: any): UserType => ({
-            id: apiUser.user_id ? String(apiUser.user_id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
             name: apiUser.name || 'No Name',
             email: apiUser.email || 'no-email@example.com',
             phone_number: apiUser.phone_number || '000-000-0000',
@@ -399,7 +399,7 @@ export default function AppointmentsPage() {
       const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || []);
       
       const newDocs = doctorsData.map((apiUser: any): UserType => ({
-        id: apiUser.user_id ? String(apiUser.user_id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+        id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
         name: apiUser.name || 'No Name',
         email: apiUser.email || 'no-email@example.com',
         phone_number: apiUser.phone_number || '000-000-0000',
@@ -570,7 +570,7 @@ export default function AppointmentsPage() {
       serviceName: services.map(s => s.name).join(', '),
       description: description || services.map(s => s.name).join(', '),
       mode: editingAppointment ? 'update' : 'create',
-      ...(calendar && { calendarId: calendar.id }),
+      ...(calendar && { calendarId: calendar.google_calendar_id }),
       ...(editingAppointment && { eventId: editingAppointment.id }),
       ...(editingAppointment && originalCalendarId && { oldCalendarId: originalCalendarId }),
     };
