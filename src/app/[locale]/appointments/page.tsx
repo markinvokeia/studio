@@ -559,7 +559,7 @@ export default function AppointmentsPage() {
     const totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
     const endDateTime = addMinutes(startDateTime, totalDuration);
 
-    const payload: Record<string, string> = {
+    const payload = {
       startingDateAndTime: startDateTime.toISOString(),
       endingDateAndTime: endDateTime.toISOString(),
       doctorId: doctor?.id || '',
@@ -570,18 +570,10 @@ export default function AppointmentsPage() {
       serviceName: services.map(s => s.name).join(', '),
       description: description || services.map(s => s.name).join(', '),
       mode: editingAppointment ? 'update' : 'create',
+      ...(calendar && { calendarId: calendar.id }),
+      ...(editingAppointment && { eventId: editingAppointment.id }),
+      ...(editingAppointment && originalCalendarId && { oldCalendarId: originalCalendarId }),
     };
-
-    if (calendar) {
-        payload.calendarId = calendar.id;
-    } else {
-        payload.calendarId = calendars.map(c => c.id).join(',');
-    }
-
-    if (editingAppointment) {
-      payload.eventId = editingAppointment.id;
-      if (originalCalendarId) payload.oldCalendarId = originalCalendarId;
-    }
 
     try {
       const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments/upsert', {
@@ -592,7 +584,6 @@ export default function AppointmentsPage() {
 
       const responseData = await response.json();
       const result = Array.isArray(responseData) ? responseData[0] : responseData;
-
 
       if (response.ok && (result.code === 200 || result.status === 'success')) {
         toast({
@@ -1097,3 +1088,4 @@ export default function AppointmentsPage() {
     
 
     
+
