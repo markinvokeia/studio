@@ -144,6 +144,10 @@
 }
 .day-column:last-child { border-right: none; }
 
+.day-column > .time-slot {
+  border-bottom: 1px solid var(--border);
+}
+
 .event-in-day-view {
   position: absolute;
   left: 4px;
