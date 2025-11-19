@@ -324,6 +324,19 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
       toast({ variant: 'destructive', title: 'Error', description: 'Please enter at least one recipient email.' });
       return;
     }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const invalidEmails = emails.filter(email => !emailRegex.test(email));
+
+    if (invalidEmails.length > 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Email Address',
+        description: `The following emails are invalid: ${invalidEmails.join(', ')}`,
+      });
+      return;
+    }
+
 
     try {
       const token = localStorage.getItem('token');
