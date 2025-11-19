@@ -6,7 +6,7 @@ import { addMinutes, format, parse, parseISO, isWithinInterval, isValid, startOf
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Appointment, Calendar as CalendarType, User as UserType, Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, RefreshCw, ChevronsUpDown, Check, X, ChevronDown, Edit } from 'lucide-react';
+import { PlusCircle, RefreshCw, ChevronsUpDown, Check, X, ChevronDown, Edit, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -1076,15 +1076,26 @@ export default function AppointmentsPage() {
               )}
               <DialogFooter className="justify-between">
                   <Button variant="outline" onClick={() => setIsDetailViewOpen(false)}>{t('createDialog.close')}</Button>
-                  <Button onClick={() => {
-                      if (selectedAppointment) {
-                          handleEdit(selectedAppointment);
-                          setIsDetailViewOpen(false);
-                      }
-                  }}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      {tColumns('edit')}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="destructive" onClick={() => {
+                        if (selectedAppointment) {
+                            handleCancel(selectedAppointment);
+                            setIsDetailViewOpen(false);
+                        }
+                    }}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {tColumns('cancel')}
+                    </Button>
+                    <Button onClick={() => {
+                        if (selectedAppointment) {
+                            handleEdit(selectedAppointment);
+                            setIsDetailViewOpen(false);
+                        }
+                    }}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        {tColumns('edit')}
+                    </Button>
+                  </div>
               </DialogFooter>
           </DialogContent>
       </Dialog>
