@@ -1444,7 +1444,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         };
         setIsSearching(true);
         try {
-          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/filter_users?search=${searchQuery}`, {
+          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?search=${searchQuery}`, {
             method: 'GET',
             mode: 'cors',
             headers: {
@@ -1493,7 +1493,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
         
         // Fetch patient details
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/filter_users?search=${currentUserId}`, {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?search=${currentUserId}`, {
                 method: 'GET',
                 mode: 'cors',
                 headers: { 'Accept': 'application/json' },
@@ -2389,6 +2389,7 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
 
 
 

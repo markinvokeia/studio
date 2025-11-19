@@ -307,7 +307,7 @@ export default function AppointmentsPage() {
         };
         setIsSearchingUsers(true);
         try {
-          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/filter_users?search=${userSearchQuery}`, {
+          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?search=${userSearchQuery}`, {
             method: 'GET',
             mode: 'cors',
           });
