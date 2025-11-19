@@ -99,6 +99,11 @@
 .day-view-date-cell:last-child {
   border-right: none;
 }
+.day-view-date-cell.current-day {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
 
 .day-view-header-assignees {
   display: grid;
