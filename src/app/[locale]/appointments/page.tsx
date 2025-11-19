@@ -143,7 +143,7 @@ async function getCalendars(): Promise<CalendarType[]> {
             name: apiCalendar.name,
             google_calendar_id: apiCalendar.google_calendar_id,
             is_active: apiCalendar.is_active,
-            color: CALENDAR_COLORS[index % CALENDAR_COLORS.length],
+            color: apiCalendar.color || CALENDAR_COLORS[index % CALENDAR_COLORS.length],
         }));
     } catch (error) {
         console.error("Failed to fetch calendars:", error);
