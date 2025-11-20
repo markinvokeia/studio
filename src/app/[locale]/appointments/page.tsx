@@ -623,78 +623,69 @@ export default function AppointmentsPage() {
   }, [newAppointment.date, newAppointment.time, newAppointment.doctor, newAppointment.calendar, checkAvailability]);
 
 
-  const handleSaveAppointment = async (appointmentDetails: Partial<Appointment> & {colorId?: string}, isColorUpdateOnly = false) => {
+  const handleSaveAppointment = async (appointmentDetails: Partial<Appointment> & {colorId?: string}) => {
     const isEditing = !!(appointmentDetails.id || editingAppointment);
     const currentAppointment = isEditing ? { ...editingAppointment, ...appointmentDetails } : null;
 
     let payload: any;
+    
+    const { user, doctor, services, calendar, date, time, description } = newAppointment;
 
-    if (isColorUpdateOnly && currentAppointment) {
-        payload = {
-            mode: 'update',
-            eventId: currentAppointment.id,
-            calendarId: currentAppointment.calendar_id,
-            colorId: appointmentDetails.colorId,
-        };
-    } else {
-        const { user, doctor, services, calendar, date, time, description } = newAppointment;
+    if (!date || !time) {
+        toast({ variant: "destructive", title: "Missing Information", description: "Date and time are required." });
+        return;
+    }
 
-        if (!date || !time) {
-            toast({ variant: "destructive", title: "Missing Information", description: "Date and time are required." });
+    const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
+    let totalDuration = 0;
+    if (services && services.length > 0) {
+        totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
+    } else if (isEditing && currentAppointment) {
+        const existing = appointments.find(a => a.id === currentAppointment.id);
+        if (existing) {
+            totalDuration = 30; // default duration
+        }
+    }
+    const endDateTime = addMinutes(startDateTime, totalDuration);
+    
+    payload = {
+        startingDateAndTime: startDateTime.toISOString(),
+        endingDateAndTime: endDateTime.toISOString(),
+        mode: isEditing ? 'update' : 'create',
+        ...(appointmentDetails.colorId && { colorId: appointmentDetails.colorId }),
+    };
+
+    if (isEditing && currentAppointment) {
+        payload.eventId = currentAppointment.id;
+        if (originalCalendarId) {
+            payload.oldCalendarId = originalCalendarId;
+        }
+        payload.doctorId = doctor?.id || '';
+        payload.doctorEmail = doctor?.email || currentAppointment.doctorEmail;
+        payload.userId = user?.id || '';
+        payload.userEmail = user?.email || currentAppointment.patientEmail;
+        payload.userName = user?.name || currentAppointment.patientName;
+        payload.serviceName = services.length > 0 ? services.map(s => s.name).join(', ') : currentAppointment.service_name;
+        payload.description = description || currentAppointment.description || services.map(s => s.name).join(', ');
+        if (calendar?.google_calendar_id) {
+            payload.calendarId = calendar.google_calendar_id;
+        } else if (originalCalendarId) {
+            payload.calendarId = originalCalendarId;
+        }
+    } else { // Creating new
+        if (!user || services.length === 0) {
+            toast({ variant: "destructive", title: "Missing Information", description: "Please fill out all required fields."});
             return;
         }
-
-        const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
-        let totalDuration = 0;
-        if (services && services.length > 0) {
-            totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
-        } else if (isEditing && currentAppointment) {
-            const existing = appointments.find(a => a.id === currentAppointment.id);
-            if (existing) {
-                totalDuration = 30; // default duration
-            }
-        }
-        const endDateTime = addMinutes(startDateTime, totalDuration);
-        
-        payload = {
-            startingDateAndTime: startDateTime.toISOString(),
-            endingDateAndTime: endDateTime.toISOString(),
-            mode: isEditing ? 'update' : 'create',
-            ...(appointmentDetails.colorId && { colorId: appointmentDetails.colorId }),
-        };
-
-        if (isEditing && currentAppointment) {
-            payload.eventId = currentAppointment.id;
-            if (originalCalendarId) {
-                payload.oldCalendarId = originalCalendarId;
-            }
-            payload.doctorId = doctor?.id || '';
-            payload.doctorEmail = doctor?.email || currentAppointment.doctorEmail;
-            payload.userId = user?.id || '';
-            payload.userEmail = user?.email || currentAppointment.patientEmail;
-            payload.userName = user?.name || currentAppointment.patientName;
-            payload.serviceName = services.length > 0 ? services.map(s => s.name).join(', ') : currentAppointment.service_name;
-            payload.description = description || currentAppointment.description || services.map(s => s.name).join(', ');
-            if (calendar?.google_calendar_id) {
-                payload.calendarId = calendar.google_calendar_id;
-            } else if (originalCalendarId) {
-                payload.calendarId = originalCalendarId;
-            }
-        } else { // Creating new
-            if (!user || services.length === 0) {
-                toast({ variant: "destructive", title: "Missing Information", description: "Please fill out all required fields."});
-                return;
-            }
-            payload.doctorId = doctor?.id || '';
-            payload.doctorEmail = doctor?.email || '';
-            payload.userId = user.id;
-            payload.userEmail = user.email;
-            payload.userName = user.name;
-            payload.serviceName = services.map(s => s.name).join(', ');
-            payload.description = description || services.map(s => s.name).join(', ');
-            if (calendar?.google_calendar_id) {
-              payload.calendarId = calendar.google_calendar_id;
-            }
+        payload.doctorId = doctor?.id || '';
+        payload.doctorEmail = doctor?.email || '';
+        payload.userId = user.id;
+        payload.userEmail = user.email;
+        payload.userName = user.name;
+        payload.serviceName = services.map(s => s.name).join(', ');
+        payload.description = description || services.map(s => s.name).join(', ');
+        if (calendar?.google_calendar_id) {
+          payload.calendarId = calendar.google_calendar_id;
         }
     }
 
@@ -716,11 +707,10 @@ export default function AppointmentsPage() {
           description: result.message || `The appointment has been successfully ${isEditing ? 'updated' : 'saved'}.`,
         });
 
-        if (!isColorUpdateOnly) {
-          setCreateOpen(false);
-          setEditingAppointment(null);
-          setOriginalCalendarId(undefined);
-        }
+        setCreateOpen(false);
+        setEditingAppointment(null);
+        setOriginalCalendarId(undefined);
+        
         forceRefresh();
       } else {
         const errorDetails = result?.error || result;
@@ -731,7 +721,7 @@ export default function AppointmentsPage() {
                 title: "Slot Unavailable",
                 description: "The selected time is no longer available. Please choose a different time.",
             });
-            if (!isColorUpdateOnly) checkAvailability(newAppointment);
+            checkAvailability(newAppointment);
         } else {
             toast({
                 variant: "destructive",
@@ -751,15 +741,45 @@ export default function AppointmentsPage() {
     }
   };
   
-  const handleEventColorChange = (appointment: Appointment, colorId: string) => {
+  const handleEventColorChange = async (appointment: Appointment, colorId: string) => {
     const colorHex = colorMap.get(colorId);
     
     // Optimistically update UI
     setAppointments(prev => prev.map(a => a.id === appointment.id ? { ...a, color: colorHex, colorId: colorId } : a));
 
     // Persist change to backend
-    const payload = { ...appointment, colorId: colorId };
-    handleSaveAppointment(payload, true); // Pass true to indicate a color-only update
+    const payload = { 
+      eventId: appointment.id,
+      calendarId: appointment.calendar_id,
+      colorId: colorId 
+    };
+
+    try {
+      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments/update_color', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const responseData = await response.json();
+      if (!response.ok || (responseData.error || (responseData.code && responseData.code >= 400))) {
+        throw new Error(responseData.message || 'Failed to update color');
+      }
+
+      toast({
+        title: "Color Updated",
+        description: `The appointment color has been updated.`,
+      });
+      forceRefresh(); // Re-fetch to confirm state
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error updating color',
+        description: error instanceof Error ? error.message : 'Could not update appointment color.',
+      });
+      // Revert optimistic update on failure
+      forceRefresh();
+    }
   };
 
   const confirmDeleteAppointment = async () => {
@@ -1231,5 +1251,7 @@ export default function AppointmentsPage() {
     </Card>
   );
 }
+
+    
 
     
