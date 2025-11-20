@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -795,7 +794,7 @@ export default function QuotesPage() {
                                         <TabsTrigger value="payments">{t('tabs.payments')}</TabsTrigger>
                                     </TabsList>
                                     <TabsContent value="items">
-                                    <QuoteItemsTable 
+                                        <QuoteItemsTable 
                                             items={quoteItems} 
                                             isLoading={isLoadingItems}
                                             onRefresh={loadQuoteItems}
@@ -1150,5 +1149,3 @@ export default function QuotesPage() {
         </>
     );
 }
-
-    

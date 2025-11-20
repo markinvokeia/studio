@@ -262,7 +262,7 @@ export default function OrdersPage() {
 
     return (
         <>
-            <div className="relative overflow-hidden">
+            <div className="relative">
                 <div className={cn("transition-all duration-300 w-full")}>
                     <Card>
                         <CardHeader>
@@ -308,13 +308,13 @@ export default function OrdersPage() {
                                         <TabsTrigger value="payments">{tQuotes('tabs.payments')}</TabsTrigger>
                                     </TabsList>
                                     <TabsContent value="items">
-                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center justify-between mb-2">
                                             <h4 className="text-md font-semibold">{tOrderItems('title', {id: selectedOrder.id})}</h4>
                                             <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
                                                 <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                             </Button>
                                         </div>
-                                    <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedOrder.quote_id} />
+                                        <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedOrder.quote_id} />
                                     </TabsContent>
                                     <TabsContent value="invoices">
                                         <InvoicesTable 
