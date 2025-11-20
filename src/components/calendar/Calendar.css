@@ -165,7 +165,7 @@
 
 .time-slot {
   height: 60px; /* 1 hour */
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid hsl(var(--border) / 0.5);
   position: relative;
 }
 
@@ -173,13 +173,13 @@
 .time-slot-label { position: absolute; top: -0.6em; right: 0.5rem; }
 
 .day-column {
-  border-right: 1px solid var(--border);
+  border-right: 1px solid hsl(var(--border) / 0.7);
   position: relative;
 }
 .day-column:last-child { border-right: none; }
 
 .day-column > .time-slot {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid hsl(var(--border) / 0.5);
 }
 
 .event-in-day-view {
