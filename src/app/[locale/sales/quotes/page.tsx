@@ -71,7 +71,7 @@ type QuoteItemFormValues = z.infer<ReturnType<typeof quoteItemFormSchema>>;
 
 async function getQuotes(): Promise<Quote[]> {
   try {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quotes?is_sales=false', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quotes?is_sales=true', {
       method: 'GET',
       mode: 'cors',
       headers: {
@@ -108,7 +108,7 @@ async function getQuotes(): Promise<Quote[]> {
 async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
     if (!quoteId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_items?quote_id=${quoteId}&is_sales=false`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_items?quote_id=${quoteId}&is_sales=true`, {
             method: 'GET',
             mode: 'cors',
             headers: {
@@ -140,7 +140,7 @@ async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
 
 async function getServices(): Promise<Service[]> {
   try {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=false', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=true', {
       method: 'GET',
       mode: 'cors',
       headers: {
@@ -162,7 +162,7 @@ async function upsertQuoteItem(itemData: QuoteItemFormValues) {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/lines/upsert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({...itemData, is_sales: false}),
+        body: JSON.stringify({...itemData, is_sales: true}),
     });
     const responseData = await response.json();
     if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
@@ -176,7 +176,7 @@ async function deleteQuoteItem(id: string, quoteId: string) {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/lines/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, quote_id: quoteId, is_sales: false }),
+        body: JSON.stringify({ id, quote_id: quoteId, is_sales: true }),
     });
     const responseData = await response.json();
     if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
@@ -190,7 +190,7 @@ async function deleteQuoteItem(id: string, quoteId: string) {
 async function getOrders(quoteId: string): Promise<Order[]> {
     if (!quoteId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_orders?quote_id=${quoteId}&is_sales=false`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_orders?quote_id=${quoteId}&is_sales=true`, {
              method: 'GET',
              mode: 'cors',
              headers: { 'Accept': 'application/json' },
@@ -215,7 +215,7 @@ async function getOrders(quoteId: string): Promise<Order[]> {
 async function getOrderItems(orderId: string): Promise<OrderItem[]> {
     if (!orderId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_items?order_id=${orderId}&is_sales=false`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_items?order_id=${orderId}&is_sales=true`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -245,7 +245,7 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
 async function getInvoices(quoteId: string): Promise<Invoice[]> {
     if (!quoteId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_invoices?quote_id=${quoteId}&is_sales=false`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_invoices?quote_id=${quoteId}&is_sales=true`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -275,7 +275,7 @@ async function getInvoices(quoteId: string): Promise<Invoice[]> {
 async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}&is_sales=false`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}&is_sales=true`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -302,7 +302,7 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
 async function getPayments(quoteId: string): Promise<Payment[]> {
     if (!quoteId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_payments?quote_id=${quoteId}&is_sales=false`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_payments?quote_id=${quoteId}&is_sales=true`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -356,7 +356,7 @@ async function upsertQuote(quoteData: QuoteFormValues) {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quotes/upsert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({...quoteData, is_sales: false}),
+        body: JSON.stringify({...quoteData, is_sales: true}),
     });
     const responseData = await response.json();
     if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
@@ -370,7 +370,7 @@ async function deleteQuote(id: string) {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, is_sales: false }),
+        body: JSON.stringify({ id, is_sales: true }),
     });
     const responseData = await response.json();
     if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
@@ -681,7 +681,7 @@ export default function QuotesPage() {
 
     const handleQuoteAction = async (quote: Quote, action: 'confirm' | 'reject') => {
         try {
-            const payload = { quote_number: quote.id, confirm_reject: action, is_sales: false };
+            const payload = { quote_number: quote.id, confirm_reject: action, is_sales: true };
             const endpoint = `https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/${action}`;
             const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const responseData = await response.json();
@@ -752,8 +752,8 @@ export default function QuotesPage() {
 
     return (
         <>
-            <div className="relative overflow-hidden h-[calc(100vh-10rem)]">
-                <div className={cn("transition-all duration-300 w-full h-full")}>
+            <div className="relative">
+                <div className={cn("transition-all duration-300 w-full")}>
                     <RecentQuotesTable 
                         quotes={quotes} 
                         onRowSelectionChange={handleRowSelectionChange} 
