@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { UserColumnsWrapper } from '../../users/columns';
+import { DoctorsColumnsWrapper } from './columns';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -287,10 +287,9 @@ export default function DoctorsPage() {
     setIsDialogOpen(true);
   };
   
-  const userColumns = UserColumnsWrapper({ 
+  const userColumns = DoctorsColumnsWrapper({ 
     onToggleActivate: handleToggleActivate, 
     onEdit: handleEdit,
-    t: tDoctor
    });
 
   const handleRowSelectionChange = (selectedRows: User[]) => {

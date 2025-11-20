@@ -84,7 +84,7 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
   {
     id: 'actions',
     cell: function Cell({ row }) {
-      const t = useTranslations('UserColumns');
+      const t = useTranslations('DoctorsPage.DoctorColumns');
       const user = row.original;
       return (
         <div onClick={(e) => e.stopPropagation()}>
@@ -116,8 +116,8 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
 ];
 
 
-export function UserColumnsWrapper({ onToggleActivate, onEdit }: { onToggleActivate: (user: User) => void; onEdit: (user: User) => void;}) {
-    const t = useTranslations('UserColumns');
+export function DoctorsColumnsWrapper({ onToggleActivate, onEdit }: { onToggleActivate: (user: User) => void; onEdit: (user: User) => void; }) {
+    const t = useTranslations('DoctorsPage.DoctorColumns');
     const columns = React.useMemo(() => {
         return getColumns(t, onToggleActivate, onEdit);
     }, [t, onToggleActivate, onEdit]);
