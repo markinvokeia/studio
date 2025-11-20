@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -33,9 +34,7 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
   category: z.string().min(1, t('categoryRequired')),
   price: z.coerce.number().positive(t('pricePositive')),
   currency: z.enum(['UYU', 'USD']).default('USD'),
-  duration_minutes: z.coerce.number().int().positive(t('durationInteger')),
   description: z.string().optional(),
-  indications: z.string().optional(),
 });
 
 type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
@@ -138,9 +137,7 @@ export default function ServicesPage() {
       category: '',
       price: 0,
       currency: 'USD',
-      duration_minutes: 60,
       description: '',
-      indications: '',
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -154,9 +151,7 @@ export default function ServicesPage() {
         category: service.category,
         price: service.price,
         currency: service.currency || 'USD',
-        duration_minutes: service.duration_minutes,
         description: service.description,
-        indications: service.indications,
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -306,38 +301,12 @@ export default function ServicesPage() {
                 </div>
                 <FormField
                     control={form.control}
-                    name="duration_minutes"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>{t('createDialog.duration')}</FormLabel>
-                        <FormControl>
-                            <Input type="number" placeholder="60" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
                     name="description"
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>{t('createDialog.descriptionLabel')}</FormLabel>
                         <FormControl>
                             <Textarea placeholder={t('createDialog.descriptionPlaceholder')} {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="indications"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>{t('createDialog.indicationsLabel')}</FormLabel>
-                        <FormControl>
-                            <Textarea placeholder={t('createDialog.indicationsPlaceholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
