@@ -25,13 +25,13 @@ async function getOrders(): Promise<Order[]> {
              cache: 'no-store',
         });
         if (!response.ok) {
-            console.error(`HTTP error! status: ${''response.status}`);
+            console.error(`HTTP error! status: ${response.status}`);
             return [];
         }
         const data = await response.json();
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
         return ordersData.map((apiOrder: any) => ({
-            id: apiOrder.id ? String(apiOrder.id) : `ord_${''Math.random().toString(36).substr(2, 9)}`,
+            id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
             user_id: apiOrder.user_id,
             quote_id: apiOrder.quote_id,
             user_name: apiOrder.user_name || 'N/A',
@@ -49,17 +49,17 @@ async function getOrders(): Promise<Order[]> {
 async function getOrderItems(orderId: string): Promise<OrderItem[]> {
     if (!orderId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_items?order_id=${''orderId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_items?order_id=${orderId}`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
             cache: 'no-store',
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${''response.status}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
         return itemsData.map((apiItem: any) => ({
-            id: apiItem.order_item_id ? String(apiItem.order_item_id) : `oi_${''Math.random().toString(36).substr(2, 9)}`,
+            id: apiItem.order_item_id ? String(apiItem.order_item_id) : `oi_${Math.random().toString(36).substr(2, 9)}`,
             service_id: apiItem.service_id,
             service_name: apiItem.service_name || 'N/A',
             quantity: apiItem.quantity,
@@ -79,17 +79,17 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
 async function getInvoicesForOrder(orderId: string): Promise<Invoice[]> {
     if (!orderId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_invoices?order_id=${''orderId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_invoices?order_id=${orderId}`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
             cache: 'no-store',
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${''response.status}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
         return invoicesData.map((apiInvoice: any) => ({
-            id: apiInvoice.id ? String(apiInvoice.id) : `inv_${''Math.random().toString(36).substr(2, 9)}`,
+            id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
             order_id: apiInvoice.order_id,
             quote_id: apiInvoice.quote_id,
             user_name: apiInvoice.user_name || 'N/A',
@@ -109,17 +109,17 @@ async function getInvoicesForOrder(orderId: string): Promise<Invoice[]> {
 async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
     if (!orderId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_payments?order_id=${''orderId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_payments?order_id=${orderId}`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
             cache: 'no-store',
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${''response.status}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
-            id: apiPayment.id ? String(apiPayment.id) : `pay_${''Math.random().toString(36).substr(2, 9)}`,
+            id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
             order_id: apiPayment.order_id,
             invoice_id: apiPayment.invoice_id,
             quote_id: apiPayment.quote_id,
@@ -140,17 +140,17 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
 async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${''invoiceId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
             cache: 'no-store',
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${''response.status}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         const itemsData = Array.isArray(data) ? data : (data.invoice_items || data.data || []);
         return itemsData.map((apiItem: any) => ({
-            id: apiItem.id ? String(apiItem.id) : `ii_${''Math.random().toString(36).substr(2, 9)}`,
+            id: apiItem.id ? String(apiItem.id) : `ii_${Math.random().toString(36).substr(2, 9)}`,
             service_id: apiItem.service_id,
             service_name: apiItem.service_name || 'N/A',
             quantity: apiItem.quantity,
@@ -312,7 +312,7 @@ export default function OrdersPage() {
                                     <div className="flex items-center justify-between mb-2">
                                             <h4 className="text-md font-semibold">{tOrderItems('title', {id: selectedOrder.id})}</h4>
                                             <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
-                                                <RefreshCw className={`h-4 w-4 ${''isLoadingOrderItems ? 'animate-spin' : ''}`} />
+                                                <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                             </Button>
                                         </div>
                                     <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedOrder.quote_id} />
@@ -330,7 +330,7 @@ export default function OrdersPage() {
                                                 <div className="flex items-center justify-between mb-2">
                                                     <h4 className="text-md font-semibold">{tInvoiceItems('title', {id: selectedInvoice.id})}</h4>
                                                     <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
-                                                        <RefreshCw className={`h-4 w-4 ${''isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
+                                                        <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
                                                     </Button>
                                                 </div>
                                                 <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />

@@ -53,9 +53,9 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
       <SidebarProvider>
         <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr]">
           <Sidebar />
-          <div className="flex flex-col bg-gradient-to-b from-gray-300 to-gray-50 dark:from-gray-900 dark:to-gray-800">
+          <div className="flex flex-col bg-gradient-to-b from-gray-300 to-gray-50 dark:from-gray-900 dark:to-gray-800 overflow-hidden">
             <Header />
-            <main className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
+            <main className="flex flex-1 flex-col gap-4 p-4 lg:p-6 overflow-auto">
               {children}
             </main>
           </div>

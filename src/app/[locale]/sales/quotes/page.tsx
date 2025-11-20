@@ -81,14 +81,14 @@ async function getQuotes(): Promise<Quote[]> {
     });
 
     if (!response.ok) {
-      throw new Error(`Error HTTP: ${''response.status} - ${''response.statusText}`);
+      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
     }
 
     const data = await response.json();
     const quotesData = Array.isArray(data) ? data : (data.quotes || data.data || data.result || []);
     
     return quotesData.map((apiQuote: any) => ({
-      id: apiQuote.id ? String(apiQuote.id) : `qt_${''Math.random().toString(36).substr(2, 9)}`,
+      id: apiQuote.id ? String(apiQuote.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
       user_id: apiQuote.user_id || 'N/A',
       total: apiQuote.total || 0,
       status: apiQuote.status || 'draft',
@@ -108,7 +108,7 @@ async function getQuotes(): Promise<Quote[]> {
 async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
     if (!quoteId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_items?quote_id=${''quoteId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_items?quote_id=${quoteId}`, {
             method: 'GET',
             mode: 'cors',
             headers: {
@@ -118,14 +118,14 @@ async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${''response.status}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
         const itemsData = Array.isArray(data) ? data : (data.quote_items || data.data || data.result || []);
         
         return itemsData.map((apiItem: any) => ({
-            id: apiItem.id ? String(apiItem.id) : `qi_${''Math.random().toString(36).substr(2, 9)}`,
+            id: apiItem.id ? String(apiItem.id) : `qi_${Math.random().toString(36).substr(2, 9)}`,
             service_id: apiItem.service_id || 'N/A',
             service_name: apiItem.service_name || 'N/A',
             unit_price: apiItem.unit_price || 0,
@@ -190,17 +190,17 @@ async function deleteQuoteItem(id: string, quoteId: string) {
 async function getOrders(quoteId: string): Promise<Order[]> {
     if (!quoteId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_orders?quote_id=${''quoteId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_orders?quote_id=${quoteId}`, {
              method: 'GET',
              mode: 'cors',
              headers: { 'Accept': 'application/json' },
              cache: 'no-store',
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${''response.status}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
         return ordersData.map((apiOrder: any) => ({
-            id: apiOrder.id ? String(apiOrder.id) : `ord_${''Math.random().toString(36).substr(2, 9)}`,
+            id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
             user_id: apiOrder.user_id,
             status: apiOrder.status,
             createdAt: apiOrder.createdAt || new Date().toISOString().split('T')[0],
@@ -215,17 +215,17 @@ async function getOrders(quoteId: string): Promise<Order[]> {
 async function getOrderItems(orderId: string): Promise<OrderItem[]> {
     if (!orderId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_items?order_id=${''orderId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_items?order_id=${orderId}`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
             cache: 'no-store',
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${''response.status}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
         return itemsData.map((apiItem: any) => ({
-            id: apiItem.order_item_id ? String(apiItem.order_item_id) : `oi_${''Math.random().toString(36).substr(2, 9)}`,
+            id: apiItem.order_item_id ? String(apiItem.order_item_id) : `oi_${Math.random().toString(36).substr(2, 9)}`,
             service_id: apiItem.service_id,
             service_name: apiItem.service_name || 'N/A',
             quantity: apiItem.quantity,
@@ -245,17 +245,17 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
 async function getInvoices(quoteId: string): Promise<Invoice[]> {
     if (!quoteId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_invoices?quote_id=${''quoteId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_invoices?quote_id=${quoteId}`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
             cache: 'no-store',
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${''response.status}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
         return invoicesData.map((apiInvoice: any) => ({
-            id: apiInvoice.id ? String(apiInvoice.id) : `inv_${''Math.random().toString(36).substr(2, 9)}`,
+            id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
             quote_id: apiInvoice.quote_id,
             total: apiInvoice.total || 0,
             status: apiInvoice.status || 'draft',
@@ -275,17 +275,17 @@ async function getInvoices(quoteId: string): Promise<Invoice[]> {
 async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${''invoiceId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
             cache: 'no-store',
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${''response.status}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         const itemsData = Array.isArray(data) ? data : (data.invoice_items || data.data || []);
         return itemsData.map((apiItem: any) => ({
-            id: apiItem.id ? String(apiItem.id) : `ii_${''Math.random().toString(36).substr(2, 9)}`,
+            id: apiItem.id ? String(apiItem.id) : `ii_${Math.random().toString(36).substr(2, 9)}`,
             service_id: apiItem.service_id,
             service_name: apiItem.service_name || 'N/A',
             quantity: apiItem.quantity,
@@ -302,17 +302,17 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
 async function getPayments(quoteId: string): Promise<Payment[]> {
     if (!quoteId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_payments?quote_id=${''quoteId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_payments?quote_id=${quoteId}`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
             cache: 'no-store',
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${''response.status}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
-            id: apiPayment.id ? String(apiPayment.id) : `pay_${''Math.random().toString(36).substr(2, 9)}`,
+            id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
             invoice_id: apiPayment.invoice_id,
             amount: apiPayment.amount || 0,
             method: apiPayment.method || 'credit_card',
@@ -338,7 +338,7 @@ async function getUsers(): Promise<User[]> {
       const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
       const usersData = Array.isArray(data.data) ? data.data : [];
       return usersData.map((apiUser: any) => ({
-        id: apiUser.id ? String(apiUser.id) : `usr_${''Math.random().toString(36).substr(2, 9)}`,
+        id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
         name: apiUser.name || 'No Name',
         email: apiUser.email || 'no-email@example.com',
         phone_number: apiUser.phone_number || '000-000-0000',
@@ -682,7 +682,7 @@ export default function QuotesPage() {
     const handleQuoteAction = async (quote: Quote, action: 'confirm' | 'reject') => {
         try {
             const payload = { quote_number: quote.id, confirm_reject: action };
-            const endpoint = `https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/${''action}`;
+            const endpoint = `https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/${action}`;
             const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const responseData = await response.json();
             if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
@@ -768,10 +768,17 @@ export default function QuotesPage() {
                     />
                 </div>
 
-                <div className={cn(
-                    "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l transition-transform duration-300 ease-in-out",
-                    selectedQuote ? 'translate-x-0' : 'translate-x-full'
-                )}>
+                <div 
+                    className={cn(
+                        "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l transition-transform duration-300 ease-in-out",
+                        selectedQuote ? 'translate-x-0' : 'translate-x-full'
+                    )}
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) {
+                            handleCloseDetails();
+                        }
+                    }}
+                >
                     {selectedQuote && (
                         <Card className="h-full shadow-lg rounded-none">
                             <CardHeader className="flex flex-row items-start justify-between">
@@ -818,7 +825,7 @@ export default function QuotesPage() {
                                                 <div className="flex items-center justify-between mb-2">
                                                     <h4 className="text-md font-semibold">Order Items for {selectedOrder.id}</h4>
                                                     <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
-                                                        <RefreshCw className={`h-4 w-4 ${''isLoadingOrderItems ? 'animate-spin' : ''}`} />
+                                                        <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                                     </Button>
                                                 </div>
                                                 <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedQuote.id} />
@@ -838,7 +845,7 @@ export default function QuotesPage() {
                                                 <div className="flex items-center justify-between mb-2">
                                                     <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', {id: selectedInvoice.id})}</h4>
                                                     <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
-                                                        <RefreshCw className={`h-4 w-4 ${''isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
+                                                        <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
                                                     </Button>
                                                 </div>
                                                 <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
