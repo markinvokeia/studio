@@ -43,7 +43,7 @@ type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
 
 async function getServices(): Promise<Service[]> {
   try {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=true', {
       method: 'GET',
       mode: 'cors',
       headers: {
@@ -80,7 +80,7 @@ async function upsertService(serviceData: ServiceFormValues) {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogoservicios/upsert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(serviceData),
+        body: JSON.stringify({...serviceData, is_sales: true}),
     });
     const responseData = await response.json();
     if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
@@ -94,7 +94,7 @@ async function deleteService(id: string) {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogoservicios/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id, is_sales: true }),
     });
     const responseData = await response.json();
     if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
