@@ -290,7 +290,7 @@ export default function DoctorsPage() {
   const userColumns = UserColumnsWrapper({ 
     onToggleActivate: handleToggleActivate, 
     onEdit: handleEdit,
-    t: tDoctor.rich('DoctorColumns')
+    t: tDoctor
    });
 
   const handleRowSelectionChange = (selectedRows: User[]) => {

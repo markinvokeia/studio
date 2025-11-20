@@ -118,6 +118,9 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
 
 export function UserColumnsWrapper({ onToggleActivate, onEdit, t: tProp }: { onToggleActivate: (user: User) => void; onEdit: (user: User) => void; t?: (key: string) => string }) {
     const tDefault = useTranslations('UserColumns');
-    const columns = React.useMemo(() => getColumns(tProp || tDefault, onToggleActivate, onEdit), [tDefault, tProp, onToggleActivate, onEdit]);
+    const columns = React.useMemo(() => {
+        const t = (key: string) => (tProp ? tProp(`DoctorColumns.${key}`) : tDefault(key));
+        return getColumns(t, onToggleActivate, onEdit);
+    }, [tDefault, tProp, onToggleActivate, onEdit]);
     return columns;
 }
