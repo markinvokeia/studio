@@ -46,7 +46,8 @@
       "createTitle": "Create New Doctor",
       "editTitle": "Edit Doctor",
       "createDescription": "Fill in the details to add a new doctor.",
-      "editDescription": "Update the details for this doctor."
+      "editDescription": "Update the details for this doctor.",
+      "color": "Color"
     }
   },
   "CurrenciesPage": {
