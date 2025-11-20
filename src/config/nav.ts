@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from 'lucide-react';
 import {
   AreaChart,
@@ -74,7 +75,6 @@ export const navItems: NavItem[] = [
     icon: Users,
     items: [
       { title: 'Users', href: '/users', icon: Users, isChidren: true },
-      { title: 'Providers', href: '/providers', icon: Briefcase, isChidren: true },
       { title: 'ClinicHistory', href: '/clinic-history', icon: HeartPulse, isChidren: true },
       { title: 'Studies', href: '/studies', icon: Radiation, isChidren: true },
       { title: 'SharedStudies', href: '/shared-studies', icon: Share2, isChidren: true },
@@ -103,6 +103,7 @@ export const navItems: NavItem[] = [
       { title: 'PurchaseInvoices', href: '/purchases/invoices', icon: Receipt, isChidren: true },
       { title: 'PurchasePayments', href: '/purchases/payments', icon: CreditCard, isChidren: true },
       { title: 'PurchaseServices', href: '/purchases/services', icon: Briefcase, isChidren: true },
+      { title: 'Providers', href: '/providers', icon: Briefcase, isChidren: true },
     ],
   },
    {
