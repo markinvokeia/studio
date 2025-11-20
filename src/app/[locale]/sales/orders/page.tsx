@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -18,7 +17,7 @@ import { useTranslations } from 'next-intl';
 
 async function getOrders(): Promise<Order[]> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_orders', {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_orders?is_sales=true', {
              method: 'GET',
              mode: 'cors',
              headers: { 'Accept': 'application/json' },
@@ -49,7 +48,7 @@ async function getOrders(): Promise<Order[]> {
 async function getOrderItems(orderId: string): Promise<OrderItem[]> {
     if (!orderId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_items?order_id=${orderId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_items?order_id=${orderId}&is_sales=true`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -79,7 +78,7 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
 async function getInvoicesForOrder(orderId: string): Promise<Invoice[]> {
     if (!orderId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_invoices?order_id=${orderId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_invoices?order_id=${orderId}&is_sales=true`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -109,7 +108,7 @@ async function getInvoicesForOrder(orderId: string): Promise<Invoice[]> {
 async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
     if (!orderId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_payments?order_id=${orderId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_payments?order_id=${orderId}&is_sales=true`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -140,7 +139,7 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
 async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}&is_sales=true`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
