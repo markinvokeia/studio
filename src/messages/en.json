@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -677,7 +678,8 @@
       "nameRequired": "Name is required.",
       "categoryRequired": "Category is required.",
       "pricePositive": "Price must be a positive number.",
-      "durationInteger": "Duration must be a positive integer."
+      "durationInteger": "Duration must be a positive integer.",
+      "colorInvalid": "Invalid hex color format."
     }
   },
   "ServicesColumns": {

@@ -37,6 +37,7 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
   duration_minutes: z.coerce.number().int().positive(t('durationInteger')),
   description: z.string().optional(),
   indications: z.string().optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, t('colorInvalid')).optional().nullable(),
 });
 
 type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
@@ -69,6 +70,7 @@ async function getServices(): Promise<Service[]> {
       description: apiService.description,
       indications: apiService.indications,
       is_active: apiService.is_active,
+      color: apiService.color,
     }));
   } catch (error) {
     console.error("Failed to fetch services:", error);
@@ -142,6 +144,7 @@ export default function ServicesPage() {
       duration_minutes: 60,
       description: '',
       indications: '',
+      color: '#ffffff',
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -158,6 +161,7 @@ export default function ServicesPage() {
         duration_minutes: service.duration_minutes,
         description: service.description,
         indications: service.indications,
+        color: service.color || '#ffffff',
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -315,6 +319,22 @@ export default function ServicesPage() {
                             <Input type="number" placeholder="60" {...field} />
                         </FormControl>
                         <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="color"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('CalendarsPage.dialog.color')}</FormLabel>
+                            <FormControl>
+                                <div className="flex items-center gap-2">
+                                    <Input type="color" className="p-1 h-10 w-14" {...field} value={field.value || ''} />
+                                    <Input placeholder="#FFFFFF" {...field} value={field.value || ''} />
+                                </div>
+                            </FormControl>
+                            <FormMessage />
                         </FormItem>
                     )}
                 />

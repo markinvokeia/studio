@@ -146,7 +146,7 @@ export type Service = {
   description?: string;
   indications?: string;
   is_active: boolean;
-  color?: string;
+  color?: string | null;
 };
 
 export type Clinic = {

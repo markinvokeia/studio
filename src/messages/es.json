@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -677,7 +678,8 @@
       "nameRequired": "El nombre es requerido.",
       "categoryRequired": "La categoría es requerida.",
       "pricePositive": "El precio debe ser un número positivo.",
-      "durationInteger": "La duración debe ser un número entero positivo."
+      "durationInteger": "La duración debe ser un número entero positivo.",
+      "colorInvalid": "Formato de color hexadecimal no válido."
     }
   },
   "ServicesColumns": {
@@ -1081,293 +1083,292 @@
     "id": "ID",
     "name": "Nombre",
     "category": "Categoría",
-      "alertLevel": "Nivel Alerta",
-      "actions": "Acciones",
-      "edit": "Editar",
-      "delete": "Eliminar"
-    },
-    "MedicationsPage": {
-      "title": "Medicamentos",
-      "description": "Gestiona el catálogo de medicamentos para autocompletar.",
-      "filterPlaceholder": "Filtrar por nombre genérico...",
-      "createDialog": {
-        "title": "Crear Nuevo Medicamento",
-        "description": "Completa los detalles a continuación para agregar un nuevo medicamento.",
-        "editTitle": "Editar Medicamento",
-        "editDescription": "Actualiza los detalles de este medicamento.",
-        "genericName": "Nombre Genérico",
-        "genericNamePlaceholder": "e.g., Ibuprofeno",
-        "commercialName": "Nombre Comercial",
-        "commercialNamePlaceholder": "e.g., Advil",
-        "cancel": "Cancelar",
-        "save": "Crear Medicamento",
-        "editSave": "Guardar Cambios"
-      },
-      "deleteDialog": {
-        "title": "¿Estás seguro?",
-        "description": "Esto eliminará permanentemente el medicamento \"{name}\". Esta acción no se puede deshacer.",
-        "cancel": "Cancelar",
-        "confirm": "Eliminar"
-      },
-      "toast": {
-        "errorTitle": "Error",
-        "genericError": "Ocurrió un error inesperado.",
-        "createSuccessTitle": "Medicamento Creado",
-        "editSuccessTitle": "Medicamento Actualizado",
-        "successDescription": "El medicamento \"{name}\" ha sido guardado exitosamente.",
-        "deleteSuccessTitle": "Medicamento Eliminado",
-        "deleteSuccessDescription": "El medicamento \"{name}\" ha sido eliminado.",
-        "deleteErrorDescription": "No se pudo eliminar el medicamento."
-      },
-      "validation": {
-        "nameRequired": "El nombre genérico es requerido."
-      }
-    },
-    "MedicationsColumns": {
-      "id": "ID",
+    "alertLevel": "Nivel Alerta",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
+  "MedicationsPage": {
+    "title": "Medicamentos",
+    "description": "Gestiona el catálogo de medicamentos para autocompletar.",
+    "filterPlaceholder": "Filtrar por nombre genérico...",
+    "createDialog": {
+      "title": "Crear Nuevo Medicamento",
+      "description": "Completa los detalles a continuación para agregar un nuevo medicamento.",
+      "editTitle": "Editar Medicamento",
+      "editDescription": "Actualiza los detalles de este medicamento.",
       "genericName": "Nombre Genérico",
+      "genericNamePlaceholder": "e.g., Ibuprofeno",
       "commercialName": "Nombre Comercial",
-      "actions": "Acciones",
-      "edit": "Editar",
-      "delete": "Eliminar"
+      "commercialNamePlaceholder": "e.g., Advil",
+      "cancel": "Cancelar",
+      "save": "Crear Medicamento",
+      "editSave": "Guardar Cambios"
     },
-    "DentalConditionsPage": {
-      "title": "Condiciones Dentales",
-      "description": "Gestiona posibles hallazgos en un odontograma.",
-      "filterPlaceholder": "Filtrar por nombre...",
-      "createDialog": {
-        "title": "Crear Nueva Condición Dental",
-        "description": "Completa los detalles a continuación para agregar una nueva condición dental.",
-        "editTitle": "Editar Condición Dental",
-        "editDescription": "Actualiza los detalles de esta condición dental.",
-        "name": "Nombre",
-        "namePlaceholder": "ej., Caries",
-        "visualCode": "Código Visual",
-        "visualCodePlaceholder": "ej., CARIES",
-        "color": "Color",
-        "cancel": "Cancelar",
-        "save": "Crear Condición",
-        "editSave": "Guardar Cambios"
-      },
-      "deleteDialog": {
-        "title": "¿Estás seguro?",
-        "description": "Esto eliminará permanentemente la condición \"{name}\". Esta acción no se puede deshacer.",
-        "cancel": "Cancelar",
-        "confirm": "Eliminar"
-      },
-      "toast": {
-        "errorTitle": "Error",
-        "genericError": "Ocurrió un error inesperado.",
-        "createSuccessTitle": "Condición Creada",
-        "editSuccessTitle": "Condición Actualizada",
-        "successDescription": "La condición \"{name}\" se ha guardado correctamente.",
-        "deleteSuccessTitle": "Condición Eliminada",
-        "deleteSuccessDescription": "La condición \"{name}\" ha sido eliminada.",
-        "deleteErrorDescription": "No se pudo eliminar la condición."
-      },
-      "validation": {
-        "nameRequired": "El nombre es obligatorio.",
-        "codeRequired": "El código visual es obligatorio.",
-        "colorInvalid": "Formato de color hexadecimal no válido."
-      }
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente el medicamento \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
     },
-    "DentalConditionsColumns": {
-      "id": "ID",
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Medicamento Creado",
+      "editSuccessTitle": "Medicamento Actualizado",
+      "successDescription": "El medicamento \"{name}\" ha sido guardado exitosamente.",
+      "deleteSuccessTitle": "Medicamento Eliminado",
+      "deleteSuccessDescription": "El medicamento \"{name}\" ha sido eliminado.",
+      "deleteErrorDescription": "No se pudo eliminar el medicamento."
+    },
+    "validation": {
+      "nameRequired": "El nombre genérico es requerido."
+    }
+  },
+  "MedicationsColumns": {
+    "id": "ID",
+    "genericName": "Nombre Genérico",
+    "commercialName": "Nombre Comercial",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
+  "DentalConditionsPage": {
+    "title": "Condiciones Dentales",
+    "description": "Gestiona posibles hallazgos en un odontograma.",
+    "filterPlaceholder": "Filtrar por nombre...",
+    "createDialog": {
+      "title": "Crear Nueva Condición Dental",
+      "description": "Completa los detalles a continuación para agregar una nueva condición dental.",
+      "editTitle": "Editar Condición Dental",
+      "editDescription": "Actualiza los detalles de esta condición dental.",
       "name": "Nombre",
+      "namePlaceholder": "ej., Caries",
       "visualCode": "Código Visual",
+      "visualCodePlaceholder": "ej., CARIES",
       "color": "Color",
-      "actions": "Acciones",
-      "edit": "Editar",
-      "delete": "Eliminar"
+      "cancel": "Cancelar",
+      "save": "Crear Condición",
+      "editSave": "Guardar Cambios"
     },
-    "DentalSurfacesPage": {
-      "title": "Superficies Dentales",
-      "description": "Gestiona las superficies de un diente.",
-      "filterPlaceholder": "Filtrar por nombre...",
-      "createDialog": {
-        "title": "Crear Nueva Superficie Dental",
-        "description": "Completa los detalles a continuación para agregar una nueva superficie dental.",
-        "editTitle": "Editar Superficie Dental",
-        "editDescription": "Actualiza los detalles de esta superficie dental.",
-        "name": "Nombre",
-        "namePlaceholder": "ej., Oclusal",
-        "code": "Código",
-        "codePlaceholder": "ej., O",
-        "cancel": "Cancelar",
-        "save": "Crear Superficie",
-        "editSave": "Guardar Cambios"
-      },
-      "deleteDialog": {
-        "title": "¿Estás seguro?",
-        "description": "Esto eliminará permanentemente la superficie \"{name}\". Esta acción no se puede deshacer.",
-        "cancel": "Cancelar",
-        "confirm": "Eliminar"
-      },
-      "toast": {
-        "errorTitle": "Error",
-        "genericError": "Ocurrió un error inesperado.",
-        "createSuccessTitle": "Superficie Creada",
-        "editSuccessTitle": "Superficie Actualizada",
-        "successDescription": "La superficie \"{name}\" se ha guardado correctamente.",
-        "deleteSuccessTitle": "Superficie Eliminada",
-        "deleteSuccessDescription": "La superficie \"{name}\" ha sido eliminada.",
-        "deleteErrorDescription": "No se pudo eliminar la superficie."
-      },
-      "validation": {
-        "nameRequired": "El nombre es obligatorio.",
-        "codeRequired": "El código es obligatorio."
-      }
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente la condición \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
     },
-    "DentalSurfacesColumns": {
-      "id": "ID",
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Condición Creada",
+      "editSuccessTitle": "Condición Actualizada",
+      "successDescription": "La condición \"{name}\" se ha guardado correctamente.",
+      "deleteSuccessTitle": "Condición Eliminada",
+      "deleteSuccessDescription": "La condición \"{name}\" ha sido eliminada.",
+      "deleteErrorDescription": "No se pudo eliminar la condición."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio.",
+      "codeRequired": "El código visual es obligatorio.",
+      "colorInvalid": "Formato de color hexadecimal no válido."
+    }
+  },
+  "DentalConditionsColumns": {
+    "id": "ID",
+    "name": "Nombre",
+    "visualCode": "Código Visual",
+    "color": "Color",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
+  "DentalSurfacesPage": {
+    "title": "Superficies Dentales",
+    "description": "Gestiona las superficies de un diente.",
+    "filterPlaceholder": "Filtrar por nombre...",
+    "createDialog": {
+      "title": "Crear Nueva Superficie Dental",
+      "description": "Completa los detalles a continuación para agregar una nueva superficie dental.",
+      "editTitle": "Editar Superficie Dental",
+      "editDescription": "Actualiza los detalles de esta superficie dental.",
       "name": "Nombre",
+      "namePlaceholder": "ej., Oclusal",
       "code": "Código",
-      "actions": "Acciones",
-      "edit": "Editar",
-      "delete": "Eliminar"
+      "codePlaceholder": "ej., O",
+      "cancel": "Cancelar",
+      "save": "Crear Superficie",
+      "editSave": "Guardar Cambios"
     },
-    "UsersPage": {
-      "title": "Usuarios",
-      "description": "Gestiona todos los usuarios del sistema.",
-      "filterPlaceholder": "Filtrar usuarios por email...",
-      "detailsFor": "Detalles de {name}",
-      "close": "Cerrar detalles",
-      "setInitialPassword": "Establecer Contraseña Inicial",
-      "tabs": {
-        "roles": "Roles",
-        "services": "Servicios",
-        "quotes": "Cotizaciones",
-        "appointments": "Citas",
-        "messages": "Mensajes",
-        "logs": "Registros",
-        "history": "Historial Clínico"
-      },
-      "createDialog": {
-        "title": "Crear Nuevo Usuario",
-        "description": "Completa los detalles a continuación para agregar un nuevo usuario.",
-        "editTitle": "Editar Usuario",
-        "editDescription": "Actualiza los detalles de este usuario.",
-        "createSuccessTitle": "Usuario Creado",
-        "createSuccessDescription": "El nuevo usuario ha sido añadido exitosamente.",
-        "editSuccessTitle": "Usuario Actualizado",
-        "editSuccessDescription": "El usuario ha sido actualizado exitosamente.",
-        "name": "Nombre",
-        "namePlaceholder": "John Doe",
-        "email": "Email",
-        "emailPlaceholder": "john.doe@example.com",
-        "phone": "Teléfono",
-        "phonePlaceholder": "123-456-7890",
-        "identity_document": "Documento de Identidad",
-        "identity_document_placeholder": "12345678",
-        "isActive": "Está Activo",
-        "cancel": "Cancelar",
-        "save": "Crear Usuario",
-        "editSave": "Guardar Cambios",
-        "validation": {
-          "errorTitle": "Error",
-          "nameRequired": "El nombre es obligatorio",
-          "emailInvalid": "Dirección de correo electrónico no válida",
-          "phoneRequired": "El teléfono es obligatorio",
-          "phoneInvalid": "Número de teléfono no válido",
-          "identityRequired": "El documento de identidad es obligatorio",
-          "identityInvalid": "El documento de identidad debe ser un número.",
-          "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
-          "genericError": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
-          "serverError": "Error del servidor, por favor inténtelo más tarde.",
-          "uniqueConflict": "Los siguientes campos ya se encuentran registrados: {fields}",
-          "fields": {
-            "email": "Correo electrónico",
-            "phone": "Teléfono",
-            "identity_document": "Documento de identidad"
-          }
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente la superficie \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Superficie Creada",
+      "editSuccessTitle": "Superficie Actualizada",
+      "successDescription": "La superficie \"{name}\" se ha guardado correctamente.",
+      "deleteSuccessTitle": "Superficie Eliminada",
+      "deleteSuccessDescription": "La superficie \"{name}\" ha sido eliminada.",
+      "deleteErrorDescription": "No se pudo eliminar la superficie."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio.",
+      "codeRequired": "El código es obligatorio."
+    }
+  },
+  "DentalSurfacesColumns": {
+    "id": "ID",
+    "name": "Nombre",
+    "code": "Código",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
+  "UsersPage": {
+    "title": "Usuarios",
+    "description": "Gestiona todos los usuarios del sistema.",
+    "filterPlaceholder": "Filtrar usuarios por email...",
+    "detailsFor": "Detalles de {name}",
+    "close": "Cerrar detalles",
+    "setInitialPassword": "Establecer Contraseña Inicial",
+    "tabs": {
+      "roles": "Roles",
+      "services": "Servicios",
+      "quotes": "Cotizaciones",
+      "appointments": "Citas",
+      "messages": "Mensajes",
+      "logs": "Registros",
+      "history": "Historial Clínico"
+    },
+    "createDialog": {
+      "title": "Crear Nuevo Usuario",
+      "description": "Completa los detalles a continuación para agregar un nuevo usuario.",
+      "editTitle": "Editar Usuario",
+      "editDescription": "Actualiza los detalles de este usuario.",
+      "createSuccessTitle": "Usuario Creado",
+      "createSuccessDescription": "El nuevo usuario ha sido añadido exitosamente.",
+      "editSuccessTitle": "Usuario Actualizado",
+      "editSuccessDescription": "El usuario ha sido actualizado exitosamente.",
+      "name": "Nombre",
+      "namePlaceholder": "John Doe",
+      "email": "Email",
+      "emailPlaceholder": "john.doe@example.com",
+      "phone": "Teléfono",
+      "phonePlaceholder": "123-456-7890",
+      "identity_document": "Documento de Identidad",
+      "identity_document_placeholder": "12345678",
+      "isActive": "Está Activo",
+      "cancel": "Cancelar",
+      "save": "Crear Usuario",
+      "editSave": "Guardar Cambios",
+      "validation": {
+        "errorTitle": "Error",
+        "nameRequired": "El nombre es obligatorio",
+        "emailInvalid": "Dirección de correo electrónico no válida",
+        "phoneRequired": "El teléfono es obligatorio",
+        "phoneInvalid": "Número de teléfono no válido",
+        "identityRequired": "El documento de identidad es obligatorio",
+        "identityInvalid": "El documento de identidad debe ser un número.",
+        "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
+        "genericError": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
+        "serverError": "Error del servidor, por favor inténtelo más tarde.",
+        "uniqueConflict": "Los siguientes campos ya se encuentran registrados: {fields}",
+        "fields": {
+          "email": "Correo electrónico",
+          "phone": "Teléfono",
+          "identity_document": "Documento de identidad"
         }
       }
+    }
+  },
+  "UserColumns": {
+    "name": "Nombre",
+    "email": "Email",
+    "phone": "Teléfono",
+    "status": "Estado",
+    "actions": "Acciones",
+    "copyId": "Copiar ID de usuario",
+    "viewDetails": "Ver detalles",
+    "edit": "Editar usuario",
+    "delete": "Eliminar usuario",
+    "activate": "Activar",
+    "deactivate": "Desactivar",
+    "identity_document": "Documento de Identidad"
+  },
+  "UserRoles": {
+    "columns": {
+      "role": "Rol",
+      "status": "Estado"
     },
-    "UserColumns": {
-      "name": "Nombre",
-      "email": "Email",
-      "phone": "Teléfono",
-      "status": "Estado",
-      "actions": "Acciones",
-      "copyId": "Copiar ID de usuario",
-      "viewDetails": "Ver detalles",
-      "edit": "Editar usuario",
-      "delete": "Eliminar usuario",
+    "status": {
+      "active": "Activo",
+      "inactive": "Inactivo"
+    },
+    "actions": {
+      "openMenu": "Abrir menú",
+      "title": "Acciones",
       "activate": "Activar",
       "deactivate": "Desactivar",
-      "identity_document": "Documento de Identidad"
+      "delete": "Eliminar"
     },
-    "UserRoles": {
-      "columns": {
-        "role": "Rol",
-        "status": "Estado"
-      },
-      "status": {
-        "active": "Activo",
-        "inactive": "Inactivo"
-      },
-      "actions": {
-        "openMenu": "Abrir menú",
-        "title": "Acciones",
-        "activate": "Activar",
-        "deactivate": "Desactivar",
-        "delete": "Eliminar"
-      },
-      "filterPlaceholder": "Filtrar por rol...",
-      "dialog": {
-        "title": "Añadir Roles al Usuario",
-        "description": "Selecciona los roles a asignar a este usuario.",
-        "availableRoles": "Roles Disponibles",
-        "activeLabel": "Activo",
-        "cancel": "Cancelar",
-        "assign": "Aceptar"
-      },
-      "deleteDialog": {
-        "title": "¿Estás seguro?",
-        "description": "Esta acción eliminará el rol \"{roleName}\" del usuario. Esto no se puede deshacer.",
-        "cancel": "Cancelar",
-        "continue": "Continuar"
-      },
-      "toast": {
-        "success": "Éxito",
-        "error": "Error",
-        "statusUpdated": "El rol {roleName} ha sido {status}.",
-        "statusUpdateFailed": "No se pudo actualizar el estado del rol.",
-        "roleRemoved": "El rol \"{roleName}\" ha sido eliminado del usuario.",
-        "roleRemoveFailed": "No se pudo eliminar el rol \"{roleName}\".",
-        "rolesAssigned": "Roles asignados correctamente.",
-        "rolesAssignFailed": "No se pudieron asignar los roles."
-      }
+    "filterPlaceholder": "Filtrar por rol...",
+    "dialog": {
+      "title": "Añadir Roles al Usuario",
+      "description": "Selecciona los roles a asignar a este usuario.",
+      "availableRoles": "Roles Disponibles",
+      "activeLabel": "Activo",
+      "cancel": "Cancelar",
+      "assign": "Aceptar"
     },
-    "UserServices": {
-      "dialog": {
-        "title": "Añadir Servicios al Usuario",
-        "description": "Selecciona los servicios a asignar a este usuario.",
-        "availableServices": "Servicios Disponibles",
-        "cancel": "Cancelar",
-        "assign": "Aceptar",
-        "activeLabel": "Activo"
-      },
-      "toast": {
-        "success": "Éxito",
-        "error": "Error",
-        "servicesAssigned": "Servicios asignados correctamente.",
-        "servicesAssignFailed": "No se pudieron asignar los servicios."
-      }
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esta acción eliminará el rol \"{roleName}\" del usuario. Esto no se puede deshacer.",
+      "cancel": "Cancelar",
+      "continue": "Continuar"
     },
-    "QuoteColumns": {
-      "quoteId": "ID Cotización",
-      "total": "Total",
-      "currency": "Moneda",
-      "billingStatus": "Estado Facturación",
-      "createdAt": "Fecha"
-    },
-    "OrderColumns": {
-      "orderId": "ID Pedido",
-      "createdAt": "Fecha Creación"
-    },
-    "General": {
-      "noResults": "No se encontraron resultados."
+    "toast": {
+      "success": "Éxito",
+      "error": "Error",
+      "statusUpdated": "El rol {roleName} ha sido {status}.",
+      "statusUpdateFailed": "No se pudo actualizar el estado del rol.",
+      "roleRemoved": "El rol \"{roleName}\" ha sido eliminado del usuario.",
+      "roleRemoveFailed": "No se pudo eliminar el rol \"{roleName}\".",
+      "rolesAssigned": "Roles asignados correctamente.",
+      "rolesAssignFailed": "No se pudieron asignar los roles."
     }
+  },
+  "UserServices": {
+    "dialog": {
+      "title": "Añadir Servicios al Usuario",
+      "description": "Selecciona los servicios a asignar a este usuario.",
+      "availableServices": "Servicios Disponibles",
+      "cancel": "Cancelar",
+      "assign": "Aceptar",
+      "activeLabel": "Activo"
+    },
+    "toast": {
+      "success": "Éxito",
+      "error": "Error",
+      "servicesAssigned": "Servicios asignados correctamente.",
+      "servicesAssignFailed": "No se pudieron asignar los servicios."
+    }
+  },
+  "QuoteColumns": {
+    "quoteId": "ID Cotización",
+    "total": "Total",
+    "currency": "Moneda",
+    "billingStatus": "Estado Facturación",
+    "createdAt": "Fecha"
+  },
+  "OrderColumns": {
+    "orderId": "ID Pedido",
+    "createdAt": "Fecha Creación"
+  },
+  "General": {
+    "noResults": "No se encontraron resultados."
   }
-  
+}
