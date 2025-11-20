@@ -149,11 +149,10 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
 
   const EventComponent = ({ event }: { event: any }) => (
     <ContextMenu>
-      <ContextMenuTrigger>
+      <ContextMenuTrigger onClick={() => onEventClick(event.data)}>
         <div
           className="event"
           style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
-          onClick={() => onEventClick(event.data)}
         >
           <span className='mr-2' style={{ backgroundColor: event.color }}>&nbsp;</span>
           {event.title}
@@ -260,7 +259,7 @@ const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CS
                     <div className="time-column">
                         {timeSlots.map(time => (
                             <div key={time} className="time-slot">
-                                <span className="time-slot-label">{time.split(':')[0]} AM</span>
+                                {time.split(':')[0] !== '00' && <span className="time-slot-label">{time.split(':')[0]} AM</span>}
                             </div>
                         ))}
                     </div>
