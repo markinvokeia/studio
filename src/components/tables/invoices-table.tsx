@@ -192,6 +192,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 payment_method_id: values.method,
                 status: values.status,
                 user: user,
+                invoice_currency: selectedInvoiceForPayment.currency,
                 payment_currency: values.payment_currency,
                 exchange_rate: values.exchange_rate || 1,
             }),
@@ -582,3 +583,5 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     </>
   );
 }
+
+    
