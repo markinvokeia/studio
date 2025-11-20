@@ -627,6 +627,65 @@
       "codeRequired": "Code is required."
     }
   },
+  "ServicesPage": {
+    "title": "Services",
+    "description": "Manage all services offered by the clinic.",
+    "filterPlaceholder": "Filter by service name...",
+    "createDialog": {
+      "title": "Create New Service",
+      "description": "Fill in the details to add a new service.",
+      "editTitle": "Edit Service",
+      "editDescription": "Update the details for this service.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Dental Cleaning",
+      "category": "Category",
+      "categoryPlaceholder": "e.g., General Dentistry",
+      "price": "Price",
+      "currency": "Currency",
+      "selectCurrency": "Select currency",
+      "duration": "Duration (minutes)",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe the service...",
+      "indicationsLabel": "Indications",
+      "indicationsPlaceholder": "Indications for the patient...",
+      "cancel": "Cancel",
+      "save": "Create Service",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the service \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Service Created",
+      "editSuccessTitle": "Service Updated",
+      "successDescription": "The service \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Service Deleted",
+      "deleteSuccessDescription": "The service \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the service."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "categoryRequired": "Category is required.",
+      "pricePositive": "Price must be a positive number.",
+      "durationInteger": "Duration must be a positive integer."
+    }
+  },
+  "ServicesColumns": {
+    "id": "ID",
+    "name": "Name",
+    "category": "Category",
+    "price": "Price",
+    "currency": "Currency",
+    "duration": "Duration (min)",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
   "CashSessionsPage": {
     "title": "Cash Sessions",
     "description": "View historical cash register sessions.",
