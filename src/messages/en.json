@@ -1,4 +1,3 @@
-
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -9,6 +8,12 @@
     "Studies": "Studies",
     "SharedStudies": "Shared Studies",
     "SalesAndBilling": "Sales & Billing",
+    "Purchases": "Purchases",
+    "PurchaseQuotes": "Purchase Quotes",
+    "PurchaseOrders": "Purchase Orders",
+    "PurchaseInvoices": "Purchase Invoices",
+    "PurchasePayments": "Purchase Payments",
+    "PurchaseServices": "Purchase Services",
     "Quotes": "Quotes",
     "Orders": "Orders",
     "Invoices": "Invoices",
@@ -1174,7 +1179,7 @@
       "genericError": "An unexpected error occurred.",
       "createSuccessTitle": "Condition Created",
       "editSuccessTitle": "Condition Updated",
-      "successDescription": "Condition \"{name}\" has been saved successfully.",
+      "successDescription": "Condition \"{name}\" has been saved correctly.",
       "deleteSuccessTitle": "Condition Deleted",
       "deleteSuccessDescription": "Condition \"{name}\" has been deleted.",
       "deleteErrorDescription": "Could not delete the condition."
@@ -1222,7 +1227,7 @@
       "genericError": "An unexpected error occurred.",
       "createSuccessTitle": "Surface Created",
       "editSuccessTitle": "Surface Updated",
-      "successDescription": "Surface \"{name}\" has been saved successfully.",
+      "successDescription": "Surface \"{name}\" has been saved correctly.",
       "deleteSuccessTitle": "Surface Deleted",
       "deleteSuccessDescription": "Surface \"{name}\" has been deleted.",
       "deleteErrorDescription": "Could not delete the surface."

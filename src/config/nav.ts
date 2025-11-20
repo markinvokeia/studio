@@ -1,4 +1,3 @@
-
 import type { LucideIcon } from 'lucide-react';
 import {
   AreaChart,
@@ -36,6 +35,7 @@ import {
   Archive,
   DollarSign,
   UserSquare,
+  ShoppingBasket,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -90,6 +90,18 @@ export const navItems: NavItem[] = [
       { title: 'Payments', href: '/sales/payments', icon: CreditCard, isChidren: true },
       { title: 'PaymentMethods', href: '/sales/payment-methods', icon: CreditCard, isChidren: true },
       { title: 'Services', href: '/config/services', icon: Briefcase, isChidren: true },
+    ],
+  },
+   {
+    title: 'Purchases',
+    href: '/purchases/quotes',
+    icon: ShoppingBasket,
+    items: [
+      { title: 'PurchaseQuotes', href: '/purchases/quotes', icon: FileText, isChidren: true },
+      { title: 'PurchaseOrders', href: '/purchases/orders', icon: ShoppingCart, isChidren: true },
+      { title: 'PurchaseInvoices', href: '/purchases/invoices', icon: Receipt, isChidren: true },
+      { title: 'PurchasePayments', href: '/purchases/payments', icon: CreditCard, isChidren: true },
+      { title: 'PurchaseServices', href: '/purchases/services', icon: Briefcase, isChidren: true },
     ],
   },
    {
