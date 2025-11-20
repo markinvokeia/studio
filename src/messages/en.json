@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -29,6 +30,7 @@
     "Calendars": "Calendars",
     "DoctorAvailability": "Doctor Availability",
     "DoctorAvailabilityExceptions": "Availability Exceptions",
+    "Currencies": "Currencies & Exchange Rates",
     "System": "System",
     "Roles": "Roles",
     "Permissions": "Permissions",
@@ -36,6 +38,19 @@
     "AuditLog": "Audit Log",
     "AccessLog": "Access Log",
     "ErrorLog": "Error Log"
+  },
+  "CurrenciesPage": {
+    "title": "Currencies and Exchange Rates",
+    "description": "Manage clinic currencies and their daily exchange rates.",
+    "baseCurrency": "Base Currency",
+    "exchangeRateHistory": "Exchange Rate History",
+    "filterPlaceholder": "Filter by date...",
+    "columns": {
+      "date": "Date",
+      "from": "From",
+      "to": "To",
+      "rate": "Rate"
+    }
   },
   "LogoutConfirmation": {
     "title": "Active Cash Session",

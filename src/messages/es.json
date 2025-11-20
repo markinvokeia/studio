@@ -30,6 +30,7 @@
     "Calendars": "Calendarios",
     "DoctorAvailability": "Disponibilidad de Médicos",
     "DoctorAvailabilityExceptions": "Excepciones de disponibilidad",
+    "Currencies": "Monedas y Cotizaciones",
     "System": "Sistema",
     "Roles": "Roles",
     "Permissions": "Permisos",
@@ -37,6 +38,19 @@
     "AuditLog": "Auditoría",
     "AccessLog": "Accesos",
     "ErrorLog": "Errores"
+  },
+  "CurrenciesPage": {
+    "title": "Monedas y Cotizaciones",
+    "description": "Gestionar las monedas de la clínica y sus tipos de cambio diarios.",
+    "baseCurrency": "Moneda Base",
+    "exchangeRateHistory": "Historial de Tipos de Cambio",
+    "filterPlaceholder": "Filtrar por fecha...",
+    "columns": {
+      "date": "Fecha",
+      "from": "Desde",
+      "to": "Hacia",
+      "rate": "Tasa"
+    }
   },
   "LogoutConfirmation": {
     "title": "Sesión de Caja Activa",
@@ -880,8 +894,8 @@
     "createDialog": {
       "title": "Crear Nueva Cita",
       "description": "Completa los detalles a continuación para crear una nueva cita.",
-      "cancelAppointmentTitle": "Cancelar Cita",
-      "cancelAppointmentDescription": "¿Estás seguro de que deseas cancelar la cita para {serviceName} el {date}?",
+      "cancelAppointmentTitle": "¿Estás seguro?",
+      "cancelAppointmentDescription": "¿Estás seguro que quieres cancelar la cita de {serviceName} en la fecha {date}?",
       "confirmCancel": "Aceptar",
       "close": "Cerrar",
       "userName": "Nombre de Usuario",
