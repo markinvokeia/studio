@@ -22,11 +22,11 @@ async function getInvoices(): Promise<Invoice[]> {
             headers: { 'Accept': 'application/json' },
             cache: 'no-store',
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${''response.status}`);
         const data = await response.json();
         const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
         return invoicesData.map((apiInvoice: any) => ({
-            id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiInvoice.id ? String(apiInvoice.id) : `inv_${''Math.random().toString(36).substr(2, 9)}`,
             order_id: apiInvoice.order_id,
             quote_id: apiInvoice.quote_id,
             user_name: apiInvoice.user_name || 'N/A',
@@ -46,17 +46,17 @@ async function getInvoices(): Promise<Invoice[]> {
 async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${''invoiceId}`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
             cache: 'no-store',
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${''response.status}`);
         const data = await response.json();
         const itemsData = Array.isArray(data) ? data : (data.invoice_items || data.data || []);
         return itemsData.map((apiItem: any) => ({
-            id: apiItem.id ? String(apiItem.id) : `ii_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiItem.id ? String(apiItem.id) : `ii_${''Math.random().toString(36).substr(2, 9)}`,
             service_id: apiItem.service_id,
             service_name: apiItem.service_name || 'N/A',
             quantity: apiItem.quantity,
@@ -72,17 +72,17 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
 async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_payments?invoice_id=${invoiceId}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_payments?invoice_id=${''invoiceId}`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
             cache: 'no-store',
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${''response.status}`);
         const data = await response.json();
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
-            id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiPayment.id ? String(apiPayment.id) : `pay_${''Math.random().toString(36).substr(2, 9)}`,
             order_id: apiPayment.order_id,
             invoice_id: apiPayment.invoice_id,
             quote_id: apiPayment.quote_id,
@@ -195,7 +195,7 @@ export default function InvoicesPage() {
 
                 <div 
                     className={cn(
-                        "absolute top-0 right-0 h-full w-[60%] bg-background/95 backdrop-blur-sm border-l transition-transform duration-300 ease-in-out",
+                        "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l transition-transform duration-300 ease-in-out",
                         selectedInvoice ? 'translate-x-0' : 'translate-x-full'
                     )}
                     onClick={(e) => {
@@ -226,7 +226,7 @@ export default function InvoicesPage() {
                                         <div className="flex items-center justify-between mb-2">
                                             <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', {id: selectedInvoice.id})}</h4>
                                             <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
-                                                <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
+                                                <RefreshCw className={`h-4 w-4 ${''isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
                                             </Button>
                                         </div>
                                         <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
