@@ -197,7 +197,7 @@ export default function DoctorsPage() {
       phone: '',
       identity_document: '',
       is_active: true,
-      color: '#ffffff',
+      color: '',
     },
   });
 
@@ -265,7 +265,7 @@ export default function DoctorsPage() {
       phone: '',
       identity_document: '',
       is_active: true,
-      color: '#ffffff',
+      color: '',
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -280,7 +280,7 @@ export default function DoctorsPage() {
       phone: user.phone_number,
       identity_document: user.identity_document,
       is_active: user.is_active,
-      color: user.color || '#ffffff',
+      color: user.color || '',
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
