@@ -170,69 +170,81 @@ export default function InvoicesPage() {
     };
 
     return (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-            <div className={cn("transition-all duration-300", selectedInvoice ? "lg:col-span-2" : "lg:col-span-5")}>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>{t('title')}</CardTitle>
-                        <CardDescription>{t('description')}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <InvoicesTable 
-                            invoices={invoices}
-                            isLoading={isLoadingInvoices}
-                            onRowSelectionChange={handleRowSelectionChange}
-                            onRefresh={loadInvoices}
-                            isRefreshing={isLoadingInvoices}
-                            rowSelection={rowSelection}
-                            setRowSelection={setRowSelection}
-                            columnTranslations={columnTranslations}
-                        />
-                    </CardContent>
-                </Card>
-            </div>
-
-            {selectedInvoice && (
-                <div className="lg:col-span-3">
-                    <Card>
-                        <CardHeader className="flex flex-row items-start justify-between">
-                            <div>
-                                <CardTitle>{t('detailsFor')}</CardTitle>
-                                <CardDescription>{t('invoiceId')}: {selectedInvoice.id}</CardDescription>
-                            </div>
-                            <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
-                                <X className="h-5 w-5" />
-                                <span className="sr-only">Close details</span>
-                            </Button>
+        <>
+            <div className="relative overflow-hidden">
+                <div className={cn("transition-all duration-300 w-full")}>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>{t('title')}</CardTitle>
+                            <CardDescription>{t('description')}</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Tabs defaultValue="items" className="w-full">
-                                <TabsList className="h-auto items-center justify-start flex-wrap">
-                                    <TabsTrigger value="items">{t('tabs.items')}</TabsTrigger>
-                                    <TabsTrigger value="payments">{t('tabs.payments')}</TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="items">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', {id: selectedInvoice.id})}</h4>
-                                        <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
-                                            <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
-                                        </Button>
-                                    </div>
-                                    <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
-                                </TabsContent>
-                                <TabsContent value="payments">
-                                    <PaymentsTable 
-                                        payments={payments} 
-                                        isLoading={isLoadingPayments}
-                                        onRefresh={loadPayments}
-                                        isRefreshing={isLoadingPayments}
-                                    />
-                                </TabsContent>
-                            </Tabs>
+                            <InvoicesTable 
+                                invoices={invoices}
+                                isLoading={isLoadingInvoices}
+                                onRowSelectionChange={handleRowSelectionChange}
+                                onRefresh={loadInvoices}
+                                isRefreshing={isLoadingInvoices}
+                                rowSelection={rowSelection}
+                                setRowSelection={setRowSelection}
+                                columnTranslations={columnTranslations}
+                            />
                         </CardContent>
                     </Card>
                 </div>
-            )}
-        </div>
+
+                <div 
+                    className={cn(
+                        "absolute top-0 right-0 h-full w-[60%] bg-background/95 backdrop-blur-sm border-l transition-transform duration-300 ease-in-out",
+                        selectedInvoice ? 'translate-x-0' : 'translate-x-full'
+                    )}
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) {
+                            handleCloseDetails();
+                        }
+                    }}
+                >
+                    {selectedInvoice && (
+                        <Card className="h-full shadow-lg rounded-none">
+                            <CardHeader className="flex flex-row items-start justify-between">
+                                <div>
+                                    <CardTitle>{t('detailsFor')}</CardTitle>
+                                    <CardDescription>{t('invoiceId')}: {selectedInvoice.id}</CardDescription>
+                                </div>
+                                <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                                    <X className="h-5 w-5" />
+                                    <span className="sr-only">Close details</span>
+                                </Button>
+                            </CardHeader>
+                            <CardContent>
+                                <Tabs defaultValue="items" className="w-full">
+                                    <TabsList className="h-auto items-center justify-start flex-wrap">
+                                        <TabsTrigger value="items">{t('tabs.items')}</TabsTrigger>
+                                        <TabsTrigger value="payments">{t('tabs.payments')}</TabsTrigger>
+                                    </TabsList>
+                                    <TabsContent value="items">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', {id: selectedInvoice.id})}</h4>
+                                            <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
+                                                <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
+                                            </Button>
+                                        </div>
+                                        <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
+                                    </TabsContent>
+                                    <TabsContent value="payments">
+                                        <PaymentsTable 
+                                            payments={payments} 
+                                            isLoading={isLoadingPayments}
+                                            onRefresh={loadPayments}
+                                            isRefreshing={isLoadingPayments}
+                                        />
+                                    </TabsContent>
+                                </Tabs>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+            </div>
+        </>
     );
 }

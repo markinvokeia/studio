@@ -263,8 +263,8 @@ export default function OrdersPage() {
 
     return (
         <>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-                <div className={cn("transition-all duration-300", selectedOrder ? "lg:col-span-2" : "lg:col-span-5")}>
+            <div className="relative overflow-hidden">
+                <div className={cn("transition-all duration-300 w-full")}>
                     <Card>
                         <CardHeader>
                             <CardTitle>{t('title')}</CardTitle>
@@ -285,15 +285,18 @@ export default function OrdersPage() {
                     </Card>
                 </div>
 
-                {selectedOrder && (
-                    <div className="lg:col-span-3">
-                        <Card>
+                <div className={cn(
+                    "absolute top-0 right-0 h-full w-[60%] bg-background/95 backdrop-blur-sm border-l transition-transform duration-300 ease-in-out",
+                    selectedOrder ? 'translate-x-0' : 'translate-x-full'
+                )}>
+                    {selectedOrder && (
+                        <Card className="h-full shadow-lg rounded-none">
                             <CardHeader className="flex flex-row items-start justify-between">
                                 <div>
                                     <CardTitle>{t('detailsFor')}</CardTitle>
                                     <CardDescription>{t('orderId')}: {selectedOrder.id}</CardDescription>
                                 </div>
-                                <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
+                                <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                                     <X className="h-5 w-5" />
                                     <span className="sr-only">Close details</span>
                                 </Button>
@@ -345,8 +348,8 @@ export default function OrdersPage() {
                                 </Tabs>
                             </CardContent>
                         </Card>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
             <CreateOrderDialog 
                 isOpen={isCreateDialogOpen}
