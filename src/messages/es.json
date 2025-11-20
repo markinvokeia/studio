@@ -41,7 +41,13 @@
     "ErrorLog": "Errores"
   },
   "DoctorsPage": {
-    "description": "Gestionar todos los doctores del sistema."
+    "description": "Gestionar todos los doctores del sistema.",
+    "dialog": {
+      "createTitle": "Crear Nuevo Doctor",
+      "editTitle": "Editar Doctor",
+      "createDescription": "Complete los detalles para agregar un nuevo doctor.",
+      "editDescription": "Actualice los detalles de este doctor."
+    }
   },
   "CurrenciesPage": {
     "title": "Monedas y Cotizaciones",

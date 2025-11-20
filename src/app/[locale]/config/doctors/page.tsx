@@ -29,13 +29,15 @@ import { UserQuotes } from '@/components/users/user-quotes';
 import { UserMessages } from '@/components/users/user-messages';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserLogs } from '@/components/users/user-logs';
-import { X, AlertTriangle, KeyRound } from 'lucide-react';
+import { X, AlertTriangle, KeyRound, ChevronsUpDown, Check } from 'lucide-react';
 import { RowSelectionState, PaginationState, ColumnFiltersState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { isValidPhoneNumber } from 'libphonenumber-js';
 import { PhoneInput } from '@/components/ui/phone-input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 
 const userFormSchema = (t: (key: string) => string) => z.object({
@@ -47,6 +49,7 @@ const userFormSchema = (t: (key: string) => string) => z.object({
     .regex(/^\d+$/, { message: t('UsersPage.createDialog.validation.identityInvalid') })
     .max(10, { message: t('UsersPage.createDialog.validation.identityMaxLength') }),
   is_active: z.boolean().default(false),
+  doctor: z.string().nullable().optional(),
 });
 
 type UserFormValues = z.infer<ReturnType<typeof userFormSchema>>;
@@ -177,6 +180,7 @@ export default function DoctorsPage() {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [canSetFirstPassword, setCanSetFirstPassword] = React.useState(false);
+  const [isDoctorSearchOpen, setIsDoctorSearchOpen] = React.useState(false);
 
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -195,6 +199,7 @@ export default function DoctorsPage() {
       phone: '',
       identity_document: '',
       is_active: true,
+      doctor: null,
     },
   });
 
@@ -262,6 +267,7 @@ export default function DoctorsPage() {
       phone: '',
       identity_document: '',
       is_active: true,
+      doctor: null,
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -276,6 +282,7 @@ export default function DoctorsPage() {
       phone: user.phone_number,
       identity_document: user.identity_document,
       is_active: user.is_active,
+      doctor: null,
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -501,8 +508,8 @@ export default function DoctorsPage() {
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{editingUser ? t('UsersPage.createDialog.editTitle') : t('UsersPage.createDialog.title')}</DialogTitle>
-          <DialogDescription>{editingUser ? t('UsersPage.createDialog.editDescription') : t('UsersPage.createDialog.description')}</DialogDescription>
+          <DialogTitle>{editingUser ? t('DoctorsPage.dialog.editTitle') : t('DoctorsPage.dialog.createTitle')}</DialogTitle>
+          <DialogDescription>{editingUser ? t('DoctorsPage.dialog.editDescription') : t('DoctorsPage.dialog.createDescription')}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -513,6 +520,49 @@ export default function DoctorsPage() {
                     <AlertDescription>{submissionError}</AlertDescription>
                   </Alert>
                 )}
+                 <FormField
+                    control={form.control}
+                    name="doctor"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('Navigation.Doctors')}</FormLabel>
+                                <Popover open={isDoctorSearchOpen} onOpenChange={setIsDoctorSearchOpen}>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                        <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                                            {field.value ? users.find(u => u.id === field.value)?.name : "Select a doctor"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                        <Command>
+                                        <CommandInput placeholder="Search doctors..." />
+                                        <CommandList>
+                                            <CommandEmpty>No doctors found.</CommandEmpty>
+                                            <CommandGroup>
+                                            {users.filter(u => u.id !== editingUser?.id).map((user) => (
+                                                <CommandItem
+                                                    value={user.name}
+                                                    key={user.id}
+                                                    onSelect={() => {
+                                                        form.setValue("doctor", user.id);
+                                                        setIsDoctorSearchOpen(false);
+                                                    }}
+                                                >
+                                                <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")}/>
+                                                {user.name}
+                                                </CommandItem>
+                                            ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
                 <FormField
                     control={form.control}
                     name="name"
@@ -594,3 +644,4 @@ export default function DoctorsPage() {
     </>
   );
 }
+

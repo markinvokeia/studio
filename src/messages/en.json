@@ -41,7 +41,13 @@
     "ErrorLog": "Error Log"
   },
   "DoctorsPage": {
-    "description": "Manage all doctors in the system."
+    "description": "Manage all doctors in the system.",
+    "dialog": {
+      "createTitle": "Create New Doctor",
+      "editTitle": "Edit Doctor",
+      "createDescription": "Fill in the details to add a new doctor.",
+      "editDescription": "Update the details for this doctor."
+    }
   },
   "CurrenciesPage": {
     "title": "Currencies and Exchange Rates",
