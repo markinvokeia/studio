@@ -40,6 +40,14 @@
     "AccessLog": "Access Log",
     "ErrorLog": "Error Log"
   },
+  "DoctorColumns": {
+    "copyId": "Copy doctor ID",
+    "edit": "Edit doctor",
+    "delete": "Delete doctor",
+    "activate": "Activate doctor",
+    "deactivate": "Deactivate doctor",
+    "actions": "Actions"
+  },
   "DoctorsPage": {
     "description": "Manage all doctors in the system.",
     "dialog": {

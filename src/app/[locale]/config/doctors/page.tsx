@@ -168,6 +168,7 @@ async function getRolesForUser(userId: string): Promise<UserRole[]> {
 
 export default function DoctorsPage() {
   const t = useTranslations();
+  const tDoctor = useTranslations('DoctorsPage');
   
   const { toast } = useToast();
   const [users, setUsers] = React.useState<User[]>([]);
@@ -277,7 +278,7 @@ export default function DoctorsPage() {
       id: user.id,
       name: user.name,
       email: user.email,
-      phone: user.phone_number,
+      phone_number: user.phone_number,
       identity_document: user.identity_document,
       is_active: user.is_active,
       color: user.color || '',
@@ -286,7 +287,11 @@ export default function DoctorsPage() {
     setIsDialogOpen(true);
   };
   
-  const userColumns = UserColumnsWrapper({ onToggleActivate: handleToggleActivate, onEdit: handleEdit });
+  const userColumns = UserColumnsWrapper({ 
+    onToggleActivate: handleToggleActivate, 
+    onEdit: handleEdit,
+    t: tDoctor
+   });
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
@@ -506,8 +511,8 @@ export default function DoctorsPage() {
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{editingUser ? t('DoctorsPage.dialog.editTitle') : t('DoctorsPage.dialog.createTitle')}</DialogTitle>
-          <DialogDescription>{editingUser ? t('DoctorsPage.dialog.editDescription') : t('DoctorsPage.dialog.createDescription')}</DialogDescription>
+          <DialogTitle>{editingUser ? tDoctor('dialog.editTitle') : tDoctor('dialog.createTitle')}</DialogTitle>
+          <DialogDescription>{editingUser ? tDoctor('dialog.editDescription') : tDoctor('dialog.createDescription')}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -581,7 +586,7 @@ export default function DoctorsPage() {
                     name="color"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>{t('DoctorsPage.dialog.color')}</FormLabel>
+                            <FormLabel>{tDoctor('dialog.color')}</FormLabel>
                             <FormControl>
                                 <div className="flex items-center gap-2">
                                     <Input type="color" className="p-1 h-10 w-14" {...field} />
