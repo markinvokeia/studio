@@ -751,7 +751,7 @@ export default function QuotesPage() {
 
     return (
         <>
-            <div className="relative overflow-hidden">
+            <div className="relative">
                 <div className={cn("transition-all duration-300 w-full")}>
                     <RecentQuotesTable 
                         quotes={quotes} 
@@ -772,11 +772,7 @@ export default function QuotesPage() {
                         "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l transition-transform duration-300 ease-in-out",
                         selectedQuote ? 'translate-x-0' : 'translate-x-full'
                     )}
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget) {
-                            handleCloseDetails();
-                        }
-                    }}
+                    style={{ minHeight: 'calc(100vh - 10rem)' }}
                 >
                     {selectedQuote && (
                         <Card className="h-full shadow-lg rounded-none">
@@ -992,7 +988,7 @@ export default function QuotesPage() {
                                 )}
                             />
                             <FormField
-                                control={quoteForm.control}
+                                control={form.control}
                                 name="billing_status"
                                 render={({ field }) => (
                                     <FormItem>
