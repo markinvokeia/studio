@@ -160,6 +160,7 @@
     font-size: 0.75rem;
     color: hsl(var(--muted-foreground));
     text-align: center;
+    border-bottom: 1px solid var(--border);
 }
 
 .time-slot {
@@ -217,5 +218,3 @@
     height: 2px;
     background-color: #F44336;
 }
-
-
