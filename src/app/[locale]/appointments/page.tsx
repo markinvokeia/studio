@@ -934,10 +934,6 @@ export default function AppointmentsPage() {
                 </Popover>
                 {showGroupControls && (
                     <>
-                        <div className="flex items-center gap-2">
-                            <Checkbox id="group-by-assignee" checked={group} onCheckedChange={(checked) => setGroup(typeof checked === 'boolean' ? checked : false)} disabled={selectedAssignees.length === 0} />
-                            <Label htmlFor="group-by-assignee" className={cn(selectedAssignees.length === 0 && 'text-muted-foreground')}>Group by Assignee</Label>
-                        </div>
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button variant="outline" className="flex items-center gap-2">
@@ -949,6 +945,11 @@ export default function AppointmentsPage() {
                                 <Command>
                                     <CommandList>
                                         <CommandGroup>
+                                            <CommandItem onSelect={(e) => e.preventDefault()} className="flex items-center gap-2">
+                                                <Checkbox id="group-by-assignee" checked={group} onCheckedChange={(checked) => setGroup(typeof checked === 'boolean' ? checked : false)} disabled={selectedAssignees.length === 0} />
+                                                <Label htmlFor="group-by-assignee" className={cn(selectedAssignees.length === 0 && 'text-muted-foreground')}>Group by Assignee</Label>
+                                            </CommandItem>
+                                            <hr className="my-2" />
                                             <CommandItem onSelect={() => setSelectedAssignees(assignees.map(a => a.id))}>Select All</CommandItem>
                                             <CommandItem onSelect={() => setSelectedAssignees([])}>Deselect All</CommandItem>
                                             <hr className="my-2" />
@@ -1233,7 +1234,7 @@ export default function AppointmentsPage() {
                         }
                     }} className="w-28">
                         <Trash2 className="mr-2 h-4 w-4" />
-                        {tColumns('cancel')}
+                        {t('AppointmentsColumns.cancel')}
                     </Button>
                     <Button onClick={() => {
                         if (selectedAppointment) {
@@ -1251,6 +1252,8 @@ export default function AppointmentsPage() {
     </Card>
   );
 }
+
+    
 
     
 
