@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -772,7 +773,6 @@ export default function QuotesPage() {
                         "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l transition-transform duration-300 ease-in-out",
                         selectedQuote ? 'translate-x-0' : 'translate-x-full'
                     )}
-                    style={{ minHeight: 'calc(100vh - 10rem)' }}
                 >
                     {selectedQuote && (
                         <Card className="h-full shadow-lg rounded-none">
@@ -988,7 +988,7 @@ export default function QuotesPage() {
                                 )}
                             />
                             <FormField
-                                control={form.control}
+                                control={quoteForm.control}
                                 name="billing_status"
                                 render={({ field }) => (
                                     <FormItem>
@@ -1150,3 +1150,5 @@ export default function QuotesPage() {
         </>
     );
 }
+
+    

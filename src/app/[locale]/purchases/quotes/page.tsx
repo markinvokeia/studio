@@ -752,8 +752,8 @@ export default function QuotesPage() {
 
     return (
         <>
-            <div className="relative overflow-hidden h-[calc(100vh-10rem)]">
-                <div className={cn("transition-all duration-300 w-full h-full")}>
+            <div className="relative">
+                <div className={cn("transition-all duration-300 w-full")}>
                     <RecentQuotesTable 
                         quotes={quotes} 
                         onRowSelectionChange={handleRowSelectionChange} 
@@ -1150,3 +1150,5 @@ export default function QuotesPage() {
         </>
     );
 }
+
+    
