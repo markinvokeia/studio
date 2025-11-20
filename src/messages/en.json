@@ -3,8 +3,9 @@
   "Navigation": {
     "Dashboard": "Dashboard",
     "Appointments": "Appointments",
-    "UsersAndAccess": "Users",
+    "UsersAndAccess": "Users & Access",
     "Users": "Users",
+    "Providers": "Providers",
     "ClinicHistory": "Clinic History",
     "Studies": "Studies",
     "SharedStudies": "Shared Studies",
@@ -45,6 +46,71 @@
     "AuditLog": "Audit Log",
     "AccessLog": "Access Log",
     "ErrorLog": "Error Log"
+  },
+  "ProvidersPage": {
+    "title": "Providers",
+    "description": "Manage all providers in the system.",
+    "filterPlaceholder": "Filter providers by email...",
+    "detailsFor": "Details for {name}",
+    "close": "Close details",
+    "setInitialPassword": "Set Initial Password",
+    "tabs": {
+      "roles": "Roles"
+    },
+    "createDialog": {
+      "title": "Create New Provider",
+      "description": "Fill in the details below to add a new provider.",
+      "editTitle": "Edit Provider",
+      "editDescription": "Update the details for this provider.",
+      "createSuccessTitle": "Provider Created",
+      "createSuccessDescription": "The new provider has been added successfully.",
+      "editSuccessTitle": "Provider Updated",
+      "editSuccessDescription": "The provider has been updated successfully.",
+      "name": "Name",
+      "namePlaceholder": "John Doe",
+      "email": "Email",
+      "emailPlaceholder": "john.doe@example.com",
+      "phone": "Phone",
+      "phonePlaceholder": "123-456-7890",
+      "identity_document": "Identity Document",
+      "identity_document_placeholder": "e.g., 12345678",
+      "isActive": "Is Active",
+      "cancel": "Cancel",
+      "save": "Create Provider",
+      "editSave": "Save Changes",
+      "validation": {
+        "errorTitle": "Error",
+        "nameRequired": "Name is required",
+        "emailInvalid": "Invalid email address",
+        "phoneInvalid": "Invalid phone number",
+        "phoneRequired": "Phone is required",
+        "identityRequired": "Identity document is required",
+        "identityInvalid": "Identity document must be a number.",
+        "identityMaxLength": "Identity document must be 10 characters or less.",
+        "genericError": "An unexpected error occurred. Please try again.",
+        "serverError": "Server error, please try again later.",
+        "uniqueConflict": "The following fields are already registered: {fields}",
+        "fields": {
+          "email": "Email",
+          "phone": "Phone",
+          "identity_document": "Identity Document"
+        }
+      }
+    }
+  },
+  "ProviderColumns": {
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "status": "Status",
+    "actions": "Actions",
+    "copyId": "Copy provider ID",
+    "viewDetails": "View details",
+    "edit": "Edit provider",
+    "delete": "Delete provider",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "identity_document": "Identity Document"
   },
   "DoctorsPage": {
     "description": "Manage all doctors in the system.",
@@ -635,7 +701,7 @@
   },
   "ServicesPage": {
     "title": "Services",
-    "description": "Manage all services offered by the clinic.",
+    "description": "Manage all services offered.",
     "filterPlaceholder": "Filter by service name...",
     "createDialog": {
       "title": "Create New Service",
@@ -643,17 +709,14 @@
       "editTitle": "Edit Service",
       "editDescription": "Update the details for this service.",
       "name": "Name",
-      "namePlaceholder": "e.g., Dental Cleaning",
+      "namePlaceholder": "e.g., Product A",
       "category": "Category",
-      "categoryPlaceholder": "e.g., General Dentistry",
+      "categoryPlaceholder": "e.g., Electronics",
       "price": "Price",
       "currency": "Currency",
       "selectCurrency": "Select currency",
-      "duration": "Duration (minutes)",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Describe the service...",
-      "indicationsLabel": "Indications",
-      "indicationsPlaceholder": "Indications for the patient...",
       "cancel": "Cancel",
       "save": "Create Service",
       "editSave": "Save Changes"

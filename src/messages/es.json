@@ -5,6 +5,7 @@
     "Appointments": "Citas",
     "UsersAndAccess": "Usuarios y Acceso",
     "Users": "Usuarios",
+    "Providers": "Proveedores",
     "ClinicHistory": "Historial Clínico",
     "Studies": "Estudios",
     "SharedStudies": "Estudio Compartido",
@@ -45,6 +46,71 @@
     "AuditLog": "Auditoría",
     "AccessLog": "Accesos",
     "ErrorLog": "Errores"
+  },
+  "ProvidersPage": {
+    "title": "Proveedores",
+    "description": "Gestionar todos los proveedores del sistema.",
+    "filterPlaceholder": "Filtrar proveedores por correo electrónico...",
+    "detailsFor": "Detalles de {name}",
+    "close": "Cerrar detalles",
+    "setInitialPassword": "Establecer Contraseña Inicial",
+    "tabs": {
+      "roles": "Roles"
+    },
+    "createDialog": {
+      "title": "Crear Nuevo Proveedor",
+      "description": "Complete los detalles a continuación para agregar un nuevo proveedor.",
+      "editTitle": "Editar Proveedor",
+      "editDescription": "Actualice los detalles de este proveedor.",
+      "createSuccessTitle": "Proveedor Creado",
+      "createSuccessDescription": "El nuevo proveedor ha sido añadido exitosamente.",
+      "editSuccessTitle": "Proveedor Actualizado",
+      "editSuccessDescription": "El proveedor ha sido actualizado exitosamente.",
+      "name": "Nombre",
+      "namePlaceholder": "John Doe",
+      "email": "Email",
+      "emailPlaceholder": "john.doe@example.com",
+      "phone": "Teléfono",
+      "phonePlaceholder": "123-456-7890",
+      "identity_document": "Documento de Identidad",
+      "identity_document_placeholder": "12345678",
+      "isActive": "Está Activo",
+      "cancel": "Cancelar",
+      "save": "Crear Proveedor",
+      "editSave": "Guardar Cambios",
+      "validation": {
+        "errorTitle": "Error",
+        "nameRequired": "El nombre es obligatorio",
+        "emailInvalid": "Dirección de correo electrónico no válida",
+        "phoneRequired": "El teléfono es obligatorio",
+        "phoneInvalid": "Número de teléfono no válido",
+        "identityRequired": "El documento de identidad es obligatorio",
+        "identityInvalid": "El documento de identidad debe ser un número.",
+        "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
+        "genericError": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
+        "serverError": "Error del servidor, por favor inténtelo más tarde.",
+        "uniqueConflict": "Los siguientes campos ya se encuentran registrados: {fields}",
+        "fields": {
+          "email": "Correo electrónico",
+          "phone": "Teléfono",
+          "identity_document": "Documento de identidad"
+        }
+      }
+    }
+  },
+  "ProviderColumns": {
+    "name": "Nombre",
+    "email": "Email",
+    "phone": "Teléfono",
+    "status": "Estado",
+    "actions": "Acciones",
+    "copyId": "Copiar ID de proveedor",
+    "viewDetails": "Ver detalles",
+    "edit": "Editar proveedor",
+    "delete": "Eliminar proveedor",
+    "activate": "Activar",
+    "deactivate": "Desactivar",
+    "identity_document": "Documento de Identidad"
   },
   "DoctorsPage": {
     "description": "Gestionar todos los doctores del sistema.",
@@ -635,7 +701,7 @@
   },
   "ServicesPage": {
     "title": "Servicios",
-    "description": "Gestionar todos los servicios ofrecidos por la clínica.",
+    "description": "Gestionar todos los servicios ofrecidos.",
     "filterPlaceholder": "Filtrar por nombre de servicio...",
     "createDialog": {
       "title": "Crear Nuevo Servicio",
@@ -643,17 +709,14 @@
       "editTitle": "Editar Servicio",
       "editDescription": "Actualiza los detalles de este servicio.",
       "name": "Nombre",
-      "namePlaceholder": "ej., Limpieza Dental",
+      "namePlaceholder": "ej., Producto A",
       "category": "Categoría",
-      "categoryPlaceholder": "ej., Odontología General",
+      "categoryPlaceholder": "ej., Electrónicos",
       "price": "Precio",
       "currency": "Moneda",
       "selectCurrency": "Seleccionar moneda",
-      "duration": "Duración (minutos)",
       "descriptionLabel": "Descripción",
       "descriptionPlaceholder": "Describe el servicio...",
-      "indicationsLabel": "Indicaciones",
-      "indicationsPlaceholder": "Indicaciones para el paciente...",
       "cancel": "Cancelar",
       "save": "Crear Servicio",
       "editSave": "Guardar Cambios"

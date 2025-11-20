@@ -1,0 +1,559 @@
+
+'use client';
+
+import * as React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { ProviderColumnsWrapper } from './columns';
+import { DataTable } from '@/components/ui/data-table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { User, UserRole } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { UserRoles } from '@/components/users/user-roles';
+import { X, AlertTriangle, KeyRound } from 'lucide-react';
+import { RowSelectionState, PaginationState, ColumnFiltersState } from '@tanstack/react-table';
+import { useTranslations } from 'next-intl';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { isValidPhoneNumber } from 'libphonenumber-js';
+import { PhoneInput } from '@/components/ui/phone-input';
+
+const providerFormSchema = (t: (key: string) => string) => z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, { message: t('ProvidersPage.createDialog.validation.nameRequired') }),
+  email: z.string().email({ message: t('ProvidersPage.createDialog.validation.emailInvalid') }),
+  phone: z.string().refine(isValidPhoneNumber, { message: t('ProvidersPage.createDialog.validation.phoneInvalid') }),
+  identity_document: z.string()
+    .regex(/^\d+$/, { message: t('ProvidersPage.createDialog.validation.identityInvalid') })
+    .max(10, { message: t('ProvidersPage.createDialog.validation.identityMaxLength') }),
+  is_active: z.boolean().default(false),
+});
+
+type ProviderFormValues = z.infer<ReturnType<typeof providerFormSchema>>;
+
+type GetProvidersResponse = {
+  users: User[];
+  total: number;
+};
+
+async function getProviders(pagination: PaginationState, searchQuery: string): Promise<GetProvidersResponse> {
+  try {
+    const params = new URLSearchParams({
+      page: (pagination.pageIndex + 1).toString(),
+      limit: pagination.pageSize.toString(),
+      search: searchQuery,
+      is_sales: 'false'
+    });
+    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?${params.toString()}`, {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+    }
+    
+    const responseData = await response.json();
+    
+    let usersData = [];
+    let total = 0;
+
+    if (Array.isArray(responseData) && responseData.length > 0) {
+        const firstElement = responseData[0];
+        if (firstElement.json && typeof firstElement.json === 'object') {
+            usersData = firstElement.json.data || [];
+            total = Number(firstElement.json.total) || usersData.length;
+        } else if (firstElement.data) {
+            usersData = firstElement.data;
+            total = Number(firstElement.total) || usersData.length;
+        }
+    } else if (typeof responseData === 'object' && responseData !== null && responseData.data) {
+        usersData = responseData.data;
+        total = Number(responseData.total) || usersData.length;
+    }
+
+    const mappedUsers = usersData.map((apiUser: any) => ({
+      id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+      name: apiUser.name || 'No Name',
+      email: apiUser.email || 'no-email@example.com',
+      phone_number: apiUser.phone_number || '000-000-0000',
+      is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+      identity_document: apiUser.identity_document,
+      avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
+    }));
+
+    return { users: mappedUsers, total: total };
+
+  } catch (error) {
+    console.error("Failed to fetch providers:", error);
+    return { users: [], total: 0 };
+  }
+}
+
+async function upsertProvider(providerData: ProviderFormValues) {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/upsert', {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({...providerData, is_sales: false}),
+    });
+    
+    const responseData = await response.json();
+
+    if (responseData.error && (responseData.error.error || responseData.code > 200)) {
+        const error = new Error('API Error') as any;
+        error.status = responseData.code || response.status;
+        error.data = responseData;
+        throw error;
+    }
+    
+    return responseData;
+}
+
+async function getRolesForUser(userId: string): Promise<UserRole[]> {
+  if (!userId) return [];
+  try {
+    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/roles/user_roles?user_id=${userId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const userRolesData = Array.isArray(data) ? (Object.keys(data[0]).length === 0? [] : data) : (data.user_roles || data.data || data.result || []);
+    return userRolesData.map((apiRole: any) => ({
+      user_role_id: apiRole.user_role_id,
+      role_id: apiRole.role_id,
+      name: apiRole.name || 'Unknown Role',
+      is_active: apiRole.is_active,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch user roles:", error);
+    return [];
+  }
+}
+
+export default function ProvidersPage() {
+  const t = useTranslations();
+  
+  const { toast } = useToast();
+  const [providers, setProviders] = React.useState<User[]>([]);
+  const [providerCount, setProviderCount] = React.useState(0);
+  const [selectedProvider, setSelectedProvider] = React.useState<User | null>(null);
+  const [selectedProviderRoles, setSelectedProviderRoles] = React.useState<UserRole[]>([]);
+  const [isRolesLoading, setIsRolesLoading] = React.useState(false);
+  const [editingProvider, setEditingProvider] = React.useState<User | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+  const [canSetFirstPassword, setCanSetFirstPassword] = React.useState(false);
+
+
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const [pagination, setPagination] = React.useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+
+  const form = useForm<ProviderFormValues>({
+    resolver: zodResolver(providerFormSchema(t)),
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      identity_document: '',
+      is_active: true,
+    },
+  });
+
+  const loadProviders = React.useCallback(async () => {
+    setIsRefreshing(true);
+    const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
+    const { users: fetchedProviders, total } = await getProviders(pagination, searchQuery);
+    setProviders(fetchedProviders);
+    setProviderCount(total);
+    setIsRefreshing(false);
+  }, [pagination, columnFilters]);
+
+  const loadProviderRoles = React.useCallback(async (userId: string) => {
+    setIsRolesLoading(true);
+    const roles = await getRolesForUser(userId);
+    setSelectedProviderRoles(roles);
+    setIsRolesLoading(false);
+  }, []);
+
+  React.useEffect(() => {
+    const debounce = setTimeout(() => {
+        loadProviders();
+    }, 500);
+    return () => clearTimeout(debounce);
+  }, [loadProviders]);
+
+  const handleToggleActivate = async (user: User) => {
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/activate', {
+            method: 'PUT',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: user.id,
+                is_active: !user.is_active,
+            }),
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to update provider status');
+        }
+
+        toast({
+            title: 'Success',
+            description: `Provider ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
+        });
+
+        loadProviders();
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Could not update provider status.',
+        });
+        console.error(error);
+    }
+  };
+
+  const handleCreate = () => {
+    setEditingProvider(null);
+    form.reset({
+      name: '',
+      email: '',
+      phone: '',
+      identity_document: '',
+      is_active: true,
+    });
+    setSubmissionError(null);
+    setIsDialogOpen(true);
+  };
+  
+  const handleEdit = (provider: User) => {
+    setEditingProvider(provider);
+    form.reset({
+      id: provider.id,
+      name: provider.name,
+      email: provider.email,
+      phone: provider.phone_number,
+      identity_document: provider.identity_document,
+      is_active: provider.is_active,
+    });
+    setSubmissionError(null);
+    setIsDialogOpen(true);
+  };
+  
+  const providerColumns = ProviderColumnsWrapper({ onToggleActivate: handleToggleActivate, onEdit: handleEdit });
+
+  const handleRowSelectionChange = (selectedRows: User[]) => {
+    const user = selectedRows.length > 0 ? selectedRows[0] : null;
+    setSelectedProvider(user);
+  };
+
+    React.useEffect(() => {
+    const checkFirstPasswordRequirements = async () => {
+        if (!selectedProvider) {
+            setCanSetFirstPassword(false);
+            return;
+        }
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setCanSetFirstPassword(false);
+            return;
+        }
+
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/check-requirements-first-password?user_id=${selectedProvider.id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            setCanSetFirstPassword(response.ok);
+        } catch (error) {
+            console.error("Failed to check first password requirements:", error);
+            setCanSetFirstPassword(false);
+        }
+    };
+
+    if (selectedProvider) {
+      loadProviderRoles(selectedProvider.id);
+      checkFirstPasswordRequirements();
+    } else {
+      setSelectedProviderRoles([]);
+      setCanSetFirstPassword(false);
+    }
+  }, [selectedProvider, loadProviderRoles]);
+
+  const handleCloseDetails = () => {
+    setSelectedProvider(null);
+    setRowSelection({});
+  };
+
+  const onSubmit = async (data: ProviderFormValues) => {
+    setSubmissionError(null);
+    form.clearErrors();
+
+    try {
+        await upsertProvider(data);
+        const isEditing = !!editingProvider;
+
+        toast({
+            title: isEditing ? t('ProvidersPage.createDialog.editSuccessTitle') : t('ProvidersPage.createDialog.createSuccessTitle'),
+            description: isEditing ? t('ProvidersPage.createDialog.editSuccessDescription') : t('ProvidersPage.createDialog.createSuccessDescription'),
+        });
+        setIsDialogOpen(false);
+        loadProviders();
+
+    } catch (error: any) {
+        const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
+        if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
+            const fields = errorData.conflictedFields.map((f:string) => t(`ProvidersPage.createDialog.validation.fields.${f}`)).join(', ');
+            setSubmissionError(t('ProvidersPage.createDialog.validation.uniqueConflict', { fields }));
+        } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
+            const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
+            if (errors.length > 0) {
+                errors.forEach((err: { field: any; message: string }) => {
+                    if (err.field) {
+                        form.setError(err.field as keyof ProviderFormValues, {
+                            type: 'manual',
+                            message: err.message,
+                        });
+                    }
+                });
+            } else {
+                 setSubmissionError(errorData?.message || t('ProvidersPage.createDialog.validation.genericError'));
+            }
+        } else if (error.status >= 500) {
+            setSubmissionError(t('ProvidersPage.createDialog.validation.serverError'));
+        } else {
+             const errorMessage = typeof error.data === 'string' ? error.data : errorData?.message || (error instanceof Error ? error.message : t('ProvidersPage.createDialog.validation.genericError'));
+             setSubmissionError(errorMessage);
+        }
+    }
+  };
+
+  const handleSendInitialPassword = async () => {
+    if (!selectedProvider) return;
+    const token = localStorage.getItem('token');
+    if (!token) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Authentication token not found.' });
+        return;
+    }
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/first-time-password-token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ user_id: selectedProvider.id }),
+        });
+        const responseData = await response.json();
+        if (!response.ok) {
+            throw new Error(responseData.message || 'Failed to send password email.');
+        }
+        toast({ title: 'Email Sent', description: responseData.message });
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'An unexpected error occurred.' });
+    }
+  };
+
+  return (
+    <>
+    <div className={cn("grid grid-cols-1 gap-4", selectedProvider ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
+      <div className={cn("transition-all duration-300", selectedProvider ? "lg:col-span-2" : "lg:col-span-5")}>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('ProvidersPage.title')}</CardTitle>
+            <CardDescription>{t('ProvidersPage.description')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DataTable 
+              columns={providerColumns} 
+              data={providers} 
+              filterColumnId="email" 
+              filterPlaceholder={t('ProvidersPage.filterPlaceholder')}
+              onRowSelectionChange={handleRowSelectionChange}
+              enableSingleRowSelection={true}
+              onCreate={handleCreate}
+              onRefresh={loadProviders}
+              isRefreshing={isRefreshing}
+              rowSelection={rowSelection}
+              setRowSelection={setRowSelection}
+              pageCount={Math.ceil(providerCount / pagination.pageSize)}
+              pagination={pagination}
+              onPaginationChange={setPagination}
+              manualPagination={true}
+              columnFilters={columnFilters}
+              onColumnFiltersChange={setColumnFilters}
+            />
+          </CardContent>
+        </Card>
+      </div>
+      
+      {selectedProvider && (
+        <div className="lg:col-span-3">
+            <Card>
+               <CardHeader className="flex flex-row items-start justify-between">
+                <div>
+                    <CardTitle>{t('ProvidersPage.detailsFor', {name: selectedProvider.name})}</CardTitle>
+                </div>
+                 <div className="flex items-center gap-2">
+                    {canSetFirstPassword && (
+                        <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
+                            <KeyRound className="mr-2 h-4 w-4" />
+                            {t('ProvidersPage.setInitialPassword')}
+                        </Button>
+                    )}
+                    <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
+                        <X className="h-5 w-5" />
+                        <span className="sr-only">{t('ProvidersPage.close')}</span>
+                    </Button>
+                </div>
+            </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="roles" className="w-full">
+                   <TabsList>
+                    <TabsTrigger value="roles">{t('ProvidersPage.tabs.roles')}</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="roles">
+                    <UserRoles
+                        userId={selectedProvider.id}
+                        initialUserRoles={selectedProviderRoles}
+                        isLoading={isRolesLoading}
+                        onRolesChange={() => loadProviderRoles(selectedProvider.id)}
+                    />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+        </div>
+      )}
+    </div>
+
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{editingProvider ? t('ProvidersPage.createDialog.editTitle') : t('ProvidersPage.createDialog.title')}</DialogTitle>
+          <DialogDescription>{editingProvider ? t('ProvidersPage.createDialog.editDescription') : t('ProvidersPage.createDialog.description')}</DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {submissionError && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{t('ProvidersPage.createDialog.validation.errorTitle')}</AlertTitle>
+                    <AlertDescription>{submissionError}</AlertDescription>
+                  </Alert>
+                )}
+                <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('ProvidersPage.createDialog.name')}</FormLabel>
+                            <FormControl>
+                                <Input placeholder={t('ProvidersPage.createDialog.namePlaceholder')} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('ProvidersPage.createDialog.email')}</FormLabel>
+                            <FormControl>
+                                <Input type="email" placeholder={t('ProvidersPage.createDialog.emailPlaceholder')} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('ProvidersPage.createDialog.phone')}</FormLabel>
+                            <FormControl>
+                               <PhoneInput
+                                    {...field}
+                                    defaultCountry="UY"
+                                    placeholder={t('ProvidersPage.createDialog.phonePlaceholder')}
+                                    onChange={field.onChange}
+                                    value={field.value}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="identity_document"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('ProvidersPage.createDialog.identity_document')}</FormLabel>
+                            <FormControl>
+                                <Input placeholder={t('ProvidersPage.createDialog.identity_document_placeholder')} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="is_active"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                            <FormControl>
+                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            <FormLabel>{t('ProvidersPage.createDialog.isActive')}</FormLabel>
+                        </FormItem>
+                    )}
+                />
+                 <div className="flex justify-end space-x-2 pt-4">
+                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('ProvidersPage.createDialog.cancel')}</Button>
+                    <Button type="submit">{editingProvider ? t('ProvidersPage.createDialog.editSave') : t('ProvidersPage.createDialog.save')}</Button>
+                </div>
+            </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+    </>
+  );
+}
