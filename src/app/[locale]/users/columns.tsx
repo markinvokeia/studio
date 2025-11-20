@@ -20,7 +20,7 @@ import type { User } from '@/lib/types';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 
-export const getColumns = (t: (key: string) => string, onToggleActivate: (user: User) => void, onEdit: (user: User) => void, tNs: string = 'UserColumns'): ColumnDef<User>[] => [
+export const getColumns = (t: (key: string) => string, onToggleActivate: (user: User) => void, onEdit: (user: User) => void): ColumnDef<User>[] => [
   {
     id: 'select',
     header: () => null,
@@ -44,7 +44,7 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
   {
     accessorKey: 'name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t(`${tNs}.name`)} />
+      <DataTableColumnHeader column={column} title={t('name')} />
     ),
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
@@ -55,25 +55,25 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
   {
     accessorKey: 'email',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t(`${tNs}.email`)} />
+      <DataTableColumnHeader column={column} title={t('email')} />
     ),
   },
     {
     accessorKey: 'identity_document',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t(`${tNs}.identity_document`)} />
+      <DataTableColumnHeader column={column} title={t('identity_document')} />
     ),
   },
   {
     accessorKey: 'phone_number',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t(`${tNs}.phone`)} />
+      <DataTableColumnHeader column={column} title={t('phone')} />
     ),
   },
   {
     accessorKey: 'is_active',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t(`${tNs}.status`)} />
+      <DataTableColumnHeader column={column} title={t('status')} />
     ),
     cell: ({ row }) => (
       <Badge variant={row.getValue('is_active') ? 'default' : 'outline'}>
@@ -84,7 +84,7 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
   {
     id: 'actions',
     cell: function Cell({ row }) {
-      const t = useTranslations(tNs);
+      const t = useTranslations('UserColumns');
       const user = row.original;
       return (
         <div onClick={(e) => e.stopPropagation()}>
@@ -117,8 +117,7 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
 
 
 export function UserColumnsWrapper({ onToggleActivate, onEdit, t: tProp }: { onToggleActivate: (user: User) => void; onEdit: (user: User) => void; t?: (key: string) => string }) {
-    const t = useTranslations();
-    const tNs = tProp ? 'DoctorColumns' : 'UserColumns';
-    const columns = React.useMemo(() => getColumns(tProp || t, onToggleActivate, onEdit, tNs), [t, tProp, onToggleActivate, onEdit, tNs]);
+    const tDefault = useTranslations('UserColumns');
+    const columns = React.useMemo(() => getColumns(tProp || tDefault, onToggleActivate, onEdit), [tDefault, tProp, onToggleActivate, onEdit]);
     return columns;
 }

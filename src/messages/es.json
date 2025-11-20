@@ -40,14 +40,6 @@
     "AccessLog": "Accesos",
     "ErrorLog": "Errores"
   },
-  "DoctorColumns": {
-    "copyId": "Copiar ID de doctor",
-    "edit": "Editar doctor",
-    "delete": "Eliminar doctor",
-    "activate": "Activar doctor",
-    "deactivate": "Desactivar doctor",
-    "actions": "Acciones"
-  },
   "DoctorsPage": {
     "description": "Gestionar todos los doctores del sistema.",
     "dialog": {
@@ -56,6 +48,19 @@
       "createDescription": "Complete los detalles para agregar un nuevo doctor.",
       "editDescription": "Actualice los detalles de este doctor.",
       "color": "Color"
+    },
+    "DoctorColumns": {
+      "name": "Nombre",
+      "email": "Email",
+      "phone": "Teléfono",
+      "status": "Estado",
+      "identity_document": "Documento de Identidad",
+      "copyId": "Copiar ID de doctor",
+      "edit": "Editar doctor",
+      "delete": "Eliminar doctor",
+      "activate": "Activar doctor",
+      "deactivate": "Desactivar doctor",
+      "actions": "Acciones"
     }
   },
   "CurrenciesPage": {

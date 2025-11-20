@@ -278,7 +278,7 @@ export default function DoctorsPage() {
       id: user.id,
       name: user.name,
       email: user.email,
-      phone_number: user.phone_number,
+      phone: user.phone_number,
       identity_document: user.identity_document,
       is_active: user.is_active,
       color: user.color || '',
@@ -290,7 +290,7 @@ export default function DoctorsPage() {
   const userColumns = UserColumnsWrapper({ 
     onToggleActivate: handleToggleActivate, 
     onEdit: handleEdit,
-    t: tDoctor
+    t: tDoctor.rich('DoctorColumns')
    });
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
