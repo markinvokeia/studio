@@ -33,7 +33,7 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
   name: z.string().min(1, t('nameRequired')),
   category: z.string().min(1, t('categoryRequired')),
   price: z.coerce.number().positive(t('pricePositive')),
-  currency: z.enum(['URU', 'USD']).default('USD'),
+  currency: z.enum(['UYU', 'USD']).default('USD'),
   duration_minutes: z.coerce.number().int().positive(t('durationInteger')),
   description: z.string().optional(),
   indications: z.string().optional(),
@@ -297,7 +297,7 @@ export default function ServicesPage() {
                               </FormControl>
                               <SelectContent>
                                   <SelectItem value="USD">USD</SelectItem>
-                                  <SelectItem value="URU">URU</SelectItem>
+                                  <SelectItem value="UYU">UYU</SelectItem>
                               </SelectContent>
                               </Select>
                               <FormMessage />
@@ -370,5 +370,3 @@ export default function ServicesPage() {
     </>
   );
 }
-
-    

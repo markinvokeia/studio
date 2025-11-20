@@ -87,5 +87,3 @@ export const ServicesColumnsWrapper = ({ onEdit, onDelete }: ServicesColumnsProp
 
   return columns;
 };
-
-    
