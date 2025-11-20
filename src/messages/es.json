@@ -28,6 +28,7 @@
     "Schedules": "Horarios",
     "Holidays": "Feriados",
     "Calendars": "Calendarios",
+    "Doctors": "Doctores",
     "DoctorAvailability": "Disponibilidad de Médicos",
     "DoctorAvailabilityExceptions": "Excepciones de disponibilidad",
     "Currencies": "Monedas y Cotizaciones",
@@ -38,6 +39,9 @@
     "AuditLog": "Auditoría",
     "AccessLog": "Accesos",
     "ErrorLog": "Errores"
+  },
+  "DoctorsPage": {
+    "description": "Gestionar todos los doctores del sistema."
   },
   "CurrenciesPage": {
     "title": "Monedas y Cotizaciones",

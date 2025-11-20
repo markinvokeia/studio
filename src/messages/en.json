@@ -28,6 +28,7 @@
     "Schedules": "Schedules",
     "Holidays": "Holidays",
     "Calendars": "Calendars",
+    "Doctors": "Doctors",
     "DoctorAvailability": "Doctor Availability",
     "DoctorAvailabilityExceptions": "Availability Exceptions",
     "Currencies": "Currencies & Exchange Rates",
@@ -38,6 +39,9 @@
     "AuditLog": "Audit Log",
     "AccessLog": "Access Log",
     "ErrorLog": "Error Log"
+  },
+  "DoctorsPage": {
+    "description": "Manage all doctors in the system."
   },
   "CurrenciesPage": {
     "title": "Currencies and Exchange Rates",

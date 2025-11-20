@@ -35,6 +35,7 @@ import {
   History,
   Archive,
   DollarSign,
+  UserSquare,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -111,6 +112,7 @@ export const navItems: NavItem[] = [
       { title: 'Schedules', href: '/config/schedules', icon: CalendarClock, isChidren: true },
       { title: 'Holidays', href: '/config/holidays', icon: CalendarOff, isChidren: true },
       { title: 'Calendars', href: '/config/calendars', icon: Calendar, isChidren: true },
+      { title: 'Doctors', href: '/config/doctors', icon: UserSquare, isChidren: true },
       { title: 'DoctorAvailability', href: '/config/doctor-availability', icon: CalendarPlus, isChidren: true },
       { title: 'DoctorAvailabilityExceptions', href: '/config/availability-exceptions', icon: UserX, isChidren: true },
       { title: 'Currencies', href: '/config/currencies', icon: DollarSign, isChidren: true },
