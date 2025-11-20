@@ -46,7 +46,7 @@ const GOOGLE_CALENDAR_COLORS = [
 
 const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEventClick, onViewChange, assignees = [], selectedAssignees = [], onSelectedAssigneesChange, group = false, onGroupChange, onEventColorChange }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState<View>('month');
+  const [view, setView] = useState('month');
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -57,7 +57,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
   }, []);
 
 
-  const handleDateChange = useCallback((start: Date, end: Date) => {
+  const handleDateChange = useCallback((start, end) => {
     if (onDateChange) {
       onDateChange({ start, end });
     }
@@ -125,7 +125,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
     setCurrentDate(new Date());
   };
 
-  const handleViewChange = (newView: View) => {
+  const handleViewChange = (newView) => {
     setView(newView);
     if(onViewChange) {
         onViewChange(newView);
@@ -147,12 +147,13 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
     }
   }, [currentDate, view]);
 
-  const EventComponent = ({ event }: { event: any }) => (
-    <ContextMenu>
-      <ContextMenuTrigger onClick={() => onEventClick(event.data)}>
+  const EventComponent = ({ event }) => (
+    <ContextMenu onOpenChange={(open) => { if (!open) onEventClick(event.data); }}>
+      <ContextMenuTrigger>
         <div
           className="event"
           style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
+          onClick={() => onEventClick(event.data)}
         >
           <span className='mr-2' style={{ backgroundColor: event.color }}>&nbsp;</span>
           {event.title}
@@ -173,8 +174,8 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
     </ContextMenu>
   );
 
-const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CSSProperties }) => (
-    <ContextMenu>
+const EventInDayViewComponent = ({ event, style }) => (
+    <ContextMenu onOpenChange={(open) => { if (!open) onEventClick(event.data); }}>
         <ContextMenuTrigger>
             <div 
                 className="event-in-day-view" 
@@ -202,16 +203,16 @@ const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CS
     </ContextMenu>
 );
 
-    const renderDayOrWeekView = (numDays: number) => {
+    const renderDayOrWeekView = (numDays) => {
         const startDay = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
         const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
         
         const timeSlots = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
         
-        const columns = group ? assignees.filter((a: User) => selectedAssignees.includes(a.id)) : [{id: 'all', name: 'All', email: 'all'}];
+        const columns = group ? assignees.filter((a) => selectedAssignees.includes(a.id)) : [{id: 'all', name: 'All', email: 'all'}];
         const numColumnsPerDay = group ? columns.length : 1;
 
-        const getEventStyle = (event: any) => {
+        const getEventStyle = (event) => {
             const start = new Date(event.start);
             const end = new Date(event.end);
             const top = (getHours(start) + getMinutes(start) / 60) * 60;
@@ -255,21 +256,31 @@ const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CS
                         </div>
                     )}
                 </div>
-                <div className="day-view-body" style={{ '--num-days': days.length * (group ? columns.length : 1) } as React.CSSProperties}>
+                <div className="day-view-body" style={{ '--num-days': days.length * (group ? columns.length : 1) }}>
                     <div className="time-column">
-                        {timeSlots.map(time => (
-                            <div key={time} className="time-slot">
-                                {time.split(':')[0] !== '00' && <span className="time-slot-label">{time.split(':')[0]} AM</span>}
-                            </div>
-                        ))}
+                        {timeSlots.map(time => {
+                            const hour24 = parseInt(time.split(':')[0], 10);
+                            if (hour24 === 0) return <div key={time} className="time-slot" />;
+                            
+                            const isPM = hour24 >= 12;
+                            const ampm = isPM ? 'PM' : 'AM';
+                            let hour12 = hour24 % 12;
+                            if (hour12 === 0) hour12 = 12;
+
+                            return (
+                                <div key={time} className="time-slot">
+                                    <span className="time-slot-label">{`${hour12} ${ampm}`}</span>
+                                </div>
+                            )
+                        })}
                     </div>
                     {days.map((day, dayIndex) => (
                         group && columns.length > 0 ? columns.map(col => (
                             <div key={`${format(day, 'yyyy-MM-dd')}-${col.id}`} className="day-column">
                                 {timeSlots.map(time => <div key={`${time}-${col.id}`} className="time-slot" />)}
                                 {events
-                                    .filter((e: any) => isSameDay(new Date(e.start), day) && e.assignee === col.email)
-                                    .map((event: any) => (
+                                    .filter((e) => isSameDay(new Date(e.start), day) && e.assignee === col.email)
+                                    .map((event) => (
                                         <EventInDayViewComponent key={event.id} event={event} style={getEventStyle(event)} />
                                     ))
                                 }
@@ -278,8 +289,8 @@ const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CS
                             <div key={format(day, 'yyyy-MM-dd')} className="day-column">
                                 {timeSlots.map(time => <div key={time} className="time-slot" />)}
                                 {events
-                                    .filter((e: any) => isSameDay(new Date(e.start), day))
-                                    .map((event: any) => (
+                                    .filter((e) => isSameDay(new Date(e.start), day))
+                                    .map((event) => (
                                         <EventInDayViewComponent key={event.id} event={event} style={getEventStyle(event)} />
                                     ))
                                 }
@@ -317,7 +328,7 @@ const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CS
 
       for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month, day);
-        const dayEvents = events.filter((e: any) => {
+        const dayEvents = events.filter((e) => {
             if (!e.start) return false;
             try {
                 return isSameDay(new Date(e.start), date);
@@ -331,7 +342,7 @@ const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CS
           <div key={day} className="calendar-day">
             <span className={cn('font-semibold w-6 h-6 flex items-center justify-center rounded-full', isSameDay(date, new Date()) && 'current-day-month-view')}>{day}</span>
             <div className='mt-1 space-y-1'>
-              {dayEvents.map((event: any, index: number) => (
+              {dayEvents.map((event, index) => (
                 <EventComponent key={`${event.id}-${index}`} event={event} />
               ))}
             </div>
@@ -378,7 +389,7 @@ const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CS
   const renderYearView = () => {
     const year = getYear(currentDate);
     const months = Array.from({ length: 12 }, (_, i) => new Date(year, i, 1));
-    const getMonth = (date: Date) => date.getMonth();
+    const getMonth = (date) => date.getMonth();
 
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 overflow-y-auto">
@@ -392,7 +403,7 @@ const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CS
               {Array.from({length: (getDay(month) + 6) % 7}).map((_, i) => <div key={`empty-${i}`}></div>)}
               {Array.from({length: getDaysInMonth(month)}).map((_, day) => {
                 const date = new Date(year, getMonth(month), day + 1);
-                const dayEvents = events.filter((e: any) => isSameDay(new Date(e.start), date));
+                const dayEvents = events.filter((e) => isSameDay(new Date(e.start), date));
                 return (
                   <div key={day} className={cn("relative rounded-full aspect-square flex items-center justify-center", dayEvents.length > 0 && "bg-primary/20", isSameDay(date, new Date()) && "bg-primary text-primary-foreground")}>
                     {day + 1}
@@ -407,7 +418,7 @@ const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CS
   };
   
   const renderScheduleView = () => {
-      const groupedEvents = events.reduce((acc, event: any) => {
+      const groupedEvents = events.reduce((acc, event) => {
           if (!event.start) return acc;
           try {
             const date = format(new Date(event.start), 'yyyy-MM-dd');
@@ -417,7 +428,7 @@ const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CS
             console.error("Invalid event start date for schedule view:", event.start);
           }
           return acc;
-      }, {} as Record<string, any[]>);
+      }, {});
 
       const sortedDates = Object.keys(groupedEvents).sort();
 
@@ -436,7 +447,7 @@ const EventInDayViewComponent = ({ event, style }: { event: any, style: React.CS
                                 <div className="flex-1 text-sm">{event.title}</div>
                                 {event.assignee && (
                                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <span>{assignees.find((a: any) => a.email === event.assignee)?.name || event.assignee}</span>
+                                        <span>{assignees.find((a) => a.email === event.assignee)?.name || event.assignee}</span>
                                     </div>
                                 )}
                             </div>
