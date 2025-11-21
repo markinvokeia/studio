@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { MoreHorizontal, AlertTriangle, ArrowRight, Box } from 'lucide-react';
+import { MoreHorizontal, AlertTriangle, ArrowRight, Box, Printer } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,13 +65,14 @@ interface InvoicesTableProps {
   isLoading?: boolean;
   onRowSelectionChange?: (selectedRows: Invoice[]) => void;
   onRefresh?: () => void;
+  onPrint?: (invoice: Invoice) => void;
   isRefreshing?: boolean;
   rowSelection?: RowSelectionState;
   setRowSelection?: (selection: RowSelectionState) => void;
   columnTranslations?: { [key: string]: string };
 }
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, rowSelection, setRowSelection, columnTranslations }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, isRefreshing, rowSelection, setRowSelection, columnTranslations }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
@@ -350,6 +351,12 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
               <DropdownMenuItem onClick={() => handleAddPaymentClick(invoice)}>
                 {t('paymentDialog.add')}
               </DropdownMenuItem>
+              {onPrint && (
+                <DropdownMenuItem onClick={() => onPrint(invoice)}>
+                  <Printer className="mr-2 h-4 w-4" />
+                  <span>Print</span>
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );
