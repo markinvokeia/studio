@@ -6,6 +6,7 @@ import { Payment } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { useTranslations } from 'next-intl';
+import { useToast } from '@/hooks/use-toast';
 
 async function getPayments(): Promise<Payment[]> {
     try {
@@ -39,6 +40,7 @@ async function getPayments(): Promise<Payment[]> {
 
 export default function PaymentsPage() {
     const t = useTranslations('PaymentsPage');
+    const { toast } = useToast();
     const [payments, setPayments] = React.useState<Payment[]>([]);
     const [isLoading, setIsLoading] = React.useState(false);
 
@@ -53,6 +55,47 @@ export default function PaymentsPage() {
         loadPayments();
     }, [loadPayments]);
 
+    const handlePrintPayment = async (payment: Payment) => {
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/payment/print', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId: payment.id }),
+            });
+
+            if (response.status >= 400) {
+                const errorData = await response.json().catch(() => ({ message: 'Failed to generate PDF.' }));
+                throw new Error(errorData.message);
+            }
+
+            if (!response.ok) {
+                throw new Error('An unexpected error occurred while generating the PDF.');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Payment-${payment.id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+            
+            toast({
+              title: "Download Started",
+              description: `Your PDF for Payment #${payment.id} is downloading.`,
+            });
+
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Print Error',
+                description: error instanceof Error ? error.message : 'Could not print the payment.',
+            });
+        }
+    };
+
     return (
         <Card>
             <CardHeader>
@@ -65,6 +108,7 @@ export default function PaymentsPage() {
                     isLoading={isLoading}
                     onRefresh={loadPayments}
                     isRefreshing={isLoading}
+                    onPrint={handlePrintPayment}
                 />
             </CardContent>
         </Card>
