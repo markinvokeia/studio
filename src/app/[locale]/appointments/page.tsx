@@ -313,6 +313,11 @@ export default function AppointmentsPage() {
       setEditingAppointment(null);
     }
   };
+  
+  const handleNewAppointmentClick = () => {
+    setEditingAppointment(null);
+    setCreateOpen(true);
+  };
 
   React.useEffect(() => {
     if (selectedAssignees.length === 0) {
@@ -980,7 +985,7 @@ export default function AppointmentsPage() {
                  <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" onClick={() => setCreateOpen(true)}>
+                            <Button variant="outline" size="icon" onClick={handleNewAppointmentClick}>
                                 <PlusCircle className="h-4 w-4" />
                                 <span className="sr-only">{t('newAppointment')}</span>
                             </Button>
@@ -1349,5 +1354,3 @@ export default function AppointmentsPage() {
     </Card>
   );
 }
-
-    
