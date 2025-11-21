@@ -268,7 +268,7 @@ export default function InvoicesPage() {
 
     const columnTranslations = {
         id: t('columns.invoiceId'),
-        user_name: t('columns.user'),
+        user_name: t('columns.provider'),
         order_id: t('columns.orderId'),
         quote_id: t('columns.quoteId'),
         total: t('columns.total'),
