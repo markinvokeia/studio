@@ -56,7 +56,7 @@ async function getProviders(pagination: PaginationState, searchQuery: string): P
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
       search: searchQuery,
-      is_sales: 'false'
+      filter_type: "PROVEEDOR"
     });
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?${params.toString()}`, {
       method: 'GET',
