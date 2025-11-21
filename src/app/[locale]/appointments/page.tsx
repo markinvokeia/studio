@@ -434,7 +434,7 @@ export default function AppointmentsPage() {
             throw new Error('Network response was not ok');
           }
           const data = await response.json();
-          const usersData = (Array.isArray(data) && data.length > 0 && data[0].json) ? data[0].json.data : (data.data || []);
+          const usersData = Array.isArray(data) && data.length > 0 ? data[0].data : [];
           
           const mappedUsers = usersData.map((apiUser: any): UserType => ({
             id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
