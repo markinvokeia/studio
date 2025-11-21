@@ -139,6 +139,7 @@ export const navItems: NavItem[] = [
     items: [
       { title: 'Roles', href: '/roles', icon: KeyRound, isChidren: true },
       { title: 'Permissions', href: '/permissions', icon: Shield, isChidren: true },
+      { title: 'SystemUsers', href: '/system/users', icon: Users, isChidren: true },
       { title: 'Configurations', href: '/system/config', icon: Settings, isChidren: true },
       { title: 'AuditLog', href: '/system/audit', icon: BarChart, isChidren: true },
       { title: 'AccessLog', href: '/system/access', icon: UserCheck, isChidren: true },
