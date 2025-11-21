@@ -12,6 +12,7 @@ import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { RefreshCw, X } from 'lucide-react';
 import { RowSelectionState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
+import { useToast } from '@/hooks/use-toast';
 
 async function getInvoices(): Promise<Invoice[]> {
     try {
@@ -101,6 +102,7 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
 
 export default function InvoicesPage() {
     const t = useTranslations('InvoicesPage');
+    const { toast } = useToast();
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -156,6 +158,47 @@ export default function InvoicesPage() {
         setSelectedInvoice(null);
         setRowSelection({});
     };
+
+    const handlePrintInvoice = async (invoice: Invoice) => {
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/invoice/print', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ invoiceId: invoice.id }),
+            });
+
+            if (response.status >= 400) {
+                const errorData = await response.json().catch(() => ({ message: 'Failed to generate PDF.' }));
+                throw new Error(errorData.message);
+            }
+
+            if (!response.ok) {
+                throw new Error('An unexpected error occurred while generating the PDF.');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Invoice-${invoice.id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+            
+            toast({
+              title: "Download Started",
+              description: `Your PDF for Invoice #${invoice.id} is downloading.`,
+            });
+
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Print Error',
+                description: error instanceof Error ? error.message : 'Could not print the invoice.',
+            });
+        }
+    };
     
     const columnTranslations = {
         id: t('columns.invoiceId'),
@@ -169,76 +212,75 @@ export default function InvoicesPage() {
     };
 
     return (
-        <>
-            <div className="relative">
-                <div className={cn("transition-all duration-300 w-full")}>
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>{t('title')}</CardTitle>
-                            <CardDescription>{t('description')}</CardDescription>
+        <div className="relative">
+            <div className={cn("transition-all duration-300 w-full")}>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>{t('title')}</CardTitle>
+                        <CardDescription>{t('description')}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <InvoicesTable 
+                            invoices={invoices}
+                            isLoading={isLoadingInvoices}
+                            onRowSelectionChange={handleRowSelectionChange}
+                            onRefresh={loadInvoices}
+                            onPrint={handlePrintInvoice}
+                            isRefreshing={isLoadingInvoices}
+                            rowSelection={rowSelection}
+                            setRowSelection={setRowSelection}
+                            columnTranslations={columnTranslations}
+                        />
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div 
+                className={cn(
+                    "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l transition-transform duration-300 ease-in-out",
+                    selectedInvoice ? 'translate-x-0' : 'translate-x-full'
+                )}
+            >
+                {selectedInvoice && (
+                    <Card className="h-full shadow-lg rounded-none">
+                        <CardHeader className="flex flex-row items-start justify-between">
+                            <div>
+                                <CardTitle>{t('detailsFor')}</CardTitle>
+                                <CardDescription>{t('invoiceId')}: {selectedInvoice.id}</CardDescription>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                                <X className="h-5 w-5" />
+                                <span className="sr-only">Close details</span>
+                            </Button>
                         </CardHeader>
                         <CardContent>
-                            <InvoicesTable 
-                                invoices={invoices}
-                                isLoading={isLoadingInvoices}
-                                onRowSelectionChange={handleRowSelectionChange}
-                                onRefresh={loadInvoices}
-                                isRefreshing={isLoadingInvoices}
-                                rowSelection={rowSelection}
-                                setRowSelection={setRowSelection}
-                                columnTranslations={columnTranslations}
-                            />
+                            <Tabs defaultValue="items" className="w-full">
+                                <TabsList className="h-auto items-center justify-start flex-wrap">
+                                    <TabsTrigger value="items">{t('tabs.items')}</TabsTrigger>
+                                    <TabsTrigger value="payments">{t('tabs.payments')}</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="items">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', {id: selectedInvoice.id})}</h4>
+                                        <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
+                                            <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
+                                        </Button>
+                                    </div>
+                                    <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
+                                </TabsContent>
+                                <TabsContent value="payments">
+                                    <PaymentsTable 
+                                        payments={payments} 
+                                        isLoading={isLoadingPayments}
+                                        onRefresh={loadPayments}
+                                        isRefreshing={isLoadingPayments}
+                                    />
+                                </TabsContent>
+                            </Tabs>
                         </CardContent>
                     </Card>
-                </div>
-
-                <div 
-                    className={cn(
-                        "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l transition-transform duration-300 ease-in-out",
-                        selectedInvoice ? 'translate-x-0' : 'translate-x-full'
-                    )}
-                >
-                    {selectedInvoice && (
-                        <Card className="h-full shadow-lg rounded-none">
-                            <CardHeader className="flex flex-row items-start justify-between">
-                                <div>
-                                    <CardTitle>{t('detailsFor')}</CardTitle>
-                                    <CardDescription>{t('invoiceId')}: {selectedInvoice.id}</CardDescription>
-                                </div>
-                                <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
-                                    <X className="h-5 w-5" />
-                                    <span className="sr-only">Close details</span>
-                                </Button>
-                            </CardHeader>
-                            <CardContent>
-                                <Tabs defaultValue="items" className="w-full">
-                                    <TabsList className="h-auto items-center justify-start flex-wrap">
-                                        <TabsTrigger value="items">{t('tabs.items')}</TabsTrigger>
-                                        <TabsTrigger value="payments">{t('tabs.payments')}</TabsTrigger>
-                                    </TabsList>
-                                    <TabsContent value="items">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', {id: selectedInvoice.id})}</h4>
-                                            <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
-                                                <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
-                                            </Button>
-                                        </div>
-                                        <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
-                                    </TabsContent>
-                                    <TabsContent value="payments">
-                                        <PaymentsTable 
-                                            payments={payments} 
-                                            isLoading={isLoadingPayments}
-                                            onRefresh={loadPayments}
-                                            isRefreshing={isLoadingPayments}
-                                        />
-                                    </TabsContent>
-                                </Tabs>
-                            </CardContent>
-                        </Card>
-                    )}
-                </div>
+                )}
             </div>
-        </>
+        </div>
     );
 }
