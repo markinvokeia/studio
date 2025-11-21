@@ -201,14 +201,15 @@ async function getServices(): Promise<Service[]> {
 
 async function getDoctors(): Promise<UserType[]> {
   try {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=DOCTOR', {
       method: 'GET',
       mode: 'cors',
       cache: 'no-store',
     });
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
     const data = await response.json();
-    const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || []);
+    const responseData = (Array.isArray(data) && data.length > 0) ? data[0] : { data: [], total: 0 };
+    const doctorsData = Array.isArray(responseData.data) ? responseData.data : [];
     return doctorsData.map((d: any) => ({ ...d, id: String(d.id) }));
   } catch (error) {
     console.error("Failed to fetch doctors:", error);
@@ -439,7 +440,8 @@ export default function AppointmentsPage() {
             throw new Error('Network response was not ok');
           }
           const data = await response.json();
-          const usersData = Array.isArray(data) && data.length > 0 ? data[0].data : (data.data || []);
+          const responseData = (Array.isArray(data) && data.length > 0) ? data[0] : { data: [], total: 0 };
+          const usersData = Array.isArray(responseData.data) ? responseData.data : [];
           
           const mappedUsers = usersData.map((apiUser: any): UserType => ({
             id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
