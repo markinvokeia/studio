@@ -381,8 +381,10 @@ export default function AppointmentsPage() {
 
     const serviceMap = new Map<string, Service[]>();
     for (const doctor of fetchedDoctors) {
-        const doctorServices = await getDoctorServices(doctor.id);
-        serviceMap.set(doctor.id, doctorServices);
+        if(doctor.id) {
+            const doctorServices = await getDoctorServices(doctor.id);
+            serviceMap.set(doctor.id, doctorServices);
+        }
     }
     setDoctorServiceMap(serviceMap);
     
@@ -393,18 +395,21 @@ export default function AppointmentsPage() {
 
   const filteredDoctors = React.useMemo(() => {
     if (newAppointment.services.length === 0) {
-      return doctors; // Show all doctors if no service is selected
+      return doctors;
     }
     const selectedServiceIds = new Set(newAppointment.services.map(s => s.id));
+    
     return doctors.filter(doctor => {
-      const doctorServices = doctorServiceMap.get(doctor.id);
-      if (!doctorServices) return false;
-      // Check if the doctor provides ANY of the selected services
-      return Array.from(selectedServiceIds).some(selectedId => 
-        doctorServices.some(ds => ds.id === selectedId)
-      );
+        const doctorServices = doctorServiceMap.get(doctor.id);
+        if (!doctorServices) return false;
+        
+        // Check if the doctor provides ANY of the selected services
+        return Array.from(selectedServiceIds).some(selectedId => 
+            doctorServices.some(ds => String(ds.id) === String(selectedId))
+        );
     });
   }, [doctors, newAppointment.services, doctorServiceMap]);
+
 
   React.useEffect(() => {
     loadInitialData();
@@ -434,7 +439,7 @@ export default function AppointmentsPage() {
             throw new Error('Network response was not ok');
           }
           const data = await response.json();
-          const usersData = Array.isArray(data) && data.length > 0 ? data[0].data : [];
+          const usersData = Array.isArray(data) && data.length > 0 ? data[0].data : (data.data || []);
           
           const mappedUsers = usersData.map((apiUser: any): UserType => ({
             id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
