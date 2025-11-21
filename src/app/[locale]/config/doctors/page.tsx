@@ -460,45 +460,20 @@ export default function DoctorsPage() {
                 </div>
             </CardHeader>
               <CardContent>
-                <Tabs defaultValue="roles" className="w-full">
+                <Tabs defaultValue="services" className="w-full">
                    <TabsList className="h-auto items-center justify-start flex-wrap">
-                    <TabsTrigger value="roles">{t('UsersPage.tabs.roles')}</TabsTrigger>
-                    {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                        <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
-                    )}
-                    <TabsTrigger value="quotes">{t('UsersPage.tabs.quotes')}</TabsTrigger>
-                    <TabsTrigger value="appointments">{t('UsersPage.tabs.appointments')}</TabsTrigger>
+                    <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
                     <TabsTrigger value="messages">{t('UsersPage.tabs.messages')}</TabsTrigger>
                     <TabsTrigger value="logs">{t('UsersPage.tabs.logs')}</TabsTrigger>
-                    <TabsTrigger value="history">{t('UsersPage.tabs.history')}</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="roles">
-                    <UserRoles
-                        userId={selectedUser.id}
-                        initialUserRoles={selectedUserRoles}
-                        isLoading={isRolesLoading}
-                        onRolesChange={() => loadUserRoles(selectedUser.id)}
-                    />
-                  </TabsContent>
-                  {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                    <TabsContent value="services">
-                      <UserServices userId={selectedUser.id} isSalesUser={true} />
-                    </TabsContent>
-                  )}
-                  <TabsContent value="quotes">
-                    <UserQuotes userId={selectedUser.id} />
-                  </TabsContent>
-                  <TabsContent value="appointments">
-                    <UserAppointments user={selectedUser} />
+                  <TabsContent value="services">
+                    <UserServices userId={selectedUser.id} isSalesUser={true} />
                   </TabsContent>
                   <TabsContent value="messages">
                     <UserMessages userId={selectedUser.id} />
                   </TabsContent>
                   <TabsContent value="logs">
                     <UserLogs userId={selectedUser.id} />
-                  </TabsContent>
-                  <TabsContent value="history">
-                    <MedicalHistory user={selectedUser} />
                   </TabsContent>
                 </Tabs>
               </CardContent>
