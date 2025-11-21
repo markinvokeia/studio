@@ -107,6 +107,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string): Promi
       identity_document: apiUser.identity_document,
       avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
       color: apiUser.color,
+      is_sales: apiUser.is_sales,
     }));
 
     return { users: mappedUsers, total: total };
@@ -467,7 +468,7 @@ export default function DoctorsPage() {
                     <TabsTrigger value="logs">{t('UsersPage.tabs.logs')}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="services">
-                    <UserServices userId={selectedUser.id} isSalesUser={true} />
+                    <UserServices userId={selectedUser.id} isSalesUser={selectedUser.is_sales || true} />
                   </TabsContent>
                   <TabsContent value="messages">
                     <UserMessages userId={selectedUser.id} />

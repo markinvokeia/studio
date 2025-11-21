@@ -1,3 +1,4 @@
+
 export type User = {
   id: string;
   name: string;
@@ -7,6 +8,7 @@ export type User = {
   avatar: string;
   identity_document?: string;
   color?: string;
+  is_sales?: boolean;
 };
 
 export type Role = {
@@ -148,6 +150,7 @@ export type Service = {
   indications?: string;
   is_active: boolean;
   color?: string | null;
+  is_sales?: boolean;
 };
 
 export type Clinic = {
