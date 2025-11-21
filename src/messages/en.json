@@ -1162,6 +1162,7 @@
       "allCalendars": "All Calendars",
       "date": "Date",
       "time": "Time",
+      "endTime": "End Time",
       "descriptionLabel": "Description",
       "save": "Save",
       "cancel": "Cancel",

@@ -1143,6 +1143,7 @@
       "allCalendars": "Todos los calendarios",
       "date": "Fecha",
       "time": "Hora",
+      "endTime": "Hora de Fin",
       "descriptionLabel": "Descripción",
       "save": "Guardar",
       "cancel": "Cancelar",
