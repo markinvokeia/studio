@@ -12,13 +12,14 @@ import React from 'react';
 import { useTranslations } from 'next-intl';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
-import { MoreHorizontal, Printer } from 'lucide-react';
+import { MoreHorizontal, Printer, Send } from 'lucide-react';
 
 const getColumns = (
   t: (key: string) => string,
   tStatus: (key: string) => string,
   tMethods: (key: string) => string,
-  onPrint?: (payment: Payment) => void
+  onPrint?: (payment: Payment) => void,
+  onSendEmail?: (payment: Payment) => void
 ): ColumnDef<Payment>[] => {
     const paymentMethodMap: { [key: string]: string } = {
         'transferencia': 'bank_transfer',
@@ -115,7 +116,7 @@ const getColumns = (
       },
     ];
 
-    if (onPrint) {
+    if (onPrint || onSendEmail) {
         columns.push({
             id: 'actions',
             cell: ({ row }) => {
@@ -130,10 +131,18 @@ const getColumns = (
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onPrint(payment)}>
-                        <Printer className="mr-2 h-4 w-4" />
-                        Print
-                    </DropdownMenuItem>
+                    {onPrint && (
+                        <DropdownMenuItem onClick={() => onPrint(payment)}>
+                            <Printer className="mr-2 h-4 w-4" />
+                            Print
+                        </DropdownMenuItem>
+                    )}
+                     {onSendEmail && (
+                        <DropdownMenuItem onClick={() => onSendEmail(payment)}>
+                          <Send className="mr-2 h-4 w-4" />
+                          <span>Send Email</span>
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                 </DropdownMenu>
                 );
@@ -151,14 +160,15 @@ interface PaymentsTableProps {
   isRefreshing?: boolean;
   columnsToHide?: string[];
   onPrint?: (payment: Payment) => void;
+  onSendEmail?: (payment: Payment) => void;
 }
 
-export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail }: PaymentsTableProps) {
     const t = useTranslations('PaymentsPage.columns');
     const tStatus = useTranslations('InvoicesPage.status');
     const tMethods = useTranslations('InvoicesPage.methods');
     const tPage = useTranslations('PaymentsPage');
-    const columns = React.useMemo(() => getColumns(t, tStatus, tMethods, onPrint), [t, tStatus, tMethods, onPrint]);
+    const columns = React.useMemo(() => getColumns(t, tStatus, tMethods, onPrint, onSendEmail), [t, tStatus, tMethods, onPrint, onSendEmail]);
 
     if (isLoading) {
     return (

@@ -120,6 +120,7 @@ export type Payment = {
   invoice_id: string;
   quote_id: string;
   user_name: string;
+  userEmail?: string;
   amount: number;
   currency?: 'UYU' | 'USD';
   method: string;

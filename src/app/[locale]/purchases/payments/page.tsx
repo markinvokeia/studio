@@ -7,6 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
 async function getPayments(): Promise<Payment[]> {
     try {
@@ -25,6 +29,7 @@ async function getPayments(): Promise<Payment[]> {
             invoice_id: apiPayment.invoice_id,
             quote_id: apiPayment.quote_id,
             user_name: apiPayment.user_name || 'N/A',
+            userEmail: apiPayment.user_email,
             amount: apiPayment.amount || 0,
             method: apiPayment.method || 'credit_card',
             status: apiPayment.status || 'pending',
@@ -43,6 +48,9 @@ export default function PaymentsPage() {
     const { toast } = useToast();
     const [payments, setPayments] = React.useState<Payment[]>([]);
     const [isLoading, setIsLoading] = React.useState(false);
+    const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
+    const [selectedPaymentForEmail, setSelectedPaymentForEmail] = React.useState<Payment | null>(null);
+    const [emailRecipients, setEmailRecipients] = React.useState('');
 
     const loadPayments = React.useCallback(async () => {
         setIsLoading(true);
@@ -95,22 +103,107 @@ export default function PaymentsPage() {
             });
         }
     };
+    
+    const handleSendEmailClick = (payment: Payment) => {
+        setSelectedPaymentForEmail(payment);
+        setEmailRecipients(payment.userEmail || '');
+        setIsSendEmailDialogOpen(true);
+    };
+
+    const handleConfirmSendEmail = async () => {
+        if (!selectedPaymentForEmail) return;
+
+        const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
+        if (emails.length === 0) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Please enter at least one recipient email.' });
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const invalidEmails = emails.filter(email => !emailRegex.test(email));
+
+        if (invalidEmails.length > 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Invalid Email Address',
+                description: `The following emails are invalid: ${invalidEmails.join(', ')}`,
+            });
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/payment/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ paymentId: selectedPaymentForEmail.id, emails }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to send email.');
+            }
+
+            toast({
+                title: 'Email Sent',
+                description: `The payment receipt has been successfully sent to ${emails.join(', ')}.`,
+            });
+
+            setIsSendEmailDialogOpen(false);
+
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+            });
+        }
+    };
+
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{t('title')}</CardTitle>
-                <CardDescription>{t('description')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <PaymentsTable
-                    payments={payments}
-                    isLoading={isLoading}
-                    onRefresh={loadPayments}
-                    isRefreshing={isLoading}
-                    onPrint={handlePrintPayment}
-                />
-            </CardContent>
-        </Card>
+        <>
+            <Card>
+                <CardHeader>
+                    <CardTitle>{t('title')}</CardTitle>
+                    <CardDescription>{t('description')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <PaymentsTable
+                        payments={payments}
+                        isLoading={isLoading}
+                        onRefresh={loadPayments}
+                        isRefreshing={isLoading}
+                        onPrint={handlePrintPayment}
+                        onSendEmail={handleSendEmailClick}
+                    />
+                </CardContent>
+            </Card>
+
+            <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                    <DialogTitle>Send Payment Receipt by Email</DialogTitle>
+                    <DialogDescription>Enter the recipient emails for payment #{selectedPaymentForEmail?.id}.</DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                    <Label htmlFor="email-recipients">Recipients</Label>
+                    <Input
+                        id="email-recipients"
+                        value={emailRecipients}
+                        onChange={(e) => setEmailRecipients(e.target.value)}
+                        placeholder="email1@example.com, email2@example.com"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">Separate multiple emails with commas.</p>
+                    </div>
+                    <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleConfirmSendEmail}>Send Email</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
