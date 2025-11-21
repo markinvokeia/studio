@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -416,7 +415,6 @@ export default function AppointmentsPage() {
         const doctorServices = doctorServiceMap.get(doctor.id);
         if (!doctorServices) return false;
         
-        // Check if the doctor provides ANY of the selected services
         return Array.from(selectedServiceIds).some(selectedId => 
             doctorServices.some(ds => String(ds.id) === String(selectedId))
         );
@@ -680,7 +678,6 @@ export default function AppointmentsPage() {
         if(doctorServices){
             totalDuration = services.reduce((acc, service) => {
                 const docService = doctorServices.find(ds => ds.id === service.id);
-                // Use doctor-specific duration if available, otherwise fall back to general service duration
                 return acc + (docService?.duration_minutes || service.duration_minutes || 0);
             }, 0);
         }
@@ -689,7 +686,6 @@ export default function AppointmentsPage() {
     }
     
     if (isEditing && totalDuration === 0) {
-      // For edits, if no service info is available, use a default to avoid 0 duration
       totalDuration = 30;
     }
     
@@ -876,7 +872,7 @@ export default function AppointmentsPage() {
         let totalDuration = 30; // Default duration
         if(appt.doctorEmail && services.length > 0) {
             const doctor = doctors.find(d => d.email === appt.doctorEmail);
-            if (doctor) {
+            if (doctor && doctor.id) {
                 const doctorServices = doctorServiceMap.get(doctor.id);
                 if(doctorServices){
                     const serviceNames = appt.service_name.split(',').map(s => s.trim());
@@ -937,7 +933,7 @@ export default function AppointmentsPage() {
       if (!isValid(startDateTime)) return null;
 
       let totalDuration = 0;
-      if (doctor && selectedServices.length > 0) {
+      if (doctor && doctor.id && selectedServices.length > 0) {
           const doctorServices = doctorServiceMap.get(doctor.id);
           if (doctorServices) {
               totalDuration = selectedServices.reduce((acc, service) => {
@@ -949,7 +945,6 @@ export default function AppointmentsPage() {
           totalDuration = selectedServices.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
       }
       
-      // Use a default duration if editing and no service info is available
       if (editingAppointment && totalDuration === 0) {
         totalDuration = 30;
       }
