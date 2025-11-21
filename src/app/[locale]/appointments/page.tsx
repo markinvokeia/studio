@@ -901,6 +901,39 @@ export default function AppointmentsPage() {
     });
   }, []);
 
+  const appointmentEndTime = React.useMemo(() => {
+    const { date, time, doctor, services: selectedServices } = newAppointment;
+    if (!date || !time) return null;
+
+    try {
+      const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
+      if (!isValid(startDateTime)) return null;
+
+      let totalDuration = 0;
+      if (doctor && selectedServices.length > 0) {
+          const doctorServices = doctorServiceMap.get(doctor.id);
+          if (doctorServices) {
+              totalDuration = selectedServices.reduce((acc, service) => {
+                  const docService = doctorServices.find(ds => ds.id === service.id);
+                  return acc + (docService?.duration_minutes || service.duration_minutes || 0);
+              }, 0);
+          }
+      } else {
+          totalDuration = selectedServices.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
+      }
+      
+      // Use a default duration if editing and no service info is available
+      if (editingAppointment && totalDuration === 0) {
+        totalDuration = 30;
+      }
+
+      const endDateTime = addMinutes(startDateTime, totalDuration);
+      return format(endDateTime, 'HH:mm');
+    } catch {
+      return null;
+    }
+  }, [newAppointment.date, newAppointment.time, newAppointment.doctor, newAppointment.services, doctorServiceMap, editingAppointment]);
+
   React.useEffect(() => {
     setAppointments([]);
   }, [selectedCalendarIds]);
@@ -1193,6 +1226,12 @@ export default function AppointmentsPage() {
                     <Label htmlFor="time">{t('createDialog.time')}</Label>
                     <Input id="time" type="time" value={newAppointment.time} onChange={e => setNewAppointment(prev => ({...prev, time: e.target.value}))} />
                 </div>
+                {appointmentEndTime && (
+                  <div className="space-y-2">
+                      <Label htmlFor="endTime">{t('createDialog.endTime')}</Label>
+                      <Input id="endTime" type="time" value={appointmentEndTime} readOnly disabled />
+                  </div>
+                )}
                 <div className="space-y-2">
                     <Label htmlFor="description">{t('createDialog.descriptionLabel')}</Label>
                     <Textarea id="description" value={newAppointment.description} onChange={e => setNewAppointment(prev => ({...prev, description: e.target.value}))} />
@@ -1288,16 +1327,3 @@ export default function AppointmentsPage() {
     </Card>
   );
 }
-
-    
-
-    
-
-    
-
-
-
-    
-
-    
-
