@@ -183,7 +183,7 @@ async function getCalendars(): Promise<CalendarType[]> {
 
 async function getServices(): Promise<Service[]> {
   try {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=true', {
       method: 'GET',
       mode: 'cors',
       headers: { 'Accept': 'application/json' },
@@ -426,7 +426,7 @@ export default function AppointmentsPage() {
         };
         setIsSearchingUsers(true);
         try {
-          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?search=${userSearchQuery}`, {
+          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?search=${userSearchQuery}&filter_type=PACIENTE`, {
             method: 'GET',
             mode: 'cors',
           });
@@ -838,7 +838,23 @@ export default function AppointmentsPage() {
       try {
         const start = parse(`${appt.date} ${appt.time}`, 'yyyy-MM-dd HH:mm', new Date());
         if(!isValid(start)) return null;
-        const end = addMinutes(start, 30);
+        
+        let totalDuration = 30; // Default duration
+        if(appt.doctorEmail && services.length > 0) {
+            const doctor = doctors.find(d => d.email === appt.doctorEmail);
+            if (doctor) {
+                const doctorServices = doctorServiceMap.get(doctor.id);
+                if(doctorServices){
+                    const serviceNames = appt.service_name.split(',').map(s => s.trim());
+                    const relatedDoctorServices = doctorServices.filter(ds => serviceNames.includes(ds.name));
+                    if(relatedDoctorServices.length > 0) {
+                        totalDuration = relatedDoctorServices.reduce((acc, s) => acc + (s.duration_minutes || 0), 0);
+                    }
+                }
+            }
+        }
+        const end = addMinutes(start, totalDuration > 0 ? totalDuration : 30);
+
         return {
           id: appt.id,
           title: appt.service_name,
@@ -854,7 +870,7 @@ export default function AppointmentsPage() {
         return null;
       }
     }).filter(Boolean) as ({ id: string; title: string; start: Date; end: Date; assignee: string | undefined; data: Appointment; color?: string; colorId?: string })[];
-  }, [appointments]);
+  }, [appointments, doctors, services, doctorServiceMap]);
 
  const handleSelectAssignee = React.useCallback((assigneeId: string, checked: boolean) => {
     setSelectedAssignees(prev => {
@@ -1273,5 +1289,7 @@ export default function AppointmentsPage() {
     
 
 
+
+    
 
     
