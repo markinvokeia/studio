@@ -307,6 +307,13 @@ export default function AppointmentsPage() {
     }
   }, [isCreateOpen, editingAppointment]);
 
+  const handleOpenChange = (open: boolean) => {
+    setCreateOpen(open);
+    if (!open) {
+      setEditingAppointment(null);
+    }
+  };
+
   React.useEffect(() => {
     if (selectedAssignees.length === 0) {
       setGroup(false);
@@ -629,12 +636,27 @@ export default function AppointmentsPage() {
     if (date && time) {
         checkAvailability(newAppointment);
     }
-  }, [newAppointment, checkAvailability]);
+  }, [newAppointment.date, newAppointment.time, newAppointment.services, newAppointment.user, newAppointment.doctor, newAppointment.calendar, checkAvailability]);
 
 
   const handleSaveAppointment = async (appointmentDetails: Partial<Appointment> & {colorId?: string}) => {
     const isEditing = !!(appointmentDetails.id || editingAppointment);
     const currentAppointment = isEditing ? { ...editingAppointment, ...appointmentDetails } : null;
+
+    if (isEditing) {
+        const hasChanges =
+            newAppointment.date !== editingAppointment?.date ||
+            newAppointment.time !== editingAppointment?.time;
+
+        if (hasChanges && availabilityStatus !== 'available') {
+            toast({
+                variant: "destructive",
+                title: "Slot Unavailable",
+                description: "The selected time is not available. Please choose a different time or suggestion.",
+            });
+            return;
+        }
+    }
 
     let payload: any;
     
@@ -1040,7 +1062,7 @@ export default function AppointmentsPage() {
             </div>
         </Calendar>
       </CardContent>
-      <Dialog open={isCreateOpen} onOpenChange={setCreateOpen}>
+      <Dialog open={isCreateOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-4xl w-full">
           <DialogHeader>
             <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
@@ -1327,3 +1349,5 @@ export default function AppointmentsPage() {
     </Card>
   );
 }
+
+    
