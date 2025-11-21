@@ -1,4 +1,3 @@
-
 export type User = {
   id: string;
   name: string;
@@ -97,6 +96,7 @@ export type Invoice = {
   order_id: string;
   quote_id: string;
   user_name: string;
+  userEmail?: string;
   total: number;
   currency?: 'UYU' | 'USD';
   status: 'draft' | 'sent' | 'paid' | 'overdue';

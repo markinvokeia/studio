@@ -13,6 +13,9 @@ import { RefreshCw, X } from 'lucide-react';
 import { RowSelectionState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 async function getInvoices(): Promise<Invoice[]> {
     try {
@@ -30,6 +33,7 @@ async function getInvoices(): Promise<Invoice[]> {
             order_id: apiInvoice.order_id,
             quote_id: apiInvoice.quote_id,
             user_name: apiInvoice.user_name || 'N/A',
+            userEmail: apiInvoice.user_email || '',
             total: apiInvoice.total || 0,
             status: apiInvoice.status || 'draft',
             payment_status: apiInvoice.payment_status || 'unpaid',
@@ -106,6 +110,9 @@ export default function InvoicesPage() {
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
+    const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = React.useState<Invoice | null>(null);
+    const [emailRecipients, setEmailRecipients] = React.useState('');
 
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
     const [payments, setPayments] = React.useState<Payment[]>([]);
@@ -200,6 +207,64 @@ export default function InvoicesPage() {
         }
     };
     
+    const handleSendEmailClick = (invoice: Invoice) => {
+        setSelectedInvoiceForEmail(invoice);
+        setEmailRecipients(invoice.userEmail || '');
+        setIsSendEmailDialogOpen(true);
+    };
+
+    const handleConfirmSendEmail = async () => {
+        if (!selectedInvoiceForEmail) return;
+
+        const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
+        if (emails.length === 0) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Please enter at least one recipient email.' });
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const invalidEmails = emails.filter(email => !emailRegex.test(email));
+
+        if (invalidEmails.length > 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Invalid Email Address',
+                description: `The following emails are invalid: ${invalidEmails.join(', ')}`,
+            });
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/invoice/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ invoiceId: selectedInvoiceForEmail.id, emails }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to send email.');
+            }
+
+            toast({
+                title: 'Email Sent',
+                description: `The invoice has been successfully sent to ${emails.join(', ')}.`,
+            });
+
+            setIsSendEmailDialogOpen(false);
+
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+            });
+        }
+    };
+
     const columnTranslations = {
         id: t('columns.invoiceId'),
         user_name: t('columns.user'),
@@ -226,6 +291,7 @@ export default function InvoicesPage() {
                             onRowSelectionChange={handleRowSelectionChange}
                             onRefresh={loadInvoices}
                             onPrint={handlePrintInvoice}
+                            onSendEmail={handleSendEmailClick}
                             isRefreshing={isLoadingInvoices}
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}
@@ -281,6 +347,29 @@ export default function InvoicesPage() {
                     </Card>
                 )}
             </div>
+
+            <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                    <DialogTitle>Send Invoice by Email</DialogTitle>
+                    <DialogDescription>Enter the recipient emails for invoice #{selectedInvoiceForEmail?.id}.</DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                    <Label htmlFor="email-recipients">Recipients</Label>
+                    <Input
+                        id="email-recipients"
+                        value={emailRecipients}
+                        onChange={(e) => setEmailRecipients(e.target.value)}
+                        placeholder="email1@example.com, email2@example.com"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">Separate multiple emails with commas.</p>
+                    </div>
+                    <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleConfirmSendEmail}>Send Email</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
