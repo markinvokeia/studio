@@ -63,7 +63,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string): Promi
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
       search: searchQuery,
-      doctor: 'true',
+      filter_type: "DOCTOR",
     });
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?${params.toString()}`, {
       method: 'GET',
@@ -482,7 +482,7 @@ export default function DoctorsPage() {
                   </TabsContent>
                   {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
                     <TabsContent value="services">
-                      <UserServices userId={selectedUser.id} />
+                      <UserServices userId={selectedUser.id} isSalesUser={true} />
                     </TabsContent>
                   )}
                   <TabsContent value="quotes">
