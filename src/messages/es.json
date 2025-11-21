@@ -1154,6 +1154,9 @@
         "date": "Fecha",
         "time": "Hora"
       }
+    },
+    "AppointmentsColumns": {
+      "cancel": "Cancelar"
     }
   },
   "AppointmentsColumns": {

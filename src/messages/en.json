@@ -1173,6 +1173,9 @@
         "date": "Date",
         "time": "Time"
       }
+    },
+    "AppointmentsColumns": {
+      "cancel": "Cancel"
     }
   },
   "AppointmentsColumns": {
