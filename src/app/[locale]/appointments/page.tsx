@@ -216,6 +216,18 @@ async function getDoctors(): Promise<UserType[]> {
   }
 }
 
+async function getDoctorServices(doctorId: string): Promise<Service[]> {
+  try {
+    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services/user_services?user_id=${doctorId}`);
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : (data.user_services || []);
+  } catch (error) {
+    console.error(`Failed to fetch services for doctor ${doctorId}:`, error);
+    return [];
+  }
+}
+
 export default function AppointmentsPage() {
   const t = useTranslations('AppointmentsPage');
   const tColumns = useTranslations('AppointmentsColumns');
@@ -229,6 +241,7 @@ export default function AppointmentsPage() {
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
   const [services, setServices] = React.useState<Service[]>([]);
   const [doctors, setDoctors] = React.useState<UserType[]>([]);
+  const [doctorServiceMap, setDoctorServiceMap] = React.useState<Map<string, Service[]>>(new Map());
   const [selectedCalendarIds, setSelectedCalendarIds] = React.useState<string[]>([]);
   const [isDataLoading, setIsDataLoading] = React.useState(true);
   const [isCreateOpen, setCreateOpen] = React.useState(false);
@@ -254,8 +267,6 @@ export default function AppointmentsPage() {
   // Doctor Search State
   const [isDoctorSearchOpen, setDoctorSearchOpen] = React.useState(false);
   const [doctorSearchQuery, setDoctorSearchQuery] = React.useState('');
-  const [doctorSearchResults, setDoctorSearchResults] = React.useState<UserType[]>([]);
-  const [isSearchingDoctors, setIsSearchingDoctors] = React.useState(false);
   
   const [selectedAppointment, setSelectedAppointment] = React.useState<Appointment | null>(null);
   const [isDetailViewOpen, setIsDetailViewOpen] = React.useState(false);
@@ -367,10 +378,33 @@ export default function AppointmentsPage() {
     setServices(fetchedServices);
     setDoctors(fetchedDoctors);
     setAssignees(fetchedDoctors);
+
+    const serviceMap = new Map<string, Service[]>();
+    for (const doctor of fetchedDoctors) {
+        const doctorServices = await getDoctorServices(doctor.id);
+        serviceMap.set(doctor.id, doctorServices);
+    }
+    setDoctorServiceMap(serviceMap);
+    
     setSelectedAssignees(fetchedDoctors.map(d => d.id));
     setSelectedCalendarIds(fetchedCalendars.map(c => c.id).filter(id => id));
     setIsDataLoading(false);
   }, []);
+
+  const filteredDoctors = React.useMemo(() => {
+    if (newAppointment.services.length === 0) {
+      return doctors; // Show all doctors if no service is selected
+    }
+    const selectedServiceIds = new Set(newAppointment.services.map(s => s.id));
+    return doctors.filter(doctor => {
+      const doctorServices = doctorServiceMap.get(doctor.id);
+      if (!doctorServices) return false;
+      // Check if the doctor provides ALL selected services
+      return Array.from(selectedServiceIds).every(selectedId => 
+        doctorServices.some(ds => ds.id === selectedId)
+      );
+    });
+  }, [doctors, newAppointment.services, doctorServiceMap]);
 
   React.useEffect(() => {
     loadInitialData();
@@ -468,55 +502,10 @@ export default function AppointmentsPage() {
         clearTimeout(handler);
     };
   }, [serviceSearchQuery, isServiceSearchOpen]);
-  
-  // Debounced search effect for doctors
-  const loadDoctorsDebounced = React.useCallback(async (query: string) => {
-    setIsSearchingDoctors(true);
-    try {
-      const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors?search=${query}`, {
-        method: 'GET',
-        mode: 'cors',
-      });
-      if (!response.ok) {
-        throw new Error('Network response was not ok for doctors');
-      }
-      const data = await response.json();
-      const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || []);
-      
-      const newDocs = doctorsData.map((apiUser: any): UserType => ({
-        id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
-        name: apiUser.name || 'No Name',
-        email: apiUser.email || 'no-email@example.com',
-        phone_number: apiUser.phone_number || '000-000-0000',
-        is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
-        avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
-      }));
-
-      setDoctorSearchResults(newDocs);
-
-    } catch (error) {
-      console.error("Failed to fetch doctors:", error);
-    } finally {
-      setIsSearchingDoctors(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    const handler = setTimeout(() => {
-      if (doctorSearchQuery.length > 1 || (isDoctorSearchOpen && doctorSearchQuery.length === 0)) {
-        loadDoctorsDebounced(doctorSearchQuery);
-      } else if (doctorSearchQuery.length === 0) {
-        setDoctorSearchResults([]);
-      }
-    }, 300);
-
-    return () => clearTimeout(handler);
-  }, [doctorSearchQuery, isDoctorSearchOpen, loadDoctorsDebounced]);
-
 
   const checkAvailability = React.useCallback(async (appointmentData: typeof newAppointment) => {
     const { date, time, services, user, doctor, calendar } = appointmentData;
-    if (!date || !time || (!user && !editingAppointment)) {
+    if (!date || !time || (!user && !editingAppointment) || services.length === 0) {
       return;
     }
 
@@ -529,7 +518,20 @@ export default function AppointmentsPage() {
     setSuggestedTimes([]);
 
     const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
-    const totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
+    
+    let totalDuration = 0;
+    if (doctor && services.length > 0) {
+      const doctorServices = doctorServiceMap.get(doctor.id);
+      if (doctorServices) {
+        totalDuration = services.reduce((acc, service) => {
+          const docService = doctorServices.find(ds => ds.id === service.id);
+          return acc + (docService?.duration_minutes || service.duration_minutes || 0);
+        }, 0);
+      }
+    } else {
+        totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
+    }
+    
     const endDateTime = addMinutes(startDateTime, totalDuration);
 
     const attendeeEmails = [];
@@ -613,14 +615,14 @@ export default function AppointmentsPage() {
         console.error("Failed to check availability:", error);
         setAvailabilityStatus('idle');
     }
-  }, [editingAppointment]);
+  }, [editingAppointment, doctorServiceMap]);
   
   React.useEffect(() => {
     const { date, time } = newAppointment;
     if (date && time) {
         checkAvailability(newAppointment);
     }
-  }, [newAppointment.date, newAppointment.time, newAppointment.doctor, newAppointment.calendar, checkAvailability]);
+  }, [newAppointment, checkAvailability]);
 
 
   const handleSaveAppointment = async (appointmentDetails: Partial<Appointment> & {colorId?: string}) => {
@@ -637,15 +639,26 @@ export default function AppointmentsPage() {
     }
 
     const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
+
     let totalDuration = 0;
-    if (services && services.length > 0) {
-        totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
-    } else if (isEditing && currentAppointment) {
-        const existing = appointments.find(a => a.id === currentAppointment.id);
-        if (existing) {
-            totalDuration = 30; // default duration
+    if (doctor && services.length > 0) {
+        const doctorServices = doctorServiceMap.get(doctor.id);
+        if(doctorServices){
+            totalDuration = services.reduce((acc, service) => {
+                const docService = doctorServices.find(ds => ds.id === service.id);
+                // Use doctor-specific duration if available, otherwise fall back to general service duration
+                return acc + (docService?.duration_minutes || service.duration_minutes || 0);
+            }, 0);
         }
+    } else {
+        totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
     }
+    
+    if (isEditing && totalDuration === 0) {
+      // For edits, if no service info is available, use a default to avoid 0 duration
+      totalDuration = 30;
+    }
+    
     const endDateTime = addMinutes(startDateTime, totalDuration);
     
     payload = {
@@ -1085,13 +1098,13 @@ export default function AppointmentsPage() {
                             <Command>
                                 <CommandInput placeholder={t('createDialog.searchDoctorPlaceholder')} onValueChange={setDoctorSearchQuery} />
                                 <CommandList>
-                                <CommandEmpty>{isSearchingDoctors ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
+                                <CommandEmpty>{isSearchingUsers ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
                                 <CommandGroup>
                                     <CommandItem onSelect={() => {setNewAppointment(prev => ({...prev, doctor: null})); setDoctorSearchOpen(false);}}>
                                         <Check className={cn("mr-2 h-4 w-4", !newAppointment.doctor ? "opacity-100" : "opacity-0")}/>
                                         {t('createDialog.none')}
                                     </CommandItem>
-                                    {doctorSearchResults.map(doctor => (
+                                    {filteredDoctors.map(doctor => (
                                         <CommandItem
                                             key={doctor.id}
                                             value={doctor.name}
@@ -1258,3 +1271,4 @@ export default function AppointmentsPage() {
     
 
     
+
