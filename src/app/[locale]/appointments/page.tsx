@@ -310,10 +310,10 @@ export default function AppointmentsPage() {
   }, [isCreateOpen, editingAppointment]);
 
   const handleOpenChange = (open: boolean) => {
-    setCreateOpen(open);
     if (!open) {
       setEditingAppointment(null);
     }
+    setCreateOpen(open);
   };
   
   const handleNewAppointmentClick = () => {
@@ -676,7 +676,7 @@ export default function AppointmentsPage() {
     const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
 
     let totalDuration = 0;
-    if (doctor && services.length > 0) {
+    if (doctor && doctor.id && services.length > 0) {
         const doctorServices = doctorServiceMap.get(doctor.id);
         if(doctorServices){
             totalDuration = services.reduce((acc, service) => {
@@ -942,7 +942,13 @@ export default function AppointmentsPage() {
       }
       
       if (editingAppointment && totalDuration === 0) {
-        totalDuration = 30;
+        const start = parseISO(editingAppointment.start.dateTime);
+        const end = parseISO(editingAppointment.end.dateTime);
+        if(isValid(start) && isValid(end)){
+          totalDuration = (end.getTime() - start.getTime()) / (1000 * 60);
+        } else {
+          totalDuration = 30;
+        }
       }
 
       const endDateTime = addMinutes(startDateTime, totalDuration);
@@ -1250,7 +1256,7 @@ export default function AppointmentsPage() {
                       <Input id="endTime" type="time" value={appointmentEndTime} readOnly disabled />
                   </div>
                 )}
-                <div className="space-y-2">
+                 <div className="space-y-2">
                     <Label htmlFor="description">{t('createDialog.descriptionLabel')}</Label>
                     <Textarea id="description" value={newAppointment.description} onChange={e => setNewAppointment(prev => ({...prev, description: e.target.value}))} />
                 </div>
@@ -1345,3 +1351,5 @@ export default function AppointmentsPage() {
     </Card>
   );
 }
+
+    
