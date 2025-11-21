@@ -70,11 +70,11 @@ export const navItems: NavItem[] = [
     icon: Calendar,
   },
   {
-    title: 'UsersAndAccess',
+    title: 'Pacientes',
     href: '/users',
     icon: Users,
     items: [
-      { title: 'Users', href: '/users', icon: Users, isChidren: true },
+      { title: 'Pacientes', href: '/users', icon: Users, isChidren: true },
       { title: 'ClinicHistory', href: '/clinic-history', icon: HeartPulse, isChidren: true },
       { title: 'Studies', href: '/studies', icon: Radiation, isChidren: true },
       { title: 'SharedStudies', href: '/shared-studies', icon: Share2, isChidren: true },

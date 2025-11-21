@@ -62,6 +62,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string): Promi
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
       search: searchQuery,
+      filter_type: 'DOCTOR'
     });
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?${params.toString()}`, {
       method: 'GET',
@@ -239,7 +240,7 @@ export default function UsersPage() {
 
         toast({
             title: 'Success',
-            description: `User ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
+            description: `Patient ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
         });
 
         loadUsers();
@@ -247,7 +248,7 @@ export default function UsersPage() {
         toast({
             variant: 'destructive',
             title: 'Error',
-            description: 'Could not update user status.',
+            description: 'Could not update patient status.',
         });
         console.error(error);
     }

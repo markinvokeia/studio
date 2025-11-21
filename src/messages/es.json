@@ -3,8 +3,9 @@
   "Navigation": {
     "Dashboard": "Dashboard",
     "Appointments": "Citas",
-    "UsersAndAccess": "Usuarios y Acceso",
-    "Users": "Usuarios",
+    "UsersAndAccess": "Pacientes",
+    "Users": "Pacientes",
+    "Pacientes": "Pacientes",
     "Providers": "Proveedores",
     "ClinicHistory": "Historial Clínico",
     "Studies": "Estudios",
@@ -48,7 +49,7 @@
     "AccessLog": "Accesos",
     "ErrorLog": "Errores"
   },
-   "SystemUsersPage": {
+  "SystemUsersPage": {
     "title": "Usuarios del Sistema",
     "description": "Gestionar todos los usuarios del sistema, incluyendo administradores y personal.",
     "filterPlaceholder": "Filtrar usuarios por correo electrónico...",
@@ -788,6 +789,7 @@
       "price": "Precio",
       "currency": "Moneda",
       "selectCurrency": "Seleccionar moneda",
+      "duration": "Duración (minutos)",
       "descriptionLabel": "Descripción",
       "descriptionPlaceholder": "Describe el servicio...",
       "indicationsLabel": "Indicaciones",
@@ -1367,9 +1369,9 @@
     "delete": "Eliminar"
   },
   "UsersPage": {
-    "title": "Usuarios",
-    "description": "Gestiona todos los usuarios del sistema.",
-    "filterPlaceholder": "Filtrar usuarios por email...",
+    "title": "Pacientes",
+    "description": "Gestionar todos los pacientes del sistema.",
+    "filterPlaceholder": "Filtrar pacientes por email...",
     "detailsFor": "Detalles de {name}",
     "close": "Cerrar detalles",
     "setInitialPassword": "Establecer Contraseña Inicial",
@@ -1383,14 +1385,14 @@
       "history": "Historial Clínico"
     },
     "createDialog": {
-      "title": "Crear Nuevo Usuario",
-      "description": "Completa los detalles a continuación para agregar un nuevo usuario.",
-      "editTitle": "Editar Usuario",
-      "editDescription": "Actualiza los detalles de este usuario.",
-      "createSuccessTitle": "Usuario Creado",
-      "createSuccessDescription": "El nuevo usuario ha sido añadido exitosamente.",
-      "editSuccessTitle": "Usuario Actualizado",
-      "editSuccessDescription": "El usuario ha sido actualizado exitosamente.",
+      "title": "Crear Nuevo Paciente",
+      "description": "Completa los detalles a continuación para agregar un nuevo paciente.",
+      "editTitle": "Editar Paciente",
+      "editDescription": "Actualiza los detalles de este paciente.",
+      "createSuccessTitle": "Paciente Creado",
+      "createSuccessDescription": "El nuevo paciente ha sido añadido exitosamente.",
+      "editSuccessTitle": "Paciente Actualizado",
+      "editSuccessDescription": "El paciente ha sido actualizado exitosamente.",
       "name": "Nombre",
       "namePlaceholder": "John Doe",
       "email": "Email",
@@ -1401,7 +1403,7 @@
       "identity_document_placeholder": "12345678",
       "isActive": "Está Activo",
       "cancel": "Cancelar",
-      "save": "Crear Usuario",
+      "save": "Crear Paciente",
       "editSave": "Guardar Cambios",
       "validation": {
         "errorTitle": "Error",
@@ -1429,10 +1431,10 @@
     "phone": "Teléfono",
     "status": "Estado",
     "actions": "Acciones",
-    "copyId": "Copiar ID de usuario",
+    "copyId": "Copiar ID de paciente",
     "viewDetails": "Ver detalles",
-    "edit": "Editar usuario",
-    "delete": "Eliminar usuario",
+    "edit": "Editar paciente",
+    "delete": "Eliminar paciente",
     "activate": "Activar",
     "deactivate": "Desactivar",
     "identity_document": "Documento de Identidad"
