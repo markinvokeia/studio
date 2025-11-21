@@ -1234,7 +1234,7 @@ export default function AppointmentsPage() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                   <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>{t('createDialog.close')}</AlertDialogCancel>
-                  <AlertDialogAction onClick={confirmDeleteAppointment}>{t('createDialog.confirmCancel')}</AlertDialogAction>
+                  <AlertDialogAction onClick={confirmDeleteAppointment}>{t('AppointmentsColumns.cancel')}</AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
@@ -1293,3 +1293,4 @@ export default function AppointmentsPage() {
     
 
     
+
