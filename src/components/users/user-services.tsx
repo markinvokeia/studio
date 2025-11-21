@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -24,10 +23,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useTranslations } from 'next-intl';
 import { Switch } from '../ui/switch';
 import { Badge } from '../ui/badge';
+import { Input } from '../ui/input';
 
 type UserServiceAssignment = {
   service_id: string;
   is_active: boolean;
+  duration_minutes?: number;
 };
 
 
@@ -51,6 +52,10 @@ const getColumns = (t: (key: string) => string): ColumnDef<Service>[] => [
       }).format(amount);
       return <div className="font-medium">{formatted}</div>;
     },
+  },
+  {
+    accessorKey: 'duration_minutes',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('ServicesColumns.duration')} />,
   },
   {
     accessorKey: 'is_active',
@@ -166,6 +171,7 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
     const assignedServices: UserServiceAssignment[] = userServices.map(service => ({
         service_id: service.id,
         is_active: service.is_active, 
+        duration_minutes: service.duration_minutes,
     }));
     setSelectedServices(assignedServices);
     setIsDialogOpen(true);
@@ -193,7 +199,7 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
       setSelectedServices(prev => {
           if (checked) {
               const service = allServices.find(s => s.id === serviceId);
-              return [...prev, { service_id: serviceId, is_active: service?.is_active ?? true }];
+              return [...prev, { service_id: serviceId, is_active: service?.is_active ?? true, duration_minutes: service?.duration_minutes }];
           } else {
               return prev.filter(s => s.service_id !== serviceId);
           }
@@ -204,6 +210,25 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
     setSelectedServices(prev => prev.map(s => 
         s.service_id === serviceId ? { ...s, is_active: active } : s
     ));
+  };
+  
+  const handleDurationChange = (serviceId: string, duration: string) => {
+    setSelectedServices(prev => prev.map(s => 
+        s.service_id === serviceId ? { ...s, duration_minutes: Number(duration) || 0 } : s
+    ));
+  };
+  
+  const handleSelectAll = () => {
+    const allServiceAssignments: UserServiceAssignment[] = allServices.map(service => ({
+      service_id: service.id,
+      is_active: true,
+      duration_minutes: service.duration_minutes
+    }));
+    setSelectedServices(allServiceAssignments);
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedServices([]);
   };
 
 
@@ -231,15 +256,21 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
       </CardContent>
     </Card>
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-3xl">
             <DialogHeader>
                 <DialogTitle>{t('UserServices.dialog.title')}</DialogTitle>
                 <DialogDescription>{t('UserServices.dialog.description')}</DialogDescription>
             </DialogHeader>
             <div className="py-4">
-                <Label>{t('UserServices.dialog.availableServices')}</Label>
-                <ScrollArea className="h-64 mt-2 border rounded-md p-4">
-                   <div className="space-y-2">
+                <div className="flex justify-between items-center mb-4">
+                  <Label>{t('UserServices.dialog.availableServices')}</Label>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleSelectAll}>Select All</Button>
+                    <Button variant="outline" size="sm" onClick={handleDeselectAll}>Deselect All</Button>
+                  </div>
+                </div>
+                <ScrollArea className="h-72 mt-2 border rounded-md p-4">
+                   <div className="space-y-4">
                         {allServices.map(service => {
                             const isSelected = selectedServices.some(s => s.service_id === service.id);
                             const serviceData = selectedServices.find(s => s.service_id === service.id);
@@ -254,13 +285,25 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
                                         <Label htmlFor={`service-${service.id}`}>{service.name}</Label>
                                     </div>
                                     {isSelected && (
-                                        <div className="flex items-center space-x-2">
-                                            <Label htmlFor={`active-switch-${service.id}`} className="text-sm">{t('UserServices.dialog.activeLabel')}</Label>
-                                            <Switch
-                                                id={`active-switch-${service.id}`}
-                                                checked={serviceData?.is_active}
-                                                onCheckedChange={(checked) => handleServiceActiveChange(service.id, checked)}
-                                            />
+                                        <div className="flex items-center space-x-4">
+                                            <div className="flex items-center space-x-2 w-32">
+                                                <Label htmlFor={`duration-${service.id}`} className="text-sm whitespace-nowrap">Duration</Label>
+                                                <Input 
+                                                  id={`duration-${service.id}`}
+                                                  type="number"
+                                                  value={serviceData?.duration_minutes ?? ''}
+                                                  onChange={(e) => handleDurationChange(service.id, e.target.value)}
+                                                  className="h-8 w-20"
+                                                />
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <Label htmlFor={`active-switch-${service.id}`} className="text-sm">{t('UserServices.dialog.activeLabel')}</Label>
+                                                <Switch
+                                                    id={`active-switch-${service.id}`}
+                                                    checked={serviceData?.is_active}
+                                                    onCheckedChange={(checked) => handleServiceActiveChange(service.id, checked)}
+                                                />
+                                            </div>
                                         </div>
                                     )}
                                 </div>

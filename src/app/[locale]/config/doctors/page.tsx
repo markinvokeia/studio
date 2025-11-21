@@ -467,7 +467,7 @@ export default function DoctorsPage() {
                     <TabsTrigger value="logs">{t('UsersPage.tabs.logs')}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="services">
-                    <UserServices userId={selectedUser.id} isSalesUser={true} />
+                    <UserServices userId={selectedUser.id} isSalesUser={false} />
                   </TabsContent>
                   <TabsContent value="messages">
                     <UserMessages userId={selectedUser.id} />
