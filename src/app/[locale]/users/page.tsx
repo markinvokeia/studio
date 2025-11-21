@@ -472,7 +472,7 @@ export default function UsersPage() {
                   </TabsContent>
                   {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
                     <TabsContent value="services">
-                      <UserServices userId={selectedUser.id} />
+                      <UserServices userId={selectedUser.id} isSalesUser={true} />
                     </TabsContent>
                   )}
                   <TabsContent value="quotes">

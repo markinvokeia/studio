@@ -30,6 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { isValidPhoneNumber } from 'libphonenumber-js';
 import { PhoneInput } from '@/components/ui/phone-input';
+import { UserServices } from '@/components/users/user-services';
 
 const providerFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -445,6 +446,7 @@ export default function ProvidersPage() {
                 <Tabs defaultValue="roles" className="w-full">
                    <TabsList>
                     <TabsTrigger value="roles">{t('ProvidersPage.tabs.roles')}</TabsTrigger>
+                    <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="roles">
                     <UserRoles
@@ -453,6 +455,9 @@ export default function ProvidersPage() {
                         isLoading={isRolesLoading}
                         onRolesChange={() => loadProviderRoles(selectedProvider.id)}
                     />
+                  </TabsContent>
+                  <TabsContent value="services">
+                      <UserServices userId={selectedProvider.id} isSalesUser={false} />
                   </TabsContent>
                 </Tabs>
               </CardContent>

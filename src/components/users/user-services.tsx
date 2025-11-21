@@ -98,9 +98,10 @@ async function getServicesForUser(userId: string): Promise<Service[]> {
   }
 }
 
-async function getAllServices(): Promise<Service[]> {
+async function getAllServices(isSalesUser: boolean): Promise<Service[]> {
   try {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services', {
+    const url = `https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=${isSalesUser}`;
+    const response = await fetch(url, {
       method: 'GET',
       mode: 'cors',
       headers: { 'Accept': 'application/json' },
@@ -134,9 +135,10 @@ async function assignServicesToUser(userId: string, services: UserServiceAssignm
 
 interface UserServicesProps {
   userId: string;
+  isSalesUser: boolean;
 }
 
-export function UserServices({ userId }: UserServicesProps) {
+export function UserServices({ userId, isSalesUser }: UserServicesProps) {
   const t = useTranslations();
   const [userServices, setUserServices] = React.useState<Service[]>([]);
   const [allServices, setAllServices] = React.useState<Service[]>([]);
@@ -159,7 +161,7 @@ export function UserServices({ userId }: UserServicesProps) {
   }, [loadUserServices]);
 
   const handleAddService = async () => {
-    const services = await getAllServices();
+    const services = await getAllServices(isSalesUser);
     setAllServices(services);
     const assignedServices: UserServiceAssignment[] = userServices.map(service => ({
         service_id: service.id,
