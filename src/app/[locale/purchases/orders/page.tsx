@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -81,7 +80,7 @@ async function getQuotes(): Promise<Quote[]> {
     });
 
     if (!response.ok) {
-      throw new Error(`Error HTTP: ${''response.status} - ${''response.statusText}`);
+      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -795,7 +794,7 @@ export default function QuotesPage() {
                                         <TabsTrigger value="payments">{t('tabs.payments')}</TabsTrigger>
                                     </TabsList>
                                     <TabsContent value="items">
-                                    <QuoteItemsTable 
+                                        <QuoteItemsTable 
                                             items={quoteItems} 
                                             isLoading={isLoadingItems}
                                             onRefresh={loadQuoteItems}
@@ -807,45 +806,49 @@ export default function QuotesPage() {
                                         />
                                     </TabsContent>
                                     <TabsContent value="orders">
-                                        <OrdersTable 
-                                            orders={orders} 
-                                            isLoading={isLoadingOrders} 
-                                            onRowSelectionChange={handleOrderSelectionChange} 
-                                            onRefresh={loadOrders}
-                                            isRefreshing={isLoadingOrders}
-                                            columnsToHide={['user_name', 'quote_id']}
-                                        />
-                                        {selectedOrder && (
-                                            <div className="mt-4">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-md font-semibold">Order Items for {selectedOrder.id}</h4>
-                                                    <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
-                                                        <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
-                                                    </Button>
+                                        <div className="space-y-4">
+                                            <OrdersTable 
+                                                orders={orders} 
+                                                isLoading={isLoadingOrders} 
+                                                onRowSelectionChange={handleOrderSelectionChange} 
+                                                onRefresh={loadOrders}
+                                                isRefreshing={isLoadingOrders}
+                                                columnsToHide={['user_name', 'quote_id']}
+                                            />
+                                            {selectedOrder && (
+                                                <div className="mt-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                                                    <div className="flex items-center justify-between p-4">
+                                                        <h4 className="text-md font-semibold">Order Items for {selectedOrder.id}</h4>
+                                                        <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
+                                                            <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
+                                                        </Button>
+                                                    </div>
+                                                    <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedQuote.id} />
                                                 </div>
-                                                <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedQuote.id} />
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
                                     </TabsContent>
                                     <TabsContent value="invoices">
-                                        <InvoicesTable 
-                                            invoices={invoices} 
-                                            isLoading={isLoadingInvoices} 
-                                            onRowSelectionChange={handleInvoiceSelectionChange}
-                                            onRefresh={loadInvoices}
-                                            isRefreshing={isLoadingInvoices}
-                                        />
-                                        {selectedInvoice && (
-                                            <div className="mt-4">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', {id: selectedInvoice.id})}</h4>
-                                                    <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
-                                                        <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
-                                                    </Button>
+                                        <div className="space-y-4">
+                                            <InvoicesTable 
+                                                invoices={invoices} 
+                                                isLoading={isLoadingInvoices} 
+                                                onRowSelectionChange={handleInvoiceSelectionChange}
+                                                onRefresh={loadInvoices}
+                                                isRefreshing={isLoadingInvoices}
+                                            />
+                                            {selectedInvoice && (
+                                                <div className="mt-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                                                    <div className="flex items-center justify-between p-4">
+                                                        <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', {id: selectedInvoice.id})}</h4>
+                                                        <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
+                                                            <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
+                                                        </Button>
+                                                    </div>
+                                                    <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
                                                 </div>
-                                                <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
                                     </TabsContent>
                                     <TabsContent value="payments">
                                         <PaymentsTable 
