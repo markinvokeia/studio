@@ -200,7 +200,7 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
       setSelectedServices(prev => {
           if (checked) {
               const service = allServices.find(s => s.id === serviceId);
-              return [...prev, { service_id: serviceId, is_active: service?.is_active ?? true, duration_minutes: service?.duration_minutes }];
+              return [...prev, { service_id: serviceId, is_active: true, duration_minutes: service?.duration_minutes }];
           } else {
               return prev.filter(s => s.service_id !== serviceId);
           }
@@ -286,7 +286,7 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
                                         <Label htmlFor={`service-${service.id}`}>{service.name}</Label>
                                     </div>
                                     {isSelected && (
-                                        <div className="flex items-center space-x-4">
+                                        <div className="flex items-center space-x-8">
                                             <div className="flex items-center space-x-2 w-32">
                                                 <Label htmlFor={`duration-${service.id}`} className="text-sm whitespace-nowrap">Duration</Label>
                                                 <Input 
