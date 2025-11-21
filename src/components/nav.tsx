@@ -63,7 +63,14 @@ export function Nav({ items, isMinimized }: NavProps) {
       if (activeItemIndex !== -1) {
         setActiveAccordionItem(`item-${activeItemIndex}`);
       } else {
-        setActiveAccordionItem(undefined);
+        // Only set to undefined if no item is active. This prevents closing an accordion
+        // that the user might have opened manually.
+        const isAnyActive = items.some((item, index) => 
+            item.items?.some(subItem => effectivePathname.startsWith(subItem.href))
+        );
+        if (!isAnyActive) {
+            setActiveAccordionItem(undefined);
+        }
       }
     }
   }, [pathname, locale, items, isClient]);
@@ -111,6 +118,7 @@ export function Nav({ items, isMinimized }: NavProps) {
   const renderAccordion = (item: NavItem, index: number) => {
     const title = t(item.title as any);
     const effectivePathname = getEffectivePathname(pathname, locale);
+    const value = `item-${index}`;
     
     const isActive = item.items?.some(subItem => {
         if (subItem.href === '/') return effectivePathname === '/';
@@ -123,9 +131,10 @@ export function Nav({ items, isMinimized }: NavProps) {
             type="single"
             collapsible
             key={index}
-            value={isActive ? `item-${index}` : undefined}
+            value={activeAccordionItem}
+            onValueChange={setActiveAccordionItem}
           >
-            <AccordionItem value={`item-${index}`} className="border-b-0">
+            <AccordionItem value={value} className="border-b-0">
               <AccordionTrigger
                 className={cn(
                   'flex items-center gap-3 rounded-md px-3 py-2 text-white transition-all hover:bg-black/20 hover:text-white hover:no-underline font-semibold',
