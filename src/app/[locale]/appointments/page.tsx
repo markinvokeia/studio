@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -149,6 +150,8 @@ async function getAppointments(
                 calendar_name: apiAppt.organizer?.displayName,
                 color: finalColor,
                 colorId: appointmentColorId,
+                start: apiAppt.start,
+                end: apiAppt.end,
             };
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
@@ -864,43 +867,36 @@ export default function AppointmentsPage() {
 
   const calendarEvents = React.useMemo(() => {
     return appointments.map(appt => {
-      if (!appt.date || !appt.time) return null;
-      try {
-        const start = parse(`${appt.date} ${appt.time}`, 'yyyy-MM-dd HH:mm', new Date());
-        if(!isValid(start)) return null;
-        
-        let totalDuration = 30; // Default duration
-        if(appt.doctorEmail && services.length > 0) {
-            const doctor = doctors.find(d => d.email === appt.doctorEmail);
-            if (doctor && doctor.id) {
-                const doctorServices = doctorServiceMap.get(doctor.id);
-                if(doctorServices){
-                    const serviceNames = appt.service_name.split(',').map(s => s.trim());
-                    const relatedDoctorServices = doctorServices.filter(ds => serviceNames.includes(ds.name));
-                    if(relatedDoctorServices.length > 0) {
-                        totalDuration = relatedDoctorServices.reduce((acc, s) => acc + (s.duration_minutes || 0), 0);
-                    }
-                }
-            }
+        if (!appt.start?.dateTime || !appt.end?.dateTime) {
+            console.warn("Appointment missing start or end dateTime:", appt);
+            return null;
         }
-        const end = addMinutes(start, totalDuration > 0 ? totalDuration : 30);
+        try {
+            const start = parseISO(appt.start.dateTime);
+            const end = parseISO(appt.end.dateTime);
 
-        return {
-          id: appt.id,
-          title: appt.service_name,
-          start,
-          end,
-          assignee: appt.doctorEmail,
-          data: appt,
-          color: appt.color,
-          colorId: appt.colorId,
-        };
-      } catch (e) {
-        console.error("Error parsing date/time for appointment", appt);
-        return null;
-      }
+            if (!isValid(start) || !isValid(end)) {
+                console.error("Invalid start/end date for appointment", appt);
+                return null;
+            }
+
+            return {
+                id: appt.id,
+                title: appt.service_name,
+                start,
+                end,
+                assignee: appt.doctorEmail,
+                data: appt,
+                color: appt.color,
+                colorId: appt.colorId,
+            };
+        } catch (e) {
+            console.error("Error parsing date/time for appointment", appt, e);
+            return null;
+        }
     }).filter(Boolean) as ({ id: string; title: string; start: Date; end: Date; assignee: string | undefined; data: Appointment; color?: string; colorId?: string })[];
-  }, [appointments, doctors, services, doctorServiceMap]);
+}, [appointments]);
+
 
  const handleSelectAssignee = React.useCallback((assigneeId: string, checked: boolean) => {
     setSelectedAssignees(prev => {
