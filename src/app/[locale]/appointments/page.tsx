@@ -399,8 +399,8 @@ export default function AppointmentsPage() {
     return doctors.filter(doctor => {
       const doctorServices = doctorServiceMap.get(doctor.id);
       if (!doctorServices) return false;
-      // Check if the doctor provides ALL selected services
-      return Array.from(selectedServiceIds).every(selectedId => 
+      // Check if the doctor provides ANY of the selected services
+      return Array.from(selectedServiceIds).some(selectedId => 
         doctorServices.some(ds => ds.id === selectedId)
       );
     });
@@ -471,7 +471,7 @@ export default function AppointmentsPage() {
         }
         setIsSearchingServices(true);
         try {
-          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?search=${serviceSearchQuery}`, {
+          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?search=${serviceSearchQuery}&is_sales=true`, {
             method: 'GET',
             mode: 'cors',
           });
@@ -1272,3 +1272,6 @@ export default function AppointmentsPage() {
 
     
 
+
+
+    
