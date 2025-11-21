@@ -62,7 +62,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string): Promi
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
       search: searchQuery,
-      filter_type: 'DOCTOR'
+      filter_type: 'PACIENTE'
     });
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?${params.toString()}`, {
       method: 'GET',
@@ -235,7 +235,7 @@ export default function UsersPage() {
         });
         
         if (!response.ok) {
-            throw new Error('Failed to update user status');
+            throw new Error('Failed to update patient status');
         }
 
         toast({
@@ -594,3 +594,5 @@ export default function UsersPage() {
     </>
   );
 }
+
+    
