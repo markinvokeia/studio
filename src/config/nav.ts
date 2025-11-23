@@ -37,6 +37,8 @@ import {
   DollarSign,
   UserSquare,
   ShoppingBasket,
+  Coins,
+  Tags,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -60,6 +62,8 @@ export const navItems: NavItem[] = [
     icon: Box,
     items: [
         { title: 'Cashier', href: '/cashier', icon: Box, isChidren: true },
+        { title: 'MiscellaneousTransactions', href: '/cashier/miscellaneous-transactions', icon: Coins, isChidren: true },
+        { title: 'MiscellaneousCategories', href: '/cashier/miscellaneous-categories', icon: Tags, isChidren: true },
         { title: 'CashSessions', href: '/cashier/sessions', icon: History, isChidren: true },
         { title: 'PhysicalCashRegisters', href: '/cashier/cash-points', icon: Archive, isChidren: true },
     ],

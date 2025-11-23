@@ -29,6 +29,8 @@
     "DentalConditions": "Condiciones Dentales",
     "DentalSurfaces": "Superficies Dentales",
     "Cashier": "Caja",
+    "MiscellaneousTransactions": "Transacciones Misceláneas",
+    "MiscellaneousCategories": "Categorías Misceláneas",
     "CashSessions": "Sesiones de Caja",
     "PhysicalCashRegisters": "Cajas Físicas",
     "BusinessSetup": "Configuración",
@@ -1047,6 +1049,25 @@
     "logout": "Cerrar Sesión",
     "commandPlaceholder": "Introduce un comando...",
     "changePassword": "Cambiar Contraseña"
+  },
+  "LoginPage": {
+    "title": "Bienvenido de Nuevo",
+    "email": "Correo Electrónico",
+    "password": "Contraseña",
+    "signIn": "Iniciar Sesión",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "recoverPasswordTitle": "Recuperar Contraseña",
+    "recoverPasswordDescription": "Introduce tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.",
+    "recoverPasswordButton": "Recuperar Contraseña",
+    "backToLogin": "Volver al inicio de sesión",
+    "recoverSuccessTitle": "Correo Enviado",
+    "recoverSuccessDescription": "Se ha enviado un enlace de recuperación de contraseña a tu dirección de correo electrónico.",
+    "errors": {
+      "title": "Fallo de Inicio de Sesión",
+      "invalidCredentials": "Credenciales inválidas",
+      "unexpected": "Ocurrió un error inesperado.",
+      "recoverError": "No se pudo enviar el correo de recuperación. Por favor, inténtelo de nuevo."
+    }
   },
   "ReportFilters": {
     "apply": "Aplicar Filtros",
