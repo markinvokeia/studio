@@ -51,6 +51,64 @@
     "AccessLog": "Accesos",
     "ErrorLog": "Errores"
   },
+  "MiscellaneousCategoriesPage": {
+    "title": "Categorías Misceláneas",
+    "description": "Gestionar las categorías para transacciones de ingresos y egresos misceláneos.",
+    "filterPlaceholder": "Filtrar por nombre...",
+    "income": "Ingreso",
+    "expense": "Egreso",
+    "dialog": {
+      "createTitle": "Crear Nueva Categoría",
+      "editTitle": "Editar Categoría",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Suministros de Oficina",
+      "code": "Código",
+      "codePlaceholder": "ej., OFC_SUP",
+      "description": "Descripción",
+      "descriptionPlaceholder": "Categoría para gastos de suministros de oficina",
+      "type": "Tipo",
+      "selectType": "Seleccione un tipo",
+      "income": "Ingreso",
+      "expense": "Egreso",
+      "isActive": "Activa",
+      "cancel": "Cancelar",
+      "create": "Crear",
+      "save": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente la categoría \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createTitle": "Categoría Creada",
+      "editTitle": "Categoría Actualizada",
+      "deleteTitle": "Categoría Eliminada",
+      "successDescription": "La categoría \"{name}\" ha sido guardada exitosamente.",
+      "deleteDescription": "La categoría \"{name}\" ha sido eliminada.",
+      "deleteError": "No se pudo eliminar la categoría."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio.",
+      "codeRequired": "El código es obligatorio."
+    },
+    "columns": {
+      "id": "ID",
+      "name": "Nombre",
+      "code": "Código",
+      "description": "Descripción",
+      "type": "Tipo",
+      "isActive": "Activa",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "yes": "Sí",
+      "no": "No"
+    }
+  },
   "SystemUsersPage": {
     "title": "Usuarios del Sistema",
     "description": "Gestionar todos los usuarios del sistema, incluyendo administradores y personal.",

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,7 +14,7 @@ export default function MiscellaneousTransactionsPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <p>Content for miscellaneous transactions will go here.</p>
+        <p>This page is under construction.</p>
       </CardContent>
     </Card>
   );

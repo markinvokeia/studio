@@ -51,6 +51,64 @@
     "AccessLog": "Access Log",
     "ErrorLog": "Error Log"
   },
+  "MiscellaneousCategoriesPage": {
+    "title": "Miscellaneous Categories",
+    "description": "Manage categories for miscellaneous income and expense transactions.",
+    "filterPlaceholder": "Filter by name...",
+    "income": "Income",
+    "expense": "Expense",
+    "dialog": {
+      "createTitle": "Create New Category",
+      "editTitle": "Edit Category",
+      "name": "Name",
+      "namePlaceholder": "e.g., Office Supplies",
+      "code": "Code",
+      "codePlaceholder": "e.g., OFC_SUP",
+      "description": "Description",
+      "descriptionPlaceholder": "Category for office supply expenses",
+      "type": "Type",
+      "selectType": "Select a type",
+      "income": "Income",
+      "expense": "Expense",
+      "isActive": "Is Active",
+      "cancel": "Cancel",
+      "create": "Create",
+      "save": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the category \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createTitle": "Category Created",
+      "editTitle": "Category Updated",
+      "deleteTitle": "Category Deleted",
+      "successDescription": "The category \"{name}\" has been saved successfully.",
+      "deleteDescription": "The category \"{name}\" has been deleted.",
+      "deleteError": "Could not delete the category."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "codeRequired": "Code is required."
+    },
+    "columns": {
+      "id": "ID",
+      "name": "Name",
+      "code": "Code",
+      "description": "Description",
+      "type": "Type",
+      "isActive": "Active",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete",
+      "yes": "Yes",
+      "no": "No"
+    }
+  },
   "SystemUsersPage": {
     "title": "System Users",
     "description": "Manage all system users, including administrators and staff.",

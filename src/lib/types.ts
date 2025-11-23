@@ -270,6 +270,8 @@ export type Appointment = {
   calendar_name?: string;
   color?: string;
   colorId?: string;
+  start?: any;
+  end?: any;
 };
 
 export type UserLog = {
@@ -456,4 +458,17 @@ export type CashPoint = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+};
+
+export type MiscellaneousCategory = {
+    id: string;
+    name: string;
+    code: string;
+    description: string;
+    type: 'income' | 'expense';
+    is_active: boolean;
+    parent_category_id?: string;
+    accounting_code?: string;
+    created_at: string;
+    updated_at: string;
 };
