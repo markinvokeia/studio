@@ -204,7 +204,7 @@ export default function ServicesPage() {
     <>
     <Card>
       <CardHeader>
-        <CardTitle>{t('title')}</CardTitle>
+        <CardTitle>{t('Navigation.ProviderProducts')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent>

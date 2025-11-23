@@ -63,7 +63,6 @@ export const navItems: NavItem[] = [
     items: [
         { title: 'Cashier', href: '/cashier', icon: Box, isChidren: true },
         { title: 'MiscellaneousTransactions', href: '/cashier/miscellaneous-transactions', icon: Coins, isChidren: true },
-        { title: 'MiscellaneousCategories', href: '/cashier/miscellaneous-categories', icon: Tags, isChidren: true },
         { title: 'CashSessions', href: '/cashier/sessions', icon: History, isChidren: true },
         { title: 'PhysicalCashRegisters', href: '/cashier/cash-points', icon: Archive, isChidren: true },
     ],
@@ -85,7 +84,7 @@ export const navItems: NavItem[] = [
     ],
   },
   {
-    title: 'SalesAndBilling',
+    title: 'Sales',
     href: '/sales',
     icon: Wallet,
     items: [
@@ -134,6 +133,7 @@ export const navItems: NavItem[] = [
       { title: 'DoctorAvailability', href: '/config/doctor-availability', icon: CalendarPlus, isChidren: true },
       { title: 'DoctorAvailabilityExceptions', href: '/config/availability-exceptions', icon: UserX, isChidren: true },
       { title: 'Currencies', href: '/config/currencies', icon: DollarSign, isChidren: true },
+      { title: 'MiscellaneousCategories', href: '/cashier/miscellaneous-categories', icon: Tags, isChidren: true },
     ],
   },
   {
