@@ -51,6 +51,56 @@
     "AccessLog": "Access Log",
     "ErrorLog": "Error Log"
   },
+  "MiscellaneousTransactionsPage": {
+    "title": "Miscellaneous Transactions",
+    "description": "Manage all miscellaneous income and expense transactions.",
+    "filterPlaceholder": "Search by description, beneficiary, or reference...",
+    "filters": {
+      "dateRange": "Select date range",
+      "pending": "Pending",
+      "completedToday": "Completed Today",
+      "incomeMonth": "Monthly Income",
+      "expenseMonth": "Monthly Expense",
+      "salaries": "Salaries",
+      "services": "Services",
+      "taxes": "Taxes"
+    },
+    "dashboard": {
+      "totalIncome": "Total Income (Period)",
+      "totalExpense": "Total Expense (Period)",
+      "balance": "Balance (Period)"
+    },
+    "columns": {
+      "id": "ID",
+      "transactionNumber": "Number",
+      "date": "Date",
+      "category": "Category",
+      "type": "Type",
+      "beneficiary": "Beneficiary",
+      "beneficiaryType": "Beneficiary Type",
+      "amount": "Amount",
+      "currency": "Currency",
+      "exchangeRate": "Exchange Rate",
+      "convertedAmount": "Converted Amount (UYU)",
+      "paymentMethod": "Payment Method",
+      "reference": "Reference",
+      "description": "Description",
+      "status": "Status",
+      "createdBy": "Created By",
+      "createdAt": "Created At",
+      "completedAt": "Completed At",
+      "cashSession": "Cash Session",
+      "tags": "Tags"
+    },
+    "validation": {
+      "categoryRequired": "Category is required.",
+      "dateRequired": "Transaction date is required.",
+      "amountPositive": "Amount must be a positive number.",
+      "descriptionMin": "Description must be at least 10 characters.",
+      "sessionRequired": "A cash session must be selected.",
+      "paymentMethodRequired": "A payment method must be selected."
+    }
+  },
   "MiscellaneousCategoriesPage": {
     "title": "Miscellaneous Categories",
     "description": "Manage categories for miscellaneous income and expense transactions.",
@@ -1102,4 +1152,3 @@
   }
 }
 
-    

@@ -51,6 +51,56 @@
     "AccessLog": "Accesos",
     "ErrorLog": "Errores"
   },
+  "MiscellaneousTransactionsPage": {
+    "title": "Transacciones Misceláneas",
+    "description": "Gestionar todas las transacciones de ingresos y egresos misceláneos.",
+    "filterPlaceholder": "Buscar por descripción, beneficiario o referencia...",
+    "filters": {
+      "dateRange": "Seleccionar rango de fechas",
+      "pending": "Pendientes",
+      "completedToday": "Completadas Hoy",
+      "incomeMonth": "Ingresos del Mes",
+      "expenseMonth": "Egresos del Mes",
+      "salaries": "Salarios",
+      "services": "Servicios",
+      "taxes": "Impuestos"
+    },
+    "dashboard": {
+      "totalIncome": "Ingresos Totales (Período)",
+      "totalExpense": "Egresos Totales (Período)",
+      "balance": "Balance (Período)"
+    },
+    "columns": {
+      "id": "ID",
+      "transactionNumber": "Número",
+      "date": "Fecha",
+      "category": "Categoría",
+      "type": "Tipo",
+      "beneficiary": "Beneficiario",
+      "beneficiaryType": "Tipo de Beneficiario",
+      "amount": "Monto",
+      "currency": "Moneda",
+      "exchangeRate": "Tasa de Cambio",
+      "convertedAmount": "Monto Convertido (UYU)",
+      "paymentMethod": "Método de Pago",
+      "reference": "Referencia",
+      "description": "Descripción",
+      "status": "Estado",
+      "createdBy": "Creado Por",
+      "createdAt": "Fecha de Creación",
+      "completedAt": "Fecha de Completado",
+      "cashSession": "Sesión de Caja",
+      "tags": "Etiquetas"
+    },
+    "validation": {
+      "categoryRequired": "La categoría es obligatoria.",
+      "dateRequired": "La fecha de la transacción es obligatoria.",
+      "amountPositive": "El monto debe ser un número positivo.",
+      "descriptionMin": "La descripción debe tener al menos 10 caracteres.",
+      "sessionRequired": "Debe seleccionar una sesión de caja.",
+      "paymentMethodRequired": "Debe seleccionar un método de pago."
+    }
+  },
   "MiscellaneousCategoriesPage": {
     "title": "Categorías Misceláneas",
     "description": "Gestionar las categorías para transacciones de ingresos y egresos misceláneos.",
@@ -1102,4 +1152,3 @@
   }
 }
 
-    
