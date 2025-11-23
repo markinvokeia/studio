@@ -41,7 +41,7 @@ type CategoryFormValues = z.infer<ReturnType<typeof categoryFormSchema>>;
 
 async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/miscellaneous_categories/all`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_categories`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -60,7 +60,7 @@ async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
 }
 
 async function upsertMiscellaneousCategory(categoryData: CategoryFormValues) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/miscellaneous_categories/upsert', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_categories/upsert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(categoryData),
@@ -74,7 +74,7 @@ async function upsertMiscellaneousCategory(categoryData: CategoryFormValues) {
 }
 
 async function deleteMiscellaneousCategory(id: string) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/miscellaneous_categories/delete', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_categories/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
