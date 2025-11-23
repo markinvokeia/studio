@@ -50,9 +50,13 @@ async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
         
         const data = await response.json();
-        const categoriesData = data.data || [];
+        const categoriesData = Array.isArray(data) ? data : (data.data || []);
 
-        return categoriesData.map((c: any) => ({ ...c, id: String(c.id) }));
+        return categoriesData.map((c: any) => ({ 
+            ...c, 
+            id: String(c.id),
+            type: c.category_type 
+        }));
     } catch (error) {
         console.error("Failed to fetch miscellaneous categories:", error);
         return [];
@@ -301,3 +305,5 @@ export default function MiscellaneousCategoriesPage() {
         </>
     );
 }
+
+    
