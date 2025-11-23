@@ -16,7 +16,7 @@
     "PurchaseOrders": "Órdenes de Compra",
     "PurchaseInvoices": "Facturas de Compra",
     "PurchasePayments": "Pagos de Compra",
-    "PurchaseServices": "Servicios de Compra",
+    "ProviderProducts": "Productos de Proveedor",
     "Quotes": "Cotizaciones",
     "Orders": "Pedidos",
     "Invoices": "Facturas",
@@ -1151,4 +1151,3 @@
     "noResults": "No se encontraron resultados."
   }
 }
-

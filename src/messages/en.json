@@ -16,7 +16,7 @@
     "PurchaseOrders": "Purchase Orders",
     "PurchaseInvoices": "Purchase Invoices",
     "PurchasePayments": "Purchase Payments",
-    "PurchaseServices": "Purchase Services",
+    "ProviderProducts": "Provider Products",
     "Quotes": "Quotes",
     "Orders": "Orders",
     "Invoices": "Invoices",
@@ -1151,4 +1151,3 @@
     "noResults": "No results."
   }
 }
-

@@ -106,8 +106,8 @@ export const navItems: NavItem[] = [
       { title: 'PurchaseOrders', href: '/purchases/orders', icon: ShoppingCart, isChidren: true },
       { title: 'PurchaseInvoices', href: '/purchases/invoices', icon: Receipt, isChidren: true },
       { title: 'PurchasePayments', href: '/purchases/payments', icon: CreditCard, isChidren: true },
-      { title: 'PurchaseServices', href: '/purchases/services', icon: Briefcase, isChidren: true },
       { title: 'Providers', href: '/providers', icon: Briefcase, isChidren: true },
+      { title: 'ProviderProducts', href: '/purchases/services', icon: Briefcase, isChidren: true },
     ],
   },
    {
