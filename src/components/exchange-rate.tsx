@@ -5,14 +5,23 @@ import * as React from 'react';
 import Image from 'next/image';
 import { Skeleton } from './ui/skeleton';
 
+interface ExchangeRateData {
+  buy: number;
+  sell: number;
+}
+
 // Mock data, as we cannot fetch from external URL directly.
-const MOCK_EXCHANGE_RATE = {
+const MOCK_EXCHANGE_RATE: ExchangeRateData = {
   buy: 38.90,
   sell: 41.30,
 };
 
-export function ExchangeRate() {
-  const [rate, setRate] = React.useState<{ buy: number, sell: number } | null>(null);
+interface ExchangeRateProps {
+  onRateChange?: (rates: ExchangeRateData) => void;
+}
+
+export function ExchangeRate({ onRateChange }: ExchangeRateProps) {
+  const [rate, setRate] = React.useState<ExchangeRateData | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -20,11 +29,14 @@ export function ExchangeRate() {
     // that scrapes the BROU website.
     const timer = setTimeout(() => {
       setRate(MOCK_EXCHANGE_RATE);
+      if (onRateChange) {
+        onRateChange(MOCK_EXCHANGE_RATE);
+      }
       setIsLoading(false);
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [onRateChange]);
 
   if (isLoading) {
     return (

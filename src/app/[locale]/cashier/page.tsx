@@ -26,6 +26,8 @@ import { useAuth } from '@/context/AuthContext';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ExchangeRate } from '@/components/exchange-rate';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 
 const denominationsUYU = [2000, 1000, 500, 200, 100, 50, 20, 10];
 const denominationsUSD = [100, 50, 20, 10, 5, 1];
@@ -56,6 +58,8 @@ export default function CashierPage() {
     const [showOpeningWizard, setShowOpeningWizard] = React.useState(false);
     const [openWizardStep, setOpenWizardStep] = React.useState<OpenSessionStep>('CONFIG');
     const [openingSessionData, setOpeningSessionData] = React.useState<Partial<CajaSesion>>({});
+    const [uyudenominations, setUyuDenominations] = React.useState<Record<string, number>>({});
+    const [usdDenominations, setUsdDenominations] = React.useState<Record<string, number>>({});
 
 
     const fetchCashPointStatus = React.useCallback(async () => {
@@ -198,6 +202,11 @@ export default function CashierPage() {
                     }}
                     sessionData={openingSessionData}
                     setSessionData={setOpeningSessionData}
+                    uyuDenominations={uyudenominations}
+                    setUyuDenominations={setUyuDenominations}
+                    usdDenominations={usdDenominations}
+                    setUsdDenominations={setUsdDenominations}
+                    toast={toast}
                 />
     }
 
@@ -205,7 +214,7 @@ export default function CashierPage() {
         cashPoints={cashPoints} 
         onSetActiveSession={setActiveSession}
         onStartOpening={(cashPoint) => {
-            setOpeningSessionData({ puntoDeCajaId: cashPoint.id, cash_point_name: cashPoint.name });
+            setOpeningSessionData({ puntoDeCajaId: cashPoint.id, cash_point_name: cashPoint.name, currency: 'UYU', date_rate: 40 });
             setShowOpeningWizard(true);
         }}
      />;
@@ -419,7 +428,7 @@ function CloseSessionWizard({
     );
 }
 
-const DenominationCounter = ({ title, denominations, currency, onTotalChange }: { title: string, denominations: number[], currency: string, onTotalChange: (total: number) => void }) => {
+const DenominationCounter = ({ title, denominations, currency, onTotalChange, onDetailsChange }: { title: string, denominations: number[], currency: string, onTotalChange: (total: number) => void, onDetailsChange: (details: Record<string, number>) => void }) => {
     const [quantities, setQuantities] = React.useState<Record<string, number>>(() =>
         Object.fromEntries(denominations.map(d => [d.toString(), 0]))
     );
@@ -435,13 +444,17 @@ const DenominationCounter = ({ title, denominations, currency, onTotalChange }: 
         } else {
             newQty = parseInt(quantity, 10) || 0;
         }
-        setQuantities(prev => ({ ...prev, [denomination]: newQty }));
+        
+        const newQuantities = { ...quantities, [denomination]: newQty };
+        setQuantities(newQuantities);
     };
 
     React.useEffect(() => {
-        const total = denominations.reduce((acc, den) => acc + (quantities[den] * den), 0) + coinsAmount;
+        const totalFromBills = denominations.reduce((acc, den) => acc + (quantities[den] * den), 0);
+        const total = totalFromBills + coinsAmount;
         onTotalChange(total);
-    }, [quantities, coinsAmount, denominations, onTotalChange]);
+        onDetailsChange({ ...quantities, coins: coinsAmount });
+    }, [quantities, coinsAmount, denominations, onTotalChange, onDetailsChange]);
 
     return (
         <div className="space-y-4">
@@ -492,56 +505,268 @@ const DenominationCounter = ({ title, denominations, currency, onTotalChange }: 
 };
 
 
-function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionData, setSessionData }: {
+function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionData, setSessionData, uyuDenominations, setUyuDenominations, usdDenominations, setUsdDenominations, toast }: {
     currentStep: OpenSessionStep;
     setCurrentStep: React.Dispatch<React.SetStateAction<OpenSessionStep>>;
     onExitWizard: () => void;
     sessionData: Partial<CajaSesion>;
     setSessionData: React.Dispatch<React.SetStateAction<Partial<CajaSesion>>>;
+    uyuDenominations: Record<string, number>;
+    setUyuDenominations: React.Dispatch<React.SetStateAction<Record<string, number>>>;
+    usdDenominations: Record<string, number>;
+    setUsdDenominations: React.Dispatch<React.SetStateAction<Record<string, number>>>;
+    toast: any;
 }) {
     const t = useTranslations('CashierPage');
     const { user } = useAuth();
+    const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+    const [buyRate, setBuyRate] = React.useState(38.90);
+    const [sellRate, setSellRate] = React.useState(41.30);
+    const [avgRate, setAvgRate] = React.useState(40.10);
+
+    const uyuTotal = React.useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
+    const usdTotal = React.useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
+    const usdEquivalentInUYU = usdTotal * (sessionData.date_rate || 0);
+    const totalOpeningAmount = uyuTotal + usdEquivalentInUYU;
+
+    const handleNextStep = async () => {
+        if (currentStep === 'CONFIG') {
+            if (!sessionData.puntoDeCajaId || !sessionData.currency || !sessionData.date_rate) {
+                toast({ variant: 'destructive', title: t('toast.error'), description: 'Please fill all fields.' });
+                return;
+            }
+            // Create session record
+            try {
+                const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/upsert', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        cash_point_id: sessionData.puntoDeCajaId,
+                        currency: sessionData.currency,
+                        date_rate: sessionData.date_rate,
+                        user_id: user?.id,
+                        status: 'OPEN'
+                    })
+                });
+                const responseData = await response.json();
+                if (!response.ok) throw new Error(responseData.message || 'Failed to create session');
+                
+                const newSessionId = Array.isArray(responseData) ? responseData[0].id : responseData.id;
+                setSessionData(prev => ({...prev, id: newSessionId }));
+                setCurrentStep('COUNT_UYU');
+            } catch (error) {
+                toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not create session.' });
+            }
+        } else if (currentStep === 'COUNT_UYU') {
+            setCurrentStep('COUNT_USD');
+        } else if (currentStep === 'COUNT_USD') {
+            setCurrentStep('CONFIRM');
+        }
+    };
+    
+    const handleConfirmAndOpen = async () => {
+        if (!sessionData.id) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Session ID is missing.' });
+            return;
+        }
+        setIsSubmitting(true);
+        const openingDetails = {
+            currency: sessionData.currency,
+            date_rate: sessionData.date_rate,
+            uyu: { ...uyuDenominations, total: uyuTotal },
+            usd: { ...usdDenominations, total: usdTotal, exchange_rate: sessionData.date_rate, equivalent_uyu: usdEquivalentInUYU },
+            grand_total_uyu: totalOpeningAmount,
+            opened_by: user?.name,
+            opened_at: new Date().toISOString()
+        };
+
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/upsert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: sessionData.id,
+                    opening_amount: totalOpeningAmount,
+                    opening_details: JSON.stringify(openingDetails),
+                })
+            });
+            if (!response.ok) throw new Error('Failed to finalize session opening.');
+            
+            toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
+            onExitWizard();
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handlePreviousStep = async () => {
+        if (currentStep === 'CONFIRM') setCurrentStep('COUNT_USD');
+        else if (currentStep === 'COUNT_USD') setCurrentStep('COUNT_UYU');
+        else if (currentStep === 'COUNT_UYU') {
+             // If going back from UYU count, need to delete the created session
+            if (sessionData.id) {
+                try {
+                    await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/delete', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: sessionData.id })
+                    });
+                } catch (error) {
+                    console.error("Failed to delete temporary session:", error);
+                }
+            }
+            setCurrentStep('CONFIG');
+        }
+        else if (currentStep === 'CONFIG') onExitWizard();
+    };
+
+
+    const stepComponents = {
+        'CONFIG': (
+            <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card>
+                        <CardHeader><CardTitle>Información de la Sesión</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                             <div className="space-y-1">
+                                <Label>{t('openSession.terminal')}</Label>
+                                <Input value={sessionData.cash_point_name} disabled />
+                            </div>
+                            <div className="space-y-1">
+                                <Label>{t('openSession.user')}</Label>
+                                <Input value={user?.name} disabled />
+                            </div>
+                            <div className="space-y-1">
+                                <Label>{t('openSession.openingDate')}</Label>
+                                <Input value={new Date().toLocaleString()} disabled />
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader><CardTitle>Configuración Monetaria</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                             <div className="flex items-center gap-2">
+                                <ExchangeRate onRateChange={(rates) => {
+                                    setBuyRate(rates.buy);
+                                    setSellRate(rates.sell);
+                                    const avg = (rates.buy + rates.sell) / 2;
+                                    setAvgRate(avg);
+                                    setSessionData(prev => ({...prev, date_rate: avg}));
+                                }} />
+                                <Alert className="text-sm">
+                                    <AlertDescription>{t('openSession.exchangeRateTooltip')}</AlertDescription>
+                                </Alert>
+                            </div>
+                             <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <Label htmlFor="buy_rate">Compra</Label>
+                                    <Input id="buy_rate" value={buyRate.toFixed(2)} disabled />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label htmlFor="sell_rate">Venta</Label>
+                                    <Input id="sell_rate" value={sellRate.toFixed(2)} disabled />
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <Label htmlFor="date_rate">{t('openSession.exchangeRate')}</Label>
+                                <Input id="date_rate" type="number" step="0.00001" value={sessionData.date_rate} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: parseFloat(e.target.value) || 0 }))} />
+                            </div>
+                             <div className="space-y-1">
+                                <Label>{t('openSession.currency')}</Label>
+                                <Select value={sessionData.currency} onValueChange={(value) => setSessionData(prev => ({...prev, currency: value as 'UYU' | 'USD' | 'EUR'}))}>
+                                    <SelectTrigger><SelectValue/></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="UYU">UYU</SelectItem>
+                                        <SelectItem value="USD">USD</SelectItem>
+                                        <SelectItem value="EUR">EUR</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        ),
+        'COUNT_UYU': (
+            <DenominationCounter 
+                title="Conteo de Efectivo (UYU)"
+                denominations={denominationsUYU}
+                currency="UYU"
+                onTotalChange={(total) => {}}
+                onDetailsChange={setUyuDenominations}
+            />
+        ),
+        'COUNT_USD': (
+             <DenominationCounter 
+                title="Conteo de Efectivo (USD)"
+                denominations={denominationsUSD}
+                currency="USD"
+                onTotalChange={(total) => {}}
+                onDetailsChange={setUsdDenominations}
+            />
+        ),
+        'CONFIRM': (
+             <div className="space-y-6">
+                <Card>
+                    <CardHeader><CardTitle>{t('confirmation.sessionInfo')}</CardTitle></CardHeader>
+                    <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                        <p><strong>{t('openSession.terminal')}:</strong> {sessionData.cash_point_name}</p>
+                        <p><strong>{t('openSession.user')}:</strong> {user?.name}</p>
+                        <p><strong>{t('openSession.openingDate')}:</strong> {new Date().toLocaleString()}</p>
+                        <p><strong>{t('openSession.currency')}:</strong> {sessionData.currency}</p>
+                        <p><strong>{t('openSession.exchangeRate')}:</strong> {sessionData.date_rate?.toFixed(5)}</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader><CardTitle>{t('confirmation.cashSummary')}</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="text-lg"><strong>{t('confirmation.totalUYU')}:</strong> {uyuTotal.toFixed(2)} UYU</div>
+                        <div className="text-lg"><strong>{t('confirmation.totalUSD')}:</strong> {usdTotal.toFixed(2)} USD ({usdEquivalentInUYU.toFixed(2)} UYU)</div>
+                        <div className="text-2xl font-bold border-t pt-4 mt-4">{t('confirmation.totalOpening')}: {totalOpeningAmount.toFixed(2)} {sessionData.currency}</div>
+                        
+                        <Collapsible>
+                            <CollapsibleTrigger asChild>
+                                <Button variant="link" className="p-0">Ver desglose</Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="space-y-4 mt-2">
+                                <Table>
+                                    <TableHeader><TableRow><TableHead>Denominación UYU</TableHead><TableHead>Cantidad</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {Object.entries(uyuDenominations).map(([den, qty]) => qty > 0 && <TableRow key={den}><TableCell>{den}</TableCell><TableCell>{qty}</TableCell></TableRow>)}
+                                    </TableBody>
+                                </Table>
+                                 <Table>
+                                    <TableHeader><TableRow><TableHead>Denominación USD</TableHead><TableHead>Cantidad</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {Object.entries(usdDenominations).map(([den, qty]) => qty > 0 && <TableRow key={den}><TableCell>{den}</TableCell><TableCell>{qty}</TableCell></TableRow>)}
+                                    </TableBody>
+                                </Table>
+                            </CollapsibleContent>
+                        </Collapsible>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    };
     
     return(
         <Card>
              <CardHeader>
                 <CardTitle>{t('openSession.wizardTitle')}</CardTitle>
-                <CardDescription>Paso X de 4</CardDescription>
+                <CardDescription>Paso {Object.keys(stepComponents).indexOf(currentStep) + 1} de {Object.keys(stepComponents).length}</CardDescription>
             </CardHeader>
             <CardContent>
-                 {currentStep === 'CONFIG' && (
-                     <p>Paso 1: Config</p>
-                 )}
-                 {currentStep === 'COUNT_UYU' && (
-                    <DenominationCounter 
-                        title="Conteo de Efectivo (UYU)"
-                        denominations={denominationsUYU}
-                        currency="UYU"
-                        onTotalChange={(total) => console.log('UYU Total', total)}
-                    />
-                 )}
-                 {currentStep === 'COUNT_USD' && (
-                    <DenominationCounter 
-                        title="Conteo de Efectivo (USD)"
-                        denominations={denominationsUSD}
-                        currency="USD"
-                        onTotalChange={(total) => console.log('USD Total', total)}
-                    />
-                 )}
+                 {stepComponents[currentStep]}
             </CardContent>
             <CardFooter className="justify-between">
-                <Button variant="outline" onClick={() => {
-                    if (currentStep === 'CONFIG') onExitWizard();
-                    else if (currentStep === 'COUNT_UYU') setCurrentStep('CONFIG');
-                    else if (currentStep === 'COUNT_USD') setCurrentStep('COUNT_UYU');
-                    else if (currentStep === 'CONFIRM') setCurrentStep('COUNT_USD');
-                }}>Atrás</Button>
-                 <Button onClick={() => {
-                    if (currentStep === 'CONFIG') setCurrentStep('COUNT_UYU');
-                    else if (currentStep === 'COUNT_UYU') setCurrentStep('COUNT_USD');
-                    else if (currentStep === 'COUNT_USD') setCurrentStep('CONFIRM');
-                    // else if (currentStep === 'CONFIRM') handleConfirm();
-                }}>Siguiente</Button>
+                <Button variant="outline" onClick={handlePreviousStep}>Atrás</Button>
+                 <Button onClick={currentStep === 'CONFIRM' ? handleConfirmAndOpen : handleNextStep} disabled={isSubmitting}>
+                     {isSubmitting ? 'Abriendo...' : (currentStep === 'CONFIRM' ? t('confirmation.confirmButton') : 'Siguiente')}
+                 </Button>
             </CardFooter>
         </Card>
     );
@@ -550,3 +775,5 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
+```

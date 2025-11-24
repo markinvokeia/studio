@@ -94,7 +94,7 @@
       "description": "Su contraseña ha sido cambiada exitosamente."
     }
   },
-   "CashierPage": {
+  "CashierPage": {
     "title": "Gestión de Caja",
     "openSession": {
       "title": "Abrir Sesión de Caja",
@@ -103,7 +103,22 @@
       "openingAmount": "Monto de Apertura",
       "openButton": "Abrir Caja",
       "openingButton": "Abriendo...",
-      "viewLog": "Ver Registro"
+      "viewLog": "Ver Registro",
+      "wizardTitle": "Asistente para Abrir Sesión",
+      "terminal": "Terminal",
+      "user": "Usuario",
+      "openingDate": "Fecha de Apertura",
+      "currency": "Moneda Base",
+      "exchangeRate": "Tipo de Cambio del Día (USD/UYU)",
+      "exchangeRateTooltip": "Este tipo de cambio se usará para todas las conversiones durante la sesión."
+    },
+    "confirmation": {
+      "sessionInfo": "Información de la Sesión",
+      "cashSummary": "Resumen de Efectivo",
+      "totalUYU": "Total UYU",
+      "totalUSD": "Total USD",
+      "totalOpening": "Monto Total de Apertura",
+      "confirmButton": "Confirmar y Abrir Caja"
     },
     "activeSession": {
       "title": "Sesión Activa",
@@ -611,122 +626,13 @@
   "QuoteColumns": {
     "quoteId": "ID Cotización",
     "total": "Total",
-    "billingStatus": "Estado Facturación",
-    "createdAt": "Fecha Creación",
-    "currency": "Moneda"
+    "billingStatus": "Estado Facturación"
   },
   "OrderColumns": {
     "orderId": "ID Pedido",
     "createdAt": "Fecha Creación"
   },
-  "InvoicesPage": {
-    "title": "Facturas",
-    "description": "Gestionar todas las facturas.",
-    "filterPlaceholder": "Filtrar facturas por ID...",
-    "detailsFor": "Detalles de la Factura",
-    "invoiceId": "ID de Factura",
-    "tabs": {
-      "items": "Artículos",
-      "payments": "Pagos"
-    },
-    "columns": {
-      "invoiceId": "ID Factura",
-      "user": "Usuario",
-      "provider": "Proveedor",
-      "orderId": "ID Pedido",
-      "quoteId": "ID Cotización",
-      "total": "Total",
-      "currency": "Moneda",
-      "status": "Estado",
-      "payment": "Pago",
-      "createdAt": "Fecha Creación"
-    },
-    "status": {
-      "draft": "Borrador",
-      "sent": "Enviada",
-      "paid": "Pagada",
-      "overdue": "Vencida",
-      "unpaid": "No Pagada",
-      "partially_paid": "Parcialmente Pagada",
-      "completed": "Completado",
-      "pending": "Pendiente",
-      "failed": "Fallido"
-    },
-    "methods": {
-      "bank_transfer": "Transferencia Bancaria",
-      "credit_card": "Tarjeta de Crédito",
-      "debit_card": "Tarjeta de Débito",
-      "cash": "Efectivo",
-      "debit": "Débito",
-      "credit": "Crédito",
-      "mercado_pago": "Mercado Pago"
-    },
-    "toast": {
-      "error": "Error",
-      "sessionCheckError": "No se pudo verificar la sesión de caja activa. Por favor, inténtelo de nuevo.",
-      "success": "Éxito"
-    },
-    "paymentDialog": {
-      "title": "Añadir Pago",
-      "description": "Registrar un nuevo pago para la Factura #{invoiceId}",
-      "add": "Añadir Pago",
-      "amount": "Monto",
-      "method": "Método",
-      "selectMethod": "Seleccione un método de pago",
-      "status": "Estado",
-      "selectStatus": "Seleccione un estado",
-      "date": "Fecha de Pago",
-      "pickDate": "Seleccione una fecha",
-      "cancel": "Cancelar",
-      "success": "Pago añadido",
-      "successDescription": "Se ha registrado un nuevo pago para la Factura #{invoiceId}."
-    },
-    "noSessionDialog": {
-      "title": "No hay Sesión de Caja Activa",
-      "description": "Debe abrir una sesión de caja antes de poder añadir un pago.",
-      "openCashSession": "Abrir Sesión de Caja"
-    },
-    "createDialog": {
-      "title": "Crear Factura",
-      "description": "Complete los detalles para crear una nueva factura.",
-      "user": "Usuario/Proveedor",
-      "selectUser": "Seleccione un usuario o proveedor",
-      "invoiceRef": "Referencia de Factura",
-      "total": "Total",
-      "currency": "Moneda",
-      "cancel": "Cancelar",
-      "create": "Crear Factura",
-      "errors": {
-        "title": "Error",
-        "generic": "Ocurrió un error inesperado."
-      },
-      "success": {
-        "title": "Factura Creada",
-        "description": "La nueva factura se ha creado correctamente."
-      }
-    },
-    "validation": {
-      "amountPositive": "El monto debe ser un número positivo.",
-      "methodRequired": "El método de pago es requerido.",
-      "dateRequired": "La fecha de pago es requerida."
-    }
-  },
-  "DataTableToolbar": {
-    "toggleColumns": "Alternar columnas"
-  },
-  "DataTablePagination": {
-    "selected": "{count, plural, =0 {No hay filas seleccionadas} =1 {1 fila seleccionada} other {# filas seleccionadas}} de {total}",
-    "rowsPerPage": "Filas por página",
-    "all": "Todas",
-    "page": "Página {current} de {total}",
-    "goToFirst": "Ir a la primera página",
-    "goToPrevious": "Ir a la página anterior",
-    "goToNext": "Ir a la página siguiente",
-    "goToLast": "Ir a la última página"
-  },
   "General": {
     "noResults": "No se encontraron resultados."
   }
 }
-
-    
