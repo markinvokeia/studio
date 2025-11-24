@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -60,7 +59,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Nav } from './nav';
-import { navItems, NavItem } from '@/config/nav';
+import { navItems } from '@/config/nav';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useSidebar } from '@/hooks/use-sidebar';
 import { useLocale, useTranslations } from 'next-intl';
@@ -409,7 +408,7 @@ export function Header() {
                     {passwordChangeError && (
                         <Alert variant="destructive">
                             <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>{t('changePasswordDialog.errors.title')}</AlertTitle>
+                            <AlertTitle>{t('errors.title')}</AlertTitle>
                             <AlertDescription>{passwordChangeError}</AlertDescription>
                         </Alert>
                     )}

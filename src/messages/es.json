@@ -1,4 +1,3 @@
-
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -74,24 +73,24 @@
       "newPassword": "Nueva Contraseña",
       "confirmPassword": "Confirmar Nueva Contraseña",
       "cancel": "Cancelar",
-      "save": "Guardar Cambios",
-      "validation": {
-        "oldPasswordRequired": "La contraseña actual es requerida.",
-        "newPasswordMin": "La nueva contraseña debe tener al menos 8 caracteres.",
-        "newPasswordUpper": "La nueva contraseña debe contener una letra mayúscula.",
-        "newPasswordNumber": "La nueva contraseña debe contener un número.",
-        "passwordsMismatch": "Las contraseñas no coinciden."
-      },
-      "errors": {
-        "title": "Error",
-        "noToken": "No se encontró el token de autenticación. Por favor, inicie sesión de nuevo.",
-        "generic": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
-        "incorrectOldPassword": "La contraseña actual no es correcta."
-      },
-      "success": {
-        "title": "Éxito",
-        "description": "Su contraseña ha sido cambiada exitosamente."
-      }
+      "save": "Guardar Cambios"
+    },
+    "validation": {
+      "oldPasswordRequired": "La contraseña actual es requerida.",
+      "newPasswordMin": "La nueva contraseña debe tener al menos 8 caracteres.",
+      "newPasswordUpper": "La nueva contraseña debe contener una letra mayúscula.",
+      "newPasswordNumber": "La nueva contraseña debe contener un número.",
+      "passwordsMismatch": "Las contraseñas no coinciden."
+    },
+    "errors": {
+      "title": "Error",
+      "noToken": "No se encontró el token de autenticación. Por favor, inicie sesión de nuevo.",
+      "generic": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
+      "incorrectOldPassword": "La contraseña actual no es correcta."
+    },
+    "success": {
+      "title": "Éxito",
+      "description": "Su contraseña ha sido cambiada exitosamente."
     }
   },
   "ReportFilters": {
@@ -529,11 +528,118 @@
   "QuoteColumns": {
     "quoteId": "ID Cotización",
     "total": "Total",
-    "billingStatus": "Estado Facturación"
+    "billingStatus": "Estado Facturación",
+    "createdAt": "Fecha Creación",
+    "currency": "Moneda"
   },
   "OrderColumns": {
     "orderId": "ID Pedido",
     "createdAt": "Fecha Creación"
+  },
+  "InvoicesPage": {
+    "title": "Facturas",
+    "description": "Gestionar todas las facturas.",
+    "filterPlaceholder": "Filtrar facturas por ID...",
+    "detailsFor": "Detalles de la Factura",
+    "invoiceId": "ID de Factura",
+    "tabs": {
+      "items": "Artículos",
+      "payments": "Pagos"
+    },
+    "columns": {
+      "invoiceId": "ID Factura",
+      "user": "Usuario",
+      "provider": "Proveedor",
+      "orderId": "ID Pedido",
+      "quoteId": "ID Cotización",
+      "total": "Total",
+      "currency": "Moneda",
+      "status": "Estado",
+      "payment": "Pago",
+      "createdAt": "Fecha Creación"
+    },
+    "status": {
+      "draft": "Borrador",
+      "sent": "Enviada",
+      "paid": "Pagada",
+      "overdue": "Vencida",
+      "unpaid": "No Pagada",
+      "partially_paid": "Parcialmente Pagada",
+      "completed": "Completado",
+      "pending": "Pendiente",
+      "failed": "Fallido"
+    },
+    "methods": {
+      "bank_transfer": "Transferencia Bancaria",
+      "credit_card": "Tarjeta de Crédito",
+      "debit_card": "Tarjeta de Débito",
+      "cash": "Efectivo",
+      "debit": "Débito",
+      "credit": "Crédito",
+      "mercado_pago": "Mercado Pago"
+    },
+    "toast": {
+      "error": "Error",
+      "sessionCheckError": "No se pudo verificar la sesión de caja activa. Por favor, inténtelo de nuevo.",
+      "success": "Éxito"
+    },
+    "paymentDialog": {
+      "title": "Añadir Pago",
+      "description": "Registrar un nuevo pago para la Factura #{invoiceId}",
+      "add": "Añadir Pago",
+      "amount": "Monto",
+      "method": "Método",
+      "selectMethod": "Seleccione un método de pago",
+      "status": "Estado",
+      "selectStatus": "Seleccione un estado",
+      "date": "Fecha de Pago",
+      "pickDate": "Seleccione una fecha",
+      "cancel": "Cancelar",
+      "success": "Pago añadido",
+      "successDescription": "Se ha registrado un nuevo pago para la Factura #{invoiceId}."
+    },
+    "noSessionDialog": {
+      "title": "No hay Sesión de Caja Activa",
+      "description": "Debe abrir una sesión de caja antes de poder añadir un pago.",
+      "openCashSession": "Abrir Sesión de Caja"
+    },
+    "createDialog": {
+      "title": "Crear Factura",
+      "description": "Complete los detalles para crear una nueva factura.",
+      "user": "Usuario/Proveedor",
+      "selectUser": "Seleccione un usuario o proveedor",
+      "invoiceRef": "Referencia de Factura",
+      "total": "Total",
+      "currency": "Moneda",
+      "cancel": "Cancelar",
+      "create": "Crear Factura",
+      "errors": {
+        "title": "Error",
+        "generic": "Ocurrió un error inesperado."
+      },
+      "success": {
+        "title": "Factura Creada",
+        "description": "La nueva factura se ha creado correctamente."
+      }
+    },
+    "validation": {
+      "amountPositive": "El monto debe ser un número positivo.",
+      "methodRequired": "El método de pago es requerido.",
+      "dateRequired": "La fecha de pago es requerida."
+    }
+  },
+  "DataTableToolbar": {
+    "toggleColumns": "Alternar columnas"
+  },
+  "DataTablePagination": {
+    "selected": "{count, plural, =0 {No hay filas seleccionadas} =1 {1 fila seleccionada} other {# filas seleccionadas}} de {total}",
+    "rowsPerPage": "Filas por página",
+    "all": "Todas",
+    "page": "Página {current} de {total}",
+    "goToFirst": "Ir a la primera página",
+    "goToPrevious": "Ir a la página anterior",
+    "goToNext": "Ir a la página siguiente",
+    "goToLast": "Ir a la última página"
   },
   "General": {
     "noResults": "No se encontraron resultados."

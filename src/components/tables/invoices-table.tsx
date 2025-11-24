@@ -6,7 +6,7 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Invoice, PaymentMethod, User, Order, Quote, Service, InvoiceItem } from '@/lib/types';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -33,7 +33,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
@@ -42,11 +42,11 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().positive(t('amountPositive')),
-  method: z.string().min(1, t('methodRequired')),
+  amount: z.coerce.number().positive(t('validation.amountPositive')),
+  method: z.string().min(1, t('validation.methodRequired')),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
-    required_error: t('dateRequired'),
+    required_error: t('validation.dateRequired'),
   }),
   invoice_currency: z.string(),
   payment_currency: z.string(),
@@ -375,7 +375,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   };
 
-    const columns = React.useMemo(() => getColumns(t, tStatus, columnTranslations, onPrint, onSendEmail, handleAddPaymentClick), [t, tStatus, columnTranslations, onPrint, onSendEmail]);
+  const columns = React.useMemo(() => getColumns(t, tStatus, columnTranslations, onPrint, onSendEmail, handleAddPaymentClick), [t, tStatus, columnTranslations, onPrint, onSendEmail]);
 
     if (isLoading) {
     return (
