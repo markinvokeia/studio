@@ -5,7 +5,6 @@ import * as React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider } from '@/hooks/use-sidebar';
-import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
 import { FloatingActionsWrapper } from '@/components/floating-actions-wrapper';
 import { useLocale } from 'next-intl';
@@ -51,14 +50,11 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
   if (user) {
     return (
       <SidebarProvider>
-        <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr]">
-          <Sidebar />
-          <div className="flex flex-col bg-gradient-to-b from-gray-300 to-gray-50 dark:from-gray-900 dark:to-gray-800 overflow-hidden">
-            <Header />
-            <main className="flex flex-1 flex-col gap-4 p-4 lg:p-6 overflow-auto">
-              {children}
-            </main>
-          </div>
+        <div className="flex flex-col h-screen">
+          <Header />
+          <main className="flex-1 overflow-auto bg-gradient-to-b from-gray-300 to-gray-50 dark:from-gray-900 dark:to-gray-800 p-4 lg:p-6">
+            {children}
+          </main>
         </div>
         <FloatingActionsWrapper />
       </SidebarProvider>
@@ -67,3 +63,5 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
 
   return null;
 }
+
+    
