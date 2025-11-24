@@ -105,7 +105,7 @@ export function Header() {
         const rightSectionWidth = rightSectionRef.current.offsetWidth;
         const availableWidth = containerWidth - rightSectionWidth - 20;
 
-        const navItemsElements = Array.from(hiddenNavRef.current.children) as HTMLElement[];
+        const navItemsElements = Array.from(hiddenNavRef.current.querySelectorAll('.flex.items-center.justify-center.rounded-md, .group.inline-flex.h-9.w-max.items-center.justify-center')) as HTMLElement[];
         let currentWidth = 0;
         let visibleCount = 0;
         
@@ -228,7 +228,7 @@ export function Header() {
 
   return (
     <>
-    <div ref={hiddenNavRef} style={{ position: 'absolute', visibility: 'hidden', top: -9999, left: -9999 }}>
+    <div ref={hiddenNavRef} style={{ position: 'absolute', visibility: 'hidden', top: -9999, left: -9999, display: 'flex' }}>
         <HorizontalNav items={navItems} />
     </div>
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
@@ -258,7 +258,7 @@ export function Header() {
             </SheetContent>
         </Sheet>
         
-        <div className="hidden md:flex flex-1 items-center justify-between space-x-2">
+        <div className="hidden md:flex flex-1 items-center space-x-2">
             <div className="flex-1" ref={navRef}>
                 <HorizontalNav items={visibleItems} />
             </div>
