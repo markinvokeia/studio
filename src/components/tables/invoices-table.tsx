@@ -5,12 +5,12 @@ import * as React from 'react';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Invoice, PaymentMethod, User, Order, Quote } from '@/lib/types';
+import { Invoice, PaymentMethod, User, Order, Quote, Service, InvoiceItem } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { MoreHorizontal, AlertTriangle, ArrowRight, Box, Printer, Send, FileUp } from 'lucide-react';
+import { MoreHorizontal, AlertTriangle, ArrowRight, Box, Printer, Send, FileUp, Plus, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,7 +38,7 @@ import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check, ChevronsUpDown } from 'lucide-react';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '../ui/command';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
@@ -62,14 +62,6 @@ const paymentFormSchema = (t: (key: string) => string) => z.object({
 });
 
 type PaymentFormValues = z.infer<ReturnType<typeof paymentFormSchema>>;
-
-const invoiceFormSchema = (t: (key: string) => string) => z.object({
-  id: z.string().optional(),
-  user_id: z.string().min(1, t('userRequired')),
-  order_id: z.string().optional(),
-  quote_id: z.string().optional(),
-});
-type InvoiceFormValues = z.infer<ReturnType<typeof invoiceFormSchema>>;
 
 const getColumns = (
     t: (key: string) => string,
@@ -411,11 +403,20 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       rowSelection={rowSelection}
       setRowSelection={setRowSelection}
       columnTranslations={columnTranslations}
-      extraButtons={onImport && (
-        <Button variant="outline" size="sm" className="ml-2 h-8" onClick={onImport}>
-          <FileUp className="mr-2 h-4 w-4" /> Import
-        </Button>
-      )}
+      extraButtons={
+         <>
+          {onCreate && (
+            <Button variant="outline" size="sm" className="ml-2 h-8" onClick={onCreate}>
+              <Plus className="mr-2 h-4 w-4" /> Create
+            </Button>
+          )}
+          {onImport && (
+            <Button variant="outline" size="sm" className="ml-2 h-8" onClick={onImport}>
+              <FileUp className="mr-2 h-4 w-4" /> Import
+            </Button>
+          )}
+        </>
+      }
     />
 
     <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
@@ -615,6 +616,28 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   );
 }
 
+const invoiceItemSchema = z.object({
+  id: z.string().optional(),
+  service_id: z.string().min(1, 'Service is required.'),
+  quantity: z.coerce.number().min(1, 'Quantity must be at least 1.'),
+  unit_price: z.coerce.number().min(0, 'Unit price cannot be negative.'),
+  total: z.coerce.number(),
+});
+type InvoiceItemFormValues = z.infer<typeof invoiceItemSchema>;
+
+
+const createInvoiceFormSchema = z.object({
+    user_id: z.string().min(1, 'A user or provider is required.'),
+    total: z.coerce.number().min(0, 'Total must be a non-negative number.'),
+    currency: z.enum(['UYU', 'USD']),
+    invoice_ref: z.string().optional(),
+    order_id: z.string().optional(),
+    quote_id: z.string().optional(),
+    items: z.array(invoiceItemSchema).min(1, 'At least one item is required.'),
+});
+type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
+
+
 interface CreateInvoiceDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -624,76 +647,64 @@ interface CreateInvoiceDialogProps {
 
 export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, isSales }: CreateInvoiceDialogProps) {
   const t = useTranslations('InvoicesPage.createDialog');
-  const tValidation = useTranslations('InvoicesPage.createValidation');
   const [users, setUsers] = React.useState<User[]>([]);
   const [orders, setOrders] = React.useState<Order[]>([]);
   const [quotes, setQuotes] = React.useState<Quote[]>([]);
-  const [selectedUserId, setSelectedUserId] = React.useState<string | null>(null);
-  const [isUserSearchOpen, setUserSearchOpen] = React.useState(false);
-  const [isOrderSearchOpen, setOrderSearchOpen] = React.useState(false);
-  const [isQuoteSearchOpen, setQuoteSearchOpen] = React.useState(false);
-  const { toast } = useToast();
+  const [services, setServices] = React.useState<Service[]>([]);
+  
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
-  const form = useForm<InvoiceFormValues>({
-    resolver: zodResolver(invoiceFormSchema(tValidation)),
+  const form = useForm<CreateInvoiceFormValues>({
+    resolver: zodResolver(createInvoiceFormSchema),
+    defaultValues: {
+      user_id: '',
+      total: 0,
+      currency: 'USD',
+      items: [],
+    },
   });
+  
+  const items = form.watch('items');
 
   React.useEffect(() => {
+    const total = items.reduce((sum, item) => sum + (item.total || 0), 0);
+    form.setValue('total', total);
+  }, [items, form]);
+  
+  // Fetch initial data for dropdowns
+  React.useEffect(() => {
     if (isOpen) {
-      const fetchUsers = async () => {
+      const fetchData = async () => {
         try {
           const filterType = isSales ? 'PACIENTE' : 'PROVEEDOR';
-          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=${filterType}`);
-          if (response.ok) {
-            const data = await response.json();
+          const [usersRes, servicesRes] = await Promise.all([
+            fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=${filterType}`),
+            fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=${isSales}`)
+          ]);
+
+          if (usersRes.ok) {
+            const data = await usersRes.json();
             const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
             setUsers(usersData);
           }
+          if (servicesRes.ok) {
+            const data = await servicesRes.json();
+            const servicesData = Array.isArray(data) ? data : (data.services || []);
+            setServices(servicesData);
+          }
         } catch (error) {
-          console.error('Failed to fetch users', error);
+          console.error('Failed to fetch initial data', error);
         }
       };
-      fetchUsers();
+      fetchData();
     }
   }, [isOpen, isSales]);
 
-  React.useEffect(() => {
-    if (selectedUserId) {
-      const fetchUserOrders = async () => {
-        try {
-          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_orders?user_id=${selectedUserId}&is_sales=${isSales}`);
-          if (response.ok) {
-            const data = await response.json();
-            setOrders(data || []);
-          }
-        } catch (error) {
-          console.error('Failed to fetch orders', error);
-        }
-      };
-      const fetchUserQuotes = async () => {
-        try {
-          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_quotes?user_id=${selectedUserId}&is_sales=${isSales}`);
-          if (response.ok) {
-            const data = await response.json();
-            setQuotes(data || []);
-          }
-        } catch (error) {
-          console.error('Failed to fetch quotes', error);
-        }
-      };
-      fetchUserOrders();
-      fetchUserQuotes();
-      form.setValue('user_id', selectedUserId);
-      form.setValue('order_id', undefined);
-      form.setValue('quote_id', undefined);
-    }
-  }, [selectedUserId, form, isSales]);
 
-  const onSubmit = async (values: InvoiceFormValues) => {
+  const onSubmit = async (values: CreateInvoiceFormValues) => {
     setSubmissionError(null);
     try {
-      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/create', {
+      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/upsert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({...values, is_sales: isSales}),
@@ -705,14 +716,24 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
       toast({ title: t('success.title'), description: t('success.description') });
       onInvoiceCreated();
       onOpenChange(false);
+      form.reset();
     } catch (error) {
       setSubmissionError(error instanceof Error ? error.message : t('errors.generic'));
     }
   };
 
+  const handleAddItem = () => {
+    form.setValue('items', [...items, { service_id: '', quantity: 1, unit_price: 0, total: 0 }]);
+  };
+  
+  const handleRemoveItem = (index: number) => {
+    form.setValue('items', items.filter((_, i) => i !== index));
+  };
+
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>{t('description')}</DialogDescription>
@@ -726,116 +747,92 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                 <AlertDescription>{submissionError}</AlertDescription>
               </Alert>
             )}
-            <FormField
-              control={form.control}
-              name="user_id"
-              render={({ field }) => (
+            <div className="grid grid-cols-2 gap-4">
+               <FormField control={form.control} name="user_id" render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('user')}</FormLabel>
-                   <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                          {field.value ? users.find((user) => user.id === field.value)?.name : t('selectUser')}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
-                        <CommandInput placeholder={t('searchUser')} />
-                        <CommandList>
-                          <CommandEmpty>{t('noUserFound')}</CommandEmpty>
-                          <CommandGroup>
-                            {users.map((user) => (
-                              <CommandItem value={user.name} key={user.id} onSelect={() => { setSelectedUserId(user.id); setUserSearchOpen(false); }}>
-                                <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
-                                {user.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl><SelectTrigger><SelectValue placeholder={t('selectUser')} /></SelectTrigger></FormControl>
+                    <SelectContent>{users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="order_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('order')}</FormLabel>
-                    <Popover open={isOrderSearchOpen} onOpenChange={setOrderSearchOpen}>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button variant="outline" role="combobox" disabled={!selectedUserId} className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                            {field.value ? `Order #${field.value}` : t('selectOrder')}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command>
-                          <CommandInput placeholder={t('searchOrder')} />
-                          <CommandList>
-                            <CommandEmpty>{t('noOrderFound')}</CommandEmpty>
-                            <CommandGroup>
-                              {orders.map((order) => (
-                                <CommandItem value={order.id} key={order.id} onSelect={() => { form.setValue('order_id', order.id); setOrderSearchOpen(false); }}>
-                                  <Check className={cn("mr-2 h-4 w-4", order.id === field.value ? "opacity-100" : "opacity-0")} />
-                                  {`Order #${order.id}`}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="quote_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('quote')}</FormLabel>
-                    <Popover open={isQuoteSearchOpen} onOpenChange={setQuoteSearchOpen}>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button variant="outline" role="combobox" disabled={!selectedUserId} className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                            {field.value ? `Quote #${field.value}` : t('selectQuote')}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command>
-                          <CommandInput placeholder={t('searchQuote')} />
-                          <CommandList>
-                            <CommandEmpty>{t('noQuoteFound')}</CommandEmpty>
-                            <CommandGroup>
-                              {quotes.map((quote) => (
-                                <CommandItem value={quote.id} key={quote.id} onSelect={() => { form.setValue('quote_id', quote.id); setQuoteSearchOpen(false); }}>
-                                  <Check className={cn("mr-2 h-4 w-4", quote.id === field.value ? "opacity-100" : "opacity-0")} />
-                                  {`Quote #${quote.id}`}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              )} />
+              <FormField control={form.control} name="invoice_ref" render={({ field }) => (<FormItem><FormLabel>{t('invoiceRef')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
             </div>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Invoice Items</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {items.map((item, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                       <FormField control={form.control} name={`items.${index}.service_id`} render={({ field }) => (
+                         <FormItem className="flex-1">
+                           <Select onValueChange={(value) => {
+                               field.onChange(value);
+                               const service = services.find(s => s.id === value);
+                               if(service) {
+                                const quantity = form.getValues(`items.${index}.quantity`) || 1;
+                                form.setValue(`items.${index}.unit_price`, service.price);
+                                form.setValue(`items.${index}.total`, service.price * quantity);
+                               }
+                           }} defaultValue={field.value}>
+                              <FormControl><SelectTrigger><SelectValue placeholder="Select Service" /></SelectTrigger></FormControl>
+                              <SelectContent>{services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                           </Select>
+                         </FormItem>
+                       )} />
+                        <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
+                            <FormItem><FormControl><Input type="number" className="w-20" {...field} onChange={(e) => {
+                                field.onChange(e);
+                                const price = form.getValues(`items.${index}.unit_price`) || 0;
+                                form.setValue(`items.${index}.total`, price * Number(e.target.value));
+                            }} /></FormControl></FormItem>
+                        )}/>
+                        <FormField control={form.control} name={`items.${index}.unit_price`} render={({ field }) => (
+                           <FormItem><FormControl><Input type="number" className="w-28" {...field} onChange={(e) => {
+                                field.onChange(e);
+                                const quantity = form.getValues(`items.${index}.quantity`) || 1;
+                                form.setValue(`items.${index}.total`, quantity * Number(e.target.value));
+                            }} /></FormControl></FormItem>
+                        )}/>
+                        <FormField control={form.control} name={`items.${index}.total`} render={({ field }) => (
+                          <FormItem><FormControl><Input type="number" readOnly disabled className="w-28" {...field} /></FormControl></FormItem>
+                        )}/>
+                        <Button type="button" variant="destructive-ghost" size="icon" onClick={() => handleRemoveItem(index)}><Trash2 /></Button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" onClick={handleAddItem}>Add Item</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="total" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('total')}</FormLabel>
+                    <FormControl><Input type="number" readOnly disabled {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}/>
+                <FormField control={form.control} name="currency" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('currency')}</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                            <SelectItem value="USD">USD</SelectItem>
+                            <SelectItem value="UYU">UYU</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}/>
+            </div>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
               <Button type="submit">{t('create')}</Button>
@@ -846,5 +843,3 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
     </Dialog>
   );
 }
-
-    
