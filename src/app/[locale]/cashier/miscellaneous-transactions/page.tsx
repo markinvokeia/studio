@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -47,14 +46,14 @@ import { Calendar } from '@/components/ui/calendar';
 const transactionFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     category_id: z.string().min(1, t('categoryRequired')),
-    transaction_date: z.date({ required_error: t('dateRequired')}),
+    transaction_date: z.string().min(1, t('dateRequired')),
     amount: z.coerce.number().positive(t('amountPositive')),
     description: z.string().min(10, t('descriptionMin')),
     beneficiary_id: z.string().optional(),
     currency: z.enum(['UYU', 'USD', 'EUR']).default('UYU'),
     exchange_rate: z.coerce.number().optional().default(1),
     external_reference: z.string().optional(),
-    tags: z.array(z.string()).optional(),
+    tags: z.string().optional(),
 });
 
 type TransactionFormValues = z.infer<ReturnType<typeof transactionFormSchema>>;
@@ -103,11 +102,11 @@ async function getMiscellaneousTransactions(pagination: PaginationState, searchQ
                 description: t.description,
                 external_reference: t.reference_number,
                 status: t.status,
-                category_id: t.category_id,
+                category_id: String(t.category_id),
                 category_code: t.category_code,
                 category_name: t.category_name,
                 category_type: t.category_type,
-                beneficiary_id: t.beneficiary_id,
+                beneficiary_id: t.beneficiary_id ? String(t.beneficiary_id) : undefined,
                 beneficiary_name: t.beneficiary_name,
                 beneficiary_type: t.beneficiary_type,
                 created_by: t.created_by_name,
@@ -128,11 +127,51 @@ async function getMiscellaneousTransactions(pagination: PaginationState, searchQ
     }
 }
 
-async function upsertMiscellaneousTransaction(transactionData: TransactionFormValues) {
+async function getBeneficiaries(searchQuery: string): Promise<User[]> {
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?search=${searchQuery}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch beneficiaries');
+        const data = await response.json();
+        const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
+        return usersData.map((user: any) => ({ ...user, id: String(user.id) }));
+    } catch (error) {
+        console.error("Failed to fetch beneficiaries:", error);
+        return [];
+    }
+}
+
+async function getCategories(): Promise<MiscellaneousCategory[]> {
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_categories`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch categories');
+        const data = await response.json();
+        return (data || []).map((cat: any) => ({ ...cat, id: String(cat.id) }));
+    } catch (error) {
+        console.error("Failed to fetch categories:", error);
+        return [];
+    }
+}
+
+
+async function upsertMiscellaneousTransaction(transactionData: TransactionFormValues, userId: string) {
+    const payload = {
+        ...transactionData,
+        created_by: userId,
+        tags: transactionData.tags?.split(',').map(t => t.trim()).filter(t => t),
+    };
+    
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_transactions/upsert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(transactionData),
+        body: JSON.stringify(payload),
     });
     const responseData = await response.json();
     if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400) || responseData.error) {
@@ -161,6 +200,7 @@ export default function MiscellaneousTransactionsPage() {
     const t = useTranslations('MiscellaneousTransactionsPage');
     const tValidation = useTranslations('MiscellaneousTransactionsPage.validation');
     const { toast } = useToast();
+    const { user } = useAuth();
     const [transactions, setTransactions] = React.useState<MiscellaneousTransaction[]>([]);
     const [transactionCount, setTransactionCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -179,24 +219,44 @@ export default function MiscellaneousTransactionsPage() {
     const [dateRange, setDateRange] = React.useState<DateRange | undefined>();
     const [totalIncome, setTotalIncome] = React.useState(0);
     const [totalExpense, setTotalExpense] = React.useState(0);
+    
+    const [beneficiaries, setBeneficiaries] = React.useState<User[]>([]);
+    const [categories, setCategories] = React.useState<MiscellaneousCategory[]>([]);
+    const [beneficiarySearch, setBeneficiarySearch] = React.useState('');
+    const [isBeneficiaryOpen, setIsBeneficiaryOpen] = React.useState(false);
+    const [isCategoryOpen, setIsCategoryOpen] = React.useState(false);
+
 
     const form = useForm<TransactionFormValues>({
         resolver: zodResolver(transactionFormSchema(tValidation)),
     });
+    
+    React.useEffect(() => {
+        if (isDialogOpen) {
+            getCategories().then(setCategories);
+        }
+    }, [isDialogOpen]);
+    
+    React.useEffect(() => {
+        const handler = setTimeout(() => {
+            getBeneficiaries(beneficiarySearch).then(setBeneficiaries);
+        }, 300);
+        return () => clearTimeout(handler);
+    }, [beneficiarySearch]);
 
     const handleEdit = (transaction: MiscellaneousTransaction) => {
         setEditingTransaction(transaction);
         form.reset({
             id: transaction.id,
             category_id: transaction.category_id,
-            transaction_date: new Date(transaction.transaction_date),
+            transaction_date: format(parseISO(transaction.transaction_date), 'yyyy-MM-dd'),
             amount: transaction.amount,
             description: transaction.description,
             beneficiary_id: transaction.beneficiary_id,
             currency: transaction.currency as any,
             exchange_rate: transaction.exchange_rate,
             external_reference: transaction.external_reference,
-            tags: transaction.tags,
+            tags: transaction.tags?.join(', '),
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -235,9 +295,7 @@ export default function MiscellaneousTransactionsPage() {
             return <Badge variant={type === 'income' ? 'success' : 'destructive'}>{row.original.category_name}</Badge>
           }
         },
-        { accessorKey: 'category_type', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.type')} /> },
         { accessorKey: 'beneficiary_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.beneficiary')} /> },
-        { accessorKey: 'beneficiary_type', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.beneficiaryType')} /> },
         { accessorKey: 'amount', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.amount')} />,
           cell: ({ row }) => {
             const type = row.original.category_type;
@@ -246,27 +304,12 @@ export default function MiscellaneousTransactionsPage() {
             return <div className={cn("font-medium text-right", colorClass)}>{new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency }).format(amount)}</div>;
           }
         },
-        { accessorKey: 'currency', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.currency')} /> },
-        { accessorKey: 'exchange_rate', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.exchangeRate')} /> },
-        { accessorKey: 'converted_amount', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.convertedAmount')} />,
-          cell: ({ row }) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'UYU' }).format(row.original.converted_amount)
-        },
-        { accessorKey: 'payment_method_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.paymentMethod')} /> },
-        { accessorKey: 'external_reference', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.reference')} /> },
-        { accessorKey: 'description', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.description')} /> },
         { accessorKey: 'status', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
           cell: ({ row }) => {
             const status = row.original.status;
             const variant = status === 'completed' ? 'success' : status === 'pending' ? 'info' : 'destructive';
             return <Badge variant={variant} className="capitalize">{status}</Badge>
           }
-        },
-        { accessorKey: 'created_by', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.createdBy')} /> },
-        { accessorKey: 'created_at', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.createdAt')} />, cell: ({row}) => format(parseISO(row.original.created_at), 'yyyy-MM-dd HH:mm')},
-        { accessorKey: 'completed_at', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.completedAt')} />, cell: ({row}) => row.original.completed_at ? format(parseISO(row.original.completed_at), 'yyyy-MM-dd HH:mm') : '-'},
-        { accessorKey: 'cash_session_id', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.cashSession')} /> },
-        { accessorKey: 'tags', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.tags')} />,
-          cell: ({ row }) => <div className="flex flex-wrap gap-1">{row.original.tags?.map(t => <Badge key={t} variant="secondary">{t}</Badge>)}</div>
         },
          {
             id: 'actions',
@@ -310,17 +353,24 @@ export default function MiscellaneousTransactionsPage() {
     const handleCreate = () => {
         setEditingTransaction(null);
         form.reset({
-            transaction_date: new Date(),
+            transaction_date: format(new Date(), 'yyyy-MM-dd'),
             currency: 'UYU',
             exchange_rate: 1,
+            description: '',
+            beneficiary_id: '',
+            category_id: '',
+            amount: 0,
+            tags: '',
+            external_reference: '',
         });
         setIsDialogOpen(true);
     };
 
     const onSubmit = async (values: TransactionFormValues) => {
+        if (!user) return;
         setSubmissionError(null);
         try {
-            await upsertMiscellaneousTransaction(values);
+            await upsertMiscellaneousTransaction(values, user.id);
             toast({ title: editingTransaction ? "Transaction Updated" : "Transaction Created", description: "Transaction saved successfully." });
             setIsDialogOpen(false);
             loadTransactions();
@@ -397,14 +447,43 @@ export default function MiscellaneousTransactionsPage() {
             </CardContent>
         </Card>
          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
                     <DialogTitle>{editingTransaction ? 'Edit Transaction' : 'Create Transaction'}</DialogTitle>
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
                          {submissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{submissionError}</AlertDescription></Alert>}
-                        {/* Form fields will be added here */}
+                         <FormField control={form.control} name="category_id" render={({ field }) => (
+                            <FormItem><FormLabel>Category</FormLabel>
+                                <Popover open={isCategoryOpen} onOpenChange={setIsCategoryOpen}><PopoverTrigger asChild><FormControl>
+                                <Button variant="outline" role="combobox" className="w-full justify-between">{field.value ? categories.find(c => c.id === field.value)?.name : "Select category"}<ChevronsUpDown /></Button>
+                                </FormControl></PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput /><CommandList><CommandEmpty>No category found.</CommandEmpty><CommandGroup>
+                                    {categories.map(c => <CommandItem value={c.name} key={c.id} onSelect={() => {form.setValue("category_id", c.id); setIsCategoryOpen(false);}}><Check className={cn("mr-2", c.id === field.value ? "opacity-100" : "opacity-0")}/>{c.name}</CommandItem>)}
+                                </CommandGroup></CommandList></Command></PopoverContent>
+                                </Popover><FormMessage />
+                            </FormItem>
+                         )} />
+                         <FormField control={form.control} name="beneficiary_id" render={({ field }) => (
+                            <FormItem><FormLabel>Beneficiary</FormLabel>
+                                <Popover open={isBeneficiaryOpen} onOpenChange={setIsBeneficiaryOpen}><PopoverTrigger asChild><FormControl>
+                                <Button variant="outline" role="combobox" className="w-full justify-between">{field.value ? beneficiaries.find(b => b.id === field.value)?.name : "Select beneficiary"}<ChevronsUpDown /></Button>
+                                </FormControl></PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput onValueChange={setBeneficiarySearch} /><CommandList><CommandEmpty>No beneficiary found.</CommandEmpty><CommandGroup>
+                                    {beneficiaries.map(b => <CommandItem value={b.name} key={b.id} onSelect={() => {form.setValue("beneficiary_id", b.id); setIsBeneficiaryOpen(false);}}><Check className={cn("mr-2", b.id === field.value ? "opacity-100" : "opacity-0")}/>{b.name}</CommandItem>)}
+                                </CommandGroup></CommandList></Command></PopoverContent>
+                                </Popover><FormMessage />
+                            </FormItem>
+                         )} />
+                         <FormField control={form.control} name="transaction_date" render={({ field }) => (<FormItem><FormLabel>Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                         <div className="grid grid-cols-3 gap-4">
+                            <FormField control={form.control} name="amount" render={({ field }) => (<FormItem className="col-span-2"><FormLabel>Amount</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>Currency</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                         </div>
+                         <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                         <FormField control={form.control} name="external_reference" render={({ field }) => (<FormItem><FormLabel>Reference</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                         <FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>Tags</FormLabel><FormControl><Input placeholder="tag1, tag2, tag3" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
                             <Button type="submit">{editingTransaction ? 'Save Changes' : 'Create'}</Button>
