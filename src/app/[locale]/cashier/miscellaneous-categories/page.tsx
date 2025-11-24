@@ -92,8 +92,8 @@ async function deleteMiscellaneousCategory(id: string) {
 }
 
 export default function MiscellaneousCategoriesPage() {
-    const t = useTranslations('MiscellaneousCategoriesPage');
-    const tValidation = useTranslations('MiscellaneousCategoriesPage.validation');
+    const t = useTranslations('ProductCategoriesPage');
+    const tValidation = useTranslations('ProductCategoriesPage.validation');
     const { toast } = useToast();
     const [categories, setCategories] = React.useState<MiscellaneousCategory[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -305,5 +305,3 @@ export default function MiscellaneousCategoriesPage() {
         </>
     );
 }
-
-    
