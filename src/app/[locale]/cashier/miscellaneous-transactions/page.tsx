@@ -58,15 +58,47 @@ const completeTransactionSchema = (t: (key: string) => string) => z.object({
 
 type CompleteTransactionFormValues = z.infer<ReturnType<typeof completeTransactionSchema>>;
 
-const MOCK_DATA: MiscellaneousTransaction[] = [
-    { id: '1', transaction_number: 'MISC202411-0001', transaction_date: '2024-11-15', category_name: 'Salarios', category_type: 'expense', beneficiary_name: 'John Doe', beneficiary_type: 'Empleado', amount: 2500, currency: 'USD', exchange_rate: 1, converted_amount: 2500, payment_method_name: 'Bank Transfer', external_reference: 'INV-123', description: 'Pago de salario mensual', status: 'pending', created_by: 'Admin', created_at: '2024-11-15T10:00:00Z', completed_at: null, cash_session_id: null, tags: ['payroll', 'monthly'] },
-    { id: '2', transaction_number: 'MISC202411-0002', transaction_date: '2024-11-14', category_name: 'Venta de Activos', category_type: 'income', beneficiary_name: 'Comprador Anónimo', beneficiary_type: 'Otro', amount: 500, currency: 'USD', exchange_rate: 1, converted_amount: 500, payment_method_name: 'Cash', external_reference: 'REC-456', description: 'Venta de silla de oficina usada', status: 'completed', created_by: 'Admin', created_at: '2024-11-14T15:30:00Z', completed_at: '2024-11-14T15:32:00Z', cash_session_id: 'SESS-001', tags: ['asset-sale'] },
-];
+type GetTransactionsResponse = {
+  transactions: MiscellaneousTransaction[];
+  total: number;
+};
+
+async function getMiscellaneousTransactions(pagination: PaginationState, searchQuery: string): Promise<GetTransactionsResponse> {
+    try {
+        const params = new URLSearchParams({
+            page: (pagination.pageIndex + 1).toString(),
+            limit: pagination.pageSize.toString(),
+            search: searchQuery,
+        });
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_transactions?${params.toString()}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+        });
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        
+        const responseData = await response.json();
+        const data = Array.isArray(responseData) ? responseData[0] : responseData;
+
+        const transactionsData = data.data || [];
+        const total = Number(data.total) || 0;
+
+        return {
+            transactions: transactionsData.map((t: any) => ({ ...t, id: String(t.id) })),
+            total
+        };
+    } catch (error) {
+        console.error("Failed to fetch miscellaneous transactions:", error);
+        return { transactions: [], total: 0 };
+    }
+}
+
 
 const getColumns = (t: (key: string) => string): ColumnDef<MiscellaneousTransaction>[] => [
     { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.id')} /> },
     { accessorKey: 'transaction_number', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.transactionNumber')} /> },
-    { accessorKey: 'transaction_date', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.date')} /> },
+    { accessorKey: 'transaction_date', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.date')} />, cell: ({row}) => format(parseISO(row.original.transaction_date), 'yyyy-MM-dd') },
     { accessorKey: 'category_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.category')} />,
       cell: ({ row }) => {
         const type = row.original.category_type;
@@ -111,7 +143,8 @@ const getColumns = (t: (key: string) => string): ColumnDef<MiscellaneousTransact
 export default function MiscellaneousTransactionsPage() {
     const t = useTranslations('MiscellaneousTransactionsPage');
     const tValidation = useTranslations('MiscellaneousTransactionsPage.validation');
-    const [transactions, setTransactions] = React.useState<MiscellaneousTransaction[]>(MOCK_DATA);
+    const [transactions, setTransactions] = React.useState<MiscellaneousTransaction[]>([]);
+    const [transactionCount, setTransactionCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [editingTransaction, setEditingTransaction] = React.useState<MiscellaneousTransaction | null>(null);
@@ -129,17 +162,16 @@ export default function MiscellaneousTransactionsPage() {
 
     const columns = getColumns(t);
     
-    // TODO: Connect to backend
-    const loadTransactions = React.useCallback(() => {
+    const loadTransactions = React.useCallback(async () => {
         setIsRefreshing(true);
-        // This would fetch from backend, applying filters
-        setTimeout(() => {
-            setTransactions(MOCK_DATA);
-            setTotalIncome(500);
-            setTotalExpense(2500);
-            setIsRefreshing(false);
-        }, 500);
-    }, []);
+        const searchQuery = (columnFilters.find(f => f.id === 'description')?.value as string) || '';
+        const { transactions, total } = await getMiscellaneousTransactions(pagination, searchQuery);
+        setTransactions(transactions);
+        setTransactionCount(total);
+        setTotalIncome(transactions.filter(t => t.category_type === 'income').reduce((sum, t) => sum + t.amount, 0));
+        setTotalExpense(transactions.filter(t => t.category_type === 'expense').reduce((sum, t) => sum + t.amount, 0));
+        setIsRefreshing(false);
+    }, [pagination, columnFilters]);
 
     React.useEffect(() => {
         loadTransactions();
@@ -205,7 +237,7 @@ export default function MiscellaneousTransactionsPage() {
                 <DataTable
                     columns={columns}
                     data={transactions}
-                    pageCount={Math.ceil(transactions.length / pagination.pageSize)}
+                    pageCount={Math.ceil(transactionCount / pagination.pageSize)}
                     pagination={pagination}
                     onPaginationChange={setPagination}
                     columnFilters={columnFilters}
