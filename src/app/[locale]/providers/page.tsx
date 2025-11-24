@@ -113,7 +113,7 @@ async function upsertProvider(providerData: ProviderFormValues) {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({...providerData, is_sales: false}),
+        body: JSON.stringify({...providerData, filter_type: 'PROVEEDOR', is_sales: false}),
     });
     
     const responseData = await response.json();
@@ -562,3 +562,4 @@ export default function ProvidersPage() {
     </>
   );
 }
+
