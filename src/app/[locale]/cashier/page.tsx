@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -442,7 +443,7 @@ export default function CashierPage() {
         );
     }
 
-    return <OpenSessionDashboard cashPoints={cashPoints} onOpenSession={handleOpenSession} setActiveSession={setActiveSession} showDenominations={showDenominations} />;
+    return <OpenSessionDashboard cashPoints={cashPoints} onOpenSession={handleOpenSession} setActiveSession={handleSetActiveSession} showDenominations={showDenominations} />;
 }
 
 function CashPointCardForm({ cashPoint, onOpenSession, showDenominations, disabled = false }: { cashPoint: CashPointStatus, onOpenSession: (values: any) => void, showDenominations: boolean, disabled?: boolean }) {
@@ -926,10 +927,3 @@ function CloseSessionWizard({
     
 
     
-
-    
-
-    
-
-
-

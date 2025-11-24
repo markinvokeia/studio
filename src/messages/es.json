@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -92,6 +93,88 @@
       "title": "Éxito",
       "description": "Su contraseña ha sido cambiada exitosamente."
     }
+  },
+   "CashierPage": {
+    "title": "Gestión de Caja",
+    "openSession": {
+      "title": "Abrir Sesión de Caja",
+      "openBy": "Abierta por {user}",
+      "closed": "Cerrada",
+      "openingAmount": "Monto de Apertura",
+      "openButton": "Abrir Caja",
+      "openingButton": "Abriendo...",
+      "viewLog": "Ver Registro"
+    },
+    "activeSession": {
+      "title": "Sesión Activa",
+      "description": "{user} en {location}",
+      "totalIncome": "Ingresos Totales",
+      "dailyPayments": "Pagos del Día",
+      "openingDetails": "Detalles de Apertura",
+      "denomination": "Denominación",
+      "quantity": "Cantidad",
+      "subtotal": "Subtotal",
+      "columns": {
+        "description": "Descripción",
+        "amount": "Monto",
+        "method": "Método",
+        "date": "Fecha"
+      }
+    },
+    "wizard": {
+      "title": "Asistente para Cerrar Sesión",
+      "steps": {
+        "review": "Revisar",
+        "declare": "Declarar",
+        "report": "Reporte"
+      },
+      "next": "Siguiente",
+      "back": "Atrás",
+      "startClosing": "Cerrar Sesión"
+    },
+    "closeDialog": {
+      "title": "Declarar Montos de Cierre",
+      "description": "Ingrese los montos finales para cada método de pago.",
+      "cash": "Efectivo",
+      "card": "Tarjeta",
+      "transfer": "Transferencia",
+      "other": "Otro",
+      "notes": "Notas de Cierre",
+      "notesPlaceholder": "Añade cualquier nota relevante aquí...",
+      "cashDenominations": "Denominaciones en Efectivo"
+    },
+    "report": {
+      "title": "Reporte de Cierre",
+      "description": "Resumen de la sesión cerrada el {date}",
+      "paymentMethod": "Método de Pago",
+      "systemAmount": "Monto del Sistema",
+      "declaredAmount": "Monto Declarado",
+      "difference": "Diferencia",
+      "notes": "Notas de Cierre",
+      "confirmButton": "Confirmar y Cerrar Sesión",
+      "newSessionButton": "Iniciar Nueva Sesión",
+      "cash": "Efectivo",
+      "card": "Tarjeta",
+      "transfer": "Transferencia",
+      "other": "Otro"
+    },
+    "toast": {
+      "error": "Error",
+      "openSuccessTitle": "Sesión Abierta",
+      "openSuccessDescription": "La sesión de caja se ha iniciado correctamente.",
+      "openError": "No se pudo abrir la sesión.",
+      "expenseSuccessTitle": "Gasto Registrado",
+      "expenseSuccessDescription": "El gasto ha sido registrado en la sesión actual.",
+      "closeSuccessTitle": "Sesión Cerrada",
+      "closeSuccessDescription": "La sesión de caja se ha cerrado correctamente.",
+      "closeError": "No se pudo cerrar la sesión."
+    },
+    "validation": {
+      "openingAmountRequired": "El monto de apertura es requerido.",
+      "amountRequired": "El monto es requerido.",
+      "descriptionRequired": "La descripción es requerida."
+    },
+    "viewAllCashPoints": "Ver Todas las Cajas"
   },
   "ReportFilters": {
     "apply": "Aplicar Filtros",
@@ -645,3 +728,5 @@
     "noResults": "No se encontraron resultados."
   }
 }
+
+    

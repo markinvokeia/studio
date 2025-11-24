@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -92,6 +93,88 @@
       "title": "Success",
       "description": "Your password has been changed successfully."
     }
+  },
+  "CashierPage": {
+    "title": "Cashier Management",
+    "openSession": {
+      "title": "Open Cash Session",
+      "openBy": "Open by {user}",
+      "closed": "Closed",
+      "openingAmount": "Opening Amount",
+      "openButton": "Open Cash Drawer",
+      "openingButton": "Opening...",
+      "viewLog": "View Log"
+    },
+    "activeSession": {
+      "title": "Active Session",
+      "description": "{user} at {location}",
+      "totalIncome": "Total Income",
+      "dailyPayments": "Daily Payments",
+      "openingDetails": "Opening Details",
+      "denomination": "Denomination",
+      "quantity": "Quantity",
+      "subtotal": "Subtotal",
+      "columns": {
+        "description": "Description",
+        "amount": "Amount",
+        "method": "Method",
+        "date": "Date"
+      }
+    },
+    "wizard": {
+      "title": "Close Session Wizard",
+      "steps": {
+        "review": "Review",
+        "declare": "Declare",
+        "report": "Report"
+      },
+      "next": "Next",
+      "back": "Back",
+      "startClosing": "Close Session"
+    },
+    "closeDialog": {
+      "title": "Declare Closing Amounts",
+      "description": "Enter the final amounts for each payment method.",
+      "cash": "Cash",
+      "card": "Card",
+      "transfer": "Transfer",
+      "other": "Other",
+      "notes": "Closing Notes",
+      "notesPlaceholder": "Add any relevant notes here...",
+      "cashDenominations": "Cash Denominations"
+    },
+    "report": {
+      "title": "Closing Report",
+      "description": "Summary for the session closed on {date}",
+      "paymentMethod": "Payment Method",
+      "systemAmount": "System Amount",
+      "declaredAmount": "Declared Amount",
+      "difference": "Difference",
+      "notes": "Closing Notes",
+      "confirmButton": "Confirm & Close Session",
+      "newSessionButton": "Start New Session",
+      "cash": "Cash",
+      "card": "Card",
+      "transfer": "Transfer",
+      "other": "Other"
+    },
+    "toast": {
+      "error": "Error",
+      "openSuccessTitle": "Session Opened",
+      "openSuccessDescription": "The cash session has been started successfully.",
+      "openError": "Could not open session.",
+      "expenseSuccessTitle": "Expense Registered",
+      "expenseSuccessDescription": "The expense has been recorded in the current session.",
+      "closeSuccessTitle": "Session Closed",
+      "closeSuccessDescription": "The cash session has been closed successfully.",
+      "closeError": "Could not close session."
+    },
+    "validation": {
+      "openingAmountRequired": "Opening amount is required.",
+      "amountRequired": "Amount is required.",
+      "descriptionRequired": "Description is required."
+    },
+    "viewAllCashPoints": "View All Cash Points"
   },
   "ReportFilters": {
     "apply": "Apply Filters",
@@ -645,3 +728,5 @@
     "noResults": "No results."
   }
 }
+
+    
