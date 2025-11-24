@@ -90,6 +90,10 @@ async function getServicesForUser(userId: string): Promise<Service[]> {
     const data = await response.json();
     const userServicesData = Array.isArray(data) ? data : (data.user_services || data.data || data.result || []);
 
+    if (userServicesData.length === 0 || (userServicesData.length === 1 && Object.keys(userServicesData[0]).length === 0)) {
+        return [];
+    }
+
     return userServicesData.map((apiService: any) => ({
       id: apiService.id ? String(apiService.id) : `srv_${Math.random().toString(36).substr(2, 9)}`,
       name: apiService.name || 'Unknown Service',
