@@ -89,58 +89,45 @@ export function Header() {
 
   const [visibleItems, setVisibleItems] = React.useState(navItems);
   const [hiddenItems, setHiddenItems] = React.useState<typeof navItems>([]);
-  const navRef = React.useRef<HTMLDivElement>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
-
-  const form = useForm<PasswordFormValues>({
-    resolver: zodResolver(passwordFormSchema(t)),
-    defaultValues: {
-      old_password: '',
-      new_password: '',
-      confirm_password: '',
-    },
-  });
+  const navRef = React.useRef<HTMLDivElement>(null);
+  const rightSectionRef = React.useRef<HTMLDivElement>(null);
 
   const updateMenu = React.useCallback(() => {
-    if (navRef.current && containerRef.current) {
+    if (navRef.current && containerRef.current && rightSectionRef.current) {
         const containerWidth = containerRef.current.offsetWidth;
+        const rightSectionWidth = rightSectionRef.current.offsetWidth;
+        const availableWidth = containerWidth - rightSectionWidth - 20; // 20px for some buffer
+
         const navItemsElements = Array.from(navRef.current.children) as HTMLElement[];
         let currentWidth = 0;
         let visibleCount = 0;
-
+        
         for (const item of navItemsElements) {
             currentWidth += item.offsetWidth;
-            if (currentWidth > containerWidth) {
+            if (currentWidth > availableWidth) {
                 break;
             }
             visibleCount++;
         }
         
-        // Adjust for the "More" button width if it's needed
-        if (visibleCount < navItems.length) {
-            let widthWithMore = 0;
-            let countWithMore = 0;
-            for (let i = 0; i < navItems.length; i++) {
-                widthWithMore += navItemsElements[i]?.offsetWidth || 0;
-                // 80px is a safe estimate for the "More" button width + gap
-                if (widthWithMore + 80 > containerWidth) {
-                    break;
-                }
-                countWithMore++;
-            }
-             setVisibleItems(navItems.slice(0, countWithMore));
-             setHiddenItems(navItems.slice(countWithMore));
-        } else {
-            setVisibleItems(navItems);
-            setHiddenItems([]);
-        }
+        setVisibleItems(navItems.slice(0, visibleCount));
+        setHiddenItems(navItems.slice(visibleCount));
     }
-  }, []);
+}, []);
+
 
   React.useEffect(() => {
     updateMenu();
     window.addEventListener('resize', updateMenu);
-    return () => window.removeEventListener('resize', updateMenu);
+    
+    // Recalculate after a short delay to account for initial render differences
+    const timeoutId = setTimeout(updateMenu, 100);
+
+    return () => {
+      window.removeEventListener('resize', updateMenu);
+      clearTimeout(timeoutId);
+    };
   }, [updateMenu]);
 
 
@@ -238,7 +225,7 @@ export function Header() {
   return (
     <>
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
-      <div className="container flex h-14 items-center">
+      <div className="container flex h-14 items-center" ref={containerRef}>
         <div className="mr-4 hidden md:flex">
           <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold text-foreground">
               <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={24} height={24} alt="InvokeIA Logo" />
@@ -264,10 +251,13 @@ export function Header() {
             </SheetContent>
         </Sheet>
         
-        <div ref={containerRef} className="flex flex-1 items-center justify-end space-x-2">
-            <div ref={navRef} className="hidden md:flex flex-1 items-center">
+        <div className="hidden md:flex flex-1 items-center justify-between space-x-2">
+            <div className="flex-1" ref={navRef}>
                 <HorizontalNav items={visibleItems} />
-                {hiddenItems.length > 0 && (
+            </div>
+
+            <div className="flex items-center gap-2" ref={rightSectionRef}>
+                 {hiddenItems.length > 0 && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-9 px-3 text-sm font-medium">
@@ -284,8 +274,6 @@ export function Header() {
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
-            </div>
-            <nav className="flex items-center gap-2">
                 <ExchangeRate />
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -348,7 +336,7 @@ export function Header() {
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
-            </nav>
+            </div>
         </div>
       </div>
     </header>
