@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/navigation-menu';
 import type { NavItem } from '@/config/nav';
 import { useLocale, useTranslations } from 'next-intl';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface HorizontalNavProps {
   items: NavItem[];
@@ -38,10 +38,15 @@ export function HorizontalNav({ items }: HorizontalNavProps) {
     <NavigationMenu>
       <NavigationMenuList>
         {items.map((item) => {
+          const effectivePathname = getEffectivePathname(pathname, locale);
           if (item.items) {
+            const isParentActive = item.items.some(subItem => 
+              subItem.href !== '/' && effectivePathname.startsWith(subItem.href)
+            );
+
             return (
               <NavigationMenuItem key={item.title}>
-                <NavigationMenuTrigger>
+                <NavigationMenuTrigger className={cn(isParentActive && "bg-accent/50")}>
                   <item.icon className="h-4 w-4 mr-2" />
                   {t(item.title as any)}
                 </NavigationMenuTrigger>
@@ -66,7 +71,6 @@ export function HorizontalNav({ items }: HorizontalNavProps) {
                 linkHref = `/${locale}/clinic-history/1`; // Default user
             }
 
-            const effectivePathname = getEffectivePathname(pathname, locale);
             const isActive = item.href === '/' 
               ? effectivePathname === '/' 
               : effectivePathname.startsWith(item.href);
@@ -113,5 +117,3 @@ const ListItem = React.forwardRef<
   );
 });
 ListItem.displayName = 'ListItem';
-
-    
