@@ -648,6 +648,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
   const [orders, setOrders] = React.useState<Order[]>([]);
   const [quotes, setQuotes] = React.useState<Quote[]>([]);
   const [services, setServices] = React.useState<Service[]>([]);
+  const { toast } = useToast();
   
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
@@ -857,4 +858,3 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
     </Dialog>
   );
 }
-
