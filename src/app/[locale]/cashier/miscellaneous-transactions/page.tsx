@@ -184,7 +184,7 @@ async function getPaymentMethods(): Promise<PaymentMethod[]> {
 async function upsertMiscellaneousTransaction(transactionData: TransactionFormValues, userId: string) {
     const payload = {
         ...transactionData,
-        created_by: userId,
+        user_id: userId,
         tags: transactionData.tags?.split(',').map(t => t.trim()).filter(t => t),
         beneficiary_id: transactionData.beneficiary_id || null,
         payment_method_id: transactionData.payment_method_id ? parseInt(transactionData.payment_method_id, 10) : null,
@@ -556,6 +556,5 @@ export default function MiscellaneousTransactionsPage() {
     </div>
   );
 }
-
 
     
