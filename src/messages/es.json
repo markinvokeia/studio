@@ -11,7 +11,6 @@
     "Studies": "Estudios",
     "SharedStudies": "Estudio Compartido",
     "Sales": "Ventas",
-    "SalesAndBilling": "Ventas",
     "Purchases": "Compras",
     "PurchaseQuotes": "Cotizaciones de Compra",
     "PurchaseOrders": "Órdenes de Compra",
@@ -298,12 +297,42 @@
   },
   "DoctorsPage": {
     "description": "Gestionar todos los doctores del sistema.",
-    "dialog": {
+    "createDialog": {
       "createTitle": "Crear Nuevo Doctor",
-      "editTitle": "Editar Doctor",
       "createDescription": "Complete los detalles para agregar un nuevo doctor.",
+      "editTitle": "Editar Doctor",
       "editDescription": "Actualice los detalles de este doctor.",
-      "color": "Color"
+      "name": "Nombre",
+      "namePlaceholder": "Dr. Juan Pérez",
+      "email": "Email",
+      "emailPlaceholder": "juan.perez@example.com",
+      "phone": "Teléfono",
+      "phonePlaceholder": "123-456-7890",
+      "identity_document": "Documento de Identidad",
+      "identity_document_placeholder": "e.g., 12345678",
+      "color": "Color",
+      "isActive": "Está Activo",
+      "cancel": "Cancelar",
+      "save": "Crear Doctor",
+      "editSave": "Guardar Cambios",
+      "validation": {
+        "errorTitle": "Error",
+        "nameRequired": "El nombre es obligatorio",
+        "emailInvalid": "Dirección de correo electrónico no válida",
+        "phoneInvalid": "Número de teléfono no válido",
+        "phoneRequired": "El teléfono es obligatorio",
+        "identityRequired": "El documento de identidad es obligatorio",
+        "identityInvalid": "El documento de identidad debe ser un número.",
+        "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
+        "genericError": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
+        "serverError": "Error del servidor, por favor inténtelo más tarde.",
+        "uniqueConflict": "Los siguientes campos ya se encuentran registrados: {fields}",
+        "fields": {
+          "email": "Correo electrónico",
+          "phone": "Teléfono",
+          "identity_document": "Documento de identidad"
+        }
+      }
     },
     "DoctorColumns": {
       "name": "Nombre",

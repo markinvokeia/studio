@@ -11,7 +11,6 @@
     "Studies": "Studies",
     "SharedStudies": "Shared Studies",
     "Sales": "Sales",
-    "SalesAndBilling": "Sales",
     "Purchases": "Purchases",
     "PurchaseQuotes": "Purchase Quotes",
     "PurchaseOrders": "Purchase Orders",
@@ -298,12 +297,42 @@
   },
   "DoctorsPage": {
     "description": "Manage all doctors in the system.",
-    "dialog": {
+    "createDialog": {
       "createTitle": "Create New Doctor",
-      "editTitle": "Edit Doctor",
       "createDescription": "Fill in the details to add a new doctor.",
+      "editTitle": "Edit Doctor",
       "editDescription": "Update the details for this doctor.",
-      "color": "Color"
+      "name": "Name",
+      "namePlaceholder": "Dr. John Doe",
+      "email": "Email",
+      "emailPlaceholder": "john.doe@example.com",
+      "phone": "Phone",
+      "phonePlaceholder": "123-456-7890",
+      "identity_document": "Identity Document",
+      "identity_document_placeholder": "e.g., 12345678",
+      "color": "Color",
+      "isActive": "Is Active",
+      "cancel": "Cancel",
+      "save": "Create Doctor",
+      "editSave": "Save Changes",
+      "validation": {
+        "errorTitle": "Error",
+        "nameRequired": "Name is required",
+        "emailInvalid": "Invalid email address",
+        "phoneInvalid": "Invalid phone number",
+        "phoneRequired": "Phone is required",
+        "identityRequired": "Identity document is required",
+        "identityInvalid": "Identity document must be a number.",
+        "identityMaxLength": "Identity document must be 10 characters or less.",
+        "genericError": "An unexpected error occurred. Please try again.",
+        "serverError": "Server error, please try again later.",
+        "uniqueConflict": "The following fields are already registered: {fields}",
+        "fields": {
+          "email": "Email",
+          "phone": "Phone",
+          "identity_document": "Identity Document"
+        }
+      }
     },
     "DoctorColumns": {
       "name": "Name",
