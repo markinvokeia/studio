@@ -51,121 +51,359 @@
     "AccessLog": "Access Log",
     "ErrorLog": "Error Log"
   },
-  "MiscellaneousTransactionsPage": {
-    "title": "Miscellaneous Transactions",
-    "description": "Manage all miscellaneous income and expense transactions.",
-    "filterPlaceholder": "Search by description, beneficiary, or reference...",
-    "filters": {
-      "dateRange": "Select date range",
-      "pending": "Pending",
-      "completedToday": "Completed Today",
-      "incomeMonth": "Monthly Income",
-      "expenseMonth": "Monthly Expense",
-      "salaries": "Salaries",
-      "services": "Services",
-      "taxes": "Taxes"
+  "Header": {
+    "toggleLanguage": "Toggle language",
+    "english": "English",
+    "spanish": "Español",
+    "myAccount": "My Account",
+    "settings": "Settings",
+    "support": "Support",
+    "logout": "Logout",
+    "commandPlaceholder": "Enter a command...",
+    "changePassword": "Change Password",
+    "logoutConfirmation": {
+      "title": "Active Cash Session",
+      "description": "You have an open cash session. Please close it before logging out.",
+      "goToCashier": "Go to Close Session",
+      "logoutAnyway": "Logout Anyway",
+      "cancel": "Cancel"
     },
-    "dashboard": {
-      "totalIncome": "Total Income (Period)",
-      "totalExpense": "Total Expense (Period)",
-      "balance": "Balance (Period)"
-    },
-    "columns": {
-      "id": "ID",
-      "transactionNumber": "Number",
-      "date": "Date",
-      "category": "Category",
-      "type": "Type",
-      "beneficiary": "Beneficiary",
-      "beneficiaryType": "Beneficiary Type",
-      "amount": "Amount",
-      "currency": "Currency",
-      "exchangeRate": "Exchange Rate",
-      "convertedAmount": "Converted Amount (UYU)",
-      "paymentMethod": "Payment Method",
-      "reference": "Reference",
-      "description": "Description",
-      "status": "Status",
-      "createdBy": "Created By",
-      "createdAt": "Created At",
-      "completedAt": "Completed At",
-      "cashSession": "Cash Session",
-      "tags": "Tags"
-    },
-    "validation": {
-      "categoryRequired": "Category is required.",
-      "dateRequired": "Transaction date is required.",
-      "amountPositive": "Amount must be a positive number.",
-      "descriptionRequired": "Description is required.",
-      "sessionRequired": "A cash session must be selected.",
-      "paymentMethodRequired": "A payment method must be selected."
+    "changePasswordDialog": {
+      "title": "Change Password",
+      "oldPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm New Password",
+      "cancel": "Cancel",
+      "save": "Save Changes",
+      "validation": {
+        "oldPasswordRequired": "Current password is required.",
+        "newPasswordMin": "New password must be at least 8 characters.",
+        "newPasswordUpper": "New password must contain an uppercase letter.",
+        "newPasswordNumber": "New password must contain a number.",
+        "passwordsMismatch": "Passwords do not match."
+      },
+      "errors": {
+        "title": "Error",
+        "noToken": "Authentication token not found. Please log in again.",
+        "generic": "An unexpected error occurred. Please try again.",
+        "incorrectOldPassword": "The current password is not correct."
+      },
+      "success": {
+        "title": "Success",
+        "description": "Your password has been changed successfully."
+      }
     }
   },
-  "MiscellaneousCategoriesPage": {
-    "title": "Miscellaneous Categories",
-    "description": "Manage categories for miscellaneous income and expense transactions.",
-    "filterPlaceholder": "Filter by name...",
-    "dialog": {
-      "createTitle": "Create New Category",
-      "editTitle": "Edit Category",
-      "name": "Name",
-      "namePlaceholder": "e.g., Office Supplies",
-      "code": "Code",
-      "codePlaceholder": "e.g., OFC_SUP",
-      "description": "Description",
-      "descriptionPlaceholder": "Category for office supply expenses",
-      "type": "Type",
-      "selectType": "Select a type",
-      "income": "Income",
-      "expense": "Expense",
-      "isActive": "Is Active",
+  "ReportFilters": {
+    "apply": "Apply Filters",
+    "filterBy": "Filter by...",
+    "byService": "By Service",
+    "byUser": "By User",
+    "byStatus": "By Status",
+    "pickDate": "Pick a date"
+  },
+  "Stats": {
+    "totalRevenue": "Total Revenue",
+    "newPatients": "New Patients",
+    "sales": "Sales",
+    "quoteConversionRate": "Quote Conversion Rate",
+    "fromLastMonth": "from last month"
+  },
+  "SalesSummaryChart": {
+    "title": "Sales Summary",
+    "description": "Showing total revenue for the selected period.",
+    "trendingUp": "Trending up by {trend}% this month",
+    "trendingDown": "Trending down by {trend}% this month",
+    "last12Months": "Showing data for the last 12 months",
+    "januaryToDecember": "January - December {year}",
+    "dateRange": "From {from} to {to}",
+    "from": "From {from}"
+  },
+  "SalesByServiceChart": {
+    "title": "Sales by Service",
+    "description": "Top performing services by percentage",
+    "noData": "No sales data available for this period."
+  },
+  "InvoiceStatusChart": {
+    "title": "Invoice Status",
+    "description": "Current state of all invoices",
+    "totalInvoices": "Total Invoices: {total}"
+  },
+  "KpiRow": {
+    "avgBilling": "Average Billing per Patient",
+    "vsPreviousPeriod": "vs previous period",
+    "newVsRecurring": "New vs. Recurring Patients",
+    "activePatients": "Active Patients",
+    "new": "New",
+    "recurrent": "Recurrent",
+    "attendanceRate": "Appointment Attendance Rate"
+  },
+  "RecentQuotesTable": {
+    "title": "Recent Quotes",
+    "description": "An overview of the latest quotes.",
+    "filterPlaceholder": "Filter quotes by user name..."
+  },
+  "RecentOrdersTable": {
+    "title": "Recent Orders",
+    "description": "An overview of the latest orders.",
+    "filterPlaceholder": "Filter by order ID..."
+  },
+  "NewUsersTable": {
+    "title": "New Users",
+    "description": "A list of the newest users.",
+    "filterPlaceholder": "Filter by name..."
+  },
+  "AppointmentsPage": {
+    "title": "Appointments",
+    "description": "Manage all appointments.",
+    "newAppointment": "New Appointment",
+    "calendarView": "Calendar View",
+    "listView": "List View",
+    "calendars": "Calendars",
+    "selectAll": "Select All",
+    "appointmentsFor": "Appointments for {date}",
+    "noAppointments": "No appointments for this day.",
+    "today": "Today",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "filterByService": "Filter by service...",
+    "createDialog": {
+      "title": "Create New Appointment",
+      "description": "Fill in the details below to create a new appointment.",
+      "userName": "User Name",
+      "serviceName": "Service Name",
+      "date": "Date",
+      "time": "Time",
+      "save": "Save",
       "cancel": "Cancel",
-      "create": "Create",
-      "save": "Save Changes"
+      "calendar": "Calendar",
+      "showSuggestions": "Show Suggestions",
+      "suggestedTimes": "Suggested Times",
+      "suggested": {
+        "calendar": "Calendar",
+        "date": "Date",
+        "time": "Time"
+      }
+    }
+  },
+  "AppointmentsColumns": {
+    "service": "Service",
+    "user": "User",
+    "patient": "Patient",
+    "doctor": "Doctor",
+    "calendar": "Calendar",
+    "date": "Date",
+    "time": "Time",
+    "status": "Status",
+    "actions": "Actions",
+    "edit": "Edit",
+    "cancel": "Cancel"
+  },
+  "AppointmentStatus": {
+    "completed": "Completed",
+    "confirmed": "Confirmed",
+    "pending": "Pending",
+    "cancelled": "Cancelled"
+  },
+  "AilmentsPage": {
+    "title": "Ailments",
+    "description": "Manage standardized medical conditions and diseases.",
+    "filterPlaceholder": "Filter by name...",
+    "createDialog": {
+      "title": "Create New Ailment",
+      "description": "Fill in the details below to add a new ailment.",
+      "editTitle": "Edit Ailment",
+      "editDescription": "Update the details for this ailment.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Arterial Hypertension",
+      "category": "Category",
+      "categoryPlaceholder": "e.g., Cardiovascular",
+      "alertLevel": "Alert Level",
+      "alertLevelPlaceholder": "Select a level",
+      "level1": "1 (Normal)",
+      "level2": "2 (Warning)",
+      "level3": "3 (Critical)",
+      "cancel": "Cancel",
+      "save": "Create Ailment",
+      "editSave": "Save Changes"
     },
     "deleteDialog": {
       "title": "Are you sure?",
-      "description": "This will permanently delete the category \"{name}\". This action cannot be undone.",
+      "description": "This will permanently delete the ailment \"{name}\". This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
     },
     "toast": {
       "errorTitle": "Error",
       "genericError": "An unexpected error occurred.",
-      "createTitle": "Category Created",
-      "editTitle": "Category Updated",
-      "deleteTitle": "Category Deleted",
-      "successDescription": "The category \"{name}\" has been saved successfully.",
-      "deleteDescription": "The category \"{name}\" has been deleted.",
-      "deleteError": "Could not delete the category."
+      "createSuccessTitle": "Ailment Created",
+      "editSuccessTitle": "Ailment Updated",
+      "successDescription": "Ailment \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Ailment Deleted",
+      "deleteSuccessDescription": "Ailment \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the ailment."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "categoryRequired": "Category is required.",
+      "alertLevelRequired": "Alert level is required."
+    }
+  },
+  "AilmentsColumns": {
+    "id": "ID",
+    "name": "Name",
+    "category": "Category",
+    "alertLevel": "Alert Level",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "MedicationsPage": {
+    "title": "Medications",
+    "description": "Manage the catalog of medications for auto-completion.",
+    "filterPlaceholder": "Filter by generic name...",
+    "createDialog": {
+      "title": "Create New Medication",
+      "description": "Fill in the details below to add a new medication.",
+      "editTitle": "Edit Medication",
+      "editDescription": "Update the details for this medication.",
+      "genericName": "Generic Name",
+      "genericNamePlaceholder": "e.g., Ibuprofen",
+      "commercialName": "Commercial Name",
+      "commercialNamePlaceholder": "e.g., Advil",
+      "cancel": "Cancel",
+      "save": "Create Medication",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the medication \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Medication Created",
+      "editSuccessTitle": "Medication Updated",
+      "successDescription": "Medication \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Medication Deleted",
+      "deleteSuccessDescription": "Medication \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the medication."
+    },
+    "validation": {
+      "nameRequired": "Generic name is required."
+    }
+  },
+  "MedicationsColumns": {
+    "id": "ID",
+    "genericName": "Generic Name",
+    "commercialName": "Commercial Name",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "DentalConditionsPage": {
+    "title": "Dental Conditions",
+    "description": "Manage possible findings in an odontogram.",
+    "filterPlaceholder": "Filter by name...",
+    "createDialog": {
+      "title": "Create New Dental Condition",
+      "description": "Fill in the details below to add a new dental condition.",
+      "editTitle": "Edit Dental Condition",
+      "editDescription": "Update the details for this dental condition.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Caries",
+      "visualCode": "Visual Code",
+      "visualCodePlaceholder": "e.g., CARIES",
+      "color": "Color",
+      "cancel": "Cancel",
+      "save": "Create Condition",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the condition \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Condition Created",
+      "editSuccessTitle": "Condition Updated",
+      "successDescription": "Condition \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Condition Deleted",
+      "deleteSuccessDescription": "Condition \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the condition."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "codeRequired": "Visual code is required.",
+      "colorInvalid": "Invalid hex color format."
+    }
+  },
+  "DentalConditionsColumns": {
+    "id": "ID",
+    "name": "Name",
+    "visualCode": "Visual Code",
+    "color": "Color",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "DentalSurfacesPage": {
+    "title": "Dental Surfaces",
+    "description": "Manage the surfaces of a tooth.",
+    "filterPlaceholder": "Filter by name...",
+    "createDialog": {
+      "title": "Create New Dental Surface",
+      "description": "Fill in the details below to add a new dental surface.",
+      "editTitle": "Edit Dental Surface",
+      "editDescription": "Update the details for this dental surface.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Occlusal",
+      "code": "Code",
+      "codePlaceholder": "e.g., O",
+      "cancel": "Cancel",
+      "save": "Create Surface",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the surface \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Surface Created",
+      "editSuccessTitle": "Surface Updated",
+      "successDescription": "Surface \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Surface Deleted",
+      "deleteSuccessDescription": "Surface \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the surface."
     },
     "validation": {
       "nameRequired": "Name is required.",
       "codeRequired": "Code is required."
-    },
-    "columns": {
-      "id": "ID",
-      "name": "Name",
-      "code": "Code",
-      "description": "Description",
-      "type": "Type",
-      "income": "Income",
-      "expense": "Expense",
-      "isActive": "Active",
-      "actions": "Actions",
-      "edit": "Edit",
-      "delete": "Delete",
-      "yes": "Yes",
-      "no": "No"
     }
   },
-  "SystemUsersPage": {
-    "title": "System Users",
-    "description": "Manage all system users, including administrators and staff.",
+  "DentalSurfacesColumns": {
+    "id": "ID",
+    "name": "Name",
+    "code": "Code",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "UsersPage": {
+    "title": "Users",
+    "description": "Manage all users in the system.",
     "filterPlaceholder": "Filter users by email...",
     "detailsFor": "Details for {name}",
     "close": "Close details",
-    "setInitialPassword": "Set Initial Password",
     "tabs": {
       "roles": "Roles",
       "services": "Services",
@@ -176,14 +414,14 @@
       "history": "Clinic History"
     },
     "createDialog": {
-      "title": "Create New System User",
-      "description": "Fill in the details below to add a new system user.",
-      "editTitle": "Edit System User",
-      "editDescription": "Update the details for this system user.",
-      "createSuccessTitle": "System User Created",
-      "createSuccessDescription": "The new system user has been added successfully.",
-      "editSuccessTitle": "System User Updated",
-      "editSuccessDescription": "The system user has been updated successfully.",
+      "title": "Create New User",
+      "description": "Fill in the details below to add a new user.",
+      "editTitle": "Edit User",
+      "editDescription": "Update the details for this user.",
+      "createSuccessTitle": "User Created",
+      "createSuccessDescription": "The new user has been added successfully.",
+      "editSuccessTitle": "User Updated",
+      "editSuccessDescription": "The user has been updated successfully.",
       "name": "Name",
       "namePlaceholder": "John Doe",
       "email": "Email",
@@ -216,7 +454,7 @@
       }
     }
   },
-  "SystemUserColumns": {
+  "UserColumns": {
     "name": "Name",
     "email": "Email",
     "phone": "Phone",
@@ -230,990 +468,74 @@
     "deactivate": "Deactivate",
     "identity_document": "Identity Document"
   },
-  "ProvidersPage": {
-    "title": "Providers",
-    "description": "Manage all providers in the system.",
-    "filterPlaceholder": "Filter providers by email...",
-    "detailsFor": "Details for {name}",
-    "close": "Close details",
-    "setInitialPassword": "Set Initial Password",
-    "tabs": {
-      "roles": "Roles"
-    },
-    "createDialog": {
-      "title": "Create New Provider",
-      "description": "Fill in the details below to add a new provider.",
-      "editTitle": "Edit Provider",
-      "editDescription": "Update the details for this provider.",
-      "createSuccessTitle": "Provider Created",
-      "createSuccessDescription": "The new provider has been added successfully.",
-      "editSuccessTitle": "Provider Updated",
-      "editSuccessDescription": "The provider has been updated successfully.",
-      "name": "Name",
-      "namePlaceholder": "John Doe",
-      "email": "Email",
-      "emailPlaceholder": "john.doe@example.com",
-      "phone": "Phone",
-      "phonePlaceholder": "123-456-7890",
-      "identity_document": "Identity Document",
-      "identity_document_placeholder": "e.g., 12345678",
-      "isActive": "Is Active",
-      "cancel": "Cancel",
-      "save": "Create Provider",
-      "editSave": "Save Changes",
-      "validation": {
-        "errorTitle": "Error",
-        "nameRequired": "Name is required",
-        "emailInvalid": "Invalid email address",
-        "phoneInvalid": "Invalid phone number",
-        "phoneRequired": "Phone is required",
-        "identityRequired": "Identity document is required",
-        "identityInvalid": "Identity document must be a number.",
-        "identityMaxLength": "Identity document must be 10 characters or less.",
-        "genericError": "An unexpected error occurred. Please try again.",
-        "serverError": "Server error, please try again later.",
-        "uniqueConflict": "The following fields are already registered: {fields}",
-        "fields": {
-          "email": "Email",
-          "phone": "Phone",
-          "identity_document": "Identity Document"
-        }
-      }
-    }
-  },
-  "ProviderColumns": {
-    "name": "Name",
-    "email": "Email",
-    "phone": "Phone",
-    "status": "Status",
-    "actions": "Actions",
-    "copyId": "Copy provider ID",
-    "viewDetails": "View details",
-    "edit": "Edit provider",
-    "delete": "Delete provider",
-    "activate": "Activate",
-    "deactivate": "Deactivate",
-    "identity_document": "Identity Document"
-  },
-  "DoctorsPage": {
-    "title": "Doctors",
-    "description": "Manage all doctors in the system.",
-    "createDialog": {
-      "createTitle": "Create New Doctor",
-      "createDescription": "Fill in the details to add a new doctor.",
-      "editTitle": "Edit Doctor",
-      "editDescription": "Update the details for this doctor.",
-      "name": "Name",
-      "namePlaceholder": "Dr. John Doe",
-      "email": "Email",
-      "emailPlaceholder": "john.doe@example.com",
-      "phone": "Phone",
-      "phonePlaceholder": "123-456-7890",
-      "identity_document": "Identity Document",
-      "identity_document_placeholder": "e.g., 12345678",
-      "color": "Color",
-      "isActive": "Is Active",
-      "cancel": "Cancel",
-      "save": "Create Doctor",
-      "editSave": "Save Changes",
-      "validation": {
-        "errorTitle": "Error",
-        "nameRequired": "Name is required",
-        "emailInvalid": "Invalid email address",
-        "phoneInvalid": "Invalid phone number",
-        "phoneRequired": "Phone is required",
-        "identityRequired": "Identity document is required",
-        "identityInvalid": "Identity document must be a number.",
-        "identityMaxLength": "Identity document must be 10 characters or less.",
-        "genericError": "An unexpected error occurred. Please try again.",
-        "serverError": "Server error, please try again later.",
-        "uniqueConflict": "The following fields are already registered: {fields}",
-        "fields": {
-          "email": "Email",
-          "phone": "Phone",
-          "identity_document": "Identity Document"
-        }
-      },
-      "createSuccessTitle": "Doctor Created",
-      "createSuccessDescription": "The new doctor has been added successfully.",
-      "editSuccessTitle": "Doctor Updated",
-      "editSuccessDescription": "The doctor has been updated successfully."
-    },
-    "DoctorColumns": {
-      "name": "Name",
-      "email": "Email",
-      "phone": "Phone",
-      "status": "Status",
-      "identity_document": "Identity Document",
-      "copyId": "Copy doctor ID",
-      "edit": "Edit doctor",
-      "delete": "Delete doctor",
-      "activate": "Activate doctor",
-      "deactivate": "Deactivate doctor",
-      "actions": "Actions"
-    }
-  },
-  "CurrenciesPage": {
-    "title": "Currencies and Exchange Rates",
-    "description": "Manage clinic currencies and their daily exchange rates.",
-    "baseCurrency": "Base Currency",
-    "exchangeRateHistory": "Exchange Rate History",
-    "filterPlaceholder": "Filter by date...",
+  "UserRoles": {
     "columns": {
-      "date": "Date",
-      "from": "From",
-      "to": "To",
-      "rate": "Rate"
-    }
-  },
-  "LogoutConfirmation": {
-    "title": "Active Cash Session",
-    "description": "You have an open cash session. Please close it before logging out.",
-    "goToCashier": "Go to Close Session",
-    "logoutAnyway": "Logout Anyway",
-    "cancel": "Cancel"
-  },
-  "DataTableToolbar": {
-    "toggleColumns": "Toggle columns"
-  },
-  "DataTablePagination": {
-    "selected": "{count, plural, one {# row selected} other {# rows selected}} of {total}",
-    "rowsPerPage": "Rows per page:",
-    "all": "All",
-    "page": "Page {current} of {total}",
-    "goToFirst": "Go to first page",
-    "goToPrevious": "Go to previous page",
-    "goToNext": "Go to next page",
-    "goToLast": "Go to last page"
-  },
-  "ChangePasswordDialog": {
-    "title": "Change Password",
-    "oldPassword": "Current Password",
-    "newPassword": "New Password",
-    "confirmPassword": "Confirm New Password",
-    "cancel": "Cancel",
-    "save": "Save Changes",
-    "validation": {
-      "oldPasswordRequired": "Current password is required.",
-      "newPasswordMin": "New password must be at least 8 characters.",
-      "newPasswordUpper": "New password must contain an uppercase letter.",
-      "newPasswordNumber": "New password must contain a number.",
-      "passwordsMismatch": "Passwords do not match."
-    },
-    "errors": {
-      "title": "Error",
-      "noToken": "Authentication token not found. Please log in again.",
-      "generic": "An unexpected error occurred. Please try again.",
-      "incorrectOldPassword": "The current password is not correct."
-    },
-    "success": {
-      "title": "Success",
-      "description": "Your password has been changed successfully."
-    }
-  },
-  "ResetPasswordPage": {
-    "title": "Set New Password",
-    "description": "Enter your new password below.",
-    "newPassword": "New Password",
-    "confirmPassword": "Confirm New Password",
-    "submitButton": "Set New Password",
-    "validation": {
-      "newPasswordMin": "Password must be at least 8 characters long.",
-      "newPasswordUpper": "Password must contain at least one uppercase letter.",
-      "newPasswordNumber": "Password must contain at least one number.",
-      "passwordsMismatch": "Passwords don't match."
-    },
-    "errors": {
-      "title": "Error",
-      "tokenMissing": "No recovery token provided. Please request a new password recovery link.",
-      "invalidToken": "The recovery token is invalid or has expired. Please request a new one.",
-      "invalidPassword": "The new password is not valid.",
-      "serverError": "A server error occurred. Please try again later.",
-      "generic": "An unexpected error occurred."
-    },
-    "success": {
-      "title": "Password Reset Successful",
-      "description": "You can now log in with your new password."
-    }
-  },
-  "SetFirstPasswordPage": {
-    "title": "Set Your Password",
-    "description": "Create a password for your new account.",
-    "newPassword": "New Password",
-    "confirmPassword": "Confirm Password",
-    "submitButton": "Set Password",
-    "validation": {
-      "newPasswordMin": "Password must be at least 8 characters.",
-      "newPasswordUpper": "Password must contain at least one uppercase letter.",
-      "newPasswordNumber": "Password must contain at least one number.",
-      "passwordsMismatch": "Passwords do not match."
-    },
-    "errors": {
-      "title": "Error",
-      "tokenMissing": "No invitation token provided. Please use the link from your email.",
-      "invalidToken": "The invitation token is invalid or has expired. Please contact support.",
-      "invalidPassword": "The provided password is not valid.",
-      "alreadySet": "A password has already been set for this account.",
-      "serverError": "A server error occurred. Please try again later.",
-      "generic": "An unexpected error occurred."
-    },
-    "success": {
-      "title": "Password Set Successfully",
-      "description": "You can now log in with your new password."
-    }
-  },
-  "SchedulesPage": {
-    "title": "Clinic Schedules",
-    "description": "Manage standard opening hours for the clinic.",
-    "filterPlaceholder": "Filter by day...",
-    "createDialog": {
-      "title": "Create New Schedule",
-      "description": "Define a new schedule for a day of the week.",
-      "editTitle": "Edit Schedule",
-      "editDescription": "Update the schedule for this day.",
-      "dayOfWeek": "Day of the Week",
-      "selectDay": "Select a day",
-      "startTime": "Start Time",
-      "endTime": "End Time",
-      "cancel": "Cancel",
-      "save": "Create Schedule",
-      "editSave": "Save Changes"
-    },
-    "deleteDialog": {
-      "title": "Are you sure?",
-      "description": "This will permanently delete the schedule. This action cannot be undone.",
-      "cancel": "Cancel",
-      "confirm": "Delete"
-    },
-    "toast": {
-      "errorTitle": "Error",
-      "genericError": "An unexpected error occurred.",
-      "createSuccessTitle": "Schedule Created",
-      "editSuccessTitle": "Schedule Updated",
-      "successDescription": "The schedule has been saved successfully.",
-      "deleteSuccessTitle": "Schedule Deleted",
-      "deleteSuccessDescription": "The schedule has been deleted.",
-      "deleteErrorDescription": "Could not delete the schedule."
-    },
-    "validation": {
-      "dayRequired": "Day of the week is required.",
-      "startRequired": "Start time is required.",
-      "endRequired": "End time is required."
-    },
-    "days": {
-      "monday": "Monday",
-      "tuesday": "Tuesday",
-      "wednesday": "Wednesday",
-      "thursday": "Thursday",
-      "friday": "Friday",
-      "saturday": "Saturday",
-      "sunday": "Sunday"
-    },
-    "columns": {
-      "id": "ID",
-      "dayOfWeek": "Day of Week",
-      "startTime": "Start Time",
-      "endTime": "End Time",
-      "actions": "Actions",
-      "edit": "Edit",
-      "delete": "Delete"
-    }
-  },
-  "CalendarsPage": {
-    "title": "Calendars",
-    "description": "Manage clinic calendars and their properties.",
-    "filterPlaceholder": "Filter by name...",
-    "dialog": {
-      "createTitle": "Create New Calendar",
-      "editTitle": "Edit Calendar",
-      "description": "Fill in the details to add a new calendar.",
-      "editDescription": "Update the details for this calendar.",
-      "name": "Name",
-      "namePlaceholder": "e.g., Doctor's Office 1",
-      "googleCalendarId": "Google Calendar ID",
-      "googleCalendarIdPlaceholder": "e.g., your-calendar@group.calendar.google.com",
-      "color": "Color",
-      "active": "Active",
-      "cancel": "Cancel",
-      "save": "Save",
-      "create": "Create Calendar"
-    },
-    "deleteDialog": {
-      "title": "Are you sure?",
-      "description": "This will permanently delete the calendar \"{name}\". This action cannot be undone.",
-      "cancel": "Cancel",
-      "delete": "Delete"
-    },
-    "toast": {
-      "errorTitle": "Error",
-      "genericError": "An unexpected error occurred.",
-      "createSuccessTitle": "Calendar Created",
-      "editSuccessTitle": "Calendar Updated",
-      "successDescription": "Calendar \"{name}\" has been saved successfully.",
-      "deleteSuccessTitle": "Calendar Deleted",
-      "deleteSuccessDescription": "Calendar \"{name}\" has been deleted.",
-      "deleteErrorDescription": "Could not delete the calendar."
-    },
-    "validation": {
-      "nameRequired": "Name is required.",
-      "emailInvalid": "Must be a valid Google Calendar email address.",
-      "colorInvalid": "Invalid hex color format."
-    },
-    "columns": {
-      "name": "Name",
-      "googleCalendarId": "Google Calendar ID",
-      "color": "Color",
-      "active": "Active",
-      "yes": "Yes",
-      "no": "No",
-      "actions": "Actions",
-      "edit": "Edit",
-      "delete": "Delete"
-    }
-  },
-  "QuotesPage": {
-    "title": "Quotes",
-    "description": "Manage all quotes.",
-    "detailsFor": "Details for Quote",
-    "quoteId": "Quote ID",
-    "print": "Print",
-    "sendEmail": "Send Email",
-    "sendEmailDialog": {
-      "title": "Send Quote by Email",
-      "description": "Enter the recipient emails for quote #{id}.",
-      "recipients": "Recipients",
-      "placeholder": "email1@example.com, email2@example.com",
-      "helperText": "Separate multiple emails with commas."
-    },
-    "tabs": {
-      "items": "Items",
-      "orders": "Orders",
-      "invoices": "Invoices",
-      "payments": "Payments"
-    },
-    "validation": {
-      "userRequired": "User is required.",
-      "serviceRequired": "Service is required."
-    },
-    "quoteDialog": {
-      "createTitle": "Create New Quote",
-      "editTitle": "Edit Quote",
-      "description": "Fill in the details to create a new quote.",
-      "editDescription": "Update the details for this quote.",
-      "user": "User",
-      "selectUser": "Select a user",
-      "searchUser": "Search for a user...",
-      "noUserFound": "No user found.",
-      "total": "Total",
-      "status": "Status",
-      "selectStatus": "Select a status",
-      "draft": "Draft",
-      "sent": "Sent",
-      "accepted": "Accepted",
-      "pending": "Pending",
-      "confirmed": "Confirmed",
-      "rejected": "Rejected",
-      "paymentStatus": "Payment Status",
-      "selectPaymentStatus": "Select payment status",
-      "unpaid": "Unpaid",
-      "paid": "Paid",
-      "partiallyPaid": "Partially Paid",
-      "partial": "Partial",
-      "billingStatus": "Billing Status",
-      "selectBillingStatus": "Select billing status",
-      "notInvoiced": "Not Invoiced",
-      "partiallyInvoiced": "Partially Invoiced",
-      "invoiced": "Invoiced",
-      "cancel": "Cancel",
-      "save": "Create Quote",
-      "editSave": "Save Changes",
-      "currency": "Currency",
-      "selectCurrency": "Select currency"
-    },
-    "itemDialog": {
-      "createTitle": "Add Item to Quote",
-      "editTitle": "Edit Quote Item",
-      "description": "Select a service and specify the quantity.",
-      "service": "Service",
-      "selectService": "Select a service",
-      "searchService": "Search for a service...",
-      "noServiceFound": "No service found.",
-      "quantity": "Quantity",
-      "unitPrice": "Unit Price",
-      "originalPrice": "Original Unit Price",
-      "exchangeRate": "Exchange Rate",
-      "total": "Total",
-      "cancel": "Cancel",
-      "save": "Add Item",
-      "editSave": "Save Changes",
-      "id": "Item ID",
-      "actions": "Actions",
-      "edit": "Edit",
-      "delete": "Delete"
-    },
-    "deleteQuoteDialog": {
-      "title": "Are you sure?",
-      "description": "This will permanently delete quote #{id}. This action cannot be undone.",
-      "cancel": "Cancel",
-      "confirm": "Delete"
-    },
-    "deleteItemDialog": {
-      "title": "Are you sure?",
-      "description": "This will permanently delete this item from the quote. This action cannot be undone.",
-      "cancel": "Cancel",
-      "confirm": "Delete"
-    },
-    "toast": {
-      "error": "Error",
-      "quoteError": "Could not save the quote.",
-      "itemError": "Could not save the quote item.",
-      "quoteCreated": "Quote Created",
-      "quoteUpdated": "Quote Updated",
-      "quoteSaveSuccess": "The quote has been saved successfully.",
-      "quoteDeleted": "Quote Deleted",
-      "quoteDeleteSuccess": "Quote #{id} has been deleted.",
-      "quoteDeleteError": "Could not delete the quote.",
-      "itemAdded": "Item Added",
-      "itemUpdated": "Item Updated",
-      "itemSaveSuccess": "The item has been successfully added to the quote.",
-      "itemDeleted": "Item Deleted",
-      "itemDeleteSuccess": "The item has been removed from the quote.",
-      "itemDeleteError": "Could not remove the item from the quote.",
-      "quoteConfirmed": "Quote Confirmed",
-      "quoteConfirmSuccess": "Quote #{id} has been confirmed and an order has been created.",
-      "quoteRejected": "Quote Rejected",
-      "quoteRejectSuccess": "Quote #{id} has been rejected.",
-      "quoteActionError": "Could not perform action on quote."
-    }
-  },
-  "OrdersPage": {
-    "title": "Orders",
-    "description": "Manage all orders.",
-    "filterPlaceholder": "Filter by user name...",
-    "detailsFor": "Details for Order",
-    "orderId": "Order ID",
-    "createTitle": "Create Order",
-    "createDescription": "Select a user and a quote to create a new order.",
-    "selectUser": "Select User",
-    "searchUser": "Search user...",
-    "noUserFound": "No user found.",
-    "selectQuote": "Select Quote",
-    "searchQuote": "Search quote...",
-    "noQuoteFound": "No quote found for this user.",
-    "cancel": "Cancel",
-    "create": "Create Order",
-    "invoiceDialog": {
-      "title": "Create Invoice",
-      "description": "Select a date to create an invoice for order #{orderId}.",
-      "confirm": "Create Invoice",
-      "invoiceSuccess": "Invoice Created",
-      "invoiceSuccessDesc": "Invoice for order #{orderId} has been successfully created.",
-      "createError": "Could not create invoice.",
-      "error": "Error"
+      "role": "Role",
+      "status": "Status"
     },
     "status": {
-      "label": "Status",
-      "select": "Select a status",
-      "pending": "Pending",
-      "processing": "Processing",
-      "completed": "Completed",
-      "cancelled": "Cancelled"
-    }
-  },
-  "OrderItemsTable": {
-    "title": "Order Items for #{id}",
-    "filterPlaceholder": "Filter by service...",
-    "columns": {
-      "id": "Item ID",
-      "service": "Service",
-      "quantity": "Quantity",
-      "unitPrice": "Unit Price",
-      "total": "Total",
-      "status": "Status",
-      "scheduled": "Scheduled",
-      "completed": "Completed",
-      "invoiced": "Invoiced"
-    },
-    "status": {
-      "scheduled": "Scheduled",
-      "completed": "Completed",
-      "cancelled": "Cancelled",
-      "invoiced": "Invoiced"
+      "active": "Active",
+      "inactive": "Inactive"
     },
     "actions": {
       "openMenu": "Open menu",
       "title": "Actions",
-      "schedule": "Schedule",
-      "complete": "Mark as Complete"
-    },
-    "dateDialog": {
-      "title": {
-        "schedule": "Schedule Item",
-        "complete": "Complete Item"
-      },
-      "description": {
-        "schedule": "Select a date to schedule this item.",
-        "complete": "Select a date to mark this item as complete."
-      },
-      "save": "Save Date",
-      "cancel": "Cancel"
-    },
-    "toast": {
-      "error": "Error",
-      "scheduledTitle": "Item Scheduled",
-      "completedTitle": "Item Completed",
-      "updateSuccess": "The item has been updated successfully.",
-      "updateError": "Could not update the item."
-    }
-  },
-  "InvoicesPage": {
-    "title": "Invoices",
-    "description": "Manage all system invoices.",
-    "filterPlaceholder": "Filter by invoice ID...",
-    "detailsFor": "Details for Invoice",
-    "invoiceId": "Invoice ID",
-    "tabs": {
-      "items": "Items",
-      "payments": "Payments"
-    },
-    "toast": {
-      "error": "Error",
-      "sessionCheckError": "Could not verify active cash session."
-    },
-    "columns": {
-      "invoiceId": "Invoice ID",
-      "user": "User",
-      "provider": "Provider",
-      "orderId": "Order ID",
-      "quoteId": "Quote ID",
-      "total": "Total",
-      "currency": "Currency",
-      "status": "Status",
-      "payment": "Payment Status",
-      "createdAt": "Created At",
-      "actions": "Actions"
-    },
-    "status": {
-      "paid": "Paid",
-      "sent": "Sent",
-      "draft": "Draft",
-      "overdue": "Overdue",
-      "unpaid": "Unpaid",
-      "partial": "Partial",
-      "partially_paid": "Partially Paid",
-      "completed": "Completed",
-      "pending": "Pending",
-      "failed": "Failed"
-    },
-    "methods": {
-      "credit_card": "Credit Card",
-      "bank_transfer": "Bank Transfer",
-      "cash": "Cash",
-      "debit": "Debit",
-      "credit": "Credit",
-      "mercado_pago": "Mercado Pago",
-      "mobile_payment": "Mobile Payment"
-    },
-    "paymentDialog": {
-      "title": "Add Payment",
-      "description": "Add a payment for invoice #{invoiceId}.",
-      "success": "Payment Added",
-      "successDescription": "Payment for invoice #{invoiceId} has been successfully added.",
-      "error": "Could not add payment.",
-      "amount": "Amount",
-      "method": "Payment Method",
-      "selectMethod": "Select a method",
-      "status": "Status",
-      "selectStatus": "Select a status",
-      "date": "Payment Date",
-      "pickDate": "Pick a date",
-      "add": "Add Payment",
-      "cancel": "Cancel"
-    },
-    "noSessionDialog": {
-      "title": "No Active Cash Session",
-      "description": "You must have an active cash session to register a payment.",
-      "openCashSession": "Open Cash Session"
-    },
-    "validation": {
-      "amountPositive": "Amount must be a positive number.",
-      "dateRequired": "A payment date is required.",
-      "methodRequired": "A payment method is required."
-    },
-    "createDialog": {
-      "title": "Create Invoice",
-      "description": "Select a user and an order or quote to generate an invoice.",
-      "user": "User/Provider",
-      "selectUser": "Select a user/provider",
-      "searchUser": "Search user/provider...",
-      "noUserFound": "No user found.",
-      "order": "Order",
-      "selectOrder": "Select an order (optional)",
-      "searchOrder": "Search order...",
-      "noOrderFound": "No order found.",
-      "quote": "Quote",
-      "selectQuote": "Select a quote (optional)",
-      "searchQuote": "Search quote...",
-      "noQuoteFound": "No quote found.",
-      "cancel": "Cancel",
-      "create": "Create Invoice"
-    },
-    "createValidation": {
-      "userRequired": "User/Provider is required."
-    },
-    "errors": {
-      "title": "Error",
-      "generic": "An unexpected error occurred."
-    },
-    "success": {
-      "title": "Invoice Created",
-      "description": "The invoice has been successfully created."
-    }
-  },
-  "InvoiceItemsTable": {
-    "title": "Invoice Items for {id}",
-    "filterPlaceholder": "Filter by service...",
-    "columns": {
-      "id": "Item ID",
-      "service": "Service",
-      "quantity": "Quantity",
-      "unitPrice": "Unit Price",
-      "total": "Total"
-    }
-  },
-  "PaymentsPage": {
-    "title": "Payments",
-    "description": "Manage all payments in the system.",
-    "filterPlaceholder": "Filter by invoice ID...",
-    "columns": {
-      "id": "ID",
-      "quoteId": "Quote ID",
-      "orderId": "Order ID",
-      "invoiceId": "Invoice ID",
-      "user": "User",
-      "amount": "Amount",
-      "currency": "Currency",
-      "method": "Method",
-      "status": "Status",
-      "createdAt": "Created At"
-    }
-  },
-  "PaymentMethodsPage": {
-    "title": "Payment Methods",
-    "description": "Manage the payment methods available in the system.",
-    "filterPlaceholder": "Filter by name...",
-    "columns": {
-      "id": "ID",
-      "name": "Name",
-      "code": "Code",
-      "isCashEquivalent": "Cash Equivalent",
-      "isActive": "Active",
-      "actions": "Actions",
-      "edit": "Edit",
-      "delete": "Delete",
-      "yes": "Yes",
-      "no": "No"
-    },
-    "dialog": {
-      "createTitle": "Create Payment Method",
-      "editTitle": "Edit Payment Method",
-      "name": "Name",
-      "namePlaceholder": "e.g., Credit Card",
-      "code": "Code",
-      "codePlaceholder": "e.g., CREDIT_CARD",
-      "isCashEquivalent": "Is cash equivalent?",
-      "isActive": "Is Active?",
-      "cancel": "Cancel",
-      "create": "Create",
-      "save": "Save Changes"
-    },
-    "deleteDialog": {
-      "title": "Are you sure?",
-      "description": "This will permanently delete the payment method \"{name}\". This action cannot be undone.",
-      "cancel": "Cancel",
-      "confirm": "Delete"
-    },
-    "toast": {
-      "errorTitle": "Error",
-      "genericError": "An unexpected error occurred.",
-      "createSuccess": "Payment method created successfully.",
-      "editSuccess": "Payment method updated successfully.",
-      "deleteSuccess": "Payment method deleted successfully.",
-      "deleteDescription": "Payment method \"{name}\" has been deleted.",
-      "deleteError": "Could not delete the payment method."
-    },
-    "validation": {
-      "nameRequired": "Name is required.",
-      "codeRequired": "Code is required."
-    }
-  },
-  "ServicesPage": {
-    "title": "Services",
-    "description": "Manage all services offered.",
-    "filterPlaceholder": "Filter by service name...",
-    "createDialog": {
-      "title": "Create New Service",
-      "description": "Fill in the details to add a new service.",
-      "editTitle": "Edit Service",
-      "editDescription": "Update the details for this service.",
-      "name": "Name",
-      "namePlaceholder": "e.g., Product A",
-      "category": "Category",
-      "categoryPlaceholder": "e.g., Electronics",
-      "price": "Price",
-      "currency": "Currency",
-      "selectCurrency": "Select currency",
-      "duration": "Duration (minutes)",
-      "descriptionLabel": "Description",
-      "descriptionPlaceholder": "Describe the service...",
-      "indicationsLabel": "Indications",
-      "indicationsPlaceholder": "Enter indications for the service...",
-      "cancel": "Cancel",
-      "save": "Create Service",
-      "editSave": "Save Changes"
-    },
-    "deleteDialog": {
-      "title": "Are you sure?",
-      "description": "This will permanently delete the service \"{name}\". This action cannot be undone.",
-      "cancel": "Cancel",
-      "confirm": "Delete"
-    },
-    "toast": {
-      "errorTitle": "Error",
-      "genericError": "An unexpected error occurred.",
-      "createSuccessTitle": "Service Created",
-      "editSuccessTitle": "Service Updated",
-      "successDescription": "The service \"{name}\" has been saved successfully.",
-      "deleteSuccessTitle": "Service Deleted",
-      "deleteSuccessDescription": "The service \"{name}\" has been deleted.",
-      "deleteErrorDescription": "Could not delete the service."
-    },
-    "validation": {
-      "nameRequired": "Name is required.",
-      "categoryRequired": "Category is required.",
-      "pricePositive": "Price must be a positive number.",
-      "durationInteger": "Duration must be a positive integer.",
-      "colorInvalid": "Invalid hex color format."
-    }
-  },
-  "ServicesColumns": {
-    "id": "ID",
-    "name": "Name",
-    "category": "Category",
-    "price": "Price",
-    "currency": "Currency",
-    "duration": "Duration (min)",
-    "actions": "Actions",
-    "edit": "Edit",
-    "delete": "Delete"
-  },
-  "CashSessionsPage": {
-    "title": "Cash Sessions",
-    "description": "View historical cash register sessions.",
-    "filterPlaceholder": "Filter by user name...",
-    "detailsTitle": "Session Details",
-    "detailsDescription": "Details for session #{id}",
-    "closeDetails": "Close details",
-    "noDetails": "No details",
-    "sessionInfo": "Session Information",
-    "columns": {
-      "id": "ID",
-      "user": "User",
-      "cashPoint": "Cash Point",
-      "status": "Status",
-      "openDate": "Open Date",
-      "closeDate": "Close Date",
-      "openingAmount": "Opening Amount",
-      "closingAmount": "Closing Amount",
-      "actions": "Actions",
-      "viewDetails": "View Details"
-    },
-    "movementColumns": {
-      "description": "Description",
-      "amount": "Amount",
-      "method": "Method",
-      "date": "Date"
-    },
-    "denominationDetails": {
-      "title": "Denomination Details",
-      "denomination": "Denomination",
-      "quantity": "Quantity",
-      "subtotal": "Subtotal",
-      "total": "Total"
-    },
-    "openingDenominations": "Opening Denominations",
-    "closingDenominations": "Closing Denominations",
-    "reconciliationSummary": "Reconciliation Summary",
-    "movements": "Movements",
-    "reconciliation": {
-      "paymentMethod": "Payment Method",
-      "system": "System",
-      "declared": "Declared",
-      "difference": "Difference",
-      "cash": "Cash",
-      "card": "Card",
-      "transfer": "Transfer",
-      "other": "Other",
-      "notes": "Notes"
-    }
-  },
-  "PhysicalCashRegistersPage": {
-    "title": "Physical Cash Registers",
-    "description": "Manage physical cash registers or points of sale.",
-    "filterPlaceholder": "Filter by name...",
-    "dialog": {
-      "createTitle": "Create New Cash Register",
-      "editTitle": "Edit Cash Register",
-      "name": "Name",
-      "namePlaceholder": "e.g., Main Reception",
-      "isActive": "Is Active",
-      "cancel": "Cancel",
-      "create": "Create",
-      "save": "Save Changes"
-    },
-    "deleteDialog": {
-      "title": "Are you sure?",
-      "description": "This will permanently delete the cash register \"{name}\". This action cannot be undone.",
-      "cancel": "Cancel",
-      "confirm": "Delete"
-    },
-    "toast": {
-      "errorTitle": "Error",
-      "genericError": "An unexpected error occurred.",
-      "createTitle": "Cash Register Created",
-      "editTitle": "Cash Register Updated",
-      "deleteTitle": "Cash Register Deleted",
-      "successDescription": "The cash register \"{name}\" has been saved successfully.",
-      "deleteDescription": "The cash register \"{name}\" has been deleted.",
-      "deleteError": "Could not delete the cash register."
-    },
-    "validation": {
-      "nameRequired": "Name is required."
-    },
-    "columns": {
-      "id": "ID",
-      "name": "Name",
-      "isActive": "Active",
-      "yes": "Yes",
-      "no": "No",
-      "createdAt": "Created At",
-      "updatedAt": "Updated At",
-      "actions": "Actions",
-      "edit": "Edit",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
       "delete": "Delete"
-    }
-  },
-  "OpenCashSessionWidget": {
-    "title": "No Active Cash Session",
-    "description": "Click here to open a new cash session and start recording transactions.",
-    "button": "Open Session",
-    "activeSession": {
-      "title": "Active Cash Session",
-      "description": "Session for user {user} at point of sale {cashPoint}",
-      "button": "Go to Close Session"
     },
-    "checkingStatus": "Checking cash session status..."
-  },
-  "CashierPage": {
-    "cancel": "Cancel",
-    "openSessionButton": "Open Session",
-    "viewAllCashPoints": "View All Cash Registers",
+    "filterPlaceholder": "Filter by role...",
+    "dialog": {
+      "title": "Add Roles to User",
+      "description": "Select the roles to assign to this user.",
+      "availableRoles": "Available Roles",
+      "activeLabel": "Active",
+      "cancel": "Cancel",
+      "assign": "Accept"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This action will remove the role \"{roleName}\" from the user. This cannot be undone.",
+      "cancel": "Cancel",
+      "continue": "Continue"
+    },
     "toast": {
+      "success": "Success",
       "error": "Error",
-      "openSuccessTitle": "Session Opened",
-      "openSuccessDescription": "The cash session has been started successfully.",
-      "openError": "Could not open session.",
-      "expenseSuccessTitle": "Expense Registered",
-      "expenseSuccessDescription": "The expense has been registered correctly.",
-      "expenseError": "Could not register expense.",
-      "closeSuccessTitle": "Session Closed",
-      "closeSuccessDescription": "The cash session has been closed and reconciled.",
-      "closeError": "Could not close the session."
-    },
-    "validation": {
-      "openingAmountRequired": "Opening amount is required and must be positive.",
-      "amountRequired": "Amount is required.",
-      "descriptionRequired": "Description is required."
-    },
-    "openSession": {
-      "title": "Open Cash Session",
-      "description": "Enter the initial amount to start your work shift.",
-      "openingAmount": "Opening Amount",
-      "openButton": "Open Session",
-      "openingButton": "Opening...",
-      "closed": "Closed",
-      "openBy": "Open by {user}",
-      "viewLog": "View Log"
-    },
-    "activeSession": {
-      "title": "Active Cash Session",
-      "description": "Session for user {user} at point of sale {location}.",
-      "openingAmount": "Opening Amount",
-      "totalIncome": "Total Income",
-      "dailyPayments": "Daily Payments",
-      "openingDetails": "Opening Details",
-      "denomination": "Denomination",
-      "quantity": "Quantity",
-      "subtotal": "Subtotal",
-      "registerExpense": "Register Expense",
-      "closeSession": "Close Session",
-      "columns": {
-        "description": "Description",
-        "amount": "Amount",
-        "method": "Method",
-        "date": "Date"
-      }
-    },
-    "expenseDialog": {
-      "title": "Register Expense",
-      "description": "Enter the details of the cash expense.",
-      "amount": "Amount",
-      "descriptionLabel": "Description",
-      "descriptionPlaceholder": "e.g., Office supplies purchase",
-      "saveButton": "Register Expense"
-    },
-    "closeDialog": {
-      "title": "Close Cash Session (Blind Close)",
-      "description": "Count the physical money and vouchers for each payment method and enter the totals below. The system will then perform the reconciliation.",
-      "cashDenominations": "Cash Denominations",
-      "cash": "Counted Cash Total",
-      "card": "Total in Card Vouchers",
-      "transfer": "Total in Transfer Vouchers",
-      "other": "Total in Other Payment Methods",
-      "notes": "Closing Notes",
-      "notesPlaceholder": "Any relevant information about the closing process...",
-      "submitButton": "Close and Reconcile Session"
-    },
-    "report": {
-      "title": "Closing Report",
-      "description": "Reconciliation summary for the session closed on {date}.",
-      "paymentMethod": "Payment Method",
-      "systemAmount": "System Amount",
-      "declaredAmount": "Declared Amount",
-      "difference": "Difference",
-      "cash": "Cash",
-      "card": "Card",
-      "transfer": "Transfer",
-      "other": "Other",
-      "notes": "Closing Notes",
-      "newSessionButton": "Start New Session",
-      "confirmButton": "Confirm Close"
-    },
-    "wizard": {
-      "title": "Close Session Wizard",
-      "steps": {
-        "review": "Review",
-        "declare": "Declare",
-        "report": "Report"
-      },
-      "startClosing": "Start Session Closing",
-      "next": "Next",
-      "back": "Back"
+      "statusUpdated": "Role {roleName} has been {status}.",
+      "statusUpdateFailed": "Could not update role status.",
+      "roleRemoved": "Role \"{roleName}\" has been removed from the user.",
+      "roleRemoveFailed": "Could not remove role \"{roleName}\".",
+      "rolesAssigned": "Roles assigned successfully.",
+      "rolesAssignFailed": "Could not assign roles."
     }
+  },
+  "UserServices": {
+    "dialog": {
+      "title": "Add Services to User",
+      "description": "Select the services to assign to this user.",
+      "availableServices": "Available Services",
+      "cancel": "Cancel",
+      "assign": "Accept",
+      "activeLabel": "Active"
+    },
+    "toast": {
+      "success": "Success",
+      "error": "Error",
+      "servicesAssigned": "Services assigned successfully.",
+      "servicesAssignFailed": "Could not assign services."
+    }
+  },
+  "QuoteColumns": {
+    "quoteId": "Quote ID",
+    "total": "Total",
+    "billingStatus": "Billing Status"
+  },
+  "OrderColumns": {
+    "orderId": "Order ID",
+    "createdAt": "Created At"
   },
   "General": {
     "noResults": "No results."
   }
 }
-
-    

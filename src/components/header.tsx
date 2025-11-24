@@ -95,8 +95,7 @@ export function Header() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { logout, user } = useAuth();
-  const tLogoutConfirm = useTranslations('LogoutConfirmation');
-  const tChangePassword = useTranslations('ChangePasswordDialog');
+  const tNav = useTranslations('Navigation');
   const { toast } = useToast();
 
   const [isLogoutAlertOpen, setIsLogoutAlertOpen] = React.useState(false);
@@ -104,7 +103,7 @@ export function Header() {
   const [passwordChangeError, setPasswordChangeError] = React.useState<string | null>(null);
 
   const form = useForm<PasswordFormValues>({
-    resolver: zodResolver(passwordFormSchema(tChangePassword)),
+    resolver: zodResolver(passwordFormSchema(t)),
     defaultValues: {
       old_password: '',
       new_password: '',
@@ -130,7 +129,6 @@ export function Header() {
   };
   
   const breadcrumbSegments = pathname.split('/').filter(Boolean).slice(1);
-  const tNav = useTranslations('Navigation');
   
   const findNavItemBySegment = (items: NavItem[], segment: string): NavItem | undefined => {
     for (const item of items) {
@@ -217,7 +215,7 @@ export function Header() {
     setPasswordChangeError(null);
     const token = localStorage.getItem('token');
     if (!token) {
-        setPasswordChangeError(tChangePassword('errors.noToken'));
+        setPasswordChangeError(t('errors.noToken'));
         return;
     }
 
@@ -234,9 +232,9 @@ export function Header() {
         const responseData = await response.json().catch(() => ({}));
         
         if (!response.ok) {
-            let errorMessage = tChangePassword('errors.generic');
+            let errorMessage = t('errors.generic');
             if (response.status === 401) {
-                errorMessage = tChangePassword('errors.incorrectOldPassword');
+                errorMessage = t('errors.incorrectOldPassword');
             } else if (response.status === 400 && responseData.message) {
                  errorMessage = responseData.message;
             }
@@ -244,13 +242,13 @@ export function Header() {
         }
 
         toast({
-            title: tChangePassword('success.title'),
-            description: responseData.message || tChangePassword('success.description'),
+            title: t('success.title'),
+            description: responseData.message || t('success.description'),
         });
         setIsChangePasswordOpen(false);
 
     } catch (error) {
-        setPasswordChangeError(error instanceof Error ? error.message : tChangePassword('errors.generic'));
+        setPasswordChangeError(error instanceof Error ? error.message : t('errors.generic'));
     }
   };
 
@@ -383,19 +381,19 @@ export function Header() {
             <AlertDialogHeader>
                 <AlertDialogTitle className="flex items-center gap-2">
                     <AlertTriangle className="h-6 w-6 text-yellow-500" />
-                    {tLogoutConfirm('title')}
+                    {t('logoutConfirmation.title')}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                    {tLogoutConfirm('description')}
+                    {t('logoutConfirmation.description')}
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel>{tLogoutConfirm('cancel')}</AlertDialogCancel>
+                <AlertDialogCancel>{t('logoutConfirmation.cancel')}</AlertDialogCancel>
                 <Button variant="outline" onClick={() => {router.push(`/${locale}/cashier`); setIsLogoutAlertOpen(false);}}>
-                    {tLogoutConfirm('goToCashier')}
+                    {t('logoutConfirmation.goToCashier')}
                 </Button>
                 <AlertDialogAction onClick={handleLogout} className="bg-destructive hover:bg-destructive/90">
-                    {tLogoutConfirm('logoutAnyway')}
+                    {t('logoutConfirmation.logoutAnyway')}
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
@@ -404,14 +402,14 @@ export function Header() {
     <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
         <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-                <DialogTitle>{tChangePassword('title')}</DialogTitle>
+                <DialogTitle>{t('changePasswordDialog.title')}</DialogTitle>
             </DialogHeader>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleChangePasswordSubmit)} className="space-y-4 py-4">
                     {passwordChangeError && (
                         <Alert variant="destructive">
                             <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>{tChangePassword('errors.title')}</AlertTitle>
+                            <AlertTitle>{t('changePasswordDialog.errors.title')}</AlertTitle>
                             <AlertDescription>{passwordChangeError}</AlertDescription>
                         </Alert>
                     )}
@@ -420,7 +418,7 @@ export function Header() {
                         name="old_password"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>{tChangePassword('oldPassword')}</FormLabel>
+                                <FormLabel>{t('changePasswordDialog.oldPassword')}</FormLabel>
                                 <FormControl>
                                     <Input type="password" {...field} />
                                 </FormControl>
@@ -433,7 +431,7 @@ export function Header() {
                         name="new_password"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>{tChangePassword('newPassword')}</FormLabel>
+                                <FormLabel>{t('changePasswordDialog.newPassword')}</FormLabel>
                                 <FormControl>
                                     <Input type="password" {...field} />
                                 </FormControl>
@@ -446,7 +444,7 @@ export function Header() {
                         name="confirm_password"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>{tChangePassword('confirmPassword')}</FormLabel>
+                                <FormLabel>{t('changePasswordDialog.confirmPassword')}</FormLabel>
                                 <FormControl>
                                     <Input type="password" {...field} />
                                 </FormControl>
@@ -455,8 +453,8 @@ export function Header() {
                         )}
                     />
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setIsChangePasswordOpen(false)}>{tChangePassword('cancel')}</Button>
-                        <Button type="submit" disabled={form.formState.isSubmitting}>{tChangePassword('save')}</Button>
+                        <Button type="button" variant="outline" onClick={() => setIsChangePasswordOpen(false)}>{t('changePasswordDialog.cancel')}</Button>
+                        <Button type="submit" disabled={form.formState.isSubmitting}>{t('changePasswordDialog.save')}</Button>
                     </DialogFooter>
                 </form>
             </Form>
