@@ -58,7 +58,7 @@ export default function CashierPage() {
     const [showOpeningWizard, setShowOpeningWizard] = React.useState(false);
     const [openWizardStep, setOpenWizardStep] = React.useState<OpenSessionStep>('CONFIG');
     const [openingSessionData, setOpeningSessionData] = React.useState<Partial<CajaSesion>>({});
-    const [uyudenominations, setUyuDenominations] = React.useState<Record<string, number>>({});
+    const [uyuDenominations, setUyuDenominations] = React.useState<Record<string, number>>({});
     const [usdDenominations, setUsdDenominations] = React.useState<Record<string, number>>({});
 
 
@@ -202,7 +202,7 @@ export default function CashierPage() {
                     }}
                     sessionData={openingSessionData}
                     setSessionData={setOpeningSessionData}
-                    uyuDenominations={uyudenominations}
+                    uyuDenominations={uyuDenominations}
                     setUyuDenominations={setUyuDenominations}
                     usdDenominations={usdDenominations}
                     setUsdDenominations={setUsdDenominations}
@@ -537,28 +537,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 toast({ variant: 'destructive', title: t('toast.error'), description: 'Please fill all fields.' });
                 return;
             }
-            // Create session record
-            try {
-                const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/upsert', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        cash_point_id: sessionData.puntoDeCajaId,
-                        currency: sessionData.currency,
-                        date_rate: sessionData.date_rate,
-                        user_id: user?.id,
-                        status: 'OPEN'
-                    })
-                });
-                const responseData = await response.json();
-                if (!response.ok) throw new Error(responseData.message || 'Failed to create session');
-                
-                const newSessionId = Array.isArray(responseData) ? responseData[0].id : responseData.id;
-                setSessionData(prev => ({...prev, id: newSessionId }));
-                setCurrentStep('COUNT_UYU');
-            } catch (error) {
-                toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not create session.' });
-            }
+            setCurrentStep('COUNT_UYU');
         } else if (currentStep === 'COUNT_UYU') {
             setCurrentStep('COUNT_USD');
         } else if (currentStep === 'COUNT_USD') {
@@ -567,10 +546,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     };
     
     const handleConfirmAndOpen = async () => {
-        if (!sessionData.id) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Session ID is missing.' });
-            return;
-        }
         setIsSubmitting(true);
         const openingDetails = {
             currency: sessionData.currency,
@@ -587,7 +562,11 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    id: sessionData.id,
+                    cash_point_id: sessionData.puntoDeCajaId,
+                    currency: sessionData.currency,
+                    date_rate: sessionData.date_rate,
+                    user_id: user?.id,
+                    status: 'OPEN',
                     opening_amount: totalOpeningAmount,
                     opening_details: JSON.stringify(openingDetails),
                 })
@@ -606,88 +585,66 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     const handlePreviousStep = async () => {
         if (currentStep === 'CONFIRM') setCurrentStep('COUNT_USD');
         else if (currentStep === 'COUNT_USD') setCurrentStep('COUNT_UYU');
-        else if (currentStep === 'COUNT_UYU') {
-             // If going back from UYU count, need to delete the created session
-            if (sessionData.id) {
-                try {
-                    await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/delete', {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: sessionData.id })
-                    });
-                } catch (error) {
-                    console.error("Failed to delete temporary session:", error);
-                }
-            }
-            setCurrentStep('CONFIG');
-        }
+        else if (currentStep === 'COUNT_UYU') setCurrentStep('CONFIG');
         else if (currentStep === 'CONFIG') onExitWizard();
     };
 
 
     const stepComponents = {
         'CONFIG': (
-            <div className="space-y-4">
+             <div>
+                <div className="grid grid-cols-3 gap-4 text-sm mb-4">
+                    <div><strong>{t('openSession.terminal')}:</strong> {sessionData.cash_point_name}</div>
+                    <div><strong>{t('openSession.user')}:</strong> {user?.name}</div>
+                    <div><strong>{t('openSession.openingDate')}:</strong> {new Date().toLocaleString()}</div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card>
-                        <CardHeader><CardTitle>Información de la Sesión</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                             <div className="space-y-1">
-                                <Label>{t('openSession.terminal')}</Label>
-                                <Input value={sessionData.cash_point_name} disabled />
+                    <div className="space-y-4">
+                         <div className="flex items-center gap-2">
+                            <ExchangeRate onRateChange={(rates) => {
+                                setBuyRate(rates.buy);
+                                setSellRate(rates.sell);
+                                const avg = (rates.buy + rates.sell) / 2;
+                                setAvgRate(avg);
+                                setSessionData(prev => ({...prev, date_rate: avg}));
+                            }} />
+                            <Alert className="text-sm">
+                                <AlertDescription>{t('openSession.exchangeRateTooltip')}</AlertDescription>
+                            </Alert>
+                        </div>
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <Label htmlFor="buy_rate">Compra</Label>
+                                <Input id="buy_rate" value={buyRate.toFixed(2)} disabled />
                             </div>
                             <div className="space-y-1">
-                                <Label>{t('openSession.user')}</Label>
-                                <Input value={user?.name} disabled />
+                                <Label htmlFor="sell_rate">Venta</Label>
+                                <Input id="sell_rate" value={sellRate.toFixed(2)} disabled />
                             </div>
-                            <div className="space-y-1">
-                                <Label>{t('openSession.openingDate')}</Label>
-                                <Input value={new Date().toLocaleString()} disabled />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader><CardTitle>Configuración Monetaria</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                             <div className="flex items-center gap-2">
-                                <ExchangeRate onRateChange={(rates) => {
-                                    setBuyRate(rates.buy);
-                                    setSellRate(rates.sell);
-                                    const avg = (rates.buy + rates.sell) / 2;
-                                    setAvgRate(avg);
-                                    setSessionData(prev => ({...prev, date_rate: avg}));
-                                }} />
-                                <Alert className="text-sm">
-                                    <AlertDescription>{t('openSession.exchangeRateTooltip')}</AlertDescription>
-                                </Alert>
-                            </div>
-                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <Label htmlFor="buy_rate">Compra</Label>
-                                    <Input id="buy_rate" value={buyRate.toFixed(2)} disabled />
-                                </div>
-                                <div className="space-y-1">
-                                    <Label htmlFor="sell_rate">Venta</Label>
-                                    <Input id="sell_rate" value={sellRate.toFixed(2)} disabled />
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <Label htmlFor="date_rate">{t('openSession.exchangeRate')}</Label>
-                                <Input id="date_rate" type="number" step="0.00001" value={sessionData.date_rate} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: parseFloat(e.target.value) || 0 }))} />
-                            </div>
-                             <div className="space-y-1">
-                                <Label>{t('openSession.currency')}</Label>
-                                <Select value={sessionData.currency} onValueChange={(value) => setSessionData(prev => ({...prev, currency: value as 'UYU' | 'USD' | 'EUR'}))}>
-                                    <SelectTrigger><SelectValue/></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="UYU">UYU</SelectItem>
-                                        <SelectItem value="USD">USD</SelectItem>
-                                        <SelectItem value="EUR">EUR</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                        <div className="space-y-1">
+                            <Label htmlFor="date_rate">{t('openSession.exchangeRate')}</Label>
+                            <Input id="date_rate" type="number" step="0.00001" value={sessionData.date_rate} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: parseFloat(e.target.value) || 0 }))} />
+                        </div>
+                         <div className="space-y-1">
+                            <Label>{t('openSession.currency')}</Label>
+                            <Select value={sessionData.currency} onValueChange={(value) => setSessionData(prev => ({...prev, currency: value as 'UYU' | 'USD' | 'EUR'}))}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="UYU">UYU</SelectItem>
+                                    <SelectItem value="USD">USD</SelectItem>
+                                    <SelectItem value="EUR">EUR</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                     <div className="h-[400px] w-full overflow-hidden rounded-lg border">
+                        <iframe
+                            src="https://www.brou.com.uy/c/portal/render_portlet?p_l_id=20593&p_p_id=cotizacionfull_WAR_broutmfportlet_INSTANCE_otHfewh1klyS&p_p_lifecycle=0&p_t_lifecycle=0&p_p_state=normal&p_p_mode=view&p_p_col_id=column-1&p_p_col_pos=0&p_p_col_count=2&p_p_isolated=1&currentURL=%2Fcotizaciones"
+                            className="h-full w-full"
+                            title="BROU Exchange Rates"
+                        />
+                    </div>
                 </div>
             </div>
         ),
@@ -771,3 +728,4 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         </Card>
     );
 }
+
