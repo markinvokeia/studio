@@ -15,6 +15,7 @@ import {
 import { PlusCircle, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -52,10 +53,19 @@ export function DataTableToolbar<TData>({
       </div>
       <div className="flex items-center space-x-2">
         {onCreate && (
-            <Button variant="outline" size="sm" className="h-8" onClick={onCreate}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Create
-            </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={onCreate}>
+                  <PlusCircle className="h-4 w-4" />
+                  <span className="sr-only">Create</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Create</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
         {extraButtons}
          {onRefresh && (
