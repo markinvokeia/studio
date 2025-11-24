@@ -13,6 +13,7 @@ import {
   LogOut,
   AlertTriangle,
   KeyRound,
+  MoreHorizontal,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -86,6 +87,11 @@ export function Header() {
   const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
   const [passwordChangeError, setPasswordChangeError] = React.useState<string | null>(null);
 
+  const [visibleItems, setVisibleItems] = React.useState(navItems);
+  const [hiddenItems, setHiddenItems] = React.useState<typeof navItems>([]);
+  const navRef = React.useRef<HTMLDivElement>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordFormSchema(t)),
     defaultValues: {
@@ -94,6 +100,48 @@ export function Header() {
       confirm_password: '',
     },
   });
+
+  const updateMenu = () => {
+    if (navRef.current && containerRef.current) {
+        const containerWidth = containerRef.current.offsetWidth;
+        const navItemsElements = Array.from(navRef.current.children) as HTMLElement[];
+        let currentWidth = 0;
+        let visibleCount = 0;
+
+        for (const item of navItemsElements) {
+            currentWidth += item.offsetWidth;
+            if (currentWidth > containerWidth) {
+                break;
+            }
+            visibleCount++;
+        }
+        
+        // Adjust for the "More" button width if it's needed
+        if (visibleCount < navItems.length) {
+            let widthWithMore = 0;
+            let countWithMore = 0;
+            for (let i = 0; i < navItems.length; i++) {
+                widthWithMore += navItemsElements[i]?.offsetWidth || 0;
+                if (widthWithMore + 80 > containerWidth) { // 80px is an estimate for the "More" button
+                    break;
+                }
+                countWithMore++;
+            }
+             setVisibleItems(navItems.slice(0, countWithMore));
+             setHiddenItems(navItems.slice(countWithMore));
+        } else {
+            setVisibleItems(navItems);
+            setHiddenItems([]);
+        }
+    }
+  };
+
+  React.useEffect(() => {
+    updateMenu();
+    window.addEventListener('resize', updateMenu);
+    return () => window.removeEventListener('resize', updateMenu);
+  }, [navRef, containerRef]);
+
 
   React.useEffect(() => {
     if (isChangePasswordOpen) {
@@ -193,7 +241,6 @@ export function Header() {
         <div className="mr-4 hidden md:flex">
           <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold text-foreground">
               <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={32} height={32} alt="InvokeIA Logo" />
-              <span className="text-xl">InvokeIA</span>
           </Link>
         </div>
         
@@ -208,7 +255,6 @@ export function Header() {
                 <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
                 <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold">
                     <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={24} height={24} alt="InvokeIA Logo" />
-                    <span className="text-xl">InvokeIA</span>
                 </Link>
                 </div>
                  <div className="flex-1 overflow-y-auto py-2">
@@ -217,9 +263,26 @@ export function Header() {
             </SheetContent>
         </Sheet>
         
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-            <div className="hidden md:flex md:flex-1">
-                <HorizontalNav items={navItems} />
+        <div ref={containerRef} className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+            <div ref={navRef} className="hidden md:flex md:flex-1">
+                <HorizontalNav items={visibleItems} />
+                {hiddenItems.length > 0 && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-10 px-3 py-2 text-sm font-medium">
+                                More
+                                <MoreHorizontal className="ml-2 h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            {hiddenItems.map(item => (
+                                <DropdownMenuItem key={item.title} asChild>
+                                    <Link href={item.href}>{t(item.title as any)}</Link>
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
             </div>
             <nav className="flex items-center gap-2">
                 <ExchangeRate />
@@ -326,5 +389,3 @@ export function Header() {
     </>
   );
 }
-
-    
