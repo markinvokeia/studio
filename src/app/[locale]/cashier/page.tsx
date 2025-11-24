@@ -454,7 +454,7 @@ const DenominationCounter = ({ title, denominations, currency, onTotalChange, on
         const total = totalFromBills + coinsAmount;
         onTotalChange(total);
         onDetailsChange({ ...quantities, coins: coinsAmount });
-    }, [quantities, coinsAmount, denominations, onTotalChange, onDetailsChange]);
+    }, [quantities, coinsAmount, denominations]);
 
     return (
         <div className="space-y-4">
