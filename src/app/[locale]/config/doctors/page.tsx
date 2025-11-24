@@ -22,7 +22,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { UserRoles } from '@/components/users/user-roles';
 import { UserServices } from '@/components/users/user-services';
 import { UserMessages } from '@/components/users/user-messages';
 import { UserLogs } from '@/components/users/user-logs';
@@ -120,7 +119,7 @@ async function upsertUser(userData: DoctorFormValues) {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...userData, filter_type: 'DOCTOR' }),
+        body: JSON.stringify({ ...userData, filter_type: 'DOCTOR', is_sales: true }),
     });
     
     const responseData = await response.json();
@@ -514,3 +513,4 @@ export default function DoctorsPage() {
     </>
   );
 }
+
