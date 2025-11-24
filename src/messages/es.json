@@ -96,7 +96,7 @@
       "categoryRequired": "La categoría es obligatoria.",
       "dateRequired": "La fecha de la transacción es obligatoria.",
       "amountPositive": "El monto debe ser un número positivo.",
-      "descriptionMin": "La descripción debe tener al menos 10 caracteres.",
+      "descriptionRequired": "La descripción es obligatoria.",
       "sessionRequired": "Debe seleccionar una sesión de caja.",
       "paymentMethodRequired": "Debe seleccionar un método de pago."
     }
@@ -1181,3 +1181,5 @@
     "noResults": "No se encontraron resultados."
   }
 }
+
+    

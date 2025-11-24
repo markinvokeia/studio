@@ -96,7 +96,7 @@
       "categoryRequired": "Category is required.",
       "dateRequired": "Transaction date is required.",
       "amountPositive": "Amount must be a positive number.",
-      "descriptionMin": "Description must be at least 10 characters.",
+      "descriptionRequired": "Description is required.",
       "sessionRequired": "A cash session must be selected.",
       "paymentMethodRequired": "A payment method must be selected."
     }
@@ -1181,3 +1181,5 @@
     "noResults": "No results."
   }
 }
+
+    
