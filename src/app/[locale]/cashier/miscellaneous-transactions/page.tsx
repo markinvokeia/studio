@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -79,13 +80,39 @@ async function getMiscellaneousTransactions(pagination: PaginationState, searchQ
         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
         
         const responseData = await response.json();
-        const data = Array.isArray(responseData) ? responseData[0] : responseData;
+        const data = Array.isArray(responseData) ? responseData : (responseData.data || []);
 
-        const transactionsData = data.data || [];
-        const total = Number(data.total) || 0;
+        const transactionsData = data || [];
+        const total = Number(responseData.total) || transactionsData.length;
 
         return {
-            transactions: transactionsData.map((t: any) => ({ ...t, id: String(t.id) })),
+            transactions: transactionsData.map((t: any) => ({
+                id: String(t.id),
+                transaction_number: t.transaction_number,
+                transaction_date: t.transaction_date,
+                amount: parseFloat(t.amount),
+                currency: t.currency,
+                exchange_rate: parseFloat(t.exchange_rate),
+                converted_amount: parseFloat(t.converted_amount),
+                description: t.description,
+                external_reference: t.reference_number,
+                status: t.status,
+                category_code: t.category_code,
+                category_name: t.category_name,
+                category_type: t.category_type,
+                beneficiary_id: t.beneficiary_id,
+                beneficiary_name: t.beneficiary_name,
+                beneficiary_type: t.beneficiary_type,
+                created_by: t.created_by_name,
+                created_at: t.created_at,
+                payment_method_id: t.payment_method_id,
+                payment_method_name: t.payment_method_name,
+                cash_session_id: t.cash_session_id,
+                tags: t.tags,
+                is_recurring: t.is_recurring,
+                recurrence_pattern: t.recurrence_pattern,
+                completed_at: t.completed_at,
+            })),
             total
         };
     } catch (error) {
