@@ -66,6 +66,7 @@ type PaymentFormValues = z.infer<ReturnType<typeof paymentFormSchema>>;
 const getColumns = (
     t: (key: string) => string,
     tStatus: (key: string) => string,
+    tMethods: (key: string) => string,
     columnTranslations: { [key: string]: string },
     onPrint?: (invoice: Invoice) => void,
     onSendEmail?: (invoice: Invoice) => void,
@@ -375,7 +376,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   };
 
-  const columns = React.useMemo(() => getColumns(t, tStatus, columnTranslations, onPrint, onSendEmail, handleAddPaymentClick), [t, tStatus, columnTranslations, onPrint, onSendEmail]);
+  const columns = React.useMemo(() => getColumns(t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail, handleAddPaymentClick), [t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail]);
 
     if (isLoading) {
     return (
@@ -762,8 +763,15 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
+                   <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                        <FormLabel className="flex-1">Service</FormLabel>
+                        <FormLabel className="w-20">Quantity</FormLabel>
+                        <FormLabel className="w-28">Unit Price</FormLabel>
+                        <FormLabel className="w-28">Total</FormLabel>
+                        <div className="w-10"></div>
+                    </div>
                   {items.map((item, index) => (
-                    <div key={index} className="flex items-center gap-2">
+                    <div key={index} className="flex items-start gap-2">
                        <FormField control={form.control} name={`items.${index}.service_id`} render={({ field }) => (
                          <FormItem className="flex-1">
                            <Select onValueChange={(value) => {
@@ -775,31 +783,39 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                                 form.setValue(`items.${index}.total`, service.price * quantity);
                                }
                            }} defaultValue={field.value}>
-                              <FormControl><SelectTrigger><SelectValue placeholder="Select Service" /></SelectTrigger></FormControl>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select Service">
+                                    {field.value ? services.find(s => s.id === field.value)?.name : "Select Service"}
+                                  </SelectValue>
+                                </SelectTrigger>
+                              </FormControl>
                               <SelectContent>{services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                            </Select>
+                           <FormMessage />
                          </FormItem>
                        )} />
                         <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
-                            <FormItem><FormControl><Input type="number" className="w-20" {...field} onChange={(e) => {
+                            <FormItem className="w-20"><FormControl><Input type="number" {...field} onChange={(e) => {
                                 field.onChange(e);
                                 const price = form.getValues(`items.${index}.unit_price`) || 0;
                                 form.setValue(`items.${index}.total`, price * Number(e.target.value));
-                            }} /></FormControl></FormItem>
+                            }} /></FormControl><FormMessage /></FormItem>
                         )}/>
                         <FormField control={form.control} name={`items.${index}.unit_price`} render={({ field }) => (
-                           <FormItem><FormControl><Input type="number" className="w-28" {...field} onChange={(e) => {
+                           <FormItem className="w-28"><FormControl><Input type="number" {...field} onChange={(e) => {
                                 field.onChange(e);
                                 const quantity = form.getValues(`items.${index}.quantity`) || 1;
                                 form.setValue(`items.${index}.total`, quantity * Number(e.target.value));
-                            }} /></FormControl></FormItem>
+                            }} /></FormControl><FormMessage /></FormItem>
                         )}/>
                         <FormField control={form.control} name={`items.${index}.total`} render={({ field }) => (
-                          <FormItem><FormControl><Input type="number" readOnly disabled className="w-28" {...field} /></FormControl></FormItem>
+                          <FormItem className="w-28"><FormControl><Input type="number" readOnly disabled {...field} /></FormControl><FormMessage /></FormItem>
                         )}/>
                         <Button type="button" variant="destructive-ghost" size="icon" onClick={() => handleRemoveItem(index)}><Trash2 /></Button>
                     </div>
                   ))}
+                   <FormMessage>{form.formState.errors.items?.root?.message}</FormMessage>
                   <Button type="button" variant="outline" onClick={handleAddItem}>Add Item</Button>
                 </div>
               </CardContent>
