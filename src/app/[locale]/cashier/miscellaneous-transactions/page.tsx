@@ -16,6 +16,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -79,11 +86,10 @@ async function getMiscellaneousTransactions(pagination: PaginationState, searchQ
         });
         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
         
-        const responseData = await response.json();
-        const data = Array.isArray(responseData) ? responseData : (responseData.data || []);
+        const data = await response.json();
 
-        const transactionsData = data || [];
-        const total = Number(responseData.total) || transactionsData.length;
+        const transactionsData = Array.isArray(data) ? data : (data.data || []);
+        const total = Number(data[0]?.total) || transactionsData.length;
 
         return {
             transactions: transactionsData.map((t: any) => ({
@@ -91,7 +97,7 @@ async function getMiscellaneousTransactions(pagination: PaginationState, searchQ
                 transaction_number: t.transaction_number,
                 transaction_date: t.transaction_date,
                 amount: parseFloat(t.amount),
-                currency: t.currency,
+                currency: t.currency || t.transaction_currency,
                 exchange_rate: parseFloat(t.exchange_rate),
                 converted_amount: parseFloat(t.converted_amount),
                 description: t.description,
