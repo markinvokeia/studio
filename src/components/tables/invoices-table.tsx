@@ -203,6 +203,7 @@ const getColumns = (
       },
     ];
 
+
 interface InvoicesTableProps {
   invoices: Invoice[];
   isLoading?: boolean;
@@ -407,7 +408,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       extraButtons={
          <>
           {onImport && (
-            <Button variant="outline" size="sm" className="ml-2 h-8" onClick={onImport}>
+            <Button variant="outline" size="sm" className="h-8 ml-2" onClick={onImport}>
               <FileUp className="mr-2 h-4 w-4" /> Import
             </Button>
           )}
@@ -759,19 +760,22 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
             
             <Card>
               <CardHeader>
-                <CardTitle>Invoice Items</CardTitle>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>Invoice Items</CardTitle>
+                    <Button type="button" size="sm" variant="outline" onClick={handleAddItem}>{t('addItem')}</Button>
+                  </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                   <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                        <FormLabel className="flex-1">Service</FormLabel>
-                        <FormLabel className="w-20">Quantity</FormLabel>
-                        <FormLabel className="w-28">Unit Price</FormLabel>
-                        <FormLabel className="w-28">Total</FormLabel>
+                  <div className="hidden md:flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                        <div className="flex-1">Service</div>
+                        <div className="w-20">Quantity</div>
+                        <div className="w-28">Unit Price</div>
+                        <div className="w-28">Total</div>
                         <div className="w-10"></div>
-                    </div>
+                  </div>
                   {items.map((item, index) => (
-                    <div key={index} className="flex items-start gap-2">
+                    <div key={index} className="flex flex-col md:flex-row md:items-start gap-2">
                        <FormField control={form.control} name={`items.${index}.service_id`} render={({ field }) => (
                          <FormItem className="flex-1">
                            <Select onValueChange={(value) => {
@@ -796,27 +800,26 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                          </FormItem>
                        )} />
                         <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
-                            <FormItem className="w-20"><FormControl><Input type="number" {...field} onChange={(e) => {
+                            <FormItem className="w-full md:w-20"><FormControl><Input type="number" {...field} onChange={(e) => {
                                 field.onChange(e);
                                 const price = form.getValues(`items.${index}.unit_price`) || 0;
                                 form.setValue(`items.${index}.total`, price * Number(e.target.value));
                             }} /></FormControl><FormMessage /></FormItem>
                         )}/>
                         <FormField control={form.control} name={`items.${index}.unit_price`} render={({ field }) => (
-                           <FormItem className="w-28"><FormControl><Input type="number" {...field} onChange={(e) => {
+                           <FormItem className="w-full md:w-28"><FormControl><Input type="number" {...field} onChange={(e) => {
                                 field.onChange(e);
                                 const quantity = form.getValues(`items.${index}.quantity`) || 1;
                                 form.setValue(`items.${index}.total`, quantity * Number(e.target.value));
                             }} /></FormControl><FormMessage /></FormItem>
                         )}/>
                         <FormField control={form.control} name={`items.${index}.total`} render={({ field }) => (
-                          <FormItem className="w-28"><FormControl><Input type="number" readOnly disabled {...field} /></FormControl><FormMessage /></FormItem>
+                          <FormItem className="w-full md:w-28"><FormControl><Input type="number" readOnly disabled {...field} /></FormControl><FormMessage /></FormItem>
                         )}/>
-                        <Button type="button" variant="destructive-ghost" size="icon" onClick={() => handleRemoveItem(index)}><Trash2 /></Button>
+                        <Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveItem(index)}><Trash2 className="h-4 w-4"/></Button>
                     </div>
                   ))}
                    <FormMessage>{form.formState.errors.items?.root?.message}</FormMessage>
-                  <Button type="button" variant="outline" onClick={handleAddItem}>Add Item</Button>
                 </div>
               </CardContent>
             </Card>
@@ -854,3 +857,4 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
     </Dialog>
   );
 }
+
