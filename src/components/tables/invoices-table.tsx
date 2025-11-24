@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -9,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { MoreHorizontal, AlertTriangle, ArrowRight, Box, Printer, Send } from 'lucide-react';
+import { MoreHorizontal, AlertTriangle, ArrowRight, Box, Printer, Send, FileUp } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,13 +67,15 @@ interface InvoicesTableProps {
   onRefresh?: () => void;
   onPrint?: (invoice: Invoice) => void;
   onSendEmail?: (invoice: Invoice) => void;
+  onCreate?: () => void;
+  onImport?: () => void;
   isRefreshing?: boolean;
   rowSelection?: RowSelectionState;
   setRowSelection?: (selection: RowSelectionState) => void;
   columnTranslations?: { [key: string]: string };
 }
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, isRefreshing, rowSelection, setRowSelection, columnTranslations }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, isRefreshing, rowSelection, setRowSelection, columnTranslations }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
@@ -292,7 +295,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           <DataTableColumnHeader column={column} title={t('columns.currency')} />
         ),
         cell: ({ row }) => row.original.currency || 'N/A',
-    },
+      },
     {
       accessorKey: 'status',
       header: ({ column }) => (
@@ -380,6 +383,23 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       </div>
     );
   }
+
+  const extraButtons = (
+     <>
+        {onImport && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-2 h-8"
+            onClick={onImport}
+          >
+            <FileUp className="mr-2 h-4 w-4" />
+            Import
+          </Button>
+        )}
+    </>
+  );
+
   return (
     <>
     <Card>
@@ -393,9 +413,11 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           enableSingleRowSelection={!!onRowSelectionChange}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
+          onCreate={onCreate}
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
           columnTranslations={columnTranslations}
+          extraButtons={extraButtons}
         />
       </CardContent>
     </Card>
@@ -596,5 +618,3 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     </>
   );
 }
-
-    

@@ -53,6 +53,7 @@ interface DataTableProps<TData, TValue> {
   columnFilters?: ColumnFiltersState;
   onColumnFiltersChange?: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
   columnTranslations?: { [key: string]: string };
+  extraButtons?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -78,6 +79,7 @@ export function DataTable<TData, TValue>({
   columnFilters: controlledColumnFilters,
   onColumnFiltersChange: setControlledColumnFilters,
   columnTranslations = {},
+  extraButtons,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
@@ -142,6 +144,7 @@ export function DataTable<TData, TValue>({
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
           columnTranslations={columnTranslations}
+          extraButtons={extraButtons}
         />
       )}
       <div className="rounded-md border overflow-x-auto">
