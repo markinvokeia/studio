@@ -48,12 +48,13 @@ const transactionFormSchema = (t: (key: string) => string) => z.object({
     category_id: z.string().min(1, t('categoryRequired')),
     transaction_date: z.string().min(1, t('dateRequired')),
     amount: z.coerce.number().positive(t('amountPositive')),
-    description: z.string().min(10, t('descriptionMin')),
+    description: z.string().min(1, t('descriptionRequired')),
     beneficiary_id: z.string().optional(),
     currency: z.enum(['UYU', 'USD', 'EUR']).default('UYU'),
     exchange_rate: z.coerce.number().optional().default(1),
     external_reference: z.string().optional(),
     tags: z.string().optional(),
+    payment_method_id: z.string().optional(),
 });
 
 type TransactionFormValues = z.infer<ReturnType<typeof transactionFormSchema>>;
@@ -153,9 +154,27 @@ async function getCategories(): Promise<MiscellaneousCategory[]> {
         });
         if (!response.ok) throw new Error('Failed to fetch categories');
         const data = await response.json();
-        return (data || []).map((cat: any) => ({ ...cat, id: String(cat.id) }));
+        return (data || []).map((cat: any) => ({ ...cat, id: String(cat.id), category_type: cat.type }));
     } catch (error) {
         console.error("Failed to fetch categories:", error);
+        return [];
+    }
+}
+
+async function getPaymentMethods(): Promise<PaymentMethod[]> {
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/metodospago/all', {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+        });
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        const data = await response.json();
+        const methodsData = Array.isArray(data) ? data : (data.payment_methods || data.data || []);
+        return methodsData.map((m: any) => ({ ...m, id: String(m.id) }));
+    } catch (error) {
+        console.error("Failed to fetch payment methods:", error);
         return [];
     }
 }
@@ -166,6 +185,9 @@ async function upsertMiscellaneousTransaction(transactionData: TransactionFormVa
         ...transactionData,
         created_by: userId,
         tags: transactionData.tags?.split(',').map(t => t.trim()).filter(t => t),
+        beneficiary_id: transactionData.beneficiary_id || null,
+        payment_method_id: transactionData.payment_method_id ? parseInt(transactionData.payment_method_id, 10) : null,
+        category_id: parseInt(transactionData.category_id, 10),
     };
     
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_transactions/upsert', {
@@ -222,6 +244,7 @@ export default function MiscellaneousTransactionsPage() {
     
     const [beneficiaries, setBeneficiaries] = React.useState<User[]>([]);
     const [categories, setCategories] = React.useState<MiscellaneousCategory[]>([]);
+    const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
     const [beneficiarySearch, setBeneficiarySearch] = React.useState('');
     const [isBeneficiaryOpen, setIsBeneficiaryOpen] = React.useState(false);
     const [isCategoryOpen, setIsCategoryOpen] = React.useState(false);
@@ -234,6 +257,7 @@ export default function MiscellaneousTransactionsPage() {
     React.useEffect(() => {
         if (isDialogOpen) {
             getCategories().then(setCategories);
+            getPaymentMethods().then(setPaymentMethods);
         }
     }, [isDialogOpen]);
     
@@ -256,7 +280,8 @@ export default function MiscellaneousTransactionsPage() {
             currency: transaction.currency as any,
             exchange_rate: transaction.exchange_rate,
             external_reference: transaction.external_reference,
-            tags: transaction.tags?.join(', '),
+            tags: Array.isArray(transaction.tags) ? transaction.tags.join(', ') : '',
+            payment_method_id: transaction.payment_method_id?.toString(),
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -362,6 +387,7 @@ export default function MiscellaneousTransactionsPage() {
             amount: 0,
             tags: '',
             external_reference: '',
+            payment_method_id: '',
         });
         setIsDialogOpen(true);
     };
@@ -476,14 +502,34 @@ export default function MiscellaneousTransactionsPage() {
                                 </Popover><FormMessage />
                             </FormItem>
                          )} />
-                         <FormField control={form.control} name="transaction_date" render={({ field }) => (<FormItem><FormLabel>Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                         <div className="grid grid-cols-2 gap-4">
+                            <FormField control={form.control} name="transaction_date" render={({ field }) => (<FormItem><FormLabel>Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                             <FormField
+                                control={form.control}
+                                name="payment_method_id"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Payment Method</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Select method"/></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            {paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>)}
+                                        </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                         </div>
                          <div className="grid grid-cols-3 gap-4">
                             <FormField control={form.control} name="amount" render={({ field }) => (<FormItem className="col-span-2"><FormLabel>Amount</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>Currency</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                          </div>
                          <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
-                         <FormField control={form.control} name="external_reference" render={({ field }) => (<FormItem><FormLabel>Reference</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                         <FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>Tags</FormLabel><FormControl><Input placeholder="tag1, tag2, tag3" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                         <div className="grid grid-cols-2 gap-4">
+                            <FormField control={form.control} name="external_reference" render={({ field }) => (<FormItem><FormLabel>Reference</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>Tags</FormLabel><FormControl><Input placeholder="tag1, tag2, tag3" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                         </div>
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
                             <Button type="submit">{editingTransaction ? 'Save Changes' : 'Create'}</Button>
@@ -509,3 +555,4 @@ export default function MiscellaneousTransactionsPage() {
     </div>
   );
 }
+
