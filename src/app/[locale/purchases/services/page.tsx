@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -129,6 +128,7 @@ async function deleteService(id: string) {
 
 export default function ServicesPage() {
   const t = useTranslations('ServicesPage');
+  const tNav = useTranslations('Navigation');
   const tValidation = useTranslations('ServicesPage.validation');
   const [services, setServices] = React.useState<Service[]>([]);
   const [categories, setCategories] = React.useState<MiscellaneousCategory[]>([]);
@@ -236,7 +236,7 @@ export default function ServicesPage() {
     <>
     <Card>
       <CardHeader>
-        <CardTitle>{t('Navigation.ProviderProducts')}</CardTitle>
+        <CardTitle>{tNav('ProviderProducts')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent>
@@ -381,5 +381,3 @@ export default function ServicesPage() {
     </>
   );
 }
-
-    
