@@ -94,16 +94,18 @@ export function Header() {
   const navRef = React.useRef<HTMLDivElement>(null);
   const hiddenNavRef = React.useRef<HTMLDivElement>(null);
   const rightSectionRef = React.useRef<HTMLDivElement>(null);
+  const leftSectionRef = React.useRef<HTMLDivElement>(null);
   
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordFormSchema(t)),
   });
 
   const updateMenu = React.useCallback(() => {
-    if (hiddenNavRef.current && containerRef.current && rightSectionRef.current) {
+    if (hiddenNavRef.current && containerRef.current && rightSectionRef.current && leftSectionRef.current) {
         const containerWidth = containerRef.current.offsetWidth;
         const rightSectionWidth = rightSectionRef.current.offsetWidth;
-        const availableWidth = containerWidth - rightSectionWidth - 20;
+        const leftSectionWidth = leftSectionRef.current.offsetWidth;
+        const availableWidth = containerWidth - rightSectionWidth - leftSectionWidth - 40; // 20px padding on each side
 
         const navItemsElements = Array.from(hiddenNavRef.current.querySelectorAll('.flex.items-center.justify-center.rounded-md, .group.inline-flex.h-9.w-max.items-center.justify-center')) as HTMLElement[];
         let currentWidth = 0;
@@ -232,8 +234,8 @@ export function Header() {
         <HorizontalNav items={navItems} />
     </div>
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
-      <div className="container flex h-14 items-center" ref={containerRef}>
-        <div className="mr-4 hidden md:flex">
+      <div ref={containerRef} className="container flex h-14 items-center justify-between">
+        <div className="flex items-center gap-4" ref={leftSectionRef}>
           <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold text-foreground">
               <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={24} height={24} alt="InvokeIA Logo" />
           </Link>
@@ -258,92 +260,90 @@ export function Header() {
             </SheetContent>
         </Sheet>
         
-        <div className="hidden md:flex flex-1 items-center space-x-2">
-            <div className="flex-1" ref={navRef}>
-                <HorizontalNav items={visibleItems} />
-            </div>
+        <div className="hidden md:flex flex-1 items-center justify-center" ref={navRef}>
+            <HorizontalNav items={visibleItems} />
+             {hiddenItems.length > 0 && (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-9 px-3 text-sm font-medium">
+                            More
+                            <MoreHorizontal className="ml-2 h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        {hiddenItems.map(item => (
+                            <DropdownMenuItem key={item.title} asChild>
+                                <Link href={item.href}>{t(item.title as any)}</Link>
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            )}
+        </div>
 
-            <div className="flex items-center gap-2" ref={rightSectionRef}>
-                 {hiddenItems.length > 0 && (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-9 px-3 text-sm font-medium">
-                                More
-                                <MoreHorizontal className="ml-2 h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                            {hiddenItems.map(item => (
-                                <DropdownMenuItem key={item.title} asChild>
-                                    <Link href={item.href}>{t(item.title as any)}</Link>
-                                </DropdownMenuItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                )}
-                <ExchangeRate />
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="icon">
-                            <Globe className="h-[1.2rem] w-[1.2rem]" />
-                            <span className="sr-only">{t('toggleLanguage')}</span>
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => onSelectLocale('es')} disabled={locale === 'es'}>
-                            <span className="flex items-center justify-between w-full">
-                                <div className="flex items-center gap-2">
-                                    <UyFlagIcon className="h-4 w-4" />
-                                    {t('spanish')}
-                                </div>
-                                {locale === 'es' && <Check className="h-4 w-4 ml-2" />}
-                            </span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => onSelectLocale('en')} disabled={locale === 'en'}>
-                            <span className="flex items-center justify-between w-full">
-                                <div className="flex items-center gap-2">
-                                    <UsFlagIcon className="h-4 w-4" />
-                                    {t('english')}
-                                </div>
-                                {locale === 'en' && <Check className="h-4 w-4 ml-2" />}
-                            </span>
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="icon">
-                            <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                            <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                            <span className="sr-only">Toggle theme</span>
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setTheme('light')}>Light</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setTheme('dark')}>Dark</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setTheme('system')}>System</DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="overflow-hidden rounded-full">
-                            <Image src="https://picsum.photos/36/36" width={36} height={36} alt="Avatar" className="overflow-hidden rounded-full" data-ai-hint="user avatar" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>{user?.name || t('myAccount')}</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setIsChangePasswordOpen(true)}>
-                            <KeyRound className="mr-2 h-4 w-4" />
-                            <span>{t('changePassword')}</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleLogoutClick}>
-                            <LogOut className="mr-2 h-4 w-4" />
-                            <span>{t('logout')}</span>
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
+        <div className="flex items-center gap-2" ref={rightSectionRef}>
+            <ExchangeRate />
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon">
+                        <Globe className="h-[1.2rem] w-[1.2rem]" />
+                        <span className="sr-only">{t('toggleLanguage')}</span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => onSelectLocale('es')} disabled={locale === 'es'}>
+                        <span className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-2">
+                                <UyFlagIcon className="h-4 w-4" />
+                                {t('spanish')}
+                            </div>
+                            {locale === 'es' && <Check className="h-4 w-4 ml-2" />}
+                        </span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => onSelectLocale('en')} disabled={locale === 'en'}>
+                        <span className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-2">
+                                <UsFlagIcon className="h-4 w-4" />
+                                {t('english')}
+                            </div>
+                            {locale === 'en' && <Check className="h-4 w-4 ml-2" />}
+                        </span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon">
+                        <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                        <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                        <span className="sr-only">Toggle theme</span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setTheme('light')}>Light</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTheme('dark')}>Dark</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTheme('system')}>System</DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="overflow-hidden rounded-full">
+                        <Image src="https://picsum.photos/36/36" width={36} height={36} alt="Avatar" className="overflow-hidden rounded-full" data-ai-hint="user avatar" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>{user?.name || t('myAccount')}</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setIsChangePasswordOpen(true)}>
+                        <KeyRound className="mr-2 h-4 w-4" />
+                        <span>{t('changePassword')}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogoutClick}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>{t('logout')}</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
         </div>
       </div>
     </header>
