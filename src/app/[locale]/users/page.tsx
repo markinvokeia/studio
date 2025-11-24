@@ -120,7 +120,7 @@ async function upsertUser(userData: UserFormValues) {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData),
+        body: JSON.stringify({ ...userData, filter_type: 'PACIENTE', is_sales: true }),
     });
     
     const responseData = await response.json();
@@ -594,5 +594,7 @@ export default function UsersPage() {
     </>
   );
 }
+
+    
 
     
