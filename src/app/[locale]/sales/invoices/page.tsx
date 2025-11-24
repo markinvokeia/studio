@@ -1,12 +1,13 @@
+
 'use client';
 
 import * as React from 'react';
-import { Invoice, InvoiceItem, Payment, PaymentMethod, User, Order, Quote } from '@/lib/types';
+import { Invoice, InvoiceItem, Payment, User, Order, Quote } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { InvoicesTable } from '@/components/tables/invoices-table';
+import { InvoicesTable, CreateInvoiceDialog } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { RefreshCw, X, FileUp } from 'lucide-react';
@@ -114,6 +115,7 @@ export default function InvoicesPage() {
     const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = React.useState<Invoice | null>(null);
     const [emailRecipients, setEmailRecipients] = React.useState('');
     const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
 
 
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
@@ -294,6 +296,7 @@ export default function InvoicesPage() {
                             onRefresh={loadInvoices}
                             onPrint={handlePrintInvoice}
                             onSendEmail={handleSendEmailClick}
+                            onCreate={() => setIsCreateDialogOpen(true)}
                             onImport={() => setIsImportDialogOpen(true)}
                             isRefreshing={isLoadingInvoices}
                             rowSelection={rowSelection}
@@ -399,6 +402,12 @@ export default function InvoicesPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <CreateInvoiceDialog
+                isOpen={isCreateDialogOpen}
+                onOpenChange={setIsCreateDialogOpen}
+                onInvoiceCreated={loadInvoices}
+                isSales={true}
+            />
         </div>
     );
 }

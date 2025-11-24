@@ -5,7 +5,7 @@ import * as React from 'react';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Invoice, PaymentMethod } from '@/lib/types';
+import { Invoice, PaymentMethod, User, Order, Quote } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +37,9 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
+
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
   amount: z.coerce.number().positive(t('amountPositive')),
@@ -60,6 +63,14 @@ const paymentFormSchema = (t: (key: string) => string) => z.object({
 
 type PaymentFormValues = z.infer<ReturnType<typeof paymentFormSchema>>;
 
+const invoiceFormSchema = (t: (key: string) => string) => z.object({
+  id: z.string().optional(),
+  user_id: z.string().min(1, t('userRequired')),
+  order_id: z.string().optional(),
+  quote_id: z.string().optional(),
+});
+type InvoiceFormValues = z.infer<ReturnType<typeof invoiceFormSchema>>;
+
 interface InvoicesTableProps {
   invoices: Invoice[];
   isLoading?: boolean;
@@ -75,7 +86,7 @@ interface InvoicesTableProps {
   columnTranslations?: { [key: string]: string };
 }
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, isRefreshing, rowSelection, setRowSelection, columnTranslations }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, isRefreshing, rowSelection, setRowSelection, columnTranslations = {} }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
@@ -260,25 +271,25 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     {
       accessorKey: 'id',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('columns.invoiceId')} />
+        <DataTableColumnHeader column={column} title={columnTranslations.id || "Invoice ID"} />
       ),
     },
     {
         accessorKey: 'user_name',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.user')} />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.user_name || "User"} />,
     },
     {
         accessorKey: 'order_id',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.orderId')} />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.order_id || "Order ID"} />,
     },
     {
         accessorKey: 'quote_id',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.quoteId')} />,
+        header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.quote_id || "Quote ID"} />,
     },
     {
       accessorKey: 'total',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('columns.total')} />
+        <DataTableColumnHeader column={column} title={columnTranslations.total || "Total"} />
       ),
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('total'));
@@ -290,17 +301,15 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       },
     },
     {
-        accessorKey: 'currency',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('columns.currency')} />
-        ),
-        cell: ({ row }) => row.original.currency || 'N/A',
-      },
+      accessorKey: 'currency',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={columnTranslations.currency || "Currency"} />
+      ),
+      cell: ({ row }) => row.original.currency || 'N/A',
+    },
     {
       accessorKey: 'status',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('columns.status')} />
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.status || "Status"} />,
       cell: ({ row }) => {
         const status = row.getValue('status') as string;
         const variant = {
@@ -309,17 +318,12 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           draft: 'outline',
           overdue: 'destructive',
         }[status?.toLowerCase()] ?? ('default' as any);
-
-        return (
-          <Badge variant={variant} className="capitalize">
-            {tStatus(status.toLowerCase())}
-          </Badge>
-        );
+        return <Badge variant={variant} className="capitalize">{tStatus(status.toLowerCase())}</Badge>;
       },
     },
     {
       accessorKey: 'payment_status',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.payment')} />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.payment_status || "Payment"} />,
       cell: ({ row }) => {
         const status = row.original.payment_status;
         const variant = {
@@ -334,7 +338,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
      {
       accessorKey: 'createdAt',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('columns.createdAt')} />
+        <DataTableColumnHeader column={column} title={columnTranslations.createdAt || "Created At"} />
       ),
     },
     {
@@ -350,7 +354,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => handleAddPaymentClick(invoice)}>
                 {t('paymentDialog.add')}
               </DropdownMenuItem>
@@ -383,44 +387,28 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       </div>
     );
   }
-
-  const extraButtons = (
-     <>
-        {onImport && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="ml-2 h-8"
-            onClick={onImport}
-          >
-            <FileUp className="mr-2 h-4 w-4" />
-            Import
-          </Button>
-        )}
-    </>
-  );
-
+  
   return (
     <>
-    <Card>
-      <CardContent className="p-4">
-        <DataTable
-          columns={columns}
-          data={invoices}
-          filterColumnId="id"
-          filterPlaceholder={t('filterPlaceholder')}
-          onRowSelectionChange={onRowSelectionChange}
-          enableSingleRowSelection={!!onRowSelectionChange}
-          onRefresh={onRefresh}
-          isRefreshing={isRefreshing}
-          onCreate={onCreate}
-          rowSelection={rowSelection}
-          setRowSelection={setRowSelection}
-          columnTranslations={columnTranslations}
-          extraButtons={extraButtons}
-        />
-      </CardContent>
-    </Card>
+    <DataTable
+      columns={getColumns()}
+      data={invoices}
+      filterColumnId="id"
+      filterPlaceholder={t('filterPlaceholder')}
+      onRowSelectionChange={onRowSelectionChange}
+      enableSingleRowSelection={!!onRowSelectionChange}
+      onRefresh={onRefresh}
+      isRefreshing={isRefreshing}
+      onCreate={onCreate}
+      rowSelection={rowSelection}
+      setRowSelection={setRowSelection}
+      columnTranslations={columnTranslations}
+      extraButtons={onImport && (
+        <Button variant="outline" size="sm" className="ml-2 h-8" onClick={onImport}>
+          <FileUp className="mr-2 h-4 w-4" /> Import
+        </Button>
+      )}
+    />
 
     <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
       <DialogContent>
@@ -616,5 +604,237 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         </AlertDialogContent>
     </AlertDialog>
     </>
+  );
+}
+
+interface CreateInvoiceDialogProps {
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  onInvoiceCreated: () => void;
+  isSales: boolean;
+}
+
+export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, isSales }: CreateInvoiceDialogProps) {
+  const t = useTranslations('InvoicesPage.createDialog');
+  const tValidation = useTranslations('InvoicesPage.createValidation');
+  const [users, setUsers] = React.useState<User[]>([]);
+  const [orders, setOrders] = React.useState<Order[]>([]);
+  const [quotes, setQuotes] = React.useState<Quote[]>([]);
+  const [selectedUserId, setSelectedUserId] = React.useState<string | null>(null);
+  const [isUserSearchOpen, setUserSearchOpen] = React.useState(false);
+  const [isOrderSearchOpen, setOrderSearchOpen] = React.useState(false);
+  const [isQuoteSearchOpen, setQuoteSearchOpen] = React.useState(false);
+  const { toast } = useToast();
+  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+
+  const form = useForm<InvoiceFormValues>({
+    resolver: zodResolver(invoiceFormSchema(tValidation)),
+  });
+
+  React.useEffect(() => {
+    if (isOpen) {
+      const fetchUsers = async () => {
+        try {
+          const filterType = isSales ? 'PACIENTE' : 'PROVEEDOR';
+          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=${filterType}`);
+          if (response.ok) {
+            const data = await response.json();
+            const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
+            setUsers(usersData);
+          }
+        } catch (error) {
+          console.error('Failed to fetch users', error);
+        }
+      };
+      fetchUsers();
+    }
+  }, [isOpen, isSales]);
+
+  React.useEffect(() => {
+    if (selectedUserId) {
+      const fetchUserOrders = async () => {
+        try {
+          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_orders?user_id=${selectedUserId}&is_sales=${isSales}`);
+          if (response.ok) {
+            const data = await response.json();
+            setOrders(data || []);
+          }
+        } catch (error) {
+          console.error('Failed to fetch orders', error);
+        }
+      };
+      const fetchUserQuotes = async () => {
+        try {
+          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_quotes?user_id=${selectedUserId}&is_sales=${isSales}`);
+          if (response.ok) {
+            const data = await response.json();
+            setQuotes(data || []);
+          }
+        } catch (error) {
+          console.error('Failed to fetch quotes', error);
+        }
+      };
+      fetchUserOrders();
+      fetchUserQuotes();
+      form.setValue('user_id', selectedUserId);
+      form.setValue('order_id', undefined);
+      form.setValue('quote_id', undefined);
+    }
+  }, [selectedUserId, form, isSales]);
+
+  const onSubmit = async (values: InvoiceFormValues) => {
+    setSubmissionError(null);
+    try {
+      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({...values, is_sales: isSales}),
+      });
+      const responseData = await response.json();
+      if (!response.ok || (responseData.error && responseData.code >= 400)) {
+        throw new Error(responseData.message || t('errors.generic'));
+      }
+      toast({ title: t('success.title'), description: t('success.description') });
+      onInvoiceCreated();
+      onOpenChange(false);
+    } catch (error) {
+      setSubmissionError(error instanceof Error ? error.message : t('errors.generic'));
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('title')}</DialogTitle>
+          <DialogDescription>{t('description')}</DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+             {submissionError && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>{t('errors.title')}</AlertTitle>
+                <AlertDescription>{submissionError}</AlertDescription>
+              </Alert>
+            )}
+            <FormField
+              control={form.control}
+              name="user_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('user')}</FormLabel>
+                   <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                          {field.value ? users.find((user) => user.id === field.value)?.name : t('selectUser')}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <Command>
+                        <CommandInput placeholder={t('searchUser')} />
+                        <CommandList>
+                          <CommandEmpty>{t('noUserFound')}</CommandEmpty>
+                          <CommandGroup>
+                            {users.map((user) => (
+                              <CommandItem value={user.name} key={user.id} onSelect={() => { setSelectedUserId(user.id); setUserSearchOpen(false); }}>
+                                <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
+                                {user.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="order_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('order')}</FormLabel>
+                    <Popover open={isOrderSearchOpen} onOpenChange={setOrderSearchOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" role="combobox" disabled={!selectedUserId} className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                            {field.value ? `Order #${field.value}` : t('selectOrder')}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                          <CommandInput placeholder={t('searchOrder')} />
+                          <CommandList>
+                            <CommandEmpty>{t('noOrderFound')}</CommandEmpty>
+                            <CommandGroup>
+                              {orders.map((order) => (
+                                <CommandItem value={order.id} key={order.id} onSelect={() => { form.setValue('order_id', order.id); setOrderSearchOpen(false); }}>
+                                  <Check className={cn("mr-2 h-4 w-4", order.id === field.value ? "opacity-100" : "opacity-0")} />
+                                  {`Order #${order.id}`}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="quote_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('quote')}</FormLabel>
+                    <Popover open={isQuoteSearchOpen} onOpenChange={setQuoteSearchOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" role="combobox" disabled={!selectedUserId} className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                            {field.value ? `Quote #${field.value}` : t('selectQuote')}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                          <CommandInput placeholder={t('searchQuote')} />
+                          <CommandList>
+                            <CommandEmpty>{t('noQuoteFound')}</CommandEmpty>
+                            <CommandGroup>
+                              {quotes.map((quote) => (
+                                <CommandItem value={quote.id} key={quote.id} onSelect={() => { form.setValue('quote_id', quote.id); setQuoteSearchOpen(false); }}>
+                                  <Check className={cn("mr-2 h-4 w-4", quote.id === field.value ? "opacity-100" : "opacity-0")} />
+                                  {`Quote #${quote.id}`}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
+              <Button type="submit">{t('create')}</Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 }

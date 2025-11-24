@@ -2,15 +2,15 @@
 'use client';
 
 import * as React from 'react';
-import { Invoice, InvoiceItem, Payment, PaymentMethod } from '@/lib/types';
+import { Invoice, InvoiceItem, Payment } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { InvoicesTable } from '@/components/tables/invoices-table';
+import { InvoicesTable, CreateInvoiceDialog } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
-import { RefreshCw, X } from 'lucide-react';
+import { RefreshCw, X, FileUp } from 'lucide-react';
 import { RowSelectionState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
@@ -114,6 +114,8 @@ export default function InvoicesPage() {
     const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
     const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = React.useState<Invoice | null>(null);
     const [emailRecipients, setEmailRecipients] = React.useState('');
+    const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
 
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
     const [payments, setPayments] = React.useState<Payment[]>([]);
@@ -293,6 +295,8 @@ export default function InvoicesPage() {
                             onRefresh={loadInvoices}
                             onPrint={handlePrintInvoice}
                             onSendEmail={handleSendEmailClick}
+                            onCreate={() => setIsCreateDialogOpen(true)}
+                            onImport={() => setIsImportDialogOpen(true)}
                             isRefreshing={isLoadingInvoices}
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}
@@ -371,6 +375,38 @@ export default function InvoicesPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Import Invoice</DialogTitle>
+                        <DialogDescription>
+                            Upload a PDF or image file to automatically create an invoice.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <div className="flex items-center justify-center w-full">
+                            <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
+                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <FileUp className="w-8 h-8 mb-4 text-muted-foreground" />
+                                    <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                    <p className="text-xs text-muted-foreground">PDF, PNG, JPG or GIF (MAX. 10MB)</p>
+                                </div>
+                                <Input id="dropzone-file" type="file" className="hidden" />
+                            </label>
+                        </div> 
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>Cancel</Button>
+                        <Button>Create Invoice</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <CreateInvoiceDialog
+                isOpen={isCreateDialogOpen}
+                onOpenChange={setIsCreateDialogOpen}
+                onInvoiceCreated={loadInvoices}
+                isSales={false}
+            />
         </div>
     );
 }

@@ -296,6 +296,7 @@
     "identity_document": "Documento de Identidad"
   },
   "DoctorsPage": {
+    "title": "Doctores",
     "description": "Gestionar todos los doctores del sistema.",
     "createDialog": {
       "createTitle": "Crear Nuevo Doctor",
@@ -332,7 +333,11 @@
           "phone": "Teléfono",
           "identity_document": "Documento de identidad"
         }
-      }
+      },
+      "createSuccessTitle": "Doctor Creado",
+      "createSuccessDescription": "El nuevo doctor ha sido añadido exitosamente.",
+      "editSuccessTitle": "Doctor Actualizado",
+      "editSuccessDescription": "El doctor ha sido actualizado exitosamente."
     },
     "DoctorColumns": {
       "name": "Nombre",
@@ -834,6 +839,35 @@
       "amountPositive": "El monto debe ser un número positivo.",
       "dateRequired": "La fecha de pago es obligatoria.",
       "methodRequired": "El método de pago es obligatorio."
+    },
+    "createDialog": {
+      "title": "Crear Factura",
+      "description": "Seleccione un usuario y un pedido o cotización para generar una factura.",
+      "user": "Usuario/Proveedor",
+      "selectUser": "Seleccione un usuario/proveedor",
+      "searchUser": "Buscar usuario/proveedor...",
+      "noUserFound": "No se encontró ningún usuario.",
+      "order": "Pedido",
+      "selectOrder": "Seleccione un pedido (opcional)",
+      "searchOrder": "Buscar pedido...",
+      "noOrderFound": "No se encontró ningún pedido.",
+      "quote": "Cotización",
+      "selectQuote": "Seleccione una cotización (opcional)",
+      "searchQuote": "Buscar cotización...",
+      "noQuoteFound": "No se encontró ninguna cotización.",
+      "cancel": "Cancelar",
+      "create": "Crear Factura"
+    },
+    "createValidation": {
+      "userRequired": "El usuario/proveedor es obligatorio."
+    },
+    "errors": {
+      "title": "Error",
+      "generic": "Ocurrió un error inesperado."
+    },
+    "success": {
+      "title": "Factura Creada",
+      "description": "La factura ha sido creada exitosamente."
     }
   },
   "InvoiceItemsTable": {

@@ -296,6 +296,7 @@
     "identity_document": "Identity Document"
   },
   "DoctorsPage": {
+    "title": "Doctors",
     "description": "Manage all doctors in the system.",
     "createDialog": {
       "createTitle": "Create New Doctor",
@@ -332,7 +333,11 @@
           "phone": "Phone",
           "identity_document": "Identity Document"
         }
-      }
+      },
+      "createSuccessTitle": "Doctor Created",
+      "createSuccessDescription": "The new doctor has been added successfully.",
+      "editSuccessTitle": "Doctor Updated",
+      "editSuccessDescription": "The doctor has been updated successfully."
     },
     "DoctorColumns": {
       "name": "Name",
@@ -834,6 +839,35 @@
       "amountPositive": "Amount must be a positive number.",
       "dateRequired": "A payment date is required.",
       "methodRequired": "A payment method is required."
+    },
+    "createDialog": {
+      "title": "Create Invoice",
+      "description": "Select a user and an order or quote to generate an invoice.",
+      "user": "User/Provider",
+      "selectUser": "Select a user/provider",
+      "searchUser": "Search user/provider...",
+      "noUserFound": "No user found.",
+      "order": "Order",
+      "selectOrder": "Select an order (optional)",
+      "searchOrder": "Search order...",
+      "noOrderFound": "No order found.",
+      "quote": "Quote",
+      "selectQuote": "Select a quote (optional)",
+      "searchQuote": "Search quote...",
+      "noQuoteFound": "No quote found.",
+      "cancel": "Cancel",
+      "create": "Create Invoice"
+    },
+    "createValidation": {
+      "userRequired": "User/Provider is required."
+    },
+    "errors": {
+      "title": "Error",
+      "generic": "An unexpected error occurred."
+    },
+    "success": {
+      "title": "Invoice Created",
+      "description": "The invoice has been successfully created."
     }
   },
   "InvoiceItemsTable": {
