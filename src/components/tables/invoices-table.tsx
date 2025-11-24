@@ -71,6 +71,145 @@ const invoiceFormSchema = (t: (key: string) => string) => z.object({
 });
 type InvoiceFormValues = z.infer<ReturnType<typeof invoiceFormSchema>>;
 
+const getColumns = (
+    t: (key: string) => string,
+    tStatus: (key: string) => string,
+    columnTranslations: { [key: string]: string },
+    onPrint?: (invoice: Invoice) => void,
+    onSendEmail?: (invoice: Invoice) => void,
+    onAddPayment?: (invoice: Invoice) => void
+  ): ColumnDef<Invoice>[] => [
+      {
+        id: 'select',
+        header: () => null,
+        cell: ({ row, table }) => {
+          const isSelected = row.getIsSelected();
+          return (
+            <RadioGroup
+              value={isSelected ? row.id : ''}
+              onValueChange={() => {
+                table.toggleAllPageRowsSelected(false);
+                row.toggleSelected(true);
+              }}
+            >
+              <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
+            </RadioGroup>
+          );
+        },
+        enableSorting: false,
+        enableHiding: false,
+      },
+      {
+        accessorKey: 'id',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={columnTranslations.id || "Invoice ID"} />
+        ),
+      },
+      {
+          accessorKey: 'user_name',
+          header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.user_name || "User"} />,
+      },
+      {
+          accessorKey: 'order_id',
+          header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.order_id || "Order ID"} />,
+      },
+      {
+          accessorKey: 'quote_id',
+          header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.quote_id || "Quote ID"} />,
+      },
+      {
+        accessorKey: 'total',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={columnTranslations.total || "Total"} />
+        ),
+        cell: ({ row }) => {
+          const amount = parseFloat(row.getValue('total'));
+          const formatted = new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: row.original.currency || 'USD',
+          }).format(amount);
+          return <div className="font-medium">{formatted}</div>;
+        },
+      },
+       {
+        accessorKey: 'currency',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={columnTranslations.currency || "Currency"} />
+        ),
+        cell: ({ row }) => row.original.currency || 'N/A',
+      },
+      {
+        accessorKey: 'status',
+        header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.status || "Status"} />,
+        cell: ({ row }) => {
+          const status = row.getValue('status') as string;
+          const variant = {
+            paid: 'success',
+            sent: 'default',
+            draft: 'outline',
+            overdue: 'destructive',
+          }[status?.toLowerCase()] ?? ('default' as any);
+          return <Badge variant={variant} className="capitalize">{tStatus(status.toLowerCase())}</Badge>;
+        },
+      },
+      {
+        accessorKey: 'payment_status',
+        header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.payment_status || "Payment"} />,
+        cell: ({ row }) => {
+          const status = row.original.payment_status;
+          const variant = {
+            paid: 'success',
+            partial: 'info',
+            unpaid: 'outline',
+            partially_paid: 'info'
+          }[status?.toLowerCase() ?? ('default' as any)];
+          return <Badge variant={variant} className="capitalize">{status ? tStatus(status.toLowerCase()) : ''}</Badge>;
+        },
+      },
+       {
+        accessorKey: 'createdAt',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={columnTranslations.createdAt || "Created At"} />
+        ),
+      },
+      {
+        id: 'actions',
+        cell: ({ row }) => {
+          const invoice = row.original;
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                {onAddPayment && (
+                    <DropdownMenuItem onClick={() => onAddPayment(invoice)}>
+                        {t('paymentDialog.add')}
+                    </DropdownMenuItem>
+                )}
+                {onPrint && (
+                  <DropdownMenuItem onClick={() => onPrint(invoice)}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    <span>Print</span>
+                  </DropdownMenuItem>
+                )}
+                 {onSendEmail && (
+                  <DropdownMenuItem onClick={() => onSendEmail(invoice)}>
+                    <Send className="mr-2 h-4 w-4" />
+                    <span>Send Email</span>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        },
+      },
+    ];
+
 interface InvoicesTableProps {
   invoices: Invoice[];
   isLoading?: boolean;
@@ -244,139 +383,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   };
 
+    const columns = React.useMemo(() => getColumns(t, tStatus, columnTranslations, onPrint, onSendEmail, handleAddPaymentClick), [t, tStatus, columnTranslations, onPrint, onSendEmail]);
 
-  const columns: ColumnDef<Invoice>[] = [
-    {
-      id: 'select',
-      header: () => null,
-      cell: ({ row, table }) => {
-        const isSelected = row.getIsSelected();
-        return (
-          <RadioGroup
-            value={isSelected ? row.id : ''}
-            onValueChange={() => {
-              if (onRowSelectionChange) {
-                table.toggleAllPageRowsSelected(false);
-                row.toggleSelected(true);
-              }
-            }}
-          >
-            <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
-          </RadioGroup>
-        );
-      },
-      enableSorting: false,
-      enableHiding: false,
-    },
-    {
-      accessorKey: 'id',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={columnTranslations.id || "Invoice ID"} />
-      ),
-    },
-    {
-        accessorKey: 'user_name',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.user_name || "User"} />,
-    },
-    {
-        accessorKey: 'order_id',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.order_id || "Order ID"} />,
-    },
-    {
-        accessorKey: 'quote_id',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.quote_id || "Quote ID"} />,
-    },
-    {
-      accessorKey: 'total',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={columnTranslations.total || "Total"} />
-      ),
-      cell: ({ row }) => {
-        const amount = parseFloat(row.getValue('total'));
-        const formatted = new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: row.original.currency || 'USD',
-        }).format(amount);
-        return <div className="font-medium">{formatted}</div>;
-      },
-    },
-    {
-      accessorKey: 'currency',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={columnTranslations.currency || "Currency"} />
-      ),
-      cell: ({ row }) => row.original.currency || 'N/A',
-    },
-    {
-      accessorKey: 'status',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.status || "Status"} />,
-      cell: ({ row }) => {
-        const status = row.getValue('status') as string;
-        const variant = {
-          paid: 'success',
-          sent: 'default',
-          draft: 'outline',
-          overdue: 'destructive',
-        }[status?.toLowerCase()] ?? ('default' as any);
-        return <Badge variant={variant} className="capitalize">{tStatus(status.toLowerCase())}</Badge>;
-      },
-    },
-    {
-      accessorKey: 'payment_status',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.payment_status || "Payment"} />,
-      cell: ({ row }) => {
-        const status = row.original.payment_status;
-        const variant = {
-          paid: 'success',
-          partial: 'info',
-          unpaid: 'outline',
-          partially_paid: 'info'
-        }[status?.toLowerCase() ?? ('default' as any)];
-        return <Badge variant={variant} className="capitalize">{status ? tStatus(status.toLowerCase()) : ''}</Badge>;
-      },
-    },
-     {
-      accessorKey: 'createdAt',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={columnTranslations.createdAt || "Created At"} />
-      ),
-    },
-    {
-      id: 'actions',
-      cell: ({ row }) => {
-        const invoice = row.original;
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => handleAddPaymentClick(invoice)}>
-                {t('paymentDialog.add')}
-              </DropdownMenuItem>
-              {onPrint && (
-                <DropdownMenuItem onClick={() => onPrint(invoice)}>
-                  <Printer className="mr-2 h-4 w-4" />
-                  <span>Print</span>
-                </DropdownMenuItem>
-              )}
-               {onSendEmail && (
-                <DropdownMenuItem onClick={() => onSendEmail(invoice)}>
-                  <Send className="mr-2 h-4 w-4" />
-                  <span>Send Email</span>
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-    },
-  ];
-  
     if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
@@ -391,7 +399,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   return (
     <>
     <DataTable
-      columns={getColumns()}
+      columns={columns}
       data={invoices}
       filterColumnId="id"
       filterPlaceholder={t('filterPlaceholder')}
@@ -838,3 +846,5 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
     </Dialog>
   );
 }
+
+    
