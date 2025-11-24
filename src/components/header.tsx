@@ -92,6 +92,7 @@ export function Header() {
   const [hiddenItems, setHiddenItems] = React.useState<typeof navItems>([]);
   const containerRef = React.useRef<HTMLDivElement>(null);
   const navRef = React.useRef<HTMLDivElement>(null);
+  const hiddenNavRef = React.useRef<HTMLDivElement>(null);
   const rightSectionRef = React.useRef<HTMLDivElement>(null);
   
   const form = useForm<PasswordFormValues>({
@@ -99,12 +100,12 @@ export function Header() {
   });
 
   const updateMenu = React.useCallback(() => {
-    if (navRef.current && containerRef.current && rightSectionRef.current) {
+    if (hiddenNavRef.current && containerRef.current && rightSectionRef.current) {
         const containerWidth = containerRef.current.offsetWidth;
         const rightSectionWidth = rightSectionRef.current.offsetWidth;
-        const availableWidth = containerWidth - rightSectionWidth - 20; // 20px for some buffer
+        const availableWidth = containerWidth - rightSectionWidth - 20;
 
-        const navItemsElements = Array.from(navRef.current.children) as HTMLElement[];
+        const navItemsElements = Array.from(hiddenNavRef.current.children) as HTMLElement[];
         let currentWidth = 0;
         let visibleCount = 0;
         
@@ -119,14 +120,12 @@ export function Header() {
         setVisibleItems(navItems.slice(0, visibleCount));
         setHiddenItems(navItems.slice(visibleCount));
     }
-}, []);
-
+  }, []);
 
   React.useEffect(() => {
     updateMenu();
     window.addEventListener('resize', updateMenu);
     
-    // Recalculate after a short delay to account for initial render differences
     const timeoutId = setTimeout(updateMenu, 100);
 
     return () => {
@@ -229,6 +228,9 @@ export function Header() {
 
   return (
     <>
+    <div ref={hiddenNavRef} style={{ position: 'absolute', visibility: 'hidden', top: -9999, left: -9999 }}>
+        <HorizontalNav items={navItems} />
+    </div>
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
       <div className="container flex h-14 items-center" ref={containerRef}>
         <div className="mr-4 hidden md:flex">
