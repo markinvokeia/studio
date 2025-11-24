@@ -8,7 +8,7 @@ import * as z from 'zod';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ServicesColumnsWrapper } from './columns';
-import { Service } from '@/lib/types';
+import { Service, MiscellaneousCategory } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -63,7 +63,7 @@ async function getServices(): Promise<Service[]> {
     return servicesData.map((apiService: any) => ({
       id: apiService.id ? String(apiService.id) : `srv_${Math.random().toString(36).substr(2, 9)}`,
       name: apiService.name || 'No Name',
-      category: apiService.category || 'No Category',
+      category: apiService.category_name || apiService.category || 'No Category',
       price: apiService.price || 0,
       currency: apiService.currency || 'USD',
       duration_minutes: apiService.duration_minutes || 0,
@@ -77,6 +77,31 @@ async function getServices(): Promise<Service[]> {
     return [];
   }
 }
+
+async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_categories`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+        });
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        
+        const data = await response.json();
+        const categoriesData = Array.isArray(data) ? data : (data.data || []);
+
+        return categoriesData.map((c: any) => ({ 
+            ...c, 
+            id: String(c.id),
+            type: c.category_type 
+        }));
+    } catch (error) {
+        console.error("Failed to fetch miscellaneous categories:", error);
+        return [];
+    }
+}
+
 
 async function upsertService(serviceData: ServiceFormValues) {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/catalogoservicios/upsert', {
@@ -110,6 +135,7 @@ export default function ServicesPage() {
   const t = useTranslations('ServicesPage');
   const tValidation = useTranslations('ServicesPage.validation');
   const [services, setServices] = React.useState<Service[]>([]);
+  const [categories, setCategories] = React.useState<MiscellaneousCategory[]>([]);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingService, setEditingService] = React.useState<Service | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -133,6 +159,12 @@ export default function ServicesPage() {
   React.useEffect(() => {
     loadServices();
   }, [loadServices]);
+  
+  React.useEffect(() => {
+    if(isDialogOpen) {
+        getMiscellaneousCategories().then(setCategories);
+    }
+  }, [isDialogOpen]);
 
   const handleCreate = () => {
     setEditingService(null);
@@ -266,9 +298,20 @@ export default function ServicesPage() {
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>{t('createDialog.category')}</FormLabel>
-                        <FormControl>
-                            <Input placeholder={t('createDialog.categoryPlaceholder')} {...field} />
-                        </FormControl>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder={t('createDialog.categoryPlaceholder')} />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {categories.map((cat) => (
+                                    <SelectItem key={cat.id} value={cat.name}>
+                                        {cat.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
                         <FormMessage />
                         </FormItem>
                     )}
