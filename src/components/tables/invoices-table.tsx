@@ -405,11 +405,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       columnTranslations={columnTranslations}
       extraButtons={
          <>
-          {onCreate && (
-            <Button variant="outline" size="sm" className="ml-2 h-8" onClick={onCreate}>
-              <Plus className="mr-2 h-4 w-4" /> Create
-            </Button>
-          )}
           {onImport && (
             <Button variant="outline" size="sm" className="ml-2 h-8" onClick={onImport}>
               <FileUp className="mr-2 h-4 w-4" /> Import
