@@ -54,7 +54,8 @@ import { UyFlagIcon } from './icons/uy-flag-icon';
 import { UsFlagIcon } from './icons/us-flag-icon';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Form } from './ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
+import { Input } from './ui/input';
 import { HorizontalNav } from './horizontal-nav';
 import { ExchangeRate } from './exchange-rate';
 
@@ -92,6 +93,10 @@ export function Header() {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const navRef = React.useRef<HTMLDivElement>(null);
   const rightSectionRef = React.useRef<HTMLDivElement>(null);
+  
+  const form = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordFormSchema(t)),
+  });
 
   const updateMenu = React.useCallback(() => {
     if (navRef.current && containerRef.current && rightSectionRef.current) {
@@ -362,16 +367,64 @@ export function Header() {
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
-    {/* Form is not a direct child of DialogContent, so we wrap it here */}
     <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('changePasswordDialog.title')}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleChangePasswordSubmit)}>
-            {/* The actual form content */}
-          </form>
+            <form onSubmit={form.handleSubmit(handleChangePasswordSubmit)} className="space-y-4 py-4">
+                {passwordChangeError && (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>{t('errors.title')}</AlertTitle>
+                        <AlertDescription>{passwordChangeError}</AlertDescription>
+                    </Alert>
+                )}
+                <FormField
+                    control={form.control}
+                    name="old_password"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('changePasswordDialog.oldPassword')}</FormLabel>
+                            <FormControl>
+                                <Input type="password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="new_password"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('changePasswordDialog.newPassword')}</FormLabel>
+                            <FormControl>
+                                <Input type="password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="confirm_password"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('changePasswordDialog.confirmPassword')}</FormLabel>
+                            <FormControl>
+                                <Input type="password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <DialogFooter>
+                    <Button variant="outline" type="button" onClick={() => setIsChangePasswordOpen(false)}>{t('changePasswordDialog.cancel')}</Button>
+                    <Button type="submit">{t('changePasswordDialog.save')}</Button>
+                </DialogFooter>
+            </form>
         </Form>
       </DialogContent>
     </Dialog>
