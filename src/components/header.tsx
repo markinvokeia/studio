@@ -101,7 +101,7 @@ export function Header() {
     },
   });
 
-  const updateMenu = () => {
+  const updateMenu = React.useCallback(() => {
     if (navRef.current && containerRef.current) {
         const containerWidth = containerRef.current.offsetWidth;
         const navItemsElements = Array.from(navRef.current.children) as HTMLElement[];
@@ -122,7 +122,8 @@ export function Header() {
             let countWithMore = 0;
             for (let i = 0; i < navItems.length; i++) {
                 widthWithMore += navItemsElements[i]?.offsetWidth || 0;
-                if (widthWithMore + 80 > containerWidth) { // 80px is an estimate for the "More" button
+                // 80px is a safe estimate for the "More" button width + gap
+                if (widthWithMore + 80 > containerWidth) {
                     break;
                 }
                 countWithMore++;
@@ -134,13 +135,13 @@ export function Header() {
             setHiddenItems([]);
         }
     }
-  };
+  }, []);
 
   React.useEffect(() => {
     updateMenu();
     window.addEventListener('resize', updateMenu);
     return () => window.removeEventListener('resize', updateMenu);
-  }, [navRef, containerRef]);
+  }, [updateMenu]);
 
 
   React.useEffect(() => {
@@ -240,7 +241,7 @@ export function Header() {
       <div className="container flex h-14 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold text-foreground">
-              <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={32} height={32} alt="InvokeIA Logo" />
+              <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={24} height={24} alt="InvokeIA Logo" />
           </Link>
         </div>
         
@@ -263,13 +264,13 @@ export function Header() {
             </SheetContent>
         </Sheet>
         
-        <div ref={containerRef} className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-            <div ref={navRef} className="hidden md:flex md:flex-1">
+        <div ref={containerRef} className="flex flex-1 items-center justify-end space-x-2">
+            <div ref={navRef} className="hidden md:flex flex-1 items-center">
                 <HorizontalNav items={visibleItems} />
                 {hiddenItems.length > 0 && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-10 px-3 py-2 text-sm font-medium">
+                            <Button variant="ghost" className="h-9 px-3 text-sm font-medium">
                                 More
                                 <MoreHorizontal className="ml-2 h-4 w-4" />
                             </Button>
