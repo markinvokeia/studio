@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -394,13 +394,13 @@ export default function InvoicesPage() {
 
     const onEditItemSubmit = async (data: InvoiceItemFormValues) => {
       try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/edit?invoice_item_id=${data.id}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/edit`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...data, service_name: services.find(s => s.id === data.service_id)?.name }),
         });
         const responseData = await response.json();
-        if (!response.ok) {
+        if (response.status >= 400) {
             throw new Error(responseData.message || 'Failed to update invoice item.');
         }
         toast({ title: 'Success', description: responseData.message || 'Invoice item updated successfully.'});
@@ -419,7 +419,7 @@ export default function InvoicesPage() {
             headers: { 'invoice_item_id': deletingItem.id },
         });
         const responseData = await response.json();
-        if (!response.ok) {
+        if (response.status >= 400) {
             throw new Error(responseData.message || 'Failed to delete invoice item.');
         }
         toast({ title: 'Success', description: responseData.message || 'Invoice item deleted successfully.'});
@@ -641,7 +641,8 @@ export default function InvoicesPage() {
               </Dialog>
             )}
 
-            <AlertDialog open={isDeleteItemDialogOpen} onOpenChange={setIsDeleteItemDialogOpen}>
+            {isDeleteItemDialogOpen && (
+              <AlertDialog open={isDeleteItemDialogOpen} onOpenChange={setIsDeleteItemDialogOpen}>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -652,7 +653,8 @@ export default function InvoicesPage() {
                     <AlertDialogAction onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
-            </AlertDialog>
+              </AlertDialog>
+            )}
         </div>
     );
 }

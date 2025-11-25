@@ -402,7 +402,7 @@ export default function InvoicesPage() {
             body: JSON.stringify({ ...data, service_name: services.find(s => s.id === data.service_id)?.name }),
         });
         const responseData = await response.json();
-        if (!response.ok) {
+        if (response.status >= 400) {
             throw new Error(responseData.message || 'Failed to update invoice item.');
         }
         toast({ title: 'Success', description: responseData.message || 'Invoice item updated successfully.'});
@@ -421,7 +421,7 @@ export default function InvoicesPage() {
             headers: { 'invoice_item_id': deletingItem.id },
         });
         const responseData = await response.json();
-        if (!response.ok) {
+        if (response.status >= 400) {
             throw new Error(responseData.message || 'Failed to delete invoice item.');
         }
         toast({ title: 'Success', description: responseData.message || 'Invoice item deleted successfully.'});
@@ -658,4 +658,3 @@ export default function InvoicesPage() {
         </div>
     );
 }
-
