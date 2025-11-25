@@ -78,6 +78,7 @@ export function Header() {
   const pathname = usePathname();
   const { setTheme } = useTheme();
   const t = useTranslations('Header');
+  const tNav = useTranslations('Navigation');
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -273,7 +274,7 @@ export function Header() {
                     <DropdownMenuContent>
                         {hiddenItems.map(item => (
                             <DropdownMenuItem key={item.title} asChild>
-                                <Link href={item.href}>{t(item.title as any)}</Link>
+                                <Link href={item.href}>{tNav(item.title as any)}</Link>
                             </DropdownMenuItem>
                         ))}
                     </DropdownMenuContent>
@@ -433,3 +434,5 @@ export function Header() {
     </>
   );
 }
+
+    
