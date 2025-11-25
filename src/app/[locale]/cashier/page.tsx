@@ -44,7 +44,7 @@ const UYU_IMAGES = {
     10: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Moneda%2010/Anverso.jpg',
     5: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Moneda%205/Anverso.jpg',
     2: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Moneda%202/Anverso.jpg',
-    1: 'https://www.bcu.gubuy/Billetes-y-Monedas/Moneda%201/Anverso.jpg',
+    1: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Moneda%201/Anverso.jpg',
 };
 
 const USD_IMAGES = {
@@ -462,6 +462,11 @@ const DenominationCounter = ({ title, denominations, coins, currency, onDetailsC
     imageMap: Record<number, string>
 }) => {
     const [quantities, setQuantities] = React.useState<Record<string, number>>({});
+    
+    React.useEffect(() => {
+        onDetailsChange(quantities);
+    }, [quantities, onDetailsChange]);
+
     const total = React.useMemo(() => {
         return [...denominations, ...coins].reduce((sum, den) => sum + (Number(den) || 0) * (quantities[den] || 0), 0)
     }, [quantities, denominations, coins]);
@@ -485,9 +490,6 @@ const DenominationCounter = ({ title, denominations, coins, currency, onDetailsC
         }
     }
     
-    React.useEffect(() => {
-        onDetailsChange(quantities);
-    }, [quantities, onDetailsChange]);
 
     return (
         <div className="space-y-4">
@@ -612,8 +614,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     const usdEquivalentInUYU = usdTotal * (sessionData.date_rate || 0);
     const totalOpeningAmount = uyuTotal + usdEquivalentInUYU;
     
-    const memoizedSetUyuDenominations = React.useCallback(setUyuDenominations, []);
-    const memoizedSetUsdDenominations = React.useCallback(setUsdDenominations, []);
+    const memoizedSetUyuDenominations = React.useCallback(setUyuDenominations, [setUyuDenominations]);
+    const memoizedSetUsdDenominations = React.useCallback(setUsdDenominations, [setUsdDenominations]);
 
     const handleNextStep = async () => {
         if (currentStep === 'CONFIG') {
@@ -825,3 +827,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         </Card>
     );
 }
+
+
+    
