@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Box, Briefcase, DollarSign, LogOut, TrendingDown, TrendingUp, ArrowLeft, ArrowRight, BookOpenCheck, Minus, Plus } from 'lucide-react';
+import { AlertTriangle, Box, Briefcase, DollarSign, LogOut, TrendingDown, TrendingUp, ArrowLeft, ArrowRight, BookOpenCheck, Minus, Plus, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
@@ -453,7 +453,7 @@ const DenominationCounter = ({ title, denominations, currency, onTotalChange, on
         const total = totalFromBills + coinsAmount;
         onTotalChange(total);
         onDetailsChange({ ...quantities, coins: coinsAmount });
-    }, [quantities, coinsAmount, denominations]);
+    }, [quantities, coinsAmount, denominations, onTotalChange, onDetailsChange]);
 
     return (
         <div className="space-y-4">
@@ -525,35 +525,38 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     const [sellRate, setSellRate] = React.useState(0);
     const [avgRate, setAvgRate] = React.useState(0);
     const [exchangeRatesHtml, setExchangeRatesHtml] = React.useState('');
+    const [exchangeRateStatus, setExchangeRateStatus] = React.useState<'loading' | 'loaded' | 'error'>('loading');
+
+    const fetchRates = React.useCallback(async () => {
+        setExchangeRateStatus('loading');
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cotizaciones');
+            if (!response.ok) throw new Error('Failed to fetch exchange rates');
+            const data = await response.json();
+            
+            const compra = parseFloat(data.compra);
+            const venta = parseFloat(data.venta);
+            
+            setBuyRate(compra);
+            setSellRate(venta);
+            
+            const avg = (compra + venta) / 2;
+            setAvgRate(avg);
+            setSessionData(prev => ({...prev, date_rate: avg}));
+            setExchangeRatesHtml(data.html);
+            setExchangeRateStatus('loaded');
+        } catch (error) {
+            console.error("Error fetching rates", error);
+            setExchangeRateStatus('error');
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch exchange rates.' });
+        }
+    }, [setSessionData, toast]);
 
     React.useEffect(() => {
-        const fetchRates = async () => {
-            try {
-                const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cotizaciones');
-                if (!response.ok) throw new Error('Failed to fetch exchange rates');
-                const data = await response.json();
-                
-                const compra = parseFloat(data.compra);
-                const venta = parseFloat(data.venta);
-                
-                setBuyRate(compra);
-                setSellRate(venta);
-                
-                const avg = (compra + venta) / 2;
-                setAvgRate(avg);
-                setSessionData(prev => ({...prev, date_rate: avg}));
-                setExchangeRatesHtml(data.html);
-
-            } catch (error) {
-                console.error("Error fetching rates", error);
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch exchange rates.' });
-            }
-        };
-
         if (currentStep === 'CONFIG') {
             fetchRates();
         }
-    }, [currentStep, setSessionData, toast]);
+    }, [currentStep, fetchRates]);
 
     const uyuTotal = React.useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
     const usdTotal = React.useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
@@ -618,10 +621,30 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         else if (currentStep === 'CONFIG') onExitWizard();
     };
 
-
-    const stepComponents = {
-        'CONFIG': (
-             <div>
+    const renderConfigContent = () => {
+        const disabled = exchangeRateStatus === 'loading';
+        if (exchangeRateStatus === 'loading') {
+            return (
+                <div className="flex flex-col items-center justify-center h-96">
+                    <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">Loading Today's Exchange Rates...</p>
+                </div>
+            );
+        }
+        if (exchangeRateStatus === 'error') {
+            return (
+                 <div className="flex flex-col items-center justify-center h-96">
+                    <AlertTriangle className="h-8 w-8 text-destructive mb-4" />
+                    <p className="text-destructive mb-4">Failed to load exchange rates.</p>
+                    <div className="flex gap-4">
+                        <Button onClick={() => fetchRates()}>Retry</Button>
+                        <Button variant="outline" onClick={() => setExchangeRateStatus('loaded')}>Set Manually</Button>
+                    </div>
+                </div>
+            )
+        }
+        return (
+            <div>
                 <div className="grid grid-cols-3 gap-4 text-sm mb-4">
                     <div><strong>{t('openSession.terminal')}:</strong> {sessionData.cash_point_name}</div>
                     <div><strong>{t('openSession.user')}:</strong> {user?.name}</div>
@@ -637,20 +660,20 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                          <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <Label htmlFor="buy_rate">Compra</Label>
-                                <Input id="buy_rate" value={buyRate.toFixed(2)} readOnly />
+                                <Input id="buy_rate" value={buyRate.toFixed(2)} readOnly disabled={disabled} />
                             </div>
                             <div className="space-y-1">
                                 <Label htmlFor="sell_rate">Venta</Label>
-                                <Input id="sell_rate" value={sellRate.toFixed(2)} readOnly />
+                                <Input id="sell_rate" value={sellRate.toFixed(2)} readOnly disabled={disabled} />
                             </div>
                         </div>
                         <div className="space-y-1">
                             <Label htmlFor="date_rate">{t('openSession.exchangeRate')}</Label>
-                            <Input id="date_rate" type="number" step="0.00001" value={sessionData.date_rate || ''} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: parseFloat(e.target.value) || 0 }))} />
+                            <Input id="date_rate" type="number" step="0.00001" value={sessionData.date_rate || ''} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: parseFloat(e.target.value) || 0 }))} disabled={disabled}/>
                         </div>
                          <div className="space-y-1">
                             <Label>{t('openSession.currency')}</Label>
-                            <Select value={sessionData.currency} onValueChange={(value) => setSessionData(prev => ({...prev, currency: value as 'UYU' | 'USD' | 'EUR'}))}>
+                            <Select value={sessionData.currency} onValueChange={(value) => setSessionData(prev => ({...prev, currency: value as 'UYU' | 'USD' | 'EUR'}))} disabled={disabled}>
                                 <SelectTrigger><SelectValue/></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="UYU">UYU</SelectItem>
@@ -666,7 +689,11 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                      />
                 </div>
             </div>
-        ),
+        );
+    }
+
+    const stepComponents = {
+        'CONFIG': renderConfigContent(),
         'COUNT_UYU': (
             <DenominationCounter 
                 title="Conteo de Efectivo (UYU)"
@@ -739,11 +766,12 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                  {stepComponents[currentStep]}
             </CardContent>
             <CardFooter className="justify-between">
-                <Button variant="outline" onClick={handlePreviousStep}>Atrás</Button>
-                 <Button onClick={currentStep === 'CONFIRM' ? handleConfirmAndOpen : handleNextStep} disabled={isSubmitting}>
-                     {isSubmitting ? 'Abriendo...' : (currentStep === 'CONFIRM' ? t('confirmation.confirmButton') : 'Siguiente')}
+                <Button variant="outline" onClick={handlePreviousStep} disabled={isSubmitting}>{t('wizard.back')}</Button>
+                 <Button onClick={currentStep === 'CONFIRM' ? handleConfirmAndOpen : handleNextStep} disabled={isSubmitting || exchangeRateStatus === 'loading' || exchangeRateStatus === 'error' && currentStep === 'CONFIG'}>
+                     {isSubmitting ? 'Abriendo...' : (currentStep === 'CONFIRM' ? t('confirmation.confirmButton') : t('wizard.next'))}
                  </Button>
             </CardFooter>
         </Card>
     );
 }
+
