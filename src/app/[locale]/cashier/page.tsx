@@ -28,12 +28,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useCallback } from 'react';
 
 const denominationsUYU = [2000, 1000, 500, 200, 100, 50, 20];
 const coinsUYU = [10, 5, 2, 1];
 const denominationsUSD = [100, 50, 20, 10, 5, 1];
 
-const UYU_IMAGES = {
+const UYU_IMAGES: Record<number, string> = {
     2000: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%202000/Anverso.jpg',
     1000: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%201000/Anverso.jpg',
     500: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%20500/Anverso.jpg',
@@ -47,7 +49,7 @@ const UYU_IMAGES = {
     1: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Moneda%201/Anverso.jpg',
 };
 
-const USD_IMAGES = {
+const USD_IMAGES: Record<number, string> = {
     100: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Dolares/100%20Dolares/Anverso.jpg',
     50: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Dolares/50%20Dolares/Anverso.jpg',
     20: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Dolares/20%20Dolares/Anverso.jpg',
@@ -622,8 +624,9 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     const usdEquivalentInUYU = usdTotal * (sessionData.date_rate || 0);
     const totalOpeningAmount = uyuTotal + usdEquivalentInUYU;
     
-    const memoizedSetUyuDenominations = React.useCallback(setUyuDenominations, [setUyuDenominations]);
-    const memoizedSetUsdDenominations = React.useCallback(setUsdDenominations, [setUsdDenominations]);
+    const memoizedSetUyuDenominations = useCallback((details: Record<string, number>) => setUyuDenominations(details), [setUyuDenominations]);
+    const memoizedSetUsdDenominations = useCallback((details: Record<string, number>) => setUsdDenominations(details), [setUsdDenominations]);
+
 
     const handleNextStep = async () => {
         if (currentStep === 'CONFIG') {
@@ -694,13 +697,13 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             );
         }
         if (exchangeRateStatus === 'error') {
-            return (
+             return (
                  <div className="flex flex-col items-center justify-center h-96">
                     <AlertTriangle className="h-8 w-8 text-destructive mb-4" />
                     <p className="text-destructive mb-4">Failed to load exchange rates.</p>
                     <div className="flex gap-4">
                         <Button onClick={() => fetchRates()}>Retry</Button>
-                        <Button variant="outline" onClick={() => { setExchangeRateStatus('loaded'); }}>Set Manually</Button>
+                        <Button variant="outline" onClick={() => setExchangeRateStatus('loaded')}>Set Manually</Button>
                     </div>
                 </div>
             );
@@ -713,7 +716,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                     <div><strong>{t('openSession.user')}:</strong> {user?.name}</div>
                     <div><strong>{t('openSession.openingDate')}:</strong> {new Date().toLocaleString()}</div>
                 </div>
-                 <Alert variant="info">
+                 <Alert variant="info" className="bg-orange-100 border-orange-200 text-orange-800">
                     <Info className="h-4 w-4" />
                     <AlertDescription>{t('openSession.exchangeRateTooltip')}</AlertDescription>
                 </Alert>
