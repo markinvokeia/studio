@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Box, Briefcase, DollarSign, LogOut, TrendingDown, TrendingUp, ArrowLeft, ArrowRight, BookOpenCheck, Minus, Plus, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Box, Briefcase, DollarSign, LogOut, TrendingDown, TrendingUp, ArrowLeft, ArrowRight, BookOpenCheck, Minus, Plus, RefreshCw, Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
@@ -638,56 +638,53 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                     <p className="text-destructive mb-4">Failed to load exchange rates.</p>
                     <div className="flex gap-4">
                         <Button onClick={() => fetchRates()}>Retry</Button>
-                        <Button variant="outline" onClick={() => setExchangeRateStatus('loaded')}>Set Manually</Button>
+                        <Button variant="outline" onClick={()={() => setExchangeRateStatus('loaded')}>Set Manually</Button>
                     </div>
                 </div>
             )
         }
         return (
-            <div>
-                <div className="grid grid-cols-3 gap-4 text-sm mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 text-sm mb-4 gap-2">
                     <div><strong>{t('openSession.terminal')}:</strong> {sessionData.cash_point_name}</div>
                     <div><strong>{t('openSession.user')}:</strong> {user?.name}</div>
                     <div><strong>{t('openSession.openingDate')}:</strong> {new Date().toLocaleString()}</div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-4">
-                         <div className="flex items-center gap-2">
-                             <Alert className="text-sm">
-                                <AlertDescription>{t('openSession.exchangeRateTooltip')}</AlertDescription>
-                            </Alert>
-                        </div>
-                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <Label htmlFor="buy_rate">Compra</Label>
-                                <Input id="buy_rate" value={buyRate.toFixed(2)} readOnly disabled={disabled} />
-                            </div>
-                            <div className="space-y-1">
-                                <Label htmlFor="sell_rate">Venta</Label>
-                                <Input id="sell_rate" value={sellRate.toFixed(2)} readOnly disabled={disabled} />
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                            <Label htmlFor="date_rate">{t('openSession.exchangeRate')}</Label>
-                            <Input id="date_rate" type="number" step="0.00001" value={sessionData.date_rate || ''} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: parseFloat(e.target.value) || 0 }))} disabled={disabled}/>
-                        </div>
-                         <div className="space-y-1">
-                            <Label>{t('openSession.currency')}</Label>
-                            <Select value={sessionData.currency} onValueChange={(value) => setSessionData(prev => ({...prev, currency: value as 'UYU' | 'USD' | 'EUR'}))} disabled={disabled}>
-                                <SelectTrigger><SelectValue/></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="UYU">UYU</SelectItem>
-                                    <SelectItem value="USD">USD</SelectItem>
-                                    <SelectItem value="EUR">EUR</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                <Alert variant="info">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>{t('openSession.exchangeRateTooltip')}</AlertDescription>
+                </Alert>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <Label htmlFor="buy_rate">Compra</Label>
+                        <Input id="buy_rate" value={buyRate.toFixed(2)} readOnly disabled={disabled} />
                     </div>
-                     <div 
-                        className="h-[400px] w-full overflow-y-auto rounded-lg"
-                        dangerouslySetInnerHTML={{ __html: exchangeRatesHtml }}
-                     />
+                    <div className="space-y-1">
+                        <Label htmlFor="sell_rate">Venta</Label>
+                        <Input id="sell_rate" value={sellRate.toFixed(2)} readOnly disabled={disabled} />
+                    </div>
                 </div>
+                <div className="space-y-1">
+                    <Label htmlFor="date_rate">{t('openSession.exchangeRate')}</Label>
+                    <Input id="date_rate" type="number" step="0.00001" value={sessionData.date_rate || ''} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: parseFloat(e.target.value) || 0 }))} disabled={disabled}/>
+                </div>
+                 <div className="space-y-1">
+                    <Label>{t('openSession.currency')}</Label>
+                    <Select value={sessionData.currency} onValueChange={(value) => setSessionData(prev => ({...prev, currency: value as 'UYU' | 'USD' | 'EUR'}))} disabled={disabled}>
+                        <SelectTrigger><SelectValue/></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="UYU">UYU</SelectItem>
+                            <SelectItem value="USD">USD</SelectItem>
+                            <SelectItem value="EUR">EUR</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+              </div>
+              <div 
+                className="h-[400px] w-full overflow-y-auto rounded-lg"
+                dangerouslySetInnerHTML={{ __html: exchangeRatesHtml }}
+              />
             </div>
         );
     }
@@ -775,3 +772,4 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     );
 }
 
+    
