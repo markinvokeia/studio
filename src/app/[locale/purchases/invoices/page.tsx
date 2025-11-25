@@ -376,7 +376,12 @@ export default function InvoicesPage() {
 
     const handleEditItem = async (item: InvoiceItem) => {
       setEditingItem(item);
-      itemForm.reset(item);
+      itemForm.reset({
+        id: item.id,
+        service_id: item.service_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+      });
       const fetchedServices = await getServices();
       setServices(fetchedServices);
       setIsEditItemDialogOpen(true);
@@ -389,7 +394,7 @@ export default function InvoicesPage() {
 
     const onEditItemSubmit = async (data: InvoiceItemFormValues) => {
       try {
-        await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/upsert?invoice_item_id=${data.id}`, {
+        await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/edit?invoice_item_id=${data.id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...data, service_name: services.find(s => s.id === data.service_id)?.name }),
@@ -405,10 +410,9 @@ export default function InvoicesPage() {
     const confirmDeleteItem = async () => {
       if (!deletingItem) return;
       try {
-        await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/delete`, {
+        await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/delete`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: deletingItem.id }),
+            headers: { 'invoice_item_id': deletingItem.id },
         });
         toast({ title: 'Success', description: 'Invoice item deleted successfully.'});
         loadInvoiceItems();
