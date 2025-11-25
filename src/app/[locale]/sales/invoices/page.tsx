@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Invoice, InvoiceItem, Payment } from '@/lib/types';
+import { Invoice, InvoiceItem, Payment, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -25,11 +25,31 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 
 const invoiceItemSchema = z.object({
   id: z.string(),
-  service_name: z.string().min(1, 'Service name is required'),
+  service_id: z.string().min(1, 'Service name is required'),
   quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
   unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
 });
 type InvoiceItemFormValues = z.infer<typeof invoiceItemSchema>;
+
+async function getServices(): Promise<Service[]> {
+  try {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=true', {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json',
+      },
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
+    return servicesData.map((s: any) => ({ ...s, id: String(s.id) }));
+  } catch (error) {
+    console.error("Failed to fetch services:", error);
+    return [];
+  }
+}
 
 
 async function getInvoices(): Promise<Invoice[]> {
@@ -146,10 +166,25 @@ export default function InvoicesPage() {
     const [isEditItemDialogOpen, setIsEditItemDialogOpen] = React.useState(false);
     const [deletingItem, setDeletingItem] = React.useState<InvoiceItem | null>(null);
     const [isDeleteItemDialogOpen, setIsDeleteItemDialogOpen] = React.useState(false);
+    const [services, setServices] = React.useState<Service[]>([]);
 
     const itemForm = useForm<InvoiceItemFormValues>({
       resolver: zodResolver(invoiceItemSchema),
     });
+    
+    const watchedServiceId = itemForm.watch('service_id');
+    const watchedQuantity = itemForm.watch('quantity');
+
+    React.useEffect(() => {
+        if (watchedServiceId) {
+            const service = services.find(s => s.id === watchedServiceId);
+            if (service) {
+                const quantity = Number(itemForm.getValues('quantity')) || 1;
+                itemForm.setValue('unit_price', service.price);
+            }
+        }
+    }, [watchedServiceId, itemForm, services]);
+
 
     const loadInvoices = React.useCallback(async () => {
         setIsLoadingInvoices(true);
@@ -312,7 +347,7 @@ export default function InvoicesPage() {
         const formData = new FormData();
         formData.append('file', importFile);
         formData.append('is_sales', 'true');
-        formData.append('status', 'unpaid');
+        formData.append('status', importStatus);
 
         try {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/invoice/import', {
@@ -341,9 +376,11 @@ export default function InvoicesPage() {
         }
     };
 
-    const handleEditItem = (item: InvoiceItem) => {
+    const handleEditItem = async (item: InvoiceItem) => {
       setEditingItem(item);
       itemForm.reset(item);
+      const fetchedServices = await getServices();
+      setServices(fetchedServices);
       setIsEditItemDialogOpen(true);
     };
 
@@ -357,7 +394,7 @@ export default function InvoicesPage() {
         await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/upsert?invoice_item_id=${data.id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
+            body: JSON.stringify({ ...data, service_name: services.find(s => s.id === data.service_id)?.name }),
         });
         toast({ title: 'Success', description: 'Invoice item updated successfully.'});
         loadInvoiceItems();
@@ -383,6 +420,7 @@ export default function InvoicesPage() {
       }
     };
 
+
     const columnTranslations = {
         id: t('columns.invoiceId'),
         user_name: t('columns.user'),
@@ -393,7 +431,7 @@ export default function InvoicesPage() {
         payment_status: t('columns.payment'),
         createdAt: t('columns.createdAt'),
     };
-
+    
     const canEditItems = selectedInvoice?.status.toLowerCase() === 'unpaid';
 
     return (
@@ -567,7 +605,20 @@ export default function InvoicesPage() {
                   </DialogHeader>
                   <Form {...itemForm}>
                     <form onSubmit={itemForm.handleSubmit(onEditItemSubmit)} className="space-y-4">
-                      <FormField control={itemForm.control} name="service_name" render={({ field }) => (<FormItem><FormLabel>Service</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={itemForm.control} name="service_id" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Service</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger><SelectValue placeholder="Select a service" /></SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {services.map(service => <SelectItem key={service.id} value={service.id}>{service.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
                       <FormField control={itemForm.control} name="quantity" render={({ field }) => (<FormItem><FormLabel>Quantity</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={itemForm.control} name="unit_price" render={({ field }) => (<FormItem><FormLabel>Unit Price</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <DialogFooter>
