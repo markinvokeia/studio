@@ -285,15 +285,35 @@ export default function InvoicesPage() {
             return;
         }
         setIsProcessingImport(true);
-        // Simulate processing
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        setIsProcessingImport(false);
-        setIsImportDialogOpen(false);
-        setImportFile(null);
-        toast({ title: 'Processing Started', description: 'Your invoice is being processed and will be created shortly.' });
-        // Here you would typically call an API to upload and process the file
-        // e.g. await uploadAndProcessInvoice(importFile);
-        // on success, call loadInvoices();
+
+        const formData = new FormData();
+        formData.append('file', importFile);
+
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/invoice/import', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                 const errorData = await response.json().catch(() => ({ message: 'Failed to import invoice.' }));
+                throw new Error(errorData.message || 'An error occurred during import.');
+            }
+
+            toast({ title: 'Import Successful', description: 'The invoice has been created from the imported file.' });
+            loadInvoices();
+            setIsImportDialogOpen(false);
+
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Import Failed',
+                description: error instanceof Error ? error.message : 'Could not import the invoice.',
+            });
+        } finally {
+            setIsProcessingImport(false);
+            setImportFile(null);
+        }
     };
 
 
@@ -460,3 +480,4 @@ export default function InvoicesPage() {
         </div>
     );
 }
+
