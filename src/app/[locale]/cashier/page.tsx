@@ -427,7 +427,7 @@ function CloseSessionWizard({
     );
 }
 
-const DenominationCounter = ({ title, denominations, currency, onTotalChange, onDetailsChange }: { title: string, denominations: number[], currency: string, onTotalChange: (total: number) => void, onDetailsChange: (details: Record<string, number>) => void }) => {
+const DenominationCounter = ({ title, denominations, currency, onDetailsChange }: { title: string, denominations: number[], currency: string, onDetailsChange: (details: Record<string, number>) => void }) => {
     const [quantities, setQuantities] = React.useState<Record<string, number>>(() =>
         Object.fromEntries(denominations.map(d => [d.toString(), 0]))
     );
@@ -447,13 +447,11 @@ const DenominationCounter = ({ title, denominations, currency, onTotalChange, on
         const newQuantities = { ...quantities, [denomination]: newQty };
         setQuantities(newQuantities);
     };
-
+    
     React.useEffect(() => {
-        const totalFromBills = denominations.reduce((acc, den) => acc + (quantities[den] * den), 0);
-        const total = totalFromBills + coinsAmount;
-        onTotalChange(total);
         onDetailsChange({ ...quantities, coins: coinsAmount });
-    }, [quantities, coinsAmount, denominations, onTotalChange, onDetailsChange]);
+    }, [quantities, coinsAmount, onDetailsChange]);
+
 
     return (
         <div className="space-y-4">
@@ -562,6 +560,9 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     const usdTotal = React.useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
     const usdEquivalentInUYU = usdTotal * (sessionData.date_rate || 0);
     const totalOpeningAmount = uyuTotal + usdEquivalentInUYU;
+    
+    const memoizedSetUyuDenominations = React.useCallback(setUyuDenominations, []);
+    const memoizedSetUsdDenominations = React.useCallback(setUsdDenominations, []);
 
     const handleNextStep = async () => {
         if (currentStep === 'CONFIG') {
@@ -644,9 +645,9 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             );
         }
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
               <div className="space-y-4">
-                <div className="space-y-1 text-sm">
+                <div className="space-y-2 text-sm">
                     <div><strong>{t('openSession.terminal')}:</strong> {sessionData.cash_point_name}</div>
                     <div><strong>{t('openSession.user')}:</strong> {user?.name}</div>
                     <div><strong>{t('openSession.openingDate')}:</strong> {new Date().toLocaleString()}</div>
@@ -696,8 +697,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 title="Conteo de Efectivo (UYU)"
                 denominations={denominationsUYU}
                 currency="UYU"
-                onTotalChange={(total) => {}}
-                onDetailsChange={setUyuDenominations}
+                onDetailsChange={memoizedSetUyuDenominations}
             />
         ),
         'COUNT_USD': (
@@ -705,8 +705,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 title="Conteo de Efectivo (USD)"
                 denominations={denominationsUSD}
                 currency="USD"
-                onTotalChange={(total) => {}}
-                onDetailsChange={setUsdDenominations}
+                onDetailsChange={memoizedSetUsdDenominations}
             />
         ),
         'CONFIRM': (
@@ -764,12 +763,10 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             </CardContent>
             <CardFooter className="justify-between">
                 <Button variant="outline" onClick={handlePreviousStep} disabled={isSubmitting}>{t('wizard.back')}</Button>
-                 <Button onClick={currentStep === 'CONFIRM' ? handleConfirmAndOpen : handleNextStep} disabled={isSubmitting || exchangeRateStatus === 'loading' || exchangeRateStatus === 'error' && currentStep === 'CONFIG'}>
+                 <Button onClick={currentStep === 'CONFIRM' ? handleConfirmAndOpen : handleNextStep} disabled={isSubmitting || exchangeRateStatus === 'loading' || (exchangeRateStatus === 'error' && currentStep === 'CONFIG')}>
                      {isSubmitting ? 'Abriendo...' : (currentStep === 'CONFIRM' ? t('confirmation.confirmButton') : t('wizard.next'))}
                  </Button>
             </CardFooter>
         </Card>
     );
 }
-
-    
