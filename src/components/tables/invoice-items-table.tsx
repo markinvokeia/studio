@@ -1,6 +1,6 @@
-
 'use client';
 
+import * as React from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -8,13 +8,19 @@ import { InvoiceItem } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslations } from 'next-intl';
+import { MoreHorizontal } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { Button } from '../ui/button';
 
 interface InvoiceItemsTableProps {
   items: InvoiceItem[];
   isLoading?: boolean;
+  canEdit?: boolean;
+  onEdit?: (item: InvoiceItem) => void;
+  onDelete?: (item: InvoiceItem) => void;
 }
 
-export function InvoiceItemsTable({ items, isLoading = false }: InvoiceItemsTableProps) {
+export function InvoiceItemsTable({ items, isLoading = false, canEdit = false, onEdit, onDelete }: InvoiceItemsTableProps) {
   const t = useTranslations('InvoiceItemsTable');
 
   const columns: ColumnDef<InvoiceItem>[] = [
@@ -64,6 +70,31 @@ export function InvoiceItemsTable({ items, isLoading = false }: InvoiceItemsTabl
         return <div className="font-medium">{formatted}</div>;
       },
     },
+    {
+        id: 'actions',
+        cell: ({ row }) => {
+            const item = row.original;
+            return (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0" disabled={!canEdit}>
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => onEdit && onEdit(item)} disabled={!canEdit}>
+                            Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onDelete && onDelete(item)} className="text-destructive" disabled={!canEdit}>
+                            Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            );
+        },
+    }
   ];
 
   if (isLoading) {

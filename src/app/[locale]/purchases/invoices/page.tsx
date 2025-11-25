@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -10,13 +9,27 @@ import { Button } from '@/components/ui/button';
 import { InvoicesTable, CreateInvoiceDialog } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
-import { RefreshCw, X, FileUp } from 'lucide-react';
+import { RefreshCw, X, FileUp, File, Loader2 } from 'lucide-react';
 import { RowSelectionState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from '@/components/ui/alert-dialog';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
+const invoiceItemSchema = z.object({
+  id: z.string(),
+  service_name: z.string().min(1, 'Service name is required'),
+  quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+  unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
+});
+type InvoiceItemFormValues = z.infer<typeof invoiceItemSchema>;
 
 async function getInvoices(): Promise<Invoice[]> {
     try {
@@ -116,6 +129,9 @@ export default function InvoicesPage() {
     const [emailRecipients, setEmailRecipients] = React.useState('');
     const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
+    const [importFile, setImportFile] = React.useState<File | null>(null);
+    const [isProcessingImport, setIsProcessingImport] = React.useState(false);
+    const [importStatus, setImportStatus] = React.useState<'unpaid' | 'partially_paid' | 'paid'>('unpaid');
 
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
     const [payments, setPayments] = React.useState<Payment[]>([]);
@@ -123,6 +139,15 @@ export default function InvoicesPage() {
     const [isLoadingInvoices, setIsLoadingInvoices] = React.useState(false);
     const [isLoadingInvoiceItems, setIsLoadingInvoiceItems] = React.useState(false);
     const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
+    
+    const [editingItem, setEditingItem] = React.useState<InvoiceItem | null>(null);
+    const [isEditItemDialogOpen, setIsEditItemDialogOpen] = React.useState(false);
+    const [deletingItem, setDeletingItem] = React.useState<InvoiceItem | null>(null);
+    const [isDeleteItemDialogOpen, setIsDeleteItemDialogOpen] = React.useState(false);
+
+    const itemForm = useForm<InvoiceItemFormValues>({
+      resolver: zodResolver(invoiceItemSchema),
+    });
 
     const loadInvoices = React.useCallback(async () => {
         setIsLoadingInvoices(true);
@@ -268,6 +293,96 @@ export default function InvoicesPage() {
         }
     };
 
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            setImportFile(file);
+        }
+    };
+
+    const handleImportSubmit = async () => {
+        if (!importFile) {
+            toast({ variant: 'destructive', title: 'No file selected', description: 'Please select a file to import.' });
+            return;
+        }
+        setIsProcessingImport(true);
+
+        const formData = new FormData();
+        formData.append('file', importFile);
+        formData.append('is_sales', 'false');
+        formData.append('status', importStatus);
+
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/invoice/import', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                 const errorData = await response.json().catch(() => ({ message: 'Failed to import invoice.' }));
+                throw new Error(errorData.message || 'An error occurred during import.');
+            }
+
+            toast({ title: 'Import Successful', description: 'The invoice has been created from the imported file.' });
+            loadInvoices();
+            setIsImportDialogOpen(false);
+
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Import Failed',
+                description: error instanceof Error ? error.message : 'Could not import the invoice.',
+            });
+        } finally {
+            setIsProcessingImport(false);
+            setImportFile(null);
+        }
+    };
+
+
+    const handleEditItem = (item: InvoiceItem) => {
+      setEditingItem(item);
+      itemForm.reset(item);
+      setIsEditItemDialogOpen(true);
+    };
+
+    const handleDeleteItem = (item: InvoiceItem) => {
+      setDeletingItem(item);
+      setIsDeleteItemDialogOpen(true);
+    };
+
+    const onEditItemSubmit = async (data: InvoiceItemFormValues) => {
+      try {
+        await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/upsert?invoice_item_id=${data.id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        toast({ title: 'Success', description: 'Invoice item updated successfully.'});
+        loadInvoiceItems();
+        setIsEditItemDialogOpen(false);
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to update invoice item.'});
+      }
+    };
+
+    const confirmDeleteItem = async () => {
+      if (!deletingItem) return;
+      try {
+        await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: deletingItem.id }),
+        });
+        toast({ title: 'Success', description: 'Invoice item deleted successfully.'});
+        loadInvoiceItems();
+        setIsDeleteItemDialogOpen(false);
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete invoice item.'});
+      }
+    };
+
+
     const columnTranslations = {
         id: t('columns.invoiceId'),
         user_name: t('columns.provider'),
@@ -278,6 +393,8 @@ export default function InvoicesPage() {
         payment_status: t('columns.payment'),
         createdAt: t('columns.createdAt'),
     };
+    
+    const canEditItems = selectedInvoice?.status.toLowerCase() === 'unpaid';
 
     return (
         <div className="relative">
@@ -296,7 +413,11 @@ export default function InvoicesPage() {
                             onPrint={handlePrintInvoice}
                             onSendEmail={handleSendEmailClick}
                             onCreate={() => setIsCreateDialogOpen(true)}
-                            onImport={() => setIsImportDialogOpen(true)}
+                            onImport={() => {
+                                setImportFile(null);
+                                setIsProcessingImport(false);
+                                setIsImportDialogOpen(true);
+                            }}
                             isRefreshing={isLoadingInvoices}
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}
@@ -337,7 +458,7 @@ export default function InvoicesPage() {
                                             <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
                                         </Button>
                                     </div>
-                                    <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
+                                    <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} canEdit={canEditItems} onEdit={handleEditItem} onDelete={handleDeleteItem} />
                                 </TabsContent>
                                 <TabsContent value="payments">
                                     <PaymentsTable 
@@ -383,21 +504,51 @@ export default function InvoicesPage() {
                             Upload a PDF or image file to automatically create an invoice.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="py-4">
+                    <div className="py-4 space-y-4">
                         <div className="flex items-center justify-center w-full">
                             <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <FileUp className="w-8 h-8 mb-4 text-muted-foreground" />
-                                    <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                    <p className="text-xs text-muted-foreground">PDF, PNG, JPG or GIF (MAX. 10MB)</p>
-                                </div>
-                                <Input id="dropzone-file" type="file" className="hidden" />
+                                {importFile ? (
+                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <File className="w-8 h-8 mb-4 text-primary" />
+                                        <p className="font-semibold text-foreground">{importFile.name}</p>
+                                        <p className="text-xs text-muted-foreground">{(importFile.size / 1024).toFixed(2)} KB</p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <FileUp className="w-8 h-8 mb-4 text-muted-foreground" />
+                                        <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                        <p className="text-xs text-muted-foreground">PDF, PNG, JPG or GIF (MAX. 10MB)</p>
+                                    </div>
+                                )}
+                                <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
                             </label>
                         </div> 
+                         <div>
+                          <Label htmlFor="import-status">Invoice Status</Label>
+                          <Select value={importStatus} onValueChange={(value) => setImportStatus(value as any)}>
+                              <SelectTrigger id="import-status">
+                                  <SelectValue placeholder="Select a status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                                  <SelectItem value="partially_paid">Partially Paid</SelectItem>
+                                  <SelectItem value="paid">Paid</SelectItem>
+                              </SelectContent>
+                          </Select>
+                        </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>Cancel</Button>
-                        <Button>Create Invoice</Button>
+                        <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isProcessingImport}>Cancel</Button>
+                        <Button onClick={handleImportSubmit} disabled={!importFile || isProcessingImport}>
+                            {isProcessingImport ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Processing...
+                                </>
+                            ) : (
+                                'Create Invoice'
+                            )}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -407,6 +558,42 @@ export default function InvoicesPage() {
                 onInvoiceCreated={loadInvoices}
                 isSales={false}
             />
+
+            {isEditItemDialogOpen && (
+              <Dialog open={isEditItemDialogOpen} onOpenChange={setIsEditItemDialogOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Invoice Item</DialogTitle>
+                  </DialogHeader>
+                  <Form {...itemForm}>
+                    <form onSubmit={itemForm.handleSubmit(onEditItemSubmit)} className="space-y-4">
+                      <FormField control={itemForm.control} name="service_name" render={({ field }) => (<FormItem><FormLabel>Service</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={itemForm.control} name="quantity" render={({ field }) => (<FormItem><FormLabel>Quantity</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={itemForm.control} name="unit_price" render={({ field }) => (<FormItem><FormLabel>Unit Price</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setIsEditItemDialogOpen(false)}>Cancel</Button>
+                        <Button type="submit">Save Changes</Button>
+                      </DialogFooter>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            )}
+
+            {isDeleteItemDialogOpen && (
+              <AlertDialog open={isDeleteItemDialogOpen} onOpenChange={setIsDeleteItemDialogOpen}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <DialogTitle>Are you sure?</DialogTitle>
+                    <DialogDescription>This will permanently delete the invoice item. This action cannot be undone.</DialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
         </div>
     );
 }
