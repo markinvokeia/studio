@@ -26,7 +26,6 @@ import { useAuth } from '@/context/AuthContext';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ExchangeRate } from '@/components/exchange-rate';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 
 const denominationsUYU = [2000, 1000, 500, 200, 100, 50, 20, 10];
@@ -522,9 +521,39 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-    const [buyRate, setBuyRate] = React.useState(38.90);
-    const [sellRate, setSellRate] = React.useState(41.30);
-    const [avgRate, setAvgRate] = React.useState(40.10);
+    const [buyRate, setBuyRate] = React.useState(0);
+    const [sellRate, setSellRate] = React.useState(0);
+    const [avgRate, setAvgRate] = React.useState(0);
+    const [exchangeRatesHtml, setExchangeRatesHtml] = React.useState('');
+
+    React.useEffect(() => {
+        const fetchRates = async () => {
+            try {
+                const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cotizaciones');
+                if (!response.ok) throw new Error('Failed to fetch exchange rates');
+                const data = await response.json();
+                
+                const compra = parseFloat(data.compra);
+                const venta = parseFloat(data.venta);
+                
+                setBuyRate(compra);
+                setSellRate(venta);
+                
+                const avg = (compra + venta) / 2;
+                setAvgRate(avg);
+                setSessionData(prev => ({...prev, date_rate: avg}));
+                setExchangeRatesHtml(data.html);
+
+            } catch (error) {
+                console.error("Error fetching rates", error);
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch exchange rates.' });
+            }
+        };
+
+        if (currentStep === 'CONFIG') {
+            fetchRates();
+        }
+    }, [currentStep, setSessionData, toast]);
 
     const uyuTotal = React.useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
     const usdTotal = React.useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
@@ -601,30 +630,23 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-4">
                          <div className="flex items-center gap-2">
-                            <ExchangeRate onRateChange={(rates) => {
-                                setBuyRate(rates.buy);
-                                setSellRate(rates.sell);
-                                const avg = (rates.buy + rates.sell) / 2;
-                                setAvgRate(avg);
-                                setSessionData(prev => ({...prev, date_rate: avg}));
-                            }} />
-                            <Alert className="text-sm">
+                             <Alert className="text-sm">
                                 <AlertDescription>{t('openSession.exchangeRateTooltip')}</AlertDescription>
                             </Alert>
                         </div>
                          <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <Label htmlFor="buy_rate">Compra</Label>
-                                <Input id="buy_rate" value={buyRate.toFixed(2)} disabled />
+                                <Input id="buy_rate" value={buyRate.toFixed(2)} readOnly />
                             </div>
                             <div className="space-y-1">
                                 <Label htmlFor="sell_rate">Venta</Label>
-                                <Input id="sell_rate" value={sellRate.toFixed(2)} disabled />
+                                <Input id="sell_rate" value={sellRate.toFixed(2)} readOnly />
                             </div>
                         </div>
                         <div className="space-y-1">
                             <Label htmlFor="date_rate">{t('openSession.exchangeRate')}</Label>
-                            <Input id="date_rate" type="number" step="0.00001" value={sessionData.date_rate} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: parseFloat(e.target.value) || 0 }))} />
+                            <Input id="date_rate" type="number" step="0.00001" value={sessionData.date_rate || ''} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: parseFloat(e.target.value) || 0 }))} />
                         </div>
                          <div className="space-y-1">
                             <Label>{t('openSession.currency')}</Label>
@@ -638,13 +660,10 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                             </Select>
                         </div>
                     </div>
-                     <div className="h-[400px] w-full overflow-hidden rounded-lg border">
-                        <iframe
-                            src="https://www.brou.com.uy/c/portal/render_portlet?p_l_id=20593&p_p_id=cotizacionfull_WAR_broutmfportlet_INSTANCE_otHfewh1klyS&p_p_lifecycle=0&p_t_lifecycle=0&p_p_state=normal&p_p_mode=view&p_p_col_id=column-1&p_p_col_pos=0&p_p_col_count=2&p_p_isolated=1&currentURL=%2Fcotizaciones"
-                            className="h-full w-full"
-                            title="BROU Exchange Rates"
-                        />
-                    </div>
+                     <div 
+                        className="h-[400px] w-full overflow-y-auto rounded-lg border"
+                        dangerouslySetInnerHTML={{ __html: exchangeRatesHtml }}
+                     />
                 </div>
             </div>
         ),
