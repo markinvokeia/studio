@@ -361,9 +361,11 @@ export function Header() {
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel>{t('logoutConfirmation.cancel')}</AlertDialogCancel>
-                <Button variant="outline" onClick={() => {router.push(`/${locale}/cashier`); setIsLogoutAlertOpen(false);}}>
-                    {t('logoutConfirmation.goToCashier')}
-                </Button>
+                <Link href={`/${locale}/cashier`} passHref>
+                  <Button variant="outline">
+                      {t('logoutConfirmation.goToCashier')}
+                  </Button>
+                </Link>
                 <AlertDialogAction onClick={handleLogout} className="bg-destructive hover:bg-destructive/90">
                     {t('logoutConfirmation.logoutAnyway')}
                 </AlertDialogAction>
@@ -434,5 +436,3 @@ export function Header() {
     </>
   );
 }
-
-    
