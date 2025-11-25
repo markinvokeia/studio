@@ -9,6 +9,10 @@ export type User = {
   identity_document?: string;
   color?: string;
   is_sales?: boolean;
+  total_invoiced?: number;
+  total_paid?: number;
+  current_debt?: number;
+  available_balance?: number;
 };
 
 export type Role = {

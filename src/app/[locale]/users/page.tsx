@@ -29,7 +29,7 @@ import { UserQuotes } from '@/components/users/user-quotes';
 import { UserMessages } from '@/components/users/user-messages';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserLogs } from '@/components/users/user-logs';
-import { X, AlertTriangle, KeyRound } from 'lucide-react';
+import { X, AlertTriangle, KeyRound, DollarSign, Receipt, CreditCard, Banknote } from 'lucide-react';
 import { RowSelectionState, PaginationState, ColumnFiltersState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
@@ -54,6 +54,36 @@ type UserFormValues = z.infer<ReturnType<typeof userFormSchema>>;
 type GetUsersResponse = {
   users: User[];
   total: number;
+};
+
+const UserStats = ({ user }: { user: User }) => {
+    const formatCurrency = (value: number | undefined) => {
+        if (value === undefined) return '$0.00';
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+    };
+
+    const stats = [
+        { title: 'Total Invoiced', value: formatCurrency(user.total_invoiced), icon: Receipt, color: 'text-blue-500' },
+        { title: 'Total Paid', value: formatCurrency(user.total_paid), icon: DollarSign, color: 'text-green-500' },
+        { title: 'Current Debt', value: formatCurrency(user.current_debt), icon: CreditCard, color: 'text-red-500' },
+        { title: 'Available Balance', value: formatCurrency(user.available_balance), icon: Banknote, color: 'text-indigo-500' },
+    ];
+
+    return (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {stats.map(stat => (
+                <Card key={stat.title}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+                        <stat.icon className={cn("h-4 w-4 text-muted-foreground", stat.color)} />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{stat.value}</div>
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
+    );
 };
 
 async function getUsers(pagination: PaginationState, searchQuery: string): Promise<GetUsersResponse> {
@@ -105,6 +135,10 @@ async function getUsers(pagination: PaginationState, searchQuery: string): Promi
       is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
       identity_document: apiUser.identity_document,
       avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
+      total_invoiced: apiUser.total_invoiced,
+      total_paid: apiUser.total_paid,
+      current_debt: apiUser.current_debt,
+      available_balance: apiUser.available_balance,
     }));
 
     return { users: mappedUsers, total: total };
@@ -451,6 +485,7 @@ export default function UsersPage() {
                 </div>
             </CardHeader>
               <CardContent>
+                <UserStats user={selectedUser} />
                 <Tabs defaultValue="roles" className="w-full">
                    <TabsList className="h-auto items-center justify-start flex-wrap">
                     <TabsTrigger value="roles">{t('UsersPage.tabs.roles')}</TabsTrigger>
