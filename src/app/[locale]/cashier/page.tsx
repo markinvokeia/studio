@@ -638,15 +638,15 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                     <p className="text-destructive mb-4">Failed to load exchange rates.</p>
                     <div className="flex gap-4">
                         <Button onClick={() => fetchRates()}>Retry</Button>
-                        <Button variant="outline" onClick={()={() => setExchangeRateStatus('loaded')}>Set Manually</Button>
+                        <Button variant="outline" onClick={() => setExchangeRateStatus('loaded')}>Set Manually</Button>
                     </div>
                 </div>
-            )
+            );
         }
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">
-                <div className="grid grid-cols-1 text-sm mb-4 gap-2">
+                <div className="space-y-1 text-sm">
                     <div><strong>{t('openSession.terminal')}:</strong> {sessionData.cash_point_name}</div>
                     <div><strong>{t('openSession.user')}:</strong> {user?.name}</div>
                     <div><strong>{t('openSession.openingDate')}:</strong> {new Date().toLocaleString()}</div>

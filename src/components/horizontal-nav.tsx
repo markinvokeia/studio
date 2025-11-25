@@ -46,7 +46,7 @@ export function HorizontalNav({ items }: HorizontalNavProps) {
 
             return (
               <NavigationMenuItem key={item.title}>
-                <NavigationMenuTrigger className={cn(isParentActive && "bg-accent/50")}>
+                <NavigationMenuTrigger className={cn("text-sm", isParentActive && "bg-accent/50")}>
                   <item.icon className="h-4 w-4 mr-2" />
                   {t(item.title as any)}
                 </NavigationMenuTrigger>
@@ -77,8 +77,8 @@ export function HorizontalNav({ items }: HorizontalNavProps) {
 
             return (
               <NavigationMenuItem key={item.title}>
-                <Link href={linkHref} legacyBehavior passHref>
-                  <NavigationMenuLink active={isActive} className={navigationMenuTriggerStyle()}>
+                <Link href={linkHref} passHref>
+                  <NavigationMenuLink active={isActive} className={cn(navigationMenuTriggerStyle(), "text-sm")}>
                     <item.icon className="h-4 w-4 mr-2" />
                     {t(item.title as any)}
                   </NavigationMenuLink>
