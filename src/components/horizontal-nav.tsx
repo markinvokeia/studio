@@ -77,7 +77,7 @@ export function HorizontalNav({ items }: HorizontalNavProps) {
 
             return (
               <NavigationMenuItem key={item.title}>
-                <Link href={linkHref} legacyBehavior passHref>
+                <Link href={linkHref} legacyBehavior={false} passHref>
                   <NavigationMenuLink active={isActive} className={cn(navigationMenuTriggerStyle(), "text-sm")}>
                     <item.icon className="h-4 w-4 mr-2" />
                     {t(item.title as any)}
@@ -99,19 +99,20 @@ const ListItem = React.forwardRef<
   return (
     <li>
       <NavigationMenuLink asChild>
-        <a
+        <Link
           ref={ref}
           className={cn(
             'block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
             className
           )}
           {...props}
+          href={props.href || ''}
         >
           <div className="text-sm font-medium leading-none">{title}</div>
           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
             {children}
           </p>
-        </a>
+        </Link>
       </NavigationMenuLink>
     </li>
   );
