@@ -236,7 +236,6 @@ export default function CashierPage() {
 
     return <OpenSessionDashboard 
         cashPoints={cashPoints} 
-        onSetActiveSession={setActiveSession}
         onStartOpening={(cashPoint) => {
             setOpeningSessionData({ puntoDeCajaId: cashPoint.id, cash_point_name: cashPoint.name, currency: 'UYU', date_rate: 40 });
             setShowOpeningWizard(true);
@@ -245,22 +244,31 @@ export default function CashierPage() {
 }
 
 
-function OpenSessionDashboard({ cashPoints, onStartOpening, onSetActiveSession }: { cashPoints: CashPointStatus[], onStartOpening: (cashPoint: CashPointStatus) => void, onSetActiveSession: (session: CajaSesion) => void }) {
+function OpenSessionDashboard({ cashPoints, onStartOpening }: { cashPoints: CashPointStatus[], onStartOpening: (cashPoint: CashPointStatus) => void }) {
     const t = useTranslations('CashierPage');
     const { user } = useAuth();
+    const router = useRouter();
 
-    const userHasActiveSession = React.useMemo(() => 
-        cashPoints.some(cp => cp.status === 'OPEN' && cp.session?.usuarioId === user?.id),
-    [cashPoints, user]);
+    const handleSessionClick = (cp: CashPointStatus) => {
+        if (cp.status === 'OPEN') {
+            if (cp.session && cp.session.usuarioId === user?.id) {
+                router.push('/cashier'); // Go to active session dashboard
+            } else {
+                // Optionally show a read-only view or a message
+            }
+        } else {
+            onStartOpening(cp);
+        }
+    };
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
             {cashPoints.map(cp => {
-                const isThisUsersSession = cp.status === 'OPEN' && cp.session?.usuarioId === user?.id;
-                const isDisabled = userHasActiveSession && !isThisUsersSession;
+                 const isThisUsersSession = cp.status === 'OPEN' && cp.session?.usuarioId === user?.id;
+                 const isAnotherUsersSession = cp.status === 'OPEN' && !isThisUsersSession;
 
                 return (
-                    <Card key={cp.id} className={cn("w-full", isDisabled && "bg-muted/50 opacity-60")}>
+                    <Card key={cp.id} className={cn("w-full", isAnotherUsersSession && "bg-muted/50 opacity-60")}>
                         <CardHeader>
                             <CardTitle className="flex items-center justify-between">
                                 {cp.name}
@@ -268,25 +276,25 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onSetActiveSession }
                             </CardTitle>
                             <CardDescription>
                                 {cp.status === 'OPEN'
-                                    ? isThisUsersSession 
-                                        ? `You have an active session here.`
-                                        : t('openSession.openBy', { user: cp.session?.user_name })
+                                    ? t('openSession.openBy', { user: cp.session?.user_name })
                                     : t('openSession.closed')
                                 }
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                           {cp.status === 'CLOSED' ? (
-                                <Button className="w-full" onClick={() => onStartOpening(cp)} disabled={isDisabled}>
-                                    <Box className="mr-2 h-4 w-4" />
-                                    {t('openSession.openButton')}
-                                </Button>
-                           ) : (
-                                <Button className="w-full" onClick={() => cp.session && onSetActiveSession(cp.session)} disabled={!isThisUsersSession}>
-                                    <BookOpenCheck className="mr-2 h-4 w-4" />
-                                    {isThisUsersSession ? t('openSession.viewLog') : 'View Session (Read-Only)'}
-                                 </Button>
-                           )}
+                           <Button className="w-full" onClick={() => handleSessionClick(cp)} disabled={isAnotherUsersSession}>
+                                {cp.status === 'OPEN' ? (
+                                    <>
+                                        <BookOpenCheck className="mr-2 h-4 w-4" />
+                                        {isThisUsersSession ? t('openSession.viewLog') : 'View Session (Read-Only)'}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Box className="mr-2 h-4 w-4" />
+                                        {t('openSession.openButton')}
+                                    </>
+                                )}
+                           </Button>
                         </CardContent>
                     </Card>
                 )
@@ -735,7 +743,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                     </Select>
                 </div>
               </div>
-              <div 
+              <div
                 className="h-[400px] w-full overflow-y-auto rounded-lg"
                 dangerouslySetInnerHTML={{ __html: exchangeRatesHtml }}
               />
@@ -827,6 +835,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         </Card>
     );
 }
-
+    
 
     
