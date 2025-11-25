@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -416,7 +417,8 @@ export default function InvoicesPage() {
       try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/delete`, {
             method: 'POST',
-            headers: { 'invoice_item_id': deletingItem.id },
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ invoice_item_id: deletingItem.id }),
         });
         const responseData = await response.json();
         if (response.status >= 400) {
@@ -641,8 +643,7 @@ export default function InvoicesPage() {
               </Dialog>
             )}
 
-            {isDeleteItemDialogOpen && (
-              <AlertDialog open={isDeleteItemDialogOpen} onOpenChange={setIsDeleteItemDialogOpen}>
+            <AlertDialog open={isDeleteItemDialogOpen} onOpenChange={setIsDeleteItemDialogOpen}>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -653,8 +654,7 @@ export default function InvoicesPage() {
                     <AlertDialogAction onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
-              </AlertDialog>
-            )}
+            </AlertDialog>
         </div>
     );
 }

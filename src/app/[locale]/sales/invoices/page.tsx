@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -17,7 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -376,6 +377,7 @@ export default function InvoicesPage() {
         }
     };
 
+
     const handleEditItem = async (item: InvoiceItem) => {
       setEditingItem(item);
       itemForm.reset({
@@ -396,13 +398,13 @@ export default function InvoicesPage() {
 
     const onEditItemSubmit = async (data: InvoiceItemFormValues) => {
       try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/edit?invoice_item_id=${data.id}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/edit`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...data, service_name: services.find(s => s.id === data.service_id)?.name }),
         });
         const responseData = await response.json();
-        if (!response.ok) {
+        if (response.status >= 400) {
             throw new Error(responseData.message || 'Failed to update invoice item.');
         }
         toast({ title: 'Success', description: responseData.message || 'Invoice item updated successfully.'});
@@ -418,10 +420,11 @@ export default function InvoicesPage() {
       try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/delete`, {
             method: 'POST',
-            headers: { 'invoice_item_id': deletingItem.id },
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ invoice_item_id: deletingItem.id }),
         });
         const responseData = await response.json();
-        if (!response.ok) {
+        if (response.status >= 400) {
             throw new Error(responseData.message || 'Failed to delete invoice item.');
         }
         toast({ title: 'Success', description: responseData.message || 'Invoice item deleted successfully.'});
@@ -442,6 +445,7 @@ export default function InvoicesPage() {
         status: t('columns.status'),
         payment_status: t('columns.payment'),
         createdAt: t('columns.createdAt'),
+        currency: t('columns.currency'),
     };
     
     const canEditItems = selectedInvoice?.status.toLowerCase() === 'unpaid';
@@ -572,8 +576,8 @@ export default function InvoicesPage() {
                                 )}
                                 <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
                             </label>
-                        </div>
-                        <div>
+                        </div> 
+                         <div>
                           <Label htmlFor="import-status">Invoice Status</Label>
                           <Select value={importStatus} onValueChange={(value) => setImportStatus(value as any)}>
                               <SelectTrigger id="import-status">
@@ -658,4 +662,3 @@ export default function InvoicesPage() {
         </div>
     );
 }
-
