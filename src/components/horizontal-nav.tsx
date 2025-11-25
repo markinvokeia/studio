@@ -77,7 +77,7 @@ export function HorizontalNav({ items }: HorizontalNavProps) {
 
             return (
               <NavigationMenuItem key={item.title}>
-                <Link href={linkHref} legacyBehavior={false}>
+                <Link href={linkHref} legacyBehavior passHref>
                   <NavigationMenuLink active={isActive} className={cn(navigationMenuTriggerStyle(), "text-sm")}>
                     <item.icon className="h-4 w-4 mr-2" />
                     {t(item.title as any)}

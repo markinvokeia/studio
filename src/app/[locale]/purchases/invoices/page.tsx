@@ -644,7 +644,7 @@ export default function InvoicesPage() {
             <AlertDialog open={isDeleteItemDialogOpen} onOpenChange={setIsDeleteItemDialogOpen}>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <DialogTitle>Are you sure?</DialogTitle>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                     <AlertDialogDescription>This will permanently delete the invoice item. This action cannot be undone.</AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
