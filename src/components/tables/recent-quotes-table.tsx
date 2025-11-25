@@ -423,3 +423,4 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
     </>
   );
 }
+

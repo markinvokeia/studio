@@ -94,102 +94,29 @@
       "description": "Su contraseña ha sido cambiada exitosamente."
     }
   },
-  "CashierPage": {
-    "title": "Gestión de Caja",
-    "openSession": {
-      "title": "Abrir Sesión de Caja",
-      "openBy": "Abierta por {user}",
-      "closed": "Cerrada",
-      "openingAmount": "Monto de Apertura",
-      "openButton": "Abrir Caja",
-      "openingButton": "Abriendo...",
-      "viewLog": "Ver Registro",
-      "wizardTitle": "Asistente para Abrir Sesión",
-      "terminal": "Terminal",
-      "user": "Usuario",
-      "openingDate": "Fecha de Apertura",
-      "currency": "Moneda Base",
-      "exchangeRate": "Tipo de Cambio del Día (USD/UYU)",
-      "exchangeRateTooltip": "Este tipo de cambio se usará para todas las conversiones durante la sesión."
-    },
-    "confirmation": {
-      "sessionInfo": "Información de la Sesión",
-      "cashSummary": "Resumen de Efectivo",
-      "totalUYU": "Total UYU",
-      "totalUSD": "Total USD",
-      "totalOpening": "Monto Total de Apertura",
-      "confirmButton": "Confirmar y Abrir Caja"
-    },
+  "OpenCashSessionWidget": {
+    "checkingStatus": "Verificando estado de la sesión de caja...",
     "activeSession": {
-      "title": "Sesión Activa",
-      "description": "{user} en {location}",
-      "totalIncome": "Ingresos Totales",
-      "dailyPayments": "Pagos del Día",
-      "openingDetails": "Detalles de Apertura",
-      "denomination": "Denominación",
-      "quantity": "Cantidad",
-      "subtotal": "Subtotal",
-      "columns": {
-        "description": "Descripción",
-        "amount": "Monto",
-        "method": "Método",
-        "date": "Fecha"
-      }
+      "title": "Sesión de Caja Activa",
+      "description": "La sesión de {user} en {cashPoint} está actualmente abierta.",
+      "button": "Ir a Caja"
     },
-    "wizard": {
-      "title": "Asistente para Cerrar Sesión",
-      "steps": {
-        "review": "Revisar",
-        "declare": "Declarar",
-        "report": "Reporte"
-      },
-      "next": "Siguiente",
-      "back": "Atrás",
-      "startClosing": "Cerrar Sesión"
-    },
-    "closeDialog": {
-      "title": "Declarar Montos de Cierre",
-      "description": "Ingrese los montos finales para cada método de pago.",
-      "cash": "Efectivo",
-      "card": "Tarjeta",
-      "transfer": "Transferencia",
-      "other": "Otro",
-      "notes": "Notas de Cierre",
-      "notesPlaceholder": "Añade cualquier nota relevante aquí...",
-      "cashDenominations": "Denominaciones en Efectivo"
-    },
-    "report": {
-      "title": "Reporte de Cierre",
-      "description": "Resumen de la sesión cerrada el {date}",
-      "paymentMethod": "Método de Pago",
-      "systemAmount": "Monto del Sistema",
-      "declaredAmount": "Monto Declarado",
-      "difference": "Diferencia",
-      "notes": "Notas de Cierre",
-      "confirmButton": "Confirmar y Cerrar Sesión",
-      "newSessionButton": "Iniciar Nueva Sesión",
-      "cash": "Efectivo",
-      "card": "Tarjeta",
-      "transfer": "Transferencia",
-      "other": "Otro"
-    },
-    "toast": {
-      "error": "Error",
-      "openSuccessTitle": "Sesión Abierta",
-      "openSuccessDescription": "La sesión de caja se ha iniciado correctamente.",
-      "openError": "No se pudo abrir la sesión.",
-      "expenseSuccessTitle": "Gasto Registrado",
-      "expenseSuccessDescription": "El gasto ha sido registrado en la sesión actual.",
-      "closeSuccessTitle": "Sesión Cerrada",
-      "closeSuccessDescription": "La sesión de caja se ha cerrado correctamente.",
-      "closeError": "No se pudo cerrar la sesión."
-    },
-    "validation": {
-      "openingAmountRequired": "El monto de apertura es requerido.",
-      "amountRequired": "El monto es requerido.",
-      "descriptionRequired": "La descripción es requerida."
-    },
-    "viewAllCashPoints": "Ver Todas las Cajas"
+    "title": "No hay Sesión de Caja Activa",
+    "description": "No tienes una sesión de caja activa. Por favor, abre una para comenzar a registrar transacciones.",
+    "button": "Abrir Sesión de Caja"
+  },
+  "DataTableToolbar": {
+    "toggleColumns": "Alternar columnas"
+  },
+  "DataTablePagination": {
+    "selected": "{count, plural, one {# seleccionado} other {# seleccionados}} de {total} fila(s).",
+    "rowsPerPage": "Filas por página",
+    "all": "Todo",
+    "page": "Página {current} de {total}",
+    "goToFirst": "Ir a la primera página",
+    "goToPrevious": "Ir a la página anterior",
+    "goToNext": "Ir a la página siguiente",
+    "goToLast": "Ir a la última página"
   },
   "ReportFilters": {
     "apply": "Aplicar Filtros",
@@ -626,7 +553,9 @@
   "QuoteColumns": {
     "quoteId": "ID Cotización",
     "total": "Total",
-    "billingStatus": "Estado Facturación"
+    "billingStatus": "Estado Facturación",
+    "createdAt": "Fecha Creación",
+    "currency": "Moneda"
   },
   "OrderColumns": {
     "orderId": "ID Pedido",
@@ -634,5 +563,90 @@
   },
   "General": {
     "noResults": "No se encontraron resultados."
+  },
+  "QuotesPage": {
+    "sendEmailDialog": {
+      "title": "Enviar Cotización por Email",
+      "description": "Introduce los correos de los destinatarios para la cotización #{id}.",
+      "recipients": "Destinatarios",
+      "placeholder": "email1@example.com, email2@example.com",
+      "helperText": "Separa múltiples correos con comas."
+    },
+    "quoteDialog": {
+      "cancel": "Cancelar"
+    },
+    "sendEmail": "Enviar Email"
+  },
+  "InvoicesPage": {
+    "title": "Facturas",
+    "description": "Gestiona todas tus facturas aquí.",
+    "columns": {
+      "invoiceId": "ID Factura",
+      "provider": "Proveedor",
+      "user": "Usuario",
+      "orderId": "ID Pedido",
+      "quoteId": "ID Cotización",
+      "total": "Total",
+      "status": "Estado",
+      "payment": "Pago",
+      "createdAt": "Fecha de Creación",
+      "currency": "Moneda"
+    },
+    "paymentDialog": {
+      "add": "Añadir Pago",
+      "title": "Añadir Pago",
+      "description": "Añadir un pago para la factura #{invoiceId}",
+      "amount": "Monto",
+      "method": "Método",
+      "selectMethod": "Selecciona un método de pago",
+      "status": "Estado",
+      "selectStatus": "Selecciona un estado de pago",
+      "date": "Fecha de Pago",
+      "pickDate": "Elige una fecha",
+      "cancel": "Cancelar",
+      "success": "Pago Añadido",
+      "successDescription": "El pago para la factura #{invoiceId} se ha añadido correctamente.",
+      "error": "No se pudo añadir el pago."
+    },
+    "status": {
+      "paid": "Pagada",
+      "sent": "Enviada",
+      "draft": "Borrador",
+      "overdue": "Vencida",
+      "unpaid": "No Pagada",
+      "partial": "Parcial",
+      "partially_paid": "Parcialmente Pagada",
+      "completed": "Completado",
+      "pending": "Pendiente",
+      "failed": "Fallido"
+    },
+    "methods": {
+      "bank_transfer": "Transferencia Bancaria",
+      "credit_card": "Tarjeta de Crédito",
+      "cash": "Efectivo",
+      "debit": "Débito",
+      "credit": "Crédito",
+      "mercado_pago": "Mercado Pago"
+    },
+    "validation": {
+      "amountPositive": "El monto debe ser un número positivo.",
+      "methodRequired": "El método de pago es requerido.",
+      "dateRequired": "La fecha de pago es requerida."
+    },
+    "toast": {
+      "error": "Error",
+      "sessionCheckError": "No se pudo verificar la sesión de caja activa. Por favor, inténtelo de nuevo."
+    },
+    "noSessionDialog": {
+      "title": "No hay Sesión de Caja Activa",
+      "description": "Debes tener una sesión de caja activa para registrar un pago.",
+      "openCashSession": "Abrir Sesión de Caja"
+    },
+    "detailsFor": "Detalles de",
+    "invoiceId": "ID de Factura",
+    "tabs": {
+        "items": "Items",
+        "payments": "Pagos"
+    }
   }
 }

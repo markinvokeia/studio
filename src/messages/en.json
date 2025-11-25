@@ -94,102 +94,29 @@
       "description": "Your password has been changed successfully."
     }
   },
-  "CashierPage": {
-    "title": "Cashier Management",
-    "openSession": {
-      "title": "Open Cash Session",
-      "openBy": "Open by {user}",
-      "closed": "Closed",
-      "openingAmount": "Opening Amount",
-      "openButton": "Open Cash Drawer",
-      "openingButton": "Opening...",
-      "viewLog": "View Log",
-      "wizardTitle": "Open Session Wizard",
-      "terminal": "Terminal",
-      "user": "User",
-      "openingDate": "Opening Date",
-      "currency": "Base Currency",
-      "exchangeRate": "Exchange Rate for the Day (USD/UYU)",
-      "exchangeRateTooltip": "This rate will be used for all conversions during the session."
-    },
-    "confirmation": {
-      "sessionInfo": "Session Information",
-      "cashSummary": "Cash Summary",
-      "totalUYU": "Total UYU",
-      "totalUSD": "Total USD",
-      "totalOpening": "Total Opening Amount",
-      "confirmButton": "Confirm & Open"
-    },
+    "OpenCashSessionWidget": {
+    "checkingStatus": "Checking cash session status...",
     "activeSession": {
-      "title": "Active Session",
-      "description": "{user} at {location}",
-      "totalIncome": "Total Income",
-      "dailyPayments": "Daily Payments",
-      "openingDetails": "Opening Details",
-      "denomination": "Denomination",
-      "quantity": "Quantity",
-      "subtotal": "Subtotal",
-      "columns": {
-        "description": "Description",
-        "amount": "Amount",
-        "method": "Method",
-        "date": "Date"
-      }
+      "title": "Active Cash Session",
+      "description": "Session for {user} at {cashPoint} is currently open.",
+      "button": "Go to Cashier"
     },
-    "wizard": {
-      "title": "Close Session Wizard",
-      "steps": {
-        "review": "Review",
-        "declare": "Declare",
-        "report": "Report"
-      },
-      "next": "Next",
-      "back": "Back",
-      "startClosing": "Close Session"
-    },
-    "closeDialog": {
-      "title": "Declare Closing Amounts",
-      "description": "Enter the final amounts for each payment method.",
-      "cash": "Cash",
-      "card": "Card",
-      "transfer": "Transfer",
-      "other": "Other",
-      "notes": "Closing Notes",
-      "notesPlaceholder": "Add any relevant notes here...",
-      "cashDenominations": "Cash Denominations"
-    },
-    "report": {
-      "title": "Closing Report",
-      "description": "Summary for the session closed on {date}",
-      "paymentMethod": "Payment Method",
-      "systemAmount": "System Amount",
-      "declaredAmount": "Declared Amount",
-      "difference": "Difference",
-      "notes": "Closing Notes",
-      "confirmButton": "Confirm & Close Session",
-      "newSessionButton": "Start New Session",
-      "cash": "Cash",
-      "card": "Card",
-      "transfer": "Transfer",
-      "other": "Other"
-    },
-    "toast": {
-      "error": "Error",
-      "openSuccessTitle": "Session Opened",
-      "openSuccessDescription": "The cash session has been started successfully.",
-      "openError": "Could not open session.",
-      "expenseSuccessTitle": "Expense Registered",
-      "expenseSuccessDescription": "The expense has been recorded in the current session.",
-      "closeSuccessTitle": "Session Closed",
-      "closeSuccessDescription": "The cash session has been closed successfully.",
-      "closeError": "Could not close session."
-    },
-    "validation": {
-      "openingAmountRequired": "Opening amount is required.",
-      "amountRequired": "Amount is required.",
-      "descriptionRequired": "Description is required."
-    },
-    "viewAllCashPoints": "View All Cash Points"
+    "title": "No Active Cash Session",
+    "description": "You do not have an active cash session. Please open one to start recording transactions.",
+    "button": "Open Cash Session"
+  },
+  "DataTableToolbar": {
+    "toggleColumns": "Toggle columns"
+  },
+  "DataTablePagination": {
+    "selected": "{count, plural, one {# selected} other {# selected}} of {total} row(s).",
+    "rowsPerPage": "Rows per page",
+    "all": "All",
+    "page": "Page {current} of {total}",
+    "goToFirst": "Go to first page",
+    "goToPrevious": "Go to previous page",
+    "goToNext": "Go to next page",
+    "goToLast": "Go to last page"
   },
   "ReportFilters": {
     "apply": "Apply Filters",
@@ -626,7 +553,9 @@
   "QuoteColumns": {
     "quoteId": "Quote ID",
     "total": "Total",
-    "billingStatus": "Billing Status"
+    "billingStatus": "Billing Status",
+    "createdAt": "Created At",
+    "currency": "Currency"
   },
   "OrderColumns": {
     "orderId": "Order ID",
@@ -634,5 +563,91 @@
   },
   "General": {
     "noResults": "No results."
+  },
+  "QuotesPage": {
+     "sendEmailDialog": {
+      "title": "Send Quote by Email",
+      "description": "Enter the recipient emails for quote #{id}.",
+      "recipients": "Recipients",
+      "placeholder": "email1@example.com, email2@example.com",
+      "helperText": "Separate multiple emails with commas."
+    },
+    "quoteDialog": {
+      "cancel": "Cancel"
+    },
+    "sendEmail": "Send Email"
+  },
+  "InvoicesPage": {
+    "title": "Invoices",
+    "description": "Manage all your invoices here.",
+    "columns": {
+      "invoiceId": "Invoice ID",
+      "provider": "Provider",
+      "user": "User",
+      "orderId": "Order ID",
+      "quoteId": "Quote ID",
+      "total": "Total",
+      "status": "Status",
+      "payment": "Payment",
+      "createdAt": "Created At",
+      "currency": "Currency"
+    },
+    "paymentDialog": {
+      "add": "Add Payment",
+      "title": "Add Payment",
+      "description": "Add a payment for invoice #{invoiceId}",
+      "amount": "Amount",
+      "method": "Method",
+      "selectMethod": "Select a payment method",
+      "status": "Status",
+      "selectStatus": "Select a payment status",
+      "date": "Payment Date",
+      "pickDate": "Pick a date",
+      "cancel": "Cancel",
+      "success": "Payment Added",
+      "successDescription": "The payment for invoice #{invoiceId} has been successfully added.",
+      "error": "Failed to add payment."
+    },
+    "status": {
+      "paid": "Paid",
+      "sent": "Sent",
+      "draft": "Draft",
+      "overdue": "Overdue",
+      "unpaid": "Unpaid",
+      "partial": "Partial",
+      "partially_paid": "Partially Paid",
+      "completed": "Completed",
+      "pending": "Pending",
+      "failed": "Failed"
+    },
+    "methods": {
+      "bank_transfer": "Bank Transfer",
+      "credit_card": "Credit Card",
+      "cash": "Cash",
+      "debit": "Debit",
+      "credit": "Credit",
+      "mercado_pago": "Mercado Pago"
+    },
+    "validation": {
+      "amountPositive": "Amount must be a positive number.",
+      "methodRequired": "Payment method is required.",
+      "dateRequired": "Payment date is required."
+    },
+    "toast": {
+      "error": "Error",
+      "sessionCheckError": "Could not verify active cash session. Please try again."
+    },
+    "noSessionDialog": {
+      "title": "No Active Cash Session",
+      "description": "You must have an active cash session to register a payment.",
+      "openCashSession": "Open Cash Session"
+    },
+    "detailsFor": "Details for",
+    "invoiceId": "Invoice ID",
+    "tabs": {
+        "items": "Items",
+        "payments": "Payments"
+    }
   }
 }
+

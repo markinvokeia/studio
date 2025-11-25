@@ -77,14 +77,12 @@ export function HorizontalNav({ items }: HorizontalNavProps) {
 
             return (
               <NavigationMenuItem key={item.title}>
-                <Link href={linkHref} passHref legacyBehavior>
                   <NavigationMenuLink active={isActive} asChild className={cn(navigationMenuTriggerStyle(), "text-sm")}>
                      <a>
                       <item.icon className="h-4 w-4 mr-2" />
                       {t(item.title as any)}
                     </a>
                   </NavigationMenuLink>
-                </Link>
               </NavigationMenuItem>
             );
           }
