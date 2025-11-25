@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Invoice, InvoiceItem, Payment, User, Order, Quote } from '@/lib/types';
+import { Invoice, InvoiceItem, Payment } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { InvoicesTable, CreateInvoiceDialog } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
-import { RefreshCw, X, FileUp, File, Loader2 } from 'lucide-react';
+import { RefreshCw, X, FileUp, Loader2, File } from 'lucide-react';
 import { RowSelectionState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 
 async function getInvoices(): Promise<Invoice[]> {
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?is_sales=true`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?is_sales=false`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -51,7 +51,7 @@ async function getInvoices(): Promise<Invoice[]> {
 async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}&is_sales=true`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}&is_sales=false`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -77,7 +77,7 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
 async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_payments?invoice_id=${invoiceId}&is_sales=true`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_payments?invoice_id=${invoiceId}&is_sales=false`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -118,7 +118,6 @@ export default function InvoicesPage() {
     const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
     const [importFile, setImportFile] = React.useState<File | null>(null);
     const [isProcessingImport, setIsProcessingImport] = React.useState(false);
-
 
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
     const [payments, setPayments] = React.useState<Payment[]>([]);
@@ -274,7 +273,6 @@ export default function InvoicesPage() {
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            // You might want to add file size/type validation here
             setImportFile(file);
         }
     };
@@ -288,7 +286,7 @@ export default function InvoicesPage() {
 
         const formData = new FormData();
         formData.append('file', importFile);
-        formData.append('is_sales', 'true');
+        formData.append('is_sales', 'false');
 
         try {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/invoice/import', {
@@ -317,10 +315,9 @@ export default function InvoicesPage() {
         }
     };
 
-
     const columnTranslations = {
         id: t('columns.invoiceId'),
-        user_name: t('columns.user'),
+        user_name: t('columns.provider'),
         order_id: t('columns.orderId'),
         quote_id: t('columns.quoteId'),
         total: t('columns.total'),
@@ -476,7 +473,7 @@ export default function InvoicesPage() {
                 isOpen={isCreateDialogOpen}
                 onOpenChange={setIsCreateDialogOpen}
                 onInvoiceCreated={loadInvoices}
-                isSales={true}
+                isSales={false}
             />
         </div>
     );
