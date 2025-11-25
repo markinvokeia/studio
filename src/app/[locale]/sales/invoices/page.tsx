@@ -396,31 +396,39 @@ export default function InvoicesPage() {
 
     const onEditItemSubmit = async (data: InvoiceItemFormValues) => {
       try {
-        await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/edit?invoice_item_id=${data.id}`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/edit?invoice_item_id=${data.id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...data, service_name: services.find(s => s.id === data.service_id)?.name }),
         });
-        toast({ title: 'Success', description: 'Invoice item updated successfully.'});
+        const responseData = await response.json();
+        if (!response.ok) {
+            throw new Error(responseData.message || 'Failed to update invoice item.');
+        }
+        toast({ title: 'Success', description: responseData.message || 'Invoice item updated successfully.'});
         loadInvoiceItems();
         setIsEditItemDialogOpen(false);
       } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to update invoice item.'});
+        toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Failed to update invoice item.'});
       }
     };
 
     const confirmDeleteItem = async () => {
       if (!deletingItem) return;
       try {
-        await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/delete`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/delete`, {
             method: 'POST',
             headers: { 'invoice_item_id': deletingItem.id },
         });
-        toast({ title: 'Success', description: 'Invoice item deleted successfully.'});
+        const responseData = await response.json();
+        if (!response.ok) {
+            throw new Error(responseData.message || 'Failed to delete invoice item.');
+        }
+        toast({ title: 'Success', description: responseData.message || 'Invoice item deleted successfully.'});
         loadInvoiceItems();
         setIsDeleteItemDialogOpen(false);
       } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete invoice item.'});
+        toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Failed to delete invoice item.'});
       }
     };
 
@@ -652,3 +660,4 @@ export default function InvoicesPage() {
         </div>
     );
 }
+
