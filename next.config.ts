@@ -35,6 +35,12 @@ const nextConfig: NextConfig = {
         hostname: 'www.brou.com.uy',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.bcu.gub.uy',
+        port: '',
+        pathname: '/**',
       }
     ],
   },

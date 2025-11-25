@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Box, Briefcase, DollarSign, LogOut, TrendingDown, TrendingUp, ArrowLeft, ArrowRight, BookOpenCheck, Minus, Plus, RefreshCw, Info } from 'lucide-react';
+import { AlertTriangle, Box, Briefcase, DollarSign, LogOut, TrendingDown, TrendingUp, ArrowLeft, ArrowRight, BookOpenCheck, Minus, Plus, RefreshCw, Info, Banknote, Coins } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
@@ -27,9 +27,34 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import Image from 'next/image';
 
-const denominationsUYU = [2000, 1000, 500, 200, 100, 50, 20, 10];
+const denominationsUYU = [2000, 1000, 500, 200, 100, 50, 20];
+const coinsUYU = [10, 5, 2, 1];
 const denominationsUSD = [100, 50, 20, 10, 5, 1];
+
+const UYU_IMAGES = {
+    2000: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%202000/Anverso.jpg',
+    1000: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%201000/Anverso.jpg',
+    500: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%20500/Anverso.jpg',
+    200: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%20200/Anverso.jpg',
+    100: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%20100/Anverso.jpg',
+    50: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%2050/Anverso.jpg',
+    20: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%2020/Anverso.jpg',
+    10: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Moneda%2010/Anverso.jpg',
+    5: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Moneda%205/Anverso.jpg',
+    2: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Moneda%202/Anverso.jpg',
+    1: 'https://www.bcu.gubuy/Billetes-y-Monedas/Moneda%201/Anverso.jpg',
+};
+
+const USD_IMAGES = {
+    100: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Dolares/100%20Dolares/Anverso.jpg',
+    50: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Dolares/50%20Dolares/Anverso.jpg',
+    20: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Dolares/20%20Dolares/Anverso.jpg',
+    10: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Dolares/10%20Dolares/Anverso.jpg',
+    5: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Dolares/5%20Dolares/Anverso.jpg',
+    1: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Dolares/1%20Dolar/Anverso.jpg',
+};
 
 
 type OpenSessionStep = 'CONFIG' | 'COUNT_UYU' | 'COUNT_USD' | 'CONFIRM';
@@ -427,73 +452,99 @@ function CloseSessionWizard({
     );
 }
 
-const DenominationCounter = ({ title, denominations, currency, onDetailsChange }: { title: string, denominations: number[], currency: string, onDetailsChange: (details: Record<string, number>) => void }) => {
-    const [quantities, setQuantities] = React.useState<Record<string, number>>(() =>
-        Object.fromEntries(denominations.map(d => [d.toString(), 0]))
-    );
-     const [coinsAmount, setCoinsAmount] = React.useState(0);
+const DenominationCounter = ({ title, denominations, coins, currency, onDetailsChange, lastClosingDetails, imageMap }: { 
+    title: string, 
+    denominations: number[], 
+    coins: number[],
+    currency: string, 
+    onDetailsChange: (details: Record<string, number>) => void,
+    lastClosingDetails?: Record<string, number> | null,
+    imageMap: Record<number, string>
+}) => {
+    const [quantities, setQuantities] = React.useState<Record<string, number>>({});
+    const total = React.useMemo(() => {
+        return [...denominations, ...coins].reduce((sum, den) => sum + (Number(den) || 0) * (quantities[den] || 0), 0)
+    }, [quantities, denominations, coins]);
 
-    const handleQuantityChange = (denomination: number, quantity: string, operation?: 'inc' | 'dec') => {
-        const currentQty = quantities[denomination] || 0;
-        let newQty = 0;
-        if(operation === 'inc') {
-            newQty = currentQty + 1;
-        } else if (operation === 'dec') {
-            newQty = Math.max(0, currentQty - 1);
-        } else {
-            newQty = parseInt(quantity, 10) || 0;
-        }
-        
-        const newQuantities = { ...quantities, [denomination]: newQty };
+    const handleQuantityChange = (denomination: number, quantity: string) => {
+        const newQuantities = { ...quantities, [denomination]: parseInt(quantity, 10) || 0 };
         setQuantities(newQuantities);
     };
+
+    const setAllTo = (val: number) => {
+        const newQuantities = [...denominations, ...coins].reduce((acc, den) => {
+            acc[den] = val;
+            return acc;
+        }, {} as Record<string, number>);
+        setQuantities(newQuantities);
+    }
+    
+    const loadLastClosing = () => {
+        if(lastClosingDetails){
+            setQuantities(lastClosingDetails);
+        }
+    }
     
     React.useEffect(() => {
-        onDetailsChange({ ...quantities, coins: coinsAmount });
-    }, [quantities, coinsAmount, onDetailsChange]);
-
+        onDetailsChange(quantities);
+    }, [quantities, onDetailsChange]);
 
     return (
         <div className="space-y-4">
-            <h3 className="font-medium">{title}</h3>
+            <div className="flex justify-between items-center">
+                <h3 className="font-medium text-lg">{title}</h3>
+                <div className="text-xl font-bold">{new Intl.NumberFormat('es-UY', { style: 'currency', currency }).format(total)}</div>
+            </div>
+             <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setAllTo(1)}>Prefill with 1</Button>
+                {lastClosingDetails && <Button type="button" variant="secondary" size="sm" onClick={loadLastClosing}>Load Last Closing</Button>}
+            </div>
             <ScrollArea className="h-96">
-                <div className="space-y-3 p-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 p-1">
                     {denominations.map(den => (
-                        <div key={den} className="grid grid-cols-[1fr,auto,1fr] items-center gap-2">
-                             <Label htmlFor={`den-${den}`} className="text-right">
+                        <div key={den} className="grid grid-cols-[80px,1fr,auto] items-center gap-2">
+                            <Image src={imageMap[den]} alt={`${den} ${currency}`} width={80} height={40} className="rounded-md object-cover" />
+                             <Label htmlFor={`den-${den}`} className="text-right font-semibold text-lg">
                                 {new Intl.NumberFormat('es-UY', { style: 'currency', currency: currency, minimumFractionDigits: 0 }).format(den)}
                             </Label>
                              <div className="flex items-center">
-                                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, '', 'dec')}><Minus className="h-4 w-4" /></Button>
+                                <Button type="button" variant="outline" size="icon" className="h-10 w-10" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
                                 <Input
                                     id={`den-${den}`}
                                     type="number"
                                     min="0"
                                     value={quantities[den] || ''}
                                     onChange={(e) => handleQuantityChange(den, e.target.value)}
-                                    className="w-20 text-center mx-1"
+                                    className="w-20 text-center mx-1 text-lg"
                                 />
-                                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, '', 'inc')}><Plus className="h-4 w-4" /></Button>
+                                <Button type="button" variant="outline" size="icon" className="h-10 w-10" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
                             </div>
-                            <span className="text-sm text-muted-foreground font-mono w-28 text-right">
-                                {new Intl.NumberFormat('es-UY', { style: 'currency', currency: currency }).format(quantities[den] * den)}
-                            </span>
                         </div>
                     ))}
-                    <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-2 pt-4 border-t">
-                        <Label htmlFor="coins" className="text-right">Monedas</Label>
-                        <Input
-                            id="coins"
-                            type="number"
-                            placeholder="Monto"
-                            min="0"
-                            value={coinsAmount || ''}
-                            onChange={(e) => setCoinsAmount(Number(e.target.value))}
-                            className="w-40"
-                        />
-                         <span className="text-sm text-muted-foreground font-mono w-28 text-right">
-                            {new Intl.NumberFormat('es-UY', { style: 'currency', currency: currency }).format(coinsAmount)}
-                        </span>
+                </div>
+                 <div className="mt-6 border-t pt-4">
+                    <h4 className="font-medium text-md mb-2 flex items-center gap-2"><Coins /> Monedas</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 p-1">
+                        {coins.map(den => (
+                            <div key={den} className="grid grid-cols-[80px,1fr,auto] items-center gap-2">
+                                <Image src={imageMap[den]} alt={`${den} ${currency}`} width={40} height={40} className="rounded-full object-cover" />
+                                <Label htmlFor={`den-${den}`} className="text-right font-semibold text-lg">
+                                    {new Intl.NumberFormat('es-UY', { style: 'currency', currency: currency, minimumFractionDigits: 0 }).format(den)}
+                                </Label>
+                                <div className="flex items-center">
+                                    <Button type="button" variant="outline" size="icon" className="h-10 w-10" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
+                                    <Input
+                                        id={`den-${den}`}
+                                        type="number"
+                                        min="0"
+                                        value={quantities[den] || ''}
+                                        onChange={(e) => handleQuantityChange(den, e.target.value)}
+                                        className="w-20 text-center mx-1 text-lg"
+                                    />
+                                    <Button type="button" variant="outline" size="icon" className="h-10 w-10" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </ScrollArea>
@@ -639,7 +690,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                     <p className="text-destructive mb-4">Failed to load exchange rates.</p>
                     <div className="flex gap-4">
                         <Button onClick={() => fetchRates()}>Retry</Button>
-                        <Button variant="outline" onClick={() => setExchangeRateStatus('loaded')}>Set Manually</Button>
+                        <Button variant="outline" onClick={() => { setExchangeRateStatus('loaded'); }}>Set Manually</Button>
                     </div>
                 </div>
             );
@@ -647,12 +698,12 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
               <div className="space-y-4">
-                <div className="space-y-2 text-sm">
+                <div className="space-y-2 text-sm text-left">
                     <div><strong>{t('openSession.terminal')}:</strong> {sessionData.cash_point_name}</div>
                     <div><strong>{t('openSession.user')}:</strong> {user?.name}</div>
                     <div><strong>{t('openSession.openingDate')}:</strong> {new Date().toLocaleString()}</div>
                 </div>
-                <Alert variant="info">
+                 <Alert variant="info">
                     <Info className="h-4 w-4" />
                     <AlertDescription>{t('openSession.exchangeRateTooltip')}</AlertDescription>
                 </Alert>
@@ -696,16 +747,20 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             <DenominationCounter 
                 title="Conteo de Efectivo (UYU)"
                 denominations={denominationsUYU}
+                coins={coinsUYU}
                 currency="UYU"
                 onDetailsChange={memoizedSetUyuDenominations}
+                imageMap={UYU_IMAGES}
             />
         ),
         'COUNT_USD': (
              <DenominationCounter 
                 title="Conteo de Efectivo (USD)"
                 denominations={denominationsUSD}
+                coins={[]}
                 currency="USD"
                 onDetailsChange={memoizedSetUsdDenominations}
+                imageMap={USD_IMAGES}
             />
         ),
         'CONFIRM': (
@@ -763,7 +818,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             </CardContent>
             <CardFooter className="justify-between">
                 <Button variant="outline" onClick={handlePreviousStep} disabled={isSubmitting}>{t('wizard.back')}</Button>
-                 <Button onClick={currentStep === 'CONFIRM' ? handleConfirmAndOpen : handleNextStep} disabled={isSubmitting || exchangeRateStatus === 'loading' || (exchangeRateStatus === 'error' && currentStep === 'CONFIG')}>
+                 <Button onClick={currentStep === 'CONFIRM' ? handleConfirmAndOpen : handleNextStep} disabled={isSubmitting || exchangeRateStatus === 'loading'}>
                      {isSubmitting ? 'Abriendo...' : (currentStep === 'CONFIRM' ? t('confirmation.confirmButton') : t('wizard.next'))}
                  </Button>
             </CardFooter>
