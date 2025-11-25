@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { InvoicesTable, CreateInvoiceDialog } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
-import { RefreshCw, X, FileUp } from 'lucide-react';
+import { RefreshCw, X, FileUp, File, Loader2 } from 'lucide-react';
 import { RowSelectionState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
@@ -116,6 +116,8 @@ export default function InvoicesPage() {
     const [emailRecipients, setEmailRecipients] = React.useState('');
     const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
+    const [importFile, setImportFile] = React.useState<File | null>(null);
+    const [isProcessingImport, setIsProcessingImport] = React.useState(false);
 
 
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
@@ -268,7 +270,33 @@ export default function InvoicesPage() {
             });
         }
     };
-    
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            // You might want to add file size/type validation here
+            setImportFile(file);
+        }
+    };
+
+    const handleImportSubmit = async () => {
+        if (!importFile) {
+            toast({ variant: 'destructive', title: 'No file selected', description: 'Please select a file to import.' });
+            return;
+        }
+        setIsProcessingImport(true);
+        // Simulate processing
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        setIsProcessingImport(false);
+        setIsImportDialogOpen(false);
+        setImportFile(null);
+        toast({ title: 'Processing Started', description: 'Your invoice is being processed and will be created shortly.' });
+        // Here you would typically call an API to upload and process the file
+        // e.g. await uploadAndProcessInvoice(importFile);
+        // on success, call loadInvoices();
+    };
+
+
     const columnTranslations = {
         id: t('columns.invoiceId'),
         user_name: t('columns.user'),
@@ -297,7 +325,11 @@ export default function InvoicesPage() {
                             onPrint={handlePrintInvoice}
                             onSendEmail={handleSendEmailClick}
                             onCreate={() => setIsCreateDialogOpen(true)}
-                            onImport={() => setIsImportDialogOpen(true)}
+                            onImport={() => {
+                                setImportFile(null);
+                                setIsProcessingImport(false);
+                                setIsImportDialogOpen(true);
+                            }}
                             isRefreshing={isLoadingInvoices}
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}
@@ -354,7 +386,7 @@ export default function InvoicesPage() {
                 )}
             </div>
 
-             <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
+            <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
                     <DialogTitle>Send Invoice by Email</DialogTitle>
@@ -387,18 +419,35 @@ export default function InvoicesPage() {
                     <div className="py-4">
                         <div className="flex items-center justify-center w-full">
                             <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <FileUp className="w-8 h-8 mb-4 text-muted-foreground" />
-                                    <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                    <p className="text-xs text-muted-foreground">PDF, PNG, JPG or GIF (MAX. 10MB)</p>
-                                </div>
-                                <Input id="dropzone-file" type="file" className="hidden" />
+                                {importFile ? (
+                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <File className="w-8 h-8 mb-4 text-primary" />
+                                        <p className="font-semibold text-foreground">{importFile.name}</p>
+                                        <p className="text-xs text-muted-foreground">{(importFile.size / 1024).toFixed(2)} KB</p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <FileUp className="w-8 h-8 mb-4 text-muted-foreground" />
+                                        <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                        <p className="text-xs text-muted-foreground">PDF, PNG, JPG or GIF (MAX. 10MB)</p>
+                                    </div>
+                                )}
+                                <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
                             </label>
                         </div> 
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>Cancel</Button>
-                        <Button>Create Invoice</Button>
+                        <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isProcessingImport}>Cancel</Button>
+                        <Button onClick={handleImportSubmit} disabled={!importFile || isProcessingImport}>
+                            {isProcessingImport ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Processing...
+                                </>
+                            ) : (
+                                'Create Invoice'
+                            )}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
