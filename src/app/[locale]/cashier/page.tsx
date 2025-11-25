@@ -508,8 +508,8 @@ const DenominationCounter = ({ title, denominations, coins, currency, onDetailsC
                 <div className="text-xl font-bold">{new Intl.NumberFormat('es-UY', { style: 'currency', currency }).format(total)}</div>
             </div>
              <div className="flex gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => setAllTo(1)}>Prefill with 1</Button>
-                {lastClosingDetails && <Button type="button" variant="secondary" size="sm" onClick={loadLastClosing}>Load Last Closing</Button>}
+                <Button type="button" variant="outline" size="sm" onClick={() => setAllTo(0)}>Prefill with 0</Button>
+                {lastClosingDetails && <Button type="button" variant="secondary" size="sm" onClick={loadLastClosing}>Prefill with Last Closing Cashup</Button>}
             </div>
             <ScrollArea className="h-96">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 p-1">
@@ -626,6 +626,11 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
     const memoizedSetUyuDenominations = useCallback((details: Record<string, number>) => setUyuDenominations(details), [setUyuDenominations]);
     const memoizedSetUsdDenominations = useCallback((details: Record<string, number>) => setUsdDenominations(details), [setUsdDenominations]);
+    
+    const mockLastClosing = {
+        uyu: { "2000": 5, "1000": 10, "500": 4, "100": 20, "50": 15, "20": 10, "10": 30, "5": 25, "2": 50, "1": 100 },
+        usd: { "100": 3, "50": 5, "20": 10, "10": 15, "5": 20, "1": 50 },
+    };
 
 
     const handleNextStep = async () => {
@@ -763,6 +768,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 coins={coinsUYU}
                 currency="UYU"
                 onDetailsChange={memoizedSetUyuDenominations}
+                lastClosingDetails={mockLastClosing.uyu}
                 imageMap={UYU_IMAGES}
             />
         ),
@@ -773,6 +779,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 coins={[]}
                 currency="USD"
                 onDetailsChange={memoizedSetUsdDenominations}
+                lastClosingDetails={mockLastClosing.usd}
                 imageMap={USD_IMAGES}
             />
         ),
