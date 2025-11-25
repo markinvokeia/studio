@@ -684,7 +684,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                         </div>
                     </div>
                      <div 
-                        className="h-[400px] w-full overflow-y-auto rounded-lg border"
+                        className="h-[400px] w-full overflow-y-auto rounded-lg"
                         dangerouslySetInnerHTML={{ __html: exchangeRatesHtml }}
                      />
                 </div>
