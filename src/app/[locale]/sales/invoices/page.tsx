@@ -408,12 +408,12 @@ export default function InvoicesPage() {
       try {
         const payload = {
           ...data,
+          id: editingItem?.id,
           invoice_id: selectedInvoice.id,
-          order_item_id: selectedInvoice.order_id, // Assuming order_id maps to order_item_id
+          order_item_id: selectedInvoice.order_id,
+          quantity: Number(data.quantity),
+          unit_price: Number(data.unit_price),
         };
-        if (editingItem) {
-          payload.id = editingItem.id;
-        }
 
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/upsert`, {
             method: 'POST',
@@ -469,7 +469,7 @@ export default function InvoicesPage() {
     
     const canEditItems = selectedInvoice?.status.toLowerCase() === 'unpaid';
 
-    const ItemFormDialog = ({
+     const ItemFormDialog = ({
         isOpen,
         onOpenChange,
         title,
@@ -605,7 +605,7 @@ export default function InvoicesPage() {
                                     <TabsTrigger value="payments">{t('tabs.payments')}</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="items">
-                                    <div className="flex items-center justify-between mb-2">
+                                     <div className="flex items-center justify-between mb-2">
                                         <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', {id: selectedInvoice.id})}</h4>
                                         <div className="flex items-center gap-2">
                                             {canEditItems && (
@@ -725,7 +725,7 @@ export default function InvoicesPage() {
                 title="Create Invoice Item"
                 onSubmit={onItemSubmit}
             />
-
+            
             <ItemFormDialog 
                 isOpen={isEditItemDialogOpen}
                 onOpenChange={setIsEditItemDialogOpen}
@@ -748,5 +748,7 @@ export default function InvoicesPage() {
         </div>
     );
 }
+
+    
 
     
