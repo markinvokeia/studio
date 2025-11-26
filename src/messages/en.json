@@ -1,4 +1,3 @@
-
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -94,7 +93,7 @@
       "description": "Your password has been changed successfully."
     }
   },
-    "OpenCashSessionWidget": {
+  "OpenCashSessionWidget": {
     "checkingStatus": "Checking cash session status...",
     "activeSession": {
       "title": "Active Cash Session",
@@ -565,7 +564,7 @@
     "noResults": "No results."
   },
   "QuotesPage": {
-     "sendEmailDialog": {
+    "sendEmailDialog": {
       "title": "Send Quote by Email",
       "description": "Enter the recipient emails for quote #{id}.",
       "recipients": "Recipients",
@@ -573,9 +572,46 @@
       "helperText": "Separate multiple emails with commas."
     },
     "quoteDialog": {
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "createTitle": "Create Quote",
+      "description": "Create a new quote",
+      "user": "User",
+      "selectUser": "Select User",
+      "searchUser": "Search User",
+      "currency": "Currency",
+      "status": "Status",
+      "draft": "Draft",
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "rejected": "Rejected",
+      "paymentStatus": "Payment Status",
+      "unpaid": "Unpaid",
+      "billingStatus": "Billing Status",
+      "notInvoiced": "Not invoiced",
+      "save": "Save"
     },
-    "sendEmail": "Send Email"
+    "sendEmail": "Send Email",
+    "print": "Print",
+    "detailsFor": "Details for {name}",
+    "quoteId": "Quote ID",
+    "tabs": {
+      "items": "Items",
+      "orders": "Orders",
+      "invoices": "Invoices",
+      "payments": "Payments"
+    },
+    "itemDialog": {
+      "searchService": "Search Service",
+      "id": "ID",
+      "service": "Service",
+      "quantity": "Quantity",
+      "unitPrice": "unitPrice",
+      "total": "Total",
+      "createTitle": "Create Quote Item",
+      "description": "Create a new quote item",
+      "cancel": "Cancel",
+      "save": "Save"
+    }
   },
   "InvoicesPage": {
     "title": "Invoices",
@@ -618,7 +654,8 @@
       "partially_paid": "Partially Paid",
       "completed": "Completed",
       "pending": "Pending",
-      "failed": "Failed"
+      "failed": "Failed",
+      "booked": "Booked"
     },
     "methods": {
       "bank_transfer": "Bank Transfer",
@@ -626,7 +663,8 @@
       "cash": "Cash",
       "debit": "Debit",
       "credit": "Credit",
-      "mercado_pago": "Mercado Pago"
+      "mercado_pago": "Mercado Pago",
+      "debit_card": "Debit Card"
     },
     "validation": {
       "amountPositive": "Amount must be a positive number.",
@@ -645,9 +683,236 @@
     "detailsFor": "Details for",
     "invoiceId": "Invoice ID",
     "tabs": {
-        "items": "Items",
-        "payments": "Payments"
+      "items": "Items",
+      "payments": "Payments"
+    },
+    "filterPlaceholder": "Filter here...",
+    "createDialog": {
+      "title": "Create Invoice",
+      "description": "Create a new invoice",
+      "user": "User",
+      "selectUser": "Select User",
+      "invoiceRef": "Invoice Referency",
+      "addItem": "Add Item",
+      "total": "Total",
+      "currency": "Currency",
+      "cancel": "Cancel",
+      "create": "Create"
+    },
+    "InvoiceItemsTable": {
+      "title": "Invoice items",
+      "filterPlaceholder": "Filter here...",
+      "columns": {
+        "id": "ID",
+        "service": "Service",
+        "quantity": "Quantity",
+        "unitPrice": "Unit Price",
+        "total": "Total"
+      }
     }
+  },
+  "CashierPage": {
+    "openSession": {
+      "closed": "Closed",
+      "openButton": "Open"
+    }
+  },
+  "CashSessionsPage": {
+    "title": "Cash Session",
+    "description": "All cash sessions here",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "user": "User",
+      "cashPoint": "Cash Point",
+      "status": "Status",
+      "openDate": "Open Date"
+    }
+  },
+  "MiscellaneousTransactionsPage": {
+    "dashboard": {
+      "totalIncome": "Total Income",
+      "totalExpense": "Total Expense",
+      "balance": "Balance"
+    },
+    "title": "Miscellaneous Transactions",
+    "description": "Some miscellaneous transactions",
+    "filters": {
+      "dateRange": "Date Range",
+      "pending": "Pending",
+      "completedToday": "Completed Today",
+      "incomeMonth": "Income Month",
+      "expenseMonth": "Expense Month",
+      "salaries": "Salaries",
+      "services": "Services",
+      "taxes": "Taxes"
+    },
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "transactionNumber": "Transaction Number",
+      "date": "Date",
+      "category": "Category"
+    }
+  },
+  "PhysicalCashRegistersPage": {
+    "title": "Physical Cash Registers",
+    "description": "A list of Physical Cash Registers",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "id": "ID",
+      "name": "Name",
+      "isActive": "Is Active",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "yes": "Yes",
+      "no": "No",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "dialog": {
+      "createTitle": "Create Cash Register",
+      "name": "Name",
+      "namePlaceholder": "Name here...",
+      "isActive": "Is Active",
+      "cancel": "Cancel",
+      "create": "Create"
+    }
+  },
+  "OrdersPage": {
+    "Status": {
+      "completed": "Completed",
+      "processing": "Processing",
+      "pending": "Pending",
+      "label": "Status",
+      "cancelled": "Cancelled"
+    },
+    "filterPlaceholder": "Filter here...",
+    "title": "Orders",
+    "description": "An overview of the orders.",
+    "createTitle": "Create Order",
+    "createDescription": "Create a new order",
+    "selectUser": "Select User",
+    "selectQuote": "Select Quote",
+    "cancel": "Cancel",
+    "create": "Create"
+  },
+  "PaymentsPage": {
+    "title": "Payments",
+    "description": "An overview of payments.",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "id": "ID",
+      "invoiceId": "Invoice ID",
+      "amount": "Amount",
+      "currency": "Currency",
+      "method": "Method",
+      "status": "Status",
+      "createdAt": "Created At",
+      "quoteId": "Quote ID",
+      "orderId": "Order ID",
+      "user": "User"
+    }
+  },
+  "PaymentMethodsPage": {
+    "title": "Payments Methods",
+    "description": "An overview of payments methods.",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "id": "ID",
+      "name": "Name",
+      "code": "Code",
+      "isCashEquivalent": "Is Cash Equivalent?",
+      "isActive": "Is Active?",
+      "yes": "Yes",
+      "no": "No",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "dialog": {
+      "createTitle": "Create Payment Method",
+      "name": "Name",
+      "namePlaceholder": "e.g., Credit Card",
+      "code": "Code",
+      "codePlaceholder": "ASD123",
+      "isCashEquivalent": "Is Cash Equivalent?",
+      "isActive": "Is Active?",
+      "cancel": "Cancel",
+      "create": "Create"
+    }
+  },
+  "ServicesPage": {
+    "title": "Services",
+    "description": "An overview of services.",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "id": "ID",
+      "name": "Name",
+      "category": "Category",
+      "price": "Price",
+      "currency": "Currency",
+      "duration": "Duration",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "createDialog": {
+      "title": "Create Service",
+      "description": "Create a new service",
+      "name": "Name",
+      "namePlaceholder": "e.g., Fillings",
+      "category": "Category",
+      "categoryPlaceholder": "Select Category",
+      "price": "Price",
+      "currency": "Currency",
+      "duration": "Duration",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "e.g. A procedure to restore a tooth that has been damaged by decay.",
+      "indicationsLabel": "Indications",
+      "indicationsPlaceholder": "e.g. Should brush and floss thoroughly before the appointment.",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "CalendarsPage": {
+      "dialog": {
+        "color": "Color"
+      }
+    }
+  },
+  "ProvidersPage": {
+    "title": "Providers",
+    "description": "A list of providers",
+    "filterPlaceholder": "Filter by role...",
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "identity_document": "Identity Document",
+      "phone": "Phone",
+      "status": "Status",
+      "actions": "Actions",
+      "copyId": "Copy user ID",
+      "edit": "Edit",
+      "deactivate": "Deactivate"
+    },
+    "createDialog": {
+      "title": "Create provider",
+      "description": "Create a new provider",
+      "name": "Name",
+      "namePlaceholder": "e.g. John Doe",
+      "email": "Email",
+      "emailPlaceholder": "e.g. john.doe@example.com",
+      "phone": "Phone",
+      "phonePlaceholder": "123-456-7890",
+      "identity_document": "Identity Document",
+      "identity_document_placeholder": "e.g., 1234567890",
+      "isActive": "Is Active?",
+      "cancel": "Cancel",
+      "save": "Create"
+    },
+    "detailsFor": "Details for {name}",
+    "tabs": {
+      "roles": "Roles"
+    },
+    "setInitialPassword": "Set Initial Password"
   }
 }
-
