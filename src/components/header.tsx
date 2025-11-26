@@ -235,7 +235,7 @@ export function Header() {
         <HorizontalNav items={navItems} />
     </div>
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
-      <div ref={containerRef} className="container flex h-14 items-center">
+      <div ref={containerRef} className="container flex h-14 items-center justify-between">
         <div className="flex items-center gap-4" ref={leftSectionRef}>
           <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold text-foreground">
               <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={24} height={24} alt="InvokeIA Logo" />
@@ -282,7 +282,7 @@ export function Header() {
             )}
         </div>
 
-        <div className="flex items-center gap-2" ref={rightSectionRef}>
+        <div className="flex items-center justify-end gap-2" ref={rightSectionRef}>
             <ExchangeRate />
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
