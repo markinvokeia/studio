@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { InvoicesTable, CreateInvoiceDialog } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
-import { RefreshCw, X, FileUp, File, Loader2, PlusCircle } from 'lucide-react';
+import { RefreshCw, X, FileUp, File, Loader2, PlusCircle, CheckCircle } from 'lucide-react';
 import { RowSelectionState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
@@ -169,6 +169,8 @@ export default function InvoicesPage() {
     const [deletingItem, setDeletingItem] = React.useState<InvoiceItem | null>(null);
     const [isDeleteItemDialogOpen, setIsDeleteItemDialogOpen] = React.useState(false);
     const [services, setServices] = React.useState<Service[]>([]);
+    const [isConfirmDialogOpen, setIsConfirmDialogOpen] = React.useState(false);
+    const [confirmingInvoice, setConfirmingInvoice] = React.useState<Invoice | null>(null);
 
     const itemForm = useForm<InvoiceItemFormValues>({
       resolver: zodResolver(invoiceItemSchema),
@@ -440,7 +442,7 @@ export default function InvoicesPage() {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/delete`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: deletingItem.id }),
+            body: JSON.stringify({ id: parseInt(deletingItem.id, 10) }),
         });
         if (response.status >= 400) {
             const responseData = await response.json();
@@ -453,6 +455,40 @@ export default function InvoicesPage() {
       } catch (error) {
         toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Failed to delete invoice item.'});
       }
+    };
+
+    const handleConfirmInvoiceClick = (invoice: Invoice) => {
+        setConfirmingInvoice(invoice);
+        setIsConfirmDialogOpen(true);
+    };
+
+    const handleConfirmInvoice = async () => {
+        if (!confirmingInvoice) return;
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/confirm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: parseInt(confirmingInvoice.id, 10) }),
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to confirm the invoice.');
+            }
+            toast({
+                title: 'Invoice Confirmed',
+                description: `Invoice #${confirmingInvoice.id} has been confirmed.`,
+            });
+            setIsConfirmDialogOpen(false);
+            setConfirmingInvoice(null);
+            loadInvoices(); // Refresh the invoice list
+            handleCloseDetails(); // Close the side panel
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+            });
+        }
     };
 
 
@@ -594,10 +630,18 @@ export default function InvoicesPage() {
                                 <CardTitle>{t('detailsFor')}</CardTitle>
                                 <CardDescription>{t('invoiceId')}: {selectedInvoice.id}</CardDescription>
                             </div>
-                            <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
-                                <X className="h-5 w-5" />
-                                <span className="sr-only">Close details</span>
-                            </Button>
+                            <div className="flex items-center space-x-2">
+                                {selectedInvoice.status.toLowerCase() === 'draft' && (
+                                    <Button variant="outline" size="sm" onClick={() => handleConfirmInvoiceClick(selectedInvoice)}>
+                                        <CheckCircle className="mr-2 h-4 w-4" />
+                                        Confirm Invoice
+                                    </Button>
+                                )}
+                                <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                                    <X className="h-5 w-5" />
+                                    <span className="sr-only">Close details</span>
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <Tabs defaultValue="items" className="w-full">
@@ -744,6 +788,20 @@ export default function InvoicesPage() {
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
                   </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Confirm Invoice</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to confirm invoice #{confirmingInvoice?.id}? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmInvoice}>Confirm</AlertDialogAction>
+                    </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
         </div>
