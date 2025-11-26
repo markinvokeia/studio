@@ -588,7 +588,17 @@
       "unpaid": "Unpaid",
       "billingStatus": "Billing Status",
       "notInvoiced": "Not invoiced",
-      "save": "Save"
+      "save": "Save",
+      "noUserFound": "No user found",
+      "selectCurrency": "Select Currency",
+      "selectStatus": "Select Status",
+      "selectPaymentStatus": "Select Payment Status",
+      "partiallyPaid": "Partially Paid",
+      "paid": "Paid",
+      "selectBillingStatus": "Select Billing Status",
+      "partiallyInvoiced": "Partially Invoiced",
+      "invoiced": "Invoiced",
+      "not invoiced": "Not Invoiced"
     },
     "sendEmail": "Send Email",
     "print": "Print",
@@ -610,7 +620,26 @@
       "createTitle": "Create Quote Item",
       "description": "Create a new quote item",
       "cancel": "Cancel",
-      "save": "Save"
+      "save": "Save",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "validation": {
+      "userRequired": "An user is required",
+      "serviceRequired": "A service is required"
+    },
+    "deleteQuoteDialog": {
+      "title": "Delete Quote",
+      "description": "Delete a quote",
+      "cancel": "Cancel",
+      "confirm": "Confirm"
+    },
+    "deleteItemDialog": {
+      "title": "Delete item",
+      "description": "Delete an item",
+      "cancel": "Cancel",
+      "confirm": "Confirm"
     }
   },
   "InvoicesPage": {
@@ -779,7 +808,7 @@
     }
   },
   "OrdersPage": {
-    "Status": {
+    "status": {
       "completed": "Completed",
       "processing": "Processing",
       "pending": "Pending",
@@ -839,6 +868,13 @@
       "isActive": "Is Active?",
       "cancel": "Cancel",
       "create": "Create"
+    },
+    "validation": "Validation",
+    "deleteDialog": {
+      "title": "Delete Payment Method",
+      "description": "Delete a payment method",
+      "cancel": "Cancel",
+      "confirm": "Confirm"
     }
   },
   "ServicesPage": {
@@ -914,5 +950,26 @@
       "roles": "Roles"
     },
     "setInitialPassword": "Set Initial Password"
+  },
+  "OrderItemsTable": {
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "id": "ID",
+      "service": "Service",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "total": "Total",
+      "status": "Status",
+      "scheduled": "Scheduled",
+      "completed": "Completed At",
+      "invoiced": "Invoiced At"
+    },
+    "status": {
+      "invoiced": "Invoiced"
+    },
+    "actions": {
+      "title": "Title",
+      "schedule": "Schedule"
+    }
   }
 }
