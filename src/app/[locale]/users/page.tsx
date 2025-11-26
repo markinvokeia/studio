@@ -57,16 +57,29 @@ type GetUsersResponse = {
 };
 
 const UserStats = ({ user }: { user: User }) => {
-    const formatCurrency = (value: number | undefined) => {
-        if (value === undefined) return '$0.00';
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+    const formatCurrency = (value: number, currency: string) => {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value);
+    };
+
+    const renderStatValue = (value: any) => {
+        if (!value || typeof value !== 'object' || Object.keys(value).length === 0) {
+            return <div className="text-2xl font-bold">$0.00</div>;
+        }
+
+        return (
+            <div className="text-xl font-bold">
+                {Object.entries(value).map(([currency, amount]) => (
+                    <div key={currency}>{formatCurrency(amount as number, currency)}</div>
+                ))}
+            </div>
+        );
     };
 
     const stats = [
-        { title: 'Total Invoiced', value: formatCurrency(user.total_invoiced), icon: Receipt, color: 'text-blue-500' },
-        { title: 'Total Paid', value: formatCurrency(user.total_paid), icon: DollarSign, color: 'text-green-500' },
-        { title: 'Current Debt', value: formatCurrency(user.current_debt), icon: CreditCard, color: 'text-red-500' },
-        { title: 'Available Balance', value: formatCurrency(user.available_balance), icon: Banknote, color: 'text-indigo-500' },
+        { title: 'Total Invoiced', value: user.total_invoiced, icon: Receipt, color: 'text-blue-500' },
+        { title: 'Total Paid', value: user.total_paid, icon: DollarSign, color: 'text-green-500' },
+        { title: 'Current Debt', value: user.current_debt, icon: CreditCard, color: 'text-red-500' },
+        { title: 'Available Balance', value: user.available_balance, icon: Banknote, color: 'text-indigo-500' },
     ];
 
     return (
@@ -78,13 +91,14 @@ const UserStats = ({ user }: { user: User }) => {
                         <stat.icon className={cn("h-4 w-4 text-muted-foreground", stat.color)} />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stat.value}</div>
+                        {renderStatValue(stat.value)}
                     </CardContent>
                 </Card>
             ))}
         </div>
     );
 };
+
 
 async function getUsers(pagination: PaginationState, searchQuery: string): Promise<GetUsersResponse> {
   try {
