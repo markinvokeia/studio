@@ -67,7 +67,7 @@ const UserStats = ({ user }: { user: User }) => {
         }
 
         return (
-            <div className="text-xl font-bold">
+            <div className="text-lg font-bold">
                 {Object.entries(value).map(([currency, amount]) => (
                     <div key={currency}>{formatCurrency(amount as number, currency)}</div>
                 ))}
@@ -643,6 +643,8 @@ export default function UsersPage() {
     </>
   );
 }
+
+    
 
     
 
