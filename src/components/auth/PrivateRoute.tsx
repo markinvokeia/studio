@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -28,7 +29,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex h-screen bg-background">
             <Sidebar />
-            <div className={cn("flex flex-col flex-1 transition-all duration-300", activeParentItem ? 'md:ml-84' : 'md:ml-20')}>
+            <div className={cn("flex flex-col flex-1 transition-all duration-300 ml-20")}>
                 <Header />
                 <main className="flex-1 overflow-auto bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 lg:p-6">
                     {children}

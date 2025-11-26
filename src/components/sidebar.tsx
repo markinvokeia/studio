@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -15,7 +16,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-const MainSidebar = () => {
+const MainSidebar = ({ onHover, onLeave }: { onHover: (item: any) => void; onLeave: () => void }) => {
     const pathname = usePathname();
     const t = useTranslations('Navigation');
     const locale = useLocale();
@@ -33,7 +34,7 @@ const MainSidebar = () => {
     return (
         <aside className="fixed inset-y-0 left-0 z-40 flex h-screen w-20 flex-col border-r bg-card">
             <div className="flex h-14 items-center justify-center border-b px-4 lg:h-[60px] lg:px-6">
-                <Link href="/" className="flex items-center gap-2 font-semibold text-foreground">
+                <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold text-foreground">
                     <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={32} height={32} alt="InvokeIA Logo" />
                 </Link>
             </div>
@@ -52,11 +53,14 @@ const MainSidebar = () => {
                         return (
                             <Tooltip key={item.title}>
                                 <TooltipTrigger asChild>
-                                    <Link href={linkHref}
+                                    <Link 
+                                        href={linkHref}
                                         className={cn(
                                             "flex h-9 w-9 items-center justify-center rounded-lg transition-colors md:h-8 md:w-8",
                                             isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                                        )}>
+                                        )}
+                                        onMouseEnter={() => onHover(item)}
+                                    >
                                         <item.icon className="h-5 w-5" />
                                         <span className="sr-only">{t(item.title as any)}</span>
                                     </Link>
@@ -71,47 +75,58 @@ const MainSidebar = () => {
     );
 }
 
-const SecondarySidebar = () => {
-    const pathname = usePathname();
-    const locale = useLocale();
-    const [isClient, setIsClient] = React.useState(false);
-    
-    React.useEffect(() => {
-        setIsClient(true);
-    }, []);
-
-    const getEffectivePathname = (p: string, l: string) => {
-        const localePrefix = `/${l}`;
-        if (p.startsWith(localePrefix)) {
-            return p.substring(localePrefix.length) || '/';
-        }
-        return p;
-    };
-    const effectivePathname = getEffectivePathname(pathname, locale);
-    
-    const activeParentItem = navItems.find(item => item.href !== '/' && effectivePathname.startsWith(item.href));
-
-    if (!isClient || !activeParentItem || !activeParentItem.items) {
+const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void }) => {
+    const t = useTranslations('Navigation');
+    if (!item || !item.items) {
         return null;
     }
     
     return (
-        <div className="fixed inset-y-0 left-20 z-30 hidden h-screen w-64 flex-col border-r bg-muted/40 md:flex">
+        <div 
+            className="fixed inset-y-0 left-20 z-30 hidden h-screen w-64 flex-col border-r bg-card md:flex"
+            onMouseLeave={onLeave}
+        >
              <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                <h2 className="text-lg font-semibold">{activeParentItem.title}</h2>
+                <h2 className="text-lg font-semibold">{t(item.title as any)}</h2>
              </div>
             <div className="flex-1 overflow-y-auto">
-                <Nav items={activeParentItem.items} />
+                <Nav items={item.items} />
             </div>
         </div>
     );
 };
 
 export function Sidebar() {
-  return (
-    <>
-        <MainSidebar />
-        <SecondarySidebar />
-    </>
-  );
+    const [hoveredItem, setHoveredItem] = React.useState<any>(null);
+    let leaveTimeout = React.useRef<NodeJS.Timeout>();
+
+    const handleHover = (item: any) => {
+        if(leaveTimeout.current) {
+            clearTimeout(leaveTimeout.current);
+        }
+        if (item.items) {
+            setHoveredItem(item);
+        } else {
+            setHoveredItem(null);
+        }
+    };
+
+    const handleLeave = () => {
+        leaveTimeout.current = setTimeout(() => {
+            setHoveredItem(null);
+        }, 300);
+    };
+
+    const handleSecondaryEnter = () => {
+         if(leaveTimeout.current) {
+            clearTimeout(leaveTimeout.current);
+        }
+    }
+
+    return (
+        <div onMouseLeave={handleLeave}>
+            <MainSidebar onHover={handleHover} onLeave={handleLeave} />
+            {hoveredItem && <div onMouseEnter={handleSecondaryEnter}><SecondarySidebar item={hoveredItem} onLeave={handleLeave} /></div>}
+        </div>
+    );
 }
