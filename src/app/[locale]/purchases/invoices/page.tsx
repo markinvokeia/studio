@@ -420,10 +420,11 @@ export default function InvoicesPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: deletingItem.id }),
         });
-        const responseData = await response.json();
         if (response.status >= 400) {
+            const responseData = await response.json();
             throw new Error(responseData.message || 'Failed to delete invoice item.');
         }
+        const responseData = await response.json();
         toast({ title: 'Success', description: responseData.message || 'Invoice item deleted successfully.'});
         loadInvoiceItems();
         setIsDeleteItemDialogOpen(false);
