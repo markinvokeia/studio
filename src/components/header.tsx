@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -14,6 +13,7 @@ import {
   AlertTriangle,
   KeyRound,
   MoreHorizontal,
+  Search,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -46,8 +46,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { navItems } from '@/config/nav';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { UyFlagIcon } from './icons/uy-flag-icon';
@@ -56,8 +54,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { Input } from './ui/input';
-import { HorizontalNav } from './horizontal-nav';
 import { ExchangeRate } from './exchange-rate';
+import { useSidebar } from '@/hooks/use-sidebar';
 
 
 const passwordFormSchema = (t: (key: string) => string) => z.object({
@@ -84,59 +82,15 @@ export function Header() {
   const searchParams = useSearchParams();
   const { logout, user } = useAuth();
   const { toast } = useToast();
+  const { toggleSidebar } = useSidebar();
 
   const [isLogoutAlertOpen, setIsLogoutAlertOpen] = React.useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
   const [passwordChangeError, setPasswordChangeError] = React.useState<string | null>(null);
-
-  const [visibleItems, setVisibleItems] = React.useState(navItems);
-  const [hiddenItems, setHiddenItems] = React.useState<typeof navItems>([]);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const navRef = React.useRef<HTMLDivElement>(null);
-  const hiddenNavRef = React.useRef<HTMLDivElement>(null);
-  const rightSectionRef = React.useRef<HTMLDivElement>(null);
-  const leftSectionRef = React.useRef<HTMLDivElement>(null);
   
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordFormSchema(t)),
   });
-
-  const updateMenu = React.useCallback(() => {
-    if (hiddenNavRef.current && containerRef.current && rightSectionRef.current && leftSectionRef.current) {
-        const containerWidth = containerRef.current.offsetWidth;
-        const rightSectionWidth = rightSectionRef.current.offsetWidth;
-        const leftSectionWidth = leftSectionRef.current.offsetWidth;
-        const availableWidth = containerWidth - rightSectionWidth - leftSectionWidth - 40; // 20px padding on each side
-
-        const navItemsElements = Array.from(hiddenNavRef.current.querySelectorAll('.flex.items-center.justify-center.rounded-md, .group.inline-flex.h-9.w-max.items-center.justify-center')) as HTMLElement[];
-        let currentWidth = 0;
-        let visibleCount = 0;
-        
-        for (const item of navItemsElements) {
-            currentWidth += item.offsetWidth;
-            if (currentWidth > availableWidth) {
-                break;
-            }
-            visibleCount++;
-        }
-        
-        setVisibleItems(navItems.slice(0, visibleCount));
-        setHiddenItems(navItems.slice(visibleCount));
-    }
-  }, []);
-
-  React.useEffect(() => {
-    updateMenu();
-    window.addEventListener('resize', updateMenu);
-    
-    const timeoutId = setTimeout(updateMenu, 100);
-
-    return () => {
-      window.removeEventListener('resize', updateMenu);
-      clearTimeout(timeoutId);
-    };
-  }, [updateMenu]);
-
 
   React.useEffect(() => {
     if (isChangePasswordOpen) {
@@ -231,58 +185,32 @@ export function Header() {
 
   return (
     <>
-    <div ref={hiddenNavRef} style={{ position: 'absolute', visibility: 'hidden', top: -9999, left: -9999, display: 'flex' }}>
-        <HorizontalNav items={navItems} />
-    </div>
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
-      <div ref={containerRef} className="container flex h-14 items-center justify-between">
-        <div className="flex items-center gap-4" ref={leftSectionRef}>
+      <div className="flex h-14 items-center justify-between px-4">
+        <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={toggleSidebar}
+            >
+              <Menu className="h-4 w-4" />
+              <span className="sr-only">Toggle Sidebar</span>
+            </Button>
           <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold text-foreground">
               <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={24} height={24} alt="InvokeIA Logo" />
           </Link>
+          <div className="relative ml-auto flex-1 md:grow-0">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder={t('commandPlaceholder')}
+              className="w-full rounded-lg bg-muted pl-8 md:w-[200px] lg:w-[320px]"
+            />
+          </div>
         </div>
         
-        <Sheet>
-            <SheetTrigger asChild>
-            <Button size="icon" variant="outline" className="sm:hidden">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle Menu</span>
-            </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="sm:max-w-xs p-0">
-                <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold">
-                    <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={24} height={24} alt="InvokeIA Logo" />
-                </Link>
-                </div>
-                 <div className="flex-1 overflow-y-auto py-2">
-                    {/* Simplified nav for mobile */}
-                </div>
-            </SheetContent>
-        </Sheet>
-        
-        <div className="hidden md:flex flex-1 items-center justify-center" ref={navRef}>
-            <HorizontalNav items={visibleItems} />
-             {hiddenItems.length > 0 && (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-9 px-3 text-sm font-medium">
-                            More
-                            <MoreHorizontal className="ml-2 h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                        {hiddenItems.map(item => (
-                            <DropdownMenuItem key={item.title} asChild>
-                                <Link href={item.href}>{tNav(item.title as any)}</Link>
-                            </DropdownMenuItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            )}
-        </div>
-
-        <div className="flex items-center justify-end gap-2" ref={rightSectionRef}>
+        <div className="flex items-center justify-end gap-2">
             <ExchangeRate />
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>

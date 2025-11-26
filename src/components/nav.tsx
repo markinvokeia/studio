@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -63,10 +62,10 @@ export function Nav({ items, isMinimized }: NavProps) {
       if (activeItemIndex !== -1) {
         setActiveAccordionItem(`item-${activeItemIndex}`);
       } else {
-        // Only set to undefined if no item is active. This prevents closing an accordion
-        // that the user might have opened manually.
-        const isAnyActive = items.some((item, index) => 
-            item.items?.some(subItem => effectivePathname.startsWith(subItem.href))
+        const isAnyActive = items.some((item) => 
+            item.href === '/' 
+            ? effectivePathname === '/' 
+            : effectivePathname.startsWith(item.href)
         );
         if (!isAnyActive) {
             setActiveAccordionItem(undefined);
@@ -75,7 +74,7 @@ export function Nav({ items, isMinimized }: NavProps) {
     }
   }, [pathname, locale, items, isClient]);
 
-  const renderLink = (item: NavItem) => {
+  const renderLink = (item: NavItem, isSubItem = false) => {
     const title = t(item.title as any);
     const effectivePathname = getEffectivePathname(pathname, locale);
     
@@ -88,30 +87,42 @@ export function Nav({ items, isMinimized }: NavProps) {
       ? effectivePathname === '/' 
       : effectivePathname.startsWith(item.href);
 
+    const linkClasses = cn(
+      'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold',
+      isActive
+        ? 'bg-primary text-primary-foreground'
+        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+      isMinimized && !isSubItem && 'justify-center',
+      isSubItem && 'text-sm pl-11',
+      !isSubItem && 'text-sm'
+    );
+    
+    const linkContent = (
+      <>
+        {!isSubItem && <item.icon className="h-4 w-4" />}
+        <span className={cn(isMinimized && !isSubItem && 'sr-only')}>
+          {title}
+        </span>
+      </>
+    );
+
+    if (isMinimized && !isSubItem) {
+        return (
+             <Tooltip key={item.href} delayDuration={0}>
+                <TooltipTrigger asChild>
+                    <Link href={linkHref} className={linkClasses}>
+                        {linkContent}
+                    </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right">{title}</TooltipContent>
+            </Tooltip>
+        );
+    }
+    
     return (
-      <Tooltip key={item.href} delayDuration={0}>
-        <TooltipTrigger asChild>
-            <Link
-              href={linkHref}
-              className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold',
-                isActive
-                  ? 'bg-black/20 text-white'
-                  : 'text-white hover:bg-black/20 hover:text-white',
-                isMinimized && 'justify-center',
-                'text-sm'
-              )}
-            >
-              <item.icon className="h-4 w-4" />
-              <span className={cn(isMinimized && 'sr-only')}>
-                {title}
-              </span>
-            </Link>
-        </TooltipTrigger>
-        {isMinimized && (
-            <TooltipContent side="right">{title}</TooltipContent>
-        )}
-      </Tooltip>
+        <Link key={item.href} href={linkHref} className={linkClasses}>
+            {linkContent}
+        </Link>
     );
   }
 
@@ -137,8 +148,8 @@ export function Nav({ items, isMinimized }: NavProps) {
             <AccordionItem value={value} className="border-b-0">
               <AccordionTrigger
                 className={cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-white transition-all hover:bg-black/20 hover:text-white hover:no-underline font-semibold',
-                   isActive && 'bg-black/20 text-white',
+                  'flex items-center gap-3 rounded-md px-3 py-2 text-muted-foreground transition-all hover:bg-accent hover:text-accent-foreground hover:no-underline font-semibold',
+                   isActive && 'bg-accent/80 text-accent-foreground',
                    'text-sm'
                 )}
               >
@@ -147,32 +158,9 @@ export function Nav({ items, isMinimized }: NavProps) {
                   {title}
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="pl-8 pt-1">
+              <AccordionContent className="pl-0 pt-1">
                 <div className="grid gap-1">
-                  {item.items?.map((subItem) => {
-                    let linkHref = `/${locale}${subItem.href}`;
-                    if (subItem.href.includes('/clinic-history')) {
-                        linkHref = `/${locale}/clinic-history/1`; // Default user
-                    }
-                    
-                    const isSubItemActive = effectivePathname === subItem.href;
-
-                    return (
-                        <Link
-                        key={subItem.href}
-                        href={linkHref}
-                        className={cn(
-                            'flex items-center gap-3 rounded-md px-3 py-2 transition-all font-semibold',
-                            isSubItemActive
-                            ? 'bg-black/20 text-white'
-                            : 'text-white hover:text-white',
-                            'text-sm'
-                        )}
-                        >
-                        {t(subItem.title as any)}
-                        </Link>
-                    )
-                  })}
+                  {item.items?.map((subItem) => renderLink(subItem, true))}
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -190,8 +178,8 @@ export function Nav({ items, isMinimized }: NavProps) {
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger
                   className={cn(
-                    'flex w-full items-center justify-center gap-3 rounded-md px-3 py-2 text-white transition-all hover:bg-black/20 hover:text-white font-semibold',
-                    isActive && 'bg-black/20 text-white',
+                    'flex w-full items-center justify-center gap-3 rounded-md px-3 py-2 text-muted-foreground transition-all hover:bg-accent hover:text-accent-foreground font-semibold',
+                    isActive && 'bg-accent/80 text-accent-foreground',
                     'text-sm'
                   )}
                 >
@@ -201,7 +189,7 @@ export function Nav({ items, isMinimized }: NavProps) {
               </TooltipTrigger>
               <TooltipContent side="right">{title}</TooltipContent>
             </Tooltip>
-            <DropdownMenuContent side="right">
+            <DropdownMenuContent side="right" align="start">
               {item.items?.map((subItem) => {
                 let linkHref = `/${locale}${subItem.href}`;
                  if (subItem.href.includes('/clinic-history')) {
