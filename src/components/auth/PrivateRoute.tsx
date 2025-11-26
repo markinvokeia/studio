@@ -3,20 +3,32 @@
 import * as React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';
-import { SidebarProvider } from '@/hooks/use-sidebar';
 import { Header } from '@/components/header';
 import { FloatingActionsWrapper } from '@/components/floating-actions-wrapper';
 import { useLocale } from 'next-intl';
 import { Sidebar } from '../sidebar';
-import { useSidebar } from '@/hooks/use-sidebar';
 import { cn } from '@/lib/utils';
+import { navItems } from '@/config/nav';
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
-    const { isMinimized } = useSidebar();
+    const pathname = usePathname();
+    const locale = useLocale();
+
+    const getEffectivePathname = (p: string, l: string) => {
+        const localePrefix = `/${l}`;
+        if (p.startsWith(localePrefix)) {
+            return p.substring(localePrefix.length) || '/';
+        }
+        return p;
+    };
+    
+    const effectivePathname = getEffectivePathname(pathname, locale);
+    const activeParentItem = navItems.find(item => item.href !== '/' && effectivePathname.startsWith(item.href) && item.items);
+    
     return (
         <div className="flex h-screen bg-background">
             <Sidebar />
-            <div className={cn("flex flex-col flex-1 transition-all duration-300", isMinimized ? 'md:ml-20' : 'md:ml-64')}>
+            <div className={cn("flex flex-col flex-1 transition-all duration-300", activeParentItem ? 'md:ml-84' : 'md:ml-20')}>
                 <Header />
                 <main className="flex-1 overflow-auto bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 lg:p-6">
                     {children}
@@ -67,11 +79,9 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
   
   if (user) {
     return (
-      <SidebarProvider>
         <AuthenticatedLayout>
           {children}
         </AuthenticatedLayout>
-      </SidebarProvider>
     );
   }
 

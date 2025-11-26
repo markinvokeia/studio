@@ -12,7 +12,6 @@ import {
   LogOut,
   AlertTriangle,
   KeyRound,
-  MoreHorizontal,
   Search,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
@@ -55,7 +54,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { Input } from './ui/input';
 import { ExchangeRate } from './exchange-rate';
-import { useSidebar } from '@/hooks/use-sidebar';
 
 
 const passwordFormSchema = (t: (key: string) => string) => z.object({
@@ -76,13 +74,11 @@ export function Header() {
   const pathname = usePathname();
   const { setTheme } = useTheme();
   const t = useTranslations('Header');
-  const tNav = useTranslations('Navigation');
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { logout, user } = useAuth();
   const { toast } = useToast();
-  const { toggleSidebar } = useSidebar();
 
   const [isLogoutAlertOpen, setIsLogoutAlertOpen] = React.useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
@@ -185,32 +181,19 @@ export function Header() {
 
   return (
     <>
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
-      <div className="flex h-14 items-center justify-between px-4">
-        <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={toggleSidebar}
-            >
-              <Menu className="h-4 w-4" />
-              <span className="sr-only">Toggle Sidebar</span>
-            </Button>
-          <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold text-foreground">
-              <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={24} height={24} alt="InvokeIA Logo" />
-          </Link>
-          <div className="relative ml-auto flex-1 md:grow-0">
+    <header className="sticky top-0 z-20 w-full border-b bg-background/95 backdrop-blur-sm">
+      <div className="flex h-14 items-center justify-between px-4 lg:h-[60px] lg:px-6">
+        <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
               placeholder={t('commandPlaceholder')}
               className="w-full rounded-lg bg-muted pl-8 md:w-[200px] lg:w-[320px]"
             />
-          </div>
         </div>
         
         <div className="flex items-center justify-end gap-2">
+            <span className="text-sm font-medium">Admin Panel</span>
             <ExchangeRate />
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
