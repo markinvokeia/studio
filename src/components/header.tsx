@@ -72,7 +72,7 @@ const passwordFormSchema = (t: (key: string) => string) => z.object({
     path: ['confirm_password'],
 });
 
-type PasswordFormValues = z.infer<ReturnType<typeof passwordFormSchema>>;
+type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
 export function Header() {
   const pathname = usePathname();
@@ -235,7 +235,7 @@ export function Header() {
         <HorizontalNav items={navItems} />
     </div>
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
-      <div ref={containerRef} className="container flex h-14 items-center justify-between">
+      <div ref={containerRef} className="container flex h-14 items-center">
         <div className="flex items-center gap-4" ref={leftSectionRef}>
           <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold text-foreground">
               <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={24} height={24} alt="InvokeIA Logo" />
