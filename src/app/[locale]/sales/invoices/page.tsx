@@ -396,11 +396,12 @@ export default function InvoicesPage() {
     };
 
     const onEditItemSubmit = async (data: InvoiceItemFormValues) => {
+      if (!selectedInvoice) return;
       try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/upsert`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...data, id: editingItem?.id }),
+            body: JSON.stringify({ ...data, id: editingItem?.id, invoice_id: selectedInvoice.id }),
         });
         if (response.status !== 200) {
             const responseData = await response.json();
@@ -662,5 +663,3 @@ export default function InvoicesPage() {
         </div>
     );
 }
-
-    
