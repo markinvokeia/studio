@@ -404,8 +404,9 @@ export default function InvoicesPage() {
       try {
         const payload = {
           ...data,
-          id: editingItem?.id,
-          invoice_id: selectedInvoice.id,
+          id: editingItem?.id ? parseInt(editingItem.id, 10) : undefined,
+          invoice_id: parseInt(selectedInvoice.id, 10),
+          service_id: parseInt(data.service_id, 10),
           order_item_id: selectedInvoice.order_id,
           quantity: Number(data.quantity),
           unit_price: Number(data.unit_price),
@@ -744,5 +745,7 @@ export default function InvoicesPage() {
         </div>
     );
 }
+
+    
 
     
