@@ -397,16 +397,16 @@ export default function InvoicesPage() {
 
     const onEditItemSubmit = async (data: InvoiceItemFormValues) => {
       try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/edit`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/upsert`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...data, id: editingItem?.id, service_name: services.find(s => s.id === data.service_id)?.name }),
+            body: JSON.stringify({ ...data, id: editingItem?.id }),
         });
-        const responseData = await response.json();
-        if (response.status >= 400) {
+        if (response.status !== 200) {
+            const responseData = await response.json();
             throw new Error(responseData.message || 'Failed to update invoice item.');
         }
-        toast({ title: 'Success', description: responseData.message || 'Invoice item updated successfully.'});
+        toast({ title: 'Success', description: 'Invoice item updated successfully.'});
         loadInvoiceItems();
         setIsEditItemDialogOpen(false);
       } catch (error) {
@@ -422,10 +422,11 @@ export default function InvoicesPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: deletingItem.id }),
         });
-        const responseData = await response.json();
         if (response.status >= 400) {
+            const responseData = await response.json();
             throw new Error(responseData.message || 'Failed to delete invoice item.');
         }
+        const responseData = await response.json();
         toast({ title: 'Success', description: responseData.message || 'Invoice item deleted successfully.'});
         loadInvoiceItems();
         setIsDeleteItemDialogOpen(false);
