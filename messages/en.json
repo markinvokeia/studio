@@ -3,28 +3,47 @@
   "Navigation": {
     "Dashboard": "Dashboard",
     "Appointments": "Appointments",
-    "UsersAndAccess": "Users & Access",
-    "Users": "Users",
+    "UsersAndAccess": "Patients",
+    "Users": "Patients",
+    "Pacientes": "Patients",
+    "Providers": "Providers",
     "ClinicHistory": "Clinic History",
     "Studies": "Studies",
     "SharedStudies": "Shared Studies",
-    "SalesAndBilling": "Sales & Billing",
+    "Sales": "Sales",
+    "Purchases": "Purchases",
+    "PurchaseQuotes": "Purchase Quotes",
+    "PurchaseOrders": "Purchase Orders",
+    "PurchaseInvoices": "Purchase Invoices",
+    "PurchasePayments": "Purchase Payments",
+    "ProviderProducts": "Provider Products and Services",
     "Quotes": "Quotes",
     "Orders": "Orders",
     "Invoices": "Invoices",
     "Payments": "Payments",
+    "PaymentMethods": "Payment Methods",
+    "Services": "Services",
     "ClinicCatalog": "Clinic Catalog",
     "Ailments": "Ailments",
     "Medications": "Medications",
     "DentalConditions": "Dental Conditions",
     "DentalSurfaces": "Dental Surfaces",
+    "Cashier": "Cashier",
+    "MiscellaneousTransactions": "Miscellaneous Transactions",
+    "MiscellaneousCategories": "Product and Services Categories",
+    "CashSessions": "Cash Sessions",
+    "PhysicalCashRegisters": "Physical Cash Registers",
     "BusinessSetup": "Business Setup",
-    "Services": "Services",
     "ClinicDetails": "Clinic Details",
     "Schedules": "Schedules",
     "Holidays": "Holidays",
     "Calendars": "Calendars",
+    "Doctors": "Doctors",
+    "DoctorAvailability": "Doctor Availability",
+    "DoctorAvailabilityExceptions": "Availability Exceptions",
+    "Currencies": "Currencies & Exchange Rates",
     "System": "System",
+    "SystemUsers": "Users",
     "Roles": "Roles",
     "Permissions": "Permissions",
     "Configurations": "Configurations",
@@ -40,7 +59,64 @@
     "settings": "Settings",
     "support": "Support",
     "logout": "Logout",
-    "commandPlaceholder": "Enter a command..."
+    "commandPlaceholder": "Enter a command...",
+    "changePassword": "Change Password",
+    "logoutConfirmation": {
+      "title": "Active Cash Session",
+      "description": "You have an open cash session. Please close it before logging out.",
+      "goToCashier": "Go to Close Session",
+      "logoutAnyway": "Logout Anyway",
+      "cancel": "Cancel"
+    },
+    "changePasswordDialog": {
+      "title": "Change Password",
+      "oldPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm New Password",
+      "cancel": "Cancel",
+      "save": "Save Changes"
+    },
+    "validation": {
+      "oldPasswordRequired": "Current password is required.",
+      "newPasswordMin": "New password must be at least 8 characters.",
+      "newPasswordUpper": "New password must contain an uppercase letter.",
+      "newPasswordNumber": "New password must contain a number.",
+      "passwordsMismatch": "Passwords do not match."
+    },
+    "errors": {
+      "title": "Error",
+      "noToken": "Authentication token not found. Please log in again.",
+      "generic": "An unexpected error occurred. Please try again.",
+      "incorrectOldPassword": "The current password is not correct."
+    },
+    "success": {
+      "title": "Success",
+      "description": "Your password has been changed successfully."
+    }
+  },
+    "OpenCashSessionWidget": {
+    "checkingStatus": "Checking cash session status...",
+    "activeSession": {
+      "title": "Active Cash Session",
+      "description": "Session for {user} at {cashPoint} is currently open.",
+      "button": "Go to Cashier"
+    },
+    "title": "No Active Cash Session",
+    "description": "You do not have an active cash session. Please open one to start recording transactions.",
+    "button": "Open Cash Session"
+  },
+  "DataTableToolbar": {
+    "toggleColumns": "Toggle columns"
+  },
+  "DataTablePagination": {
+    "selected": "{count, plural, one {# selected} other {# selected}} of {total} row(s).",
+    "rowsPerPage": "Rows per page",
+    "all": "All",
+    "page": "Page {current} of {total}",
+    "goToFirst": "Go to first page",
+    "goToPrevious": "Go to previous page",
+    "goToNext": "Go to next page",
+    "goToLast": "Go to last page"
   },
   "ReportFilters": {
     "apply": "Apply Filters",
@@ -477,7 +553,9 @@
   "QuoteColumns": {
     "quoteId": "Quote ID",
     "total": "Total",
-    "billingStatus": "Billing Status"
+    "billingStatus": "Billing Status",
+    "createdAt": "Created At",
+    "currency": "Currency"
   },
   "OrderColumns": {
     "orderId": "Order ID",
@@ -485,5 +563,91 @@
   },
   "General": {
     "noResults": "No results."
+  },
+  "QuotesPage": {
+     "sendEmailDialog": {
+      "title": "Send Quote by Email",
+      "description": "Enter the recipient emails for quote #{id}.",
+      "recipients": "Recipients",
+      "placeholder": "email1@example.com, email2@example.com",
+      "helperText": "Separate multiple emails with commas."
+    },
+    "quoteDialog": {
+      "cancel": "Cancel"
+    },
+    "sendEmail": "Send Email"
+  },
+  "InvoicesPage": {
+    "title": "Invoices",
+    "description": "Manage all your invoices here.",
+    "columns": {
+      "invoiceId": "Invoice ID",
+      "provider": "Provider",
+      "user": "User",
+      "orderId": "Order ID",
+      "quoteId": "Quote ID",
+      "total": "Total",
+      "status": "Status",
+      "payment": "Payment",
+      "createdAt": "Created At",
+      "currency": "Currency"
+    },
+    "paymentDialog": {
+      "add": "Add Payment",
+      "title": "Add Payment",
+      "description": "Add a payment for invoice #{invoiceId}",
+      "amount": "Amount",
+      "method": "Method",
+      "selectMethod": "Select a payment method",
+      "status": "Status",
+      "selectStatus": "Select a payment status",
+      "date": "Payment Date",
+      "pickDate": "Pick a date",
+      "cancel": "Cancel",
+      "success": "Payment Added",
+      "successDescription": "The payment for invoice #{invoiceId} has been successfully added.",
+      "error": "Failed to add payment."
+    },
+    "status": {
+      "paid": "Paid",
+      "sent": "Sent",
+      "draft": "Draft",
+      "overdue": "Overdue",
+      "unpaid": "Unpaid",
+      "partial": "Partial",
+      "partially_paid": "Partially Paid",
+      "completed": "Completed",
+      "pending": "Pending",
+      "failed": "Failed"
+    },
+    "methods": {
+      "bank_transfer": "Bank Transfer",
+      "credit_card": "Credit Card",
+      "cash": "Cash",
+      "debit": "Debit",
+      "credit": "Credit",
+      "mercado_pago": "Mercado Pago"
+    },
+    "validation": {
+      "amountPositive": "Amount must be a positive number.",
+      "methodRequired": "Payment method is required.",
+      "dateRequired": "Payment date is required."
+    },
+    "toast": {
+      "error": "Error",
+      "sessionCheckError": "Could not verify active cash session. Please try again."
+    },
+    "noSessionDialog": {
+      "title": "No Active Cash Session",
+      "description": "You must have an active cash session to register a payment.",
+      "openCashSession": "Open Cash Session"
+    },
+    "detailsFor": "Details for",
+    "invoiceId": "Invoice ID",
+    "tabs": {
+        "items": "Items",
+        "payments": "Payments"
+    }
   }
 }
+

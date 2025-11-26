@@ -3,28 +3,47 @@
   "Navigation": {
     "Dashboard": "Dashboard",
     "Appointments": "Citas",
-    "UsersAndAccess": "Usuarios y Acceso",
-    "Users": "Usuarios",
+    "UsersAndAccess": "Pacientes",
+    "Users": "Pacientes",
+    "Pacientes": "Pacientes",
+    "Providers": "Proveedores",
     "ClinicHistory": "Historial Clínico",
     "Studies": "Estudios",
     "SharedStudies": "Estudio Compartido",
-    "SalesAndBilling": "Ventas",
+    "Sales": "Ventas",
+    "Purchases": "Compras",
+    "PurchaseQuotes": "Cotizaciones de Compra",
+    "PurchaseOrders": "Órdenes de Compra",
+    "PurchaseInvoices": "Facturas de Compra",
+    "PurchasePayments": "Pagos de Compra",
+    "ProviderProducts": "Productos y Servicios de Proveedor",
     "Quotes": "Cotizaciones",
     "Orders": "Pedidos",
     "Invoices": "Facturas",
     "Payments": "Pagos",
+    "PaymentMethods": "Métodos de Pago",
+    "Services": "Servicios",
     "ClinicCatalog": "Catálogo Clínico",
     "Ailments": "Padecimientos",
     "Medications": "Medicamentos",
     "DentalConditions": "Condiciones Dentales",
     "DentalSurfaces": "Superficies Dentales",
+    "Cashier": "Caja",
+    "MiscellaneousTransactions": "Transacciones Misceláneas",
+    "MiscellaneousCategories": "Categorías de Productos y Servicios",
+    "CashSessions": "Sesiones de Caja",
+    "PhysicalCashRegisters": "Cajas Físicas",
     "BusinessSetup": "Configuración",
-    "Services": "Servicios",
     "ClinicDetails": "Clínicas",
     "Schedules": "Horarios",
     "Holidays": "Feriados",
     "Calendars": "Calendarios",
+    "Doctors": "Doctores",
+    "DoctorAvailability": "Disponibilidad de Médicos",
+    "DoctorAvailabilityExceptions": "Excepciones de disponibilidad",
+    "Currencies": "Monedas y Cotizaciones",
     "System": "Sistema",
+    "SystemUsers": "Usuarios del Sistema",
     "Roles": "Roles",
     "Permissions": "Permisos",
     "Configurations": "Configuraciones",
@@ -40,7 +59,64 @@
     "settings": "Configuración",
     "support": "Soporte",
     "logout": "Cerrar Sesión",
-    "commandPlaceholder": "Introduce un comando..."
+    "commandPlaceholder": "Introduce un comando...",
+    "changePassword": "Cambiar Contraseña",
+    "logoutConfirmation": {
+      "title": "Sesión de Caja Activa",
+      "description": "Tiene una sesión de caja abierta. Por favor, ciérrela antes de salir.",
+      "goToCashier": "Ir a Cerrar Sesión",
+      "logoutAnyway": "Salir de todos modos",
+      "cancel": "Cancelar"
+    },
+    "changePasswordDialog": {
+      "title": "Cambiar Contraseña",
+      "oldPassword": "Contraseña Actual",
+      "newPassword": "Nueva Contraseña",
+      "confirmPassword": "Confirmar Nueva Contraseña",
+      "cancel": "Cancelar",
+      "save": "Guardar Cambios"
+    },
+    "validation": {
+      "oldPasswordRequired": "La contraseña actual es requerida.",
+      "newPasswordMin": "La nueva contraseña debe tener al menos 8 caracteres.",
+      "newPasswordUpper": "La nueva contraseña debe contener una letra mayúscula.",
+      "newPasswordNumber": "La nueva contraseña debe contener un número.",
+      "passwordsMismatch": "Las contraseñas no coinciden."
+    },
+    "errors": {
+      "title": "Error",
+      "noToken": "No se encontró el token de autenticación. Por favor, inicie sesión de nuevo.",
+      "generic": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
+      "incorrectOldPassword": "La contraseña actual no es correcta."
+    },
+    "success": {
+      "title": "Éxito",
+      "description": "Su contraseña ha sido cambiada exitosamente."
+    }
+  },
+  "OpenCashSessionWidget": {
+    "checkingStatus": "Verificando estado de la sesión de caja...",
+    "activeSession": {
+      "title": "Sesión de Caja Activa",
+      "description": "La sesión de {user} en {cashPoint} está actualmente abierta.",
+      "button": "Ir a Caja"
+    },
+    "title": "No hay Sesión de Caja Activa",
+    "description": "No tienes una sesión de caja activa. Por favor, abre una para comenzar a registrar transacciones.",
+    "button": "Abrir Sesión de Caja"
+  },
+  "DataTableToolbar": {
+    "toggleColumns": "Alternar columnas"
+  },
+  "DataTablePagination": {
+    "selected": "{count, plural, one {# seleccionado} other {# seleccionados}} de {total} fila(s).",
+    "rowsPerPage": "Filas por página",
+    "all": "Todo",
+    "page": "Página {current} de {total}",
+    "goToFirst": "Ir a la primera página",
+    "goToPrevious": "Ir a la página anterior",
+    "goToNext": "Ir a la página siguiente",
+    "goToLast": "Ir a la última página"
   },
   "ReportFilters": {
     "apply": "Aplicar Filtros",
@@ -477,7 +553,9 @@
   "QuoteColumns": {
     "quoteId": "ID Cotización",
     "total": "Total",
-    "billingStatus": "Estado Facturación"
+    "billingStatus": "Estado Facturación",
+    "createdAt": "Fecha Creación",
+    "currency": "Moneda"
   },
   "OrderColumns": {
     "orderId": "ID Pedido",
@@ -485,5 +563,90 @@
   },
   "General": {
     "noResults": "No se encontraron resultados."
+  },
+  "QuotesPage": {
+    "sendEmailDialog": {
+      "title": "Enviar Cotización por Email",
+      "description": "Introduce los correos de los destinatarios para la cotización #{id}.",
+      "recipients": "Destinatarios",
+      "placeholder": "email1@example.com, email2@example.com",
+      "helperText": "Separa múltiples correos con comas."
+    },
+    "quoteDialog": {
+      "cancel": "Cancelar"
+    },
+    "sendEmail": "Enviar Email"
+  },
+  "InvoicesPage": {
+    "title": "Facturas",
+    "description": "Gestiona todas tus facturas aquí.",
+    "columns": {
+      "invoiceId": "ID Factura",
+      "provider": "Proveedor",
+      "user": "Usuario",
+      "orderId": "ID Pedido",
+      "quoteId": "ID Cotización",
+      "total": "Total",
+      "status": "Estado",
+      "payment": "Pago",
+      "createdAt": "Fecha de Creación",
+      "currency": "Moneda"
+    },
+    "paymentDialog": {
+      "add": "Añadir Pago",
+      "title": "Añadir Pago",
+      "description": "Añadir un pago para la factura #{invoiceId}",
+      "amount": "Monto",
+      "method": "Método",
+      "selectMethod": "Selecciona un método de pago",
+      "status": "Estado",
+      "selectStatus": "Selecciona un estado de pago",
+      "date": "Fecha de Pago",
+      "pickDate": "Elige una fecha",
+      "cancel": "Cancelar",
+      "success": "Pago Añadido",
+      "successDescription": "El pago para la factura #{invoiceId} se ha añadido correctamente.",
+      "error": "No se pudo añadir el pago."
+    },
+    "status": {
+      "paid": "Pagada",
+      "sent": "Enviada",
+      "draft": "Borrador",
+      "overdue": "Vencida",
+      "unpaid": "No Pagada",
+      "partial": "Parcial",
+      "partially_paid": "Parcialmente Pagada",
+      "completed": "Completado",
+      "pending": "Pendiente",
+      "failed": "Fallido"
+    },
+    "methods": {
+      "bank_transfer": "Transferencia Bancaria",
+      "credit_card": "Tarjeta de Crédito",
+      "cash": "Efectivo",
+      "debit": "Débito",
+      "credit": "Crédito",
+      "mercado_pago": "Mercado Pago"
+    },
+    "validation": {
+      "amountPositive": "El monto debe ser un número positivo.",
+      "methodRequired": "El método de pago es requerido.",
+      "dateRequired": "La fecha de pago es requerida."
+    },
+    "toast": {
+      "error": "Error",
+      "sessionCheckError": "No se pudo verificar la sesión de caja activa. Por favor, inténtelo de nuevo."
+    },
+    "noSessionDialog": {
+      "title": "No hay Sesión de Caja Activa",
+      "description": "Debes tener una sesión de caja activa para registrar un pago.",
+      "openCashSession": "Abrir Sesión de Caja"
+    },
+    "detailsFor": "Detalles de",
+    "invoiceId": "ID de Factura",
+    "tabs": {
+        "items": "Items",
+        "payments": "Pagos"
+    }
   }
 }
