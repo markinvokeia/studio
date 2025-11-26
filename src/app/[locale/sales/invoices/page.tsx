@@ -400,7 +400,7 @@ export default function InvoicesPage() {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/edit`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...data, service_name: services.find(s => s.id === data.service_id)?.name }),
+            body: JSON.stringify({ ...data, id: editingItem?.id, service_name: services.find(s => s.id === data.service_id)?.name }),
         });
         const responseData = await response.json();
         if (response.status >= 400) {
@@ -661,3 +661,5 @@ export default function InvoicesPage() {
         </div>
     );
 }
+
+    
