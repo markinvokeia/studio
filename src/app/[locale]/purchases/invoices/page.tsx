@@ -401,7 +401,7 @@ export default function InvoicesPage() {
             body: JSON.stringify({ ...data, id: editingItem?.id, service_name: services.find(s => s.id === data.service_id)?.name }),
         });
         if (response.status !== 200) {
-             const responseData = await response.json();
+            const responseData = await response.json();
             throw new Error(responseData.message || 'Failed to update invoice item.');
         }
         toast({ title: 'Success', description: 'Invoice item updated successfully.'});
@@ -658,6 +658,3 @@ export default function InvoicesPage() {
         </div>
     );
 }
-
-    
-    
