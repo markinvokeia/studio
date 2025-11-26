@@ -464,7 +464,7 @@ export default function InvoicesPage() {
         createdAt: t('columns.createdAt'),
     };
     
-    const canEditItems = selectedInvoice?.status.toLowerCase() === 'unpaid';
+    const canEditItems = selectedInvoice?.status.toLowerCase() === 'draft';
 
      const ItemFormDialog = ({
         isOpen,

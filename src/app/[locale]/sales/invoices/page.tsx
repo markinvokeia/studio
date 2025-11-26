@@ -468,7 +468,7 @@ export default function InvoicesPage() {
         currency: t('columns.currency'),
     };
     
-    const canEditItems = selectedInvoice?.status.toLowerCase() === 'unpaid';
+    const canEditItems = selectedInvoice?.status.toLowerCase() === 'draft';
 
      const ItemFormDialog = ({
         isOpen,
