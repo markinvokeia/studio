@@ -57,20 +57,23 @@ type GetUsersResponse = {
 };
 
 const UserStats = ({ user }: { user: User }) => {
-    const formatCurrency = (value: number, currency: string) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value);
+    const formatCurrency = (value: number, currency: 'USD' | 'UYU') => {
+        const symbol = currency === 'USD' ? 'U$S' : '$U';
+        const formattedValue = new Intl.NumberFormat('es-UY', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(value);
+        return `${symbol} ${formattedValue}`;
     };
 
     const renderStatValue = (value: any) => {
-        if (!value || typeof value !== 'object' || Object.keys(value).length === 0) {
-            return <div className="text-2xl font-bold">$0.00</div>;
-        }
+        const usdValue = value?.USD ?? 0;
+        const uyuValue = value?.UYU ?? 0;
 
         return (
             <div className="text-lg font-bold">
-                {Object.entries(value).map(([currency, amount]) => (
-                    <div key={currency}>{formatCurrency(amount as number, currency)}</div>
-                ))}
+                <div>{formatCurrency(usdValue, 'USD')}</div>
+                <div>{formatCurrency(uyuValue, 'UYU')}</div>
             </div>
         );
     };
