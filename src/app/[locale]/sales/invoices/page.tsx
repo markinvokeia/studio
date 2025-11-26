@@ -15,10 +15,10 @@ import { RowSelectionState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -162,7 +162,7 @@ export default function InvoicesPage() {
     const [isLoadingInvoices, setIsLoadingInvoices] = React.useState(false);
     const [isLoadingInvoiceItems, setIsLoadingInvoiceItems] = React.useState(false);
     const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
-
+    
     const [editingItem, setEditingItem] = React.useState<InvoiceItem | null>(null);
     const [isEditItemDialogOpen, setIsEditItemDialogOpen] = React.useState(false);
     const [deletingItem, setDeletingItem] = React.useState<InvoiceItem | null>(null);
@@ -185,7 +185,6 @@ export default function InvoicesPage() {
             }
         }
     }, [watchedServiceId, itemForm, services]);
-
 
     const loadInvoices = React.useCallback(async () => {
         setIsLoadingInvoices(true);
@@ -401,7 +400,7 @@ export default function InvoicesPage() {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/edit`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...data, service_name: services.find(s => s.id === data.service_id)?.name }),
+            body: JSON.stringify({ ...data, id: editingItem?.id, service_name: services.find(s => s.id === data.service_id)?.name }),
         });
         const responseData = await response.json();
         if (response.status >= 400) {
@@ -421,7 +420,7 @@ export default function InvoicesPage() {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/delete`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ invoice_item_id: deletingItem.id }),
+            body: JSON.stringify({ id: deletingItem.id }),
         });
         const responseData = await response.json();
         if (response.status >= 400) {
@@ -512,7 +511,7 @@ export default function InvoicesPage() {
                                             <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
                                         </Button>
                                     </div>
-                                    <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} canEdit={canEditItems} onEdit={handleEditItem} onDelete={handleDeleteItem}/>
+                                    <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} canEdit={canEditItems} onEdit={handleEditItem} onDelete={handleDeleteItem} />
                                 </TabsContent>
                                 <TabsContent value="payments">
                                     <PaymentsTable 
@@ -662,3 +661,5 @@ export default function InvoicesPage() {
         </div>
     );
 }
+
+    
