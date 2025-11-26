@@ -85,7 +85,7 @@ export const navItems: NavItem[] = [
   },
   {
     title: 'Sales',
-    href: '/sales',
+    href: '/sales/quotes',
     icon: Wallet,
     items: [
       { title: 'Quotes', href: '/sales/quotes', icon: FileText, isChidren: true },
@@ -111,7 +111,7 @@ export const navItems: NavItem[] = [
   },
    {
     title: 'ClinicCatalog',
-    href: '/clinic-catalog',
+    href: '/clinic-catalog/ailments',
     icon: BookHeart,
     items: [
       { title: 'Ailments', href: '/clinic-catalog/ailments', icon: HeartPulse, isChidren: true },
@@ -122,7 +122,7 @@ export const navItems: NavItem[] = [
   },
   {
     title: 'BusinessSetup',
-    href: '/config',
+    href: '/config/clinics',
     icon: Settings,
     items: [
       { title: 'ClinicDetails', href: '/config/clinics', icon: Building, isChidren: true },
@@ -138,12 +138,12 @@ export const navItems: NavItem[] = [
   },
   {
     title: 'System',
-    href: '/system',
+    href: '/system/users',
     icon: Shield,
     items: [
+      { title: 'SystemUsers', href: '/system/users', icon: Users, isChidren: true },
       { title: 'Roles', href: '/roles', icon: KeyRound, isChidren: true },
       { title: 'Permissions', href: '/permissions', icon: Shield, isChidren: true },
-      { title: 'SystemUsers', href: '/system/users', icon: Users, isChidren: true },
       { title: 'Configurations', href: '/system/config', icon: Settings, isChidren: true },
       { title: 'AuditLog', href: '/system/audit', icon: BarChart, isChidren: true },
       { title: 'AccessLog', href: '/system/access', icon: UserCheck, isChidren: true },

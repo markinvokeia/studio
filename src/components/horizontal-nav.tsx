@@ -16,6 +16,7 @@ import {
 import type { NavItem } from '@/config/nav';
 import { useLocale, useTranslations } from 'next-intl';
 import React, { useEffect, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 
 interface HorizontalNavProps {
   items: NavItem[];
@@ -47,19 +48,33 @@ export function HorizontalNav({ items }: HorizontalNavProps) {
             return (
               <NavigationMenuItem key={item.title}>
                 <NavigationMenuTrigger className={cn("text-sm", isParentActive && "bg-accent/50")}>
-                  <item.icon className="h-4 w-4 mr-2" />
                   {t(item.title as any)}
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                    <li className="row-span-3">
+                      <NavigationMenuLink asChild>
+                        <a
+                          className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
+                          href={`/${locale}${item.href}`}
+                        >
+                          <item.icon className="h-6 w-6" />
+                          <div className="mb-2 mt-4 text-lg font-medium">
+                            {t(item.title as any)}
+                          </div>
+                          <p className="text-sm leading-tight text-muted-foreground">
+                            {/* Placeholder for parent item description */}
+                          </p>
+                        </a>
+                      </NavigationMenuLink>
+                    </li>
                     {item.items.map((subItem) => (
-                      <ListItem
+                       <ListItem
                         key={subItem.title}
                         title={t(subItem.title as any)}
                         href={`/${locale}${subItem.href}`}
-                      >
-                        {/* Placeholder for description if you add one */}
-                      </ListItem>
+                        className={effectivePathname.startsWith(subItem.href) ? 'bg-accent/50' : ''}
+                      />
                     ))}
                   </ul>
                 </NavigationMenuContent>
@@ -77,12 +92,11 @@ export function HorizontalNav({ items }: HorizontalNavProps) {
 
             return (
               <NavigationMenuItem key={item.title}>
-                  <NavigationMenuLink active={isActive} asChild className={cn(navigationMenuTriggerStyle(), "text-sm")}>
-                     <a>
-                      <item.icon className="h-4 w-4 mr-2" />
-                      {t(item.title as any)}
-                    </a>
-                  </NavigationMenuLink>
+                  <Link href={linkHref} legacyBehavior passHref>
+                    <NavigationMenuLink active={isActive} className={cn(navigationMenuTriggerStyle(), "text-sm")}>
+                        {t(item.title as any)}
+                    </NavigationMenuLink>
+                  </Link>
               </NavigationMenuItem>
             );
           }
