@@ -33,7 +33,7 @@ type InvoiceItemFormValues = z.infer<typeof invoiceItemSchema>;
 
 async function getServices(): Promise<Service[]> {
   try {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=false', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=true', {
       method: 'GET',
       mode: 'cors',
       headers: {
@@ -51,9 +51,10 @@ async function getServices(): Promise<Service[]> {
   }
 }
 
+
 async function getInvoices(): Promise<Invoice[]> {
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?is_sales=false`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?is_sales=true`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -84,7 +85,7 @@ async function getInvoices(): Promise<Invoice[]> {
 async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}&is_sales=false`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}&is_sales=true`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -110,7 +111,7 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
 async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_payments?invoice_id=${invoiceId}&is_sales=false`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_payments?invoice_id=${invoiceId}&is_sales=true`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -152,6 +153,7 @@ export default function InvoicesPage() {
     const [importFile, setImportFile] = React.useState<File | null>(null);
     const [isProcessingImport, setIsProcessingImport] = React.useState(false);
     const [importStatus, setImportStatus] = React.useState<'unpaid' | 'partially_paid' | 'paid'>('unpaid');
+
 
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
     const [payments, setPayments] = React.useState<Payment[]>([]);
@@ -343,7 +345,7 @@ export default function InvoicesPage() {
 
         const formData = new FormData();
         formData.append('file', importFile);
-        formData.append('is_sales', 'false');
+        formData.append('is_sales', 'true');
         formData.append('status', importStatus);
 
         try {
@@ -434,13 +436,14 @@ export default function InvoicesPage() {
 
     const columnTranslations = {
         id: t('columns.invoiceId'),
-        user_name: t('columns.provider'),
+        user_name: t('columns.user'),
         order_id: t('columns.orderId'),
         quote_id: t('columns.quoteId'),
         total: t('columns.total'),
         status: t('columns.status'),
         payment_status: t('columns.payment'),
         createdAt: t('columns.createdAt'),
+        currency: t('columns.currency'),
     };
     
     const canEditItems = selectedInvoice?.status.toLowerCase() === 'unpaid';
@@ -605,7 +608,7 @@ export default function InvoicesPage() {
                 isOpen={isCreateDialogOpen}
                 onOpenChange={setIsCreateDialogOpen}
                 onInvoiceCreated={loadInvoices}
-                isSales={false}
+                isSales={true}
             />
 
             {isEditItemDialogOpen && (
