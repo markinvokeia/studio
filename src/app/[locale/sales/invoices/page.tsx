@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { InvoicesTable, CreateInvoiceDialog } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
-import { RefreshCw, X, FileUp, File, Loader2 } from 'lucide-react';
+import { RefreshCw, X, FileUp, File, Loader2, PlusCircle } from 'lucide-react';
 import { RowSelectionState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
@@ -25,7 +25,7 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const invoiceItemSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(),
   service_id: z.string().min(1, 'Service name is required'),
   quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
   unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
@@ -164,6 +164,7 @@ export default function InvoicesPage() {
     const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
     
     const [editingItem, setEditingItem] = React.useState<InvoiceItem | null>(null);
+    const [isCreateItemDialogOpen, setIsCreateItemDialogOpen] = React.useState(false);
     const [isEditItemDialogOpen, setIsEditItemDialogOpen] = React.useState(false);
     const [deletingItem, setDeletingItem] = React.useState<InvoiceItem | null>(null);
     const [isDeleteItemDialogOpen, setIsDeleteItemDialogOpen] = React.useState(false);
@@ -376,6 +377,13 @@ export default function InvoicesPage() {
         }
     };
 
+    const handleCreateItem = async () => {
+        setEditingItem(null);
+        itemForm.reset({ service_id: '', quantity: 1, unit_price: 0 });
+        const fetchedServices = await getServices();
+        setServices(fetchedServices);
+        setIsCreateItemDialogOpen(true);
+    };
 
     const handleEditItem = async (item: InvoiceItem) => {
       setEditingItem(item);
@@ -395,26 +403,36 @@ export default function InvoicesPage() {
       setIsDeleteItemDialogOpen(true);
     };
 
-    const onEditItemSubmit = async (data: InvoiceItemFormValues) => {
+    const onItemSubmit = async (data: InvoiceItemFormValues) => {
       if (!selectedInvoice) return;
       try {
+        const payload = {
+          ...data,
+          id: editingItem?.id,
+          invoice_id: selectedInvoice.id,
+          order_item_id: selectedInvoice.order_id,
+          quantity: Number(data.quantity),
+          unit_price: Number(data.unit_price),
+        };
+
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/upsert`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...data, id: editingItem?.id, invoice_id: selectedInvoice.id }),
+            body: JSON.stringify(payload),
         });
         if (response.status !== 200) {
             const responseData = await response.json();
-            throw new Error(responseData.message || 'Failed to update invoice item.');
+            throw new Error(responseData.message || `Failed to ${editingItem ? 'update' : 'create'} invoice item.`);
         }
-        toast({ title: 'Success', description: 'Invoice item updated successfully.'});
+        toast({ title: 'Success', description: `Invoice item ${editingItem ? 'updated' : 'created'} successfully.`});
         loadInvoiceItems();
         setIsEditItemDialogOpen(false);
+        setIsCreateItemDialogOpen(false);
       } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Failed to update invoice item.'});
+        toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : `Failed to ${editingItem ? 'update' : 'create'} invoice item.`});
       }
     };
-
+    
     const confirmDeleteItem = async () => {
       if (!deletingItem) return;
       try {
@@ -450,6 +468,86 @@ export default function InvoicesPage() {
     };
     
     const canEditItems = selectedInvoice?.status.toLowerCase() === 'unpaid';
+
+     const ItemFormDialog = ({
+        isOpen,
+        onOpenChange,
+        title,
+        onSubmit,
+    }: {
+        isOpen: boolean;
+        onOpenChange: (open: boolean) => void;
+        title: string;
+        onSubmit: (data: InvoiceItemFormValues) => void;
+    }) => (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{title}</DialogTitle>
+                </DialogHeader>
+                <Form {...itemForm}>
+                    <form onSubmit={itemForm.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField
+                            control={itemForm.control}
+                            name="service_id"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Service</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a service" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {services.map((service) => (
+                                                <SelectItem key={service.id} value={service.id}>
+                                                    {service.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={itemForm.control}
+                            name="quantity"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Quantity</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={itemForm.control}
+                            name="unit_price"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Unit Price</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" step="0.01" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                                Cancel
+                            </Button>
+                            <Button type="submit">Save Changes</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
 
     return (
         <div className="relative">
@@ -507,11 +605,18 @@ export default function InvoicesPage() {
                                     <TabsTrigger value="payments">{t('tabs.payments')}</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="items">
-                                    <div className="flex items-center justify-between mb-2">
+                                     <div className="flex items-center justify-between mb-2">
                                         <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', {id: selectedInvoice.id})}</h4>
-                                        <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
-                                            <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
-                                        </Button>
+                                        <div className="flex items-center gap-2">
+                                            {canEditItems && (
+                                                <Button variant="outline" size="icon" onClick={handleCreateItem}>
+                                                    <PlusCircle className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                            <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
+                                                <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
+                                            </Button>
+                                        </div>
                                     </div>
                                     <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} canEdit={canEditItems} onEdit={handleEditItem} onDelete={handleDeleteItem} />
                                 </TabsContent>
@@ -614,39 +719,19 @@ export default function InvoicesPage() {
                 isSales={true}
             />
 
-            {isEditItemDialogOpen && (
-              <Dialog open={isEditItemDialogOpen} onOpenChange={setIsEditItemDialogOpen}>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Edit Invoice Item</DialogTitle>
-                  </DialogHeader>
-                  <Form {...itemForm}>
-                    <form onSubmit={itemForm.handleSubmit(onEditItemSubmit)} className="space-y-4">
-                      <FormField control={itemForm.control} name="service_id" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Service</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                    <SelectTrigger><SelectValue placeholder="Select a service" /></SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {services.map(service => <SelectItem key={service.id} value={service.id}>{service.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                      <FormField control={itemForm.control} name="quantity" render={({ field }) => (<FormItem><FormLabel>Quantity</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                      <FormField control={itemForm.control} name="unit_price" render={({ field }) => (<FormItem><FormLabel>Unit Price</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                      <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setIsEditItemDialogOpen(false)}>Cancel</Button>
-                        <Button type="submit">Save Changes</Button>
-                      </DialogFooter>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
-            )}
+            <ItemFormDialog 
+                isOpen={isCreateItemDialogOpen}
+                onOpenChange={setIsCreateItemDialogOpen}
+                title="Create Invoice Item"
+                onSubmit={onItemSubmit}
+            />
+            
+            <ItemFormDialog 
+                isOpen={isEditItemDialogOpen}
+                onOpenChange={setIsEditItemDialogOpen}
+                title="Edit Invoice Item"
+                onSubmit={onItemSubmit}
+            />
 
             <AlertDialog open={isDeleteItemDialogOpen} onOpenChange={setIsDeleteItemDialogOpen}>
                 <AlertDialogContent>
@@ -663,3 +748,5 @@ export default function InvoicesPage() {
         </div>
     );
 }
+
+    

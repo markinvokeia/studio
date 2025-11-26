@@ -404,12 +404,13 @@ export default function InvoicesPage() {
       try {
         const payload = {
           ...data,
+          id: editingItem?.id,
           invoice_id: selectedInvoice.id,
           order_item_id: selectedInvoice.order_id,
+          quantity: Number(data.quantity),
+          unit_price: Number(data.unit_price),
         };
-        if (editingItem) {
-          payload.id = editingItem.id;
-        }
+        
 
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/upsert`, {
             method: 'POST',
