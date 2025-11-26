@@ -398,7 +398,7 @@ export default function InvoicesPage() {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/upsert`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...data, id: editingItem?.id, service_name: services.find(s => s.id === data.service_id)?.name }),
+            body: JSON.stringify({ ...data, id: editingItem?.id }),
         });
         if (response.status !== 200) {
             const responseData = await response.json();
