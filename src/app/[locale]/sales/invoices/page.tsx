@@ -153,8 +153,6 @@ export default function InvoicesPage() {
     const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
     const [importFile, setImportFile] = React.useState<File | null>(null);
     const [isProcessingImport, setIsProcessingImport] = React.useState(false);
-    const [importStatus, setImportStatus] = React.useState<'unpaid' | 'partially_paid' | 'paid'>('unpaid');
-
 
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
     const [payments, setPayments] = React.useState<Payment[]>([]);
@@ -350,7 +348,6 @@ export default function InvoicesPage() {
         const formData = new FormData();
         formData.append('file', importFile);
         formData.append('is_sales', 'true');
-        formData.append('status', importStatus);
 
         try {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/invoice/import', {
@@ -456,7 +453,7 @@ export default function InvoicesPage() {
         toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Failed to delete invoice item.'});
       }
     };
-
+    
     const handleConfirmInvoiceClick = (invoice: Invoice) => {
         setConfirmingInvoice(invoice);
         setIsConfirmDialogOpen(true);
@@ -501,7 +498,6 @@ export default function InvoicesPage() {
         status: t('columns.status'),
         payment_status: t('columns.payment'),
         createdAt: t('columns.createdAt'),
-        currency: t('columns.currency'),
     };
     
     const canEditItems = selectedInvoice?.status.toLowerCase() === 'draft';
@@ -728,19 +724,6 @@ export default function InvoicesPage() {
                                 <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
                             </label>
                         </div> 
-                         <div>
-                          <Label htmlFor="import-status">Invoice Status</Label>
-                          <Select value={importStatus} onValueChange={(value) => setImportStatus(value as any)}>
-                              <SelectTrigger id="import-status">
-                                  <SelectValue placeholder="Select a status" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                  <SelectItem value="unpaid">Unpaid</SelectItem>
-                                  <SelectItem value="partially_paid">Partially Paid</SelectItem>
-                                  <SelectItem value="paid">Paid</SelectItem>
-                              </SelectContent>
-                          </Select>
-                        </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isProcessingImport}>Cancel</Button>
