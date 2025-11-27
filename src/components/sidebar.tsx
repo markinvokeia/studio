@@ -16,7 +16,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-const MainSidebar = ({ onHover, onLeave }: { onHover: (item: any) => void; onLeave: () => void }) => {
+const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
     const pathname = usePathname();
     const t = useTranslations('Navigation');
     const locale = useLocale();
@@ -56,13 +56,13 @@ const MainSidebar = ({ onHover, onLeave }: { onHover: (item: any) => void; onLea
                                     <Link 
                                         href={linkHref}
                                         className={cn(
-                                            "flex h-9 w-9 items-center justify-center rounded-lg transition-colors md:h-8 md:w-8",
-                                            isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                                            "flex h-16 w-full flex-col items-center justify-center gap-1 rounded-lg transition-colors",
+                                            isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                                         )}
                                         onMouseEnter={() => onHover(item)}
                                     >
                                         <item.icon className="h-5 w-5" />
-                                        <span className="sr-only">{t(item.title as any)}</span>
+                                        <span className="text-xs font-medium text-center whitespace-nowrap">{t(item.title as any)}</span>
                                     </Link>
                                 </TooltipTrigger>
                                 <TooltipContent side="right">{t(item.title as any)}</TooltipContent>
@@ -125,7 +125,7 @@ export function Sidebar() {
 
     return (
         <div onMouseLeave={handleLeave}>
-            <MainSidebar onHover={handleHover} onLeave={handleLeave} />
+            <MainSidebar onHover={handleHover} />
             {hoveredItem && <div onMouseEnter={handleSecondaryEnter}><SecondarySidebar item={hoveredItem} onLeave={handleLeave} /></div>}
         </div>
     );
