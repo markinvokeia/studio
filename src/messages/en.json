@@ -1,4 +1,3 @@
-
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -727,18 +726,21 @@
       "total": "Total",
       "currency": "Currency",
       "cancel": "Cancel",
-      "create": "Create"
-    },
-    "InvoiceItemsTable": {
-      "title": "Invoice items",
-      "filterPlaceholder": "Filter here...",
-      "columns": {
-        "id": "ID",
-        "service": "Service",
-        "quantity": "Quantity",
-        "unitPrice": "Unit Price",
-        "total": "Total"
+      "create": "Create",
+      "success": {
+        "description": "Invoice created successfully."
       }
+    }
+  },
+  "InvoiceItemsTable": {
+    "title": "Invoice items",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "id": "ID",
+      "service": "Service",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "total": "Total"
     }
   },
   "CashierPage": {
@@ -851,22 +853,15 @@
     "filterPlaceholder": "Filter here...",
     "columns": {
       "id": "ID",
-      "user": "User",
-      "date": "Date",
-      "amount_applied": "Amount Applied",
-      "source_amount": "Source Amount",
-      "source_currency": "Source Currency",
-      "exchange_rate": "Exchange Rate",
+      "invoiceId": "Invoice ID",
+      "amount": "Amount",
+      "currency": "Currency",
       "method": "Method",
-      "transaction_type": "Transaction Type",
-      "reference_doc_id": "Reference Doc ID",
+      "status": "Status",
+      "createdAt": "Created At",
       "quoteId": "Quote ID",
-      "orderId": "Order ID"
-    },
-    "transactionTypes": {
-      "direct_payment": "Direct Payment",
-      "credit_note_allocation": "Credit Note Allocation",
-      "payment_allocation": "Payment Allocation"
+      "orderId": "Order ID",
+      "user": "User"
     }
   },
   "PaymentMethodsPage": {
@@ -997,6 +992,506 @@
     "actions": {
       "title": "Title",
       "schedule": "Schedule"
+    }
+  },
+  "LoginPage": {
+    "title": "Login",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign In",
+    "forgotPassword": "Forgot Password?",
+    "recoverPasswordTitle": "Recover Password",
+    "recoverPasswordDescription": "Enter your email to recover your password",
+    "recoverPasswordButton": "Recover Password",
+    "backToLogin": "Back to Login"
+  },
+  "ClinicDetailsPage": {
+    "title": "Clinic Details",
+    "description": "All details about the clinic",
+    "logoLabel": "Logo",
+    "nameLabel": "Name",
+    "namePlaceholder": "e.g. Clinic Name",
+    "locationLabel": "Address",
+    "locationPlaceholder": "e.g. 123 Main St, City, Country",
+    "phoneLabel": "Phone",
+    "phonePlaceholder": "e.g. +1 234 567 890",
+    "emailLabel": "Email",
+    "emailPlaceholder": "e.g. john.doe@example.com",
+    "save": "Save"
+  },
+  "SchedulesPage": {
+    "title": "Schedules",
+    "description": "All schedules for the clinic",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "id": "ID",
+      "dayOfWeek": "Day of Week",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "createDialog": {
+      "title": "Create schedule",
+      "description": "Create a new schedule for the clinic",
+      "dayOfWeek": "Day of Week",
+      "selectDay": "Select Day",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "save": "Save",
+      "cancel": "Cancel",
+      "editTitle": "Edit schedule",
+      "editDescription": "Edit the schedule for the clinic",
+      "editSave": "Save Changes"
+    }
+  },
+  "HolidaysPage": {
+    "title": "Holidays",
+    "description": "All holidays for the clinic",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "id": "ID",
+      "date": "Date",
+      "status": "Status",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "notes": "Notes",
+      "open": "Open",
+      "closed": "Closed",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "createDialog": {
+      "title": "Create holiday",
+      "description": "Create a new holiday for the clinic",
+      "date": "Date",
+      "isOpen": "Is Open?",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "notes": "Notes",
+      "save": "Save",
+      "cancel": "Cancel",
+      "editTitle": "Edit holiday",
+      "editDescription": "Edit the holiday for the clinic",
+      "editSave": "Save Changes"
+    }
+  },
+  "CalendarsPage": {
+    "title": "Calendars",
+    "description": "All calendars for the clinic",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "name": "Name",
+      "googleCalendarId": "Google Calendar ID",
+      "color": "Color",
+      "active": "Active",
+      "yes": "Yes",
+      "no": "No",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "dialog": {
+      "createTitle": "Create calendar",
+      "description": "Create a new calendar for the clinic",
+      "name": "Name",
+      "namePlaceholder": "e.g. Main Calendar",
+      "googleCalendarId": "Google Calendar ID",
+      "googleCalendarIdPlaceholder": "e.g. abc123@group.calendar.google.com",
+      "color": "Color",
+      "active": "Active",
+      "create": "Create",
+      "cancel": "Cancel",
+      "editTitle": "Edit calendar",
+      "editDescription": "Edit the calendar for the clinic",
+      "save": "Save Changes"
+    }
+  },
+  "DoctorsPage": {
+    "title": "Doctors",
+    "description": "All doctors for the clinic",
+    "filterPlaceholder": "Filter here...",
+    "DoctorColumns": {
+      "name": "Name",
+      "email": "Email",
+      "identity_document": "Identity Document",
+      "phone": "Phone",
+      "status": "Status",
+      "actions": "Actions",
+      "edit": "Edit",
+      "deactivate": "Deactivate",
+      "copyId": "Copy ID"
+    },
+    "createDialog": {
+      "createTitle": "Create doctor",
+      "createDescription": "Create a new doctor for the clinic",
+      "name": "Name",
+      "namePlaceholder": "e.g. Dr. Smith",
+      "email": "Email",
+      "emailPlaceholder": "e.g. dr.smith@example.com",
+      "phone": "Phone",
+      "phonePlaceholder": "e.g. 123-456-7890",
+      "identity_document": "Identity Document",
+      "identity_document_placeholder": "e.g. 1234567890",
+      "color": "Color",
+      "isActive": "Is Active?",
+      "save": "Save",
+      "cancel": "Cancel",
+      "editTitle": "Edit doctor",
+      "editDescription": "Edit the doctor for the clinic",
+      "editSave": "Save Changes"
+    }
+  },
+  "UserLogsPage": {
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "timestamp": "Timestamp",
+      "action": "Action",
+      "details": "Details"
+    }
+  },
+  "DoctorAvailabilityPage": {
+    "title": "Doctor Availability",
+    "description": "Manage doctor availability for the clinic",
+    "filterPlaceholder": "Filter here...",
+    "dialog": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "biweekley": "Biweekley",
+      "createTitle": "Create Availability",
+      "createDescription": "Create a new availability for the doctor",
+      "editTitle": "Edit Availability",
+      "editDescription": "Edit the availability for the doctor",
+      "doctor": "Doctor",
+      "selectDoctor": "Select a doctor",
+      "recurrence": "Recurrence",
+      "dayOfWeek": "Day of Week",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "create": "Create",
+      "cancel": "Cancel"
+    },
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    }
+  },
+  "DoctorAvailabilityColumns": {
+    "doctor": "Doctor",
+    "recurrence": "Recurrence",
+    "day": "Day",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "DoctorAvailabilityExceptionsPage": {
+    "title": "Doctor Availability Exceptions",
+    "description": "Manage doctor availability exceptions for the clinic",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "doctor": "Doctor",
+      "date": "Date",
+      "available": "Available",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "yes": "Yes",
+      "no": "No",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "dialog": {
+      "createTitle": "Create Availability Exception",
+      "createDescription": "Create a new availability exception for the doctor",
+      "editTitle": "Edit Availability Exception",
+      "editDescription": "Edit the availability exception for the doctor",
+      "doctor": "Doctor",
+      "selectDoctor": "Select a doctor",
+      "date": "Date",
+      "isAvailable": "Is Available?",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "create": "Create",
+      "cancel": "Cancel",
+      "save": "Save Changes"
+    }
+  },
+  "CurrenciesPage": {
+    "title": "Currencies",
+    "description": "Manage currencies for the clinic",
+    "baseCurrency": "Base Currency",
+    "exchangeRateHistory": "Exchange Rate History",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "date": "Date",
+      "from": "From",
+      "to": "To",
+      "rate": "Rate"
+    },
+    "dialog": {
+      "createTitle": "Create Currency",
+      "createDescription": "Create a new currency for the clinic",
+      "editTitle": "Edit Currency",
+      "editDescription": "Edit the currency for the clinic",
+      "code": "Code",
+      "name": "Name",
+      "symbol": "Symbol",
+      "isBaseCurrency": "Is Base Currency",
+      "create": "Create",
+      "cancel": "Cancel",
+      "save": "Save Changes"
+    }
+  },
+  "ProductCategoriesPage": {
+    "title": "Product Categories",
+    "description": "Manage product categories for the clinic",
+    "filterPlaceholder": "Filter here...",
+    "dialog": {
+      "createTitle": "Create Product Category",
+      "createDescription": "Create a new product category for the clinic",
+      "editTitle": "Edit Product Category",
+      "editDescription": "Edit the product category for the clinic",
+      "name": "Name",
+      "namePlaceholder": "Enter product category name",
+      "code": "Code",
+      "codePlaceholder": "Enter product category code",
+      "description": "Description",
+      "descriptionPlaceholder": "Enter product category description",
+      "type": "Type",
+      "selectType": "Select a type",
+      "expense": "Expense",
+      "income": "Income",
+      "isActive": "Is Active?",
+      "create": "Create",
+      "cancel": "Cancel",
+      "save": "Save Changes"
+    }
+  },
+  "MiscellaneousCategoriesPage": {
+    "columns": {
+      "id": "ID",
+      "code": "Code",
+      "name": "Name",
+      "description": "Description",
+      "type": "Type",
+      "isActive": "Is Active?",
+      "expense": "Expense",
+      "income": "Income",
+      "yes": "Yes",
+      "no": "No",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    }
+  },
+  "SystemUsersPage": {
+    "title": "System Users",
+    "description": "Manage system users for the clinic",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "identity_document": "Identity Document",
+      "status": "Status",
+      "actions": "Actions",
+      "edit": "Edit",
+      "deactivate": "Deactivate",
+      "copyId": "Copy user ID"
+    },
+    "createDialog": {
+      "title": "Create System User",
+      "description": "Create a new system user for the clinic",
+      "name": "Name",
+      "namePlaceholder": "e.g. John Doe",
+      "email": "Email",
+      "emailPlaceholder": "e.g. john.doe@example.com",
+      "phone": "Phone",
+      "phonePlaceholder": "e.g. 123-456-7890",
+      "identity_document": "Identity Document",
+      "identity_document_placeholder": "e.g. 1234567890",
+      "isActive": "Is Active?",
+      "save": "Save",
+      "cancel": "Cancel",
+      "editTitle": "Edit System User",
+      "editDescription": "Edit the system user for the clinic"
+    }
+  },
+  "RolesPage": {
+    "title": "Roles",
+    "description": "Manage roles for the clinic",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "roleId": "ID",
+      "name": "Name",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "createDialog": {
+      "title": "Create a new role",
+      "description": "Create a new role for the clinic",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Admin",
+      "save": "Save",
+      "cancel": "Cancel",
+      "editTitle": "Edit Role",
+      "editDescription": "Edit the role for the clinic",
+      "editSave": "Save Changes"
+    },
+    "detailsFor": "Details for {name}",
+    "tabs": {
+      "users": "Users",
+      "permissions": "Permissions"
+    }
+  },
+  "PermissionsPage": {
+    "title": "Permissions",
+    "description": "Manage permissions for the clinic",
+    "filterPlaceholder": "Filter here...",
+    "permissionId": "ID",
+    "columns": {
+      "id": "ID",
+      "name": "Name",
+      "description": "Description",
+      "action": "Action",
+      "resource": "Resource",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "dialog": {
+      "title": "Create a new permission",
+      "description": "Create a new permission for the clinic",
+      "name": "Name",
+      "namePlaceholder": "e.g. Create User",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "e.g. Allows creating a new user",
+      "action": "Action",
+      "selectAction": "Select Action",
+      "resource": "Resource",
+      "resourcePlaceholder": "e.g. user",
+      "create": "Create",
+      "cancel": "Cancel",
+      "editTitle": "Edit Permission",
+      "editDescription": "Edit the permission for the clinic",
+      "editSave": "Save Changes",
+      "actions": {
+        "read": "Read",
+        "create": "Create",
+        "update": "Update",
+        "delete": "Delete",
+        "manage": "Manage"
+      }
+    },
+    "detailsFor": "Details for {name}",
+    "tabs": {
+      "users": "Users"
+    }
+  },
+  "ConfigurationsPage": {
+    "title": "Configurations",
+    "description": "Manage configurations for the clinic",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "id": "ID",
+      "key": "Key",
+      "value": "Value",
+      "description": "Description",
+      "type": "Type",
+      "isPublic": "Is Public?",
+      "yes": "Yes",
+      "no": "No",
+      "updatedBy": "Updated By",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "dialog": {
+      "createTitle": "Create a new configuration",
+      "createDescription": "Create a new configuration for the clinic",
+      "key": "Key",
+      "keyPlaceholder": "e.g. MAX_USERS",
+      "value": "Value",
+      "valuePlaceholder": "e.g. 100",
+      "description": "Description",
+      "descriptionPlaceholder": "e.g. Maximum number of users allowed",
+      "dataType": "Data Type",
+      "isPublic": "Is Public?",
+      "isPublicDescription": "If checked, the configuration will be publicly accessible",
+      "create": "Create",
+      "cancel": "Cancel",
+      "editTitle": "Edit Configuration",
+      "editDescription": "Edit the configuration for the clinic",
+      "save": "Save Changes"
+    }
+  },
+  "AuditLog": {
+    "title": "Audit Log",
+    "description": "View the audit log for the clinic",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "changedAt": "Changed At",
+      "table": "Table",
+      "recordId": "Record ID",
+      "operation": "Operation",
+      "oldValue": "Old Value",
+      "newValue": "New Value",
+      "changedBy": "Changed By",
+      "actions": "Actions",
+      "viewDetails": "View details"
+    }
+  },
+  "AccessLogPage": {
+    "title": "Access Log",
+    "description": "View the access log for the clinic",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "userId": "User ID",
+      "timestamp": "Timestamp",
+      "action": "Action",
+      "success": "Success",
+      "channel": "Channel",
+      "details": "Details",
+      "actions": "Actions",
+      "viewUser": "View User"
+    }
+  },
+  "ErrorLogPage": {
+    "title": "Error Log",
+    "description": "View the error log for the clinic",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "createdAt": "Created At",
+      "severity": "Severity",
+      "message": "Message",
+      "channel": "Channel",
+      "userId": "User ID",
+      "actions": "Actions",
+      "viewDetails": "View details"
     }
   }
 }
