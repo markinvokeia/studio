@@ -33,7 +33,8 @@ import { useCallback } from 'react';
 
 const denominationsUYU = [2000, 1000, 500, 200, 100, 50, 20];
 const coinsUYU = [10, 5, 2, 1];
-const denominationsUSD = [100, 50, 20, 10, 5, 1];
+const denominationsUSD = [100, 50, 20, 10, 5];
+const coinsUSD = [1];
 
 const UYU_IMAGES: Record<number, string> = {
     2000: '/billetes/billete_2000.svg',
@@ -50,12 +51,12 @@ const UYU_IMAGES: Record<number, string> = {
 };
 
 const USD_IMAGES: Record<number, string> = {
-    100: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Dolares/100%20Dolares/Anverso.jpg',
-    50: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Dolares/50%20Dolares/Anverso.jpg',
-    20: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Dolares/20%20Dolares/Anverso.jpg',
-    10: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Dolares/10%20Dolares/Anverso.jpg',
-    5: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Dolares/5%20Dolares/Anverso.jpg',
-    1: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Dolares/1%20Dolar/Anverso.jpg',
+    100: '/billetes/usd/100.jpg',
+    50: '/billetes/usd/50.jpg',
+    20: '/billetes/usd/20.jpg',
+    10: '/billetes/usd/10.jpg',
+    5: '/billetes/usd/5.jpg',
+    1: '/billetes/usd/1.jpg',
 };
 
 
@@ -758,6 +759,13 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             </div>
         );
     }
+    
+    const stepTitles: Record<OpenSessionStep, string> = {
+        CONFIG: 'Configuration',
+        COUNT_UYU: 'Cash Count (UYU)',
+        COUNT_USD: 'Cash Count (USD)',
+        CONFIRM: 'Confirmation'
+    };
 
     const stepComponents = {
         'CONFIG': renderConfigContent(),
@@ -776,7 +784,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
              <DenominationCounter 
                 title="Conteo de Efectivo (USD)"
                 denominations={denominationsUSD}
-                coins={[]}
+                coins={coinsUSD}
                 currency="USD"
                 onDetailsChange={memoizedSetUsdDenominations}
                 lastClosingDetails={mockLastClosing.usd}
@@ -831,7 +839,9 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         <Card>
              <CardHeader>
                 <CardTitle>{t('openSession.wizardTitle')}</CardTitle>
-                <CardDescription>Paso {Object.keys(stepComponents).indexOf(currentStep) + 1} de {Object.keys(stepComponents).length}</CardDescription>
+                <CardDescription>
+                    Paso {Object.keys(stepComponents).indexOf(currentStep) + 1} de {Object.keys(stepComponents).length}: <span className="font-bold">{stepTitles[currentStep]}</span>
+                </CardDescription>
             </CardHeader>
             <CardContent>
                  {stepComponents[currentStep]}
@@ -845,6 +855,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         </Card>
     );
 }
+    
+
     
 
     
