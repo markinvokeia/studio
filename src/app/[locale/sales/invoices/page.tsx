@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -53,9 +52,16 @@ async function getServices(): Promise<Service[]> {
 }
 
 
-async function getInvoices(): Promise<Invoice[]> {
+async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
+    const params = new URLSearchParams({
+        is_sales: 'true',
+    });
+    if (type !== 'all') {
+        params.append('type', type);
+    }
+
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?is_sales=true`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?${params.toString()}`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -169,6 +175,7 @@ export default function InvoicesPage() {
     const [services, setServices] = React.useState<Service[]>([]);
     const [isConfirmDialogOpen, setIsConfirmDialogOpen] = React.useState(false);
     const [confirmingInvoice, setConfirmingInvoice] = React.useState<Invoice | null>(null);
+    const [invoiceType, setInvoiceType] = React.useState('all');
 
     const itemForm = useForm<InvoiceItemFormValues>({
       resolver: zodResolver(invoiceItemSchema),
@@ -189,10 +196,10 @@ export default function InvoicesPage() {
 
     const loadInvoices = React.useCallback(async () => {
         setIsLoadingInvoices(true);
-        const fetchedInvoices = await getInvoices();
+        const fetchedInvoices = await getInvoices(invoiceType);
         setInvoices(fetchedInvoices);
         setIsLoadingInvoices(false);
-    }, []);
+    }, [invoiceType]);
 
     React.useEffect(() => {
         loadInvoices();
@@ -608,6 +615,12 @@ export default function InvoicesPage() {
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}
                             columnTranslations={columnTranslations}
+                            filterValue={invoiceType}
+                            onFilterChange={setInvoiceType}
+                            filterOptions={[
+                                { label: "Invoice", value: "invoice" },
+                                { label: "Credit Note", value: "credit_note" },
+                            ]}
                         />
                     </CardContent>
                 </Card>
@@ -790,13 +803,3 @@ export default function InvoicesPage() {
         </div>
     );
 }
-
-    
-
-    
-
-    
-
-    
-
-    

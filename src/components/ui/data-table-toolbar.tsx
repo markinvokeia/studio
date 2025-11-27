@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PlusCircle, RefreshCw, SlidersHorizontal, Filter } from 'lucide-react';
+import { PlusCircle, RefreshCw, SlidersHorizontal, Filter, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
@@ -48,19 +48,20 @@ export function DataTableToolbar<TData>({
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center space-x-2">
         <div className="relative flex items-center">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
             placeholder={filterPlaceholder}
             value={(table.getColumn(filterColumnId)?.getFilterValue() as string) ?? ''}
             onChange={(event) =>
                 table.getColumn(filterColumnId)?.setFilterValue(event.target.value)
             }
-            className="h-8 w-[150px] lg:w-[250px] pr-8"
+            className="h-9 w-[150px] lg:w-[250px] pl-9"
             />
             {filterOptions && onFilterChange && (
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="absolute right-0 h-8 w-8">
-                    <Filter className="h-4 w-4" />
+                <Button variant="ghost" size="icon" className="absolute right-0 h-9 w-9">
+                    <SlidersHorizontal className="h-4 w-4" />
                 </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -91,9 +92,9 @@ export function DataTableToolbar<TData>({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={onCreate}>
-                  <PlusCircle className="h-4 w-4" />
-                  <span className="sr-only">Create</span>
+                <Button variant="outline" size="sm" className="h-9" onClick={onCreate}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Create
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -107,7 +108,7 @@ export function DataTableToolbar<TData>({
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8"
+            className="h-9 w-9"
             onClick={onRefresh}
             disabled={isRefreshing}
           >
@@ -117,7 +118,7 @@ export function DataTableToolbar<TData>({
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="ml-auto h-8 w-8 lg:flex">
+            <Button variant="outline" size="icon" className="ml-auto h-9 w-9 lg:flex">
               <SlidersHorizontal className="h-4 w-4" />
               <span className="sr-only">View</span>
             </Button>
