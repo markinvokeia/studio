@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -54,8 +53,10 @@ async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
     try {
         const params = new URLSearchParams({
             is_sales: 'false',
-            type: type,
         });
+        if (type !== 'all') {
+            params.append('type', type);
+        }
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?${params.toString()}`, {
             method: 'GET',
             mode: 'cors',

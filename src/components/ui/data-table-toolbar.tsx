@@ -25,7 +25,7 @@ interface DataTableToolbarProps<TData> {
   isRefreshing?: boolean;
   columnTranslations?: { [key: string]: string };
   extraButtons?: React.ReactNode;
-  filterOptions?: { label: string, value: string }[];
+  filterOptions?: { label: string; value: string }[];
   onFilterChange?: (value: string) => void;
   filterValue?: string;
 }
