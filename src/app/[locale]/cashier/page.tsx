@@ -33,8 +33,8 @@ import { useCallback } from 'react';
 
 const denominationsUYU = [2000, 1000, 500, 200, 100, 50, 20];
 const coinsUYU = [10, 5, 2, 1];
-const denominationsUSD = [100, 50, 20, 10, 5];
-const coinsUSD = [1];
+const denominationsUSD = [100, 50, 20, 10, 5, 1];
+const coinsUSD: number[] = [];
 
 const UYU_IMAGES: Record<number, string> = {
     2000: '/billetes/billete_2000.svg',
@@ -590,6 +590,22 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     const [exchangeRateStatus, setExchangeRateStatus] = React.useState<'loading' | 'loaded' | 'error'>('loading');
 
     const fetchRates = React.useCallback(async () => {
+        const today = new Date().toISOString().split('T')[0];
+        const cachedRates = localStorage.getItem('exchangeRates');
+
+        if (cachedRates) {
+            const { date, data } = JSON.parse(cachedRates);
+            if (date === today) {
+                setBuyRate(data.buyRate);
+                setSellRate(data.sellRate);
+                setAvgRate(data.avgRate);
+                setSessionData(prev => ({...prev, date_rate: data.avgRate}));
+                setExchangeRatesHtml(data.exchangeRatesHtml);
+                setExchangeRateStatus('loaded');
+                return;
+            }
+        }
+
         setExchangeRateStatus('loading');
         try {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cotizaciones');
@@ -607,6 +623,17 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             setSessionData(prev => ({...prev, date_rate: avg}));
             setExchangeRatesHtml(data.html);
             setExchangeRateStatus('loaded');
+
+            localStorage.setItem('exchangeRates', JSON.stringify({
+                date: today,
+                data: {
+                    buyRate: compra,
+                    sellRate: venta,
+                    avgRate: avg,
+                    exchangeRatesHtml: data.html,
+                }
+            }));
+
         } catch (error) {
             console.error("Error fetching rates", error);
             setExchangeRateStatus('error');
@@ -838,9 +865,9 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     return(
         <Card>
              <CardHeader>
-                <CardTitle>{t('openSession.wizardTitle')}</CardTitle>
+                <CardTitle>{t('openSession.wizardTitle')}: <span className="font-bold">{stepTitles[currentStep]}</span></CardTitle>
                 <CardDescription>
-                    Paso {Object.keys(stepComponents).indexOf(currentStep) + 1} de {Object.keys(stepComponents).length}: <span className="font-bold">{stepTitles[currentStep]}</span>
+                    Paso {Object.keys(stepComponents).indexOf(currentStep) + 1} de {Object.keys(stepComponents).length}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -862,3 +889,4 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
