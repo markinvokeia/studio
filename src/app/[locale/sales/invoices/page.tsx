@@ -34,10 +34,12 @@ type InvoiceItemFormValues = z.infer<typeof invoiceItemSchema>;
 
 async function getServices(): Promise<Service[]> {
   try {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=false', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=true', {
       method: 'GET',
       mode: 'cors',
-      headers: { 'Accept': 'application/json' },
+      headers: {
+        'Accept': 'application/json',
+      },
       cache: 'no-store',
     });
     if (!response.ok) return [];
@@ -50,9 +52,10 @@ async function getServices(): Promise<Service[]> {
   }
 }
 
+
 async function getInvoices(): Promise<Invoice[]> {
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?is_sales=false`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?is_sales=true`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -83,7 +86,7 @@ async function getInvoices(): Promise<Invoice[]> {
 async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}&is_sales=false`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}&is_sales=true`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -109,7 +112,7 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
 async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_payments?invoice_id=${invoiceId}&is_sales=false`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_payments?invoice_id=${invoiceId}&is_sales=true`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -344,7 +347,7 @@ export default function InvoicesPage() {
 
         const formData = new FormData();
         formData.append('file', importFile);
-        formData.append('is_sales', 'false');
+        formData.append('is_sales', 'true');
 
         try {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/invoice/import', {
@@ -411,7 +414,6 @@ export default function InvoicesPage() {
           quantity: Number(data.quantity),
           unit_price: Number(data.unit_price),
         };
-        
 
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/upsert`, {
             method: 'POST',
@@ -489,7 +491,7 @@ export default function InvoicesPage() {
 
     const columnTranslations = {
         id: t('columns.invoiceId'),
-        user_name: t('columns.provider'),
+        user_name: t('columns.user'),
         order_id: t('columns.orderId'),
         quote_id: t('columns.quoteId'),
         total: t('columns.total'),
@@ -742,7 +744,7 @@ export default function InvoicesPage() {
                 isOpen={isCreateDialogOpen}
                 onOpenChange={setIsCreateDialogOpen}
                 onInvoiceCreated={loadInvoices}
-                isSales={false}
+                isSales={true}
             />
 
             <ItemFormDialog 
@@ -771,7 +773,7 @@ export default function InvoicesPage() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-             <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+            <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Confirm Invoice</AlertDialogTitle>
