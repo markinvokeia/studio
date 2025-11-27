@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -850,15 +851,22 @@
     "filterPlaceholder": "Filter here...",
     "columns": {
       "id": "ID",
-      "invoiceId": "Invoice ID",
-      "amount": "Amount",
-      "currency": "Currency",
+      "user": "User",
+      "date": "Date",
+      "amount_applied": "Amount Applied",
+      "source_amount": "Source Amount",
+      "source_currency": "Source Currency",
+      "exchange_rate": "Exchange Rate",
       "method": "Method",
-      "status": "Status",
-      "createdAt": "Created At",
+      "transaction_type": "Transaction Type",
+      "reference_doc_id": "Reference Doc ID",
       "quoteId": "Quote ID",
-      "orderId": "Order ID",
-      "user": "User"
+      "orderId": "Order ID"
+    },
+    "transactionTypes": {
+      "direct_payment": "Direct Payment",
+      "credit_note_allocation": "Credit Note Allocation",
+      "payment_allocation": "Payment Allocation"
     }
   },
   "PaymentMethodsPage": {

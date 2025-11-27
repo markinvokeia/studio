@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Panel de Control",
@@ -850,15 +851,22 @@
     "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
-      "invoiceId": "ID de Factura",
-      "amount": "Monto",
-      "currency": "Moneda",
+      "user": "Usuario",
+      "date": "Fecha",
+      "amount_applied": "Monto Aplicado",
+      "source_amount": "Monto de Origen",
+      "source_currency": "Moneda de Origen",
+      "exchange_rate": "Tipo de Cambio",
       "method": "Método",
-      "status": "Estado",
-      "createdAt": "Creado El",
+      "transaction_type": "Tipo de Transacción",
+      "reference_doc_id": "ID Doc. Referencia",
       "quoteId": "ID de Cotización",
-      "orderId": "ID de Orden",
-      "user": "Usuario"
+      "orderId": "ID de Orden"
+    },
+    "transactionTypes": {
+      "direct_payment": "Pago Directo",
+      "credit_note_allocation": "Asignación de Nota de Crédito",
+      "payment_allocation": "Asignación de Pago"
     }
   },
   "PaymentMethodsPage": {

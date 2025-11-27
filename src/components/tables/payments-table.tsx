@@ -17,7 +17,6 @@ import { format } from 'date-fns';
 
 const getColumns = (
   t: (key: string) => string,
-  tStatus: (key: string) => string,
   tMethods: (key: string) => string,
   tTransactionType: (key: string) => string,
   onPrint?: (payment: Payment) => void,
@@ -26,16 +25,16 @@ const getColumns = (
     const paymentMethodMap: { [key: string]: string } = {
         'transferencia': 'bank_transfer',
         'tarjeta de credito': 'credit_card',
+        'tarjeta de débito': 'debit_card',
         'efectivo': 'cash',
-        'tarjeta de debito': 'debit',
-        'tarjeta de débito': 'debit',
         'credit': 'credit',
+        'debit': 'debit',
         'mercado pago': 'mercado_pago',
     };
     
     const columns: ColumnDef<Payment>[] = [
       {
-        accessorKey: 'id',
+        accessorKey: 'transaction_id',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title={t('id')} />
         ),
@@ -44,6 +43,18 @@ const getColumns = (
         accessorKey: 'user_name',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title={t('user')} />
+        ),
+      },
+      {
+        accessorKey: 'order_id',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('orderId')} />
+        ),
+      },
+      {
+        accessorKey: 'quote_id',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('quoteId')} />
         ),
       },
       {
@@ -62,7 +73,7 @@ const getColumns = (
           const amount = parseFloat(row.getValue('amount_applied'));
           const formatted = new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'USD', // Assuming invoice currency is USD
           }).format(amount);
           return <div className="font-medium">{formatted}</div>;
         },
@@ -80,6 +91,15 @@ const getColumns = (
           }).format(amount);
           return <div className="font-medium">{formatted}</div>;
         },
+      },
+      {
+        accessorKey: 'source_currency',
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('source_currency')} />,
+      },
+      {
+        accessorKey: 'exchange_rate',
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('exchange_rate')} />,
+        cell: ({ row }) => parseFloat(row.getValue('exchange_rate')).toFixed(4)
       },
       {
         accessorKey: 'payment_method',
@@ -102,6 +122,10 @@ const getColumns = (
           const type = row.original.transaction_type;
           return <Badge variant="secondary" className="capitalize">{tTransactionType(type)}</Badge>;
         }
+      },
+      {
+        accessorKey: 'reference_doc_id',
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('reference_doc_id')} />,
       },
     ];
 
@@ -154,11 +178,10 @@ interface PaymentsTableProps {
 
 export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail }: PaymentsTableProps) {
     const t = useTranslations('PaymentsPage.columns');
-    const tStatus = useTranslations('InvoicesPage.status');
     const tMethods = useTranslations('InvoicesPage.methods');
     const tPage = useTranslations('PaymentsPage');
     const tTransactionType = useTranslations('PaymentsPage.transactionTypes');
-    const columns = React.useMemo(() => getColumns(t, tStatus, tMethods, tTransactionType, onPrint, onSendEmail), [t, tStatus, tMethods, tTransactionType, onPrint, onSendEmail]);
+    const columns = React.useMemo(() => getColumns(t, tMethods, tTransactionType, onPrint, onSendEmail), [t, tMethods, tTransactionType, onPrint, onSendEmail]);
 
     if (isLoading) {
     return (
