@@ -52,7 +52,8 @@ async function getServices(): Promise<Service[]> {
 
 async function getInvoices(): Promise<Invoice[]> {
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?is_sales=false`, {
+        const params = new URLSearchParams({ is_sales: 'false' });
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?${params.toString()}`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -790,5 +791,8 @@ export default function InvoicesPage() {
 }
 
     
+
+    
+
 
     
