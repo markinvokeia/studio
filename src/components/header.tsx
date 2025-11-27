@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -54,6 +55,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { Input } from './ui/input';
 import { ExchangeRate } from './exchange-rate';
+import { OpenCashSessionWidget } from '@/components/cash-session-widget';
 
 
 const passwordFormSchema = (t: (key: string) => string) => z.object({
@@ -183,17 +185,9 @@ export function Header() {
     <>
     <header className="sticky top-0 z-20 w-full border-b bg-background/95 backdrop-blur-sm">
       <div className="flex h-14 items-center justify-between px-4 lg:h-[60px] lg:px-6">
-        <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder={t('commandPlaceholder')}
-              className="w-full rounded-lg bg-muted pl-8 md:w-[200px] lg:w-[320px]"
-            />
-        </div>
+        <OpenCashSessionWidget />
         
         <div className="flex items-center justify-end gap-2">
-            <span className="text-sm font-medium">Admin Panel</span>
             <ExchangeRate />
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>

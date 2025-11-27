@@ -390,94 +390,6 @@ async function getUsers(): Promise<User[]> {
   }
 }
 
-const OpenCashSessionWidget = () => {
-    const t = useTranslations('OpenCashSessionWidget');
-    const locale = useLocale();
-    const { user } = useAuth();
-    const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(null);
-    const [isLoading, setIsLoading] = React.useState(true);
-
-    React.useEffect(() => {
-        const checkActiveSession = async () => {
-            if (!user) return;
-            setIsLoading(true);
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/active?user_id=${user.id}`, {
-                    method: 'GET',
-                    mode: 'cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                });
-
-                const data = await response.json();
-                if (response.ok && data.code === 200) {
-                    setActiveSession(data.data);
-                } else {
-                    setActiveSession(null);
-                }
-            } catch (error) {
-                console.error("Failed to check active session:", error);
-                setActiveSession(null);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        checkActiveSession();
-    }, [user]);
-
-    if (isLoading) {
-        return <Alert><AlertDescription>{t('checkingStatus')}</AlertDescription></Alert>;
-    }
-    
-    if (activeSession) {
-        return (
-            <Alert variant="success" className="flex items-center justify-between">
-                <div className="flex items-center">
-                    <Box className="h-5 w-5" />
-                    <div className="ml-4">
-                        <AlertTitle className="font-bold">{t('activeSession.title')}</AlertTitle>
-                        <AlertDescription>
-                           {t('activeSession.description', {user: activeSession.user_name, cashPoint: activeSession.cash_point_name})}
-                        </AlertDescription>
-                    </div>
-                </div>
-                <Link href={`/${locale}/cashier`} passHref>
-                    <Button variant="outline">
-                        <Box className="mr-2 h-4 w-4" />
-                        {t('activeSession.button')}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                </Link>
-            </Alert>
-        );
-    }
-
-    return (
-        <Alert variant="warning" className="flex items-center justify-between">
-            <div className="flex items-center">
-                <AlertTriangle className="h-5 w-5" />
-                <div className="ml-4">
-                    <AlertTitle className="font-bold">{t('title')}</AlertTitle>
-                    <AlertDescription>
-                        {t('description')}
-                    </AlertDescription>
-                </div>
-            </div>
-            <Link href={`/${locale}/cashier`} passHref>
-                <Button variant="outline" className="bg-white/20 hover:bg-white/30 text-white">
-                    <Box className="mr-2 h-4 w-4" />
-                    {t('button')}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-            </Link>
-        </Alert>
-    );
-};
-
-
 export default function DashboardPage() {
   const tStats = useTranslations('Stats');
   const tKpi = useTranslations('KpiRow');
@@ -548,7 +460,6 @@ export default function DashboardPage() {
   return (
     <>
       <div className="space-y-4">
-        <OpenCashSessionWidget />
         <ReportFilters date={date} setDate={setDate} />
         <Stats data={stats} />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
