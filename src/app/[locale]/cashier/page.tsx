@@ -36,17 +36,17 @@ const coinsUYU = [10, 5, 2, 1];
 const denominationsUSD = [100, 50, 20, 10, 5, 1];
 
 const UYU_IMAGES: Record<number, string> = {
-    2000: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%202000/Anverso.jpg',
-    1000: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%201000/Anverso.jpg',
-    500: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%20500/Anverso.jpg',
-    200: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%20200/Anverso.jpg',
-    100: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%20100/Anverso.jpg',
-    50: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%2050/Anverso.jpg',
-    20: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Billete%2020/Anverso.jpg',
-    10: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Moneda%2010/Anverso.jpg',
-    5: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Moneda%205/Anverso.jpg',
-    2: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Moneda%202/Anverso.jpg',
-    1: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Moneda%201/Anverso.jpg',
+    2000: '/billetes/billete_2000.svg',
+    1000: '/billetes/billete_1000.svg',
+    500: '/billetes/billete_500.svg',
+    200: '/billetes/billete_200.svg',
+    100: '/billetes/billete_100.svg',
+    50: '/billetes/billete_50.svg',
+    20: '/billetes/billete_20.svg',
+    10: '/billetes/moneda_10.svg',
+    5: '/billetes/moneda_5.svg',
+    2: '/billetes/moneda_2.svg',
+    1: '/billetes/moneda_1.svg',
 };
 
 const USD_IMAGES: Record<number, string> = {
@@ -845,6 +845,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         </Card>
     );
 }
+    
+
     
 
     
