@@ -217,9 +217,10 @@ interface InvoicesTableProps {
   rowSelection?: RowSelectionState;
   setRowSelection?: (selection: RowSelectionState) => void;
   columnTranslations?: { [key: string]: string };
+  extraButtons?: React.ReactNode;
 }
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, isRefreshing, rowSelection, setRowSelection, columnTranslations = {} }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, extraButtons }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
@@ -412,6 +413,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
               <FileUp className="mr-2 h-4 w-4" /> Import
             </Button>
           )}
+          {extraButtons}
         </>
       }
     />
@@ -856,3 +858,6 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
     </Dialog>
   );
 }
+
+
+    
