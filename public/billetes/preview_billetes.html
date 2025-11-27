@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iconos Billetes y Monedas Uruguayas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        h2 {
+            color: #555;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+            width: 100%;
+            max-width: 800px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            max-width: 800px;
+            width: 100%;
+        }
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .card img.billete {
+            width: 120px;
+            height: 70px;
+        }
+        .card img.moneda {
+            width: 70px;
+            height: 70px;
+        }
+        .card span {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        .info {
+            margin-top: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 700px;
+        }
+        .info h3 {
+            margin-top: 0;
+        }
+        code {
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 600px) {
+            .columns {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🇺🇾 Iconos Moneda Uruguaya</h1>
+    
+    <h2>💵 Billetes</h2>
+    <div class="grid">
+        <div class="card">
+            <img class="billete" src="billete_20.svg" alt="Billete de $20">
+            <span>billete_20.svg</span>
+        </div>
+        <div class="card">
+            <img class="billete" src="billete_50.svg" alt="Billete de $50">
+            <span>billete_50.svg</span>
+        </div>
+        <div class="card">
+            <img class="billete" src="billete_100.svg" alt="Billete de $100">
+            <span>billete_100.svg</span>
+        </div>
+        <div class="card">
+            <img class="billete" src="billete_200.svg" alt="Billete de $200">
+            <span>billete_200.svg</span>
+        </div>
+        <div class="card">
+            <img class="billete" src="billete_500.svg" alt="Billete de $500">
+            <span>billete_500.svg</span>
+        </div>
+        <div class="card">
+            <img class="billete" src="billete_1000.svg" alt="Billete de $1000">
+            <span>billete_1000.svg</span>
+        </div>
+        <div class="card">
+            <img class="billete" src="billete_2000.svg" alt="Billete de $2000">
+            <span>billete_2000.svg</span>
+        </div>
+    </div>
+
+    <h2>🪙 Monedas</h2>
+    <div class="grid">
+        <div class="card">
+            <img class="moneda" src="moneda_1.svg" alt="Moneda de $1">
+            <span>moneda_1.svg</span>
+        </div>
+        <div class="card">
+            <img class="moneda" src="moneda_2.svg" alt="Moneda de $2">
+            <span>moneda_2.svg</span>
+        </div>
+        <div class="card">
+            <img class="moneda" src="moneda_5.svg" alt="Moneda de $5">
+            <span>moneda_5.svg</span>
+        </div>
+        <div class="card">
+            <img class="moneda" src="moneda_10.svg" alt="Moneda de $10">
+            <span>moneda_10.svg</span>
+        </div>
+        <div class="card">
+            <img class="moneda" src="moneda_50.svg" alt="Moneda de $50">
+            <span>moneda_50.svg</span>
+        </div>
+    </div>
+
+    <div class="info">
+        <h3>📁 Archivos generados</h3>
+        <div class="columns">
+            <div>
+                <h4>Billetes (120x70px)</h4>
+                <ul>
+                    <li><code>billete_20.svg</code> - Verde</li>
+                    <li><code>billete_50.svg</code> - Rojo</li>
+                    <li><code>billete_100.svg</code> - Azul</li>
+                    <li><code>billete_200.svg</code> - Púrpura</li>
+                    <li><code>billete_500.svg</code> - Teal</li>
+                    <li><code>billete_1000.svg</code> - Naranja</li>
+                    <li><code>billete_2000.svg</code> - Gris</li>
+                </ul>
+            </div>
+            <div>
+                <h4>Monedas (70x70px)</h4>
+                <ul>
+                    <li><code>moneda_1.svg</code> - Dorada</li>
+                    <li><code>moneda_2.svg</code> - Dorada</li>
+                    <li><code>moneda_5.svg</code> - Dorada oscura</li>
+                    <li><code>moneda_10.svg</code> - Plateada</li>
+                    <li><code>moneda_50.svg</code> - Bimetálica</li>
+                </ul>
+            </div>
+        </div>
+        <p><strong>Formato SVG:</strong> Vectorial, escala sin pérdida de calidad.</p>
+    </div>
+</body>
+</html>
