@@ -808,10 +808,3 @@ export default function InvoicesPage() {
     );
 }
 
-    
-
-    
-
-    
-
-    
