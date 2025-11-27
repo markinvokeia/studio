@@ -13,11 +13,13 @@ import { useTranslations } from 'next-intl';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
 import { MoreHorizontal, Printer, Send } from 'lucide-react';
+import { format } from 'date-fns';
 
 const getColumns = (
   t: (key: string) => string,
   tStatus: (key: string) => string,
   tMethods: (key: string) => string,
+  tTransactionType: (key: string) => string,
   onPrint?: (payment: Payment) => void,
   onSendEmail?: (payment: Payment) => void
 ): ColumnDef<Payment>[] => {
@@ -39,80 +41,67 @@ const getColumns = (
         ),
       },
       {
-        accessorKey: 'quote_id',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('quoteId')} />
-        ),
-      },
-      {
-        accessorKey: 'order_id',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('orderId')} />
-        ),
-      },
-      {
-        accessorKey: 'invoice_id',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('invoiceId')} />
-        ),
-      },
-      {
         accessorKey: 'user_name',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title={t('user')} />
         ),
       },
       {
-        accessorKey: 'amount',
+        accessorKey: 'payment_date',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('amount')} />
+          <DataTableColumnHeader column={column} title={t('date')} />
+        ),
+        cell: ({ row }) => format(new Date(row.getValue('payment_date')), 'yyyy-MM-dd')
+      },
+      {
+        accessorKey: 'amount_applied',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title={t('amount_applied')} />
         ),
         cell: ({ row }) => {
-          const amount = parseFloat(row.getValue('amount'));
+          const amount = parseFloat(row.getValue('amount_applied'));
           const formatted = new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: row.original.currency || 'USD',
+            currency: 'USD',
           }).format(amount);
           return <div className="font-medium">{formatted}</div>;
         },
       },
       {
-        accessorKey: 'currency',
+        accessorKey: 'source_amount',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('currency')} />
+          <DataTableColumnHeader column={column} title={t('source_amount')} />
         ),
-        cell: ({ row }) => row.original.currency || 'N/A',
+        cell: ({ row }) => {
+          const amount = parseFloat(row.getValue('source_amount'));
+          const formatted = new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: row.original.source_currency,
+          }).format(amount);
+          return <div className="font-medium">{formatted}</div>;
+        },
       },
       {
-        accessorKey: 'method',
+        accessorKey: 'payment_method',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title={t('method')} />
         ),
          cell: ({ row }) => {
-          const method = row.getValue('method') as string;
+          const method = row.getValue('payment_method') as string;
           let normalizedMethod = paymentMethodMap[method.toLowerCase()] || method.toLowerCase();
           normalizedMethod = normalizedMethod.replace(/\s+/g, '_');
           return <div className="capitalize">{tMethods(normalizedMethod)}</div>;
         },
       },
       {
-        accessorKey: 'status',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={t('status')} />,
-        cell: ({ row }) => {
-          const status = row.original.status;
-          const variant = {
-            completed: 'success',
-            pending: 'info',
-            failed: 'destructive',
-          }[status.toLowerCase()] ?? ('default' as any);
-          return <Badge variant={variant} className="capitalize">{tStatus(status)}</Badge>;
-        },
-      },
-      {
-        accessorKey: 'createdAt',
+        accessorKey: 'transaction_type',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('createdAt')} />
+          <DataTableColumnHeader column={column} title={t('transaction_type')} />
         ),
+        cell: ({ row }) => {
+          const type = row.original.transaction_type;
+          return <Badge variant="secondary" className="capitalize">{tTransactionType(type)}</Badge>;
+        }
       },
     ];
 
@@ -168,7 +157,8 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
     const tStatus = useTranslations('InvoicesPage.status');
     const tMethods = useTranslations('InvoicesPage.methods');
     const tPage = useTranslations('PaymentsPage');
-    const columns = React.useMemo(() => getColumns(t, tStatus, tMethods, onPrint, onSendEmail), [t, tStatus, tMethods, onPrint, onSendEmail]);
+    const tTransactionType = useTranslations('PaymentsPage.transactionTypes');
+    const columns = React.useMemo(() => getColumns(t, tStatus, tMethods, tTransactionType, onPrint, onSendEmail), [t, tStatus, tMethods, tTransactionType, onPrint, onSendEmail]);
 
     if (isLoading) {
     return (

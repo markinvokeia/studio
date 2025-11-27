@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -53,13 +54,14 @@ async function getServices(): Promise<Service[]> {
 
 
 async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
+    const params = new URLSearchParams({
+        is_sales: 'true',
+    });
+    if (type !== 'all') {
+        params.append('type', type);
+    }
+
     try {
-        const params = new URLSearchParams({
-            is_sales: 'true',
-        });
-        if (type !== 'all') {
-            params.append('type', type);
-        }
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?${params.toString()}`, {
             method: 'GET',
             mode: 'cors',
@@ -127,17 +129,26 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
         const data = await response.json();
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
-            id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
             order_id: apiPayment.order_id,
             invoice_id: apiPayment.invoice_id,
             quote_id: apiPayment.quote_id,
             user_name: apiPayment.user_name || 'N/A',
-            amount: apiPayment.amount || 0,
-            method: apiPayment.method || 'credit_card',
+            amount: apiPayment.amount_applied || 0,
+            method: apiPayment.payment_method || 'credit_card',
             status: apiPayment.status || 'pending',
             createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
-            currency: apiPayment.currency || 'USD',
+            currency: apiPayment.source_currency || 'USD',
+            payment_date: apiPayment.payment_date,
+            amount_applied: apiPayment.amount_applied,
+            source_amount: apiPayment.source_amount,
+            source_currency: apiPayment.source_currency,
+            exchange_rate: apiPayment.exchange_rate,
+            payment_method: apiPayment.payment_method,
+            transaction_type: apiPayment.transaction_type,
+            transaction_id: apiPayment.transaction_id,
+            reference_doc_id: apiPayment.reference_doc_id
         }));
     } catch (error) {
         console.error("Failed to fetch payments for invoice:", error);

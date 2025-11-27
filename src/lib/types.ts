@@ -127,12 +127,21 @@ export type Payment = {
   quote_id: string;
   user_name: string;
   userEmail?: string;
-  amount: number;
-  currency?: 'UYU' | 'USD';
-  method: string;
+  payment_date: string;
+  amount_applied: number;
+  source_amount: number;
+  source_currency: 'UYU' | 'USD';
+  exchange_rate?: number;
+  payment_method: string;
+  transaction_type: 'direct_payment' | 'credit_note_allocation' | 'payment_allocation';
+  transaction_id: string;
+  reference_doc_id?: string;
   status: 'pending' | 'completed' | 'failed';
   createdAt: string;
   updatedAt: string;
+  amount: number;
+  method: string;
+  currency?: 'UYU' | 'USD';
 };
 
 export type PaymentMethod = {
