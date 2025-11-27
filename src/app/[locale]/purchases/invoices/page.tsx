@@ -611,18 +611,12 @@ export default function InvoicesPage() {
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}
                             columnTranslations={columnTranslations}
-                            extraButtons={
-                                <Select value={invoiceType} onValueChange={setInvoiceType}>
-                                    <SelectTrigger className="h-8 w-[150px]">
-                                        <SelectValue placeholder="Filter by type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All</SelectItem>
-                                        <SelectItem value="invoice">Invoice</SelectItem>
-                                        <SelectItem value="credit_note">Credit Note</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            }
+                            filterValue={invoiceType}
+                            onFilterChange={setInvoiceType}
+                            filterOptions={[
+                                { label: "Invoice", value: "invoice" },
+                                { label: "Credit Note", value: "credit_note" },
+                            ]}
                         />
                     </CardContent>
                 </Card>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -217,10 +216,12 @@ interface InvoicesTableProps {
   rowSelection?: RowSelectionState;
   setRowSelection?: (selection: RowSelectionState) => void;
   columnTranslations?: { [key: string]: string };
-  extraButtons?: React.ReactNode;
+  filterValue?: string;
+  onFilterChange?: (value: string) => void;
+  filterOptions?: { label: string; value: string }[];
 }
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, extraButtons }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterValue, onFilterChange, filterOptions }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
@@ -406,6 +407,9 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       rowSelection={rowSelection}
       setRowSelection={setRowSelection}
       columnTranslations={columnTranslations}
+      filterOptions={filterOptions}
+      onFilterChange={onFilterChange}
+      filterValue={filterValue}
       extraButtons={
          <>
           {onImport && (
@@ -413,7 +417,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
               <FileUp className="mr-2 h-4 w-4" /> Import
             </Button>
           )}
-          {extraButtons}
         </>
       }
     />

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table } from '@tanstack/react-table';
@@ -12,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PlusCircle, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { PlusCircle, RefreshCw, SlidersHorizontal, Filter } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
@@ -26,6 +25,9 @@ interface DataTableToolbarProps<TData> {
   isRefreshing?: boolean;
   columnTranslations?: { [key: string]: string };
   extraButtons?: React.ReactNode;
+  filterOptions?: { label: string, value: string }[];
+  onFilterChange?: (value: string) => void;
+  filterValue?: string;
 }
 
 export function DataTableToolbar<TData>({
@@ -37,19 +39,52 @@ export function DataTableToolbar<TData>({
   isRefreshing,
   columnTranslations = {},
   extraButtons,
+  filterOptions,
+  onFilterChange,
+  filterValue
 }: DataTableToolbarProps<TData>) {
   const t = useTranslations('DataTableToolbar');
   return (
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center space-x-2">
-        <Input
-          placeholder={filterPlaceholder}
-          value={(table.getColumn(filterColumnId)?.getFilterValue() as string) ?? ''}
-          onChange={(event) =>
-            table.getColumn(filterColumnId)?.setFilterValue(event.target.value)
-          }
-          className="h-8 w-[150px] lg:w-[250px]"
-        />
+        <div className="relative flex items-center">
+            <Input
+            placeholder={filterPlaceholder}
+            value={(table.getColumn(filterColumnId)?.getFilterValue() as string) ?? ''}
+            onChange={(event) =>
+                table.getColumn(filterColumnId)?.setFilterValue(event.target.value)
+            }
+            className="h-8 w-[150px] lg:w-[250px] pr-8"
+            />
+            {filterOptions && onFilterChange && (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="absolute right-0 h-8 w-8">
+                    <Filter className="h-4 w-4" />
+                </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Filter by</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem
+                    checked={filterValue === 'all'}
+                    onCheckedChange={() => onFilterChange('all')}
+                >
+                    All
+                </DropdownMenuCheckboxItem>
+                {filterOptions.map((option) => (
+                    <DropdownMenuCheckboxItem
+                    key={option.value}
+                    checked={filterValue === option.value}
+                    onCheckedChange={() => onFilterChange(option.value)}
+                    >
+                    {option.label}
+                    </DropdownMenuCheckboxItem>
+                ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+            )}
+        </div>
       </div>
       <div className="flex items-center space-x-2">
         {onCreate && (
