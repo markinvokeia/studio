@@ -790,9 +790,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                            }} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select Service">
-                                    {field.value ? services.find(s => s.id === field.value)?.name : "Select Service"}
-                                  </SelectValue>
+                                  <SelectValue placeholder="Select Service" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>{services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
