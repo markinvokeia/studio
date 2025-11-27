@@ -47,7 +47,9 @@ const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
 
                         let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
                         if (item.href.includes('/clinic-history')) {
-                            linkHref = `/${locale}/clinic-history/1`; // Default user
+                            const parts = effectivePathname.split('/');
+                            const userIdFromUrl = parts[2] && !isNaN(parseInt(parts[2])) ? parts[2] : '1';
+                            linkHref = `/${locale}/clinic-history/${userIdFromUrl}`;
                         }
 
                         return (

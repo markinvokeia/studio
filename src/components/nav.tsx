@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -60,7 +61,9 @@ export function Nav({ items }: NavProps) {
     
     let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
     if (item.href.includes('/clinic-history')) {
-        linkHref = `/${locale}/clinic-history/1`; // Default user
+        const parts = effectivePathname.split('/');
+        const userIdFromUrl = parts[2] && !isNaN(parseInt(parts[2])) ? parts[2] : '1';
+        linkHref = `/${locale}/clinic-history/${userIdFromUrl}`;
     }
     
     const isActive = item.href === '/' 

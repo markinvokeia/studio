@@ -1210,10 +1210,12 @@ const HabitCard = ({ userId, fetchPatientHabits }: { userId: string, fetchPatien
     );
 };
 
-const DentalClinicalSystem = ({ userId }: { userId: string }) => {
+const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => {
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations('ClinicHistoryPage');
+  const params = useParams();
+  const userId = params.user_id as string || initialUserId;
 
   const [activeView, setActiveView] = useState('anamnesis');
   const [selectedTooth, setSelectedTooth] = useState(null);
@@ -1458,7 +1460,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
           const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
           
           const mappedUsers = usersData.map((apiUser: any) => ({
-            id: apiUser.user_id ? String(apiUser.user_id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
             name: apiUser.name || 'No Name',
             email: apiUser.email || 'no-email@example.com',
             phone_number: apiUser.phone_number || '000-000-0000',
@@ -1504,7 +1506,7 @@ const DentalClinicalSystem = ({ userId }: { userId: string }) => {
                 if (usersData.length > 0) {
                     const apiUser = usersData[0];
                     setSelectedPatient({
-                        id: apiUser.user_id,
+                        id: apiUser.id,
                         name: apiUser.name || "Unknown Patient",
                         age: 30 + Math.floor(Math.random() * 10), // Mocked age
                     });
@@ -2386,10 +2388,3 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
-    
-
-    
-
-
-
-
