@@ -42,7 +42,7 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().positive(t('validation.amountPositive')),
+  amount: z.coerce.number().positive(t('amountPositive')),
   method: z.string().min(1, t('validation.methodRequired')),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
