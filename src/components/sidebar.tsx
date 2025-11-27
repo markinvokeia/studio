@@ -56,13 +56,13 @@ const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
                                     <Link 
                                         href={linkHref}
                                         className={cn(
-                                            "flex h-16 w-full flex-col items-center justify-center gap-1 rounded-lg transition-colors",
+                                            "flex h-20 w-full flex-col items-center justify-center gap-1 rounded-lg p-1 transition-colors",
                                             isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                                         )}
                                         onMouseEnter={() => onHover(item)}
                                     >
-                                        <item.icon className="h-5 w-5" />
-                                        <span className="block text-xs font-medium text-center whitespace-nowrap overflow-hidden text-ellipsis w-full px-1">{t(item.title as any)}</span>
+                                        <item.icon className="h-6 w-6" />
+                                        <span className="block w-full px-1 text-center text-xs font-medium leading-tight line-clamp-2">{t(item.title as any)}</span>
                                     </Link>
                                 </TooltipTrigger>
                                 <TooltipContent side="right">{t(item.title as any)}</TooltipContent>
