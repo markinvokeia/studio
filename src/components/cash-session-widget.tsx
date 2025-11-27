@@ -58,7 +58,7 @@ export const OpenCashSessionWidget = () => {
     
     if (activeSession) {
         return (
-            <Alert variant="success" className="flex items-center justify-between p-2 h-10">
+            <Alert variant="success" className="flex items-center justify-between p-2 h-10 max-w-md">
                 <div className="flex items-center">
                     <Box className="h-4 w-4" />
                     <div className="ml-2">
@@ -76,7 +76,7 @@ export const OpenCashSessionWidget = () => {
     }
 
     return (
-        <Alert variant="warning" className="flex items-center justify-between p-2 h-10">
+        <Alert variant="warning" className="flex items-center justify-between p-2 h-10 max-w-md">
             <div className="flex items-center">
                 <AlertTriangle className="h-4 w-4" />
                 <div className="ml-2">
@@ -84,7 +84,7 @@ export const OpenCashSessionWidget = () => {
                 </div>
             </div>
             <Link href={`/${locale}/cashier`} passHref>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="text-yellow-900 hover:text-yellow-900 dark:text-yellow-200">
                     {t('button')}
                     <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
