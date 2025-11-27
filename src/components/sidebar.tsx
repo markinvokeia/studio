@@ -33,13 +33,13 @@ const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
     
     return (
         <aside className="fixed inset-y-0 left-0 z-40 flex h-screen w-20 flex-col border-r bg-card">
-            <div className="flex h-14 items-center justify-center border-b px-4 lg:h-[60px] lg:px-6">
+            <div className="flex h-14 items-center justify-center border-b px-2 lg:h-[60px]">
                 <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold text-foreground">
-                    <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={32} height={32} alt="InvokeIA Logo" />
+                    <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={40} height={40} alt="InvokeIA Logo" />
                 </Link>
             </div>
             <TooltipProvider>
-                <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
+                <nav className="flex flex-col items-center gap-1 px-2 sm:py-2">
                     {navItems.map(item => {
                         const isActive = item.items
                             ? item.items.some(subItem => effectivePathname.startsWith(subItem.href))
@@ -58,13 +58,13 @@ const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
                                     <Link 
                                         href={linkHref}
                                         className={cn(
-                                            "flex h-20 w-full flex-col items-center justify-center gap-1 rounded-lg p-1 transition-colors",
+                                            "flex h-auto w-full flex-col items-center justify-center gap-1 rounded-lg p-2 transition-colors",
                                             isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                                         )}
                                         onMouseEnter={() => onHover(item)}
                                     >
                                         <item.icon className="h-6 w-6" />
-                                        <span className="block w-full px-1 text-center text-xs font-medium leading-tight line-clamp-2">{t(item.title as any)}</span>
+                                        <span className="block w-full text-center text-[10px] font-medium leading-tight line-clamp-2">{t(item.title as any)}</span>
                                     </Link>
                                 </TooltipTrigger>
                                 <TooltipContent side="right">{t(item.title as any)}</TooltipContent>
