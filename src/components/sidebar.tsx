@@ -41,9 +41,9 @@ const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
             <TooltipProvider>
                 <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
                     {navItems.map(item => {
-                        const isActive = item.href === '/'
-                            ? effectivePathname === '/'
-                            : effectivePathname.startsWith(item.href);
+                        const isActive = item.items
+                            ? item.items.some(subItem => effectivePathname.startsWith(subItem.href))
+                            : (item.href === '/' ? effectivePathname === '/' : effectivePathname.startsWith(item.href));
 
                         let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
                         if (item.href.includes('/clinic-history')) {
@@ -62,7 +62,7 @@ const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
                                         onMouseEnter={() => onHover(item)}
                                     >
                                         <item.icon className="h-5 w-5" />
-                                        <span className="text-xs font-medium text-center whitespace-nowrap">{t(item.title as any)}</span>
+                                        <span className="block text-xs font-medium text-center whitespace-nowrap overflow-hidden text-ellipsis w-full px-1">{t(item.title as any)}</span>
                                     </Link>
                                 </TooltipTrigger>
                                 <TooltipContent side="right">{t(item.title as any)}</TooltipContent>
