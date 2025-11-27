@@ -413,7 +413,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       extraButtons={
          <>
           {onImport && (
-            <Button variant="outline" size="sm" className="h-8 ml-2" onClick={onImport}>
+            <Button variant="outline" size="sm" className="h-9" onClick={onImport}>
               <FileUp className="mr-2 h-4 w-4" /> Import
             </Button>
           )}
