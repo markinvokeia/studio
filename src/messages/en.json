@@ -743,7 +743,26 @@
   "CashierPage": {
     "openSession": {
       "closed": "Closed",
-      "openButton": "Open"
+      "openButton": "Open",
+      "wizardTitle": "Open Session",
+      "terminal": "Terminal",
+      "user": "User",
+      "openingDate": "Opening Date",
+      "exchangeRateTooltip": "Exchange Rate",
+      "exchangeRate": "Exchange Rate",
+      "currency": "Currency"
+    },
+    "wizard": {
+      "back": "Back",
+      "next": "Next"
+    },
+    "confirmation": {
+      "sessionInfo": "Session Info",
+      "cashSummary": "Cash Summary",
+      "totalUYU": "Total UYU",
+      "totalUSD": "Total USD",
+      "totalOpening": "Total Opening",
+      "confirmButton": "Confirm"
     }
   },
   "CashSessionsPage": {
