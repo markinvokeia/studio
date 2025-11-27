@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -41,7 +42,7 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().positive(t('amountPositive')),
+  amount: z.coerce.number().positive(t('validation.amountPositive')),
   method: z.string().min(1, t('validation.methodRequired')),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
