@@ -42,11 +42,11 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().positive(t('validation.amountPositive')),
-  method: z.string().min(1, t('validation.methodRequired')),
+  amount: z.coerce.number().positive(t('amountPositive')),
+  method: z.string().min(1, t('methodRequired')),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
-    required_error: t('validation.dateRequired'),
+    required_error: t('dateRequired'),
   }),
   invoice_currency: z.string(),
   payment_currency: z.string(),
@@ -148,6 +148,7 @@ const getColumns = (
             sent: 'default',
             draft: 'outline',
             overdue: 'destructive',
+            booked: 'info'
           }[status?.toLowerCase()] ?? ('default' as any);
           return <Badge variant={variant} className="capitalize">{tStatus(status.toLowerCase())}</Badge>;
         },
