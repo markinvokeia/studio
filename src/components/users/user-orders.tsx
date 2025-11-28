@@ -53,13 +53,15 @@ async function getOrdersForUser(userId: string): Promise<Order[]> {
         throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
     }
     const data = await response.json();
-    return data.map((apiOrder: any) => ({
+    const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
+    return ordersData.map((apiOrder: any) => ({
       id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
       user_id: apiOrder.user_id,
       quote_id: apiOrder.quote_id,
       status: apiOrder.status,
-      createdAt: apiOrder.createdAt,
-      updatedAt: apiOrder.updatedAt,
+      createdAt: apiOrder.created_at,
+      updatedAt: apiOrder.updated_at,
+      currency: apiOrder.currency || 'USD',
     }));
   } catch (error) {
     console.error("Failed to fetch user orders:", error);
