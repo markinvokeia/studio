@@ -49,17 +49,20 @@ async function getPaymentsForUser(userId: string): Promise<Payment[]> {
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_payments?user_id=${userId}`);
     if (!response.ok) throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
     const data = await response.json();
-    return data.map((apiPayment: any) => ({
+    const paymentsData = Array.isArray(data) ? data : (data.payments || []);
+
+    return paymentsData.map((apiPayment: any) => ({
       id: apiPayment.id.toString(),
-      order_id: apiPayment.order_id.toString(),
-      invoice_id: apiPayment.invoice_id.toString(),
-      quote_id: apiPayment.quote_id.toString(),
+      order_id: apiPayment.order_id?.toString() ?? '',
+      invoice_id: apiPayment.invoice_id?.toString() ?? '',
+      quote_id: apiPayment.quote_id?.toString() ?? '',
       user_name: '', // Not needed
-      amount: apiPayment.amount,
-      method: apiPayment.method,
+      amount: parseFloat(apiPayment.amount),
+      method: apiPayment.payment_method,
       status: apiPayment.status,
-      createdAt: apiPayment.createdAt,
+      createdAt: apiPayment.payment_date,
       updatedAt: apiPayment.updatedAt,
+      currency: apiPayment.currency,
     }));
   } catch (error) {
     console.error("Failed to fetch user payments:", error);
