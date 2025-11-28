@@ -206,21 +206,33 @@
         "calendar": "Calendar",
         "date": "Date",
         "time": "Time"
-      }
+      },
+      "selectUser": "Select User",
+      "searchUserPlaceholder": "Search for a user...",
+      "selectServices": "Select Service",
+      "searchServicePlaceholder": "Search for a service...",
+      "selectDoctor": "Select a doctor",
+      "searchDoctorPlaceholder": "Search for a doctor...",
+      "none": "None",
+      "allCalendars": "All Calendars",
+      "endTime": "End Time",
+      "descriptionLabel": "Description",
+      "cancelAppointmentDescription": "Cancel Appointment",
+      "close": "Close"
+    },
+    "AppointmentsColumns": {
+      "service": "Service",
+      "user": "User",
+      "patient": "Patient",
+      "doctor": "Doctor",
+      "calendar": "Calendar",
+      "date": "Date",
+      "time": "Time",
+      "status": "Status",
+      "actions": "Actions",
+      "edit": "Edit",
+      "cancel": "Cancel"
     }
-  },
-  "AppointmentsColumns": {
-    "service": "Service",
-    "user": "User",
-    "patient": "Patient",
-    "doctor": "Doctor",
-    "calendar": "Calendar",
-    "date": "Date",
-    "time": "Time",
-    "status": "Status",
-    "actions": "Actions",
-    "edit": "Edit",
-    "cancel": "Cancel"
   },
   "AppointmentStatus": {
     "completed": "Completed",
@@ -427,6 +439,7 @@
     "filterPlaceholder": "Filter users by email...",
     "detailsFor": "Details for {name}",
     "close": "Close details",
+    "setInitialPassword": "Set Initial Password",
     "tabs": {
       "roles": "Roles",
       "services": "Services",
@@ -434,7 +447,10 @@
       "appointments": "Appointments",
       "messages": "Messages",
       "logs": "Logs",
-      "history": "Clinic History"
+      "history": "Clinic History",
+      "orders": "Orders",
+      "invoices": "Invoices",
+      "payments": "Payments"
     },
     "createDialog": {
       "title": "Create New User",
@@ -593,12 +609,12 @@
       "selectCurrency": "Select Currency",
       "selectStatus": "Select Status",
       "selectPaymentStatus": "Select Payment Status",
-      "partiallyPaid": "Partially Paid",
+      "partially_paid": "Partially Paid",
       "paid": "Paid",
       "selectBillingStatus": "Select Billing Status",
-      "partiallyInvoiced": "Partially Invoiced",
+      "partially_invoiced": "Partially Invoiced",
       "invoiced": "Invoiced",
-      "not invoiced": "Not Invoiced"
+      "notinvoiced": "Not Invoiced"
     },
     "sendEmail": "Send Email",
     "print": "Print",
@@ -740,7 +756,8 @@
         "unitPrice": "Unit Price",
         "total": "Total"
       }
-    }
+    },
+    "ConfirmInvoice": "Confirm Invoice"
   },
   "InvoiceItemsTable": {
     "title": "Invoice items",
@@ -763,7 +780,8 @@
       "openingDate": "Opening Date",
       "exchangeRateTooltip": "Exchange Rate",
       "exchangeRate": "Exchange Rate",
-      "currency": "Currency"
+      "currency": "Currency",
+      "openBy": "Open By"
     },
     "wizard": {
       "back": "Back",
@@ -886,7 +904,12 @@
     "selectUser": "Select User",
     "selectQuote": "Select Quote",
     "cancel": "Cancel",
-    "create": "Create"
+    "create": "Create",
+    "invoiceDialog": {
+      "title": "Create Invoice",
+      "description": "Create an invoice for the order",
+      "confirm": "Confirm"
+    }
   },
   "PaymentsPage": {
     "title": "Payments",
@@ -1546,16 +1569,35 @@
   },
   "ClinicHistoryPage": {
     "MedicalHistory": {
-      "noHistory": "No medical history available"
+      "noHistory": "No medical history available",
+      "viewFullHistory": "View Full History",
+      "showMore": "Show more",
+      "notes": "Notes",
+      "treatments": "Treatments",
+      "tooth": "Tooth"
     },
     "searchPlaceholder": "Search medical history...",
     "tabs": {
-      "anamesis": "Anamnesis",
+      "anamnesis": "Anamnesis",
       "timeline": "Timeline",
       "odontogram": "Odontogram",
       "images": "Images"
     },
     "selectPatientTitle": "Select a Patient",
-    "selectPatientDescription": "Please select a patient to view their medical history"
+    "selectPatientDescription": "Please select a patient to view their medical history",
+    "noPatientsFound": "No patients found",
+    "title": "Clinic History",
+    "sessionDialog": "Session Dialog",
+    "timeline": {
+      "deleteDialog": {
+        "title": "Delete Session",
+        "description": "Are you sure you want to delete this session?",
+        "cancel": "Cancel",
+        "confirm": "Confirm"
+      }
+    }
+  },
+  "UserQuotes": {
+    "filterPlaceholder": "Filter here..."
   }
 }
