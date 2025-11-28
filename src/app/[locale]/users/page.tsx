@@ -36,6 +36,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { isValidPhoneNumber } from 'libphonenumber-js';
 import { PhoneInput } from '@/components/ui/phone-input';
+import { UserOrders } from '@/components/users/user-orders';
+import { UserInvoices } from '@/components/users/user-invoices';
+import { UserPayments } from '@/components/users/user-payments';
 
 
 const userFormSchema = (t: (key: string) => string) => z.object({
@@ -510,6 +513,9 @@ export default function UsersPage() {
                         <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
                     )}
                     <TabsTrigger value="quotes">{t('UsersPage.tabs.quotes')}</TabsTrigger>
+                    <TabsTrigger value="orders">{t('UsersPage.tabs.orders')}</TabsTrigger>
+                    <TabsTrigger value="invoices">{t('UsersPage.tabs.invoices')}</TabsTrigger>
+                    <TabsTrigger value="payments">{t('UsersPage.tabs.payments')}</TabsTrigger>
                     <TabsTrigger value="appointments">{t('UsersPage.tabs.appointments')}</TabsTrigger>
                     <TabsTrigger value="messages">{t('UsersPage.tabs.messages')}</TabsTrigger>
                     <TabsTrigger value="logs">{t('UsersPage.tabs.logs')}</TabsTrigger>
@@ -530,6 +536,15 @@ export default function UsersPage() {
                   )}
                   <TabsContent value="quotes">
                     <UserQuotes userId={selectedUser.id} />
+                  </TabsContent>
+                  <TabsContent value="orders">
+                    <UserOrders userId={selectedUser.id} />
+                  </TabsContent>
+                  <TabsContent value="invoices">
+                    <UserInvoices userId={selectedUser.id} />
+                  </TabsContent>
+                  <TabsContent value="payments">
+                    <UserPayments userId={selectedUser.id} />
                   </TabsContent>
                   <TabsContent value="appointments">
                     <UserAppointments user={selectedUser} />
@@ -652,3 +667,4 @@ export default function UsersPage() {
     
 
     
+
