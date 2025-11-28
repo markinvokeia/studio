@@ -13,7 +13,7 @@ import { useTranslations } from 'next-intl';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
 import { MoreHorizontal, Printer, Send } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 const getColumns = (
   t: (key: string) => string,
@@ -62,7 +62,15 @@ const getColumns = (
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title={t('date')} />
         ),
-        cell: ({ row }) => format(new Date(row.getValue('payment_date')), 'yyyy-MM-dd')
+        cell: ({ row }) => {
+            const dateValue = row.getValue('payment_date');
+            if (!dateValue) return 'N/A';
+            try {
+                return format(parseISO(dateValue as string), 'yyyy-MM-dd');
+            } catch (e) {
+                return 'Invalid Date';
+            }
+        }
       },
       {
         accessorKey: 'amount_applied',
