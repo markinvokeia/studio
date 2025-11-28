@@ -11,7 +11,7 @@ import { Invoice } from '@/lib/types';
 import { Badge } from '../ui/badge';
 import { useTranslations } from 'next-intl';
 
-const getColumns = (t: (key: string) => string): ColumnDef<Invoice>[] => [
+const getColumns = (t: (key: string) => string, tStatus: (key: string) => string): ColumnDef<Invoice>[] => [
   {
     accessorKey: 'id',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.invoiceId')} />,
@@ -23,7 +23,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<Invoice>[] => [
       const amount = parseFloat(row.getValue('total'));
       const formatted = new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: 'USD',
+        currency: row.original.currency || 'USD',
       }).format(amount);
       return <div className="font-medium">{formatted}</div>;
     },
@@ -31,12 +31,30 @@ const getColumns = (t: (key: string) => string): ColumnDef<Invoice>[] => [
   {
     accessorKey: 'status',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.status')} />,
-    cell: ({ row }) => <Badge variant={row.getValue('status') === 'paid' ? 'success' : 'outline'}>{row.getValue('status')}</Badge>,
+    cell: ({ row }) => {
+        const status = row.getValue('status') as string;
+        const variant = {
+        paid: 'success',
+        sent: 'default',
+        draft: 'outline',
+        overdue: 'destructive',
+        }[status?.toLowerCase()] ?? ('default' as any);
+        return <Badge variant={variant} className="capitalize">{tStatus(status.toLowerCase())}</Badge>;
+    },
   },
   {
     accessorKey: 'payment_status',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.payment')} />,
-    cell: ({ row }) => <Badge variant={row.getValue('payment_status') === 'paid' ? 'success' : 'outline'}>{row.getValue('payment_status')}</Badge>,
+    cell: ({ row }) => {
+        const status = row.original.payment_status;
+        const variant = {
+        paid: 'success',
+        partial: 'info',
+        unpaid: 'outline',
+        partially_paid: 'info'
+        }[status?.toLowerCase() ?? ('default' as any)];
+        return <Badge variant={variant} className="capitalize">{status ? tStatus(status.toLowerCase()) : ''}</Badge>;
+    },
   },
   {
     accessorKey: 'createdAt',
@@ -50,16 +68,18 @@ async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_invoices?user_id=${userId}`);
     if (!response.ok) throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
     const data = await response.json();
-    return data.map((apiInvoice: any) => ({
+    const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
+    return invoicesData.map((apiInvoice: any) => ({
       id: apiInvoice.id.toString(),
-      order_id: apiInvoice.order_id.toString(),
-      quote_id: apiInvoice.quote_id.toString(),
+      order_id: apiInvoice.order_id?.toString() ?? '',
+      quote_id: apiInvoice.quote_id?.toString() ?? '',
       user_name: '', // Not needed for this view
-      total: apiInvoice.total,
+      total: parseFloat(apiInvoice.total),
       status: apiInvoice.status,
       payment_status: apiInvoice.payment_status,
       createdAt: apiInvoice.created_at,
-      updatedAt: apiInvoice.updatedAt,
+      updatedAt: apiInvoice.updated_at,
+      currency: apiInvoice.currency,
     }));
   } catch (error) {
     console.error("Failed to fetch user invoices:", error);
@@ -73,9 +93,10 @@ interface UserInvoicesProps {
 
 export function UserInvoices({ userId }: UserInvoicesProps) {
   const t = useTranslations();
+  const tStatus = useTranslations('InvoicesPage.status');
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const columns = React.useMemo(() => getColumns(t), [t]);
+  const columns = React.useMemo(() => getColumns(t, tStatus), [t, tStatus]);
 
   React.useEffect(() => {
     async function loadInvoices() {
