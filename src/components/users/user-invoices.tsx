@@ -76,7 +76,7 @@ async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
       user_name: '', // Not needed for this view
       total: parseFloat(apiInvoice.total),
       status: apiInvoice.status,
-      payment_status: apiInvoice.payment_status,
+      payment_status: apiInvoice.payment_state,
       createdAt: apiInvoice.created_at,
       updatedAt: apiInvoice.updated_at,
       currency: apiInvoice.currency,
