@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { MoreHorizontal, AlertTriangle, ArrowRight, Box, Printer, Send, FileUp, Plus, Trash2 } from 'lucide-react';
+import { MoreHorizontal, AlertTriangle, ArrowRight, Box, Printer, Send, FileUp, Plus, Trash2, CheckCircle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,7 +72,13 @@ const getColumns = (
     onSendEmail?: (invoice: Invoice) => void,
     onAddPayment?: (invoice: Invoice) => void,
     onConfirm?: (invoice: Invoice) => void
-  ): ColumnDef<Invoice>[] => [
+  ): ColumnDef<Invoice>[] => {
+    const isPaymentActionVisible = (invoice: Invoice) => {
+        const status = invoice.status.toLowerCase();
+        const paymentStatus = invoice.payment_status?.toLowerCase();
+        return status === 'booked' && paymentStatus !== 'paid';
+    };
+    return [
       {
         id: 'select',
         header: () => null,
@@ -180,7 +186,7 @@ const getColumns = (
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                {onAddPayment && invoice.status.toLowerCase() === 'draft' && (
+                {onAddPayment && isPaymentActionVisible(invoice) && (
                     <DropdownMenuItem onClick={() => onAddPayment(invoice)}>
                         {t('paymentDialog.add')}
                     </DropdownMenuItem>
@@ -208,6 +214,7 @@ const getColumns = (
         },
       },
     ];
+};
 
 
 interface InvoicesTableProps {
@@ -869,3 +876,5 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
     </Dialog>
   );
 }
+
+    
