@@ -70,7 +70,8 @@ const getColumns = (
     columnTranslations: { [key: string]: string },
     onPrint?: (invoice: Invoice) => void,
     onSendEmail?: (invoice: Invoice) => void,
-    onAddPayment?: (invoice: Invoice) => void
+    onAddPayment?: (invoice: Invoice) => void,
+    onConfirm?: (invoice: Invoice) => void
   ): ColumnDef<Invoice>[] => [
       {
         id: 'select',
@@ -184,6 +185,11 @@ const getColumns = (
                         {t('paymentDialog.add')}
                     </DropdownMenuItem>
                 )}
+                 {onConfirm && invoice.status.toLowerCase() === 'draft' && (
+                    <DropdownMenuItem onClick={() => onConfirm(invoice)}>
+                        {t('confirmInvoice')}
+                    </DropdownMenuItem>
+                )}
                 {onPrint && (
                   <DropdownMenuItem onClick={() => onPrint(invoice)}>
                     <Printer className="mr-2 h-4 w-4" />
@@ -213,6 +219,7 @@ interface InvoicesTableProps {
   onSendEmail?: (invoice: Invoice) => void;
   onCreate?: () => void;
   onImport?: () => void;
+  onConfirm?: (invoice: Invoice) => void;
   isRefreshing?: boolean;
   rowSelection?: RowSelectionState;
   setRowSelection?: (selection: RowSelectionState) => void;
@@ -222,7 +229,7 @@ interface InvoicesTableProps {
   filterOptions?: { label: string; value: string }[];
 }
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterValue, onFilterChange, filterOptions }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterValue, onFilterChange, filterOptions }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
@@ -380,7 +387,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   };
 
-  const columns = React.useMemo(() => getColumns(t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail, handleAddPaymentClick), [t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail]);
+  const columns = React.useMemo(() => getColumns(t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail, handleAddPaymentClick, onConfirm), [t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail, onConfirm]);
 
     if (isLoading) {
     return (

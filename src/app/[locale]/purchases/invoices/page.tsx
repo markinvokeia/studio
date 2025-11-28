@@ -618,6 +618,7 @@ export default function InvoicesPage() {
                                 setIsProcessingImport(false);
                                 setIsImportDialogOpen(true);
                             }}
+                            onConfirm={handleConfirmInvoiceClick}
                             isRefreshing={isLoadingInvoices}
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}
@@ -793,7 +794,7 @@ export default function InvoicesPage() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-             <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+            <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Confirm Invoice</AlertDialogTitle>

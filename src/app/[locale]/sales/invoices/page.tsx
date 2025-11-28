@@ -37,9 +37,7 @@ async function getServices(): Promise<Service[]> {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=true', {
       method: 'GET',
       mode: 'cors',
-      headers: {
-        'Accept': 'application/json',
-      },
+      headers: { 'Accept': 'application/json' },
       cache: 'no-store',
     });
     if (!response.ok) return [];
@@ -621,6 +619,7 @@ export default function InvoicesPage() {
                                 setIsProcessingImport(false);
                                 setIsImportDialogOpen(true);
                             }}
+                            onConfirm={handleConfirmInvoiceClick}
                             isRefreshing={isLoadingInvoices}
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}
