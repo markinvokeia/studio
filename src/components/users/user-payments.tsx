@@ -23,7 +23,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<Payment>[] => [
       const amount = parseFloat(row.getValue('amount'));
       const formatted = new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: 'USD',
+        currency: row.original.currency || 'USD',
       }).format(amount);
       return <div className="font-medium">{formatted}</div>;
     },
@@ -31,11 +31,6 @@ const getColumns = (t: (key: string) => string): ColumnDef<Payment>[] => [
   {
     accessorKey: 'method',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('PaymentsPage.columns.method')} />,
-  },
-  {
-    accessorKey: 'status',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('PaymentsPage.columns.status')} />,
-    cell: ({ row }) => <Badge variant={row.getValue('status') === 'completed' ? 'success' : 'outline'}>{row.getValue('status')}</Badge>,
   },
   {
     accessorKey: 'createdAt',
@@ -58,11 +53,20 @@ async function getPaymentsForUser(userId: string): Promise<Payment[]> {
       quote_id: apiPayment.quote_id?.toString() ?? '',
       user_name: '', // Not needed
       amount: parseFloat(apiPayment.amount),
-      method: apiPayment.payment_method,
+      method: apiPayment.method,
       status: apiPayment.status,
-      createdAt: apiPayment.payment_date,
+      createdAt: apiPayment.created_at,
       updatedAt: apiPayment.updatedAt,
       currency: apiPayment.currency,
+      payment_date: apiPayment.payment_date,
+      amount_applied: parseFloat(apiPayment.amount_applied),
+      source_amount: parseFloat(apiPayment.amount),
+      source_currency: apiPayment.currency,
+      exchange_rate: parseFloat(apiPayment.exchange_rate),
+      payment_method: apiPayment.payment_method,
+      transaction_type: apiPayment.transaction_type,
+      transaction_id: apiPayment.transaction_id,
+      reference_doc_id: apiPayment.reference_doc_id,
     }));
   } catch (error) {
     console.error("Failed to fetch user payments:", error);
