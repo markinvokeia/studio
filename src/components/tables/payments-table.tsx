@@ -209,7 +209,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
         <DataTable
           columns={filteredColumns}
           data={payments}
-          filterColumnId="invoice_id"
+          filterColumnId="transaction_id"
           filterPlaceholder={tPage('filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
