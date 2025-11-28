@@ -30,12 +30,21 @@ async function getPayments(): Promise<Payment[]> {
             quote_id: apiPayment.quote_id,
             user_name: apiPayment.user_name || 'N/A',
             userEmail: apiPayment.user_email,
-            amount: apiPayment.amount || 0,
-            method: apiPayment.method || 'credit_card',
+            amount: parseFloat(apiPayment.amount) || 0,
+            method: apiPayment.payment_method || 'credit_card',
             status: apiPayment.status || 'pending',
             createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
-            currency: apiPayment.currency || 'URU',
+            currency: apiPayment.currency || 'USD',
+            payment_date: apiPayment.created_at,
+            amount_applied: parseFloat(apiPayment.converted_amount) || 0,
+            source_amount: parseFloat(apiPayment.amount) || 0,
+            source_currency: apiPayment.currency || 'USD',
+            exchange_rate: parseFloat(apiPayment.exchange_rate) || 0,
+            payment_method: apiPayment.payment_method,
+            transaction_type: apiPayment.transaction_type,
+            transaction_id: apiPayment.transaction_id,
+            reference_doc_id: apiPayment.reference_doc_id,
         }));
     } catch (error) {
         console.error("Failed to fetch payments:", error);
@@ -161,7 +170,6 @@ export default function PaymentsPage() {
             });
         }
     };
-
 
     return (
         <>

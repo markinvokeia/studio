@@ -24,7 +24,7 @@ async function getPayments(): Promise<Payment[]> {
         const data = await response.json();
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
-            id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
             order_id: apiPayment.order_id,
             invoice_id: apiPayment.invoice_id,
             quote_id: apiPayment.quote_id,
@@ -36,9 +36,9 @@ async function getPayments(): Promise<Payment[]> {
             createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
             currency: apiPayment.currency || 'USD',
-            payment_date: apiPayment.payment_date,
-            amount_applied: parseFloat(apiPayment.amount_applied) || 0,
-            source_amount: parseFloat(apiPayment.amount) || 0, // Correctly parse 'amount' as 'source_amount'
+            payment_date: apiPayment.created_at,
+            amount_applied: parseFloat(apiPayment.converted_amount) || 0,
+            source_amount: parseFloat(apiPayment.amount) || 0,
             source_currency: apiPayment.currency || 'USD',
             exchange_rate: parseFloat(apiPayment.exchange_rate) || 0,
             payment_method: apiPayment.payment_method,

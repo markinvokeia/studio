@@ -34,7 +34,7 @@ const getColumns = (
     
     const columns: ColumnDef<Payment>[] = [
       {
-        accessorKey: 'transaction_id',
+        accessorKey: 'id',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title={t('id')} />
         ),
