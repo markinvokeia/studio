@@ -79,10 +79,9 @@ const getColumns = (
         ),
         cell: ({ row }) => {
           const amount = parseFloat(row.getValue('amount_applied'));
-          const currency = row.original.currency || 'USD';
           const formatted = new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: currency,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
           }).format(amount);
           return <div className="font-medium">{formatted}</div>;
         },
