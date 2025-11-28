@@ -24,18 +24,27 @@ async function getPayments(): Promise<Payment[]> {
         const data = await response.json();
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
-            id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
             order_id: apiPayment.order_id,
             invoice_id: apiPayment.invoice_id,
             quote_id: apiPayment.quote_id,
             user_name: apiPayment.user_name || 'N/A',
             userEmail: apiPayment.user_email,
-            amount: apiPayment.amount || 0,
-            method: apiPayment.method || 'credit_card',
+            amount: parseFloat(apiPayment.amount) || 0,
+            method: apiPayment.payment_method || 'credit_card',
             status: apiPayment.status || 'pending',
             createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
-            currency: apiPayment.currency || 'URU',
+            currency: apiPayment.source_currency || 'USD',
+            payment_date: apiPayment.payment_date,
+            amount_applied: parseFloat(apiPayment.amount_applied) || 0,
+            source_amount: parseFloat(apiPayment.source_amount) || 0,
+            source_currency: apiPayment.source_currency || 'USD',
+            exchange_rate: parseFloat(apiPayment.exchange_rate) || 0,
+            payment_method: apiPayment.payment_method,
+            transaction_type: apiPayment.transaction_type,
+            transaction_id: apiPayment.transaction_id,
+            reference_doc_id: apiPayment.reference_doc_id,
         }));
     } catch (error) {
         console.error("Failed to fetch payments:", error);
