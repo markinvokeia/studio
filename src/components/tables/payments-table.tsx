@@ -79,9 +79,10 @@ const getColumns = (
         ),
         cell: ({ row }) => {
           const amount = parseFloat(row.getValue('amount_applied'));
+          const currency = row.original.currency || 'USD';
           const formatted = new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: row.original.currency || 'USD',
+            currency: currency,
           }).format(amount);
           return <div className="font-medium">{formatted}</div>;
         },
@@ -93,9 +94,10 @@ const getColumns = (
         ),
         cell: ({ row }) => {
           const amount = parseFloat(row.getValue('source_amount'));
+          const currency = row.original.source_currency || 'USD';
           const formatted = new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: row.original.source_currency || 'USD',
+            currency: currency,
           }).format(amount);
           return <div className="font-medium">{formatted}</div>;
         },
@@ -119,6 +121,7 @@ const getColumns = (
         ),
          cell: ({ row }) => {
           const method = row.getValue('payment_method') as string;
+          if (!method) return <div className="capitalize">N/A</div>;
           let normalizedMethod = paymentMethodMap[method.toLowerCase()] || method.toLowerCase();
           normalizedMethod = normalizedMethod.replace(/\s+/g, '_');
           return <div className="capitalize">{tMethods(normalizedMethod)}</div>;
