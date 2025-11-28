@@ -730,6 +730,16 @@
       "success": {
         "description": "Invoice created successfully."
       }
+    },
+    "InvoiceItemsTable": {
+      "title": "Invoice Items",
+      "columns": {
+        "id": "ID",
+        "service": "Service",
+        "quantity": "Quantity",
+        "unitPrice": "Unit Price",
+        "total": "Total"
+      }
     }
   },
   "InvoiceItemsTable": {
@@ -766,6 +776,14 @@
       "totalUSD": "Total USD",
       "totalOpening": "Total Opening",
       "confirmButton": "Confirm"
+    },
+    "activeSession": {
+      "columns": {
+        "description": "Description",
+        "amount": "Amount",
+        "method": "Method",
+        "date": "Date"
+      }
     }
   },
   "CashSessionsPage": {
@@ -776,8 +794,26 @@
       "user": "User",
       "cashPoint": "Cash Point",
       "status": "Status",
-      "openDate": "Open Date"
-    }
+      "openDate": "Open Date",
+      "closeDate": "Close Date",
+      "openingAmount": "Opening Amount",
+      "actions": "Actions",
+      "viewDetails": "View details"
+    },
+    "detailsTitle": "Cash Session Details",
+    "detailsDescription": "Cash Session Details",
+    "sessionInfo": "Session Info",
+    "denominationDetails": {
+      "title": "Denomination Details",
+      "denomination": "Denomination",
+      "total": "Total",
+      "quantity": "Quantity",
+      "subtotal": "Subtotal"
+    },
+    "openingDenominations": "Opening Denominations",
+    "closingDenominations": "Closing Denominations",
+    "noDetails": "No details available",
+    "movements": "Movements"
   },
   "MiscellaneousTransactionsPage": {
     "dashboard": {
@@ -801,7 +837,10 @@
     "columns": {
       "transactionNumber": "Transaction Number",
       "date": "Date",
-      "category": "Category"
+      "category": "Category",
+      "beneficiary": "Beneficiary",
+      "amount": "Amount",
+      "status": "Status"
     }
   },
   "PhysicalCashRegistersPage": {
@@ -826,7 +865,9 @@
       "namePlaceholder": "Name here...",
       "isActive": "Is Active",
       "cancel": "Cancel",
-      "create": "Create"
+      "create": "Create",
+      "editTitle": "Edit Cash Register",
+      "save": "Save Changes"
     }
   },
   "OrdersPage": {
@@ -861,8 +902,16 @@
       "createdAt": "Created At",
       "quoteId": "Quote ID",
       "orderId": "Order ID",
-      "user": "User"
-    }
+      "user": "User",
+      "date": "Date",
+      "amount_applied": "Amount Applied",
+      "source_amount": "Source Amount",
+      "source_currency": "Source Currency",
+      "exchange_rate": "Exchange Rate",
+      "transaction_type": "Transaction Type",
+      "reference_doc_id": "Reference Document ID"
+    },
+    "transactionTypes": "Transaction Types"
   },
   "PaymentMethodsPage": {
     "title": "Payments Methods",
@@ -889,7 +938,8 @@
       "isCashEquivalent": "Is Cash Equivalent?",
       "isActive": "Is Active?",
       "cancel": "Cancel",
-      "create": "Create"
+      "create": "Create",
+      "save": "Save Changes"
     },
     "validation": "Validation",
     "deleteDialog": {
@@ -903,17 +953,6 @@
     "title": "Services",
     "description": "An overview of services.",
     "filterPlaceholder": "Filter here...",
-    "columns": {
-      "id": "ID",
-      "name": "Name",
-      "category": "Category",
-      "price": "Price",
-      "currency": "Currency",
-      "duration": "Duration",
-      "actions": "Actions",
-      "edit": "Edit",
-      "delete": "Delete"
-    },
     "createDialog": {
       "title": "Create Service",
       "description": "Create a new service",
@@ -937,21 +976,21 @@
       }
     }
   },
+  "ServicesColumns": {
+    "id": "ID",
+    "name": "Name",
+    "category": "Category",
+    "price": "Price",
+    "currency": "Currency",
+    "duration": "Duration",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
   "ProvidersPage": {
     "title": "Providers",
     "description": "A list of providers",
     "filterPlaceholder": "Filter by role...",
-    "columns": {
-      "name": "Name",
-      "email": "Email",
-      "identity_document": "Identity Document",
-      "phone": "Phone",
-      "status": "Status",
-      "actions": "Actions",
-      "copyId": "Copy user ID",
-      "edit": "Edit",
-      "deactivate": "Deactivate"
-    },
     "createDialog": {
       "title": "Create provider",
       "description": "Create a new provider",
@@ -972,6 +1011,17 @@
       "roles": "Roles"
     },
     "setInitialPassword": "Set Initial Password"
+  },
+  "ProvidersColumns": {
+    "name": "Name",
+    "email": "Email",
+    "identity_document": "Identity Document",
+    "phone": "Phone",
+    "status": "Status",
+    "actions": "Actions",
+    "copyId": "Copy user ID",
+    "edit": "Edit",
+    "deactivate": "Deactivate"
   },
   "OrderItemsTable": {
     "filterPlaceholder": "Filter here...",
@@ -1493,5 +1543,19 @@
       "actions": "Actions",
       "viewDetails": "View details"
     }
+  },
+  "ClinicHistoryPage": {
+    "MedicalHistory": {
+      "noHistory": "No medical history available"
+    },
+    "searchPlaceholder": "Search medical history...",
+    "tabs": {
+      "anamesis": "Anamnesis",
+      "timeline": "Timeline",
+      "odontogram": "Odontogram",
+      "images": "Images"
+    },
+    "selectPatientTitle": "Select a Patient",
+    "selectPatientDescription": "Please select a patient to view their medical history"
   }
 }
