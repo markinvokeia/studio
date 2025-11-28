@@ -179,7 +179,7 @@ const getColumns = (
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                {onAddPayment && (
+                {onAddPayment && invoice.status.toLowerCase() === 'draft' && (
                     <DropdownMenuItem onClick={() => onAddPayment(invoice)}>
                         {t('paymentDialog.add')}
                     </DropdownMenuItem>
