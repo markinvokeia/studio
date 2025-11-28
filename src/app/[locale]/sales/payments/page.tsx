@@ -35,11 +35,11 @@ async function getPayments(): Promise<Payment[]> {
             status: apiPayment.status || 'pending',
             createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
-            currency: apiPayment.source_currency || 'USD',
+            currency: apiPayment.currency || 'USD',
             payment_date: apiPayment.payment_date,
             amount_applied: parseFloat(apiPayment.amount_applied) || 0,
-            source_amount: parseFloat(apiPayment.source_amount) || 0,
-            source_currency: apiPayment.source_currency || 'USD',
+            source_amount: parseFloat(apiPayment.amount) || 0, // Correctly parse 'amount' as 'source_amount'
+            source_currency: apiPayment.currency || 'USD',
             exchange_rate: parseFloat(apiPayment.exchange_rate) || 0,
             payment_method: apiPayment.payment_method,
             transaction_type: apiPayment.transaction_type,
@@ -51,6 +51,7 @@ async function getPayments(): Promise<Payment[]> {
         return [];
     }
 }
+
 
 export default function PaymentsPage() {
     const t = useTranslations('PaymentsPage');
