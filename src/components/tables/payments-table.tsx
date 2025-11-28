@@ -81,7 +81,7 @@ const getColumns = (
           const amount = parseFloat(row.getValue('amount_applied'));
           const formatted = new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD', // Assuming invoice currency is USD
+            currency: row.original.currency || 'USD',
           }).format(amount);
           return <div className="font-medium">{formatted}</div>;
         },
@@ -95,7 +95,7 @@ const getColumns = (
           const amount = parseFloat(row.getValue('source_amount'));
           const formatted = new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: row.original.source_currency,
+            currency: row.original.source_currency || 'USD',
           }).format(amount);
           return <div className="font-medium">{formatted}</div>;
         },
@@ -107,7 +107,10 @@ const getColumns = (
       {
         accessorKey: 'exchange_rate',
         header: ({ column }) => <DataTableColumnHeader column={column} title={t('exchange_rate')} />,
-        cell: ({ row }) => parseFloat(row.getValue('exchange_rate')).toFixed(4)
+        cell: ({ row }) => {
+            const rate = row.getValue('exchange_rate');
+            return typeof rate === 'number' ? rate.toFixed(4) : 'N/A';
+        }
       },
       {
         accessorKey: 'payment_method',
