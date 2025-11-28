@@ -83,7 +83,7 @@ const getColumns = (
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           }).format(amount);
-          return <div className="font-medium">{formatted}</div>;
+          return <div className="font-medium text-right">{formatted}</div>;
         },
       },
       {
@@ -98,7 +98,7 @@ const getColumns = (
             style: 'currency',
             currency: currency,
           }).format(amount);
-          return <div className="font-medium">{formatted}</div>;
+          return <div className="font-medium text-right">{formatted}</div>;
         },
       },
       {
@@ -110,7 +110,7 @@ const getColumns = (
         header: ({ column }) => <DataTableColumnHeader column={column} title={t('exchange_rate')} />,
         cell: ({ row }) => {
             const rate = row.getValue('exchange_rate');
-            return typeof rate === 'number' ? rate.toFixed(4) : 'N/A';
+            return <div className="text-right">{typeof rate === 'number' ? rate.toFixed(4) : 'N/A'}</div>;
         }
       },
       {
