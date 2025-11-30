@@ -45,11 +45,11 @@ import { Label } from '../ui/label';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().positive(t('amountPositive')),
-  method: z.string().min(1, t('methodRequired')),
+  amount: z.coerce.number().positive(t('validation.amountPositive')),
+  method: z.string().min(1, t('validation.methodRequired')),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
-    required_error: t('dateRequired'),
+    required_error: t('validation.dateRequired'),
   }),
   invoice_currency: z.string(),
   payment_currency: z.string(),
@@ -90,7 +90,6 @@ const itemFormSchema = z.object({
   quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
   unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
 });
-
 type InvoiceItemFormValues = z.infer<typeof itemFormSchema>;
 
 async function getServices(): Promise<Service[]> {
@@ -238,12 +237,12 @@ const getColumns = (
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 {onAddPayment && isPaymentActionVisible(invoice) && (
                     <DropdownMenuItem onClick={() => onAddPayment(invoice)}>
-                        {t('InvoicesPage.paymentDialog.add')}
+                        {t('paymentDialog.add')}
                     </DropdownMenuItem>
                 )}
                  {onConfirm && invoice.status.toLowerCase() === 'draft' && (
                     <DropdownMenuItem onClick={() => onConfirm(invoice)}>
-                        {t('InvoicesPage.confirmInvoice')}
+                        {t('confirmInvoice')}
                     </DropdownMenuItem>
                 )}
                 {onPrint && (
@@ -547,7 +546,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
               )}
                 {selectedInvoiceForPayment && (
                     <div className="flex justify-between items-center bg-muted p-3 rounded-md">
-                        <span className="font-semibold text-lg">{t('remainingAmount')}</span>
+                        <span className="font-semibold text-lg">{t('paymentDialog.remainingAmount')}</span>
                         <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
                     </div>
                 )}
@@ -890,7 +889,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                 <AlertDescription>{submissionError}</AlertDescription>
               </Alert>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
                     control={form.control}
                     name="type"
@@ -921,6 +920,9 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                     <FormMessage />
                     </FormItem>
                 )}/>
+                 <div className="text-right pt-7">
+                    <span className="font-semibold text-lg">{t('total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(form.watch('total'))}</span>
+                </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
                <FormField control={form.control} name="user_id" render={({ field }) => (
@@ -999,12 +1001,6 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                 </div>
               </CardContent>
             </Card>
-
-             <div className="flex justify-end pt-4">
-                <div className="w-full max-w-sm text-right font-semibold text-lg">
-                    Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(form.watch('total'))}
-                </div>
-            </div>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
