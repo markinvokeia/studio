@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Panel de Control",
@@ -687,7 +688,8 @@
       "cancel": "Cancelar",
       "success": "Pago Añadido",
       "successDescription": "El pago para la factura #{invoiceId} ha sido añadido exitosamente.",
-      "error": "Fallo al añadir el pago."
+      "error": "Fallo al añadir el pago.",
+      "remainingAmount": "Importe Restante"
     },
     "status": {
       "paid": "Pagada",
@@ -735,6 +737,11 @@
     "createDialog": {
       "title": "Crear Factura",
       "description": "Crear una nueva factura",
+      "type": "Tipo",
+      "types": {
+        "invoice": "Factura",
+        "credit_note": "Nota de Crédito"
+      },
       "user": "Usuario",
       "selectUser": "Seleccionar Usuario",
       "invoiceRef": "Referencia de Factura",
@@ -745,6 +752,10 @@
       "create": "Crear",
       "success": {
         "description": "Factura creada exitosamente."
+      },
+      "errors": {
+        "title": "Error",
+        "generic": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo."
       }
     },
     "InvoiceItemsTable": {
@@ -1444,7 +1455,7 @@
   "PermissionsPage": {
     "title": "Permisos",
     "description": "Gestionar permisos para la clínica",
-    "filterPlaceholder": "Filtrar aquí...",
+    "filterPlaceholder": "Filtrar here...",
     "permissionId": "ID",
     "columns": {
       "id": "ID",

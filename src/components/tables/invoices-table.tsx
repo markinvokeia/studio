@@ -5,7 +5,7 @@ import * as React from 'react';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Invoice, PaymentMethod, User, Order, Quote, Service, InvoiceItem } from '@/lib/types';
+import { Invoice, PaymentMethod, User, Order, Quote, Service, InvoiceItem, Credit } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +39,8 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '../ui/command';
+import { ScrollArea } from '../ui/scroll-area';
+import { Checkbox } from '../ui/checkbox';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
@@ -252,6 +254,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const [activeCashSessionId, setActiveCashSessionId] = React.useState<string | null>(null);
   const [paymentSubmissionError, setPaymentSubmissionError] = React.useState<string | null>(null);
   const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
+  const [userCredits, setUserCredits] = React.useState<Credit[]>([]);
+  const [appliedCredits, setAppliedCredits] = React.useState<Map<string, number>>(new Map());
 
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentFormSchema(tValidation)),
@@ -266,6 +270,16 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const watchedExchangeRate = form.watch('exchange_rate');
 
   const showExchangeRate = watchedInvoiceCurrency && watchedPaymentCurrency && watchedInvoiceCurrency !== watchedPaymentCurrency;
+
+  const totalAppliedCredits = React.useMemo(() => {
+    return Array.from(appliedCredits.values()).reduce((sum, amount) => sum + amount, 0);
+  }, [appliedCredits]);
+
+  const remainingAmountToPay = React.useMemo(() => {
+    if (!selectedInvoiceForPayment) return 0;
+    const amountPaid = form.getValues('amount') || 0;
+    return selectedInvoiceForPayment.total - amountPaid - totalAppliedCredits;
+  }, [selectedInvoiceForPayment, form, totalAppliedCredits]);
 
   const equivalentAmount = React.useMemo(() => {
     if (!showExchangeRate || !watchedAmount || !watchedExchangeRate) return null;
@@ -295,6 +309,30 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   };
 
+  const fetchUserCredits = async (userId: string | undefined) => {
+    if (!userId) return;
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_credit?user_id=${userId}`);
+        if(response.ok) {
+            const data = await response.json();
+            setUserCredits(data || []);
+        } else {
+            setUserCredits([]);
+        }
+    } catch (error) {
+        console.error("Failed to fetch user credits", error);
+        setUserCredits([]);
+    }
+  };
+
+  React.useEffect(() => {
+    if (isPaymentDialogOpen && selectedInvoiceForPayment) {
+        fetchUserCredits(selectedInvoiceForPayment.user_id);
+    } else {
+        setUserCredits([]);
+    }
+}, [isPaymentDialogOpen, selectedInvoiceForPayment]);
+
   const handleAddPaymentClick = async (invoice: Invoice) => {
     if (!user) return;
 
@@ -320,6 +358,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 exchange_rate: 1,
             });
             setPaymentSubmissionError(null);
+            setAppliedCredits(new Map());
             setIsPaymentDialogOpen(true);
         } else {
             setIsNoSessionAlertOpen(true);
@@ -349,6 +388,15 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             invoice_id: selectedInvoiceForPayment.id,
             cash_session_id: activeCashSessionId,
             user: user,
+            credit_payment: Array.from(appliedCredits.entries()).map(([id, amount]) => {
+                const credit = userCredits.find(c => c.source_id === id);
+                return {
+                    source_id: id,
+                    amount: amount,
+                    type: credit?.type,
+                    currency: credit?.currency,
+                };
+            }),
             query: JSON.stringify({
                 invoice_id: parseInt(selectedInvoiceForPayment.id, 10),
                 payment_date: values.payment_date.toISOString(),
@@ -438,7 +486,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     />
 
     <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{t('paymentDialog.title')}</DialogTitle>
           <DialogDescription>
@@ -454,6 +502,60 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                       <AlertDescription>{paymentSubmissionError}</AlertDescription>
                   </Alert>
               )}
+                {selectedInvoiceForPayment && (
+                    <div className="flex justify-between items-center bg-muted p-3 rounded-md">
+                        <span className="font-semibold text-lg">{t('paymentDialog.remainingAmount')}</span>
+                        <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
+                    </div>
+                )}
+
+                {userCredits.length > 0 && (
+                    <div className="space-y-2">
+                        <h4 className="font-semibold">Available Credits</h4>
+                        <ScrollArea className="h-32 border rounded-md p-2">
+                            {userCredits.map(credit => (
+                                <div key={credit.source_id} className="flex items-center justify-between p-2">
+                                    <div className="flex items-center gap-2">
+                                        <Checkbox 
+                                            id={`credit-${credit.source_id}`}
+                                            onCheckedChange={(checked) => {
+                                                const newApplied = new Map(appliedCredits);
+                                                if (checked) {
+                                                    const amountToApply = Math.min(credit.available_amount, remainingAmountToPay + (appliedCredits.get(credit.source_id) || 0));
+                                                    newApplied.set(credit.source_id, amountToApply);
+                                                } else {
+                                                    newApplied.delete(credit.source_id);
+                                                }
+                                                setAppliedCredits(newApplied);
+                                            }}
+                                            checked={appliedCredits.has(credit.source_id)}
+                                        />
+                                        <Label htmlFor={`credit-${credit.source_id}`}>
+                                            {credit.type === 'credit_note' ? 'Credit Note' : 'Payment'} #{credit.source_id} ({credit.currency})
+                                        </Label>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            type="number"
+                                            className="h-8 w-24"
+                                            max={credit.available_amount}
+                                            value={appliedCredits.get(credit.source_id) || ''}
+                                            onChange={(e) => {
+                                                const newApplied = new Map(appliedCredits);
+                                                const value = Math.min(Number(e.target.value), credit.available_amount);
+                                                newApplied.set(credit.source_id, value);
+                                                setAppliedCredits(newApplied);
+                                            }}
+                                            disabled={!appliedCredits.has(credit.source_id)}
+                                        />
+                                        <span className="text-sm text-muted-foreground">/ {credit.available_amount.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </ScrollArea>
+                    </div>
+                )}
+                
                 <div className="grid grid-cols-3 gap-4">
                     <FormField
                     control={form.control}
@@ -645,6 +747,7 @@ type InvoiceItemFormValues = z.infer<typeof invoiceItemSchema>;
 
 
 const createInvoiceFormSchema = z.object({
+    type: z.enum(['invoice', 'credit_note']),
     user_id: z.string().min(1, 'A user or provider is required.'),
     total: z.coerce.number().min(0, 'Total must be a non-negative number.'),
     currency: z.enum(['UYU', 'USD']),
@@ -676,6 +779,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
   const form = useForm<CreateInvoiceFormValues>({
     resolver: zodResolver(createInvoiceFormSchema),
     defaultValues: {
+      type: 'invoice',
       user_id: '',
       total: 0,
       currency: 'USD',
@@ -766,6 +870,23 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                 <AlertDescription>{submissionError}</AlertDescription>
               </Alert>
             )}
+             <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>{t('type')}</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                            <SelectItem value="invoice">{t('types.invoice')}</SelectItem>
+                            <SelectItem value="credit_note">{t('types.credit_note')}</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
             <div className="grid grid-cols-2 gap-4">
                <FormField control={form.control} name="user_id" render={({ field }) => (
                 <FormItem>

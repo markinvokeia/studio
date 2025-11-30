@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -687,7 +688,8 @@
       "cancel": "Cancel",
       "success": "Payment Added",
       "successDescription": "The payment for invoice #{invoiceId} has been successfully added.",
-      "error": "Failed to add payment."
+      "error": "Failed to add payment.",
+      "remainingAmount": "Remaining Amount"
     },
     "status": {
       "paid": "Paid",
@@ -735,6 +737,11 @@
     "createDialog": {
       "title": "Create Invoice",
       "description": "Create a new invoice",
+      "type": "Type",
+      "types": {
+        "invoice": "Invoice",
+        "credit_note": "Credit Note"
+      },
       "user": "User",
       "selectUser": "Select User",
       "invoiceRef": "Invoice Referency",
@@ -745,6 +752,10 @@
       "create": "Create",
       "success": {
         "description": "Invoice created successfully."
+      },
+      "errors": {
+        "title": "Error",
+        "generic": "An unexpected error occurred. Please try again."
       }
     },
     "InvoiceItemsTable": {
@@ -1024,7 +1035,7 @@
       "phone": "Phone",
       "phonePlaceholder": "123-456-7890",
       "identity_document": "Identity Document",
-      "identity_document_placeholder": "e.g., 1234567890",
+      "identity_document_placeholder": "e.g. 1234567890",
       "isActive": "Is Active?",
       "cancel": "Cancel",
       "save": "Create"
