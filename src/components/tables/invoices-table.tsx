@@ -65,6 +65,15 @@ const paymentFormSchema = (t: (key: string) => string) => z.object({
 
 type PaymentFormValues = z.infer<ReturnType<typeof paymentFormSchema>>;
 
+const invoiceItemSchema = z.object({
+  id: z.string().optional(),
+  service_id: z.string().min(1, 'Service name is required'),
+  quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+  unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
+});
+type InvoiceItemFormValues = z.infer<typeof invoiceItemSchema>;
+
+
 const getColumns = (
     t: (key: string) => string,
     tStatus: (key: string) => string,
@@ -724,11 +733,11 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             <AlertDialogFooter>
                 <AlertDialogCancel>{t('paymentDialog.cancel')}</AlertDialogCancel>
                 <Link href={`/${locale}/cashier`} passHref>
-                    <Button>
-                        <Box className="mr-2 h-4 w-4" />
-                        {t('noSessionDialog.openCashSession')}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                  <Button>
+                      <Box className="mr-2 h-4 w-4" />
+                      {t('noSessionDialog.openCashSession')}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
                 </Link>
             </AlertDialogFooter>
         </AlertDialogContent>
@@ -736,16 +745,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     </>
   );
 }
-
-const invoiceItemSchema = z.object({
-  id: z.string().optional(),
-  service_id: z.string().min(1, 'Service is required.'),
-  quantity: z.coerce.number().min(1, 'Quantity must be at least 1.'),
-  unit_price: z.coerce.number().min(0, 'Unit price cannot be negative.'),
-  total: z.coerce.number(),
-});
-type InvoiceItemFormValues = z.infer<typeof invoiceItemSchema>;
-
 
 const createInvoiceFormSchema = z.object({
     type: z.enum(['invoice', 'credit_note']),
@@ -782,7 +781,6 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
     defaultValues: {
       type: 'invoice',
       user_id: '',
-      total: 0,
       currency: 'USD',
       items: [],
     },
@@ -872,36 +870,36 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
               </Alert>
             )}
             <div className="grid grid-cols-2 gap-4">
-              <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>{t('type')}</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                          <SelectContent>
-                              <SelectItem value="invoice">{t('types.invoice')}</SelectItem>
-                              <SelectItem value="credit_note">{t('types.credit_note')}</SelectItem>
-                          </SelectContent>
-                      </Select>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-              />
-              <FormField control={form.control} name="currency" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('currency')}</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent>
-                          <SelectItem value="USD">USD</SelectItem>
-                          <SelectItem value="UYU">UYU</SelectItem>
-                      </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}/>
+                <FormField
+                    control={form.control}
+                    name="type"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>{t('type')}</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                <SelectItem value="invoice">{t('types.invoice')}</SelectItem>
+                                <SelectItem value="credit_note">{t('types.credit_note')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField control={form.control} name="currency" render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>{t('currency')}</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                            <SelectItem value="USD">USD</SelectItem>
+                            <SelectItem value="UYU">UYU</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}/>
             </div>
             <div className="grid grid-cols-2 gap-4">
                <FormField control={form.control} name="user_id" render={({ field }) => (
@@ -981,13 +979,15 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
               </CardContent>
             </Card>
 
-            <FormField control={form.control} name="total" render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('total')}</FormLabel>
-                <FormControl><Input type="number" readOnly disabled {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )}/>
+             <div className="grid grid-cols-2 gap-4">
+              <div></div>
+              <div className="space-y-2 text-right">
+                  <FormLabel>{t('total')}</FormLabel>
+                  <div className="text-2xl font-bold">
+                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(form.watch('total'))}
+                  </div>
+              </div>
+            </div>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
