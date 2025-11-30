@@ -45,11 +45,11 @@ import { Label } from '../ui/label';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().positive(t('amountPositive')),
-  method: z.string().min(1, t('methodRequired')),
+  amount: z.coerce.number().positive(t('validation.amountPositive')),
+  method: z.string().min(1, t('validation.methodRequired')),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
-    required_error: t('dateRequired'),
+    required_error: t('validation.dateRequired'),
   }),
   invoice_currency: z.string(),
   payment_currency: z.string(),
@@ -599,7 +599,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                                             onCheckedChange={(checked) => {
                                                 const newApplied = new Map(appliedCredits);
                                                 if (checked) {
-                                                    const amountToApply = Math.min(credit.available_amount, remainingAmountToPay + (appliedCredits.get(credit.source_id) || 0));
+                                                    const amountToApply = Math.min(credit.available_amount ?? 0, remainingAmountToPay + (appliedCredits.get(credit.source_id) || 0));
                                                     newApplied.set(credit.source_id, amountToApply);
                                                 } else {
                                                     newApplied.delete(credit.source_id);
@@ -620,13 +620,13 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                                             value={appliedCredits.get(credit.source_id) || ''}
                                             onChange={(e) => {
                                                 const newApplied = new Map(appliedCredits);
-                                                const value = Math.min(Number(e.target.value), credit.available_amount);
+                                                const value = Math.min(Number(e.target.value), credit.available_amount ?? 0);
                                                 newApplied.set(credit.source_id, value);
                                                 setAppliedCredits(newApplied);
                                             }}
                                             disabled={!appliedCredits.has(credit.source_id)}
                                         />
-                                        <span className="text-sm text-muted-foreground">/ {credit.available_amount.toFixed(2)}</span>
+                                        <span className="text-sm text-muted-foreground">/ {(credit.available_amount ?? 0).toFixed(2)}</span>
                                     </div>
                                 </div>
                             ))
@@ -1012,3 +1012,5 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
     </Dialog>
   );
 }
+
+    
