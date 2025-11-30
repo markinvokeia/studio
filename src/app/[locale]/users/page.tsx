@@ -506,9 +506,9 @@ export default function UsersPage() {
             </CardHeader>
               <CardContent>
                 <UserStats user={selectedUser} />
-                <Tabs defaultValue="roles" className="w-full">
+                <Tabs defaultValue="history" className="w-full">
                    <TabsList className="h-auto items-center justify-start flex-wrap">
-                    <TabsTrigger value="roles">{t('UsersPage.tabs.roles')}</TabsTrigger>
+                    <TabsTrigger value="history">{t('UsersPage.tabs.history')}</TabsTrigger>
                     {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
                         <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
                     )}
@@ -519,15 +519,9 @@ export default function UsersPage() {
                     <TabsTrigger value="appointments">{t('UsersPage.tabs.appointments')}</TabsTrigger>
                     <TabsTrigger value="messages">{t('UsersPage.tabs.messages')}</TabsTrigger>
                     <TabsTrigger value="logs">{t('UsersPage.tabs.logs')}</TabsTrigger>
-                    <TabsTrigger value="history">{t('UsersPage.tabs.history')}</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="roles">
-                    <UserRoles
-                        userId={selectedUser.id}
-                        initialUserRoles={selectedUserRoles}
-                        isLoading={isRolesLoading}
-                        onRolesChange={() => loadUserRoles(selectedUser.id)}
-                    />
+                  <TabsContent value="history">
+                    <MedicalHistory user={selectedUser} />
                   </TabsContent>
                   {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
                     <TabsContent value="services">
@@ -554,9 +548,6 @@ export default function UsersPage() {
                   </TabsContent>
                   <TabsContent value="logs">
                     <UserLogs userId={selectedUser.id} />
-                  </TabsContent>
-                  <TabsContent value="history">
-                    <MedicalHistory user={selectedUser} />
                   </TabsContent>
                 </Tabs>
               </CardContent>
@@ -667,4 +658,3 @@ export default function UsersPage() {
     
 
     
-
