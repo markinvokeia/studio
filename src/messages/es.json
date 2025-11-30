@@ -768,7 +768,7 @@
         "total": "Total"
       }
     },
-    "ConfirmInvoice": "Confirmar Factura"
+    "confirmInvoice": "Confirmar Factura"
   },
   "InvoiceItemsTable": {
     "title": "Artículos de factura",
@@ -907,7 +907,7 @@
       "label": "Estado",
       "cancelled": "Cancelado"
     },
-    "filterPlaceholder": "Filtrar aquí...",
+    "filterPlaceholder": "Filtrar here...",
     "title": "Pedidos",
     "description": "Una visión general de los pedidos.",
     "createTitle": "Crear Pedido",
