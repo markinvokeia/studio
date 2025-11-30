@@ -167,7 +167,7 @@ const getColumns = (
             style: 'currency',
             currency: row.original.currency || 'USD',
           }).format(amount);
-          return <div className="font-medium text-right pr-4">{formatted}</div>;
+          return <div className="text-right font-medium pr-4">{formatted}</div>;
         },
       },
        {
@@ -592,8 +592,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                                             onCheckedChange={(checked) => {
                                                 const newApplied = new Map(appliedCredits);
                                                 if (checked) {
-                                                    const amountToApply = Math.min(Number(credit.available_balance) || 0, remainingAmountToPay + (appliedCredits.get(credit.source_id) || 0));
-                                                    newApplied.set(credit.source_id, amountToApply);
+                                                    const available = Number(credit.available_balance) || 0;
+                                                    newApplied.set(credit.source_id, available);
                                                 } else {
                                                     newApplied.delete(credit.source_id);
                                                 }
@@ -619,7 +619,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                                             }}
                                             disabled={!appliedCredits.has(credit.source_id)}
                                         />
-                                        <span className="text-sm text-muted-foreground">/ {(Number(credit.available_balance) || 0).toFixed(2)}</span>
+                                        <span className="text-sm text-muted-foreground">/ {Number(credit.available_balance ?? 0).toFixed(2)}</span>
                                     </div>
                                 </div>
                             ))
