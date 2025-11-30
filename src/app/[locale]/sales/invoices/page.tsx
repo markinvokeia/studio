@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { InvoicesTable, CreateInvoiceDialog } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
-import { RefreshCw, X, FileUp, File, Loader2, PlusCircle, CheckCircle } from 'lucide-react';
+import { RefreshCw, X, FileUp, File, Loader2, PlusCircle, CheckCircle, Trash2 } from 'lucide-react';
 import { RowSelectionState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';

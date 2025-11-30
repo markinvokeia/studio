@@ -45,11 +45,11 @@ import { Label } from '../ui/label';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().positive(t('InvoicesPage.validation.amountPositive')),
-  method: z.string().min(1, t('InvoicesPage.validation.methodRequired')),
+  amount: z.coerce.number().positive(t('validation.amountPositive')),
+  method: z.string().min(1, t('validation.methodRequired')),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
-    required_error: t('InvoicesPage.validation.dateRequired'),
+    required_error: t('validation.dateRequired'),
   }),
   invoice_currency: z.string(),
   payment_currency: z.string(),
@@ -302,22 +302,16 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   });
   
+  const watchedAmount = form.watch('amount');
   const watchedPaymentCurrency = form.watch('payment_currency');
   const watchedInvoiceCurrency = form.watch('invoice_currency');
-  const watchedAmount = form.watch('amount');
   const watchedExchangeRate = form.watch('exchange_rate');
 
   const showExchangeRate = watchedInvoiceCurrency && watchedPaymentCurrency && watchedInvoiceCurrency !== watchedPaymentCurrency;
-
+  
   const totalAppliedCredits = React.useMemo(() => {
     return Array.from(appliedCredits.values()).reduce((sum, amount) => sum + amount, 0);
   }, [appliedCredits]);
-
-  const remainingAmountToPay = React.useMemo(() => {
-    if (!selectedInvoiceForPayment) return 0;
-    const amountPaid = form.getValues('amount') || 0;
-    return selectedInvoiceForPayment.total - amountPaid - totalAppliedCredits;
-  }, [selectedInvoiceForPayment, form, totalAppliedCredits]);
 
   const equivalentAmount = React.useMemo(() => {
     if (!showExchangeRate || !watchedAmount || !watchedExchangeRate) return null;
@@ -329,6 +323,13 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
     return null;
   }, [showExchangeRate, watchedAmount, watchedExchangeRate, watchedInvoiceCurrency, watchedPaymentCurrency]);
+  
+  const remainingAmountToPay = React.useMemo(() => {
+    if (!selectedInvoiceForPayment) return 0;
+    const amountPaid = watchedAmount || 0;
+    const amountInInvoiceCurrency = showExchangeRate && equivalentAmount ? equivalentAmount : amountPaid;
+    return selectedInvoiceForPayment.total - amountInInvoiceCurrency - totalAppliedCredits;
+  }, [selectedInvoiceForPayment, watchedAmount, showExchangeRate, equivalentAmount, totalAppliedCredits]);
 
   const fetchPaymentMethods = async () => {
     try {
@@ -537,12 +538,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                       <AlertDescription>{paymentSubmissionError}</AlertDescription>
                   </Alert>
               )}
-                {selectedInvoiceForPayment && (
-                    <div className="flex justify-between items-center bg-muted p-3 rounded-md">
-                        <span className="font-semibold text-lg">{t('paymentDialog.remainingAmount')}</span>
-                        <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
-                    </div>
-                )}
                  <div className={cn("space-y-2", userCredits.length === 0 && "opacity-50")}>
                     <h4 className="font-semibold">Use available Credit</h4>
                     <ScrollArea className="h-32 border rounded-md p-2">
@@ -593,6 +588,12 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                         )}
                     </ScrollArea>
                 </div>
+                 {selectedInvoiceForPayment && (
+                    <div className="flex justify-between items-center bg-muted p-3 rounded-md">
+                        <span className="font-semibold text-lg">{t('paymentDialog.remainingAmount')}</span>
+                        <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
+                    </div>
+                )}
                 <div className="grid grid-cols-3 gap-4">
                     <FormField
                     control={form.control}
