@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { MoreHorizontal, AlertTriangle, ArrowRight, Box, Printer, Send, FileUp, Plus, Trash2, CheckCircle } from 'lucide-react';
+import { MoreHorizontal, AlertTriangle, ArrowRight, Box, Printer, Send, FileUp, PlusCircle, CheckCircle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,7 +64,7 @@ const paymentFormSchema = (t: (key: string) => string) => z.object({
     path: ['exchange_rate'],
 });
 
-type PaymentFormValues = z.infer<typeof paymentFormSchema>;
+type PaymentFormValues = z.infer<ReturnType<typeof paymentFormSchema>>;
 
 const createInvoiceFormSchema = z.object({
     user_id: z.string().min(1, 'A user or provider is required.'),
@@ -83,14 +83,6 @@ const createInvoiceFormSchema = z.object({
     type: z.enum(['invoice', 'credit_note']),
 });
 type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
-
-const itemFormSchema = z.object({
-    id: z.string().optional(),
-    service_id: z.string().min(1, 'Service name is required'),
-    quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
-    unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
-});
-type InvoiceItemFormValues = z.infer<typeof itemFormSchema>;
 
 async function getServices(): Promise<Service[]> {
   try {
@@ -599,7 +591,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                                             onCheckedChange={(checked) => {
                                                 const newApplied = new Map(appliedCredits);
                                                 if (checked) {
-                                                    const amountToApply = Math.min(credit.available_amount ?? 0, remainingAmountToPay + (appliedCredits.get(credit.source_id) || 0));
+                                                    const amountToApply = Math.min(credit.available_balance ?? 0, remainingAmountToPay + (appliedCredits.get(credit.source_id) || 0));
                                                     newApplied.set(credit.source_id, amountToApply);
                                                 } else {
                                                     newApplied.delete(credit.source_id);
@@ -616,17 +608,17 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                                         <Input
                                             type="number"
                                             className="h-8 w-24"
-                                            max={credit.available_amount}
+                                            max={credit.available_balance}
                                             value={appliedCredits.get(credit.source_id) || ''}
                                             onChange={(e) => {
                                                 const newApplied = new Map(appliedCredits);
-                                                const value = Math.min(Number(e.target.value), credit.available_amount ?? 0);
+                                                const value = Math.min(Number(e.target.value), credit.available_balance ?? 0);
                                                 newApplied.set(credit.source_id, value);
                                                 setAppliedCredits(newApplied);
                                             }}
                                             disabled={!appliedCredits.has(credit.source_id)}
                                         />
-                                        <span className="text-sm text-muted-foreground">/ {(credit.available_amount ?? 0).toFixed(2)}</span>
+                                        <span className="text-sm text-muted-foreground">/ {(credit.available_balance ?? 0).toFixed(2)}</span>
                                     </div>
                                 </div>
                             ))
