@@ -84,6 +84,32 @@ const createInvoiceFormSchema = z.object({
 });
 type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
 
+const itemFormSchema = z.object({
+  id: z.string().optional(),
+  service_id: z.string().min(1, 'Service name is required'),
+  quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+  unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
+});
+type InvoiceItemFormValues = z.infer<typeof itemFormSchema>;
+
+async function getServices(): Promise<Service[]> {
+  try {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=false', {
+      method: 'GET',
+      mode: 'cors',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
+    return servicesData.map((s: any) => ({ ...s, id: String(s.id) }));
+  } catch (error) {
+    console.error("Failed to fetch services:", error);
+    return [];
+  }
+}
+
 
 const getColumns = (
     t: (key: string) => string,
@@ -211,12 +237,12 @@ const getColumns = (
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 {onAddPayment && isPaymentActionVisible(invoice) && (
                     <DropdownMenuItem onClick={() => onAddPayment(invoice)}>
-                        {t('paymentDialog.add')}
+                        {t('InvoicesPage.paymentDialog.add')}
                     </DropdownMenuItem>
                 )}
                  {onConfirm && invoice.status.toLowerCase() === 'draft' && (
                     <DropdownMenuItem onClick={() => onConfirm(invoice)}>
-                        {t('confirmInvoice')}
+                        {t('InvoicesPage.confirmInvoice')}
                     </DropdownMenuItem>
                 )}
                 {onPrint && (
@@ -520,7 +546,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
               )}
                 {selectedInvoiceForPayment && (
                     <div className="flex justify-between items-center bg-muted p-3 rounded-md">
-                        <span className="font-semibold text-lg">{t('remainingAmount')}</span>
+                        <span className="font-semibold text-lg">{t('paymentDialog.remainingAmount')}</span>
                         <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
                     </div>
                 )}
@@ -755,14 +781,12 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   );
 }
 
-const itemFormSchema = z.object({
+const createItemFormSchema = z.object({
   id: z.string().optional(),
   service_id: z.string().min(1, 'Service name is required'),
   quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
   unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
 });
-type InvoiceItemFormValues = z.infer<typeof itemFormSchema>;
-
 
 interface CreateInvoiceDialogProps {
   isOpen: boolean;
