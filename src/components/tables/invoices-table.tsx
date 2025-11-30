@@ -45,11 +45,11 @@ import { Label } from '../ui/label';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().positive(t('amountPositive')),
-  method: z.string().min(1, t('methodRequired')),
+  amount: z.coerce.number().positive(t('validation.amountPositive')),
+  method: z.string().min(1, t('validation.methodRequired')),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
-    required_error: t('dateRequired'),
+    required_error: t('validation.dateRequired'),
   }),
   invoice_currency: z.string(),
   payment_currency: z.string(),
@@ -84,9 +84,9 @@ const createInvoiceFormSchema = z.object({
 });
 type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
 
-async function getServices(): Promise<Service[]> {
+async function getServices(isSales: boolean): Promise<Service[]> {
   try {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=false', {
+    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=${isSales}`, {
       method: 'GET',
       mode: 'cors',
       headers: { 'Accept': 'application/json' },
@@ -274,9 +274,10 @@ interface InvoicesTableProps {
   filterOptions?: { label: string; value: string }[];
   onFilterChange?: (value: string) => void;
   filterValue?: string;
+  isSales?: boolean;
 }
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, isSales = true }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
@@ -442,6 +443,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 invoice_currency: selectedInvoiceForPayment.currency,
                 payment_currency: values.payment_currency,
                 exchange_rate: values.exchange_rate || 1,
+                is_sales: isSales
             }),
         };
 
@@ -590,7 +592,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                                             onCheckedChange={(checked) => {
                                                 const newApplied = new Map(appliedCredits);
                                                 if (checked) {
-                                                    const amountToApply = Math.min(credit.available_balance ?? 0, remainingAmountToPay + (appliedCredits.get(credit.source_id) || 0));
+                                                    const amountToApply = Math.min(Number(credit.available_balance) || 0, remainingAmountToPay + (appliedCredits.get(credit.source_id) || 0));
                                                     newApplied.set(credit.source_id, amountToApply);
                                                 } else {
                                                     newApplied.delete(credit.source_id);
@@ -611,13 +613,13 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                                             value={appliedCredits.get(credit.source_id) || ''}
                                             onChange={(e) => {
                                                 const newApplied = new Map(appliedCredits);
-                                                const value = Math.min(Number(e.target.value), credit.available_balance ?? 0);
+                                                const value = Math.min(Number(e.target.value), Number(credit.available_balance) || 0);
                                                 newApplied.set(credit.source_id, value);
                                                 setAppliedCredits(newApplied);
                                             }}
                                             disabled={!appliedCredits.has(credit.source_id)}
                                         />
-                                        <span className="text-sm text-muted-foreground">/ {(credit.available_balance ?? 0).toFixed(2)}</span>
+                                        <span className="text-sm text-muted-foreground">/ {(Number(credit.available_balance) || 0).toFixed(2)}</span>
                                     </div>
                                 </div>
                             ))
@@ -1003,4 +1005,3 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
     </Dialog>
   );
 }
-
