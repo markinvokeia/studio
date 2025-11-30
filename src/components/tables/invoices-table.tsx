@@ -45,11 +45,11 @@ import { Label } from '../ui/label';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().positive(t('InvoicesPage.validation.amountPositive')),
-  method: z.string().min(1, t('InvoicesPage.validation.methodRequired')),
+  amount: z.coerce.number().positive(t('amountPositive')),
+  method: z.string().min(1, t('methodRequired')),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
-    required_error: t('InvoicesPage.validation.dateRequired'),
+    required_error: t('dateRequired'),
   }),
   invoice_currency: z.string(),
   payment_currency: z.string(),
@@ -67,7 +67,6 @@ const paymentFormSchema = (t: (key: string) => string) => z.object({
 type PaymentFormValues = z.infer<ReturnType<typeof paymentFormSchema>>;
 
 const createInvoiceFormSchema = z.object({
-    type: z.enum(['invoice', 'credit_note']),
     user_id: z.string().min(1, 'A user or provider is required.'),
     total: z.coerce.number().min(0, 'Total must be a non-negative number.'),
     currency: z.enum(['UYU', 'USD']),
@@ -81,6 +80,7 @@ const createInvoiceFormSchema = z.object({
       unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
       total: z.coerce.number().optional(),
     })).min(1, 'At least one item is required.'),
+    type: z.enum(['invoice', 'credit_note']),
 });
 type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
 
@@ -329,8 +329,11 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   };
 
-  const fetchUserCredits = async (userId: string | undefined) => {
-    if (!userId) return;
+  const fetchUserCredits = React.useCallback(async (userId: string | undefined) => {
+    if (!userId) {
+        setUserCredits([]);
+        return;
+    };
     try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_credit?user_id=${userId}`);
         if(response.ok) {
@@ -343,15 +346,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         console.error("Failed to fetch user credits", error);
         setUserCredits([]);
     }
-  };
-
-  React.useEffect(() => {
-    if (isPaymentDialogOpen && selectedInvoiceForPayment) {
-        fetchUserCredits(selectedInvoiceForPayment.user_id);
-    } else {
-        setUserCredits([]);
-    }
-}, [isPaymentDialogOpen, selectedInvoiceForPayment]);
+  }, []);
 
   const handleAddPaymentClick = async (invoice: Invoice) => {
     if (!user) return;
@@ -525,7 +520,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
               )}
                 {selectedInvoiceForPayment && (
                     <div className="flex justify-between items-center bg-muted p-3 rounded-md">
-                        <span className="font-semibold text-lg">{t('paymentDialog.remainingAmount')}</span>
+                        <span className="font-semibold text-lg">{t('remainingAmount')}</span>
                         <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
                     </div>
                 )}
@@ -566,11 +561,11 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                     />
                 </div>
 
-                {userCredits.length > 0 && (
-                    <div className="space-y-2">
-                        <h4 className="font-semibold">Use avalaible Credit</h4>
-                        <ScrollArea className="h-32 border rounded-md p-2">
-                            {userCredits.map(credit => (
+                <div className={cn("space-y-2", userCredits.length === 0 && "opacity-50")}>
+                    <h4 className="font-semibold">Use available Credit</h4>
+                    <ScrollArea className="h-32 border rounded-md p-2">
+                        {userCredits.length > 0 ? (
+                            userCredits.map(credit => (
                                 <div key={credit.source_id} className="flex items-center justify-between p-2">
                                     <div className="flex items-center gap-2">
                                         <Checkbox 
@@ -608,10 +603,14 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                                         <span className="text-sm text-muted-foreground">/ {credit.available_amount.toFixed(2)}</span>
                                     </div>
                                 </div>
-                            ))}
-                        </ScrollArea>
-                    </div>
-                )}
+                            ))
+                        ) : (
+                            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                                No credits available for this user.
+                            </div>
+                        )}
+                    </ScrollArea>
+                </div>
                 
                 {showExchangeRate && (
                   <div className="grid grid-cols-2 gap-4 rounded-md border p-4">
@@ -985,14 +984,13 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
               </CardContent>
             </Card>
 
-             <div className="grid grid-cols-2 gap-4">
-              <div></div>
-              <div className="space-y-2 text-right">
-                  <FormLabel>{t('total')}</FormLabel>
-                  <div className="text-2xl font-bold">
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(form.watch('total'))}
-                  </div>
-              </div>
+            <div className="flex justify-end">
+                <div className="space-y-2 text-right">
+                    <FormLabel>{t('total')}</FormLabel>
+                    <div className="text-2xl font-bold">
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(form.watch('total'))}
+                    </div>
+                </div>
             </div>
 
             <DialogFooter>
@@ -1005,4 +1003,3 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
     </Dialog>
   );
 }
-
