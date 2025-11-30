@@ -41,6 +41,7 @@ import { Check, ChevronsUpDown } from 'lucide-react';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '../ui/command';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
+import { Label } from '../ui/label';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
@@ -65,13 +66,23 @@ const paymentFormSchema = (t: (key: string) => string) => z.object({
 
 type PaymentFormValues = z.infer<ReturnType<typeof paymentFormSchema>>;
 
-const invoiceItemSchema = z.object({
-  id: z.string().optional(),
-  service_id: z.string().min(1, 'Service name is required'),
-  quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
-  unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
+const createInvoiceFormSchema = z.object({
+    type: z.enum(['invoice', 'credit_note']),
+    user_id: z.string().min(1, 'A user or provider is required.'),
+    total: z.coerce.number().min(0, 'Total must be a non-negative number.'),
+    currency: z.enum(['UYU', 'USD']),
+    invoice_ref: z.string().optional(),
+    order_id: z.string().optional(),
+    quote_id: z.string().optional(),
+    items: z.array(z.object({
+      id: z.string().optional(),
+      service_id: z.string().min(1, 'Service name is required'),
+      quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+      unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
+      total: z.coerce.number().optional(),
+    })).min(1, 'At least one item is required.'),
 });
-type InvoiceItemFormValues = z.infer<typeof invoiceItemSchema>;
+type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
 
 
 const getColumns = (
@@ -518,10 +529,46 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                         <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
                     </div>
                 )}
+                 <div className="grid grid-cols-3 gap-4">
+                    <FormField
+                    control={form.control}
+                    name="amount"
+                    render={({ field }) => (
+                        <FormItem className="col-span-2">
+                        <FormLabel>{t('paymentDialog.amount')} ({watchedPaymentCurrency})</FormLabel>
+                        <FormControl>
+                            <Input type="number" step="0.01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="payment_currency"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Currency</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select currency" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            <SelectItem value="USD">USD</SelectItem>
+                            <SelectItem value="UYU">UYU</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </div>
 
                 {userCredits.length > 0 && (
                     <div className="space-y-2">
-                        <h4 className="font-semibold">Available Credits</h4>
+                        <h4 className="font-semibold">Use avalaible Credit</h4>
                         <ScrollArea className="h-32 border rounded-md p-2">
                             {userCredits.map(credit => (
                                 <div key={credit.source_id} className="flex items-center justify-between p-2">
@@ -566,43 +613,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                     </div>
                 )}
                 
-                <div className="grid grid-cols-3 gap-4">
-                    <FormField
-                    control={form.control}
-                    name="amount"
-                    render={({ field }) => (
-                        <FormItem className="col-span-2">
-                        <FormLabel>{t('paymentDialog.amount')} ({watchedPaymentCurrency})</FormLabel>
-                        <FormControl>
-                            <Input type="number" step="0.01" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="payment_currency"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Currency</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select currency" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            <SelectItem value="USD">USD</SelectItem>
-                            <SelectItem value="UYU">UYU</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                </div>
-
                 {showExchangeRate && (
                   <div className="grid grid-cols-2 gap-4 rounded-md border p-4">
                     <FormField
@@ -746,17 +756,13 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   );
 }
 
-const createInvoiceFormSchema = z.object({
-    type: z.enum(['invoice', 'credit_note']),
-    user_id: z.string().min(1, 'A user or provider is required.'),
-    total: z.coerce.number().min(0, 'Total must be a non-negative number.'),
-    currency: z.enum(['UYU', 'USD']),
-    invoice_ref: z.string().optional(),
-    order_id: z.string().optional(),
-    quote_id: z.string().optional(),
-    items: z.array(invoiceItemSchema).min(1, 'At least one item is required.'),
+const itemFormSchema = z.object({
+  id: z.string().optional(),
+  service_id: z.string().min(1, 'Service name is required'),
+  quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+  unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
 });
-type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
+type InvoiceItemFormValues = z.infer<typeof itemFormSchema>;
 
 
 interface CreateInvoiceDialogProps {
