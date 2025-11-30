@@ -45,11 +45,11 @@ import { Label } from '../ui/label';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().positive(t('validation.amountPositive')),
-  method: z.string().min(1, t('validation.methodRequired')),
+  amount: z.coerce.number().positive(t('amountPositive')),
+  method: z.string().min(1, t('methodRequired')),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
-    required_error: t('validation.dateRequired'),
+    required_error: t('dateRequired'),
   }),
   invoice_currency: z.string(),
   payment_currency: z.string(),
@@ -64,7 +64,7 @@ const paymentFormSchema = (t: (key: string) => string) => z.object({
     path: ['exchange_rate'],
 });
 
-type PaymentFormValues = z.infer<ReturnType<typeof paymentFormSchema>>;
+type PaymentFormValues = z.infer<typeof paymentFormSchema>;
 
 const createInvoiceFormSchema = z.object({
     user_id: z.string().min(1, 'A user or provider is required.'),
@@ -85,10 +85,10 @@ const createInvoiceFormSchema = z.object({
 type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
 
 const itemFormSchema = z.object({
-  id: z.string().optional(),
-  service_id: z.string().min(1, 'Service name is required'),
-  quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
-  unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
+    id: z.string().optional(),
+    service_id: z.string().min(1, 'Service name is required'),
+    quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+    unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
 });
 type InvoiceItemFormValues = z.infer<typeof itemFormSchema>;
 
@@ -280,9 +280,9 @@ interface InvoicesTableProps {
   rowSelection?: RowSelectionState;
   setRowSelection?: (selection: RowSelectionState) => void;
   columnTranslations?: { [key: string]: string };
-  filterValue?: string;
-  onFilterChange?: (value: string) => void;
   filterOptions?: { label: string; value: string }[];
+  onFilterChange?: (value: string) => void;
+  filterValue?: string;
 }
 
 export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue }: InvoicesTableProps) {
