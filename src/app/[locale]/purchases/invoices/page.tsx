@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Invoice, InvoiceItem, Payment, Service } from '@/lib/types';
+import { Invoice, InvoiceItem, Payment, Service, Credit } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -73,6 +73,7 @@ async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
             quote_id: apiInvoice.quote_id,
             user_name: apiInvoice.user_name || 'N/A',
             userEmail: apiInvoice.user_email || '',
+            user_id: apiInvoice.user_id,
             total: apiInvoice.total || 0,
             status: apiInvoice.status || 'draft',
             payment_status: apiInvoice.payment_status || 'unpaid',

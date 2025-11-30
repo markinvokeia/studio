@@ -90,6 +90,7 @@ const itemFormSchema = z.object({
   quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
   unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
 });
+
 type InvoiceItemFormValues = z.infer<typeof itemFormSchema>;
 
 async function getServices(): Promise<Service[]> {
@@ -285,7 +286,7 @@ interface InvoicesTableProps {
   filterOptions?: { label: string; value: string }[];
 }
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterValue, onFilterChange, filterOptions }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
@@ -546,7 +547,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
               )}
                 {selectedInvoiceForPayment && (
                     <div className="flex justify-between items-center bg-muted p-3 rounded-md">
-                        <span className="font-semibold text-lg">{t('paymentDialog.remainingAmount')}</span>
+                        <span className="font-semibold text-lg">{t('remainingAmount')}</span>
                         <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
                     </div>
                 )}
@@ -781,13 +782,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   );
 }
 
-const createItemFormSchema = z.object({
-  id: z.string().optional(),
-  service_id: z.string().min(1, 'Service name is required'),
-  quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
-  unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
-});
-
 interface CreateInvoiceDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -798,8 +792,6 @@ interface CreateInvoiceDialogProps {
 export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, isSales }: CreateInvoiceDialogProps) {
   const t = useTranslations('InvoicesPage.createDialog');
   const [users, setUsers] = React.useState<User[]>([]);
-  const [orders, setOrders] = React.useState<Order[]>([]);
-  const [quotes, setQuotes] = React.useState<Quote[]>([]);
   const [services, setServices] = React.useState<Service[]>([]);
   const { toast } = useToast();
   
@@ -812,6 +804,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
       user_id: '',
       currency: 'USD',
       items: [],
+      total: 0,
     },
   });
   
@@ -822,7 +815,6 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
     form.setValue('total', total);
   }, [items, form]);
   
-  // Fetch initial data for dropdowns
   React.useEffect(() => {
     if (isOpen) {
       const fetchData = async () => {
@@ -898,7 +890,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                 <AlertDescription>{submissionError}</AlertDescription>
               </Alert>
             )}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
                     name="type"
@@ -916,7 +908,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                         </FormItem>
                     )}
                 />
-                <FormField control={form.control} name="currency" render={({ field }) => (
+                 <FormField control={form.control} name="currency" render={({ field }) => (
                     <FormItem>
                     <FormLabel>{t('currency')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -1008,12 +1000,9 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
               </CardContent>
             </Card>
 
-            <div className="flex justify-end">
-                <div className="space-y-2 text-right">
-                    <FormLabel>{t('total')}</FormLabel>
-                    <div className="text-2xl font-bold">
-                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(form.watch('total'))}
-                    </div>
+             <div className="flex justify-end pt-4">
+                <div className="w-full max-w-sm text-right font-semibold text-lg">
+                    Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(form.watch('total'))}
                 </div>
             </div>
 
