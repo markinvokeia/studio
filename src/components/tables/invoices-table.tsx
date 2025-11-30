@@ -45,11 +45,11 @@ import { Label } from '../ui/label';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().positive(t('validation.amountPositive')),
-  method: z.string().min(1, t('validation.methodRequired')),
+  amount: z.coerce.number().positive(t('InvoicesPage.validation.amountPositive')),
+  method: z.string().min(1, t('InvoicesPage.validation.methodRequired')),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
-    required_error: t('validation.dateRequired'),
+    required_error: t('InvoicesPage.validation.dateRequired'),
   }),
   invoice_currency: z.string(),
   payment_currency: z.string(),
@@ -543,7 +543,57 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                         <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
                     </div>
                 )}
-                 <div className="grid grid-cols-3 gap-4">
+                 <div className={cn("space-y-2", userCredits.length === 0 && "opacity-50")}>
+                    <h4 className="font-semibold">Use available Credit</h4>
+                    <ScrollArea className="h-32 border rounded-md p-2">
+                        {userCredits.length > 0 ? (
+                            userCredits.map(credit => (
+                                <div key={credit.source_id} className="flex items-center justify-between p-2">
+                                    <div className="flex items-center gap-2">
+                                        <Checkbox 
+                                            id={`credit-${credit.source_id}`}
+                                            onCheckedChange={(checked) => {
+                                                const newApplied = new Map(appliedCredits);
+                                                if (checked) {
+                                                    const available = Number(credit.available_balance) || 0;
+                                                    newApplied.set(credit.source_id, available);
+                                                } else {
+                                                    newApplied.delete(credit.source_id);
+                                                }
+                                                setAppliedCredits(newApplied);
+                                            }}
+                                            checked={appliedCredits.has(credit.source_id)}
+                                        />
+                                        <Label htmlFor={`credit-${credit.source_id}`}>
+                                            {credit.type === 'credit_note' ? 'Credit Note' : 'Payment'} #{credit.source_id} ({credit.currency})
+                                        </Label>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            type="number"
+                                            className="h-8 w-24"
+                                            max={Number(credit.available_balance) || 0}
+                                            value={appliedCredits.get(credit.source_id) || ''}
+                                            onChange={(e) => {
+                                                const newApplied = new Map(appliedCredits);
+                                                const value = Math.min(Number(e.target.value), Number(credit.available_balance) || 0);
+                                                newApplied.set(credit.source_id, value);
+                                                setAppliedCredits(newApplied);
+                                            }}
+                                            disabled={!appliedCredits.has(credit.source_id)}
+                                        />
+                                        <span className="text-sm text-muted-foreground">/ {(Number(credit.available_balance) ?? 0).toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                                No credits available for this user.
+                            </div>
+                        )}
+                    </ScrollArea>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
                     <FormField
                     control={form.control}
                     name="amount"
@@ -578,57 +628,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                         </FormItem>
                     )}
                     />
-                </div>
-
-                 <div className={cn("space-y-2", userCredits.length === 0 && "opacity-50")}>
-                    <h4 className="font-semibold">Use available Credit</h4>
-                    <ScrollArea className="h-32 border rounded-md p-2">
-                        {userCredits.length > 0 ? (
-                            userCredits.map(credit => (
-                                <div key={credit.source_id} className="flex items-center justify-between p-2">
-                                    <div className="flex items-center gap-2">
-                                        <Checkbox 
-                                            id={`credit-${credit.source_id}`}
-                                            onCheckedChange={(checked) => {
-                                                const newApplied = new Map(appliedCredits);
-                                                if (checked) {
-                                                    const available = Number(credit.available_balance) || 0;
-                                                    newApplied.set(credit.source_id, available);
-                                                } else {
-                                                    newApplied.delete(credit.source_id);
-                                                }
-                                                setAppliedCredits(newApplied);
-                                            }}
-                                            checked={appliedCredits.has(credit.source_id)}
-                                        />
-                                        <Label htmlFor={`credit-${credit.source_id}`}>
-                                            {credit.type === 'credit_note' ? 'Credit Note' : 'Payment'} #{credit.source_id} ({credit.currency})
-                                        </Label>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Input
-                                            type="number"
-                                            className="h-8 w-24"
-                                            max={credit.available_balance}
-                                            value={appliedCredits.get(credit.source_id) || ''}
-                                            onChange={(e) => {
-                                                const newApplied = new Map(appliedCredits);
-                                                const value = Math.min(Number(e.target.value), Number(credit.available_balance) || 0);
-                                                newApplied.set(credit.source_id, value);
-                                                setAppliedCredits(newApplied);
-                                            }}
-                                            disabled={!appliedCredits.has(credit.source_id)}
-                                        />
-                                        <span className="text-sm text-muted-foreground">/ {Number(credit.available_balance ?? 0).toFixed(2)}</span>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                                No credits available for this user.
-                            </div>
-                        )}
-                    </ScrollArea>
                 </div>
                 
                 {showExchangeRate && (
