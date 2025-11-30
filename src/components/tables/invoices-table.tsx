@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { MoreHorizontal, AlertTriangle, ArrowRight, Box, Printer, Send, FileUp, PlusCircle, CheckCircle } from 'lucide-react';
+import { MoreHorizontal, AlertTriangle, ArrowRight, Box, Printer, Send, FileUp, PlusCircle, CheckCircle, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,11 +45,11 @@ import { Label } from '../ui/label';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().positive(t('validation.amountPositive')),
-  method: z.string().min(1, t('validation.methodRequired')),
+  amount: z.coerce.number().positive(t('amountPositive')),
+  method: z.string().min(1, t('methodRequired')),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
-    required_error: t('validation.dateRequired'),
+    required_error: t('dateRequired'),
   }),
   invoice_currency: z.string(),
   payment_currency: z.string(),
@@ -101,7 +101,6 @@ async function getServices(): Promise<Service[]> {
     return [];
   }
 }
-
 
 const getColumns = (
     t: (key: string) => string,
@@ -579,7 +578,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                     />
                 </div>
 
-                <div className={cn("space-y-2", userCredits.length === 0 && "opacity-50")}>
+                 <div className={cn("space-y-2", userCredits.length === 0 && "opacity-50")}>
                     <h4 className="font-semibold">Use available Credit</h4>
                     <ScrollArea className="h-32 border rounded-md p-2">
                         {userCredits.length > 0 ? (
@@ -1005,4 +1004,3 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
   );
 }
 
-    
