@@ -45,11 +45,11 @@ import { Label } from '../ui/label';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().positive(t('amountPositive')),
-  method: z.string().min(1, t('methodRequired')),
+  amount: z.coerce.number().positive(t('InvoicesPage.validation.amountPositive')),
+  method: z.string().min(1, t('InvoicesPage.validation.methodRequired')),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
-    required_error: t('dateRequired'),
+    required_error: t('InvoicesPage.validation.dateRequired'),
   }),
   invoice_currency: z.string(),
   payment_currency: z.string(),
@@ -579,7 +579,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                                             }}
                                             disabled={!appliedCredits.has(credit.source_id)}
                                         />
-                                        <span className="text-sm text-muted-foreground">/ {(Number(credit.available_balance) ?? 0).toFixed(2)}</span>
+                                        <span className="text-sm text-muted-foreground">/ {(credit.available_balance ?? 0).toFixed(2)}</span>
                                     </div>
                                 </div>
                             ))
