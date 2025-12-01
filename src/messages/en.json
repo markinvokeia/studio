@@ -1616,7 +1616,13 @@
       "treatmentPlaceholder": "Select a treatment",
       "cancel": "Cancel",
       "save": "Save",
-      "editTitle": "Edit Session"
+      "editTitle": "Edit Session",
+      "toast": {
+        "success": "Session saved successfully",
+        "error": "Failed to save session",
+        "treatmentDescriptionEmpty": "Treatment description cannot be empty"
+      },
+      "tooth": "Tooth"
     },
     "timeline": {
       "deleteDialog": {
@@ -1632,7 +1638,12 @@
       "tooth": "Tooth",
       "odontogramUpdate": "Odontogram Update",
       "showMore": "Show more",
-      "attachments": "Attachments"
+      "attachments": "Attachments",
+      "treatments": "Treatments",
+      "showLess": "Show less",
+      "edit": "Edit",
+      "delete": "Delete",
+      "odontogramTooltip": "View odontogram"
     },
     "anamnesis": {
       "personalTitle": "Personal Information",
@@ -1678,7 +1689,9 @@
           "frequency": "Frequency",
           "startDate": "Start Date",
           "endDate": "End Date",
-          "reason": "Reason"
+          "reason": "Reason",
+          "searchMedication": "Search Medication",
+          "noMedicationFound": "No medication found"
         },
         "allergy": {
           "addTitle": "Add Allergy",
@@ -1687,22 +1700,34 @@
           "editDescription": "Edit allergy for the patient",
           "allergen": "Allergen",
           "reaction": "Reaction"
-        }
+        },
+        "searchAilment": "Search Ailment",
+        "noAilmentFound": "No ailment found"
       },
       "deleteDialog": {
         "title": "Delete",
         "description": "Are you sure you want to delete this item?",
         "cancel": "Cancel",
         "confirm": "Delete"
-      }
+      },
+      "loading": {
+        "allergies": "Allergies",
+        "family": "Family",
+        "medications": "Medications",
+        "personal": "Personal"
+      },
+      "relative": "Relative"
     },
     "habits": {
       "title": "Habits",
-      "smooking": "Smooking",
+      "smoking": "Smoking",
       "alcohol": "Alcohol",
       "bruxism": "Bruxism",
       "cancel": "Cancel",
-      "save": "Save"
+      "save": "Save",
+      "smokingPlaceholder": "",
+      "alcoholPlaceholder": "",
+      "bruxismPlaceholder": ""
     },
     "odontogram": {
       "conditions": {
@@ -1710,10 +1735,28 @@
         "crown-tmp": "Crown-tmp",
         "filling": "Filling",
         "fixed-ortho": "Fixed Ortho",
-        "caries": "Caries"
+        "caries": "Caries",
+        "implant": "Implant",
+        "crown": "Crown",
+        "missing": "Missing",
+        "fracture": "Fracture",
+        "endodontics": "Endodontics",
+        "pulp": "Pulp",
+        "bolt": "Bolt",
+        "diastema": "Diastema",
+        "rotation": "Rotation",
+        "worn": "Worn",
+        "supernumerary": "Supernumerary",
+        "prosthesis": "Prosthesis",
+        "edentulism": "Edentulism",
+        "eruption": "Eruption"
       },
       "surfaces": {
-        "center": "Center"
+        "center": "Center",
+        "top": "Top",
+        "bottom": "Bottom",
+        "left": "Left",
+        "right": "Right"
       }
     },
     "images": {
@@ -1722,7 +1765,8 @@
       "all": "All",
       "xrays": "X-rays",
       "photos": "Photos"
-    }
+    },
+    "searching": "Searching..."
   },
   "UserQuotes": {
     "filterPlaceholder": "Filter here..."
