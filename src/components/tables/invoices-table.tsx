@@ -283,7 +283,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
-  const tValidation = useTranslations('InvoicesPage');
+  const tValidation = useTranslations('InvoicesPage.validation');
   const { user } = useAuth();
   const locale = useLocale();
 
@@ -329,8 +329,10 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const remainingAmountToPay = React.useMemo(() => {
     if (!selectedInvoiceForPayment) return 0;
     const invoiceTotal = selectedInvoiceForPayment.total || 0;
-    const amountPaid = watchedAmount || 0;
+    let amountPaid = watchedAmount || 0;
+    
     const amountInInvoiceCurrency = showExchangeRate && equivalentAmount ? equivalentAmount : amountPaid;
+    
     return invoiceTotal - amountInInvoiceCurrency - totalAppliedCredits;
   }, [selectedInvoiceForPayment, watchedAmount, showExchangeRate, equivalentAmount, totalAppliedCredits]);
 
@@ -953,24 +955,26 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                     <div key={index} className="flex flex-col md:flex-row md:items-start gap-2">
                        <FormField control={form.control} name={`items.${index}.service_id`} render={({ field }) => (
                          <FormItem className="flex-1">
-                           <Select
-                                onValueChange={(value) => {
-                                    field.onChange(value);
-                                    const service = services.find(s => s.id === value);
-                                    if(service) {
-                                        const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                                        form.setValue(`items.${index}.unit_price`, service.price);
-                                        form.setValue(`items.${index}.total`, service.price * quantity);
-                                    }
-                                }}
-                                value={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder={t('items.selectService')} />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>{services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                          <Select
+                            onValueChange={(value) => {
+                                field.onChange(value);
+                                const service = services.find(s => s.id === value);
+                                if(service) {
+                                    const quantity = form.getValues(`items.${index}.quantity`) || 1;
+                                    form.setValue(`items.${index}.unit_price`, service.price);
+                                    form.setValue(`items.${index}.total`, service.price * quantity);
+                                }
+                            }}
+                            value={field.value}
+                          >
+                             <FormControl>
+                               <SelectTrigger>
+                                 <SelectValue placeholder={t('items.selectService')} />
+                               </SelectTrigger>
+                             </FormControl>
+                             <SelectContent>
+                               {services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                             </SelectContent>
                            </Select>
                            <FormMessage />
                          </FormItem>
@@ -1010,6 +1014,3 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
     </Dialog>
   );
 }
-
-    
-
