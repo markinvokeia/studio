@@ -45,11 +45,11 @@ import { Label } from '../ui/label';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().positive(t('validation.amountPositive')),
-  method: z.string().min(1, t('validation.methodRequired')),
+  amount: z.coerce.number().positive(t('amountPositive')),
+  method: z.string().min(1, t('methodRequired')),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
-    required_error: t('validation.dateRequired'),
+    required_error: t('dateRequired'),
   }),
   invoice_currency: z.string(),
   payment_currency: z.string(),
@@ -540,7 +540,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                       <AlertDescription>{paymentSubmissionError}</AlertDescription>
                   </Alert>
               )}
-                <div className={cn("space-y-2", userCredits.length === 0 && "opacity-50")}>
+                <div className="space-y-2">
                     <h4 className="font-semibold">{t('paymentDialog.useCredits')}</h4>
                     <ScrollArea className="h-32 border rounded-md p-2">
                         {userCredits.length > 0 ? (
