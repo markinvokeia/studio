@@ -907,7 +907,7 @@
       "label": "Estado",
       "cancelled": "Cancelado"
     },
-    "filterPlaceholder": "Filtrar here...",
+    "filterPlaceholder": "Filtrar aquí...",
     "title": "Pedidos",
     "description": "Una visión general de los pedidos.",
     "createTitle": "Crear Pedido",
