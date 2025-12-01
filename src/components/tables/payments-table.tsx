@@ -193,7 +193,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
     const t = useTranslations('PaymentsPage.columns');
     const tMethods = useTranslations('InvoicesPage.methods');
     const tPage = useTranslations('PaymentsPage');
-    const tTransactionType = useTranslations('PaymentsPage.transactionTypes');
+    const tTransactionType = useTranslations('PaymentsPage.transactionType');
     const columns = React.useMemo(() => getColumns(t, tMethods, tTransactionType, onPrint, onSendEmail), [t, tMethods, tTransactionType, onPrint, onSendEmail]);
 
     if (isLoading) {
