@@ -328,9 +328,10 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   
   const remainingAmountToPay = React.useMemo(() => {
     if (!selectedInvoiceForPayment) return 0;
+    const invoiceTotal = selectedInvoiceForPayment.total || 0;
     const amountPaid = watchedAmount || 0;
     const amountInInvoiceCurrency = showExchangeRate && equivalentAmount ? equivalentAmount : amountPaid;
-    return selectedInvoiceForPayment.total - amountInInvoiceCurrency - totalAppliedCredits;
+    return invoiceTotal - amountInInvoiceCurrency - totalAppliedCredits;
   }, [selectedInvoiceForPayment, watchedAmount, showExchangeRate, equivalentAmount, totalAppliedCredits]);
 
   const fetchPaymentMethods = async () => {
@@ -579,7 +580,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                                             }}
                                             disabled={!appliedCredits.has(credit.source_id)}
                                         />
-                                        <span className="text-sm text-muted-foreground">/ {(credit.available_balance ?? 0).toFixed(2)}</span>
+                                        <span className="text-sm text-muted-foreground">/ {(Number(credit.available_balance) || 0).toFixed(2)}</span>
                                     </div>
                                 </div>
                             ))
@@ -1009,3 +1010,5 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
     </Dialog>
   );
 }
+
+    
