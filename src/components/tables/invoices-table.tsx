@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -220,12 +219,12 @@ const getColumns = (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-8 w-8 p-0">
-                  <span className="sr-only">Open menu</span>
+                  <span className="sr-only">{t('actions.openMenu')}</span>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('actions.title')}</DropdownMenuLabel>
                 {onAddPayment && isPaymentActionVisible(invoice) && (
                     <DropdownMenuItem onClick={() => onAddPayment(invoice)}>
                         {t('paymentDialog.add')}
@@ -239,13 +238,13 @@ const getColumns = (
                 {onPrint && (
                   <DropdownMenuItem onClick={() => onPrint(invoice)}>
                     <Printer className="mr-2 h-4 w-4" />
-                    <span>Print</span>
+                    <span>{t('actions.print')}</span>
                   </DropdownMenuItem>
                 )}
                  {onSendEmail && (
                   <DropdownMenuItem onClick={() => onSendEmail(invoice)}>
                     <Send className="mr-2 h-4 w-4" />
-                    <span>Send Email</span>
+                    <span>{t('actions.sendEmail')}</span>
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
@@ -514,7 +513,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
          <>
           {onImport && (
             <Button variant="outline" size="sm" className="h-9" onClick={onImport}>
-              <FileUp className="mr-2 h-4 w-4" /> Import
+              <FileUp className="mr-2 h-4 w-4" /> {t('import')}
             </Button>
           )}
         </>
@@ -538,8 +537,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                       <AlertDescription>{paymentSubmissionError}</AlertDescription>
                   </Alert>
               )}
-                 <div className={cn("space-y-2", userCredits.length === 0 && "opacity-50")}>
-                    <h4 className="font-semibold">Use available Credit</h4>
+                <div className={cn("space-y-2", userCredits.length === 0 && "opacity-50")}>
+                    <h4 className="font-semibold">{t('paymentDialog.useCredits')}</h4>
                     <ScrollArea className="h-32 border rounded-md p-2">
                         {userCredits.length > 0 ? (
                             userCredits.map(credit => (
@@ -560,7 +559,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                                             checked={appliedCredits.has(credit.source_id)}
                                         />
                                         <Label htmlFor={`credit-${credit.source_id}`}>
-                                            {credit.type === 'credit_note' ? 'Credit Note' : 'Payment'} #{credit.source_id} ({credit.currency})
+                                            {credit.type === 'credit_note' ? t('paymentDialog.creditNote') : t('paymentDialog.paymentRef')} #{credit.source_id} ({credit.currency})
                                         </Label>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -583,7 +582,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                             ))
                         ) : (
                             <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                                No credits available for this user.
+                                {t('paymentDialog.noCredits')}
                             </div>
                         )}
                     </ScrollArea>
@@ -613,11 +612,11 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                     name="payment_currency"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Currency</FormLabel>
+                        <FormLabel>{t('paymentDialog.currency')}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select currency" />
+                                <SelectValue placeholder={t('paymentDialog.selectCurrency')} />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -638,7 +637,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                       name="exchange_rate"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Exchange Rate</FormLabel>
+                          <FormLabel>{t('paymentDialog.exchangeRate')}</FormLabel>
                           <FormControl>
                             <Input type="number" step="0.01" {...field} />
                           </FormControl>
@@ -648,7 +647,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                     />
                     {equivalentAmount !== null && (
                        <FormItem>
-                          <FormLabel>Equivalent Amount ({watchedInvoiceCurrency})</FormLabel>
+                          <FormLabel>{t('paymentDialog.equivalentAmount')} ({watchedInvoiceCurrency})</FormLabel>
                           <FormControl>
                             <Input type="number" value={equivalentAmount.toFixed(2)} readOnly disabled />
                           </FormControl>
@@ -934,17 +933,17 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
             <Card>
               <CardHeader>
                   <div className="flex justify-between items-center">
-                    <CardTitle>Invoice Items</CardTitle>
+                    <CardTitle>{t('items.title')}</CardTitle>
                     <Button type="button" size="sm" variant="outline" onClick={handleAddItem}>{t('addItem')}</Button>
                   </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="hidden md:flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                        <div className="flex-1">Service</div>
-                        <div className="w-20">Quantity</div>
-                        <div className="w-28">Unit Price</div>
-                        <div className="w-28">Total</div>
+                        <div className="flex-1">{t('items.service')}</div>
+                        <div className="w-20">{t('items.quantity')}</div>
+                        <div className="w-28">{t('items.unitPrice')}</div>
+                        <div className="w-28">{t('items.total')}</div>
                         <div className="w-10"></div>
                   </div>
                   {items.map((item, index) => (
@@ -962,7 +961,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                            }} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select Service" />
+                                  <SelectValue placeholder={t('items.selectService')} />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>{services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
