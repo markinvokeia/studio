@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -218,7 +219,7 @@ const getColumns = (
           return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
+                <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
                   <span className="sr-only">{t('actions.openMenu')}</span>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
@@ -587,13 +588,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                         )}
                     </ScrollArea>
                 </div>
-                 {selectedInvoiceForPayment && (
-                    <div className="flex justify-between items-center bg-muted p-3 rounded-md">
-                        <span className="font-semibold text-lg">{t('paymentDialog.remainingAmount')}</span>
-                        <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
-                    </div>
-                )}
-                <div className="grid grid-cols-3 gap-4">
+                 <div className="grid grid-cols-3 gap-4">
                     <FormField
                     control={form.control}
                     name="amount"
@@ -655,7 +650,12 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                     )}
                   </div>
                 )}
-
+                 {selectedInvoiceForPayment && (
+                    <div className="flex justify-between items-center bg-muted p-3 rounded-md">
+                        <span className="font-semibold text-lg">{t('paymentDialog.remainingAmount')}</span>
+                        <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
+                    </div>
+                )}
               <FormField
                 control={form.control}
                 name="method"
