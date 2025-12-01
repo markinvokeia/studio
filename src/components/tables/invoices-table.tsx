@@ -217,39 +217,41 @@ const getColumns = (
         cell: ({ row }) => {
           const invoice = row.original;
           return (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                  <span className="sr-only">{t('actions.openMenu')}</span>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{t('actions.title')}</DropdownMenuLabel>
-                {onAddPayment && isPaymentActionVisible(invoice) && (
-                    <DropdownMenuItem onClick={() => onAddPayment(invoice)}>
-                        {t('paymentDialog.add')}
-                    </DropdownMenuItem>
-                )}
-                 {onConfirm && invoice.status.toLowerCase() === 'draft' && (
-                    <DropdownMenuItem onClick={() => onConfirm(invoice)}>
-                        {t('confirmInvoice')}
-                    </DropdownMenuItem>
-                )}
-                {onPrint && (
-                  <DropdownMenuItem onClick={() => onPrint(invoice)}>
-                    <Printer className="mr-2 h-4 w-4" />
-                    <span>{t('actions.print')}</span>
-                  </DropdownMenuItem>
-                )}
-                 {onSendEmail && (
-                  <DropdownMenuItem onClick={() => onSendEmail(invoice)}>
-                    <Send className="mr-2 h-4 w-4" />
-                    <span>{t('actions.sendEmail')}</span>
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">{t('actions.openMenu')}</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>{t('actions.title')}</DropdownMenuLabel>
+                    {onAddPayment && isPaymentActionVisible(invoice) && (
+                        <DropdownMenuItem onClick={() => onAddPayment(invoice)}>
+                            {t('paymentDialog.add')}
+                        </DropdownMenuItem>
+                    )}
+                     {onConfirm && invoice.status.toLowerCase() === 'draft' && (
+                        <DropdownMenuItem onClick={() => onConfirm(invoice)}>
+                            {t('confirmInvoice')}
+                        </DropdownMenuItem>
+                    )}
+                    {onPrint && (
+                      <DropdownMenuItem onClick={() => onPrint(invoice)}>
+                        <Printer className="mr-2 h-4 w-4" />
+                        <span>{t('actions.print')}</span>
+                      </DropdownMenuItem>
+                    )}
+                     {onSendEmail && (
+                      <DropdownMenuItem onClick={() => onSendEmail(invoice)}>
+                        <Send className="mr-2 h-4 w-4" />
+                        <span>{t('actions.sendEmail')}</span>
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
           );
         },
       },
@@ -950,15 +952,18 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                     <div key={index} className="flex flex-col md:flex-row md:items-start gap-2">
                        <FormField control={form.control} name={`items.${index}.service_id`} render={({ field }) => (
                          <FormItem className="flex-1">
-                           <Select onValueChange={(value) => {
-                               field.onChange(value);
-                               const service = services.find(s => s.id === value);
-                               if(service) {
-                                const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                                form.setValue(`items.${index}.unit_price`, service.price);
-                                form.setValue(`items.${index}.total`, service.price * quantity);
-                               }
-                           }} defaultValue={field.value}>
+                           <Select
+                                onValueChange={(value) => {
+                                    field.onChange(value);
+                                    const service = services.find(s => s.id === value);
+                                    if(service) {
+                                        const quantity = form.getValues(`items.${index}.quantity`) || 1;
+                                        form.setValue(`items.${index}.unit_price`, service.price);
+                                        form.setValue(`items.${index}.total`, service.price * quantity);
+                                    }
+                                }}
+                                value={field.value}
+                            >
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder={t('items.selectService')} />
