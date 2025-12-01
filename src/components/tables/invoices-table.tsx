@@ -283,7 +283,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
-  const tValidation = useTranslations('InvoicesPage.validation');
+  const tValidation = useTranslations('InvoicesPage');
   const { user } = useAuth();
   const locale = useLocale();
 
@@ -298,7 +298,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const [appliedCredits, setAppliedCredits] = React.useState<Map<string, number>>(new Map());
 
   const form = useForm<PaymentFormValues>({
-    resolver: zodResolver(paymentFormSchema(tValidation)),
+    resolver: zodResolver(paymentFormSchema(t)),
     defaultValues: {
       status: 'completed',
     }
@@ -580,7 +580,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                                             }}
                                             disabled={!appliedCredits.has(credit.source_id)}
                                         />
-                                        <span className="text-sm text-muted-foreground">/ {(Number(credit.available_balance) || 0).toFixed(2)}</span>
+                                        <span className="text-sm text-muted-foreground">/ {Number(credit.available_balance).toFixed(2)}</span>
                                     </div>
                                 </div>
                             ))
@@ -1012,3 +1012,4 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
 }
 
     
+
