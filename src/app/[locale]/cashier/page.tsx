@@ -458,13 +458,113 @@ function CloseSessionWizard({
                         />
                     </TabsContent>
                     <TabsContent value="DECLARE">
-                        Declare step content goes here
+                        <DeclareCashup sessionMovements={sessionMovements} />
                     </TabsContent>
                 </Tabs>
             </CardContent>
         </Card>
     );
 }
+
+const DeclareCashup = ({ sessionMovements }: { sessionMovements: CajaMovimiento[] }) => {
+    const t = useTranslations('CashierPage.declareCashup');
+    const [declaredAmounts, setDeclaredAmounts] = React.useState({
+        cash: '',
+        card: '',
+        transfer: '',
+        other: '',
+    });
+
+    const systemTotals = React.useMemo(() => {
+        return sessionMovements.reduce((acc, mov) => {
+            const method = mov.metodoPago.toLowerCase();
+            const amount = mov.monto;
+
+            if (method.includes('efectivo')) {
+                acc.cash += amount;
+            } else if (method.includes('tarjeta')) {
+                acc.card += amount;
+            } else if (method.includes('transferencia')) {
+                acc.transfer += amount;
+            } else {
+                acc.other += amount;
+            }
+            return acc;
+        }, { cash: 0, card: 0, transfer: 0, other: 0 });
+    }, [sessionMovements]);
+    
+    const paymentMethods = [
+        { key: 'cash', label: 'Cash', icon: Banknote },
+        { key: 'card', label: 'Card', icon: CreditCard },
+        { key: 'transfer', label: 'Transfer', icon: ArrowRight },
+        { key: 'other', label: 'Other', icon: DollarSign },
+    ] as const;
+
+    const handleAmountChange = (key: keyof typeof declaredAmounts, value: string) => {
+        setDeclaredAmounts(prev => ({...prev, [key]: value}));
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>{t('title')}</CardTitle>
+                <CardDescription>{t('description')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                {paymentMethods.map(({key, label, icon: Icon}) => {
+                    const systemTotal = systemTotals[key];
+                    const declaredValue = declaredAmounts[key];
+                    const difference = declaredValue !== '' ? parseFloat(declaredValue) - systemTotal : null;
+
+                    return(
+                         <div key={key} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                            <Label htmlFor={key} className="flex items-center gap-2 font-semibold">
+                                <Icon className="h-5 w-5 text-muted-foreground" />
+                                {t(`methods.${key}`)}
+                            </Label>
+                             <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                                <Input 
+                                    id={key}
+                                    type="number"
+                                    placeholder="0.00"
+                                    className="pl-7 text-right"
+                                    value={declaredValue}
+                                    onChange={(e) => handleAmountChange(key, e.target.value)}
+                                />
+                            </div>
+                            <div className="flex justify-between items-center text-sm md:pl-4">
+                                <div>
+                                    <div className="text-muted-foreground">{t('systemTotal')}</div>
+                                    <div className="font-semibold">${systemTotal.toFixed(2)}</div>
+                                </div>
+                                {difference !== null && (
+                                    <div>
+                                        <div className="text-muted-foreground">{t('difference')}</div>
+                                        <div className={cn("font-semibold", difference === 0 ? "" : difference > 0 ? "text-green-600" : "text-destructive")}>
+                                            ${difference.toFixed(2)}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )
+                })}
+                 <div className="space-y-2">
+                    <Label htmlFor="notes">{t('notes')}</Label>
+                    <Textarea id="notes" placeholder={t('notesPlaceholder')} />
+                 </div>
+            </CardContent>
+            <CardFooter>
+                 <Button className="w-full md:w-auto ml-auto">
+                    {t('closeSessionButton')}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+            </CardFooter>
+        </Card>
+    )
+};
+
 
 const DenominationCounter = ({ title, denominations, coins, currency, onDetailsChange, lastClosingDetails, imageMap }: { 
     title: string, 
@@ -892,6 +992,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
 
 
 
