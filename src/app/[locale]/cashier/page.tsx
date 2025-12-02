@@ -458,7 +458,7 @@ function CloseSessionWizard({
                         />
                     </TabsContent>
                     <TabsContent value="DECLARE">
-                        <DeclareCashup sessionMovements={sessionMovements} />
+                        <DeclareCashup activeSession={activeSession} sessionMovements={sessionMovements} onSessionClosed={onExitWizard} />
                     </TabsContent>
                 </Tabs>
             </CardContent>
@@ -466,32 +466,85 @@ function CloseSessionWizard({
     );
 }
 
-const DeclareCashup = ({ sessionMovements }: { sessionMovements: CajaMovimiento[] }) => {
+const DeclareCashup = ({ activeSession, sessionMovements, onSessionClosed }: { activeSession: CajaSesion, sessionMovements: CajaMovimiento[], onSessionClosed: () => void }) => {
     const t = useTranslations('CashierPage.declareCashup');
+    const { toast } = useToast();
     const [declaredAmounts, setDeclaredAmounts] = React.useState({
         cash: '',
         card: '',
         transfer: '',
         other: '',
     });
+    const [notes, setNotes] = React.useState('');
 
     const systemTotals = React.useMemo(() => {
         return sessionMovements.reduce((acc, mov) => {
-            const method = mov.metodoPago.toLowerCase();
+            const method = (mov.metodoPago || '').toLowerCase();
             const amount = mov.monto;
 
-            if (method.includes('efectivo')) {
-                acc.cash += amount;
-            } else if (method.includes('tarjeta')) {
-                acc.card += amount;
-            } else if (method.includes('transferencia')) {
-                acc.transfer += amount;
-            } else {
-                acc.other += amount;
+            if (mov.tipo === 'INGRESO') {
+                if (method.includes('efectivo')) acc.cash += amount;
+                else if (method.includes('tarjeta')) acc.card += amount;
+                else if (method.includes('transferencia')) acc.transfer += amount;
+                else acc.other += amount;
             }
             return acc;
         }, { cash: 0, card: 0, transfer: 0, other: 0 });
     }, [sessionMovements]);
+
+    const handleCloseSession = async () => {
+        const declaredCash = parseFloat(declaredAmounts.cash) || 0;
+        const openingAmount = activeSession.montoApertura || 0;
+        const totalCashInflow = systemTotals.cash;
+
+        // Assuming no cash outflows for now
+        const totalCashOutflow = 0;
+        
+        const calculatedCash = openingAmount + totalCashInflow - totalCashOutflow;
+        const cashDiscrepancy = declaredCash - calculatedCash;
+
+        const payload = {
+            cash_session_id: activeSession.id,
+            openingAmount: openingAmount,
+            declaredCash: declaredCash,
+            totalCashInflow: totalCashInflow,
+            totalCashOutflow: totalCashOutflow,
+            totalCardInflow: systemTotals.card,
+            totalTransferInflow: systemTotals.transfer,
+            totalOtherInflow: systemTotals.other,
+            calculatedCash: calculatedCash,
+            calculatedCard: systemTotals.card,
+            calculatedTransfer: systemTotals.transfer,
+            calculatedOther: systemTotals.other,
+            cashDiscrepancy: cashDiscrepancy,
+            notes: notes,
+        };
+
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to close session.');
+            }
+
+            toast({
+                title: 'Session Closed',
+                description: 'The cash session has been successfully closed.',
+            });
+            onSessionClosed();
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+            });
+        }
+    };
     
     const paymentMethods = [
         { key: 'cash', label: 'Cash', icon: Banknote },
@@ -512,7 +565,7 @@ const DeclareCashup = ({ sessionMovements }: { sessionMovements: CajaMovimiento[
             </CardHeader>
             <CardContent className="space-y-6">
                 {paymentMethods.map(({key, label, icon: Icon}) => {
-                    const systemTotal = systemTotals[key];
+                    const systemTotal = systemTotals[key as keyof typeof systemTotals];
                     const declaredValue = declaredAmounts[key];
                     const difference = declaredValue !== '' ? parseFloat(declaredValue) - systemTotal : null;
 
@@ -552,11 +605,11 @@ const DeclareCashup = ({ sessionMovements }: { sessionMovements: CajaMovimiento[
                 })}
                  <div className="space-y-2">
                     <Label htmlFor="notes">{t('notes')}</Label>
-                    <Textarea id="notes" placeholder={t('notesPlaceholder')} />
+                    <Textarea id="notes" placeholder={t('notesPlaceholder')} value={notes} onChange={(e) => setNotes(e.target.value)} />
                  </div>
             </CardContent>
             <CardFooter>
-                 <Button className="w-full md:w-auto ml-auto">
+                 <Button className="w-full md:w-auto ml-auto" onClick={handleCloseSession}>
                     {t('closeSessionButton')}
                     <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -992,6 +1045,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
 
 
 
