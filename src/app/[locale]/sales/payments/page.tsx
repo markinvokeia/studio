@@ -145,7 +145,7 @@ export default function PaymentsPage() {
             payment_amount: 0,
             payment_method_id: '',
             created_at: new Date(),
-            currency: 'USD'
+            currency: 'UYU'
         }
     });
 
