@@ -45,11 +45,11 @@ import { Label } from '../ui/label';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().positive(t('InvoicesPage.validation.amountPositive')),
-  method: z.string().min(1, t('InvoicesPage.validation.methodRequired')),
+  amount: z.coerce.number().positive(t('validation.amountPositive')),
+  method: z.string().min(1, t('validation.methodRequired')),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
-    required_error: t('InvoicesPage.validation.dateRequired'),
+    required_error: t('validation.dateRequired'),
   }),
   invoice_currency: z.string(),
   payment_currency: z.string(),
@@ -283,7 +283,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
-  const tValidation = useTranslations('InvoicesPage.validation');
   const { user } = useAuth();
   const locale = useLocale();
 
@@ -406,7 +405,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     } catch (error) {
         toast({
             variant: 'destructive',
-            title: t('toast.error'),
+            title: 'Error',
             description: t('toast.sessionCheckError'),
         });
     }
@@ -479,7 +478,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         setSelectedInvoiceForPayment(null);
 
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : t('paymentDialog.error');
+        const errorMessage = error instanceof Error ? error.message : 'Failed to add payment.';
         setPaymentSubmissionError(errorMessage);
     }
   };
