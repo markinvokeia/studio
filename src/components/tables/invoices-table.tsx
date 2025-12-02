@@ -964,7 +964,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                                     form.setValue(`items.${index}.total`, service.price * quantity);
                                 }
                             }}
-                            value={field.value}
+                            defaultValue={field.value}
                           >
                              <FormControl>
                                <SelectTrigger>
