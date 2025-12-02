@@ -618,7 +618,10 @@
       "invoiced": "Invoiced",
       "notinvoiced": "Not Invoiced",
       "partiallyPaid": "Partially Paid",
-      "not invoiced": "Not Invoiced"
+      "not invoiced": "Not Invoiced",
+      "accepted": "Accepted",
+      "fully_invoiced": "Fully Invoiced",
+      "not_paid": "Not Paid"
     },
     "sendEmail": "Send Email",
     "print": "Print",
@@ -757,8 +760,14 @@
         "service": "Service",
         "quantity": "Quantity",
         "unitPrice": "Unit Price",
-        "total": "Total"
-      }
+        "total": "Total",
+        "selectService": "Select Service"
+      },
+      "types": {
+        "invoice": "Invoice",
+        "credit_note": "Credit Note"
+      },
+      "type": "Type"
     },
     "InvoiceItemsTable": {
       "title": "Invoice Items",
