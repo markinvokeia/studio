@@ -187,9 +187,10 @@ interface PaymentsTableProps {
   columnsToHide?: string[];
   onPrint?: (payment: Payment) => void;
   onSendEmail?: (payment: Payment) => void;
+  onCreate?: () => void;
 }
 
-export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onCreate }: PaymentsTableProps) {
     const t = useTranslations('PaymentsPage.columns');
     const tMethods = useTranslations('InvoicesPage.methods');
     const tPage = useTranslations('PaymentsPage');
@@ -218,6 +219,8 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           filterPlaceholder={tPage('filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
+          onCreate={onCreate ? () => onCreate() : undefined}
+          createButtonLabel={tPage('createPrepaid')}
         />
       </CardContent>
     </Card>

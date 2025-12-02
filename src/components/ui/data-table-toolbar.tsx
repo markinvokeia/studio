@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table } from '@tanstack/react-table';
@@ -28,6 +29,7 @@ interface DataTableToolbarProps<TData> {
   filterOptions?: { label: string; value: string }[];
   onFilterChange?: (value: string) => void;
   filterValue?: string;
+  createButtonLabel?: string;
 }
 
 export function DataTableToolbar<TData>({
@@ -41,7 +43,8 @@ export function DataTableToolbar<TData>({
   extraButtons,
   filterOptions,
   onFilterChange,
-  filterValue
+  filterValue,
+  createButtonLabel
 }: DataTableToolbarProps<TData>) {
   const t = useTranslations('DataTableToolbar');
   return (
@@ -95,11 +98,11 @@ export function DataTableToolbar<TData>({
               <TooltipTrigger asChild>
                 <Button variant="outline" size="sm" className="h-9" onClick={onCreate}>
                   <PlusCircle className="mr-2 h-4 w-4" />
-                  Create
+                  {createButtonLabel || 'Create'}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Create</p>
+                <p>{createButtonLabel || 'Create'}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
