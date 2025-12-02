@@ -124,6 +124,8 @@ export default function CashierPage() {
             const activeUserSession = mappedCashPoints.find(cp => cp.status === 'OPEN' && cp.session?.usuarioId === user?.id);
             if(activeUserSession && activeUserSession.session){
                 setActiveSession(activeUserSession.session);
+            } else {
+                setActiveSession(null);
             }
         } catch (error) {
             setServerError(error instanceof Error ? error.message : 'An unknown error occurred');
@@ -162,6 +164,8 @@ export default function CashierPage() {
     React.useEffect(() => {
         if (activeSession) {
             fetchSessionMovements(activeSession.id);
+        } else {
+            setSessionMovements([]);
         }
     }, [activeSession, fetchSessionMovements]);
 
@@ -243,21 +247,22 @@ export default function CashierPage() {
             setOpeningSessionData({ puntoDeCajaId: cashPoint.id, cash_point_name: cashPoint.name, currency: 'UYU', date_rate: 40 });
             setShowOpeningWizard(true);
         }}
+        onViewSession={(session) => {
+            setActiveSession(session);
+        }}
      />;
 }
 
 
-function OpenSessionDashboard({ cashPoints, onStartOpening }: { cashPoints: CashPointStatus[], onStartOpening: (cashPoint: CashPointStatus) => void }) {
+function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { cashPoints: CashPointStatus[], onStartOpening: (cashPoint: CashPointStatus) => void, onViewSession: (session: CajaSesion) => void }) {
     const t = useTranslations('CashierPage');
     const { user } = useAuth();
     const router = useRouter();
 
     const handleSessionClick = (cp: CashPointStatus) => {
-        if (cp.status === 'OPEN') {
-            if (cp.session && cp.session.usuarioId === user?.id) {
-                router.push('/cashier'); // Go to active session dashboard
-            } else {
-                // Optionally show a read-only view or a message
+        if (cp.status === 'OPEN' && cp.session) {
+            if (cp.session.usuarioId === user?.id) {
+                 onViewSession(cp.session);
             }
         } else {
             onStartOpening(cp);
@@ -672,7 +677,9 @@ const DenominationCounter = ({ title, denominations, coins, currency, onDetailsC
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 p-1">
                     {denominations.map(den => (
                         <div key={den} className="grid grid-cols-[80px,1fr,auto] items-center gap-2">
-                            <Image src={imageMap[den]} alt={`${den} ${currency}`} width={80} height={40} className="rounded-md object-cover" />
+                             <div className="w-[80px] h-[40px] relative">
+                                <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-md object-cover" />
+                            </div>
                              <Label htmlFor={`den-${den}`} className="text-right font-semibold text-lg">
                                 {new Intl.NumberFormat('es-UY', { style: 'currency', currency: currency, minimumFractionDigits: 0 }).format(den)}
                             </Label>
@@ -696,7 +703,9 @@ const DenominationCounter = ({ title, denominations, coins, currency, onDetailsC
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 p-1">
                         {coins.map(den => (
                             <div key={den} className="grid grid-cols-[80px,1fr,auto] items-center gap-2">
-                                <Image src={imageMap[den]} alt={`${den} ${currency}`} width={40} height={40} className="rounded-full object-cover" />
+                                <div className="w-[40px] h-[40px] relative">
+                                    <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-full object-cover" />
+                                </div>
                                 <Label htmlFor={`den-${den}`} className="text-right font-semibold text-lg">
                                     {new Intl.NumberFormat('es-UY', { style: 'currency', currency: currency, minimumFractionDigits: 0 }).format(den)}
                                 </Label>
@@ -1045,6 +1054,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
 
 
 
