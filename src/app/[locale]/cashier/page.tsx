@@ -619,7 +619,7 @@ const DeclareCashup = ({ activeSession, sessionMovements, onSessionClosed }: { a
 };
 
 
-const DenominationCounter = ({ title, denominations, coins, currency, onDetailsChange, lastClosingDetails, imageMap: initialImageMap }: { 
+const DenominationCounter = ({ title, denominations, coins, currency, onDetailsChange, lastClosingDetails, imageMap }: { 
     title: string, 
     denominations: number[], 
     coins: number[],
@@ -629,9 +629,6 @@ const DenominationCounter = ({ title, denominations, coins, currency, onDetailsC
     imageMap: Record<number, string>
 }) => {
     const [quantities, setQuantities] = React.useState<Record<string, number>>({});
-    
-    // Memoize the imageMap to prevent re-renders from causing the issue
-    const imageMap = useMemo(() => initialImageMap, [initialImageMap]);
 
     React.useEffect(() => {
         onDetailsChange(quantities);
@@ -1048,6 +1045,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
 
 
 
