@@ -810,11 +810,20 @@
       "exchangeRateTooltip": "Exchange Rate",
       "exchangeRate": "Exchange Rate",
       "currency": "Currency",
-      "openBy": "Open By"
+      "openBy": "Open By",
+      "openingAmount": "Opening Amount",
+      "viewLog": "View Log"
     },
     "wizard": {
       "back": "Back",
-      "next": "Next"
+      "next": "Next",
+      "startClosing": "Start Closing",
+      "steps": {
+        "review": "Review",
+        "declare": "Declare",
+        "report": "Report"
+      },
+      "title": "Close Session"
     },
     "confirmation": {
       "sessionInfo": "Session Info",
@@ -830,7 +839,33 @@
         "amount": "Amount",
         "method": "Method",
         "date": "Date"
-      }
+      },
+      "title": "Active Session",
+      "description": "Active Session",
+      "totalIncome": "Total Income",
+      "dailyPayments": "Daily Payments",
+      "openingDetails": "Opening Details",
+      "denomination": "Denomination",
+      "quantity": "Quantity",
+      "subtotal": "Subtotal"
+    },
+    "toast": {
+      "openSuccessTitle": "Session Opened",
+      "openSuccessDescription": "Session opened successfully."
+    },
+    "viewAllCashPoints": "View All Cash Points",
+    "declareCashup": {
+      "title": "Declare Cashup",
+      "methods": {
+        "cash": "Cash",
+        "card": "Card",
+        "transfer": "Transfer",
+        "other": "Other"
+      },
+      "systemTotal": "System Total",
+      "notes": "Notes",
+      "notesPlaceholder": "Enter notes here...",
+      "closeSessionButton": "Close Session"
     }
   },
   "CashSessionsPage": {
