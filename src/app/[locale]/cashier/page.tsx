@@ -688,7 +688,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         };
 
         try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/upsert', {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
