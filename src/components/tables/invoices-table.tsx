@@ -819,16 +819,16 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
             fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=${filterType}`),
             fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=${isSales}`)
           ]);
-
+  
           if (usersRes.ok) {
             const data = await usersRes.json();
             const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
-            setUsers(usersData);
+            setUsers(usersData.map((u: any) => ({ ...u, id: String(u.id) })));
           }
           if (servicesRes.ok) {
             const data = await servicesRes.json();
             const servicesData = Array.isArray(data) ? data : (data.services || []);
-            setServices(servicesData);
+            setServices(servicesData.map((s: any) => ({ ...s, id: String(s.id) })));
           }
         } catch (error) {
           console.error('Failed to fetch initial data', error);
@@ -964,7 +964,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                                     form.setValue(`items.${index}.total`, service.price * quantity);
                                 }
                             }}
-                            defaultValue={field.value}
+                            value={field.value}
                           >
                              <FormControl>
                                <SelectTrigger>
