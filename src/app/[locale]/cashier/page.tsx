@@ -691,7 +691,7 @@ const DenominationCounter = ({ title, denominations, coins, currency, onDetailsC
                         </div>
                     ))}
                 </div>
-                 <div className="mt-6 border-t pt-4">
+                 {coins.length > 0 && <div className="mt-6 border-t pt-4">
                     <h4 className="font-medium text-md mb-2 flex items-center gap-2"><Coins /> Monedas</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 p-1">
                         {coins.map(den => (
@@ -715,7 +715,7 @@ const DenominationCounter = ({ title, denominations, coins, currency, onDetailsC
                             </div>
                         ))}
                     </div>
-                </div>
+                </div>}
             </ScrollArea>
         </div>
     );
@@ -1045,6 +1045,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
 
 
 
