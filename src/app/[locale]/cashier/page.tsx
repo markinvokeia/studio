@@ -51,12 +51,12 @@ const UYU_IMAGES: Record<number, string> = {
 };
 
 const USD_IMAGES: Record<number, string> = {
-    100: '/billetes/usd/100.jpg',
-    50: '/billetes/usd/50.jpg',
-    20: '/billetes/usd/20.jpg',
-    10: '/billetes/usd/10.jpg',
-    5: '/billetes/usd/5.jpg',
-    1: '/billetes/usd/1.jpg',
+    100: '/billetes/usd/USD_billete_100.svg',
+    50: '/billetes/usd/USD_billete_50.svg',
+    20: '/billetes/usd/USD_billete_20.svg',
+    10: '/billetes/usd/USD_billete_10.svg',
+    5: '/billetes/usd/USD_billete_5.svg',
+    1: '/billetes/usd/USD_billete_1.svg',
 };
 
 
