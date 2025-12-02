@@ -29,7 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 const denominationsUYU = [2000, 1000, 500, 200, 100, 50, 20];
 const coinsUYU = [10, 5, 2, 1];
@@ -619,7 +619,7 @@ const DeclareCashup = ({ activeSession, sessionMovements, onSessionClosed }: { a
 };
 
 
-const DenominationCounter = ({ title, denominations, coins, currency, onDetailsChange, lastClosingDetails, imageMap }: { 
+const DenominationCounter = ({ title, denominations, coins, currency, onDetailsChange, lastClosingDetails, imageMap: initialImageMap }: { 
     title: string, 
     denominations: number[], 
     coins: number[],
@@ -630,6 +630,9 @@ const DenominationCounter = ({ title, denominations, coins, currency, onDetailsC
 }) => {
     const [quantities, setQuantities] = React.useState<Record<string, number>>({});
     
+    // Memoize the imageMap to prevent re-renders from causing the issue
+    const imageMap = useMemo(() => initialImageMap, [initialImageMap]);
+
     React.useEffect(() => {
         onDetailsChange(quantities);
     }, [quantities, onDetailsChange]);
@@ -1045,6 +1048,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
 
 
 
