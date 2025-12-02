@@ -457,6 +457,9 @@ function CloseSessionWizard({
                            isWizardOpen={true}
                         />
                     </TabsContent>
+                    <TabsContent value="DECLARE">
+                        Declare step content goes here
+                    </TabsContent>
                 </Tabs>
             </CardContent>
         </Card>
@@ -889,5 +892,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
 
 
