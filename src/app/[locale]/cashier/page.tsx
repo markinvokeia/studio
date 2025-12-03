@@ -37,26 +37,26 @@ const denominationsUSD = [100, 50, 20, 10, 5, 1];
 const coinsUSD: number[] = [];
 
 const UYU_IMAGES: Record<number, string> = {
-    2000: 'https://www.brou.com.uy/c/portal/getImage?imageName=2000-f.png',
-    1000: 'https://www.brou.com.uy/c/portal/getImage?imageName=1000-f.png',
-    500: 'https://www.brou.com.uy/c/portal/getImage?imageName=500-f.png',
-    200: 'https://www.brou.com.uy/c/portal/getImage?imageName=200-f.png',
-    100: 'https://www.brou.com.uy/c/portal/getImage?imageName=100-f.png',
-    50: 'https://www.brou.com.uy/c/portal/getImage?imageName=50-f.png',
-    20: 'https://www.brou.com.uy/c/portal/getImage?imageName=20-f.png',
-    10: 'https://www.bcu.gub.uy/Estadisticas-e-Indicadores/Billetes%20y%20Monedas/moneda_10_pesos_anverso.png',
-    5: 'https://www.bcu.gub.uy/Estadisticas-e-Indicadores/Billetes%20y%20Monedas/moneda_5_pesos_anverso.png',
-    2: 'https://www.bcu.gub.uy/Estadisticas-e-Indicadores/Billetes%20y%20Monedas/moneda_2_pesos_anverso.png',
-    1: 'https://www.bcu.gub.uy/Estadisticas-e-Indicadores/Billetes%20y%20Monedas/moneda_1_peso_anverso.png',
+    2000: '/billetes/billete_2000.svg',
+    1000: '/billetes/billete_1000.svg',
+    500: '/billetes/billete_500.svg',
+    200: '/billetes/billete_200.svg',
+    100: '/billetes/billete_100.svg',
+    50: '/billetes/billete_50.svg',
+    20: '/billetes/billete_20.svg',
+    10: '/billetes/moneda_10.svg',
+    5: '/billetes/moneda_5.svg',
+    2: '/billetes/moneda_2.svg',
+    1: '/billetes/moneda_1.svg',
 };
 
 const USD_IMAGES: Record<number, string> = {
-    100: 'https://www.brou.com.uy/c/portal/getImage?imageName=100-dolar-f.jpg',
-    50: 'https://www.brou.com.uy/c/portal/getImage?imageName=050-dolar-f.jpg',
-    20: 'https://www.brou.com.uy/c/portal/getImage?imageName=020-dolar-f.jpg',
-    10: 'https://www.brou.com.uy/c/portal/getImage?imageName=010-dolar-f.jpg',
-    5: 'https://www.brou.com.uy/c/portal/getImage?imageName=005-dolar-f.jpg',
-    1: 'https://www.brou.com.uy/c/portal/getImage?imageName=001-dolar-f.jpg',
+    100: '/billetes/usd/USD_billete_100.svg',
+    50: '/billetes/usd/USD_billete_50.svg',
+    20: '/billetes/usd/USD_billete_20.svg',
+    10: '/billetes/usd/USD_billete_10.svg',
+    5: '/billetes/usd/USD_billete_5.svg',
+    1: '/billetes/usd/USD_billete_1.svg',
 };
 
 
