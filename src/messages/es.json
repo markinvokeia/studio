@@ -856,6 +856,7 @@
     "viewAllCashPoints": "Ver Todos los Puntos de Caja",
     "declareCashup": {
       "title": "Declarar Arqueo",
+      "description": "Declarar Arqueo",
       "methods": {
         "cash": "Efectivo",
         "card": "Tarjeta",

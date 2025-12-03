@@ -856,6 +856,7 @@
     "viewAllCashPoints": "View All Cash Points",
     "declareCashup": {
       "title": "Declare Cashup",
+      "description": "Declare Cashup",
       "methods": {
         "cash": "Cash",
         "card": "Card",
