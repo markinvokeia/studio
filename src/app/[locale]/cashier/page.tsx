@@ -520,9 +520,6 @@ function CloseSessionWizard({
 const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: CajaSesion, onSessionClosed: () => void }) => {
     const t = useTranslations('CashierPage.declareCashup');
     const { toast } = useToast();
-    const [declaredAmounts, setDeclaredAmounts] = React.useState({
-        cash: '',
-    });
     const [notes, setNotes] = React.useState('');
     const [systemTotals, setSystemTotals] = React.useState({ cash: 0, other: 0 });
     const [isLoading, setIsLoading] = React.useState(true);
@@ -567,27 +564,23 @@ const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: Caja
 
 
     const handleCloseSession = async () => {
-        const declaredCash = parseFloat(declaredAmounts.cash) || 0;
-        const openingAmount = activeSession.montoApertura || 0;
-        const totalCashInflow = systemTotals.cash;
-        
-        const calculatedCash = openingAmount + totalCashInflow;
-        const cashDiscrepancy = declaredCash - calculatedCash;
+        // Since this is informational, we assume declared equals calculated
+        const calculatedCash = (activeSession.montoApertura || 0) + systemTotals.cash;
 
         const payload = {
             cash_session_id: activeSession.id,
-            openingAmount: openingAmount,
-            declaredCash: declaredCash,
-            totalCashInflow: totalCashInflow,
-            totalCashOutflow: 0, // Assuming no cash outflows for now
-            totalCardInflow: 0, // Not tracked separately in new model
-            totalTransferInflow: 0, // Not tracked separately
+            openingAmount: activeSession.montoApertura,
+            declaredCash: calculatedCash, // Declared is same as calculated
+            totalCashInflow: systemTotals.cash,
+            totalCashOutflow: 0, 
+            totalCardInflow: 0,
+            totalTransferInflow: 0,
             totalOtherInflow: systemTotals.other,
             calculatedCash: calculatedCash,
-            calculatedCard: 0, // Not tracked separately
-            calculatedTransfer: 0, // Not tracked separately
+            calculatedCard: 0,
+            calculatedTransfer: 0,
             calculatedOther: systemTotals.other,
-            cashDiscrepancy: cashDiscrepancy,
+            cashDiscrepancy: 0, // No discrepancy as declared = calculated
             notes: notes,
         };
 
@@ -617,15 +610,8 @@ const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: Caja
         }
     };
     
-    const paymentMethods = [
-        { key: 'cash', label: 'Cash', icon: Banknote, systemTotal: systemTotals.cash },
-        { key: 'other', label: 'Other', icon: CreditCard, systemTotal: systemTotals.other },
-    ] as const;
-
-    const handleAmountChange = (key: keyof typeof declaredAmounts, value: string) => {
-        setDeclaredAmounts(prev => ({...prev, [key]: value}));
-    };
-
+     const calculatedCash = (activeSession.montoApertura || 0) + systemTotals.cash;
+    
     if (isLoading) {
         return <div className="p-6 text-center">Loading system totals...</div>;
     }
@@ -637,46 +623,30 @@ const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: Caja
                 <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                {paymentMethods.map(({key, label, icon: Icon, systemTotal}) => {
-                    const declaredValue = key === 'cash' ? declaredAmounts.cash : systemTotal.toFixed(2);
-                    const isOther = key === 'other';
-                    const difference = !isOther && declaredValue !== '' ? parseFloat(declaredValue) - systemTotal : null;
-
-                    return(
-                         <div key={key} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                            <Label htmlFor={key} className="flex items-center gap-2 font-semibold">
-                                <Icon className="h-5 w-5 text-muted-foreground" />
-                                {t(`methods.${key}`)}
-                            </Label>
-                             <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                                <Input 
-                                    id={key}
-                                    type="number"
-                                    placeholder="0.00"
-                                    className="pl-7 text-right"
-                                    value={declaredValue}
-                                    onChange={(e) => !isOther && handleAmountChange(key, e.target.value)}
-                                    readOnly={isOther}
-                                />
-                            </div>
-                            <div className="flex justify-between items-center text-sm md:pl-4">
-                                <div>
-                                    <div className="text-muted-foreground">{t('systemTotal')}</div>
-                                    <div className="font-semibold">${systemTotal.toFixed(2)}</div>
-                                </div>
-                                {difference !== null && (
-                                    <div>
-                                        <div className="text-muted-foreground">{t('difference')}</div>
-                                        <div className={cn("font-semibold", difference === 0 ? "" : difference > 0 ? "text-green-600" : "text-destructive")}>
-                                            ${difference.toFixed(2)}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                    <Label htmlFor="cash" className="flex items-center gap-2 font-semibold">
+                        <Banknote className="h-5 w-5 text-muted-foreground" />
+                        {t('methods.cash')}
+                    </Label>
+                    <div className="flex justify-between items-center text-sm md:pl-4">
+                        <div>
+                            <div className="text-muted-foreground">{t('systemTotal')}</div>
+                            <div className="font-semibold">${calculatedCash.toFixed(2)}</div>
                         </div>
-                    )
-                })}
+                    </div>
+                </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                    <Label htmlFor="other" className="flex items-center gap-2 font-semibold">
+                        <CreditCard className="h-5 w-5 text-muted-foreground" />
+                        {t('methods.other')}
+                    </Label>
+                     <div className="flex justify-between items-center text-sm md:pl-4">
+                        <div>
+                            <div className="text-muted-foreground">{t('systemTotal')}</div>
+                            <div className="font-semibold">${systemTotals.other.toFixed(2)}</div>
+                        </div>
+                    </div>
+                </div>
                  <div className="space-y-2">
                     <Label htmlFor="notes">{t('notes')}</Label>
                     <Textarea id="notes" placeholder={t('notesPlaceholder')} value={notes} onChange={(e) => setNotes(e.target.value)} />
@@ -1150,6 +1120,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
   
 
+
+    
 
     
 
