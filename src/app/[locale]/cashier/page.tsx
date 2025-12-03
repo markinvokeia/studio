@@ -337,7 +337,15 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
             const details = typeof session.opening_details === 'string' 
                 ? JSON.parse(session.opening_details) 
                 : session.opening_details;
-            return Object.entries(details).filter(([, qty]) => Number(qty) > 0);
+                
+            const uyuDetails = details.uyu ? Object.entries(details.uyu).filter(([key]) => key !== 'total') : [];
+            const usdDetails = details.usd ? Object.entries(details.usd).filter(([key]) => !['total', 'exchange_rate', 'equivalent_uyu'].includes(key)) : [];
+
+            return {
+                uyu: uyuDetails.filter(([, qty]) => Number(qty) > 0),
+                usd: usdDetails.filter(([, qty]) => Number(qty) > 0)
+            };
+
         } catch (e) {
             console.error("Failed to parse opening_details", e);
             return null;
@@ -388,7 +396,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 <Tabs defaultValue="payments">
                     <TabsList>
                         <TabsTrigger value="payments">{t('activeSession.dailyPayments')}</TabsTrigger>
-                        {openingDetails && openingDetails.length > 0 && (
+                        {openingDetails && (openingDetails.uyu.length > 0 || openingDetails.usd.length > 0) && (
                             <TabsTrigger value="opening_details">{t('activeSession.openingDetails')}</TabsTrigger>
                         )}
                     </TabsList>
@@ -396,25 +404,37 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                         <DataTable columns={movementColumns} data={dailyPayments} />
                     </TabsContent>
                     <TabsContent value="opening_details">
-                        {openingDetails && openingDetails.length > 0 ? (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>{t('activeSession.denomination')}</TableHead>
-                                        <TableHead className="text-right">{t('activeSession.quantity')}</TableHead>
-                                        <TableHead className="text-right">{t('activeSession.subtotal')}</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {openingDetails.map(([den, qty]) => (
-                                        <TableRow key={den}>
-                                            <TableCell>$ {den}</TableCell>
-                                            <TableCell className="text-right">{Number(qty)}</TableCell>
-                                            <TableCell className="text-right">$ {(Number(den) * Number(qty)).toFixed(2)}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                        {openingDetails && (openingDetails.uyu.length > 0 || openingDetails.usd.length > 0) ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {openingDetails.uyu.length > 0 && (
+                                <Table>
+                                    <TableHeader><TableRow><TableHead colSpan={3}>UYU</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {openingDetails.uyu.map(([den, qty]) => (
+                                            <TableRow key={`uyu-${den}`}>
+                                                <TableCell>$ {den}</TableCell>
+                                                <TableCell className="text-right">{Number(qty)}</TableCell>
+                                                <TableCell className="text-right">$ {(Number(den) * Number(qty)).toFixed(2)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                                )}
+                                {openingDetails.usd.length > 0 && (
+                                <Table>
+                                     <TableHeader><TableRow><TableHead colSpan={3}>USD</TableHead></TableRow></TableHeader>
+                                     <TableBody>
+                                        {openingDetails.usd.map(([den, qty]) => (
+                                            <TableRow key={`usd-${den}`}>
+                                                <TableCell>$ {den}</TableCell>
+                                                <TableCell className="text-right">{Number(qty)}</TableCell>
+                                                <TableCell className="text-right">$ {(Number(den) * Number(qty)).toFixed(2)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                                )}
+                            </div>
                         ) : <p className="text-muted-foreground p-4 text-center">No denomination details available for this session.</p>}
                     </TabsContent>
                 </Tabs>
@@ -683,7 +703,11 @@ const DenominationCounter = ({ title, denominations, coins, currency, onDetailsC
                     {denominations.map(den => (
                         <div key={den} className="grid grid-cols-[80px,1fr,auto] items-center gap-2">
                              <div className="w-[80px] h-[40px] relative">
-                                <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-md object-cover" />
+                                {imageMap[den] ? (
+                                    <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-md object-cover" />
+                                ) : (
+                                    <div className="w-full h-full bg-muted rounded-md flex items-center justify-center text-xs text-muted-foreground">No Image</div>
+                                )}
                             </div>
                              <Label htmlFor={`den-${den}`} className="text-right font-semibold text-lg">
                                 {new Intl.NumberFormat('es-UY', { style: 'currency', currency: currency, minimumFractionDigits: 0 }).format(den)}
@@ -709,7 +733,11 @@ const DenominationCounter = ({ title, denominations, coins, currency, onDetailsC
                         {coins.map(den => (
                             <div key={den} className="grid grid-cols-[80px,1fr,auto] items-center gap-2">
                                 <div className="w-[40px] h-[40px] relative">
-                                    <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-full object-cover" />
+                                    {imageMap[den] ? (
+                                        <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full bg-muted rounded-full flex items-center justify-center text-xs text-muted-foreground">No Img</div>
+                                    )}
                                 </div>
                                 <Label htmlFor={`den-${den}`} className="text-right font-semibold text-lg">
                                     {new Intl.NumberFormat('es-UY', { style: 'currency', currency: currency, minimumFractionDigits: 0 }).format(den)}
@@ -1059,6 +1087,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
 
 
 
