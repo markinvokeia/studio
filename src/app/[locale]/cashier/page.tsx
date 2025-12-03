@@ -37,26 +37,26 @@ const denominationsUSD = [100, 50, 20, 10, 5, 1];
 const coinsUSD: number[] = [];
 
 const UYU_IMAGES: Record<number, string> = {
-    2000: 'https://www.brou.com.uy/c/portal/getImage?imageName=2000-f.png',
-    1000: 'https://www.brou.com.uy/c/portal/getImage?imageName=1000-f.png',
-    500: 'https://www.brou.com.uy/c/portal/getImage?imageName=500-f.png',
-    200: 'https://www.brou.com.uy/c/portal/getImage?imageName=200-f.png',
-    100: 'https://www.brou.com.uy/c/portal/getImage?imageName=100-f.png',
-    50: 'https://www.brou.com.uy/c/portal/getImage?imageName=50-f.png',
-    20: 'https://www.brou.com.uy/c/portal/getImage?imageName=20-f.png',
-    10: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Monedas/moneda_10_2011_a.png',
-    5: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Monedas/moneda_5_2011_a.png',
-    2: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Monedas/moneda_2_2011_a.png',
-    1: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Monedas/moneda_1_2011_a.png',
+    2000: '/billetes/billete_2000.svg',
+    1000: '/billetes/billete_1000.svg',
+    500: '/billetes/billete_500.svg',
+    200: '/billetes/billete_200.svg',
+    100: '/billetes/billete_100.svg',
+    50: '/billetes/billete_50.svg',
+    20: '/billetes/billete_20.svg',
+    10: '/billetes/moneda_10.svg',
+    5: '/billetes/moneda_5.svg',
+    2: '/billetes/moneda_2.svg',
+    1: '/billetes/moneda_1.svg',
 };
 
 const USD_IMAGES: Record<number, string> = {
-    100: 'https://www.brou.com.uy/documents/20182/33945/100dolaresf.png',
-    50: 'https://www.brou.com.uy/documents/20182/33945/50dolaresf.png',
-    20: 'https://www.brou.com.uy/documents/20182/33945/20dolaresf.png',
-    10: 'https://www.brou.com.uy/documents/20182/33945/10dolaresf.png',
-    5: 'https://www.brou.com.uy/documents/20182/33945/5dolaresf.png',
-    1: 'https://www.brou.com.uy/documents/20182/33945/1dolarf.png',
+    100: '/billetes/usd/USD_billete_100.svg',
+    50: '/billetes/usd/USD_billete_50.svg',
+    20: '/billetes/usd/USD_billete_20.svg',
+    10: '/billetes/usd/USD_billete_10.svg',
+    5: '/billetes/usd/USD_billete_5.svg',
+    1: '/billetes/usd/USD_billete_1.svg',
 };
 
 
