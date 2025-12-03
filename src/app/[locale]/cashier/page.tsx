@@ -516,11 +516,11 @@ const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: Caja
                 }
                 const data = await response.json();
                 
-                const sessionCurrencyData = data.find((d:any) => d.moneda === activeSession.currency) || { total_efectivo: 0, total_otros_medios: 0};
+                const sessionCurrencyData = (Array.isArray(data) ? data : []).find((d:any) => d.moneda === activeSession.currency) || { total_efectivo: 0, total_otros_medios: 0};
                 
                 setSystemTotals({
                     cash: parseFloat(sessionCurrencyData.total_efectivo),
-                    card: 0, // API now groups non-cash, adjust as needed
+                    card: 0, 
                     transfer: 0,
                     other: parseFloat(sessionCurrencyData.total_otros_medios),
                 });
@@ -547,7 +547,7 @@ const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: Caja
         const declaredCash = parseFloat(declaredAmounts.cash) || 0;
         const openingAmount = activeSession.montoApertura || 0;
         const totalCashInflow = systemTotals.cash;
-        const totalCashOutflow = 0; // Assuming no cash outflows for now
+        const totalCashOutflow = 0; 
         
         const calculatedCash = openingAmount + totalCashInflow - totalCashOutflow;
         const cashDiscrepancy = declaredCash - calculatedCash;
