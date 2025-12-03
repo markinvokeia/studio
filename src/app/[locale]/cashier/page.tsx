@@ -51,12 +51,12 @@ const UYU_IMAGES: Record<number, string> = {
 };
 
 const USD_IMAGES: Record<number, string> = {
-    100: '/billetes/usd/USD_billete_100.svg',
-    50: '/billetes/usd/USD_billete_50.svg',
-    20: '/billetes/usd/USD_billete_20.svg',
-    10: '/billetes/usd/USD_billete_10.svg',
-    5: '/billetes/usd/USD_billete_5.svg',
-    1: '/billetes/usd/USD_billete_1.svg',
+    100: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_100.svg',
+    50: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_50.svg',
+    20: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_20.svg',
+    10: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_10.svg',
+    5: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_5.svg',
+    1: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_1.svg',
 };
 
 
@@ -607,6 +607,7 @@ const DeclareCashup = ({ activeSession, declaredCash, onSessionClosed }: { activ
 
     React.useEffect(() => {
         const fetchDeclareData = async () => {
+            if (!activeSession.id) return;
             setIsLoading(true);
             try {
                 const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/declare?cash_session_id=${activeSession.id}`);
@@ -638,9 +639,7 @@ const DeclareCashup = ({ activeSession, declaredCash, onSessionClosed }: { activ
             }
         };
 
-        if (activeSession.id) {
-            fetchDeclareData();
-        }
+        fetchDeclareData();
     }, [activeSession.id, activeSession.currency, toast]);
 
 
