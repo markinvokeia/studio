@@ -723,7 +723,8 @@
     "validation": {
       "amountPositive": "Amount must be a positive number.",
       "methodRequired": "Payment method is required.",
-      "dateRequired": "Payment date is required."
+      "dateRequired": "Payment date is required.",
+      "userRequired": "An user is required"
     },
     "toast": {
       "error": "Error",
@@ -866,7 +867,8 @@
       "systemTotal": "System Total",
       "notes": "Notes",
       "notesPlaceholder": "Enter notes here...",
-      "closeSessionButton": "Close Session"
+      "closeSessionButton": "Close Session",
+      "difference": "Difference"
     }
   },
   "CashSessionsPage": {
@@ -1009,7 +1011,8 @@
       "transaction_type": "Transaction Type",
       "reference_doc_id": "Reference Document ID"
     },
-    "transactionType": "Transaction Type"
+    "transactionType": "Transaction Type",
+    "createPrepaid": "Create Prepaid"
   },
   "PaymentMethodsPage": {
     "title": "Payments Methods",
@@ -1110,7 +1113,7 @@
     },
     "setInitialPassword": "Set Initial Password"
   },
-  "ProvidersColumns": {
+  "ProviderColumns": {
     "name": "Name",
     "email": "Email",
     "identity_document": "Identity Document",
@@ -1777,7 +1780,13 @@
         "medications": "Medications",
         "personal": "Personal"
       },
-      "relative": "Relative"
+      "relative": "Relative",
+      "noData": {
+        "personal": "No personal information available",
+        "family": "No family information available",
+        "medications": "No medications available",
+        "allergies": "No allergies available"
+      }
     },
     "habits": {
       "title": "Habits",
@@ -1788,7 +1797,8 @@
       "save": "Save",
       "smokingPlaceholder": "",
       "alcoholPlaceholder": "",
-      "bruxismPlaceholder": ""
+      "bruxismPlaceholder": "",
+      "noData": "No habits available"
     },
     "odontogram": {
       "conditions": {
