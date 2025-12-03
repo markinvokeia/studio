@@ -261,11 +261,32 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
 
     const userHasActiveSession = cashPoints.some(cp => cp.status === 'OPEN' && cp.session?.usuarioId === user?.id);
 
-    const handleSessionClick = (cp: CashPointStatus) => {
-        if (cp.status === 'OPEN' && cp.session) {
-            onViewSession(cp.session);
+    const handleSessionClick = async (cp: CashPointStatus) => {
+        if (cp.status === 'OPEN') {
+             if (cp.session?.usuarioId === user?.id) {
+                onViewSession(cp.session);
+            }
         } else {
-            onStartOpening(cp);
+            if (user) {
+                 try {
+                    const token = localStorage.getItem('token');
+                    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/active?user_id=${user.id}`, {
+                        method: 'GET',
+                        mode: 'cors',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.code === 200) {
+                        // User already has an open session, do not allow opening another
+                    } else {
+                        onStartOpening(cp);
+                    }
+                } catch (error) {
+                    console.error("Error checking for active session:", error);
+                }
+            }
         }
     };
 
@@ -296,7 +317,7 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
                                 onClick={() => handleSessionClick(cp)} 
                                 disabled={isAnotherUsersSession || (cp.status === 'CLOSED' && userHasActiveSession)}
                            >
-                                {cp.status === 'OPEN' ? (
+                                {cp.status === 'OPEN' && isThisUsersSession ? (
                                     <>
                                         <BookOpenCheck className="mr-2 h-4 w-4" />
                                         {t('openSession.viewLog')}
@@ -503,7 +524,7 @@ const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: Caja
         cash: '',
     });
     const [notes, setNotes] = React.useState('');
-    const [systemTotals, setSystemTotals] = React.useState({ cash: 0, card: 0, transfer: 0, other: 0 });
+    const [systemTotals, setSystemTotals] = React.useState({ cash: 0, other: 0 });
     const [isLoading, setIsLoading] = React.useState(true);
 
     React.useEffect(() => {
@@ -516,14 +537,16 @@ const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: Caja
                 }
                 const data = await response.json();
                 
-                const sessionCurrencyData = (Array.isArray(data) ? data : []).find((d:any) => d.moneda === activeSession.currency) || { total_efectivo: 0, total_otros_medios: 0};
-                
-                setSystemTotals({
-                    cash: parseFloat(sessionCurrencyData.total_efectivo),
-                    card: 0, 
-                    transfer: 0,
-                    other: parseFloat(sessionCurrencyData.total_otros_medios),
-                });
+                const sessionCurrencyData = (Array.isArray(data) ? data : []).find((d:any) => d.moneda === activeSession.currency);
+
+                if (sessionCurrencyData) {
+                    setSystemTotals({
+                        cash: parseFloat(sessionCurrencyData.total_efectivo) || 0,
+                        other: parseFloat(sessionCurrencyData.total_otros_medios) || 0,
+                    });
+                } else {
+                    setSystemTotals({ cash: 0, other: 0 });
+                }
                 
             } catch (error) {
                 console.error("Error fetching declare data:", error);
@@ -547,9 +570,8 @@ const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: Caja
         const declaredCash = parseFloat(declaredAmounts.cash) || 0;
         const openingAmount = activeSession.montoApertura || 0;
         const totalCashInflow = systemTotals.cash;
-        const totalCashOutflow = 0; 
         
-        const calculatedCash = openingAmount + totalCashInflow - totalCashOutflow;
+        const calculatedCash = openingAmount + totalCashInflow;
         const cashDiscrepancy = declaredCash - calculatedCash;
 
         const payload = {
@@ -557,13 +579,13 @@ const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: Caja
             openingAmount: openingAmount,
             declaredCash: declaredCash,
             totalCashInflow: totalCashInflow,
-            totalCashOutflow: totalCashOutflow,
-            totalCardInflow: systemTotals.card,
-            totalTransferInflow: systemTotals.transfer,
+            totalCashOutflow: 0, // Assuming no cash outflows for now
+            totalCardInflow: 0, // Not tracked separately in new model
+            totalTransferInflow: 0, // Not tracked separately
             totalOtherInflow: systemTotals.other,
             calculatedCash: calculatedCash,
-            calculatedCard: systemTotals.card,
-            calculatedTransfer: systemTotals.transfer,
+            calculatedCard: 0, // Not tracked separately
+            calculatedTransfer: 0, // Not tracked separately
             calculatedOther: systemTotals.other,
             cashDiscrepancy: cashDiscrepancy,
             notes: notes,
@@ -616,8 +638,9 @@ const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: Caja
             </CardHeader>
             <CardContent className="space-y-6">
                 {paymentMethods.map(({key, label, icon: Icon, systemTotal}) => {
-                    const declaredValue = declaredAmounts[key as keyof typeof declaredAmounts];
-                    const difference = declaredValue !== '' ? parseFloat(declaredValue) - systemTotal : null;
+                    const declaredValue = key === 'cash' ? declaredAmounts.cash : systemTotal.toFixed(2);
+                    const isOther = key === 'other';
+                    const difference = !isOther && declaredValue !== '' ? parseFloat(declaredValue) - systemTotal : null;
 
                     return(
                          <div key={key} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
@@ -633,7 +656,8 @@ const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: Caja
                                     placeholder="0.00"
                                     className="pl-7 text-right"
                                     value={declaredValue}
-                                    onChange={(e) => handleAmountChange(key, e.target.value)}
+                                    onChange={(e) => !isOther && handleAmountChange(key, e.target.value)}
+                                    readOnly={isOther}
                                 />
                             </div>
                             <div className="flex justify-between items-center text-sm md:pl-4">
@@ -1126,5 +1150,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
   
 
+
+    
 
     
