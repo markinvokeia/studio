@@ -548,9 +548,6 @@ const CashCounter = ({ activeSession, onCountComplete }: { activeSession: CajaSe
     const [uyuDenominations, setUyuDenominations] = React.useState<Record<string, number>>({});
     const [usdDenominations, setUsdDenominations] = React.useState<Record<string, number>>({});
 
-    const memoizedSetUyu = useCallback((details: Record<string, number>) => setUyuDenominations(details), []);
-    const memoizedSetUsd = useCallback((details: Record<string, number>) => setUsdDenominations(details), []);
-
     const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
     const usdTotal = useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
     const totalInSessionCurrency = activeSession.currency === 'UYU' ? uyuTotal + (usdTotal * (activeSession.date_rate || 1)) : usdTotal + (uyuTotal / (activeSession.date_rate || 1));
@@ -573,7 +570,8 @@ const CashCounter = ({ activeSession, onCountComplete }: { activeSession: CajaSe
                             denominations={denominationsUYU}
                             coins={coinsUYU}
                             currency="UYU"
-                            onDetailsChange={memoizedSetUyu}
+                            quantities={uyuDenominations}
+                            onQuantitiesChange={setUyuDenominations}
                             imageMap={UYU_IMAGES}
                         />
                     </TabsContent>
@@ -583,7 +581,8 @@ const CashCounter = ({ activeSession, onCountComplete }: { activeSession: CajaSe
                             denominations={denominationsUSD}
                             coins={coinsUSD}
                             currency="USD"
-                            onDetailsChange={memoizedSetUsd}
+                            quantities={usdDenominations}
+                            onQuantitiesChange={setUsdDenominations}
                             imageMap={USD_IMAGES}
                         />
                     </TabsContent>
@@ -743,28 +742,23 @@ const DeclareCashup = ({ activeSession, declaredCash, onSessionClosed }: { activ
 };
 
 
-const DenominationCounter = ({ title, denominations, coins, currency, onDetailsChange, lastClosingDetails, imageMap }: { 
+const DenominationCounter = ({ title, denominations, coins, currency, quantities, onQuantitiesChange, lastClosingDetails, imageMap }: { 
     title: string, 
     denominations: number[], 
     coins: number[],
-    currency: string, 
-    onDetailsChange: (details: Record<string, number>) => void,
+    currency: string,
+    quantities: Record<string, number>,
+    onQuantitiesChange: (details: Record<string, number>) => void,
     lastClosingDetails?: Record<string, number> | null,
     imageMap: Record<number, string>
 }) => {
-    const [quantities, setQuantities] = React.useState<Record<string, number>>({});
-
-    React.useEffect(() => {
-        onDetailsChange(quantities);
-    }, [quantities, onDetailsChange]);
-
     const total = React.useMemo(() => {
         return [...denominations, ...coins].reduce((sum, den) => sum + (Number(den) || 0) * (quantities[den] || 0), 0)
     }, [quantities, denominations, coins]);
 
     const handleQuantityChange = (denomination: number, quantity: string) => {
         const newQuantities = { ...quantities, [denomination]: parseInt(quantity, 10) || 0 };
-        setQuantities(newQuantities);
+        onQuantitiesChange(newQuantities);
     };
 
     const setAllTo = (val: number) => {
@@ -772,12 +766,12 @@ const DenominationCounter = ({ title, denominations, coins, currency, onDetailsC
             acc[den] = val;
             return acc;
         }, {} as Record<string, number>);
-        setQuantities(newQuantities);
+        onQuantitiesChange(newQuantities);
     }
     
     const loadLastClosing = () => {
         if(lastClosingDetails){
-            setQuantities(lastClosingDetails);
+            onQuantitiesChange(lastClosingDetails);
         }
     }
     
@@ -1094,7 +1088,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 denominations={denominationsUYU}
                 coins={coinsUYU}
                 currency="UYU"
-                onDetailsChange={memoizedSetUyuDenominations}
+                quantities={uyuDenominations}
+                onQuantitiesChange={memoizedSetUyuDenominations}
                 lastClosingDetails={mockLastClosing.uyu}
                 imageMap={UYU_IMAGES}
             />
@@ -1105,7 +1100,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 denominations={denominationsUSD}
                 coins={coinsUSD}
                 currency="USD"
-                onDetailsChange={memoizedSetUsdDenominations}
+                quantities={usdDenominations}
+                onQuantitiesChange={memoizedSetUsdDenominations}
                 lastClosingDetails={mockLastClosing.usd}
                 imageMap={USD_IMAGES}
             />
@@ -1206,3 +1202,4 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
