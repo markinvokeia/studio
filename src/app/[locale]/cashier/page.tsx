@@ -259,11 +259,11 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
     const { user } = useAuth();
     const router = useRouter();
 
+    const userHasActiveSession = cashPoints.some(cp => cp.status === 'OPEN' && cp.session?.usuarioId === user?.id);
+
     const handleSessionClick = (cp: CashPointStatus) => {
         if (cp.status === 'OPEN' && cp.session) {
-            if (cp.session.usuarioId === user?.id) {
-                 onViewSession(cp.session);
-            }
+            onViewSession(cp.session);
         } else {
             onStartOpening(cp);
         }
@@ -274,6 +274,7 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
             {cashPoints.map(cp => {
                  const isThisUsersSession = cp.status === 'OPEN' && cp.session?.usuarioId === user?.id;
                  const isAnotherUsersSession = cp.status === 'OPEN' && !isThisUsersSession;
+                 const canOpen = cp.status === 'CLOSED' && !userHasActiveSession;
 
                 return (
                     <Card key={cp.id} className={cn("w-full", isAnotherUsersSession && "bg-muted/50 opacity-60")}>
@@ -290,11 +291,15 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                           <Button className="w-full" onClick={() => handleSessionClick(cp)} disabled={isAnotherUsersSession}>
+                           <Button 
+                                className="w-full" 
+                                onClick={() => handleSessionClick(cp)} 
+                                disabled={isAnotherUsersSession || (cp.status === 'CLOSED' && userHasActiveSession)}
+                           >
                                 {cp.status === 'OPEN' ? (
                                     <>
                                         <BookOpenCheck className="mr-2 h-4 w-4" />
-                                        {isThisUsersSession ? t('openSession.viewLog') : 'View Session (Read-Only)'}
+                                        {t('openSession.viewLog')}
                                     </>
                                 ) : (
                                     <>
@@ -1054,6 +1059,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
 
 
 
