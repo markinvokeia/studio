@@ -37,26 +37,26 @@ const denominationsUSD = [100, 50, 20, 10, 5, 1];
 const coinsUSD: number[] = [];
 
 const UYU_IMAGES: Record<number, string> = {
-    2000: '/billetes/billete_2000.svg',
-    1000: '/billetes/billete_1000.svg',
-    500: '/billetes/billete_500.svg',
-    200: '/billetes/billete_200.svg',
-    100: '/billetes/billete_100.svg',
-    50: '/billetes/billete_50.svg',
-    20: '/billetes/billete_20.svg',
-    10: '/billetes/moneda_10.svg',
-    5: '/billetes/moneda_5.svg',
-    2: '/billetes/moneda_2.svg',
-    1: '/billetes/moneda_1.svg',
+    2000: 'https://www.brou.com.uy/c/portal/getImage?imageName=2000-f.png',
+    1000: 'https://www.brou.com.uy/c/portal/getImage?imageName=1000-f.png',
+    500: 'https://www.brou.com.uy/c/portal/getImage?imageName=500-f.png',
+    200: 'https://www.brou.com.uy/c/portal/getImage?imageName=200-f.png',
+    100: 'https://www.brou.com.uy/c/portal/getImage?imageName=100-f.png',
+    50: 'https://www.brou.com.uy/c/portal/getImage?imageName=50-f.png',
+    20: 'https://www.brou.com.uy/c/portal/getImage?imageName=20-f.png',
+    10: 'https://www.bcu.gub.uy/Estadisticas-e-Indicadores/Billetes%20y%20Monedas/moneda_10_pesos_anverso.png',
+    5: 'https://www.bcu.gub.uy/Estadisticas-e-Indicadores/Billetes%20y%20Monedas/moneda_5_pesos_anverso.png',
+    2: 'https://www.bcu.gub.uy/Estadisticas-e-Indicadores/Billetes%20y%20Monedas/moneda_2_pesos_anverso.png',
+    1: 'https://www.bcu.gub.uy/Estadisticas-e-Indicadores/Billetes%20y%20Monedas/moneda_1_peso_anverso.png',
 };
 
 const USD_IMAGES: Record<number, string> = {
-    100: '/billetes/usd/USD_billete_100.svg',
-    50: '/billetes/usd/USD_billete_50.svg',
-    20: '/billetes/usd/USD_billete_20.svg',
-    10: '/billetes/usd/USD_billete_10.svg',
-    5: '/billetes/usd/USD_billete_5.svg',
-    1: '/billetes/usd/USD_billete_1.svg',
+    100: 'https://www.brou.com.uy/c/portal/getImage?imageName=100-dolar-f.jpg',
+    50: 'https://www.brou.com.uy/c/portal/getImage?imageName=050-dolar-f.jpg',
+    20: 'https://www.brou.com.uy/c/portal/getImage?imageName=020-dolar-f.jpg',
+    10: 'https://www.brou.com.uy/c/portal/getImage?imageName=010-dolar-f.jpg',
+    5: 'https://www.brou.com.uy/c/portal/getImage?imageName=005-dolar-f.jpg',
+    1: 'https://www.brou.com.uy/c/portal/getImage?imageName=001-dolar-f.jpg',
 };
 
 
@@ -259,36 +259,50 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
     const { user } = useAuth();
     const router = useRouter();
 
-    const userHasActiveSession = cashPoints.some(cp => cp.status === 'OPEN' && cp.session?.usuarioId === user?.id);
+    const [userHasActiveSession, setUserHasActiveSession] = React.useState(false);
+    const [isLoading, setIsLoading] = React.useState(true);
 
-    const handleSessionClick = async (cp: CashPointStatus) => {
-        if (cp.status === 'OPEN') {
-             if (cp.session?.usuarioId === user?.id) {
-                onViewSession(cp.session);
-            }
-        } else {
+    React.useEffect(() => {
+        const checkSession = async () => {
             if (user) {
-                 try {
+                try {
                     const token = localStorage.getItem('token');
                     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/active?user_id=${user.id}`, {
                         method: 'GET',
                         mode: 'cors',
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
+                        headers: { 'Authorization': `Bearer ${token}` }
                     });
                     const data = await response.json();
-                    if (response.ok && data.code === 200) {
-                        // User already has an open session, do not allow opening another
-                    } else {
-                        onStartOpening(cp);
-                    }
+                    setUserHasActiveSession(response.ok && data.code === 200);
                 } catch (error) {
                     console.error("Error checking for active session:", error);
+                    setUserHasActiveSession(false);
+                } finally {
+                    setIsLoading(false);
                 }
+            } else {
+                setIsLoading(false);
             }
+        };
+        checkSession();
+    }, [user]);
+
+    const handleSessionClick = (cp: CashPointStatus) => {
+        if (cp.status === 'OPEN') {
+            if (cp.session?.usuarioId === user?.id) {
+                onViewSession(cp.session);
+            }
+        } else if (!userHasActiveSession) {
+            onStartOpening(cp);
         }
     };
+    
+    if (isLoading) {
+        return <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-[150px] w-full" />)}
+        </div>;
+    }
+
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
@@ -298,7 +312,7 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
                  const canOpen = cp.status === 'CLOSED' && !userHasActiveSession;
 
                 return (
-                    <Card key={cp.id} className={cn("w-full", isAnotherUsersSession && "bg-muted/50 opacity-60")}>
+                    <Card key={cp.id} className={cn("w-full", (isAnotherUsersSession || (cp.status === 'CLOSED' && userHasActiveSession)) && "bg-muted/50 opacity-60")}>
                         <CardHeader>
                             <CardTitle className="flex items-center justify-between">
                                 {cp.name}
@@ -317,7 +331,7 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
                                 onClick={() => handleSessionClick(cp)} 
                                 disabled={isAnotherUsersSession || (cp.status === 'CLOSED' && userHasActiveSession)}
                            >
-                                {cp.status === 'OPEN' && isThisUsersSession ? (
+                                {isThisUsersSession ? (
                                     <>
                                         <BookOpenCheck className="mr-2 h-4 w-4" />
                                         {t('openSession.viewLog')}
@@ -358,13 +372,15 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
             const details = typeof session.opening_details === 'string' 
                 ? JSON.parse(session.opening_details) 
                 : session.opening_details;
-                
-            const uyuDetails = details.uyu ? Object.entries(details.uyu).filter(([key]) => key !== 'total') : [];
-            const usdDetails = details.usd ? Object.entries(details.usd).filter(([key]) => !['total', 'exchange_rate', 'equivalent_uyu'].includes(key)) : [];
 
+            const parseDenominations = (denoDetails: any) => 
+                Object.entries(denoDetails || {})
+                      .filter(([key, qty]) => key !== 'total' && Number(qty) > 0)
+                      .map(([den, qty]) => ({ den: Number(den), qty: Number(qty) }));
+                
             return {
-                uyu: uyuDetails.filter(([, qty]) => Number(qty) > 0),
-                usd: usdDetails.filter(([, qty]) => Number(qty) > 0)
+                uyu: parseDenominations(details.uyu),
+                usd: parseDenominations(details.usd)
             };
 
         } catch (e) {
@@ -431,7 +447,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                                 <Table>
                                     <TableHeader><TableRow><TableHead colSpan={3}>UYU</TableHead></TableRow></TableHeader>
                                     <TableBody>
-                                        {openingDetails.uyu.map(([den, qty]) => (
+                                        {openingDetails.uyu.map(({ den, qty }) => (
                                             <TableRow key={`uyu-${den}`}>
                                                 <TableCell>$ {den}</TableCell>
                                                 <TableCell className="text-right">{Number(qty)}</TableCell>
@@ -445,7 +461,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                                 <Table>
                                      <TableHeader><TableRow><TableHead colSpan={3}>USD</TableHead></TableRow></TableHeader>
                                      <TableBody>
-                                        {openingDetails.usd.map(([den, qty]) => (
+                                        {openingDetails.usd.map(({ den, qty }) => (
                                             <TableRow key={`usd-${den}`}>
                                                 <TableCell>$ {den}</TableCell>
                                                 <TableCell className="text-right">{Number(qty)}</TableCell>
@@ -485,8 +501,9 @@ function CloseSessionWizard({
     sessionMovements: CajaMovimiento[];
 }) {
     const t = useTranslations('CashierPage.wizard');
-    const tabs = ['REVIEW', 'DECLARE', 'REPORT'];
-    
+    const tabs = ['REVIEW', 'COUNT_CASH', 'DECLARE', 'REPORT'];
+     const [declaredCash, setDeclaredCash] = React.useState(0);
+
     return (
         <Card className="w-full">
             <CardHeader>
@@ -494,22 +511,32 @@ function CloseSessionWizard({
             </CardHeader>
             <CardContent>
                 <Tabs value={currentStep} onValueChange={setCurrentStep} className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
+                    <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="REVIEW" >{t('steps.review')}</TabsTrigger>
-                        <TabsTrigger value="DECLARE" disabled={currentStep === 'REVIEW'}>{t('steps.declare')}</TabsTrigger>
+                        <TabsTrigger value="COUNT_CASH" disabled={currentStep === 'REVIEW'}>Count Cash</TabsTrigger>
+                        <TabsTrigger value="DECLARE" disabled={!['DECLARE', 'REPORT'].includes(currentStep)}>{t('steps.declare')}</TabsTrigger>
                         <TabsTrigger value="REPORT" disabled={currentStep !== 'REPORT'}>{t('steps.report')}</TabsTrigger>
                     </TabsList>
                      <TabsContent value="REVIEW" className="mt-4">
                         <ActiveSessionDashboard 
                            session={activeSession}
                            movements={sessionMovements}
-                           onCloseSession={() => setCurrentStep('DECLARE')}
+                           onCloseSession={() => setCurrentStep('COUNT_CASH')}
                            onViewAllCashPoints={onExitWizard}
                            isWizardOpen={true}
                         />
                     </TabsContent>
+                     <TabsContent value="COUNT_CASH">
+                        <CashCounter
+                            activeSession={activeSession}
+                            onCountComplete={(total) => {
+                                setDeclaredCash(total);
+                                setCurrentStep('DECLARE');
+                            }}
+                        />
+                    </TabsContent>
                     <TabsContent value="DECLARE">
-                        <DeclareCashup activeSession={activeSession} onSessionClosed={onExitWizard} />
+                        <DeclareCashup activeSession={activeSession} declaredCash={declaredCash} onSessionClosed={onExitWizard} />
                     </TabsContent>
                 </Tabs>
             </CardContent>
@@ -517,7 +544,61 @@ function CloseSessionWizard({
     );
 }
 
-const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: CajaSesion, onSessionClosed: () => void }) => {
+const CashCounter = ({ activeSession, onCountComplete }: { activeSession: CajaSesion, onCountComplete: (total: number) => void }) => {
+    const [uyuDenominations, setUyuDenominations] = React.useState<Record<string, number>>({});
+    const [usdDenominations, setUsdDenominations] = React.useState<Record<string, number>>({});
+
+    const memoizedSetUyu = useCallback((details: Record<string, number>) => setUyuDenominations(details), []);
+    const memoizedSetUsd = useCallback((details: Record<string, number>) => setUsdDenominations(details), []);
+
+    const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
+    const usdTotal = useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
+    const totalInSessionCurrency = activeSession.currency === 'UYU' ? uyuTotal + (usdTotal * (activeSession.date_rate || 1)) : usdTotal + (uyuTotal / (activeSession.date_rate || 1));
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Cash Count</CardTitle>
+                <CardDescription>Enter the physical cash count for each denomination.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <Tabs defaultValue="uyu">
+                    <TabsList>
+                        <TabsTrigger value="uyu">UYU</TabsTrigger>
+                        <TabsTrigger value="usd">USD</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="uyu">
+                        <DenominationCounter
+                            title="UYU Count"
+                            denominations={denominationsUYU}
+                            coins={coinsUYU}
+                            currency="UYU"
+                            onDetailsChange={memoizedSetUyu}
+                            imageMap={UYU_IMAGES}
+                        />
+                    </TabsContent>
+                    <TabsContent value="usd">
+                        <DenominationCounter
+                            title="USD Count"
+                            denominations={denominationsUSD}
+                            coins={coinsUSD}
+                            currency="USD"
+                            onDetailsChange={memoizedSetUsd}
+                            imageMap={USD_IMAGES}
+                        />
+                    </TabsContent>
+                </Tabs>
+            </CardContent>
+            <CardFooter className='justify-between'>
+                <div className='font-semibold'>Total Declared ({activeSession.currency}): ${totalInSessionCurrency.toFixed(2)}</div>
+                <Button onClick={() => onCountComplete(totalInSessionCurrency)}>Continue to Declaration</Button>
+            </CardFooter>
+        </Card>
+    );
+};
+
+
+const DeclareCashup = ({ activeSession, declaredCash, onSessionClosed }: { activeSession: CajaSesion, declaredCash: number, onSessionClosed: () => void }) => {
     const t = useTranslations('CashierPage.declareCashup');
     const { toast } = useToast();
     const [notes, setNotes] = React.useState('');
@@ -564,23 +645,14 @@ const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: Caja
 
 
     const handleCloseSession = async () => {
-        // Since this is informational, we assume declared equals calculated
-        const calculatedCash = (activeSession.montoApertura || 0) + systemTotals.cash;
-
         const payload = {
             cash_session_id: activeSession.id,
             openingAmount: activeSession.montoApertura,
-            declaredCash: calculatedCash, // Declared is same as calculated
+            declaredCash: declaredCash,
             totalCashInflow: systemTotals.cash,
-            totalCashOutflow: 0, 
-            totalCardInflow: 0,
-            totalTransferInflow: 0,
             totalOtherInflow: systemTotals.other,
             calculatedCash: calculatedCash,
-            calculatedCard: 0,
-            calculatedTransfer: 0,
-            calculatedOther: systemTotals.other,
-            cashDiscrepancy: 0, // No discrepancy as declared = calculated
+            cashDiscrepancy: declaredCash - calculatedCash,
             notes: notes,
         };
 
@@ -611,6 +683,7 @@ const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: Caja
     };
     
      const calculatedCash = (activeSession.montoApertura || 0) + systemTotals.cash;
+     const difference = declaredCash - calculatedCash;
     
     if (isLoading) {
         return <div className="p-6 text-center">Loading system totals...</div>;
@@ -623,15 +696,23 @@ const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: Caja
                 <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                     <Label htmlFor="cash" className="flex items-center gap-2 font-semibold">
                         <Banknote className="h-5 w-5 text-muted-foreground" />
                         {t('methods.cash')}
                     </Label>
-                    <div className="flex justify-between items-center text-sm md:pl-4">
-                        <div>
+                     <div className="grid grid-cols-3 items-center gap-2 text-sm">
+                        <div className="text-center">
                             <div className="text-muted-foreground">{t('systemTotal')}</div>
                             <div className="font-semibold">${calculatedCash.toFixed(2)}</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-muted-foreground">Declared</div>
+                            <div className="font-semibold">${declaredCash.toFixed(2)}</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-muted-foreground">{t('difference')}</div>
+                            <div className={cn("font-semibold", difference < 0 ? "text-red-500" : "text-green-500")}>${difference.toFixed(2)}</div>
                         </div>
                     </div>
                 </div>
@@ -640,7 +721,7 @@ const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: Caja
                         <CreditCard className="h-5 w-5 text-muted-foreground" />
                         {t('methods.other')}
                     </Label>
-                     <div className="flex justify-between items-center text-sm md:pl-4">
+                     <div className="flex justify-start items-center text-sm md:pl-4">
                         <div>
                             <div className="text-muted-foreground">{t('systemTotal')}</div>
                             <div className="font-semibold">${systemTotals.other.toFixed(2)}</div>
