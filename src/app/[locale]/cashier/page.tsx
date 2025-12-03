@@ -37,17 +37,17 @@ const denominationsUSD = [100, 50, 20, 10, 5, 1];
 const coinsUSD: number[] = [];
 
 const UYU_IMAGES: Record<number, string> = {
-    2000: '/billetes/billete_2000.svg',
-    1000: '/billetes/billete_1000.svg',
-    500: '/billetes/billete_500.svg',
-    200: '/billetes/billete_200.svg',
-    100: '/billetes/billete_100.svg',
-    50: '/billetes/billete_50.svg',
-    20: '/billetes/billete_20.svg',
-    10: '/billetes/moneda_10.svg',
-    5: '/billetes/moneda_5.svg',
-    2: '/billetes/moneda_2.svg',
-    1: '/billetes/moneda_1.svg',
+    2000: 'https://www.brou.com.uy/c/portal/getImage?imageName=2000-f.png',
+    1000: 'https://www.brou.com.uy/c/portal/getImage?imageName=1000-f.png',
+    500: 'https://www.brou.com.uy/c/portal/getImage?imageName=500-f.png',
+    200: 'https://www.brou.com.uy/c/portal/getImage?imageName=200-f.png',
+    100: 'https://www.brou.com.uy/c/portal/getImage?imageName=100-f.png',
+    50: 'https://www.brou.com.uy/c/portal/getImage?imageName=50-f.png',
+    20: 'https://www.brou.com.uy/c/portal/getImage?imageName=20-f.png',
+    10: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Monedas/moneda_10_2011_a.png',
+    5: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Monedas/moneda_5_2011_a.png',
+    2: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Monedas/moneda_2_2011_a.png',
+    1: 'https://www.bcu.gub.uy/Billetes-y-Monedas/Monedas/moneda_1_2011_a.png',
 };
 
 const USD_IMAGES: Record<number, string> = {
@@ -488,7 +488,7 @@ function CloseSessionWizard({
                         />
                     </TabsContent>
                     <TabsContent value="DECLARE">
-                        <DeclareCashup activeSession={activeSession} sessionMovements={sessionMovements} onSessionClosed={onExitWizard} />
+                        <DeclareCashup activeSession={activeSession} onSessionClosed={onExitWizard} />
                     </TabsContent>
                 </Tabs>
             </CardContent>
@@ -496,39 +496,58 @@ function CloseSessionWizard({
     );
 }
 
-const DeclareCashup = ({ activeSession, sessionMovements, onSessionClosed }: { activeSession: CajaSesion, sessionMovements: CajaMovimiento[], onSessionClosed: () => void }) => {
+const DeclareCashup = ({ activeSession, onSessionClosed }: { activeSession: CajaSesion, onSessionClosed: () => void }) => {
     const t = useTranslations('CashierPage.declareCashup');
     const { toast } = useToast();
     const [declaredAmounts, setDeclaredAmounts] = React.useState({
         cash: '',
-        card: '',
-        transfer: '',
-        other: '',
     });
     const [notes, setNotes] = React.useState('');
+    const [systemTotals, setSystemTotals] = React.useState({ cash: 0, card: 0, transfer: 0, other: 0 });
+    const [isLoading, setIsLoading] = React.useState(true);
 
-    const systemTotals = React.useMemo(() => {
-        return sessionMovements.reduce((acc, mov) => {
-            const method = (mov.metodoPago || '').toLowerCase();
-            const amount = mov.monto;
-
-            if (mov.tipo === 'INGRESO') {
-                if (method.includes('efectivo')) acc.cash += amount;
-                else if (method.includes('tarjeta')) acc.card += amount;
-                else if (method.includes('transferencia')) acc.transfer += amount;
-                else acc.other += amount;
+    React.useEffect(() => {
+        const fetchDeclareData = async () => {
+            setIsLoading(true);
+            try {
+                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/declare?cash_session_id=${activeSession.id}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch declaration data.');
+                }
+                const data = await response.json();
+                
+                const sessionCurrencyData = data.find((d:any) => d.moneda === activeSession.currency) || { total_efectivo: 0, total_otros_medios: 0};
+                
+                setSystemTotals({
+                    cash: parseFloat(sessionCurrencyData.total_efectivo),
+                    card: 0, // API now groups non-cash, adjust as needed
+                    transfer: 0,
+                    other: parseFloat(sessionCurrencyData.total_otros_medios),
+                });
+                
+            } catch (error) {
+                console.error("Error fetching declare data:", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: error instanceof Error ? error.message : 'Could not load session totals.',
+                });
+            } finally {
+                setIsLoading(false);
             }
-            return acc;
-        }, { cash: 0, card: 0, transfer: 0, other: 0 });
-    }, [sessionMovements]);
+        };
+
+        if (activeSession.id) {
+            fetchDeclareData();
+        }
+    }, [activeSession.id, activeSession.currency, toast]);
+
 
     const handleCloseSession = async () => {
         const declaredCash = parseFloat(declaredAmounts.cash) || 0;
         const openingAmount = activeSession.montoApertura || 0;
         const totalCashInflow = systemTotals.cash;
-
-        // Assuming no cash outflows for now
-        const totalCashOutflow = 0;
+        const totalCashOutflow = 0; // Assuming no cash outflows for now
         
         const calculatedCash = openingAmount + totalCashInflow - totalCashOutflow;
         const cashDiscrepancy = declaredCash - calculatedCash;
@@ -577,15 +596,17 @@ const DeclareCashup = ({ activeSession, sessionMovements, onSessionClosed }: { a
     };
     
     const paymentMethods = [
-        { key: 'cash', label: 'Cash', icon: Banknote },
-        { key: 'card', label: 'Card', icon: CreditCard },
-        { key: 'transfer', label: 'Transfer', icon: ArrowRight },
-        { key: 'other', label: 'Other', icon: DollarSign },
+        { key: 'cash', label: 'Cash', icon: Banknote, systemTotal: systemTotals.cash },
+        { key: 'other', label: 'Other', icon: CreditCard, systemTotal: systemTotals.other },
     ] as const;
 
     const handleAmountChange = (key: keyof typeof declaredAmounts, value: string) => {
         setDeclaredAmounts(prev => ({...prev, [key]: value}));
     };
+
+    if (isLoading) {
+        return <div className="p-6 text-center">Loading system totals...</div>;
+    }
 
     return (
         <Card>
@@ -594,9 +615,8 @@ const DeclareCashup = ({ activeSession, sessionMovements, onSessionClosed }: { a
                 <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                {paymentMethods.map(({key, label, icon: Icon}) => {
-                    const systemTotal = systemTotals[key as keyof typeof systemTotals];
-                    const declaredValue = declaredAmounts[key];
+                {paymentMethods.map(({key, label, icon: Icon, systemTotal}) => {
+                    const declaredValue = declaredAmounts[key as keyof typeof declaredAmounts];
                     const difference = declaredValue !== '' ? parseFloat(declaredValue) - systemTotal : null;
 
                     return(
@@ -1100,3 +1120,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
 
 
+
+
+    
