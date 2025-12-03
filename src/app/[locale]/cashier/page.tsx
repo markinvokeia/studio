@@ -51,12 +51,12 @@ const UYU_IMAGES: Record<number, string> = {
 };
 
 const USD_IMAGES: Record<number, string> = {
-    100: '/billetes/usd/USD_billete_100.svg',
-    50: '/billetes/usd/USD_billete_50.svg',
-    20: '/billetes/usd/USD_billete_20.svg',
-    10: '/billetes/usd/USD_billete_10.svg',
-    5: '/billetes/usd/USD_billete_5.svg',
-    1: '/billetes/usd/USD_billete_1.svg',
+    100: 'https://www.brou.com.uy/documents/20182/33945/100dolaresf.png',
+    50: 'https://www.brou.com.uy/documents/20182/33945/50dolaresf.png',
+    20: 'https://www.brou.com.uy/documents/20182/33945/20dolaresf.png',
+    10: 'https://www.brou.com.uy/documents/20182/33945/10dolaresf.png',
+    5: 'https://www.brou.com.uy/documents/20182/33945/5dolaresf.png',
+    1: 'https://www.brou.com.uy/documents/20182/33945/1dolarf.png',
 };
 
 
@@ -1068,7 +1068,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                                 </Table>
                                  <Table>
                                     <TableHeader><TableRow><TableHead>Denominación USD</TableHead><TableHead>Cantidad</TableHead></TableRow></TableHeader>
-                                    <TableBody>
+                                     <TableBody>
                                         {Object.entries(usdDenominations).map(([den, qty]) => qty > 0 && <TableRow key={den}><TableCell>{den}</TableCell><TableCell>{qty}</TableCell></TableRow>)}
                                     </TableBody>
                                 </Table>
@@ -1123,3 +1123,5 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
 
     
+
+  
