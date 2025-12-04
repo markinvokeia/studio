@@ -378,11 +378,11 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
             const details = typeof session.opening_details === 'string' 
                 ? JSON.parse(session.opening_details) 
                 : session.opening_details;
-
+            
             const parseDenominations = (denoDetails: any) => 
                 Object.entries(denoDetails || {})
-                    .filter(([key, qty]) => key !== 'total' && !isNaN(Number(key)) && Number(qty) > 0)
-                    .map(([den, qty]) => ({ den: Number(den), qty: Number(qty) }));
+                    .map(([key, qty]) => ({ den: Number(key), qty: Number(qty) }))
+                    .filter(item => !isNaN(item.den) && item.den > 0 && item.qty > 0);
                 
             return {
                 uyu: parseDenominations(details.uyu),
@@ -704,7 +704,7 @@ const DeclareCashup = ({ activeSession, declaredCash, uyuDenominations, usdDenom
             
             const responseData = await response.json();
             
-            if (!response.ok) {
+            if (!response.ok || responseData.error) {
                 throw new Error(responseData.message || 'Failed to close session.');
             }
 
@@ -712,7 +712,7 @@ const DeclareCashup = ({ activeSession, declaredCash, uyuDenominations, usdDenom
                 title: 'Session Closed',
                 description: 'The cash session has been successfully closed.',
             });
-            onSessionClosed(responseData);
+            onSessionClosed(responseData[0]?.json || responseData);
         } catch (error) {
             toast({
                 variant: 'destructive',
@@ -876,28 +876,28 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
             <ScrollArea className="h-96">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 p-1">
                     {denominations.map(den => (
-                        <div key={den} className="grid grid-cols-[80px,1fr,auto] items-center gap-2">
+                        <div key={den} className="grid grid-cols-[auto,1fr,auto] items-center gap-4">
                              <div className="w-[80px] h-[40px] relative">
                                 {imageMap[den] ? (
-                                    <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-md object-cover" />
+                                    <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-md object-contain" />
                                 ) : (
                                     <div className="w-full h-full bg-muted rounded-md flex items-center justify-center text-xs text-muted-foreground">No Image</div>
                                 )}
                             </div>
-                             <Label htmlFor={`den-${den}`} className="text-right font-semibold text-lg">
+                             <Label htmlFor={`den-${den}`} className="text-sm font-semibold justify-self-end pr-2">
                                 {new Intl.NumberFormat('es-UY', { style: 'currency', currency: currency, minimumFractionDigits: 0 }).format(den)}
                             </Label>
                              <div className="flex items-center">
-                                <Button type="button" variant="outline" size="icon" className="h-10 w-10" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
+                                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
                                 <Input
                                     id={`den-${den}`}
                                     type="number"
                                     min="0"
                                     value={quantities[den] || ''}
                                     onChange={(e) => handleQuantityChange(den, e.target.value)}
-                                    className="w-20 text-center mx-1 text-lg"
+                                    className="w-16 text-center mx-1 h-8 text-base"
                                 />
-                                <Button type="button" variant="outline" size="icon" className="h-10 w-10" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
+                                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
                             </div>
                         </div>
                     ))}
@@ -906,28 +906,28 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
                     <h4 className="font-medium text-md mb-2 flex items-center gap-2"><Coins /> Monedas</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 p-1">
                         {coins.map(den => (
-                            <div key={den} className="grid grid-cols-[80px,1fr,auto] items-center gap-2">
+                            <div key={den} className="grid grid-cols-[auto,1fr,auto] items-center gap-4">
                                 <div className="w-[40px] h-[40px] relative">
                                     {imageMap[den] ? (
-                                        <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-full object-cover" />
+                                        <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-full object-contain" />
                                     ) : (
                                         <div className="w-full h-full bg-muted rounded-full flex items-center justify-center text-xs text-muted-foreground">No Img</div>
                                     )}
                                 </div>
-                                <Label htmlFor={`den-${den}`} className="text-right font-semibold text-lg">
+                                <Label htmlFor={`den-${den}`} className="text-sm font-semibold justify-self-end pr-2">
                                     {new Intl.NumberFormat('es-UY', { style: 'currency', currency: currency, minimumFractionDigits: 0 }).format(den)}
                                 </Label>
                                 <div className="flex items-center">
-                                    <Button type="button" variant="outline" size="icon" className="h-10 w-10" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
+                                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
                                     <Input
                                         id={`den-${den}`}
                                         type="number"
                                         min="0"
                                         value={quantities[den] || ''}
                                         onChange={(e) => handleQuantityChange(den, e.target.value)}
-                                        className="w-20 text-center mx-1 text-lg"
+                                        className="w-16 text-center mx-1 h-8 text-base"
                                     />
-                                    <Button type="button" variant="outline" size="icon" className="h-10 w-10" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
+                                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
                                 </div>
                             </div>
                         ))}
