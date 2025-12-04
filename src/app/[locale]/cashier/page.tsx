@@ -370,7 +370,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
             
             const parseDenominations = (denoDetails: any) => 
                 Object.entries(denoDetails || {})
-                    .filter(([key, qty]) => key !== 'total' && !isNaN(Number(key)) && Number(qty) > 0)
+                    .filter(([key, qty]) => !isNaN(Number(key)) && Number(qty) > 0)
                     .map(([key, qty]) => ({ den: Number(key), qty: Number(qty) }));
             
             return {
@@ -856,51 +856,51 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
     };
 
     const renderTotalsByCurrency = (currency: 'UYU' | 'USD') => {
-        const currencyData = systemTotals.filter(d => d.moneda === currency);
-        const openingAmount = currency === 'UYU' ? openingDetails.totalUYU : openingDetails.totalUSD;
+        const currencyData = systemTotals.find(d => d.moneda === currency);
+        if (!currencyData) {
+            return (
+                <div key={currency} className="space-y-4">
+                    <h3 className="font-semibold text-lg">{currency}</h3>
+                    <p className="text-muted-foreground">No data available for this currency.</p>
+                </div>
+            );
+        }
 
-        const cashData = currencyData.find(d => d.payment_method === 'Cash');
-        const systemCashTotal = (cashData ? parseFloat(cashData.total_efectivo) : 0) + openingAmount;
+        const openingAmount = currency === 'UYU' ? openingDetails.totalUYU : openingDetails.totalUSD;
+        const systemCashTotal = parseFloat(currencyData.total_efectivo || '0') + openingAmount;
         const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
         const cashDifference = declaredCash - systemCashTotal;
 
-        const otherPayments = currencyData.filter(d => d.payment_method !== 'Cash');
-        
         return (
             <div key={currency} className="space-y-4">
                 <h3 className="font-semibold text-lg">{currency}</h3>
-                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                    <Label className="flex items-center gap-2 font-semibold">
-                        <Banknote className="h-5 w-5 text-muted-foreground" />
-                        {t('methods.cash')}
-                    </Label>
-                    <div className="text-center">
-                        <div className="text-muted-foreground">{t('systemTotal')}</div>
-                        <div className="font-semibold">${systemCashTotal.toFixed(2)}</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-muted-foreground">Declared</div>
-                        <div className="font-semibold">${declaredCash.toFixed(2)}</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-muted-foreground">{t('difference')}</div>
-                        <div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div>
-                    </div>
-                </div>
-                {otherPayments.map(d => (
-                    <div key={d.payment_method} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                        <Label className="flex items-center gap-2 font-semibold">
-                            <CreditCard className="h-5 w-5 text-muted-foreground" />
-                            {d.payment_method}
-                        </Label>
-                        <div className="flex justify-start items-center text-sm md:pl-4">
-                            <div>
+                {currencyData.desglose_detallado?.map((d: any) => {
+                    const isCash = d.metodo.toLowerCase() === 'cash';
+                    const systemTotal = isCash ? systemCashTotal : parseFloat(d.monto);
+                    const declaredAmount = isCash ? declaredCash : systemTotal; // Assuming other methods are not manually counted
+                    const difference = declaredAmount - systemTotal;
+
+                    return (
+                        <div key={d.metodo} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                            <Label className="flex items-center gap-2 font-semibold">
+                                <Banknote className="h-5 w-5 text-muted-foreground" />
+                                {d.metodo}
+                            </Label>
+                            <div className="text-center">
                                 <div className="text-muted-foreground">{t('systemTotal')}</div>
-                                <div className="font-semibold">${parseFloat(d.total_otros_medios).toFixed(2)}</div>
+                                <div className="font-semibold">${systemTotal.toFixed(2)}</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-muted-foreground">Declared</div>
+                                <div className="font-semibold">${declaredAmount.toFixed(2)}</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-muted-foreground">{t('difference')}</div>
+                                <div className={cn("font-semibold", difference < 0 ? "text-red-500" : "text-green-500")}>${difference.toFixed(2)}</div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         );
     };
@@ -949,27 +949,40 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
         );
     }
     
+    const uyuReport = reportData.find((r: any) => r.moneda === 'UYU');
+    const usdReport = reportData.find((r: any) => r.moneda === 'USD');
+
+    const renderReportSection = (data: any, currency: string) => {
+        if (!data) return null;
+        const declaredCash = currency === 'UYU' ? data.declared_cash_uyu : data.declared_cash_usd;
+        return (
+            <div className="space-y-4">
+                <h3 className="font-bold text-lg">{currency} Report</h3>
+                <p><strong>Opening Amount:</strong> ${data.opening_amount}</p>
+                <p><strong>Declared Cash:</strong> ${declaredCash}</p>
+                <p><strong>System Cash Total:</strong> ${data.system_cash_total}</p>
+                <p><strong>Cash Discrepancy:</strong> <span className={cn(data.cash_discrepancy < 0 ? 'text-red-500' : 'text-green-500')}>${data.cash_discrepancy}</span></p>
+                <p><strong>System Other Payments:</strong> ${data.system_other_total}</p>
+            </div>
+        );
+    };
+    
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Session #{reportData.session_id} Closed</CardTitle>
+                <CardTitle>Session #{reportData[0]?.session_id} Closed</CardTitle>
                 <CardDescription>
-                    Summary of the session closed by {reportData.user_name} at {reportData.cash_point_name}
+                    Summary of the session closed by {reportData[0]?.user_name} at {reportData[0]?.cash_point_name}
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                        <p><strong>Opening Amount:</strong> ${reportData.opening_amount}</p>
-                        <p><strong>Declared Cash:</strong> ${reportData.declared_cash}</p>
-                        <p><strong>System Cash Total:</strong> ${reportData.system_cash_total}</p>
-                        <p><strong>Cash Discrepancy:</strong> <span className={cn(reportData.cash_discrepancy < 0 ? 'text-red-500' : 'text-green-500')}>${reportData.cash_discrepancy}</span></p>
-                    </div>
-                     <div className="space-y-4">
-                        <p><strong>System Other Payments:</strong> ${reportData.system_other_total}</p>
-                        <p><strong>Closing Time:</strong> {new Date(reportData.closed_at).toLocaleString()}</p>
-                        {reportData.notes && <p><strong>Notes:</strong> {reportData.notes}</p>}
-                    </div>
+                    {renderReportSection(uyuReport, 'UYU')}
+                    {renderReportSection(usdReport, 'USD')}
+                </div>
+                 <div className="mt-4">
+                    <p><strong>Closing Time:</strong> {new Date(reportData[0]?.closed_at).toLocaleString()}</p>
+                    {reportData[0]?.notes && <p><strong>Notes:</strong> {reportData[0]?.notes}</p>}
                 </div>
             </CardContent>
             <CardFooter>
@@ -1063,8 +1076,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         }
     }, [currentStep, fetchRates]);
 
-    const uyuTotal = React.useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
-    const usdTotal = React.useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
+    const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
+    const usdTotal = useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
     
     const totalOpeningAmountUYU = uyuTotal;
     const totalOpeningAmountUSD = usdTotal;
