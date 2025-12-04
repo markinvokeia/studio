@@ -37,26 +37,26 @@ const denominationsUSD = [100, 50, 20, 10, 5, 1];
 const coinsUSD: number[] = [];
 
 const UYU_IMAGES: Record<number, string> = {
-    2000: 'https://www.brou.com.uy/c/document_library/get_file?uuid=038c8c62-48f1-4351-b847-062f63816515&groupId=10157',
-    1000: 'https://www.brou.com.uy/c/document_library/get_file?uuid=b84c8a2b-8a82-43e5-a45e-f4a2118337b5&groupId=10157',
-    500: 'https://www.brou.com.uy/c/document_library/get_file?uuid=6e8e8e7c-2b22-446a-8b2b-09255038c64c&groupId=10157',
-    200: 'https://www.brou.com.uy/c/document_library/get_file?uuid=977319e3-776e-49b7-9576-24a612b77549&groupId=10157',
-    100: 'https://www.brou.com.uy/c/document_library/get_file?uuid=66831d68-0708-4122-861f-3610af689849&groupId=10157',
-    50: 'https://www.brou.com.uy/c/document_library/get_file?uuid=84bc8880-0a88-4424-81d3-352c31e96d9a&groupId=10157',
-    20: 'https://www.brou.com.uy/c/document_library/get_file?uuid=656f481c-8a21-4f36-8291-583594191399&groupId=10157',
-    10: 'https://www.bcu.gub.uy/Comunicaciones/Material%20de%20prensa/Moneda%2010%20Anverso.jpg',
-    5: 'https://www.bcu.gub.uy/Comunicaciones/Material%20de%20prensa/Moneda%205%20Anverso.jpg',
-    2: 'https://www.bcu.gub.uy/Comunicaciones/Material%20de%20prensa/Moneda%202%20Anverso.jpg',
-    1: 'https://www.bcu.gub.uy/Comunicaciones/Material%_de%_prensa/Moneda%_1%_Anverso.jpg',
+    2000: '/billetes/billete_2000.svg',
+    1000: '/billetes/billete_1000.svg',
+    500: '/billetes/billete_500.svg',
+    200: '/billetes/billete_200.svg',
+    100: '/billetes/billete_100.svg',
+    50: '/billetes/billete_50.svg',
+    20: '/billetes/billete_20.svg',
+    10: '/billetes/moneda_10.svg',
+    5: '/billetes/moneda_5.svg',
+    2: '/billetes/moneda_2.svg',
+    1: '/billetes/moneda_1.svg',
 };
 
 const USD_IMAGES: Record<number, string> = {
-    100: 'https://www.uscurrency.gov/sites/default/files/2018-05/100-2013-front.jpg',
-    50: 'https://www.uscurrency.gov/sites/default/files/2018-05/50-2004-front.jpg',
-    20: 'https://www.uscurrency.gov/sites/default/files/2018-05/20-2004-front_0.jpg',
-    10: 'https://www.uscurrency.gov/sites/default/files/2018-05/10-2004-front.jpg',
-    5: 'https://www.uscurrency.gov/sites/default/files/2018-05/5-2006-front.jpg',
-    1: 'https://www.uscurrency.gov/sites/default/files/2018-05/1-2013-front.jpg',
+    100: '/billetes/usd/USD_billete_100.svg',
+    50: '/billetes/usd/USD_billete_50.svg',
+    20: '/billetes/usd/USD_billete_20.svg',
+    10: '/billetes/usd/USD_billete_10.svg',
+    5: '/billetes/usd/USD_billete_5.svg',
+    1: '/billetes/usd/USD_billete_1.svg',
 };
 
 
