@@ -852,12 +852,12 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                 </div>
             );
         }
-
+    
         const cashDetail = currencyData.desglose_detallado?.find((d: any) => d.metodo === 'Cash');
         const systemCashTotal = cashDetail ? parseFloat(cashDetail.monto) : 0;
         const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
         const cashDifference = declaredCash - systemCashTotal;
-
+    
         return (
             <div key={currency} className="space-y-4">
                 <h3 className="font-semibold text-lg">{currency}</h3>
@@ -868,7 +868,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                     <div className="text-center"><div className="text-muted-foreground">Declared</div><div className="font-semibold">${declaredCash.toFixed(2)}</div></div>
                     <div className="text-center"><div className="text-muted-foreground">{t('difference')}</div><div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div></div>
                 </div>
-
+    
                 {currencyData.desglose_detallado?.filter((d: any) => d.metodo !== 'Cash' && d.metodo !== 'Apertura Caja').map((d: any, index: number) => (
                     <div key={`${d.metodo}-${index}`} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                         <Label className="flex items-center gap-2 font-semibold">
@@ -1333,6 +1333,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
     
 
+
+    
 
     
 
