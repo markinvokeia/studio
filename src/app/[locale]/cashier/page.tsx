@@ -37,26 +37,26 @@ const denominationsUSD = [100, 50, 20, 10, 5, 1];
 const coinsUSD: number[] = [];
 
 const UYU_IMAGES: Record<number, string> = {
-    2000: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/billete_2000.svg',
-    1000: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/billete_1000.svg',
-    500: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/billete_500.svg',
-    200: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/billete_200.svg',
-    100: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/billete_100.svg',
-    50: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/billete_50.svg',
-    20: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/billete_20.svg',
-    10: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/moneda_10.svg',
-    5: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/moneda_5.svg',
-    2: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/moneda_2.svg',
-    1: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/moneda_1.svg',
+    2000: 'https://www.brou.com.uy/c/document_library/get_file?uuid=038c8c62-48f1-4351-b847-062f63816515&groupId=10157',
+    1000: 'https://www.brou.com.uy/c/document_library/get_file?uuid=b84c8a2b-8a82-43e5-a45e-f4a2118337b5&groupId=10157',
+    500: 'https://www.brou.com.uy/c/document_library/get_file?uuid=6e8e8e7c-2b22-446a-8b2b-09255038c64c&groupId=10157',
+    200: 'https://www.brou.com.uy/c/document_library/get_file?uuid=977319e3-776e-49b7-9576-24a612b77549&groupId=10157',
+    100: 'https://www.brou.com.uy/c/document_library/get_file?uuid=66831d68-0708-4122-861f-3610af689849&groupId=10157',
+    50: 'https://www.brou.com.uy/c/document_library/get_file?uuid=84bc8880-0a88-4424-81d3-352c31e96d9a&groupId=10157',
+    20: 'https://www.brou.com.uy/c/document_library/get_file?uuid=656f481c-8a21-4f36-8291-583594191399&groupId=10157',
+    10: 'https://www.bcu.gub.uy/Comunicaciones/Material%20de%20prensa/Moneda%2010%20Anverso.jpg',
+    5: 'https://www.bcu.gub.uy/Comunicaciones/Material%20de%20prensa/Moneda%205%20Anverso.jpg',
+    2: 'https://www.bcu.gub.uy/Comunicaciones/Material%20de%20prensa/Moneda%202%20Anverso.jpg',
+    1: 'https://www.bcu.gub.uy/Comunicaciones/Material%20de%20prensa/Moneda%201%20Anverso.jpg',
 };
 
 const USD_IMAGES: Record<number, string> = {
-    100: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_100.svg',
-    50: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_50.svg',
-    20: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_20.svg',
-    10: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_10.svg',
-    5: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_5.svg',
-    1: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_1.svg',
+    100: 'https://www.uscurrency.gov/sites/default/files/2018-05/100-2013-front.jpg',
+    50: 'https://www.uscurrency.gov/sites/default/files/2018-05/50-2004-front.jpg',
+    20: 'https://www.uscurrency.gov/sites/default/files/2018-05/20-2004-front_0.jpg',
+    10: 'https://www.uscurrency.gov/sites/default/files/2018-05/10-2004-front.jpg',
+    5: 'https://www.uscurrency.gov/sites/default/files/2018-05/5-2006-front.jpg',
+    1: 'https://www.uscurrency.gov/sites/default/files/2018-05/1-2013-front.jpg',
 };
 
 
@@ -145,6 +145,7 @@ export default function CashierPage() {
                 cajaSesionId: sessionId,
                 tipo: mov.type === 'INFLOW' ? 'INGRESO' : 'EGRESO',
                 monto: parseFloat(mov.amount),
+                currency: mov.currency,
                 descripcion: mov.description,
                 fecha: mov.created_at,
                 usuarioId: mov.registered_by_user,
@@ -360,20 +361,8 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
 function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOpen = false, onViewAllCashPoints }: { session: CajaSesion, movements: CajaMovimiento[], onCloseSession: () => void, isWizardOpen?: boolean, onViewAllCashPoints: () => void; }) {
     const t = useTranslations('CashierPage');
     
-    const totalIncome = React.useMemo(() => movements.filter(m => m.tipo === 'INGRESO').reduce((sum, m) => sum + m.monto, 0), [movements]);
-    
-    const dailyPayments = React.useMemo(() => movements.filter(m => m.tipo === 'INGRESO'), [movements]);
-
-    const tColumns = useTranslations('CashierPage.activeSession.columns');
-    const movementColumns: ColumnDef<CajaMovimiento>[] = [
-      { accessorKey: 'descripcion', header: tColumns('description') },
-      { accessorKey: 'monto', header: tColumns('amount'), cell: ({ row }) => `$${row.original.monto.toFixed(2)}` },
-      { accessorKey: 'metodoPago', header: tColumns('method') },
-      { accessorKey: 'fecha', header: tColumns('date'), cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
-    ];
-    
     const openingDetails = React.useMemo(() => {
-        if (!session.opening_details) return null;
+        if (!session.opening_details) return { uyu: [], usd: [], totalUYU: 0, totalUSD: 0 };
         try {
             const details = typeof session.opening_details === 'string' 
                 ? JSON.parse(session.opening_details) 
@@ -381,21 +370,50 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
             
             const parseDenominations = (denoDetails: any) => 
                 Object.entries(denoDetails || {})
+                    .filter(([key]) => key !== 'total')
                     .map(([key, qty]) => ({ den: Number(key), qty: Number(qty) }))
                     .filter(item => !isNaN(item.den) && item.den > 0 && item.qty > 0);
-                
+            
             return {
                 uyu: parseDenominations(details.uyu),
-                usd: parseDenominations(details.usd)
+                usd: parseDenominations(details.usd),
+                totalUYU: details.uyu?.total || 0,
+                totalUSD: details.usd?.total || 0,
             };
 
         } catch (e) {
             console.error("Failed to parse opening_details", e);
-            return null;
+            return { uyu: [], usd: [], totalUYU: 0, totalUSD: 0 };
         }
     }, [session.opening_details]);
 
+    const totalIncome = React.useMemo(() => {
+        return movements
+            .filter(m => m.tipo === 'INGRESO')
+            .reduce((acc, mov) => {
+                const currency = mov.currency as ('UYU' | 'USD');
+                if (!acc[currency]) {
+                    acc[currency] = 0;
+                }
+                acc[currency] += mov.monto;
+                return acc;
+            }, {} as Record<'UYU' | 'USD', number>);
+    }, [movements]);
 
+    const dailyPayments = React.useMemo(() => movements.filter(m => m.tipo === 'INGRESO'), [movements]);
+
+    const tColumns = useTranslations('CashierPage.activeSession.columns');
+    const movementColumns: ColumnDef<CajaMovimiento>[] = [
+      { accessorKey: 'descripcion', header: tColumns('description') },
+      { 
+        accessorKey: 'monto', 
+        header: tColumns('amount'), 
+        cell: ({ row }) => `${row.original.currency} ${row.original.monto.toFixed(2)}` 
+      },
+      { accessorKey: 'metodoPago', header: tColumns('method') },
+      { accessorKey: 'fecha', header: tColumns('date'), cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
+    ];
+    
     return (
         <Card>
             <CardHeader className="flex flex-row items-start justify-between">
@@ -422,7 +440,10 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">${session.montoApertura.toFixed(2)}</div>
+                            <div className="text-2xl font-bold">
+                                {openingDetails.totalUYU > 0 && <div>UYU {openingDetails.totalUYU.toFixed(2)}</div>}
+                                {openingDetails.totalUSD > 0 && <div>USD {openingDetails.totalUSD.toFixed(2)}</div>}
+                            </div>
                             <p className="text-xs text-muted-foreground">{new Date(session.fechaApertura).toLocaleString()}</p>
                         </CardContent>
                     </Card>
@@ -432,14 +453,18 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                             <TrendingUp className="h-4 w-4 text-green-500" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">${totalIncome.toFixed(2)}</div>
+                           <div className="text-2xl font-bold">
+                                {Object.entries(totalIncome).map(([currency, total]) => (
+                                    <div key={currency}>{currency} {total.toFixed(2)}</div>
+                                ))}
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
                 <Tabs defaultValue="payments">
                     <TabsList>
                         <TabsTrigger value="payments">{t('activeSession.dailyPayments')}</TabsTrigger>
-                        {openingDetails && (openingDetails.uyu.length > 0 || openingDetails.usd.length > 0) && (
+                        {(openingDetails.uyu.length > 0 || openingDetails.usd.length > 0) && (
                             <TabsTrigger value="opening_details">{t('activeSession.openingDetails')}</TabsTrigger>
                         )}
                     </TabsList>
@@ -447,7 +472,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                         <DataTable columns={movementColumns} data={dailyPayments} />
                     </TabsContent>
                     <TabsContent value="opening_details">
-                        {openingDetails && (openingDetails.uyu.length > 0 || openingDetails.usd.length > 0) ? (
+                        {(openingDetails.uyu.length > 0 || openingDetails.usd.length > 0) ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {openingDetails.uyu.length > 0 && (
                                 <Table>
