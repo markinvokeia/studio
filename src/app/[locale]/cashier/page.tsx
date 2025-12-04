@@ -576,6 +576,109 @@ function CloseSessionWizard({
     );
 }
 
+const DenominationCounter = ({ title, denominations, coins, currency, quantities, onQuantitiesChange, lastClosingDetails, imageMap }: { 
+    title: string, 
+    denominations: number[], 
+    coins: number[],
+    currency: string,
+    quantities: Record<string, number>,
+    onQuantitiesChange: (details: Record<string, number>) => void,
+    lastClosingDetails?: Record<string, number> | null,
+    imageMap: Record<number, string>
+}) => {
+    const total = React.useMemo(() => {
+        return [...denominations, ...coins].reduce((sum, den) => sum + (Number(den) || 0) * (quantities[den] || 0), 0)
+    }, [quantities, denominations, coins]);
+
+    const handleQuantityChange = (denomination: number, quantity: string) => {
+        const newQuantities = { ...quantities, [denomination]: parseInt(quantity, 10) || 0 };
+        onQuantitiesChange(newQuantities);
+    };
+
+    const setAllTo = (val: number) => {
+        const newQuantities = [...denominations, ...coins].reduce((acc, den) => {
+            acc[den] = val;
+            return acc;
+        }, {} as Record<string, number>);
+        onQuantitiesChange(newQuantities);
+    }
+    
+    const loadLastClosing = () => {
+        if(lastClosingDetails){
+            onQuantitiesChange(lastClosingDetails);
+        }
+    }
+    
+
+    return (
+        <div className="space-y-4">
+            <div className="flex justify-between items-center">
+                <h3 className="font-medium text-lg">{title}</h3>
+                <div className="text-xl font-bold">{new Intl.NumberFormat('es-UY', { style: 'currency', currency }).format(total)}</div>
+            </div>
+             <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setAllTo(0)}>Prefill with 0</Button>
+                {lastClosingDetails && <Button type="button" variant="secondary" size="sm" onClick={loadLastClosing}>Prefill with Last Closing Cashup</Button>}
+            </div>
+            <ScrollArea className="h-96">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 p-1">
+                    {denominations.map(den => (
+                        <div key={den} className="grid grid-cols-[80px_1fr] items-center gap-2">
+                             <div className="w-[80px] h-[40px] relative">
+                                {imageMap[den] ? (
+                                    <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-md object-contain" />
+                                ) : (
+                                    <div className="w-full h-full bg-muted rounded-md flex items-center justify-center text-xs text-muted-foreground">No Image</div>
+                                )}
+                            </div>
+                             <div className="flex items-center">
+                                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
+                                <Input
+                                    id={`den-${den}`}
+                                    type="number"
+                                    min="0"
+                                    value={quantities[den] || ''}
+                                    onChange={(e) => handleQuantityChange(den, e.target.value)}
+                                    className="w-16 text-center mx-1 h-8 text-base"
+                                />
+                                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                 {coins.length > 0 && <div className="mt-6 border-t pt-4">
+                    <h4 className="font-medium text-md mb-2 flex items-center gap-2"><Coins /> Monedas</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 p-1">
+                        {coins.map(den => (
+                            <div key={den} className="grid grid-cols-[80px_1fr] items-center gap-2">
+                                <div className="w-[40px] h-[40px] relative">
+                                    {imageMap[den] ? (
+                                        <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-full object-contain" />
+                                    ) : (
+                                        <div className="w-full h-full bg-muted rounded-full flex items-center justify-center text-xs text-muted-foreground">No Img</div>
+                                    )}
+                                </div>
+                                <div className="flex items-center">
+                                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
+                                    <Input
+                                        id={`den-${den}`}
+                                        type="number"
+                                        min="0"
+                                        value={quantities[den] || ''}
+                                        onChange={(e) => handleQuantityChange(den, e.target.value)}
+                                        className="w-16 text-center mx-1 h-8 text-base"
+                                    />
+                                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>}
+            </ScrollArea>
+        </div>
+    );
+};
+
 const CashCounter = ({ activeSession, uyuDenominations, setUyuDenominations, usdDenominations, setUsdDenominations, onCountComplete }: {
     activeSession: CajaSesion;
     uyuDenominations: Record<string, number>;
@@ -829,114 +932,6 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
 };
 
 
-const DenominationCounter = ({ title, denominations, coins, currency, quantities, onQuantitiesChange, lastClosingDetails, imageMap }: { 
-    title: string, 
-    denominations: number[], 
-    coins: number[],
-    currency: string,
-    quantities: Record<string, number>,
-    onQuantitiesChange: (details: Record<string, number>) => void,
-    lastClosingDetails?: Record<string, number> | null,
-    imageMap: Record<number, string>
-}) => {
-    const total = React.useMemo(() => {
-        return [...denominations, ...coins].reduce((sum, den) => sum + (Number(den) || 0) * (quantities[den] || 0), 0)
-    }, [quantities, denominations, coins]);
-
-    const handleQuantityChange = (denomination: number, quantity: string) => {
-        const newQuantities = { ...quantities, [denomination]: parseInt(quantity, 10) || 0 };
-        onQuantitiesChange(newQuantities);
-    };
-
-    const setAllTo = (val: number) => {
-        const newQuantities = [...denominations, ...coins].reduce((acc, den) => {
-            acc[den] = val;
-            return acc;
-        }, {} as Record<string, number>);
-        onQuantitiesChange(newQuantities);
-    }
-    
-    const loadLastClosing = () => {
-        if(lastClosingDetails){
-            onQuantitiesChange(lastClosingDetails);
-        }
-    }
-    
-
-    return (
-        <div className="space-y-4">
-            <div className="flex justify-between items-center">
-                <h3 className="font-medium text-lg">{title}</h3>
-                <div className="text-xl font-bold">{new Intl.NumberFormat('es-UY', { style: 'currency', currency }).format(total)}</div>
-            </div>
-             <div className="flex gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => setAllTo(0)}>Prefill with 0</Button>
-                {lastClosingDetails && <Button type="button" variant="secondary" size="sm" onClick={loadLastClosing}>Prefill with Last Closing Cashup</Button>}
-            </div>
-            <ScrollArea className="h-96">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 p-1">
-                    {denominations.map(den => (
-                        <div key={den} className="grid grid-cols-[auto,1fr,auto] items-center gap-4">
-                             <div className="w-[80px] h-[40px] relative">
-                                {imageMap[den] ? (
-                                    <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-md object-contain" />
-                                ) : (
-                                    <div className="w-full h-full bg-muted rounded-md flex items-center justify-center text-xs text-muted-foreground">No Image</div>
-                                )}
-                            </div>
-                             <Label htmlFor={`den-${den}`} className="text-sm font-semibold justify-self-end pr-2">
-                                {new Intl.NumberFormat('es-UY', { style: 'currency', currency: currency, minimumFractionDigits: 0 }).format(den)}
-                            </Label>
-                             <div className="flex items-center">
-                                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
-                                <Input
-                                    id={`den-${den}`}
-                                    type="number"
-                                    min="0"
-                                    value={quantities[den] || ''}
-                                    onChange={(e) => handleQuantityChange(den, e.target.value)}
-                                    className="w-16 text-center mx-1 h-8 text-base"
-                                />
-                                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                 {coins.length > 0 && <div className="mt-6 border-t pt-4">
-                    <h4 className="font-medium text-md mb-2 flex items-center gap-2"><Coins /> Monedas</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 p-1">
-                        {coins.map(den => (
-                            <div key={den} className="grid grid-cols-[auto,1fr,auto] items-center gap-4">
-                                <div className="w-[40px] h-[40px] relative">
-                                    {imageMap[den] ? (
-                                        <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-full object-contain" />
-                                    ) : (
-                                        <div className="w-full h-full bg-muted rounded-full flex items-center justify-center text-xs text-muted-foreground">No Img</div>
-                                    )}
-                                </div>
-                                <Label htmlFor={`den-${den}`} className="text-sm font-semibold justify-self-end pr-2">
-                                    {new Intl.NumberFormat('es-UY', { style: 'currency', currency: currency, minimumFractionDigits: 0 }).format(den)}
-                                </Label>
-                                <div className="flex items-center">
-                                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
-                                    <Input
-                                        id={`den-${den}`}
-                                        type="number"
-                                        min="0"
-                                        value={quantities[den] || ''}
-                                        onChange={(e) => handleQuantityChange(den, e.target.value)}
-                                        className="w-16 text-center mx-1 h-8 text-base"
-                                    />
-                                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>}
-            </ScrollArea>
-        </div>
-    );
-};
 
 
 function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionData, setSessionData, uyuDenominations, setUyuDenominations, usdDenominations, setUsdDenominations, toast }: {
@@ -1291,5 +1286,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
 
+
+    
 
     
