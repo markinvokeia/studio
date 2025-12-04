@@ -753,7 +753,10 @@ const CashCounter = ({ onCountComplete, uyuDenominations, setUyuDenominations, u
             </CardContent>
             <CardFooter className='justify-between'>
                  <div className='font-semibold'>
-                    Total Declared: ${uyuTotal.toFixed(2)} UYU / ${usdTotal.toFixed(2)} USD
+                    Total Declared (UYU): ${uyuTotal.toFixed(2)}
+                </div>
+                 <div className='font-semibold'>
+                    Total Declared (USD): ${usdTotal.toFixed(2)}
                 </div>
                 <Button onClick={onCountComplete}>Continue to Declaration</Button>
             </CardFooter>
@@ -862,11 +865,10 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
             .filter(d => d.payment_method.toLowerCase() === 'cash')
             .reduce((sum, d) => sum + parseFloat(d.total_efectivo), 0) + (currency === 'UYU' ? openingDetails.totalUYU : openingDetails.totalUSD);
         
-        const systemOtherPayments = currencyData
-            .filter(d => d.payment_method.toLowerCase() !== 'cash');
-
         const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
         const cashDifference = declaredCash - systemCashTotal;
+
+        const otherPayments = currencyData.filter(d => d.payment_method.toLowerCase() !== 'cash');
 
         return (
             <div key={currency} className="space-y-4">
@@ -889,7 +891,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                         <div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div>
                     </div>
                 </div>
-                {systemOtherPayments.map(d => (
+                {otherPayments.map(d => (
                     <div key={d.payment_method} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                         <Label className="flex items-center gap-2 font-semibold">
                             <CreditCard className="h-5 w-5 text-muted-foreground" />
@@ -1105,7 +1107,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             opened_at: new Date().toISOString()
         };
 
-        const totalOpeningAmount = sessionData.currency === 'UYU' ? totalOpeningAmountUYU : totalOpeningAmountUSD;
+        const totalOpeningAmount = sessionData.currency === 'UYU' ? totalOpeningAmountUYU + (totalOpeningAmountUSD * (sessionData.date_rate || 0)) : totalOpeningAmountUSD + (totalOpeningAmountUYU / (sessionData.date_rate || 1));
 
         try {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/open', {
