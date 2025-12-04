@@ -370,9 +370,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
             
             const parseDenominations = (denoDetails: any) => 
                 Object.entries(denoDetails || {})
-                    .filter(([key]) => key !== 'total' && !isNaN(Number(key)))
-                    .map(([key, qty]) => ({ den: Number(key), qty: Number(qty) }))
-                    .filter(item => !isNaN(item.den) && item.den > 0 && item.qty > 0);
+                    .filter(([key, qty]) => key !== 'total' && !isNaN(Number(key)) && Number(qty) > 0)
+                    .map(([key, qty]) => ({ den: Number(key), qty: Number(qty) }));
             
             return {
                 uyu: parseDenominations(details.uyu),
@@ -388,16 +387,14 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     }, [session.opening_details]);
 
     const totalIncome = React.useMemo(() => {
-        return movements
+        const income: Record<'UYU' | 'USD', number> = { UYU: 0, USD: 0 };
+        movements
             .filter(m => m.tipo === 'INGRESO')
-            .reduce((acc, mov) => {
+            .forEach(mov => {
                 const currency = mov.currency as ('UYU' | 'USD');
-                if (!acc[currency]) {
-                    acc[currency] = 0;
-                }
-                acc[currency] += mov.monto;
-                return acc;
-            }, {} as Record<'UYU' | 'USD', number>);
+                income[currency] = (income[currency] || 0) + mov.monto;
+            });
+        return income;
     }, [movements]);
 
     const dailyPayments = React.useMemo(() => movements.filter(m => m.tipo === 'INGRESO'), [movements]);
@@ -443,6 +440,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                             <div className="text-2xl font-bold">
                                 {openingDetails.totalUYU > 0 && <div>UYU {openingDetails.totalUYU.toFixed(2)}</div>}
                                 {openingDetails.totalUSD > 0 && <div>USD {openingDetails.totalUSD.toFixed(2)}</div>}
+                                {(openingDetails.totalUYU === 0 && openingDetails.totalUSD === 0) && <div>$0.00</div>}
                             </div>
                             <p className="text-xs text-muted-foreground">{new Date(session.fechaApertura).toLocaleString()}</p>
                         </CardContent>
@@ -454,9 +452,9 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                         </CardHeader>
                         <CardContent>
                            <div className="text-2xl font-bold">
-                                {Object.entries(totalIncome).map(([currency, total]) => (
-                                    <div key={currency}>{currency} {total.toFixed(2)}</div>
-                                ))}
+                                {totalIncome.UYU > 0 && <div>UYU {totalIncome.UYU.toFixed(2)}</div>}
+                                {totalIncome.USD > 0 && <div>USD {totalIncome.USD.toFixed(2)}</div>}
+                                {(totalIncome.UYU === 0 && totalIncome.USD === 0) && <div>$0.00</div>}
                             </div>
                         </CardContent>
                     </Card>
@@ -571,7 +569,6 @@ function CloseSessionWizard({
                     </TabsContent>
                      <TabsContent value="COUNT_CASH">
                         <CashCounter
-                            activeSession={activeSession}
                             uyuDenominations={uyuDenominations}
                             setUyuDenominations={setUyuDenominations}
                             usdDenominations={usdDenominations}
@@ -704,13 +701,12 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
     );
 };
 
-const CashCounter = ({ onCountComplete, uyuDenominations, setUyuDenominations, usdDenominations, setUsdDenominations, activeSession }: {
+const CashCounter = ({ onCountComplete, uyuDenominations, setUyuDenominations, usdDenominations, setUsdDenominations }: {
     onCountComplete: () => void;
     uyuDenominations: Record<string, number>;
     setUyuDenominations: React.Dispatch<React.SetStateAction<Record<string, number>>>;
     usdDenominations: Record<string, number>;
     setUsdDenominations: React.Dispatch<React.SetStateAction<Record<string, number>>>;
-    activeSession: CajaSesion;
 }) => {
     const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
     const usdTotal = useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
@@ -840,15 +836,16 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
             
             const responseData = await response.json();
             
-            if (!response.ok || responseData.error) {
-                throw new Error(responseData.message || 'Failed to close session.');
+            if (!response.ok || (Array.isArray(responseData) && responseData[0]?.error) || responseData.error) {
+                const errorInfo = Array.isArray(responseData) ? responseData[0] : responseData;
+                throw new Error(errorInfo.message || 'Failed to close session.');
             }
 
             toast({
                 title: 'Session Closed',
                 description: 'The cash session has been successfully closed.',
             });
-            onSessionClosed(responseData[0]?.json || responseData);
+            onSessionClosed((Array.isArray(responseData) && responseData[0]?.json) ? responseData[0].json : responseData);
         } catch (error) {
             toast({
                 variant: 'destructive',
@@ -860,16 +857,15 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
 
     const renderTotalsByCurrency = (currency: 'UYU' | 'USD') => {
         const currencyData = systemTotals.filter(d => d.moneda === currency);
-        
-        const systemCashTotal = currencyData
-            .filter(d => d.payment_method.toLowerCase() === 'cash')
-            .reduce((sum, d) => sum + parseFloat(d.total_efectivo), 0) + (currency === 'UYU' ? openingDetails.totalUYU : openingDetails.totalUSD);
-        
+        const openingAmount = currency === 'UYU' ? openingDetails.totalUYU : openingDetails.totalUSD;
+
+        const cashData = currencyData.find(d => d.payment_method === 'Cash');
+        const systemCashTotal = (cashData ? parseFloat(cashData.total_efectivo) : 0) + openingAmount;
         const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
         const cashDifference = declaredCash - systemCashTotal;
 
-        const otherPayments = currencyData.filter(d => d.payment_method.toLowerCase() !== 'cash');
-
+        const otherPayments = currencyData.filter(d => d.payment_method !== 'Cash');
+        
         return (
             <div key={currency} className="space-y-4">
                 <h3 className="font-semibold text-lg">{currency}</h3>
@@ -1343,5 +1339,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
+    
+
 
     
