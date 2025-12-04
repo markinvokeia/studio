@@ -847,8 +847,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                 title: 'Session Closed',
                 description: 'The cash session has been successfully closed.',
             });
-            const report = (Array.isArray(responseData) && responseData[0]?.json) ? responseData[0].json : responseData;
-            onSessionClosed(report);
+            onSessionClosed(responseData);
         } catch (error) {
             toast({
                 variant: 'destructive',
@@ -859,8 +858,8 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
     };
 
     const renderTotalsByCurrency = (currency: 'UYU' | 'USD') => {
-        const currencyData = systemTotals.filter(d => d.moneda === currency);
-        if (currencyData.length === 0) {
+        const currencyData = systemTotals.find(d => d.moneda === currency);
+        if (!currencyData) {
             return (
                 <div key={currency} className="space-y-4">
                     <h3 className="font-semibold text-lg">{currency}</h3>
@@ -870,8 +869,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
         }
 
         const openingAmount = currency === 'UYU' ? openingDetails.totalUYU : openingDetails.totalUSD;
-        const totalCash = currencyData.find(d => d.payment_method === 'Cash');
-        const systemCashTotal = parseFloat(totalCash?.monto || '0') + openingAmount;
+        const systemCashTotal = parseFloat(currencyData.total_efectivo) + openingAmount;
         const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
         const cashDifference = declaredCash - systemCashTotal;
 
@@ -886,11 +884,11 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                     <div className="text-center"><div className="text-muted-foreground">{t('difference')}</div><div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div></div>
                 </div>
 
-                {currencyData.filter(d => d.payment_method !== 'Cash').map((d: any, index: number) => (
-                    <div key={`${d.payment_method}-${index}`} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                {currencyData.desglose_detallado?.filter((d: any) => d.metodo !== 'Cash' && d.metodo !== 'Apertura Caja').map((d: any, index: number) => (
+                    <div key={`${d.metodo}-${index}`} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                         <Label className="flex items-center gap-2 font-semibold">
                             <CreditCard className="h-5 w-5 text-muted-foreground" />
-                            {d.payment_method}
+                            {d.metodo}
                         </Label>
                         <div className="text-center md:col-span-3"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">${parseFloat(d.monto).toFixed(2)}</div></div>
                     </div>
@@ -1350,5 +1348,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
     
 
+
+    
 
     
