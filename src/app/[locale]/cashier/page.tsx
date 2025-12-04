@@ -844,6 +844,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
     
     const renderTotalsByCurrency = (currency: 'UYU' | 'USD') => {
         const currencyData = systemTotals.find(d => d.moneda === currency);
+        
         if (!currencyData) {
             return (
                 <div key={currency} className="space-y-4">
@@ -853,8 +854,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
             );
         }
     
-        const cashDetail = currencyData.desglose_detallado?.find((d: any) => d.metodo === 'Cash');
-        const systemCashTotal = cashDetail ? parseFloat(cashDetail.monto) : 0;
+        const systemCashTotal = parseFloat(currencyData.total_efectivo) || 0;
         const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
         const cashDifference = declaredCash - systemCashTotal;
     
@@ -869,7 +869,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                     <div className="text-center"><div className="text-muted-foreground">{t('difference')}</div><div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div></div>
                 </div>
     
-                {currencyData.desglose_detallado?.filter((d: any) => d.metodo !== 'Cash' && d.metodo !== 'Apertura Caja').map((d: any, index: number) => (
+                {currencyData.desglose_detallado?.filter((d: any) => d.metodo !== 'Cash').map((d: any, index: number) => (
                     <div key={`${d.metodo}-${index}`} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                         <Label className="flex items-center gap-2 font-semibold">
                             <CreditCard className="h-5 w-5 text-muted-foreground" />
@@ -927,9 +927,7 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
     }
     
     const dataArray = Array.isArray(reportData) ? reportData : [reportData];
-    const uyuReport = dataArray.find((r: any) => r.moneda === 'UYU');
-    const usdReport = dataArray.find((r: any) => r.moneda === 'USD');
-
+    
     const renderReportSection = (data: any, currency: string) => {
         if (!data) return null;
         const declaredCash = currency === 'UYU' ? data.declared_cash_uyu : data.declared_cash_usd;
@@ -945,6 +943,9 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
         );
     };
     
+    const uyuReport = dataArray.find((r: any) => r.moneda === 'UYU');
+    const usdReport = dataArray.find((r: any) => r.moneda === 'USD');
+
     return (
         <Card>
             <CardHeader>
@@ -1333,6 +1334,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
     
 
+
+    
 
     
 
