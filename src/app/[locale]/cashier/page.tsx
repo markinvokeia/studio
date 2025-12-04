@@ -648,7 +648,7 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
             <ScrollArea className="h-96">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 p-1">
                     {denominations.map(den => (
-                        <div key={den} className="grid grid-cols-[80px_1fr] items-center gap-2">
+                        <div key={den} className="grid grid-cols-[80px_1fr] items-center gap-4">
                              <div className="w-[80px] h-[40px] relative">
                                 {imageMap[den] ? (
                                     <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-md object-contain" />
@@ -675,7 +675,7 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
                     <h4 className="font-medium text-md mb-2 flex items-center gap-2"><Coins /> Monedas</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 p-1">
                         {coins.map(den => (
-                            <div key={den} className="grid grid-cols-[80px_1fr] items-center gap-2">
+                            <div key={den} className="grid grid-cols-[80px_1fr] items-center gap-4">
                                 <div className="w-[40px] h-[40px] relative">
                                     {imageMap[den] ? (
                                         <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-full object-contain" />
@@ -776,6 +776,21 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
     const [systemTotals, setSystemTotals] = React.useState<any[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
 
+    const openingDetails = React.useMemo(() => {
+        if (!activeSession.opening_details) return { totalUYU: 0, totalUSD: 0 };
+        try {
+            const details = typeof activeSession.opening_details === 'string' 
+                ? JSON.parse(activeSession.opening_details) 
+                : activeSession.opening_details;
+            return {
+                totalUYU: details.uyu?.total || 0,
+                totalUSD: details.usd?.total || 0,
+            };
+        } catch (e) {
+            return { totalUYU: 0, totalUSD: 0 };
+        }
+    }, [activeSession.opening_details]);
+
     React.useEffect(() => {
         const fetchDeclareData = async () => {
             if (!activeSession.id) return;
@@ -808,8 +823,8 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
             declared_cash_usd: declaredUsd,
             notes: notes,
             closing_denominations: JSON.stringify({
-                uyu: uyuDenominations,
-                usd: usdDenominations
+                uyu: { ...uyuDenominations, total: declaredUyu },
+                usd: { ...usdDenominations, total: declaredUsd }
             })
         };
 
@@ -842,19 +857,16 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
 
     const renderTotalsByCurrency = (currency: 'UYU' | 'USD') => {
         const currencyData = systemTotals.filter(d => d.moneda === currency);
-        const cashData = currencyData.find(d => d.payment_method.toLowerCase() === 'cash');
-        const otherData = currencyData.filter(d => d.payment_method.toLowerCase() !== 'cash');
         
-        const openingAmount = currency === activeSession.currency 
-            ? (activeSession.montoApertura || 0)
-            : currency === 'UYU'
-            ? (activeSession.montoApertura || 0) * (activeSession.date_rate || 1)
-            : (activeSession.montoApertura || 0) / (activeSession.date_rate || 1);
+        const systemCashTotal = currencyData
+            .filter(d => d.payment_method.toLowerCase() === 'cash')
+            .reduce((sum, d) => sum + parseFloat(d.total_efectivo), 0) + (currency === 'UYU' ? openingDetails.totalUYU : openingDetails.totalUSD);
+        
+        const systemOtherPayments = currencyData
+            .filter(d => d.payment_method.toLowerCase() !== 'cash');
 
-
-        const systemCash = openingAmount + parseFloat(cashData?.total_efectivo || '0');
         const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
-        const cashDifference = declaredCash - systemCash;
+        const cashDifference = declaredCash - systemCashTotal;
 
         return (
             <div key={currency} className="space-y-4">
@@ -866,7 +878,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                     </Label>
                     <div className="text-center">
                         <div className="text-muted-foreground">{t('systemTotal')}</div>
-                        <div className="font-semibold">${systemCash.toFixed(2)}</div>
+                        <div className="font-semibold">${systemCashTotal.toFixed(2)}</div>
                     </div>
                     <div className="text-center">
                         <div className="text-muted-foreground">Declared</div>
@@ -877,7 +889,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                         <div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div>
                     </div>
                 </div>
-                {otherData.map(d => (
+                {systemOtherPayments.map(d => (
                     <div key={d.payment_method} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                         <Label className="flex items-center gap-2 font-semibold">
                             <CreditCard className="h-5 w-5 text-muted-foreground" />
@@ -1055,8 +1067,9 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
     const uyuTotal = React.useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
     const usdTotal = React.useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
-    const usdEquivalentInUYU = usdTotal * (sessionData.date_rate || 0);
-    const totalOpeningAmount = uyuTotal + usdEquivalentInUYU;
+    
+    const totalOpeningAmountUYU = uyuTotal;
+    const totalOpeningAmountUSD = usdTotal;
     
     const memoizedSetUyuDenominations = useCallback((details: Record<string, number>) => setUyuDenominations(details), [setUyuDenominations]);
     const memoizedSetUsdDenominations = useCallback((details: Record<string, number>) => setUsdDenominations(details), [setUsdDenominations]);
@@ -1087,11 +1100,12 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             currency: sessionData.currency,
             date_rate: sessionData.date_rate,
             uyu: { ...uyuDenominations, total: uyuTotal },
-            usd: { ...usdDenominations, total: usdTotal, exchange_rate: sessionData.date_rate, equivalent_uyu: usdEquivalentInUYU },
-            grand_total_uyu: totalOpeningAmount,
+            usd: { ...usdDenominations, total: usdTotal },
             opened_by: user?.name,
             opened_at: new Date().toISOString()
         };
+
+        const totalOpeningAmount = sessionData.currency === 'UYU' ? totalOpeningAmountUYU : totalOpeningAmountUSD;
 
         try {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/open', {
@@ -1241,9 +1255,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 <Card>
                     <CardHeader><CardTitle>{t('confirmation.cashSummary')}</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="text-lg"><strong>{t('confirmation.totalUYU')}:</strong> {uyuTotal.toFixed(2)} UYU</div>
-                        <div className="text-lg"><strong>{t('confirmation.totalUSD')}:</strong> {usdTotal.toFixed(2)} USD ({usdEquivalentInUYU.toFixed(2)} UYU)</div>
-                        <div className="text-2xl font-bold border-t pt-4 mt-4">{t('confirmation.totalOpening')}: {totalOpeningAmount.toFixed(2)} {sessionData.currency}</div>
+                        <div className="text-lg"><strong>{t('confirmation.totalUYU')}:</strong> {totalOpeningAmountUYU.toFixed(2)} UYU</div>
+                        <div className="text-lg"><strong>{t('confirmation.totalUSD')}:</strong> {totalOpeningAmountUSD.toFixed(2)} USD</div>
                         
                         <Collapsible>
                             <CollapsibleTrigger asChild>
@@ -1324,6 +1337,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
 
+
+    
 
     
 
