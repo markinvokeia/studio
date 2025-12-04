@@ -439,7 +439,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">
+                           <div className="text-2xl font-bold">
                                 {openingDetails.totalUYU > 0 && <div>UYU {openingDetails.totalUYU.toFixed(2)}</div>}
                                 {openingDetails.totalUSD > 0 && <div>USD {openingDetails.totalUSD.toFixed(2)}</div>}
                                 {(openingDetails.totalUYU === 0 && openingDetails.totalUSD === 0) && <div>$0.00</div>}
@@ -777,21 +777,6 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
     const [systemTotals, setSystemTotals] = React.useState<any[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
 
-    const openingDetails = React.useMemo(() => {
-        if (!activeSession.opening_details) return { totalUYU: 0, totalUSD: 0 };
-        try {
-            const details = typeof activeSession.opening_details === 'string' 
-                ? JSON.parse(activeSession.opening_details) 
-                : activeSession.opening_details;
-            return {
-                totalUYU: details.uyu?.total || 0,
-                totalUSD: details.usd?.total || 0,
-            };
-        } catch (e) {
-            return { totalUYU: 0, totalUSD: 0 };
-        }
-    }, [activeSession.opening_details]);
-
     React.useEffect(() => {
         const fetchDeclareData = async () => {
             if (!activeSession.id) return;
@@ -856,7 +841,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
             });
         }
     };
-
+    
     const renderTotalsByCurrency = (currency: 'UYU' | 'USD') => {
         const currencyData = systemTotals.find(d => d.moneda === currency);
         if (!currencyData) {
@@ -868,8 +853,8 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
             );
         }
 
-        const openingAmount = currency === 'UYU' ? openingDetails.totalUYU : openingDetails.totalUSD;
-        const systemCashTotal = parseFloat(currencyData.total_efectivo) + openingAmount;
+        const cashDetail = currencyData.desglose_detallado?.find((d: any) => d.metodo === 'Cash');
+        const systemCashTotal = cashDetail ? parseFloat(cashDetail.monto) : 0;
         const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
         const cashDifference = declaredCash - systemCashTotal;
 
@@ -878,7 +863,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                 <h3 className="font-semibold text-lg">{currency}</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                    <Label className="flex items-center gap-2 font-semibold"><Banknote className="h-5 w-5 text-muted-foreground" />Cash</Label>
+                    <Label className="flex items-center gap-2 font-semibold"><Banknote className="h-5 w-5 text-muted-foreground" />{t('methods.cash')}</Label>
                     <div className="text-center"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">${systemCashTotal.toFixed(2)}</div></div>
                     <div className="text-center"><div className="text-muted-foreground">Declared</div><div className="font-semibold">${declaredCash.toFixed(2)}</div></div>
                     <div className="text-center"><div className="text-muted-foreground">{t('difference')}</div><div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div></div>
