@@ -75,7 +75,7 @@ export default function CashierPage() {
     const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(null);
     const [cashPoints, setCashPoints] = React.useState<CashPointStatus[]>([]);
     const [sessionMovements, setSessionMovements] = React.useState<CajaMovimiento[]>([]);
-    const [closedSessionReport, setClosedSessionReport] = React.useState<CajaSesion | null>(null);
+    const [closedSessionReport, setClosedSessionReport] = React.useState<any | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
     const [serverError, setServerError] = React.useState<string | null>(null);
     
@@ -213,6 +213,8 @@ export default function CashierPage() {
                     setUyuDenominations={setUyuDenominations}
                     usdDenominations={usdDenominations}
                     setUsdDenominations={setUsdDenominations}
+                    closedSessionReport={closedSessionReport}
+                    setClosedSessionReport={setClosedSessionReport}
                 />
         }
 
@@ -379,9 +381,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
 
             const parseDenominations = (denoDetails: any) => 
                 Object.entries(denoDetails || {})
-                    .filter(([key, qty]) => key !== 'total' && Number(qty) > 0)
-                    .map(([den, qty]) => ({ den: Number(den), qty: Number(qty) }))
-                    .filter(item => !isNaN(item.den));
+                    .filter(([key, qty]) => key !== 'total' && !isNaN(Number(key)) && Number(qty) > 0)
+                    .map(([den, qty]) => ({ den: Number(den), qty: Number(qty) }));
                 
             return {
                 uyu: parseDenominations(details.uyu),
@@ -501,7 +502,9 @@ function CloseSessionWizard({
     uyuDenominations,
     setUyuDenominations,
     usdDenominations,
-    setUsdDenominations
+    setUsdDenominations,
+    closedSessionReport,
+    setClosedSessionReport
 }: {
     currentStep: string;
     setCurrentStep: React.Dispatch<React.SetStateAction<string>>;
@@ -512,6 +515,8 @@ function CloseSessionWizard({
     setUyuDenominations: (denominations: Record<string, number>) => void;
     usdDenominations: Record<string, number>;
     setUsdDenominations: (denominations: Record<string, number>) => void;
+    closedSessionReport: any | null;
+    setClosedSessionReport: (report: any | null) => void;
 }) {
     const t = useTranslations('CashierPage.wizard');
      const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
@@ -551,7 +556,17 @@ function CloseSessionWizard({
                         />
                     </TabsContent>
                     <TabsContent value="DECLARE">
-                        <DeclareCashup activeSession={activeSession} declaredCash={totalInSessionCurrency} onSessionClosed={onExitWizard} />
+                        <DeclareCashup 
+                            activeSession={activeSession} 
+                            declaredCash={totalInSessionCurrency} 
+                            onSessionClosed={(reportData) => {
+                                setClosedSessionReport(reportData);
+                                setCurrentStep('REPORT');
+                            }} 
+                        />
+                    </TabsContent>
+                    <TabsContent value="REPORT">
+                        <SessionReport reportData={closedSessionReport} onFinish={onExitWizard} />
                     </TabsContent>
                 </Tabs>
             </CardContent>
@@ -616,7 +631,7 @@ const CashCounter = ({ activeSession, uyuDenominations, setUyuDenominations, usd
 };
 
 
-const DeclareCashup = ({ activeSession, declaredCash, onSessionClosed }: { activeSession: CajaSesion, declaredCash: number, onSessionClosed: () => void }) => {
+const DeclareCashup = ({ activeSession, declaredCash, onSessionClosed }: { activeSession: CajaSesion, declaredCash: number, onSessionClosed: (reportData: any) => void }) => {
     const t = useTranslations('CashierPage.declareCashup');
     const { toast } = useToast();
     const [notes, setNotes] = React.useState('');
@@ -679,17 +694,18 @@ const DeclareCashup = ({ activeSession, declaredCash, onSessionClosed }: { activ
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
-
+            
+            const responseData = await response.json();
+            
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to close session.');
+                throw new Error(responseData.message || 'Failed to close session.');
             }
 
             toast({
                 title: 'Session Closed',
                 description: 'The cash session has been successfully closed.',
             });
-            onSessionClosed();
+            onSessionClosed(responseData);
         } catch (error) {
             toast({
                 variant: 'destructive',
@@ -758,6 +774,51 @@ const DeclareCashup = ({ activeSession, declaredCash, onSessionClosed }: { activ
             </CardFooter>
         </Card>
     )
+};
+
+const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: () => void }) => {
+    if (!reportData) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Session Report</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p>No report data available.</p>
+                    <Button onClick={onFinish} className="mt-4">Return to Cashier</Button>
+                </CardContent>
+            </Card>
+        );
+    }
+    
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Session #{reportData.session_id} Closed</CardTitle>
+                <CardDescription>
+                    Summary of the session closed by {reportData.user_name} at {reportData.cash_point_name}
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        <p><strong>Opening Amount:</strong> ${reportData.opening_amount}</p>
+                        <p><strong>Declared Cash:</strong> ${reportData.declared_cash}</p>
+                        <p><strong>System Cash Total:</strong> ${reportData.system_cash_total}</p>
+                        <p><strong>Cash Discrepancy:</strong> <span className={cn(reportData.cash_discrepancy < 0 ? 'text-red-500' : 'text-green-500')}>${reportData.cash_discrepancy}</span></p>
+                    </div>
+                     <div className="space-y-4">
+                        <p><strong>System Other Payments:</strong> ${reportData.system_other_total}</p>
+                        <p><strong>Closing Time:</strong> {new Date(reportData.closed_at).toLocaleString()}</p>
+                        {reportData.notes && <p><strong>Notes:</strong> {reportData.notes}</p>}
+                    </div>
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button onClick={onFinish}>Finish and Return</Button>
+            </CardFooter>
+        </Card>
+    );
 };
 
 
