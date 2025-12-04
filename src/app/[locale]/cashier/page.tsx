@@ -47,7 +47,7 @@ const UYU_IMAGES: Record<number, string> = {
     10: 'https://www.bcu.gub.uy/Comunicaciones/Material%20de%20prensa/Moneda%2010%20Anverso.jpg',
     5: 'https://www.bcu.gub.uy/Comunicaciones/Material%20de%20prensa/Moneda%205%20Anverso.jpg',
     2: 'https://www.bcu.gub.uy/Comunicaciones/Material%20de%20prensa/Moneda%202%20Anverso.jpg',
-    1: 'https://www.bcu.gub.uy/Comunicaciones/Material%20de%20prensa/Moneda%201%20Anverso.jpg',
+    1: 'https://www.bcu.gub.uy/Comunicaciones/Material%_de%_prensa/Moneda%_1%_Anverso.jpg',
 };
 
 const USD_IMAGES: Record<number, string> = {
@@ -392,7 +392,9 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
             .filter(m => m.tipo === 'INGRESO')
             .forEach(mov => {
                 const currency = mov.currency as ('UYU' | 'USD');
-                income[currency] = (income[currency] || 0) + mov.monto;
+                if (income[currency] !== undefined) {
+                    income[currency] += mov.monto;
+                }
             });
         return income;
     }, [movements]);
@@ -845,7 +847,8 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                 title: 'Session Closed',
                 description: 'The cash session has been successfully closed.',
             });
-            onSessionClosed((Array.isArray(responseData) && responseData[0]?.json) ? responseData[0].json : responseData);
+            const report = (Array.isArray(responseData) && responseData[0]?.json) ? responseData[0].json : responseData;
+            onSessionClosed(report);
         } catch (error) {
             toast({
                 variant: 'destructive',
@@ -856,8 +859,8 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
     };
 
     const renderTotalsByCurrency = (currency: 'UYU' | 'USD') => {
-        const currencyData = systemTotals.find(d => d.moneda === currency);
-        if (!currencyData) {
+        const currencyData = systemTotals.filter(d => d.moneda === currency);
+        if (currencyData.length === 0) {
             return (
                 <div key={currency} className="space-y-4">
                     <h3 className="font-semibold text-lg">{currency}</h3>
@@ -867,40 +870,31 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
         }
 
         const openingAmount = currency === 'UYU' ? openingDetails.totalUYU : openingDetails.totalUSD;
-        const systemCashTotal = parseFloat(currencyData.total_efectivo || '0') + openingAmount;
+        const totalCash = currencyData.find(d => d.payment_method === 'Cash');
+        const systemCashTotal = parseFloat(totalCash?.monto || '0') + openingAmount;
         const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
         const cashDifference = declaredCash - systemCashTotal;
 
         return (
             <div key={currency} className="space-y-4">
                 <h3 className="font-semibold text-lg">{currency}</h3>
-                {currencyData.desglose_detallado?.map((d: any) => {
-                    const isCash = d.metodo.toLowerCase() === 'cash';
-                    const systemTotal = isCash ? systemCashTotal : parseFloat(d.monto);
-                    const declaredAmount = isCash ? declaredCash : systemTotal; // Assuming other methods are not manually counted
-                    const difference = declaredAmount - systemTotal;
+                
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                    <Label className="flex items-center gap-2 font-semibold"><Banknote className="h-5 w-5 text-muted-foreground" />Cash</Label>
+                    <div className="text-center"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">${systemCashTotal.toFixed(2)}</div></div>
+                    <div className="text-center"><div className="text-muted-foreground">Declared</div><div className="font-semibold">${declaredCash.toFixed(2)}</div></div>
+                    <div className="text-center"><div className="text-muted-foreground">{t('difference')}</div><div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div></div>
+                </div>
 
-                    return (
-                        <div key={d.metodo} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                            <Label className="flex items-center gap-2 font-semibold">
-                                <Banknote className="h-5 w-5 text-muted-foreground" />
-                                {d.metodo}
-                            </Label>
-                            <div className="text-center">
-                                <div className="text-muted-foreground">{t('systemTotal')}</div>
-                                <div className="font-semibold">${systemTotal.toFixed(2)}</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-muted-foreground">Declared</div>
-                                <div className="font-semibold">${declaredAmount.toFixed(2)}</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-muted-foreground">{t('difference')}</div>
-                                <div className={cn("font-semibold", difference < 0 ? "text-red-500" : "text-green-500")}>${difference.toFixed(2)}</div>
-                            </div>
-                        </div>
-                    );
-                })}
+                {currencyData.filter(d => d.payment_method !== 'Cash').map((d: any, index: number) => (
+                    <div key={`${d.payment_method}-${index}`} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                        <Label className="flex items-center gap-2 font-semibold">
+                            <CreditCard className="h-5 w-5 text-muted-foreground" />
+                            {d.payment_method}
+                        </Label>
+                        <div className="text-center md:col-span-3"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">${parseFloat(d.monto).toFixed(2)}</div></div>
+                    </div>
+                ))}
             </div>
         );
     };
@@ -949,8 +943,9 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
         );
     }
     
-    const uyuReport = reportData.find((r: any) => r.moneda === 'UYU');
-    const usdReport = reportData.find((r: any) => r.moneda === 'USD');
+    const dataArray = Array.isArray(reportData) ? reportData : [reportData];
+    const uyuReport = dataArray.find((r: any) => r.moneda === 'UYU');
+    const usdReport = dataArray.find((r: any) => r.moneda === 'USD');
 
     const renderReportSection = (data: any, currency: string) => {
         if (!data) return null;
@@ -970,9 +965,9 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Session #{reportData[0]?.session_id} Closed</CardTitle>
+                <CardTitle>Session #{dataArray[0]?.session_id} Closed</CardTitle>
                 <CardDescription>
-                    Summary of the session closed by {reportData[0]?.user_name} at {reportData[0]?.cash_point_name}
+                    Summary of the session closed by {dataArray[0]?.user_name} at {dataArray[0]?.cash_point_name}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -981,8 +976,8 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
                     {renderReportSection(usdReport, 'USD')}
                 </div>
                  <div className="mt-4">
-                    <p><strong>Closing Time:</strong> {new Date(reportData[0]?.closed_at).toLocaleString()}</p>
-                    {reportData[0]?.notes && <p><strong>Notes:</strong> {reportData[0]?.notes}</p>}
+                    <p><strong>Closing Time:</strong> {new Date(dataArray[0]?.closed_at).toLocaleString()}</p>
+                    {dataArray[0]?.notes && <p><strong>Notes:</strong> {dataArray[0]?.notes}</p>}
                 </div>
             </CardContent>
             <CardFooter>
