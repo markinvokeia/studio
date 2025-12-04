@@ -209,6 +209,10 @@ export default function CashierPage() {
                     }}
                     activeSession={activeSession}
                     sessionMovements={sessionMovements}
+                    uyuDenominations={uyuDenominations}
+                    setUyuDenominations={setUyuDenominations}
+                    usdDenominations={usdDenominations}
+                    setUsdDenominations={setUsdDenominations}
                 />
         }
 
@@ -375,8 +379,9 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
 
             const parseDenominations = (denoDetails: any) => 
                 Object.entries(denoDetails || {})
-                      .filter(([key, qty]) => key !== 'total' && Number(qty) > 0)
-                      .map(([den, qty]) => ({ den: Number(den), qty: Number(qty) }));
+                    .filter(([key, qty]) => key !== 'total' && Number(qty) > 0)
+                    .map(([den, qty]) => ({ den: Number(den), qty: Number(qty) }))
+                    .filter(item => !isNaN(item.den));
                 
             return {
                 uyu: parseDenominations(details.uyu),
@@ -492,17 +497,26 @@ function CloseSessionWizard({
     setCurrentStep,
     onExitWizard,
     activeSession,
-    sessionMovements
+    sessionMovements,
+    uyuDenominations,
+    setUyuDenominations,
+    usdDenominations,
+    setUsdDenominations
 }: {
     currentStep: string;
     setCurrentStep: React.Dispatch<React.SetStateAction<string>>;
     onExitWizard: () => void;
     activeSession: CajaSesion;
     sessionMovements: CajaMovimiento[];
+    uyuDenominations: Record<string, number>;
+    setUyuDenominations: (denominations: Record<string, number>) => void;
+    usdDenominations: Record<string, number>;
+    setUsdDenominations: (denominations: Record<string, number>) => void;
 }) {
     const t = useTranslations('CashierPage.wizard');
-    const tabs = ['REVIEW', 'COUNT_CASH', 'DECLARE', 'REPORT'];
-     const [declaredCash, setDeclaredCash] = React.useState(0);
+     const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
+    const usdTotal = useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
+    const totalInSessionCurrency = activeSession.currency === 'UYU' ? uyuTotal + (usdTotal * (activeSession.date_rate || 1)) : usdTotal + (uyuTotal / (activeSession.date_rate || 1));
 
     return (
         <Card className="w-full">
@@ -529,14 +543,15 @@ function CloseSessionWizard({
                      <TabsContent value="COUNT_CASH">
                         <CashCounter
                             activeSession={activeSession}
-                            onCountComplete={(total) => {
-                                setDeclaredCash(total);
-                                setCurrentStep('DECLARE');
-                            }}
+                            uyuDenominations={uyuDenominations}
+                            setUyuDenominations={setUyuDenominations}
+                            usdDenominations={usdDenominations}
+                            setUsdDenominations={setUsdDenominations}
+                            onCountComplete={() => setCurrentStep('DECLARE')}
                         />
                     </TabsContent>
                     <TabsContent value="DECLARE">
-                        <DeclareCashup activeSession={activeSession} declaredCash={declaredCash} onSessionClosed={onExitWizard} />
+                        <DeclareCashup activeSession={activeSession} declaredCash={totalInSessionCurrency} onSessionClosed={onExitWizard} />
                     </TabsContent>
                 </Tabs>
             </CardContent>
@@ -544,10 +559,14 @@ function CloseSessionWizard({
     );
 }
 
-const CashCounter = ({ activeSession, onCountComplete }: { activeSession: CajaSesion, onCountComplete: (total: number) => void }) => {
-    const [uyuDenominations, setUyuDenominations] = React.useState<Record<string, number>>({});
-    const [usdDenominations, setUsdDenominations] = React.useState<Record<string, number>>({});
-
+const CashCounter = ({ activeSession, uyuDenominations, setUyuDenominations, usdDenominations, setUsdDenominations, onCountComplete }: {
+    activeSession: CajaSesion;
+    uyuDenominations: Record<string, number>;
+    setUyuDenominations: (denominations: Record<string, number>) => void;
+    usdDenominations: Record<string, number>;
+    setUsdDenominations: (denominations: Record<string, number>) => void;
+    onCountComplete: () => void;
+}) => {
     const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
     const usdTotal = useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
     const totalInSessionCurrency = activeSession.currency === 'UYU' ? uyuTotal + (usdTotal * (activeSession.date_rate || 1)) : usdTotal + (uyuTotal / (activeSession.date_rate || 1));
@@ -590,7 +609,7 @@ const CashCounter = ({ activeSession, onCountComplete }: { activeSession: CajaSe
             </CardContent>
             <CardFooter className='justify-between'>
                 <div className='font-semibold'>Total Declared ({activeSession.currency}): ${totalInSessionCurrency.toFixed(2)}</div>
-                <Button onClick={() => onCountComplete(totalInSessionCurrency)}>Continue to Declaration</Button>
+                <Button onClick={onCountComplete}>Continue to Declaration</Button>
             </CardFooter>
         </Card>
     );
