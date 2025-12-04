@@ -703,12 +703,13 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
     );
 };
 
-const CashCounter = ({ onCountComplete, uyuDenominations, setUyuDenominations, usdDenominations, setUsdDenominations }: {
+const CashCounter = ({ onCountComplete, uyuDenominations, setUyuDenominations, usdDenominations, setUsdDenominations, lastClosingDetails }: {
     onCountComplete: () => void;
     uyuDenominations: Record<string, number>;
     setUyuDenominations: React.Dispatch<React.SetStateAction<Record<string, number>>>;
     usdDenominations: Record<string, number>;
     setUsdDenominations: React.Dispatch<React.SetStateAction<Record<string, number>>>;
+    lastClosingDetails?: { uyu: Record<string, number>, usd: Record<string, number> } | null;
 }) => {
     const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
     const usdTotal = useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
@@ -734,6 +735,7 @@ const CashCounter = ({ onCountComplete, uyuDenominations, setUyuDenominations, u
                             quantities={uyuDenominations}
                             onQuantitiesChange={setUyuDenominations}
                             imageMap={UYU_IMAGES}
+                            lastClosingDetails={lastClosingDetails?.uyu}
                         />
                     </TabsContent>
                     <TabsContent value="usd">
@@ -745,6 +747,7 @@ const CashCounter = ({ onCountComplete, uyuDenominations, setUyuDenominations, u
                             quantities={usdDenominations}
                             onQuantitiesChange={setUsdDenominations}
                             imageMap={USD_IMAGES}
+                            lastClosingDetails={lastClosingDetails?.usd}
                         />
                     </TabsContent>
                 </Tabs>
@@ -869,7 +872,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                     <div className="text-center"><div className="text-muted-foreground">{t('difference')}</div><div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div></div>
                 </div>
     
-                {currencyData.desglose_detallado?.filter((d: any) => d.metodo !== 'Cash').map((d: any, index: number) => (
+                {currencyData.desglose_detallado?.filter((d: any) => d.metodo !== 'Cash' && d.metodo !== 'Apertura Caja').map((d: any, index: number) => (
                     <div key={`${d.metodo}-${index}`} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                         <Label className="flex items-center gap-2 font-semibold">
                             <CreditCard className="h-5 w-5 text-muted-foreground" />
@@ -928,6 +931,9 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
     
     const dataArray = Array.isArray(reportData) ? reportData : [reportData];
     
+    const uyuReport = dataArray.find((r: any) => r.moneda === 'UYU');
+    const usdReport = dataArray.find((r: any) => r.moneda === 'USD');
+
     const renderReportSection = (data: any, currency: string) => {
         if (!data) return null;
         const declaredCash = currency === 'UYU' ? data.declared_cash_uyu : data.declared_cash_usd;
@@ -942,9 +948,6 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
             </div>
         );
     };
-    
-    const uyuReport = dataArray.find((r: any) => r.moneda === 'UYU');
-    const usdReport = dataArray.find((r: any) => r.moneda === 'USD');
 
     return (
         <Card>
@@ -996,6 +999,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     const [avgRate, setAvgRate] = React.useState(0);
     const [exchangeRatesHtml, setExchangeRatesHtml] = React.useState('');
     const [exchangeRateStatus, setExchangeRateStatus] = React.useState<'loading' | 'loaded' | 'error'>('loading');
+    const [lastClosingDetails, setLastClosingDetails] = React.useState<{ uyu: Record<string, number>, usd: Record<string, number> } | null>(null);
 
     const fetchRates = React.useCallback(async () => {
         const today = new Date().toISOString().split('T')[0];
@@ -1048,6 +1052,26 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch exchange rates.' });
         }
     }, [setSessionData, toast]);
+    
+     React.useEffect(() => {
+        const fetchLastClosing = async () => {
+            try {
+                const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/prefill');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.length > 0 && data[0].closing_details) {
+                        setLastClosingDetails(data[0].closing_details);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch last closing details:", error);
+            }
+        };
+
+        if (currentStep === 'COUNT_UYU') {
+            fetchLastClosing();
+        }
+    }, [currentStep]);
 
     React.useEffect(() => {
         if (currentStep === 'CONFIG') {
@@ -1063,12 +1087,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
     const memoizedSetUyuDenominations = useCallback((details: Record<string, number>) => setUyuDenominations(details), [setUyuDenominations]);
     const memoizedSetUsdDenominations = useCallback((details: Record<string, number>) => setUsdDenominations(details), [setUsdDenominations]);
-    
-    const mockLastClosing = {
-        uyu: { "2000": 5, "1000": 10, "500": 4, "100": 20, "50": 15, "20": 10, "10": 30, "5": 25, "2": 50, "1": 100 },
-        usd: { "100": 3, "50": 5, "20": 10, "10": 15, "5": 20, "1": 50 },
-    };
-
 
     const handleNextStep = async () => {
         if (currentStep === 'CONFIG') {
@@ -1214,7 +1232,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 currency="UYU"
                 quantities={uyuDenominations}
                 onQuantitiesChange={memoizedSetUyuDenominations}
-                lastClosingDetails={mockLastClosing.uyu}
+                lastClosingDetails={lastClosingDetails?.uyu}
                 imageMap={UYU_IMAGES}
             />
         ),
@@ -1226,7 +1244,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 currency="USD"
                 quantities={usdDenominations}
                 onQuantitiesChange={memoizedSetUsdDenominations}
-                lastClosingDetails={mockLastClosing.usd}
+                lastClosingDetails={lastClosingDetails?.usd}
                 imageMap={USD_IMAGES}
             />
         ),
