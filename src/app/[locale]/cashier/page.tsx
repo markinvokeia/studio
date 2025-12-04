@@ -37,26 +37,26 @@ const denominationsUSD = [100, 50, 20, 10, 5, 1];
 const coinsUSD: number[] = [];
 
 const UYU_IMAGES: Record<number, string> = {
-    2000: '/billetes/billete_2000.svg',
-    1000: '/billetes/billete_1000.svg',
-    500: '/billetes/billete_500.svg',
-    200: '/billetes/billete_200.svg',
-    100: '/billetes/billete_100.svg',
-    50: '/billetes/billete_50.svg',
-    20: '/billetes/billete_20.svg',
-    10: '/billetes/moneda_10.svg',
-    5: '/billetes/moneda_5.svg',
-    2: '/billetes/moneda_2.svg',
-    1: '/billetes/moneda_1.svg',
+    2000: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/billete_2000.svg',
+    1000: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/billete_1000.svg',
+    500: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/billete_500.svg',
+    200: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/billete_200.svg',
+    100: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/billete_100.svg',
+    50: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/billete_50.svg',
+    20: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/billete_20.svg',
+    10: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/moneda_10.svg',
+    5: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/moneda_5.svg',
+    2: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/moneda_2.svg',
+    1: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/moneda_1.svg',
 };
 
 const USD_IMAGES: Record<number, string> = {
-    100: '/billetes/usd/USD_billete_100.svg',
-    50: '/billetes/usd/USD_billete_50.svg',
-    20: '/billetes/usd/USD_billete_20.svg',
-    10: '/billetes/usd/USD_billete_10.svg',
-    5: '/billetes/usd/USD_billete_5.svg',
-    1: '/billetes/usd/USD_billete_1.svg',
+    100: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_100.svg',
+    50: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_50.svg',
+    20: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_20.svg',
+    10: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_10.svg',
+    5: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_5.svg',
+    1: 'https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/billetes/usd/USD_billete_1.svg',
 };
 
 
@@ -295,7 +295,7 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
 
     const handleSessionClick = (cp: CashPointStatus) => {
         if (cp.status === 'OPEN') {
-            if (cp.session?.usuarioId === user?.id) {
+            if (cp.session) {
                 onViewSession(cp.session);
             }
         } else if (!userHasActiveSession) {
@@ -558,7 +558,9 @@ function CloseSessionWizard({
                     <TabsContent value="DECLARE">
                         <DeclareCashup 
                             activeSession={activeSession} 
-                            declaredCash={totalInSessionCurrency} 
+                            declaredCash={totalInSessionCurrency}
+                            uyuDenominations={uyuDenominations}
+                            usdDenominations={usdDenominations}
                             onSessionClosed={(reportData) => {
                                 setClosedSessionReport(reportData);
                                 setCurrentStep('REPORT');
@@ -631,7 +633,13 @@ const CashCounter = ({ activeSession, uyuDenominations, setUyuDenominations, usd
 };
 
 
-const DeclareCashup = ({ activeSession, declaredCash, onSessionClosed }: { activeSession: CajaSesion, declaredCash: number, onSessionClosed: (reportData: any) => void }) => {
+const DeclareCashup = ({ activeSession, declaredCash, uyuDenominations, usdDenominations, onSessionClosed }: { 
+    activeSession: CajaSesion, 
+    declaredCash: number,
+    uyuDenominations: Record<string, number>,
+    usdDenominations: Record<string, number>,
+    onSessionClosed: (reportData: any) => void 
+}) => {
     const t = useTranslations('CashierPage.declareCashup');
     const { toast } = useToast();
     const [notes, setNotes] = React.useState('');
@@ -679,13 +687,12 @@ const DeclareCashup = ({ activeSession, declaredCash, onSessionClosed }: { activ
     const handleCloseSession = async () => {
         const payload = {
             cash_session_id: activeSession.id,
-            openingAmount: activeSession.montoApertura,
-            declaredCash: declaredCash,
-            totalCashInflow: systemTotals.cash,
-            totalOtherInflow: systemTotals.other,
-            calculatedCash: calculatedCash,
-            cashDiscrepancy: declaredCash - calculatedCash,
+            declared_cash: declaredCash,
             notes: notes,
+            closing_denominations: JSON.stringify({
+                uyu: uyuDenominations,
+                usd: usdDenominations
+            })
         };
 
         try {
@@ -1283,3 +1290,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
     
 
+
+
+    
