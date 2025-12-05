@@ -213,7 +213,7 @@ export default function CashierPage() {
                 movements={sessionMovements}
                 onCloseSession={() => setShowClosingWizard(true)}
                 onViewAllCashPoints={() => {
-                    setActiveSession(null);
+                    checkActiveSession();
                     fetchCashPointStatus();
                 }}
             />
@@ -227,6 +227,7 @@ export default function CashierPage() {
                     onExitWizard={() => {
                         setShowOpeningWizard(false);
                         setOpenWizardStep('CONFIG');
+                        checkActiveSession();
                         fetchCashPointStatus();
                     }}
                     sessionData={openingSessionData}
@@ -605,6 +606,7 @@ function CloseSessionWizard({
                                 setClosedSessionReport(reportData);
                                 setCurrentStep('REPORT');
                             }} 
+                            onBack={handlePreviousStep}
                         />
                     </TabsContent>
                     <TabsContent value="REPORT">
@@ -757,13 +759,14 @@ const CashCounter = ({ currency, denominations, coins, quantities, onQuantitiesC
 
 
 
-const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominations, usdDenominations, onSessionClosed }: { 
+const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominations, usdDenominations, onSessionClosed, onBack }: { 
     activeSession: CajaSesion;
     declaredUyu: number;
     declaredUsd: number;
     uyuDenominations: Record<string, number>;
     usdDenominations: Record<string, number>;
     onSessionClosed: (reportData: any) => void;
+    onBack: () => void;
 }) => {
     const t = useTranslations('CashierPage.declareCashup');
     const { toast } = useToast();
@@ -890,7 +893,8 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                  </div>
             </CardContent>
             <CardFooter className='justify-between mt-4'>
-                 <Button className="w-full md:w-auto ml-auto" onClick={handleCloseSession}>
+                 <Button variant="outline" onClick={onBack}>Back</Button>
+                 <Button className="w-full md:w-auto" onClick={handleCloseSession}>
                     {t('closeSessionButton')}
                     <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -1136,7 +1140,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             if (!response.ok) throw new Error('Failed to finalize session opening.');
             
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
-            await checkActiveSession();
             onExitWizard();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
