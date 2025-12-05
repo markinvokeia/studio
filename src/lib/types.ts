@@ -15,6 +15,11 @@ export type User = {
   available_balance?: number;
 };
 
+export type Document = {
+  id: string;
+  name: string;
+};
+
 export type Role = {
   id: string;
   name: string;

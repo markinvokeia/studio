@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -11,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import type { User as UserType, PatientSession, TreatmentDetail, AttachedFile, Ailment, Medication } from '@/lib/types';
+import type { User as UserType, PatientSession, TreatmentDetail, AttachedFile, Ailment, Medication, Document } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -1569,167 +1570,102 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
 
 
   const ImageGallery = () => {
-    const [filter, setFilter] = useState('all');
-    const [zoomLevel, setZoomLevel] = useState(1);
-    const imageGallery = [
-        {
-          id: 1,
-          name: "Radiografía Panorámica",
-          date: "2024-11-15",
-          type: "radiografia",
-          tooth: "General",
-          modality: "DX",
-          bodyPart: "JAW",
-          viewPosition: "PA",
-          url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+UmFkaW9ncmFmw61hIFBhbm9yw6FtaWNhPC90ZXh0Pjwvc3ZnPg==",
-          description: "Radiografía panorámica mostrando estado general de la dentadura"
-        },
-        {
-          id: 2,
-          name: "Foto Intraoral Anterior",
-          date: "2024-11-15",
-          type: "foto",
-          tooth: "Anteriores",
-          modality: "IO",
-          bodyPart: "TEETH",
-          viewPosition: "ANTERIOR",
-          url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhkN2RhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IiM3MjE3NGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIEludHJhb3JhbCBBbnRlcmlvcjwvdGV4dD48L3N2Zz4=",
-          description: "Vista frontal de los dientes anteriores"
-        },
-        {
-          id: 3,
-          name: "Radiografía Periapical 24",
-          date: "2024-11-15",
-          type: "radiografia",
-          tooth: "24",
-          modality: "DX",
-          bodyPart: "TOOTH",
-          viewPosition: "PER",
-          url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+UmFkaW9ncmFmw61hIDI0PC90ZXh0Pjwvc3ZnPg==",
-          description: "Radiografía periapical del diente 24 post-endodoncia"
+    const [documents, setDocuments] = useState<Document[]>([]);
+    const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
+    const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+    const [documentContent, setDocumentContent] = useState<string | null>(null);
+    const [isViewerOpen, setIsViewerOpen] = useState(false);
+
+    useEffect(() => {
+        const fetchDocuments = async () => {
+            if (!userId) return;
+            setIsLoadingDocuments(true);
+            try {
+                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/documents?user_id=${userId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setDocuments(Array.isArray(data) ? data : []);
+                } else {
+                    setDocuments([]);
+                }
+            } catch (error) {
+                console.error("Failed to fetch documents:", error);
+                setDocuments([]);
+            } finally {
+                setIsLoadingDocuments(false);
+            }
+        };
+        fetchDocuments();
+    }, [userId]);
+
+    const handleViewDocument = async (doc: Document) => {
+        setSelectedDocument(doc);
+        setIsViewerOpen(true);
+        setDocumentContent(null);
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${doc.id}`);
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                setDocumentContent(url);
+            } else {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Could not load document.',
+                });
+            }
+        } catch (error) {
+            console.error("Failed to load document content:", error);
         }
-    ];
+    };
 
-    const filteredImages = imageGallery.filter(img => {
-      if (filter === 'all') return true;
-      if (filter === 'tooth' && selectedTooth) return img.tooth === selectedTooth.toString();
-      return img.type === filter;
-    });
-
-    const ImageModal = ({ image, onClose }: { image: any, onClose: any }) => (
-      <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
-        <div className="relative max-w-7xl max-h-full w-full h-full flex flex-col">
-          <div className="bg-card p-4 flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-bold text-card-foreground">{image.name}</h3>
-              <p className="text-muted-foreground">{image.date} • {image.description}</p>
-              <div className="text-xs text-muted-foreground mt-1">
-                DICOM: {image.modality} | {image.viewPosition} | {image.bodyPart}
+    const DocumentViewerModal = () => (
+      <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
+        <DialogContent className="max-w-4xl h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>{selectedDocument?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="h-full w-full">
+            {documentContent ? (
+              <iframe src={documentContent} className="h-full w-full border-0" title={selectedDocument?.name} />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p>Loading document...</p>
               </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.25))}
-                className="p-2 text-muted-foreground hover:bg-muted rounded"
-              >
-                <ZoomOut className="w-5 h-5" />
-              </button>
-              <span className="text-sm text-muted-foreground">{Math.round(zoomLevel * 100)}%</span>
-              <button
-                onClick={() => setZoomLevel(Math.min(3, zoomLevel + 0.25))}
-                className="p-2 text-muted-foreground hover:bg-muted rounded"
-              >
-                <ZoomIn className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setZoomLevel(1)}
-                className="p-2 text-muted-foreground hover:bg-muted rounded"
-              >
-                <RotateCcw className="w-5 h-5" />
-              </button>
-              <button
-                onClick={onClose}
-                className="p-2 text-muted-foreground hover:bg-muted rounded"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+            )}
           </div>
-          
-          <div className="flex-1 flex items-center justify-center overflow-hidden bg-background">
-            <img
-              src={image.url}
-              alt={image.name}
-              className="max-w-none transition-transform duration-200"
-              style={{ transform: `scale(${zoomLevel})` }}
-              draggable={false}
-            />
-          </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     );
 
     return (
       <div className="space-y-6">
         <div className="bg-card rounded-xl shadow-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-card-foreground">{t('images.title')}</h3>
-            <div className="flex items-center space-x-2">
-              <Shield className="w-4 h-4 text-blue-600" />
-              <span className="text-sm text-muted-foreground">{t('images.dicomCompliant')}</span>
-              <Filter className="w-5 h-5 text-muted-foreground ml-4" />
-              <select
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                className="border border-input rounded-lg px-3 py-2 text-sm bg-background text-foreground"
-              >
-                <option value="all">{t('images.all')}</option>
-                <option value="radiografia">{t('images.xrays')}</option>
-                <option value="foto">{t('images.photos')}</option>
-                {selectedTooth && <option value="tooth">{t('images.tooth')} {selectedTooth}</option>}
-              </select>
+          <h3 className="text-xl font-bold text-card-foreground mb-4">{t('images.title')}</h3>
+          {isLoadingDocuments ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredImages.map((image) => (
-              <div
-                key={image.id}
-                className="bg-muted/50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer border"
-                onClick={() => setSelectedImage(image)}
-              >
-                <div className="aspect-w-16 aspect-h-12">
-                  <img
-                    src={image.url}
-                    alt={image.name}
-                    className="w-full h-48 object-cover"
-                  />
-                </div>
-                <div className="p-3">
-                  <h4 className="font-semibold text-foreground text-sm">{image.name}</h4>
-                  <p className="text-muted-foreground text-xs">{image.date}</p>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      image.type === 'radiografia' 
-                        ? 'bg-secondary text-secondary-foreground' 
-                        : 'bg-blue-200 text-blue-800'
-                    }`}>
-                      {image.modality}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{image.tooth}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          ) : documents.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {documents.map((doc) => (
+                <Card key={doc.id} className="cursor-pointer hover:shadow-md" onClick={() => handleViewDocument(doc)}>
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <FileText className="h-8 w-8 text-primary" />
+                    <div>
+                      <p className="font-semibold text-sm truncate">{doc.name}</p>
+                      <p className="text-xs text-muted-foreground">ID: {doc.id}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">No documents found for this patient.</p>
+          )}
         </div>
-
-        {selectedImage && (
-          <ImageModal
-            image={selectedImage}
-            onClose={() => setSelectedImage(null)}
-          />
-        )}
+        {isViewerOpen && <DocumentViewerModal />}
       </div>
     );
   };
