@@ -388,7 +388,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     }, [session.opening_details]);
 
      const totalIncome = React.useMemo(() => {
-        const income: Record<'UYU' | 'USD', number> = { UYU: 0, USD: 0 };
+        const income: { UYU: number; USD: number } = { UYU: 0, USD: 0 };
         movements
             .filter(m => m.tipo === 'INGRESO')
             .forEach(mov => {
@@ -852,7 +852,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
 
         const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
         
-        const systemCash = currencyData.desglose_detallado
+        const systemCash = (currencyData.desglose_detallado || [])
             .filter((d: any) => d.metodo.toLowerCase() === 'cash' || d.metodo.toLowerCase() === 'apertura caja')
             .reduce((sum: number, d: any) => sum + parseFloat(d.monto), 0);
         
@@ -869,7 +869,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                     <div className="text-center"><div className="text-muted-foreground">{t('difference')}</div><div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div></div>
                 </div>
     
-                {currencyData.desglose_detallado
+                {(currencyData.desglose_detallado || [])
                     .filter((d: any) => d.metodo.toLowerCase() !== 'cash' && d.metodo.toLowerCase() !== 'apertura caja')
                     .map((d: any, index: number) => (
                     <div key={`${d.metodo}-${index}`} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
@@ -1010,7 +1010,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     toast: any;
 }) {
     const t = useTranslations('CashierPage');
-    const { user, checkActiveSession } = useAuth();
+    const { user } = useAuth();
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -1152,7 +1152,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             if (!response.ok) throw new Error('Failed to finalize session opening.');
             
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
-            checkActiveSession(); // Re-check the auth context session status
             onExitWizard();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
@@ -1387,3 +1386,5 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
       
+
+    
