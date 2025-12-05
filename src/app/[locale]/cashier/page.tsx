@@ -213,7 +213,7 @@ export default function CashierPage() {
                 movements={sessionMovements}
                 onCloseSession={() => setShowClosingWizard(true)}
                 onViewAllCashPoints={() => {
-                    checkActiveSession();
+                    setActiveSession(null);
                     fetchCashPointStatus();
                 }}
             />
@@ -501,7 +501,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
             </CardContent>
              <CardFooter className="justify-between">
                 <Button variant="outline" onClick={onViewAllCashPoints}>{t('viewAllCashPoints')}</Button>
-                <Button onClick={onCloseSession}>
+                <Button className="w-full md:w-auto ml-auto" onClick={onCloseSession}>
                     {isWizardOpen ? t('wizard.next') : t('wizard.startClosing')}
                     <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -947,15 +947,20 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
         const declaredCash = closingDetails[currencyKey]?.total || 0;
         const systemCash = parseFloat(details[`calculated_cash_${currencyKey}`] || '0');
         const cashVariance = declaredCash - systemCash;
+        const systemCard = parseFloat(details[`calculated_card_${currencyKey}`] || '0');
+        const systemTransfer = parseFloat(details[`calculated_transfer_${currencyKey}`] || '0');
+        const systemOther = parseFloat(details[`calculated_other_${currencyKey}`] || '0');
 
         return (
             <div className="space-y-4">
                 <h3 className="font-bold text-lg">{currency} Report</h3>
                 <p><strong>Opening Amount:</strong> {formatCurrency(openingAmount, currency)}</p>
                 <p><strong>Declared Cash:</strong> {formatCurrency(declaredCash, currency)}</p>
-                <p><strong>System Cash Total:</strong> {formatCurrency(details[`calculated_cash_${currencyKey}`] || 0, currency)}</p>
+                <p><strong>System Cash Total:</strong> {formatCurrency(systemCash, currency)}</p>
                 <p><strong>Cash Discrepancy:</strong> <span className={cn(cashVariance < 0 ? 'text-red-500' : 'text-green-500')}>{formatCurrency(cashVariance, currency)}</span></p>
-                <p><strong>System Other Payments:</strong> {formatCurrency(details[`calculated_${currencyKey}_other_payments`] || 0, currency)}</p>
+                <p><strong>System Card Total:</strong> {formatCurrency(systemCard, currency)}</p>
+                <p><strong>System Transfer Total:</strong> {formatCurrency(systemTransfer, currency)}</p>
+                <p><strong>System Other Payments:</strong> {formatCurrency(systemOther, currency)}</p>
             </div>
         );
     };
@@ -1140,6 +1145,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             if (!response.ok) throw new Error('Failed to finalize session opening.');
             
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
+            await checkActiveSession();
             onExitWizard();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
