@@ -69,7 +69,7 @@ interface CashPointStatus extends CashPoint {
 
 export default function CashierPage() {
     const t = useTranslations('CashierPage');
-    const { user } = useAuth();
+    const { user, checkActiveSession } = useAuth();
     const { toast } = useToast();
     
     const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(null);
@@ -127,12 +127,13 @@ export default function CashierPage() {
             } else {
                 setActiveSession(null);
             }
+            checkActiveSession();
         } catch (error) {
             setServerError(error instanceof Error ? error.message : 'An unknown error occurred');
         } finally {
             setIsLoading(false);
         }
-    }, [user]);
+    }, [user, checkActiveSession]);
 
     const fetchSessionMovements = React.useCallback(async (sessionId: string) => {
         try {
@@ -850,7 +851,11 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
         if (!currencyData) return null;
 
         const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
-        const systemCash = parseFloat(currencyData.total_efectivo || '0');
+        
+        const systemCash = currencyData.desglose_detallado
+            .filter((d: any) => d.metodo.toLowerCase() === 'cash' || d.metodo.toLowerCase() === 'apertura caja')
+            .reduce((sum: number, d: any) => sum + parseFloat(d.monto), 0);
+        
         const cashDifference = declaredCash - systemCash;
         
         return (
@@ -942,14 +947,14 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
     };
 
     const openingDetails = parseJsonDetails(details.opening_details);
-    const closingDetails = details.closing_details || {};
+    const closingDetails = parseJsonDetails(details.closing_details);
 
     const renderReportSection = (currency: 'UYU' | 'USD') => {
         const currencyKey = currency.toLowerCase() as 'uyu' | 'usd';
         
         const openingAmount = openingDetails[currencyKey]?.total || 0;
         const declaredCash = closingDetails[currencyKey]?.total || 0;
-        const systemCash = parseFloat(details.calculated_cash) / (currency === 'USD' ? (details.date_rate || 1) : 1); 
+        const systemCash = parseFloat(details.calculated_cash || '0') / (currency === 'USD' ? (details.date_rate || 1) : 1);
         const cashVariance = declaredCash - systemCash; 
 
         return (
@@ -957,7 +962,7 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
                 <h3 className="font-bold text-lg">{currency} Report</h3>
                 <p><strong>Opening Amount:</strong> {formatCurrency(openingAmount, currency)}</p>
                 <p><strong>Declared Cash:</strong> {formatCurrency(declaredCash, currency)}</p>
-                <p><strong>System Cash Total:</strong> {formatCurrency(systemCash, currency)}</p>
+                <p><strong>System Cash Total:</strong> {formatCurrency(details[`calculated_cash_${currencyKey}`] || 0, currency)}</p>
                 <p><strong>Cash Discrepancy:</strong> <span className={cn(cashVariance < 0 ? 'text-red-500' : 'text-green-500')}>{formatCurrency(cashVariance, currency)}</span></p>
                 <p><strong>System Other Payments:</strong> {formatCurrency(details[`calculated_${currencyKey}_other_payments`] || 0, currency)}</p>
             </div>
@@ -1005,7 +1010,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     toast: any;
 }) {
     const t = useTranslations('CashierPage');
-    const { user } = useAuth();
+    const { user, checkActiveSession } = useAuth();
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -1147,6 +1152,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             if (!response.ok) throw new Error('Failed to finalize session opening.');
             
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
+            checkActiveSession(); // Re-check the auth context session status
             onExitWizard();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
@@ -1379,3 +1385,5 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
+      

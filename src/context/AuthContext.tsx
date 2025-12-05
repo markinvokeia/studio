@@ -15,6 +15,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  activeCashSession: any | null; // Can be more specific if session structure is known
+  checkActiveSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,6 +24,34 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeCashSession, setActiveCashSession] = useState<any | null>(null);
+
+  const checkActiveSession = async () => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+        const currentUser = JSON.parse(storedUser);
+        const token = localStorage.getItem('token');
+        if (currentUser && token) {
+            try {
+                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/active?user_id=${currentUser.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok && data.code === 200) {
+                    setActiveCashSession(data.data);
+                } else {
+                    setActiveCashSession(null);
+                }
+            } catch (error) {
+                console.error("Failed to check active session:", error);
+                setActiveCashSession(null);
+            }
+        }
+    } else {
+        setActiveCashSession(null);
+    }
+  };
+
 
   useEffect(() => {
     // Check for user session on initial load
@@ -29,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
+    checkActiveSession();
     setIsLoading(false);
   }, []);
 
@@ -46,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(loggedInUser);
       localStorage.setItem('user', JSON.stringify(loggedInUser));
       localStorage.setItem('token', token); // Store token
+      await checkActiveSession();
     } else {
       const errorData = await response.json();
       throw new Error(errorData.message || 'Failed to login');
@@ -66,13 +98,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Logout request failed:", error);
     } finally {
         setUser(null);
+        setActiveCashSession(null);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, activeCashSession, checkActiveSession }}>
       {children}
     </AuthContext.Provider>
   );
@@ -85,3 +118,5 @@ export function useAuth() {
   }
   return context;
 }
+
+      
