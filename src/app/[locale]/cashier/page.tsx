@@ -69,7 +69,7 @@ interface CashPointStatus extends CashPoint {
 
 export default function CashierPage() {
     const t = useTranslations('CashierPage');
-    const { user, checkActiveSession } = useAuth();
+    const { user } = useAuth();
     const { toast } = useToast();
     
     const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(null);
@@ -127,13 +127,12 @@ export default function CashierPage() {
             } else {
                 setActiveSession(null);
             }
-            checkActiveSession();
         } catch (error) {
             setServerError(error instanceof Error ? error.message : 'An unknown error occurred');
         } finally {
             setIsLoading(false);
         }
-    }, [user, checkActiveSession]);
+    }, [user]);
 
     const fetchSessionMovements = React.useCallback(async (sessionId: string) => {
         try {
@@ -848,16 +847,15 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
     
     const renderTotalsByCurrency = (currency: 'UYU' | 'USD') => {
         const currencyData = systemTotals.find(d => d.moneda === currency);
-        if (!currencyData) return null;
-
         const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
+    
+        const paymentMethods = ["Cash", "Bank Transfer", "Credit Card", "Debit Card", "Mobile Payment", "Mercado Pago"];
         
-        const systemCash = (currencyData.desglose_detallado || [])
-            .filter((d: any) => d.metodo.toLowerCase() === 'cash' || d.metodo.toLowerCase() === 'apertura caja')
-            .reduce((sum: number, d: any) => sum + parseFloat(d.monto), 0);
-        
+        const cashDetail = currencyData?.desglose_detallado?.find((d: any) => d.metodo.toLowerCase() === 'cash' || d.metodo.toLowerCase() === 'apertura caja');
+        const systemCash = parseFloat(cashDetail?.monto) || 0;
+    
         const cashDifference = declaredCash - systemCash;
-        
+    
         return (
             <div key={currency} className="space-y-4">
                 <h3 className="font-semibold text-lg">{currency}</h3>
@@ -869,17 +867,20 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                     <div className="text-center"><div className="text-muted-foreground">{t('difference')}</div><div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div></div>
                 </div>
     
-                {(currencyData.desglose_detallado || [])
-                    .filter((d: any) => d.metodo.toLowerCase() !== 'cash' && d.metodo.toLowerCase() !== 'apertura caja')
-                    .map((d: any, index: number) => (
-                    <div key={`${d.metodo}-${index}`} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                        <Label className="flex items-center gap-2 font-semibold">
-                            <CreditCard className="h-5 w-5 text-muted-foreground" />
-                            {d.metodo}
-                        </Label>
-                        <div className="text-center md:col-span-3"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">${parseFloat(d.monto).toFixed(2)}</div></div>
-                    </div>
-                ))}
+                {paymentMethods.filter(method => method.toLowerCase() !== 'cash' && method.toLowerCase() !== 'apertura caja').map((method) => {
+                    const detail = currencyData?.desglose_detallado?.find((d: any) => d.metodo === method);
+                    if (!detail) return null;
+    
+                    return (
+                        <div key={method} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                             <Label className="flex items-center gap-2 font-semibold">
+                                <CreditCard className="h-5 w-5 text-muted-foreground" />
+                                {method}
+                            </Label>
+                            <div className="text-center md:col-span-3"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">${parseFloat(detail.monto).toFixed(2)}</div></div>
+                        </div>
+                    );
+                })}
             </div>
         );
     };
@@ -926,14 +927,8 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
             </Card>
         );
     }
-    
-    const { details } = reportData;
 
-    const formatCurrency = (value: number | string | null | undefined, currency: string) => {
-        const numValue = Number(value);
-        if (isNaN(numValue)) return `${currency} 0.00`;
-        return numValue.toLocaleString('en-US', { style: 'currency', currency: currency });
-    };
+    const { details } = reportData;
 
     const parseJsonDetails = (jsonString: string | object | undefined) => {
         if (!jsonString) return {};
@@ -949,13 +944,19 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
     const openingDetails = parseJsonDetails(details.opening_details);
     const closingDetails = parseJsonDetails(details.closing_details);
 
+    const formatCurrency = (value: number | string | null | undefined, currency: string) => {
+        const numValue = Number(value);
+        if (isNaN(numValue)) return `${currency} 0.00`;
+        return numValue.toLocaleString('en-US', { style: 'currency', currency: currency });
+    };
+
     const renderReportSection = (currency: 'UYU' | 'USD') => {
         const currencyKey = currency.toLowerCase() as 'uyu' | 'usd';
         
         const openingAmount = openingDetails[currencyKey]?.total || 0;
         const declaredCash = closingDetails[currencyKey]?.total || 0;
-        const systemCash = parseFloat(details.calculated_cash || '0') / (currency === 'USD' ? (details.date_rate || 1) : 1);
-        const cashVariance = declaredCash - systemCash; 
+        const systemCash = parseFloat(details[`calculated_cash_${currencyKey}`] || '0');
+        const cashVariance = declaredCash - systemCash;
 
         return (
             <div className="space-y-4">
@@ -1010,7 +1011,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     toast: any;
 }) {
     const t = useTranslations('CashierPage');
-    const { user } = useAuth();
+    const { user, checkActiveSession } = useAuth();
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -1386,5 +1387,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
       
+
+    
 
     
