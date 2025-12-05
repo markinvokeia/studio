@@ -69,7 +69,7 @@ interface CashPointStatus extends CashPoint {
 
 export default function CashierPage() {
     const t = useTranslations('CashierPage');
-    const { user } = useAuth();
+    const { user, checkActiveSession } = useAuth();
     const { toast } = useToast();
     
     const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(null);
@@ -207,6 +207,7 @@ export default function CashierPage() {
                       setClosedSessionReport(null);
                       setActiveSession(null);
                       fetchCashPointStatus();
+                      checkActiveSession();
                     }}
                     activeSession={activeSession}
                     sessionMovements={sessionMovements}
@@ -586,7 +587,7 @@ function CloseSessionWizard({
                             uyuDenominations={uyuDenominations}
                             usdDenominations={usdDenominations}
                             onSessionClosed={(reportData) => {
-                                setClosedSessionReport(Array.isArray(reportData) ? reportData[0] : reportData);
+                                setClosedSessionReport(reportData);
                                 setCurrentStep('REPORT');
                             }} 
                         />
@@ -703,16 +704,34 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
     );
 };
 
-const CashCounter = ({ onCountComplete, uyuDenominations, setUyuDenominations, usdDenominations, setUsdDenominations, lastClosingDetails }: {
+const CashCounter = ({ onCountComplete, uyuDenominations, setUyuDenominations, usdDenominations, setUsdDenominations }: {
     onCountComplete: () => void;
     uyuDenominations: Record<string, number>;
     setUyuDenominations: React.Dispatch<React.SetStateAction<Record<string, number>>>;
     usdDenominations: Record<string, number>;
     setUsdDenominations: React.Dispatch<React.SetStateAction<Record<string, number>>>;
-    lastClosingDetails?: { uyu: Record<string, number>, usd: Record<string, number> } | null;
 }) => {
     const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
     const usdTotal = useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
+    const [lastClosingDetails, setLastClosingDetails] = React.useState<{ uyu: Record<string, number>, usd: Record<string, number> } | null>(null);
+
+     React.useEffect(() => {
+        const fetchLastClosing = async () => {
+            try {
+                const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/prefill');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.length > 0 && data[0].closing_details) {
+                        const details = typeof data[0].closing_details === 'string' ? JSON.parse(data[0].closing_details) : data[0].closing_details;
+                        setLastClosingDetails(details);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch last closing details:", error);
+            }
+        };
+        fetchLastClosing();
+    }, []);
     
     return (
         <Card>
@@ -849,11 +868,11 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
         const currencyData = systemTotals.find(d => d.moneda === currency);
         const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
     
-        const paymentMethods = ["Cash", "Bank Transfer", "Credit Card", "Debit Card", "Mobile Payment", "Mercado Pago"];
+        const paymentMethods = ["Cash", "Bank Transfer", "Credit Card", "Debit Card", "Mobile Payment", "Mercado Pago", "Apertura Caja"];
         
-        const cashDetail = currencyData?.desglose_detallado?.find((d: any) => d.metodo.toLowerCase() === 'cash' || d.metodo.toLowerCase() === 'apertura caja');
-        const systemCash = parseFloat(cashDetail?.monto) || 0;
-    
+        const cashDetail = currencyData?.desglose_detallado?.filter((d: any) => d.metodo.toLowerCase() === 'cash' || d.metodo.toLowerCase() === 'apertura caja');
+        const systemCash = cashDetail?.reduce((acc: number, item: any) => acc + parseFloat(item.monto), 0) || 0;
+        
         const cashDifference = declaredCash - systemCash;
     
         return (
@@ -885,7 +904,6 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
         );
     };
 
-
     if (isLoading) {
         return <div className="p-6 text-center">Loading system totals...</div>;
     }
@@ -916,7 +934,9 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
 };
 
 const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: () => void }) => {
-    if (!reportData || !reportData.details) {
+    const reportDetails = Array.isArray(reportData) ? reportData[0] : reportData;
+
+    if (!reportDetails || !reportDetails.details) {
         return (
             <Card>
                 <CardHeader><CardTitle>Session Report</CardTitle></CardHeader>
@@ -928,7 +948,7 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
         );
     }
 
-    const { details } = reportData;
+    const { details } = reportDetails;
 
     const parseJsonDetails = (jsonString: string | object | undefined) => {
         if (!jsonString) return {};
@@ -1020,7 +1040,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     const [avgRate, setAvgRate] = React.useState(0);
     const [exchangeRatesHtml, setExchangeRatesHtml] = React.useState('');
     const [exchangeRateStatus, setExchangeRateStatus] = React.useState<'loading' | 'loaded' | 'error'>('loading');
-    const [lastClosingDetails, setLastClosingDetails] = React.useState<{ uyu: Record<string, number>, usd: Record<string, number> } | null>(null);
 
     const fetchRates = React.useCallback(async () => {
         const today = new Date().toISOString().split('T')[0];
@@ -1073,26 +1092,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch exchange rates.' });
         }
     }, [setSessionData, toast]);
-    
-     React.useEffect(() => {
-        const fetchLastClosing = async () => {
-            try {
-                const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/prefill');
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data && data.length > 0 && data[0].closing_details) {
-                        setLastClosingDetails(data[0].closing_details);
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to fetch last closing details:", error);
-            }
-        };
-
-        if (currentStep === 'COUNT_UYU') {
-            fetchLastClosing();
-        }
-    }, [currentStep]);
 
     React.useEffect(() => {
         if (currentStep === 'CONFIG') {
@@ -1154,6 +1153,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
             onExitWizard();
+            await checkActiveSession(); // Re-check session status globally
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
         } finally {
@@ -1253,7 +1253,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 currency="UYU"
                 quantities={uyuDenominations}
                 onQuantitiesChange={memoizedSetUyuDenominations}
-                lastClosingDetails={lastClosingDetails?.uyu}
                 imageMap={UYU_IMAGES}
             />
         ),
@@ -1265,7 +1264,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 currency="USD"
                 quantities={usdDenominations}
                 onQuantitiesChange={memoizedSetUsdDenominations}
-                lastClosingDetails={lastClosingDetails?.usd}
                 imageMap={USD_IMAGES}
             />
         ),
@@ -1289,7 +1287,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                         
                         <Collapsible>
                             <CollapsibleTrigger asChild>
-                                <Button variant="link" className="p-0">Ver desglose</Button>
+                                <Button variant="link" className="p-0 h-auto text-xs">Ver desglose</Button>
                             </CollapsibleTrigger>
                             <CollapsibleContent className="space-y-4 mt-2">
                                 <Table>
