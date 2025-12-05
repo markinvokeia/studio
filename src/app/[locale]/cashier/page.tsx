@@ -386,7 +386,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         }
     }, [session.opening_details]);
 
-    const totalIncome = React.useMemo(() => {
+     const totalIncome = React.useMemo(() => {
         const income: Record<'UYU' | 'USD', number> = { UYU: 0, USD: 0 };
         movements
             .filter(m => m.tipo === 'INGRESO')
@@ -586,7 +586,7 @@ function CloseSessionWizard({
                             uyuDenominations={uyuDenominations}
                             usdDenominations={usdDenominations}
                             onSessionClosed={(reportData) => {
-                                setClosedSessionReport(reportData);
+                                setClosedSessionReport(Array.isArray(reportData) ? reportData : [reportData]);
                                 setCurrentStep('REPORT');
                             }} 
                         />
@@ -847,18 +847,24 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
     
     const renderTotalsByCurrency = (currency: 'UYU' | 'USD') => {
         const currencyData = systemTotals.find(d => d.moneda === currency);
-        
+        const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
+
         if (!currencyData) {
+            const cashDifference = declaredCash - 0;
             return (
                 <div key={currency} className="space-y-4">
                     <h3 className="font-semibold text-lg">{currency}</h3>
-                    <p className="text-muted-foreground">No data available for this currency.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                        <Label className="flex items-center gap-2 font-semibold"><Banknote className="h-5 w-5 text-muted-foreground" />{t('methods.cash')}</Label>
+                        <div className="text-center"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">$0.00</div></div>
+                        <div className="text-center"><div className="text-muted-foreground">Declared</div><div className="font-semibold">${declaredCash.toFixed(2)}</div></div>
+                        <div className="text-center"><div className="text-muted-foreground">{t('difference')}</div><div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div></div>
+                    </div>
                 </div>
             );
         }
     
         const systemCashTotal = parseFloat(currencyData.total_efectivo) || 0;
-        const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
         const cashDifference = declaredCash - systemCashTotal;
     
         return (
@@ -936,12 +942,11 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
 
     const renderReportSection = (data: any, currency: string) => {
         if (!data) return null;
-        const declaredCash = currency === 'UYU' ? data.declared_cash_uyu : data.declared_cash_usd;
         return (
             <div className="space-y-4">
                 <h3 className="font-bold text-lg">{currency} Report</h3>
                 <p><strong>Opening Amount:</strong> ${data.opening_amount}</p>
-                <p><strong>Declared Cash:</strong> ${declaredCash}</p>
+                <p><strong>Declared Cash:</strong> ${currency === 'UYU' ? data.declared_cash_uyu : data.declared_cash_usd}</p>
                 <p><strong>System Cash Total:</strong> ${data.system_cash_total}</p>
                 <p><strong>Cash Discrepancy:</strong> <span className={cn(data.cash_discrepancy < 0 ? 'text-red-500' : 'text-green-500')}>${data.cash_discrepancy}</span></p>
                 <p><strong>System Other Payments:</strong> ${data.system_other_total}</p>
@@ -949,12 +954,14 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
         );
     };
 
+    const firstRecord = dataArray[0] || {};
+
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Session #{dataArray[0]?.session_id} Closed</CardTitle>
+                <CardTitle>Session #{firstRecord.session_id} Closed</CardTitle>
                 <CardDescription>
-                    Summary of the session closed by {dataArray[0]?.user_name} at {dataArray[0]?.cash_point_name}
+                    Summary of the session closed by {firstRecord.user_name} at {firstRecord.cash_point_name}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -963,8 +970,8 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
                     {renderReportSection(usdReport, 'USD')}
                 </div>
                  <div className="mt-4">
-                    <p><strong>Closing Time:</strong> {new Date(dataArray[0]?.closed_at).toLocaleString()}</p>
-                    {dataArray[0]?.notes && <p><strong>Notes:</strong> {dataArray[0]?.notes}</p>}
+                    <p><strong>Closing Time:</strong> {new Date(firstRecord.closed_at).toLocaleString()}</p>
+                    {firstRecord.notes && <p><strong>Notes:</strong> {firstRecord.notes}</p>}
                 </div>
             </CardContent>
             <CardFooter>
