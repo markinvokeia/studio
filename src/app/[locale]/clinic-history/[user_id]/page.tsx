@@ -1584,7 +1584,12 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         if (!userId) return;
         setIsLoadingDocuments(true);
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/documents?user_id=${userId}`);
+            const token = localStorage.getItem('token');
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/documents?user_id=${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             if (response.ok) {
                 const data = await response.json();
                 setDocuments(Array.isArray(data) ? data : []);
@@ -1608,7 +1613,12 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         setIsViewerOpen(true);
         setDocumentContent(null);
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${doc.id}`);
+            const token = localStorage.getItem('token');
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${doc.id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             if (response.ok) {
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
@@ -1641,8 +1651,12 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         formData.append('user_id', userId);
         
         try {
+            const token = localStorage.getItem('token');
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/import', {
                 method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
                 body: formData,
             });
 
