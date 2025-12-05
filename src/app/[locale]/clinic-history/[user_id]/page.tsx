@@ -6,7 +6,7 @@ import {
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
   BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw,
-  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown, ChevronsUpDown, Check, Trash2, MoreVertical
+  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown, ChevronsUpDown, Check, Trash2, MoreVertical, FolderArchive
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -2017,7 +2017,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         { id: 'anamnesis', label: t('tabs.anamnesis'), icon: FileText },
         { id: 'timeline', label: t('tabs.timeline'), icon: Clock },
         { id: 'odontogram', label: t('tabs.odontogram'), icon: Smile },
-        { id: 'images', label: t('tabs.images'), icon: Camera },
+        { id: 'images', label: t('tabs.images'), icon: FolderArchive },
       ].map(({ id, label, icon: Icon }) => (
         <Button
             key={id}

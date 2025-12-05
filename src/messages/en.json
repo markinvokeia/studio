@@ -1661,7 +1661,7 @@
       "anamnesis": "Anamnesis",
       "timeline": "Timeline",
       "odontogram": "Odontogram",
-      "images": "Images"
+      "images": "Documents"
     },
     "selectPatientTitle": "Select a Patient",
     "selectPatientDescription": "Please select a patient to view their medical history",
@@ -1831,7 +1831,7 @@
       }
     },
     "images": {
-      "title": "Images",
+      "title": "Documents",
       "dicomCompliant": "DICOM Compliant",
       "all": "All",
       "xrays": "X-rays",
