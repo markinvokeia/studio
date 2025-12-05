@@ -69,10 +69,10 @@ interface CashPointStatus extends CashPoint {
 
 export default function CashierPage() {
     const t = useTranslations('CashierPage');
-    const { user, checkActiveSession, activeCashSession: contextActiveSession } = useAuth();
+    const { user, activeCashSession, checkActiveSession } = useAuth();
     const { toast } = useToast();
     
-    const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(contextActiveSession);
+    const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(activeCashSession);
     const [cashPoints, setCashPoints] = React.useState<CashPointStatus[]>([]);
     const [sessionMovements, setSessionMovements] = React.useState<CajaMovimiento[]>([]);
     const [closedSessionReport, setClosedSessionReport] = React.useState<any | null>(null);
@@ -121,18 +121,12 @@ export default function CashierPage() {
             }));
             setCashPoints(mappedCashPoints);
 
-            const activeUserSession = mappedCashPoints.find(cp => cp.status === 'OPEN' && cp.session?.usuarioId === user?.id);
-            if(activeUserSession && activeUserSession.session){
-                setActiveSession(activeUserSession.session);
-            } else {
-                setActiveSession(null);
-            }
         } catch (error) {
             setServerError(error instanceof Error ? error.message : 'An unknown error occurred');
         } finally {
             setIsLoading(false);
         }
-    }, [user]);
+    }, []);
 
     const fetchSessionMovements = React.useCallback(async (sessionId: string) => {
         try {
@@ -171,8 +165,8 @@ export default function CashierPage() {
     }, [activeSession, fetchSessionMovements]);
 
     React.useEffect(() => {
-        setActiveSession(contextActiveSession);
-    }, [contextActiveSession]);
+        setActiveSession(activeCashSession);
+    }, [activeCashSession]);
     
     if (isLoading) {
         return <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -424,7 +418,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                     </div>
                      <div className="text-right">
                         <div className="text-sm font-medium">{t('openSession.exchangeRate')}</div>
-                        <div className="text-sm text-muted-foreground">{session.date_rate?.toFixed(5)}</div>
+                        <div className="text-sm text-muted-foreground">{Number(session.date_rate).toFixed(5)}</div>
                     </div>
                 </div>
             </CardHeader>
@@ -846,10 +840,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
         const currencyData = systemTotals.find(d => d.moneda === currency);
         const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
     
-        const paymentMethods = ["Cash", "Bank Transfer", "Credit Card", "Debit Card", "Mobile Payment", "Mercado Pago", "Apertura Caja"];
-        
         const systemCash = parseFloat(currencyData?.total_efectivo) || 0;
-        
         const cashDifference = declaredCash - systemCash;
     
         return (
@@ -863,15 +854,14 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                     <div className="text-center"><div className="text-muted-foreground">{t('difference')}</div><div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div></div>
                 </div>
     
-                {paymentMethods.filter(method => method.toLowerCase() !== 'cash' && method.toLowerCase() !== 'apertura caja').map((method) => {
-                    const detail = currencyData?.desglose_detallado?.find((d: any) => d.metodo === method);
-                    if (!detail) return null;
+                {currencyData?.desglose_detallado?.map((detail: any) => {
+                    if (detail.metodo.toLowerCase() === 'apertura caja' || detail.metodo.toLowerCase() === 'cash') return null;
     
                     return (
-                        <div key={method} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                        <div key={detail.metodo} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                              <Label className="flex items-center gap-2 font-semibold">
                                 <CreditCard className="h-5 w-5 text-muted-foreground" />
-                                {method}
+                                {detail.metodo}
                             </Label>
                             <div className="text-center md:col-span-3"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">${parseFloat(detail.monto).toFixed(2)}</div></div>
                         </div>
@@ -880,7 +870,6 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
             </div>
         );
     };
-
     if (isLoading) {
         return <div className="p-6 text-center">Loading system totals...</div>;
     }
@@ -900,7 +889,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                     <Textarea id="notes" placeholder={t('notesPlaceholder')} value={notes} onChange={(e) => setNotes(e.target.value)} />
                  </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className='justify-between mt-4'>
                  <Button className="w-full md:w-auto ml-auto" onClick={handleCloseSession}>
                     {t('closeSessionButton')}
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -1390,3 +1379,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
 
 
+
+
+    
