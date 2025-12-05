@@ -1725,12 +1725,28 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                 <DialogHeader>
                     <DialogTitle>Upload Document</DialogTitle>
                 </DialogHeader>
-                <div className="py-4">
-                    <Label htmlFor="file-upload">Choose a file</Label>
-                    <Input id="file-upload" type="file" onChange={handleFileChange} />
+                <div className="py-4 space-y-4">
+                    <div className="flex items-center justify-center w-full">
+                        <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
+                            {uploadFile ? (
+                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <FileText className="w-8 h-8 mb-4 text-primary" />
+                                    <p className="font-semibold text-foreground">{uploadFile.name}</p>
+                                    <p className="text-xs text-muted-foreground">{(uploadFile.size / 1024).toFixed(2)} KB</p>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
+                                    <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                    <p className="text-xs text-muted-foreground">PDF, PNG, JPG or GIF (MAX. 10MB)</p>
+                                </div>
+                            )}
+                            <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
+                        </label>
+                    </div> 
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>Cancel</Button>
+                    <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)} disabled={isUploading}>Cancel</Button>
                     <Button onClick={handleUpload} disabled={!uploadFile || isUploading}>
                         {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {isUploading ? 'Uploading...' : 'Upload'}
