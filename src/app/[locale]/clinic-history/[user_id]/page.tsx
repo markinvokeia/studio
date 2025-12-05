@@ -1608,7 +1608,10 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         setIsViewerOpen(true);
         setDocumentContent(null);
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${doc.id}`);
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${doc.id}`, {
+                method: 'GET',
+                body: JSON.stringify({ user_id: userId })
+            });
             if (response.ok) {
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
@@ -2411,3 +2414,4 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
+
