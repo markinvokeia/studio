@@ -69,10 +69,10 @@ interface CashPointStatus extends CashPoint {
 
 export default function CashierPage() {
     const t = useTranslations('CashierPage');
-    const { user, checkActiveSession } = useAuth();
+    const { user, checkActiveSession, activeCashSession: contextActiveSession } = useAuth();
     const { toast } = useToast();
     
-    const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(null);
+    const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(contextActiveSession);
     const [cashPoints, setCashPoints] = React.useState<CashPointStatus[]>([]);
     const [sessionMovements, setSessionMovements] = React.useState<CajaMovimiento[]>([]);
     const [closedSessionReport, setClosedSessionReport] = React.useState<any | null>(null);
@@ -171,14 +171,8 @@ export default function CashierPage() {
     }, [activeSession, fetchSessionMovements]);
 
     React.useEffect(() => {
-    return () => {
-      setActiveSession(null);
-      setShowClosingWizard(false);
-      setShowOpeningWizard(false);
-      setCloseWizardStep('REVIEW');
-      setOpenWizardStep('CONFIG');
-    };
-    }, []);
+        setActiveSession(contextActiveSession);
+    }, [contextActiveSession]);
     
     if (isLoading) {
         return <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -205,7 +199,6 @@ export default function CashierPage() {
                       setShowClosingWizard(false);
                       setCloseWizardStep('REVIEW');
                       setClosedSessionReport(null);
-                      setActiveSession(null);
                       checkActiveSession();
                       fetchCashPointStatus();
                     }}
@@ -241,7 +234,6 @@ export default function CashierPage() {
                         setShowOpeningWizard(false);
                         setOpenWizardStep('CONFIG');
                         fetchCashPointStatus();
-                        checkActiveSession();
                     }}
                     sessionData={openingSessionData}
                     setSessionData={setOpeningSessionData}
@@ -626,7 +618,7 @@ function CloseSessionWizard({
                     </TabsContent>
                 </Tabs>
 
-                {currentStep !== 'REVIEW' && currentStep !== 'REPORT' && (
+                {currentStep !== 'REVIEW' && currentStep !== 'DECLARE' && currentStep !== 'REPORT' && (
                     <CardFooter className='justify-between mt-4'>
                         <Button variant="outline" onClick={handlePreviousStep}>Back</Button>
                         <Button onClick={handleNextStep}>Next</Button>
@@ -1155,6 +1147,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             if (!response.ok) throw new Error('Failed to finalize session opening.');
             
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
+            await checkActiveSession();
             onExitWizard();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
@@ -1393,6 +1386,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
 
 
 
