@@ -849,22 +849,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
         const currencyData = systemTotals.find(d => d.moneda === currency);
         const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
 
-        if (!currencyData) {
-            const cashDifference = declaredCash - 0;
-            return (
-                <div key={currency} className="space-y-4">
-                    <h3 className="font-semibold text-lg">{currency}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                        <Label className="flex items-center gap-2 font-semibold"><Banknote className="h-5 w-5 text-muted-foreground" />{t('methods.cash')}</Label>
-                        <div className="text-center"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">$0.00</div></div>
-                        <div className="text-center"><div className="text-muted-foreground">Declared</div><div className="font-semibold">${declaredCash.toFixed(2)}</div></div>
-                        <div className="text-center"><div className="text-muted-foreground">{t('difference')}</div><div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div></div>
-                    </div>
-                </div>
-            );
-        }
-    
-        const systemCashTotal = parseFloat(currencyData.total_efectivo) || 0;
+        const systemCashTotal = currencyData ? parseFloat(currencyData.total_efectivo) : 0;
         const cashDifference = declaredCash - systemCashTotal;
     
         return (
@@ -878,7 +863,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                     <div className="text-center"><div className="text-muted-foreground">{t('difference')}</div><div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div></div>
                 </div>
     
-                {currencyData.desglose_detallado?.filter((d: any) => d.metodo !== 'Cash' && d.metodo !== 'Apertura Caja').map((d: any, index: number) => (
+                {currencyData?.desglose_detallado?.filter((d: any) => d.metodo !== 'Cash' && d.metodo !== 'Apertura Caja').map((d: any, index: number) => (
                     <div key={`${d.metodo}-${index}`} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                         <Label className="flex items-center gap-2 font-semibold">
                             <CreditCard className="h-5 w-5 text-muted-foreground" />
@@ -935,43 +920,47 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
         );
     }
     
-    const dataArray = Array.isArray(reportData) ? reportData : [reportData];
-    
-    const uyuReport = dataArray.find((r: any) => r.moneda === 'UYU');
-    const usdReport = dataArray.find((r: any) => r.moneda === 'USD');
+    const reportDetails = reportData[0]?.details || {};
 
-    const renderReportSection = (data: any, currency: string) => {
+    const formatCurrency = (value: number | string | null | undefined, currency: string) => {
+        const numValue = Number(value);
+        if (isNaN(numValue)) return `${currency} 0.00`;
+        return numValue.toLocaleString('en-US', { style: 'currency', currency: currency });
+    };
+
+    const renderReportSection = (data: any, currency: 'UYU' | 'USD') => {
         if (!data) return null;
+        
+        const declaredCash = data.closing_details?.[currency.toLowerCase()]?.total || 0;
+
         return (
             <div className="space-y-4">
                 <h3 className="font-bold text-lg">{currency} Report</h3>
-                <p><strong>Opening Amount:</strong> ${data.opening_amount}</p>
-                <p><strong>Declared Cash:</strong> ${currency === 'UYU' ? data.declared_cash_uyu : data.declared_cash_usd}</p>
-                <p><strong>System Cash Total:</strong> ${data.system_cash_total}</p>
-                <p><strong>Cash Discrepancy:</strong> <span className={cn(data.cash_discrepancy < 0 ? 'text-red-500' : 'text-green-500')}>${data.cash_discrepancy}</span></p>
-                <p><strong>System Other Payments:</strong> ${data.system_other_total}</p>
+                <p><strong>Opening Amount:</strong> {formatCurrency(data.opening_amount, currency)}</p>
+                <p><strong>Declared Cash:</strong> {formatCurrency(declaredCash, currency)}</p>
+                <p><strong>System Cash Total:</strong> {formatCurrency(data.calculated_cash, currency)}</p>
+                <p><strong>Cash Discrepancy:</strong> <span className={cn(parseFloat(data.cash_variance) < 0 ? 'text-red-500' : 'text-green-500')}>{formatCurrency(data.cash_variance, currency)}</span></p>
+                <p><strong>System Other Payments:</strong> {formatCurrency(data.calculated_card + data.calculated_transfer + data.calculated_other, currency)}</p>
             </div>
         );
     };
 
-    const firstRecord = dataArray[0] || {};
-
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Session #{firstRecord.session_id} Closed</CardTitle>
+                <CardTitle>Session #{reportDetails.id} Closed</CardTitle>
                 <CardDescription>
-                    Summary of the session closed by {firstRecord.user_name} at {firstRecord.cash_point_name}
+                    Summary of the session closed by {reportDetails.user_name || 'N/A'} at {reportDetails.cash_point_name || 'N/A'}
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {renderReportSection(uyuReport, 'UYU')}
-                    {renderReportSection(usdReport, 'USD')}
+                    {renderReportSection(reportDetails, 'UYU')}
+                    {renderReportSection(reportDetails, 'USD')}
                 </div>
                  <div className="mt-4">
-                    <p><strong>Closing Time:</strong> {new Date(firstRecord.closed_at).toLocaleString()}</p>
-                    {firstRecord.notes && <p><strong>Notes:</strong> {firstRecord.notes}</p>}
+                    <p><strong>Closing Time:</strong> {reportDetails.closed_at ? new Date(reportDetails.closed_at).toLocaleString() : 'N/A'}</p>
+                    {reportDetails.notes && <p><strong>Notes:</strong> {reportDetails.notes}</p>}
                 </div>
             </CardContent>
             <CardFooter>
@@ -1359,6 +1348,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
     
 
+
+    
 
     
 
