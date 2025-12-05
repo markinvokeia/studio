@@ -1009,7 +1009,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     toast: any;
 }) {
     const t = useTranslations('CashierPage');
-    const { user } = useAuth();
+    const { user, checkActiveSession } = useAuth();
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -1148,6 +1148,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             if (!response.ok) throw new Error('Failed to finalize session opening.');
             
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
+            await checkActiveSession();
             onExitWizard();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
@@ -1386,4 +1387,5 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
 
