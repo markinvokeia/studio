@@ -7,7 +7,7 @@ import {
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
   BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw,
-  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown, ChevronsUpDown, Check, Trash2, MoreVertical, FolderArchive
+  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown, ChevronsUpDown, Check, Trash2, MoreVertical, FolderArchive, Upload, Loader2
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -1575,28 +1575,33 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
     const [documentContent, setDocumentContent] = useState<string | null>(null);
     const [isViewerOpen, setIsViewerOpen] = useState(false);
+    const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+    const [uploadFile, setUploadFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+
+
+    const fetchDocuments = useCallback(async () => {
+        if (!userId) return;
+        setIsLoadingDocuments(true);
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/documents?user_id=${userId}`);
+            if (response.ok) {
+                const data = await response.json();
+                setDocuments(Array.isArray(data) ? data : []);
+            } else {
+                setDocuments([]);
+            }
+        } catch (error) {
+            console.error("Failed to fetch documents:", error);
+            setDocuments([]);
+        } finally {
+            setIsLoadingDocuments(false);
+        }
+    }, [userId]);
 
     useEffect(() => {
-        const fetchDocuments = async () => {
-            if (!userId) return;
-            setIsLoadingDocuments(true);
-            try {
-                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/documents?user_id=${userId}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    setDocuments(Array.isArray(data) ? data : []);
-                } else {
-                    setDocuments([]);
-                }
-            } catch (error) {
-                console.error("Failed to fetch documents:", error);
-                setDocuments([]);
-            } finally {
-                setIsLoadingDocuments(false);
-            }
-        };
         fetchDocuments();
-    }, [userId]);
+    }, [fetchDocuments]);
 
     const handleViewDocument = async (doc: Document) => {
         setSelectedDocument(doc);
@@ -1619,6 +1624,48 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             console.error("Failed to load document content:", error);
         }
     };
+    
+     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            setUploadFile(file);
+        }
+    };
+    
+    const handleUpload = async () => {
+        if (!uploadFile || !userId) return;
+        setIsUploading(true);
+
+        const formData = new FormData();
+        formData.append('file', uploadFile);
+        formData.append('user_id', userId);
+        
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/import', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.status === 201) {
+                toast({ title: "Upload Successful", description: "Document has been uploaded." });
+                fetchDocuments(); // Refresh the list
+                setIsUploadDialogOpen(false);
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'File upload failed');
+            }
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Upload Error',
+                description: error instanceof Error ? error.message : 'An unknown error occurred.',
+            });
+        } finally {
+            setIsUploading(false);
+            setUploadFile(null);
+        }
+    };
+
 
     const DocumentViewerModal = () => (
       <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
@@ -1631,7 +1678,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
               <iframe src={documentContent} className="h-full w-full border-0" title={selectedDocument?.name} />
             ) : (
               <div className="flex items-center justify-center h-full">
-                <p>Loading document...</p>
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             )}
           </div>
@@ -1642,7 +1689,13 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     return (
       <div className="space-y-6">
         <div className="bg-card rounded-xl shadow-lg p-6">
-          <h3 className="text-xl font-bold text-card-foreground mb-4">{t('images.title')}</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-card-foreground">{t('images.title')}</h3>
+            <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline">
+                <Upload className="mr-2 h-4 w-4" />
+                Upload Document
+            </Button>
+          </div>
           {isLoadingDocuments ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
@@ -1666,6 +1719,25 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
           )}
         </div>
         {isViewerOpen && <DocumentViewerModal />}
+        
+        <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Upload Document</DialogTitle>
+                </DialogHeader>
+                <div className="py-4">
+                    <Label htmlFor="file-upload">Choose a file</Label>
+                    <Input id="file-upload" type="file" onChange={handleFileChange} />
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleUpload} disabled={!uploadFile || isUploading}>
+                        {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isUploading ? 'Uploading...' : 'Upload'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
       </div>
     );
   };
