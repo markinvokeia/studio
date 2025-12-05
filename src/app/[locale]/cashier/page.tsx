@@ -713,25 +713,6 @@ const CashCounter = ({ onCountComplete, uyuDenominations, setUyuDenominations, u
 }) => {
     const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
     const usdTotal = useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
-    const [lastClosingDetails, setLastClosingDetails] = React.useState<{ uyu: Record<string, number>, usd: Record<string, number> } | null>(null);
-
-     React.useEffect(() => {
-        const fetchLastClosing = async () => {
-            try {
-                const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/prefill');
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data && data.length > 0 && data[0].closing_details) {
-                        const details = typeof data[0].closing_details === 'string' ? JSON.parse(data[0].closing_details) : data[0].closing_details;
-                        setLastClosingDetails(details);
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to fetch last closing details:", error);
-            }
-        };
-        fetchLastClosing();
-    }, []);
     
     return (
         <Card>
@@ -754,7 +735,6 @@ const CashCounter = ({ onCountComplete, uyuDenominations, setUyuDenominations, u
                             quantities={uyuDenominations}
                             onQuantitiesChange={setUyuDenominations}
                             imageMap={UYU_IMAGES}
-                            lastClosingDetails={lastClosingDetails?.uyu}
                         />
                     </TabsContent>
                     <TabsContent value="usd">
@@ -766,7 +746,6 @@ const CashCounter = ({ onCountComplete, uyuDenominations, setUyuDenominations, u
                             quantities={usdDenominations}
                             onQuantitiesChange={setUsdDenominations}
                             imageMap={USD_IMAGES}
-                            lastClosingDetails={lastClosingDetails?.usd}
                         />
                     </TabsContent>
                 </Tabs>
@@ -870,8 +849,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
     
         const paymentMethods = ["Cash", "Bank Transfer", "Credit Card", "Debit Card", "Mobile Payment", "Mercado Pago", "Apertura Caja"];
         
-        const cashDetail = currencyData?.desglose_detallado?.filter((d: any) => d.metodo.toLowerCase() === 'cash' || d.metodo.toLowerCase() === 'apertura caja');
-        const systemCash = cashDetail?.reduce((acc: number, item: any) => acc + parseFloat(item.monto), 0) || 0;
+        const systemCash = parseFloat(currencyData?.total_efectivo) || 0;
         
         const cashDifference = declaredCash - systemCash;
     
@@ -1031,7 +1009,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     toast: any;
 }) {
     const t = useTranslations('CashierPage');
-    const { user, checkActiveSession } = useAuth();
+    const { user } = useAuth();
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -1040,6 +1018,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     const [avgRate, setAvgRate] = React.useState(0);
     const [exchangeRatesHtml, setExchangeRatesHtml] = React.useState('');
     const [exchangeRateStatus, setExchangeRateStatus] = React.useState<'loading' | 'loaded' | 'error'>('loading');
+    const [lastClosingDetails, setLastClosingDetails] = React.useState<{ uyu: Record<string, number>, usd: Record<string, number> } | null>(null);
 
     const fetchRates = React.useCallback(async () => {
         const today = new Date().toISOString().split('T')[0];
@@ -1097,6 +1076,23 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         if (currentStep === 'CONFIG') {
             fetchRates();
         }
+        if (currentStep === 'COUNT_UYU') {
+             const fetchLastClosing = async () => {
+                try {
+                    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/prefill');
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && data.length > 0 && data[0].closing_details) {
+                            const details = typeof data[0].closing_details === 'string' ? JSON.parse(data[0].closing_details) : data[0].closing_details;
+                            setLastClosingDetails(details);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch last closing details:", error);
+                }
+            };
+            fetchLastClosing();
+        }
     }, [currentStep, fetchRates]);
 
     const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
@@ -1153,7 +1149,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
             onExitWizard();
-            await checkActiveSession(); // Re-check session status globally
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
         } finally {
@@ -1254,6 +1249,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 quantities={uyuDenominations}
                 onQuantitiesChange={memoizedSetUyuDenominations}
                 imageMap={UYU_IMAGES}
+                lastClosingDetails={lastClosingDetails?.uyu}
             />
         ),
         'COUNT_USD': (
@@ -1265,6 +1261,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 quantities={usdDenominations}
                 onQuantitiesChange={memoizedSetUsdDenominations}
                 imageMap={USD_IMAGES}
+                lastClosingDetails={lastClosingDetails?.usd}
             />
         ),
         'CONFIRM': (
@@ -1389,3 +1386,4 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
