@@ -206,8 +206,8 @@ export default function CashierPage() {
                       setCloseWizardStep('REVIEW');
                       setClosedSessionReport(null);
                       setActiveSession(null);
-                      fetchCashPointStatus();
                       checkActiveSession();
+                      fetchCashPointStatus();
                     }}
                     activeSession={activeSession}
                     sessionMovements={sessionMovements}
@@ -225,7 +225,10 @@ export default function CashierPage() {
                 session={activeSession}
                 movements={sessionMovements}
                 onCloseSession={() => setShowClosingWizard(true)}
-                onViewAllCashPoints={() => setActiveSession(null)}
+                onViewAllCashPoints={() => {
+                    setActiveSession(null);
+                    fetchCashPointStatus();
+                }}
             />
         );
     }
@@ -238,6 +241,7 @@ export default function CashierPage() {
                         setShowOpeningWizard(false);
                         setOpenWizardStep('CONFIG');
                         fetchCashPointStatus();
+                        checkActiveSession();
                     }}
                     sessionData={openingSessionData}
                     setSessionData={setOpeningSessionData}
@@ -548,16 +552,30 @@ function CloseSessionWizard({
     const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
     const usdTotal = useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
     
+    const handleNextStep = () => {
+        if (currentStep === 'REVIEW') setCurrentStep('COUNT_UYU');
+        else if (currentStep === 'COUNT_UYU') setCurrentStep('COUNT_USD');
+        else if (currentStep === 'COUNT_USD') setCurrentStep('DECLARE');
+    };
+    
+    const handlePreviousStep = () => {
+        if (currentStep === 'COUNT_UYU') setCurrentStep('REVIEW');
+        else if (currentStep === 'COUNT_USD') setCurrentStep('COUNT_UYU');
+        else if (currentStep === 'DECLARE') setCurrentStep('COUNT_USD');
+    };
+
+
     return (
         <Card className="w-full">
             <CardHeader>
                 <CardTitle>{t('title')}</CardTitle>
             </CardHeader>
             <CardContent>
-                <Tabs value={currentStep} onValueChange={setCurrentStep} className="w-full">
-                    <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="REVIEW" >{t('steps.review')}</TabsTrigger>
-                        <TabsTrigger value="COUNT_CASH" disabled={currentStep === 'REVIEW'}>Count Cash</TabsTrigger>
+                <Tabs value={currentStep} className="w-full">
+                    <TabsList className="grid w-full grid-cols-5">
+                        <TabsTrigger value="REVIEW">{t('steps.review')}</TabsTrigger>
+                        <TabsTrigger value="COUNT_UYU" disabled={currentStep === 'REVIEW'}>Count UYU</TabsTrigger>
+                        <TabsTrigger value="COUNT_USD" disabled={!['COUNT_USD', 'DECLARE', 'REPORT'].includes(currentStep)}>Count USD</TabsTrigger>
                         <TabsTrigger value="DECLARE" disabled={!['DECLARE', 'REPORT'].includes(currentStep)}>{t('steps.declare')}</TabsTrigger>
                         <TabsTrigger value="REPORT" disabled={currentStep !== 'REPORT'}>{t('steps.report')}</TabsTrigger>
                     </TabsList>
@@ -565,18 +583,29 @@ function CloseSessionWizard({
                         <ActiveSessionDashboard 
                            session={activeSession}
                            movements={sessionMovements}
-                           onCloseSession={() => setCurrentStep('COUNT_CASH')}
+                           onCloseSession={handleNextStep}
                            onViewAllCashPoints={onExitWizard}
                            isWizardOpen={true}
                         />
                     </TabsContent>
-                     <TabsContent value="COUNT_CASH">
+                    <TabsContent value="COUNT_UYU" className="mt-4">
                         <CashCounter
-                            uyuDenominations={uyuDenominations}
-                            setUyuDenominations={setUyuDenominations}
-                            usdDenominations={usdDenominations}
-                            setUsdDenominations={setUsdDenominations}
-                            onCountComplete={() => setCurrentStep('DECLARE')}
+                            currency="UYU"
+                            denominations={denominationsUYU}
+                            coins={coinsUYU}
+                            quantities={uyuDenominations}
+                            onQuantitiesChange={setUyuDenominations}
+                            imageMap={UYU_IMAGES}
+                        />
+                    </TabsContent>
+                    <TabsContent value="COUNT_USD" className="mt-4">
+                        <CashCounter
+                            currency="USD"
+                            denominations={denominationsUSD}
+                            coins={coinsUSD}
+                            quantities={usdDenominations}
+                            onQuantitiesChange={setUsdDenominations}
+                            imageMap={USD_IMAGES}
                         />
                     </TabsContent>
                     <TabsContent value="DECLARE">
@@ -596,6 +625,13 @@ function CloseSessionWizard({
                         <SessionReport reportData={closedSessionReport} onFinish={onExitWizard} />
                     </TabsContent>
                 </Tabs>
+
+                {currentStep !== 'REVIEW' && currentStep !== 'REPORT' && (
+                    <CardFooter className='justify-between mt-4'>
+                        <Button variant="outline" onClick={handlePreviousStep}>Back</Button>
+                        <Button onClick={handleNextStep}>Next</Button>
+                    </CardFooter>
+                )}
             </CardContent>
         </Card>
     );
@@ -704,64 +740,35 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
     );
 };
 
-const CashCounter = ({ onCountComplete, uyuDenominations, setUyuDenominations, usdDenominations, setUsdDenominations }: {
-    onCountComplete: () => void;
-    uyuDenominations: Record<string, number>;
-    setUyuDenominations: React.Dispatch<React.SetStateAction<Record<string, number>>>;
-    usdDenominations: Record<string, number>;
-    setUsdDenominations: React.Dispatch<React.SetStateAction<Record<string, number>>>;
+const CashCounter = ({ currency, denominations, coins, quantities, onQuantitiesChange, imageMap }: {
+    currency: string;
+    denominations: number[];
+    coins: number[];
+    quantities: Record<string, number>;
+    onQuantitiesChange: (quantities: Record<string, number>) => void;
+    imageMap: Record<number, string>;
 }) => {
-    const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
-    const usdTotal = useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
-    
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Cash Count</CardTitle>
+                <CardTitle>Cash Count ({currency})</CardTitle>
                 <CardDescription>Enter the physical cash count for each denomination.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-                <Tabs defaultValue="uyu">
-                    <TabsList>
-                        <TabsTrigger value="uyu">UYU</TabsTrigger>
-                        <TabsTrigger value="usd">USD</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="uyu">
-                        <DenominationCounter
-                            title="UYU Count"
-                            denominations={denominationsUYU}
-                            coins={coinsUYU}
-                            currency="UYU"
-                            quantities={uyuDenominations}
-                            onQuantitiesChange={setUyuDenominations}
-                            imageMap={UYU_IMAGES}
-                        />
-                    </TabsContent>
-                    <TabsContent value="usd">
-                        <DenominationCounter
-                            title="USD Count"
-                            denominations={denominationsUSD}
-                            coins={coinsUSD}
-                            currency="USD"
-                            quantities={usdDenominations}
-                            onQuantitiesChange={setUsdDenominations}
-                            imageMap={USD_IMAGES}
-                        />
-                    </TabsContent>
-                </Tabs>
+            <CardContent>
+                <DenominationCounter
+                    title={`${currency} Count`}
+                    denominations={denominations}
+                    coins={coins}
+                    currency={currency}
+                    quantities={quantities}
+                    onQuantitiesChange={onQuantitiesChange}
+                    imageMap={imageMap}
+                />
             </CardContent>
-            <CardFooter className='justify-between'>
-                 <div className='font-semibold'>
-                    Total Declared (UYU): ${uyuTotal.toFixed(2)}
-                </div>
-                 <div className='font-semibold'>
-                    Total Declared (USD): ${usdTotal.toFixed(2)}
-                </div>
-                <Button onClick={onCountComplete}>Continue to Declaration</Button>
-            </CardFooter>
         </Card>
     );
 };
+
 
 
 const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominations, usdDenominations, onSessionClosed }: { 
@@ -1148,7 +1155,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             if (!response.ok) throw new Error('Failed to finalize session opening.');
             
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
-            await checkActiveSession();
             onExitWizard();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
@@ -1387,5 +1393,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
 
     
+
 
 
