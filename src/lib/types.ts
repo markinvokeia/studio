@@ -108,10 +108,12 @@ export type Invoice = {
   quote_id: string;
   user_name: string;
   userEmail?: string;
+  user_id: string;
   total: number;
   currency?: 'UYU' | 'USD';
-  status: 'draft' | 'sent' | 'paid' | 'overdue';
-  payment_status: 'unpaid' | 'paid' | 'partial';
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'booked';
+  payment_status: 'unpaid' | 'paid' | 'partial' | 'partially_paid';
+  paid_amount?: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -456,6 +458,8 @@ export type CajaSesion = {
   descuadreOtro?: number;
   notasCierre?: string;
   closing_denominations?: string | object;
+  currency: string;
+  date_rate: number;
 };
 
 export type CajaMovimiento = {
@@ -468,6 +472,7 @@ export type CajaMovimiento = {
   fecha: string;
   usuarioId: string;
   pagoId?: string;
+  currency: 'UYU' | 'USD';
 };
 
 export type CashPoint = {
@@ -489,4 +494,41 @@ export type MiscellaneousCategory = {
     accounting_code?: string;
     created_at: string;
     updated_at: string;
+};
+
+export type MiscellaneousTransaction = {
+    id: string;
+    transaction_number: string;
+    transaction_date: string;
+    amount: number;
+    currency: string;
+    exchange_rate: number;
+    converted_amount: number;
+    description: string;
+    external_reference?: string;
+    status: 'pending' | 'completed' | 'cancelled';
+    category_id: string;
+    category_code: string;
+    category_name: string;
+    category_type: 'income' | 'expense';
+    beneficiary_id?: string;
+    beneficiary_name?: string;
+    beneficiary_type?: string;
+    created_by: string;
+    created_at: string;
+    payment_method_id?: string;
+    payment_method_name?: string;
+    cash_session_id?: string;
+    tags?: string[];
+    is_recurring?: boolean;
+    recurrence_pattern?: string;
+    completed_at?: string;
+};
+
+
+export type Credit = {
+    source_id: string;
+    available_balance: string;
+    currency: 'UYU' | 'USD';
+    type: 'credit_note' | 'prepaid';
 };

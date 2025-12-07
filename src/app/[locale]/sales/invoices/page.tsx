@@ -78,9 +78,10 @@ async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
             user_id: apiInvoice.user_id,
             total: apiInvoice.total || 0,
             status: apiInvoice.status || 'draft',
-            payment_status: apiInvoice.payment_status || 'unpaid',
+            payment_status: apiInvoice.payment_state || 'unpaid',
+            paid_amount: apiInvoice.paid_amount,
             createdAt: apiInvoice.created_at || new Date().toISOString().split('T')[0],
-            updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
+            updatedAt: apiInvoice.updated_at || new Date().toISOString().split('T')[0],
             currency: apiInvoice.currency || 'USD',
         }));
     } catch (error) {
@@ -514,6 +515,7 @@ export default function InvoicesPage() {
         total: t('columns.total'),
         status: t('columns.status'),
         payment_status: t('columns.payment'),
+        paid_amount: t('columns.paidAmount'),
         createdAt: t('columns.createdAt'),
     };
     

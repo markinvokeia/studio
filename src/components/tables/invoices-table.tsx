@@ -206,6 +206,18 @@ const getColumns = (
           return <Badge variant={variant} className="capitalize">{status ? tStatus(status.toLowerCase()) : ''}</Badge>;
         },
       },
+      {
+        accessorKey: 'paid_amount',
+        header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.paid_amount || "Paid Amount"} />,
+        cell: ({ row }) => {
+            const amount = row.original.paid_amount ? parseFloat(row.original.paid_amount.toString()) : 0;
+            const formatted = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: row.original.currency || 'USD',
+            }).format(amount);
+            return <div className="text-right font-medium pr-4">{formatted}</div>;
+        },
+      },
        {
         accessorKey: 'createdAt',
         header: ({ column }) => (
