@@ -81,6 +81,8 @@ const createInvoiceFormSchema = z.object({
       total: z.coerce.number().optional(),
     })).min(1, 'At least one item is required.'),
     type: z.enum(['invoice', 'credit_note']),
+    is_refund: z.boolean().optional(),
+    parent_id: z.string().optional(),
 });
 type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
 
@@ -802,6 +804,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
   const t = useTranslations('InvoicesPage.createDialog');
   const [users, setUsers] = React.useState<User[]>([]);
   const [services, setServices] = React.useState<Service[]>([]);
+  const [bookedInvoices, setBookedInvoices] = React.useState<Invoice[]>([]);
   const { toast } = useToast();
   
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
@@ -814,10 +817,13 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
       currency: 'USD',
       items: [],
       total: 0,
+      is_refund: false,
     },
   });
   
   const items = form.watch('items');
+  const invoiceType = form.watch('type');
+  const isRefund = form.watch('is_refund');
 
   React.useEffect(() => {
     const total = items.reduce((sum, item) => sum + (item.total || 0), 0);
@@ -829,9 +835,10 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
       const fetchData = async () => {
         try {
           const filterType = isSales ? 'PACIENTE' : 'PROVEEDOR';
-          const [usersRes, servicesRes] = await Promise.all([
+          const [usersRes, servicesRes, invoicesRes] = await Promise.all([
             fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=${filterType}`),
-            fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=${isSales}`)
+            fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=${isSales}`),
+            fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?is_sales=${isSales}&status=booked&type=invoice`)
           ]);
   
           if (usersRes.ok) {
@@ -843,6 +850,10 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
             const data = await servicesRes.json();
             const servicesData = Array.isArray(data) ? data : (data.services || []);
             setServices(servicesData.map((s: any) => ({ ...s, id: String(s.id) })));
+          }
+          if (invoicesRes.ok) {
+            const data = await invoicesRes.json();
+            setBookedInvoices(data.invoices || []);
           }
         } catch (error) {
           console.error('Failed to fetch initial data', error);
@@ -934,6 +945,48 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                     <span className="font-semibold text-lg">{t('total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(form.watch('total'))}</span>
                 </div>
             </div>
+            {invoiceType === 'credit_note' && (
+                <div className="space-y-4 rounded-md border p-4">
+                    <FormField
+                        control={form.control}
+                        name="is_refund"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                <FormControl>
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <FormLabel>{t('isRefund')}</FormLabel>
+                            </FormItem>
+                        )}
+                    />
+                    {isRefund && (
+                        <FormField
+                            control={form.control}
+                            name="parent_id"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('parentInvoice')}</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={t('selectParentInvoice')} />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {bookedInvoices.map(inv => (
+                                                <SelectItem key={inv.id} value={inv.id}>
+                                                    Invoice #{inv.id} - {inv.user_name} - ${inv.total}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
+                </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
                <FormField control={form.control} name="user_id" render={({ field }) => (
                 <FormItem>
