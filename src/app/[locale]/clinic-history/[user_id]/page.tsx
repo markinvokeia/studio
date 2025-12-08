@@ -10,6 +10,7 @@ import {
   BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw,
   Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown, ChevronsUpDown, Check, Trash2, MoreVertical, FolderArchive, Upload, Loader2, MoreHorizontal
 } from 'lucide-react';
+import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
@@ -1596,7 +1597,13 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         if (response.ok) {
           const data = await response.json();
           const docs = Array.isArray(data) ? data : (data.documents || []);
-          setDocuments(docs.map((doc: any) => ({ id: String(doc.id), name: doc.name })));
+          setDocuments(docs.map((doc: any) => ({
+            id: String(doc.id),
+            name: doc.name,
+            mimeType: doc.mimeType,
+            hasThumbnail: doc.hasThumbnail,
+            thumbnailLink: doc.thumbnailLink
+          })));
         } else {
           setDocuments([]);
         }
@@ -1713,11 +1720,11 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
 
     const DocumentViewerModal = () => (
       <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
-        <DialogContent className="max-w-4xl h-[90vh] p-0 flex flex-col">
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
           <DialogHeader className="p-4 border-b">
             <DialogTitle>{selectedDocument?.name}</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 w-full overflow-hidden">
+          <div className="flex-1 w-full h-full overflow-hidden">
             {documentContent ? (
               <iframe src={documentContent} className="h-full w-full border-0" title={selectedDocument?.name} />
             ) : (
@@ -1741,24 +1748,28 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             </Button>
           </div>
           {isLoadingDocuments ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
             </div>
           ) : documents.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {documents.map((doc) => (
-                <Card key={doc.id}>
-                    <CardContent className="p-4 flex flex-col justify-between h-full">
-                        <div className="cursor-pointer flex-grow" onClick={() => handleViewDocument(doc)}>
-                            <div className='flex items-center gap-4'>
-                                <FileText className="h-8 w-8 text-primary flex-shrink-0" />
-                                <div>
-                                    <p className="font-semibold text-sm truncate">{doc.name}</p>
-                                    <p className="text-xs text-muted-foreground">ID: {doc.id}</p>
+                <Card key={doc.id} className="overflow-hidden">
+                    <CardContent className="p-0 flex flex-col justify-between h-full">
+                        <div className="relative aspect-video w-full bg-muted cursor-pointer" onClick={() => handleViewDocument(doc)}>
+                            {doc.hasThumbnail && doc.thumbnailLink ? (
+                                <Image src={doc.thumbnailLink} alt={doc.name} layout="fill" className="object-cover" />
+                            ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <FileText className="h-10 w-10 text-muted-foreground" />
                                 </div>
-                            </div>
+                            )}
                         </div>
-                        <div className="flex justify-end mt-2">
+                        <div className="p-3">
+                          <p className="font-semibold text-sm truncate leading-tight">{doc.name}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{doc.mimeType}</p>
+                        </div>
+                        <div className="flex justify-end p-1 pt-0">
                              <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">

@@ -1,4 +1,5 @@
 
+
 export type User = {
   id: string;
   name: string;
@@ -18,6 +19,9 @@ export type User = {
 export type Document = {
   id: string;
   name: string;
+  mimeType?: string;
+  hasThumbnail?: boolean;
+  thumbnailLink?: string;
 };
 
 export type Role = {
