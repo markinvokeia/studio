@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Payment, User, PaymentMethod } from '@/lib/types';
+import { Payment, User, PaymentMethod, Credit } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { useTranslations } from 'next-intl';
@@ -286,9 +286,26 @@ export default function PaymentsPage() {
                 throw new Error("No active cash session found. Please open a session first.");
             }
             
-            const payload = { ...prepaidData, is_sales: true, cash_session_id: sessionData.data.id };
+            const selectedMethod = paymentMethods.find(pm => pm.id === prepaidData.payment_method_id);
+            const payload = {
+                cash_session_id: sessionData.data.id,
+                user: user,
+                query: JSON.stringify({
+                    payment_date: prepaidData.created_at.toISOString(),
+                    amount: prepaidData.payment_amount,
+                    method: selectedMethod?.name,
+                    payment_method_id: prepaidData.payment_method_id,
+                    status: 'completed',
+                    user_id: prepaidData.user_id,
+                    is_sales: true,
+                    is_prepaid: true,
+                    invoice_currency: prepaidData.currency,
+                    payment_currency: prepaidData.currency,
+                    exchange_rate: 1
+                }),
+            };
 
-            const prepaidResponse = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/prepaid/insert', {
+            const prepaidResponse = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice/payment', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
