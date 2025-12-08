@@ -340,12 +340,13 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const remainingAmountToPay = React.useMemo(() => {
     if (!selectedInvoiceForPayment) return 0;
     const invoiceTotal = selectedInvoiceForPayment.total || 0;
-    let amountPaid = watchedAmount || 0;
+    const paidAmount = selectedInvoiceForPayment.paid_amount || 0;
+    let amountBeingPaid = watchedAmount || 0;
     
-    const amountInInvoiceCurrency = showExchangeRate && equivalentAmount ? equivalentAmount : amountPaid;
+    const amountInInvoiceCurrency = showExchangeRate && equivalentAmount ? equivalentAmount : amountBeingPaid;
     
-    return invoiceTotal - amountInInvoiceCurrency - totalAppliedCredits;
-  }, [selectedInvoiceForPayment, watchedAmount, showExchangeRate, equivalentAmount, totalAppliedCredits]);
+    return invoiceTotal - paidAmount - amountInInvoiceCurrency - totalAppliedCredits;
+}, [selectedInvoiceForPayment, watchedAmount, showExchangeRate, equivalentAmount, totalAppliedCredits]);
 
   const fetchPaymentMethods = async () => {
     try {
@@ -400,7 +401,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             fetchPaymentMethods();
             fetchUserCredits(invoice.user_id);
             form.reset({
-                amount: invoice.total,
+                amount: invoice.total - (invoice.paid_amount || 0),
                 method: '',
                 status: 'completed',
                 payment_date: new Date(),
@@ -438,7 +439,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         const payload = {
             invoice_id: selectedInvoiceForPayment.id,
             cash_session_id: activeCashSessionId,
-            user: user,
+            user: user, 
+            client_user: { id: selectedInvoiceForPayment.user_id, name: selectedInvoiceForPayment.user_name, email: selectedInvoiceForPayment.userEmail },
             credit_payment: Array.from(appliedCredits.entries()).map(([id, amount]) => {
                 const credit = userCredits.find(c => c.source_id === id);
                 return {
@@ -456,7 +458,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 method: selectedMethod?.name,
                 payment_method_id: values.method,
                 status: values.status,
-                user: user,
+                user_id: selectedInvoiceForPayment.user_id,
                 invoice_currency: selectedInvoiceForPayment.currency,
                 payment_currency: values.payment_currency,
                 exchange_rate: values.exchange_rate || 1,

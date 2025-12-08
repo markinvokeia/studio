@@ -287,9 +287,12 @@ export default function PaymentsPage() {
             }
             
             const selectedMethod = paymentMethods.find(pm => pm.id === prepaidData.payment_method_id);
+            const clientUser = users.find(u => u.id === prepaidData.user_id);
+
             const payload = {
                 cash_session_id: sessionData.data.id,
-                user: user,
+                user: user, 
+                client_user: clientUser,
                 query: JSON.stringify({
                     payment_date: prepaidData.created_at.toISOString(),
                     amount: prepaidData.payment_amount,
