@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -10,12 +9,6 @@ interface ExchangeRateData {
   sell: number;
 }
 
-// Mock data, as we cannot fetch from external URL directly.
-const MOCK_EXCHANGE_RATE: ExchangeRateData = {
-  buy: 38.90,
-  sell: 41.30,
-};
-
 interface ExchangeRateProps {
   onRateChange?: (rates: ExchangeRateData) => void;
 }
@@ -25,17 +18,31 @@ export function ExchangeRate({ onRateChange }: ExchangeRateProps) {
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
-    // In a real implementation, you would fetch this data from a backend endpoint
-    // that scrapes the BROU website.
-    const timer = setTimeout(() => {
-      setRate(MOCK_EXCHANGE_RATE);
-      if (onRateChange) {
-        onRateChange(MOCK_EXCHANGE_RATE);
-      }
-      setIsLoading(false);
-    }, 1500);
+    const fetchRates = async () => {
+        setIsLoading(true);
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cotizaciones?rendered=false');
+            if (!response.ok) {
+                throw new Error('Failed to fetch exchange rates');
+            }
+            const data = await response.json();
+            const rates = {
+                buy: data.compra,
+                sell: data.venta,
+            };
+            setRate(rates);
+            if (onRateChange) {
+                onRateChange(rates);
+            }
+        } catch (error) {
+            console.error("Failed to fetch exchange rates:", error);
+            setRate(null);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-    return () => clearTimeout(timer);
+    fetchRates();
   }, [onRateChange]);
 
   if (isLoading) {
