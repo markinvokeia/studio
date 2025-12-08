@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -1840,7 +1841,6 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         rotation: t('odontogram.conditions.rotation'),
         worn: t('odontogram.conditions.worn'),
         supernumerary: t('odontogram.conditions.supernumerary'),
-        fusion: t('odontogram.conditions.fusion'),
         prosthesis: t('odontogram.conditions.prosthesis'),
         edentulism: t('odontogram.conditions.edentulism'),
         eruption: t('odontogram.conditions.eruption'),
