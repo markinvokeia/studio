@@ -1589,22 +1589,22 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
 
 
     const fetchDocuments = useCallback(async () => {
-        if (!userId) return;
-        setIsLoadingDocuments(true);
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/documents?user_id=${userId}`);
-            if (response.ok) {
-                const data: Document[] = await response.json();
-                setDocuments(Array.isArray(data) ? data : []);
-            } else {
-                setDocuments([]);
-            }
-        } catch (error) {
-            console.error("Failed to fetch documents:", error);
-            setDocuments([]);
-        } finally {
-            setIsLoadingDocuments(false);
+      if (!userId) return;
+      setIsLoadingDocuments(true);
+      try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/documents?user_id=${userId}`);
+        if (response.ok) {
+          const data: any[] = await response.json();
+          setDocuments(Array.isArray(data) ? data.map(doc => ({ id: String(doc.id), name: doc.name })) : []);
+        } else {
+          setDocuments([]);
         }
+      } catch (error) {
+        console.error("Failed to fetch documents:", error);
+        setDocuments([]);
+      } finally {
+        setIsLoadingDocuments(false);
+      }
     }, [userId]);
 
     useEffect(() => {
@@ -1612,26 +1612,31 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     }, [fetchDocuments]);
     
     const handleViewDocument = async (doc: Document) => {
-        setSelectedDocument(doc);
-        setIsViewerOpen(true);
-        setDocumentContent(null);
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${doc.id}&user_id=${userId}`);
-            
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                setDocumentContent(url);
-            } else {
-                toast({
-                    variant: 'destructive',
-                    title: 'Error',
-                    description: 'Could not load document.',
-                });
-            }
-        } catch (error) {
-            console.error("Failed to load document content:", error);
+      setSelectedDocument(doc);
+      setIsViewerOpen(true);
+      setDocumentContent(null);
+      try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${doc.id}&user_id=${userId}`);
+        
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          setDocumentContent(url);
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Could not load document.',
+          });
         }
+      } catch (error) {
+        console.error("Failed to load document content:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to fetch document content.',
+        });
+      }
     };
     
      const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -2420,4 +2425,3 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
-
