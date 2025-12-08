@@ -2046,7 +2046,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         { id: 'anamnesis', label: t('tabs.anamnesis'), icon: FileText },
         { id: 'timeline', label: t('tabs.timeline'), icon: Clock },
         { id: 'odontogram', label: t('tabs.odontogram'), icon: Smile },
-        { id: 'images', label: t('tabs.images'), icon: FolderArchive },
+        { id: 'documents', label: t('tabs.documents'), icon: FolderArchive },
       ].map(({ id, label, icon: Icon }) => (
         <Button
             key={id}
@@ -2167,7 +2167,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                             <iframe src={`https://1e44d2212c3f.ngrok-free.app/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
                         </div>
                     )}
-                    {activeView === 'images' && <ImageGallery />}
+                    {activeView === 'documents' && <ImageGallery />}
                 </div>
             </div>
         </>

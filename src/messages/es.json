@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Tablero",
@@ -1102,7 +1103,7 @@
       "phone": "Teléfono",
       "phonePlaceholder": "123-456-7890",
       "identity_document": "Documento de Identidad",
-      "identity_document_placeholder": "ej., 1234567890",
+      "identity_document_placeholder": "ej. 1234567890",
       "isActive": "¿Está Activo?",
       "cancel": "Cancelar",
       "save": "Crear"
@@ -1661,7 +1662,7 @@
       "anamnesis": "Anamnesis",
       "timeline": "Línea de Tiempo",
       "odontogram": "Odontograma",
-      "images": "Documentos"
+      "documents": "Documentos"
     },
     "selectPatientTitle": "Selecciona un Paciente",
     "selectPatientDescription": "Por favor selecciona un paciente para ver su historia médica",
