@@ -1595,7 +1595,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         if (response.ok) {
           const data = await response.json();
           const docs = Array.isArray(data) ? data : (data.documents || []);
-          setDocuments(docs.map(doc => ({ id: String(doc.id), name: doc.name })));
+          setDocuments(docs.map((doc: any) => ({ id: String(doc.id), name: doc.name })));
         } else {
           setDocuments([]);
         }
@@ -2426,5 +2426,3 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
-
-    
