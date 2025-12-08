@@ -853,7 +853,8 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
           }
           if (invoicesRes.ok) {
             const data = await invoicesRes.json();
-            setBookedInvoices(data.invoices || []);
+            const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
+            setBookedInvoices(invoicesData);
           }
         } catch (error) {
           console.error('Failed to fetch initial data', error);
