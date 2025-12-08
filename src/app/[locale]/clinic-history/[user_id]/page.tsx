@@ -1685,11 +1685,11 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
 
     const DocumentViewerModal = () => (
       <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
-        <DialogContent className="max-w-4xl h-[90vh]">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl h-[90vh] p-0">
+          <DialogHeader className="p-4 border-b">
             <DialogTitle>{selectedDocument?.name}</DialogTitle>
           </DialogHeader>
-          <div className="h-full w-full">
+          <div className="h-[calc(90vh-70px)] w-full">
             {documentContent ? (
               <iframe src={documentContent} className="h-full w-full border-0" title={selectedDocument?.name} />
             ) : (
@@ -2426,3 +2426,4 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
+
