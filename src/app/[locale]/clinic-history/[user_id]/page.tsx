@@ -46,6 +46,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardContent } from '@/components/ui/card';
 
 type PersonalHistoryItem = {
     id: number;
@@ -1586,9 +1587,8 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         try {
             const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/documents?user_id=${userId}`);
             if (response.ok) {
-                const data = await response.json();
-                const docs = Array.isArray(data) ? data : [];
-                setDocuments(docs);
+                const data: Document[] = await response.json();
+                setDocuments(Array.isArray(data) ? data : []);
             } else {
                 setDocuments([]);
             }
@@ -1609,11 +1609,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         setIsViewerOpen(true);
         setDocumentContent(null);
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${doc.id}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId })
-            });
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${doc.id}`);
             if (response.ok) {
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
@@ -2416,3 +2412,4 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
+
