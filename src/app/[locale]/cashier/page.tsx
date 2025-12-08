@@ -1042,26 +1042,27 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch exchange rates.' });
         }
     }, [setSessionData, toast]);
-
+    
+    const fetchLastClosing = async () => {
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/prefill');
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.length > 0 && data[0].closing_details) {
+                    const details = typeof data[0].closing_details === 'string' ? JSON.parse(data[0].closing_details) : data[0].closing_details;
+                    setLastClosingDetails(details);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to fetch last closing details:", error);
+        }
+    };
+    
     React.useEffect(() => {
         if (currentStep === 'CONFIG') {
             fetchRates();
         }
-        if (currentStep === 'COUNT_UYU') {
-             const fetchLastClosing = async () => {
-                try {
-                    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/prefill');
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data && data.length > 0 && data[0].closing_details) {
-                            const details = typeof data[0].closing_details === 'string' ? JSON.parse(data[0].closing_details) : data[0].closing_details;
-                            setLastClosingDetails(details);
-                        }
-                    }
-                } catch (error) {
-                    console.error("Failed to fetch last closing details:", error);
-                }
-            };
+        if (currentStep === 'COUNT_UYU' || currentStep === 'COUNT_USD') {
             fetchLastClosing();
         }
     }, [currentStep, fetchRates]);
