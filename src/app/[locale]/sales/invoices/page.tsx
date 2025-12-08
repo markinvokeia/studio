@@ -34,7 +34,7 @@ type InvoiceItemFormValues = z.infer<typeof invoiceItemSchema>;
 
 async function getServices(): Promise<Service[]> {
   try {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=true', {
+    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=false', {
       method: 'GET',
       mode: 'cors',
       headers: { 'Accept': 'application/json' },
@@ -50,16 +50,14 @@ async function getServices(): Promise<Service[]> {
   }
 }
 
-
 async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
-    const params = new URLSearchParams({
-        is_sales: 'true',
-    });
-    if (type !== 'all') {
-        params.append('type', type);
-    }
-
     try {
+        const params = new URLSearchParams({
+            is_sales: 'false',
+        });
+        if (type !== 'all') {
+            params.append('type', type);
+        }
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?${params.toString()}`, {
             method: 'GET',
             mode: 'cors',
@@ -78,10 +76,9 @@ async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
             user_id: apiInvoice.user_id,
             total: apiInvoice.total || 0,
             status: apiInvoice.status || 'draft',
-            payment_status: apiInvoice.payment_state || 'unpaid',
-            paid_amount: apiInvoice.paid_amount,
+            payment_status: apiInvoice.payment_status || 'unpaid',
             createdAt: apiInvoice.created_at || new Date().toISOString().split('T')[0],
-            updatedAt: apiInvoice.updated_at || new Date().toISOString().split('T')[0],
+            updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
             currency: apiInvoice.currency || 'USD',
         }));
     } catch (error) {
@@ -93,7 +90,7 @@ async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
 async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}&is_sales=true`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}&is_sales=false`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -119,7 +116,7 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
 async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_payments?invoice_id=${invoiceId}&is_sales=true`, {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_payments?invoice_id=${invoiceId}&is_sales=false`, {
             method: 'GET',
             mode: 'cors',
             headers: { 'Accept': 'application/json' },
@@ -364,7 +361,7 @@ export default function InvoicesPage() {
 
         const formData = new FormData();
         formData.append('file', importFile);
-        formData.append('is_sales', 'true');
+        formData.append('is_sales', 'false');
 
         try {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/invoice/import', {
@@ -509,13 +506,12 @@ export default function InvoicesPage() {
 
     const columnTranslations = {
         id: t('columns.invoiceId'),
-        user_name: t('columns.user'),
+        user_name: t('columns.provider'),
         order_id: t('columns.orderId'),
         quote_id: t('columns.quoteId'),
         total: t('columns.total'),
         status: t('columns.status'),
         payment_status: t('columns.payment'),
-        paid_amount: t('columns.paidAmount'),
         createdAt: t('columns.createdAt'),
     };
     
@@ -815,5 +811,4 @@ export default function InvoicesPage() {
             </AlertDialog>
         </div>
     );
-
-    
+}
