@@ -8,7 +8,7 @@ import {
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
   BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw,
-  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown, ChevronsUpDown, Check, Trash2, MoreVertical, FolderArchive, Upload, Loader2
+  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown, ChevronsUpDown, Check, Trash2, MoreVertical, FolderArchive, Upload, Loader2, MoreHorizontal
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -1586,7 +1586,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
     const [uploadFile, setUploadFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
-
+    const [deletingDocument, setDeletingDocument] = useState<Document | null>(null);
 
     const fetchDocuments = useCallback(async () => {
       if (!userId) return;
@@ -1682,14 +1682,42 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         }
     };
 
+    const handleDeleteDocument = (doc: Document) => {
+        setDeletingDocument(doc);
+    };
+
+    const confirmDeleteDocument = async () => {
+        if (!deletingDocument || !userId) return;
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${deletingDocument.id}&user_id=${userId}`, {
+                method: 'DELETE',
+            });
+            if (response.status === 204) {
+                toast({ title: "Document Deleted", description: `Document "${deletingDocument.name}" has been deleted.` });
+                fetchDocuments();
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to delete document.');
+            }
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Deletion Error',
+                description: error instanceof Error ? error.message : 'An unknown error occurred.',
+            });
+        } finally {
+            setDeletingDocument(null);
+        }
+    };
+
 
     const DocumentViewerModal = () => (
       <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
-        <DialogContent className="max-w-4xl h-[90vh] p-0">
+        <DialogContent className="max-w-4xl h-[90vh] p-0 flex flex-col">
           <DialogHeader className="p-4 border-b">
             <DialogTitle>{selectedDocument?.name}</DialogTitle>
           </DialogHeader>
-          <div className="h-[calc(90vh-70px)] w-full">
+          <div className="flex-1 w-full overflow-hidden">
             {documentContent ? (
               <iframe src={documentContent} className="h-full w-full border-0" title={selectedDocument?.name} />
             ) : (
@@ -1719,14 +1747,33 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
           ) : documents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {documents.map((doc) => (
-                <Card key={doc.id} className="cursor-pointer hover:shadow-md" onClick={() => handleViewDocument(doc)}>
-                  <CardContent className="p-4 flex items-center gap-4">
-                    <FileText className="h-8 w-8 text-primary" />
-                    <div>
-                      <p className="font-semibold text-sm truncate">{doc.name}</p>
-                      <p className="text-xs text-muted-foreground">ID: {doc.id}</p>
-                    </div>
-                  </CardContent>
+                <Card key={doc.id}>
+                    <CardContent className="p-4 flex flex-col justify-between h-full">
+                        <div className="cursor-pointer flex-grow" onClick={() => handleViewDocument(doc)}>
+                            <div className='flex items-center gap-4'>
+                                <FileText className="h-8 w-8 text-primary flex-shrink-0" />
+                                <div>
+                                    <p className="font-semibold text-sm truncate">{doc.name}</p>
+                                    <p className="text-xs text-muted-foreground">ID: {doc.id}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex justify-end mt-2">
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem onClick={() => handleDeleteDocument(doc)} className="text-destructive">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </CardContent>
                 </Card>
               ))}
             </div>
@@ -1770,6 +1817,20 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+        <AlertDialog open={!!deletingDocument} onOpenChange={() => setDeletingDocument(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will permanently delete the document "{deletingDocument?.name}". This action cannot be undone.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDeleteDocument} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   };
@@ -2427,3 +2488,4 @@ export default function DentalClinicalSystemPage() {
     return <DentalClinicalSystem userId={userId} />;
 }
 
+    
