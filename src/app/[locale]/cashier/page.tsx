@@ -1121,10 +1121,11 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 })
             });
              const responseData = await response.json();
-             const sessionInfo = responseData.session ? JSON.parse(responseData.session) : null;
+             const responsePayload = Array.isArray(responseData) ? responseData[0] : responseData;
+             const sessionInfo = responsePayload?.session ? JSON.parse(responsePayload.session) : null;
 
-            if (!response.ok || (responseData.code >= 400 && !sessionInfo)) {
-                throw new Error(responseData.message || 'Failed to finalize session opening.');
+            if (!response.ok || (responsePayload.code >= 400 && !sessionInfo)) {
+                throw new Error(responsePayload.message || 'Failed to finalize session opening.');
             }
             
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
