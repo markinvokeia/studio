@@ -112,11 +112,11 @@ export default function CashierPage() {
                     puntoDeCajaId: String(cp.cash_point_id),
                     cash_point_name: cp.cash_point_name,
                     estado: 'ABIERTA',
-                    fechaApertura: cp.session_start_time || new Date().toISOString(), 
-                    montoApertura: Number(cp.opening_amount) || 0,
+                    fechaApertura: cp.opening_details?.opened_at || new Date().toISOString(), 
+                    montoApertura: (cp.opening_amounts || []).reduce((acc: number, amount: any) => acc + Number(amount.opening_amount), 0),
                     opening_details: cp.opening_details,
-                    currency: cp.currency,
-                    date_rate: cp.date_rate
+                    currency: cp.opening_details?.currency,
+                    date_rate: cp.opening_details?.date_rate
                 } : undefined,
             }));
             setCashPoints(mappedCashPoints);
@@ -1121,7 +1121,9 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 })
             });
              const responseData = await response.json();
-            if (!response.ok || responseData.code >= 400) {
+             const sessionInfo = responseData.session ? JSON.parse(responseData.session) : null;
+
+            if (!response.ok || (responseData.code >= 400 && !sessionInfo)) {
                 throw new Error(responseData.message || 'Failed to finalize session opening.');
             }
             
@@ -1370,5 +1372,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
 
 
+
+    
 
     
