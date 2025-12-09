@@ -116,7 +116,7 @@ export default function CashierPage() {
                     montoApertura: (cp.opening_amounts || []).reduce((acc: number, amount: any) => acc + Number(amount.opening_amount), 0),
                     opening_details: cp.opening_details,
                     currency: cp.opening_details?.currency,
-                    date_rate: cp.opening_details?.date_rate
+                    date_rate: cp.opening_details?.date_rate,
                 } : undefined,
             }));
             setCashPoints(mappedCashPoints);
@@ -229,9 +229,8 @@ export default function CashierPage() {
                         setOpenWizardStep('CONFIG');
                         if (newSession) {
                             setActiveSession(newSession);
-                        } else {
-                            checkActiveSession();
                         }
+                        checkActiveSession();
                         fetchCashPointStatus();
                     }}
                     sessionData={openingSessionData}
@@ -1130,9 +1129,14 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 throw new Error(responsePayload.message || 'Failed to finalize session opening.');
             }
             
+            const fullSessionData = {
+                ...sessionInfo,
+                cash_point_name: sessionData.cash_point_name,
+                user_name: user?.name,
+            };
+
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
-            await checkActiveSession();
-            onExitWizard(sessionInfo);
+            onExitWizard(fullSessionData);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
         } finally {
@@ -1317,8 +1321,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
     
 
-    
-
 
 
 
@@ -1375,6 +1377,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
 
 
+
+    
 
     
 
