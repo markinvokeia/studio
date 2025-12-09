@@ -224,10 +224,14 @@ export default function CashierPage() {
         return <OpenSessionWizard
                     currentStep={openWizardStep}
                     setCurrentStep={setOpenWizardStep}
-                    onExitWizard={() => {
+                    onExitWizard={(newSession) => {
                         setShowOpeningWizard(false);
                         setOpenWizardStep('CONFIG');
-                        checkActiveSession();
+                        if (newSession) {
+                            setActiveSession(newSession);
+                        } else {
+                            checkActiveSession();
+                        }
                         fetchCashPointStatus();
                     }}
                     sessionData={openingSessionData}
@@ -905,90 +909,88 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
 
 const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: () => void }) => {
     const reportDetails = Array.isArray(reportData) ? reportData[0] : reportData;
-
+  
     if (!reportDetails || !reportDetails.details) {
-        return (
-            <Card>
-                <CardHeader><CardTitle>Session Report</CardTitle></CardHeader>
-                <CardContent>
-                    <p>No report data available.</p>
-                    <Button onClick={onFinish} className="mt-4">Return to Cashier</Button>
-                </CardContent>
-            </Card>
-        );
+      return (
+        <Card>
+          <CardHeader><CardTitle>Session Report</CardTitle></CardHeader>
+          <CardContent>
+            <p>No report data available.</p>
+            <Button onClick={onFinish} className="mt-4">Return to Cashier</Button>
+          </CardContent>
+        </Card>
+      );
     }
     
     const { session, movements } = reportDetails.details;
-
+  
     const parseJsonDetails = (jsonString: string | object | undefined) => {
-        if (!jsonString) return {};
-        if (typeof jsonString === 'object') return jsonString;
-        try {
-            return JSON.parse(jsonString);
-        } catch (e) {
-            console.error("Failed to parse details JSON", e);
-            return {};
-        }
+      if (!jsonString) return {};
+      if (typeof jsonString === 'object') return jsonString;
+      try {
+        return JSON.parse(jsonString);
+      } catch (e) {
+        console.error("Failed to parse details JSON", e);
+        return {};
+      }
     };
-
-    const openingDetails = parseJsonDetails(session.opening_details);
-
+  
     const formatCurrency = (value: number | string | null | undefined, currency: string) => {
-        const numValue = Number(value);
-        if (isNaN(numValue)) return `${currency} 0.00`;
-        return numValue.toLocaleString('en-US', { style: 'currency', currency: currency });
+      const numValue = Number(value);
+      if (isNaN(numValue)) return `${currency} 0.00`;
+      return numValue.toLocaleString('en-US', { style: 'currency', currency: currency });
     };
-
+  
     const renderReportSection = (currency: 'UYU' | 'USD') => {
-        const currencyMovement = movements.find((m: any) => m.currency === currency);
-        if (!currencyMovement) return null;
-
-        const openingAmount = currencyMovement.opening_amount_ref || 0;
-        const declaredCash = currencyMovement.declared_cash || 0;
-        const systemCash = currencyMovement.calculated_cash || 0;
-        const cashVariance = currencyMovement.cash_variance || 0;
-        const systemCard = currencyMovement.calculated_card || 0;
-        const systemTransfer = currencyMovement.calculated_transfer || 0;
-        const systemOther = currencyMovement.calculated_other || 0;
-
-        return (
-            <div className="space-y-4">
-                <h3 className="font-bold text-lg">{currency} Report</h3>
-                <p><strong>Opening Amount:</strong> {formatCurrency(openingAmount, currency)}</p>
-                <p><strong>Declared Cash:</strong> {formatCurrency(declaredCash, currency)}</p>
-                <p><strong>System Cash Total:</strong> {formatCurrency(systemCash, currency)}</p>
-                <p><strong>Cash Discrepancy:</strong> <span className={cn(cashVariance < 0 ? "text-red-500" : "text-green-500")}>{formatCurrency(cashVariance, currency)}</span></p>
-                <p><strong>System Card Total:</strong> {formatCurrency(systemCard, currency)}</p>
-                <p><strong>System Transfer Total:</strong> {formatCurrency(systemTransfer, currency)}</p>
-                <p><strong>System Other Payments:</strong> {formatCurrency(systemOther, currency)}</p>
-            </div>
-        );
+      const currencyMovement = movements.find((m: any) => m.currency === currency);
+      if (!currencyMovement) return null;
+  
+      const openingAmount = currencyMovement.opening_amount_ref || 0;
+      const declaredCash = currencyMovement.declared_cash || 0;
+      const systemCash = currencyMovement.calculated_cash || 0;
+      const cashVariance = currencyMovement.cash_variance || 0;
+      const systemCard = currencyMovement.calculated_card || 0;
+      const systemTransfer = currencyMovement.calculated_transfer || 0;
+      const systemOther = currencyMovement.calculated_other || 0;
+  
+      return (
+        <div className="space-y-4">
+          <h3 className="font-bold text-lg">{currency} Report</h3>
+          <p><strong>Opening Amount:</strong> {formatCurrency(openingAmount, currency)}</p>
+          <p><strong>Declared Cash:</strong> {formatCurrency(declaredCash, currency)}</p>
+          <p><strong>System Cash Total:</strong> {formatCurrency(systemCash, currency)}</p>
+          <p><strong>Cash Discrepancy:</strong> <span className={cn(cashVariance < 0 ? "text-red-500" : "text-green-500")}>{formatCurrency(cashVariance, currency)}</span></p>
+          <p><strong>System Card Total:</strong> {formatCurrency(systemCard, currency)}</p>
+          <p><strong>System Transfer Total:</strong> {formatCurrency(systemTransfer, currency)}</p>
+          <p><strong>System Other Payments:</strong> {formatCurrency(systemOther, currency)}</p>
+        </div>
+      );
     };
-
+  
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Session #{session.id} Closed</CardTitle>
-                <CardDescription>
-                    Summary of the session closed by {session.user_name || 'N/A'} at {session.cash_point_name || 'N/A'}
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {renderReportSection('UYU')}
-                    {renderReportSection('USD')}
-                </div>
-                 <div className="mt-4">
-                    <p><strong>Closing Time:</strong> {session.closed_at ? new Date(session.closed_at).toLocaleString() : 'N/A'}</p>
-                    {session.closing_notes && <p><strong>Notes:</strong> {session.closing_notes}</p>}
-                </div>
-            </CardContent>
-            <CardFooter>
-                <Button onClick={onFinish}>Finish and Return</Button>
-            </CardFooter>
-        </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Session #{session.id} Closed</CardTitle>
+          <CardDescription>
+            Summary of the session closed by {session.user_name || 'N/A'} at {session.cash_point_name || 'N/A'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {renderReportSection('UYU')}
+            {renderReportSection('USD')}
+          </div>
+          <div className="mt-4">
+            <p><strong>Closing Time:</strong> {session.closed_at ? new Date(session.closed_at).toLocaleString() : 'N/A'}</p>
+            {session.closing_notes && <p><strong>Notes:</strong> {session.closing_notes}</p>}
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button onClick={onFinish}>Finish and Return</Button>
+        </CardFooter>
+      </Card>
     );
-};
+  };
 
 
 
@@ -996,7 +998,7 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
 function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionData, setSessionData, uyuDenominations, setUyuDenominations, usdDenominations, setUsdDenominations, toast }: {
     currentStep: OpenSessionStep;
     setCurrentStep: React.Dispatch<React.SetStateAction<OpenSessionStep>>;
-    onExitWizard: () => void;
+    onExitWizard: (session?: CajaSesion) => void;
     sessionData: Partial<CajaSesion>;
     setSessionData: React.Dispatch<React.SetStateAction<Partial<CajaSesion>>>;
     uyuDenominations: Record<string, number>;
@@ -1130,7 +1132,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
             await checkActiveSession();
-            onExitWizard();
+            onExitWizard(sessionInfo);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
         } finally {
