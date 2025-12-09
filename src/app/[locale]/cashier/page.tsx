@@ -1101,7 +1101,10 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             opened_at: new Date().toISOString()
         };
 
-        const totalOpeningAmount = sessionData.currency === 'UYU' ? totalOpeningAmountUYU + (totalOpeningAmountUSD * (sessionData.date_rate || 0)) : totalOpeningAmountUSD + (totalOpeningAmountUYU / (sessionData.date_rate || 1));
+        const totalOpeningAmount = {
+            USD: totalOpeningAmountUSD,
+            UYU: totalOpeningAmountUYU,
+        };
 
         try {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/open', {
