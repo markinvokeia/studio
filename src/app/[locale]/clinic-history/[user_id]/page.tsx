@@ -1757,18 +1757,11 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const DocumentViewerModal = () => (
       <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
         <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
-          <DialogHeader className="p-4 border-b flex-row justify-between items-center">
+          <DialogHeader className="p-4 border-b">
             <DialogTitle>{selectedDocument?.name}</DialogTitle>
-             {selectedDocument?.mimeType?.startsWith('image/') && (
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.2))}><ZoomOut className="h-4 w-4" /></Button>
-                <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.min(prev + 0.2, 5))}><ZoomIn className="h-4 w-4" /></Button>
-                <Button variant="outline" size="icon" onClick={() => { setZoom(1); setPosition({ x: 0, y: 0 }); }}><RotateCcw className="h-4 w-4" /></Button>
-              </div>
-            )}
           </DialogHeader>
           <div 
-            className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative"
+            className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative bg-muted/20"
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onWheel={handleWheel}
@@ -1779,7 +1772,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                         ref={imageRef}
                         src={documentContent}
                         alt={selectedDocument.name}
-                        className="max-w-none max-h-none cursor-grab"
+                        className="max-w-none max-h-none cursor-grab transform-gpu"
                         style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`, transition: isDragging ? 'none' : 'transform 0.1s ease-out' }}
                         onMouseDown={handleMouseDown}
                     />
@@ -1790,6 +1783,14 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
+            )}
+             {selectedDocument?.mimeType?.startsWith('image/') && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-background/80 backdrop-blur-sm rounded-full shadow-lg">
+                    <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.2))}><ZoomOut className="h-4 w-4" /></Button>
+                    <span className='text-sm font-medium w-12 text-center'>{(zoom * 100).toFixed(0)}%</span>
+                    <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.min(prev + 0.2, 5))}><ZoomIn className="h-4 w-4" /></Button>
+                    <Button variant="outline" size="icon" onClick={() => { setZoom(1); setPosition({ x: 0, y: 0 }); }}><RotateCcw className="h-4 w-4" /></Button>
+                </div>
             )}
           </div>
         </DialogContent>
