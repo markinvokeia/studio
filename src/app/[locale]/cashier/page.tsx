@@ -1129,10 +1129,16 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 throw new Error(responsePayload.message || 'Failed to finalize session opening.');
             }
             
-            const fullSessionData = {
-                ...sessionInfo,
+            const fullSessionData: CajaSesion = {
+                id: sessionInfo.id,
+                estado: 'ABIERTA',
+                fechaApertura: sessionInfo.opened_at,
+                montoApertura: Object.values(totalOpeningAmount).reduce((sum, val) => sum + val, 0),
+                opening_details: sessionInfo.opening_details,
                 cash_point_name: sessionData.cash_point_name,
                 user_name: user?.name,
+                currency: sessionInfo.opening_details.currency,
+                date_rate: sessionInfo.opening_details.date_rate,
             };
 
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
@@ -1265,7 +1271,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader><CardTitle>{t('confirmation.cashSummary')}</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>{t('confirmation.cashSummary')}</CardHeader></CardHeader>
                     <CardContent className="space-y-4">
                         <div className="text-lg"><strong>{t('confirmation.totalUYU')}:</strong> {totalOpeningAmountUYU.toFixed(2)} UYU</div>
                         <div className="text-lg"><strong>{t('confirmation.totalUSD')}:</strong> {totalOpeningAmountUSD.toFixed(2)} USD</div>
