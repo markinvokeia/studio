@@ -1120,7 +1120,10 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                     opening_details: JSON.stringify(openingDetails),
                 })
             });
-            if (!response.ok) throw new Error('Failed to finalize session opening.');
+             const responseData = await response.json();
+            if (!response.ok || responseData.code >= 400) {
+                throw new Error(responseData.message || 'Failed to finalize session opening.');
+            }
             
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
             await checkActiveSession();
