@@ -917,8 +917,8 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
             </Card>
         );
     }
-
-    const { details } = reportDetails;
+    
+    const { session, movements } = reportDetails.details;
 
     const parseJsonDetails = (jsonString: string | object | undefined) => {
         if (!jsonString) return {};
@@ -931,8 +931,7 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
         }
     };
 
-    const openingDetails = parseJsonDetails(details.opening_details);
-    const closingDetails = parseJsonDetails(details.closing_details);
+    const openingDetails = parseJsonDetails(session.opening_details);
 
     const formatCurrency = (value: number | string | null | undefined, currency: string) => {
         const numValue = Number(value);
@@ -941,15 +940,16 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
     };
 
     const renderReportSection = (currency: 'UYU' | 'USD') => {
-        const currencyKey = currency.toLowerCase() as 'uyu' | 'usd';
-        
-        const openingAmount = openingDetails[currencyKey]?.total || 0;
-        const declaredCash = closingDetails[currencyKey]?.total || 0;
-        const systemCash = parseFloat(details[`calculated_cash_${currencyKey}`] || '0');
-        const cashVariance = declaredCash - systemCash;
-        const systemCard = parseFloat(details[`calculated_card_${currencyKey}`] || '0');
-        const systemTransfer = parseFloat(details[`calculated_transfer_${currencyKey}`] || '0');
-        const systemOther = parseFloat(details[`calculated_other_${currencyKey}`] || '0');
+        const currencyMovement = movements.find((m: any) => m.currency === currency);
+        if (!currencyMovement) return null;
+
+        const openingAmount = currencyMovement.opening_amount_ref || 0;
+        const declaredCash = currencyMovement.declared_cash || 0;
+        const systemCash = currencyMovement.calculated_cash || 0;
+        const cashVariance = currencyMovement.cash_variance || 0;
+        const systemCard = currencyMovement.calculated_card || 0;
+        const systemTransfer = currencyMovement.calculated_transfer || 0;
+        const systemOther = currencyMovement.calculated_other || 0;
 
         return (
             <div className="space-y-4">
@@ -968,9 +968,9 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Session #{details.id} Closed</CardTitle>
+                <CardTitle>Session #{session.id} Closed</CardTitle>
                 <CardDescription>
-                    Summary of the session closed by {details.user_name || 'N/A'} at {details.cash_point_name || 'N/A'}
+                    Summary of the session closed by {session.user_name || 'N/A'} at {session.cash_point_name || 'N/A'}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -979,8 +979,8 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
                     {renderReportSection('USD')}
                 </div>
                  <div className="mt-4">
-                    <p><strong>Closing Time:</strong> {details.closed_at ? new Date(details.closed_at).toLocaleString() : 'N/A'}</p>
-                    {details.notes && <p><strong>Notes:</strong> {details.notes}</p>}
+                    <p><strong>Closing Time:</strong> {session.closed_at ? new Date(session.closed_at).toLocaleString() : 'N/A'}</p>
+                    {session.closing_notes && <p><strong>Notes:</strong> {session.closing_notes}</p>}
                 </div>
             </CardContent>
             <CardFooter>
