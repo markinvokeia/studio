@@ -98,27 +98,34 @@ export default function CashierPage() {
             const data = await response.json();
              const cashPointsData = (Array.isArray(data) ? data : (data.data || [])) as any[];
 
-            const mappedCashPoints: CashPointStatus[] = cashPointsData.map(cp => ({
-                id: String(cp.cash_point_id),
-                name: cp.cash_point_name,
-                is_active: cp.is_active,
-                created_at: '', 
-                updated_at: '',
-                status: cp.session_status,
-                session: cp.session_status === 'OPEN' ? {
-                    id: String(cp.active_session_id),
-                    usuarioId: cp.active_user_id,
-                    user_name: cp.active_user_name,
-                    puntoDeCajaId: String(cp.cash_point_id),
-                    cash_point_name: cp.cash_point_name,
-                    estado: 'ABIERTA',
-                    fechaApertura: cp.opening_details?.opened_at || new Date().toISOString(), 
-                    montoApertura: (cp.opening_amounts || []).reduce((acc: number, amount: any) => acc + Number(amount.opening_amount), 0),
-                    opening_details: cp.opening_details,
-                    currency: cp.opening_details?.currency,
-                    date_rate: cp.opening_details?.date_rate,
-                } : undefined,
-            }));
+            const mappedCashPoints: CashPointStatus[] = cashPointsData.map(cp => {
+                const openingDetails = cp.opening_details || {};
+                const uyuTotal = openingDetails.uyu?.total || 0;
+                const usdTotal = openingDetails.usd?.total || 0;
+                const openingAmount = uyuTotal + usdTotal;
+
+                return {
+                    id: String(cp.cash_point_id),
+                    name: cp.cash_point_name,
+                    is_active: cp.is_active,
+                    created_at: '', 
+                    updated_at: '',
+                    status: cp.session_status,
+                    session: cp.session_status === 'OPEN' ? {
+                        id: String(cp.active_session_id),
+                        usuarioId: cp.active_user_id,
+                        user_name: cp.active_user_name,
+                        puntoDeCajaId: String(cp.cash_point_id),
+                        cash_point_name: cp.cash_point_name,
+                        estado: 'ABIERTA',
+                        fechaApertura: openingDetails.opened_at || new Date().toISOString(),
+                        montoApertura: openingAmount,
+                        opening_details: openingDetails,
+                        currency: openingDetails.currency,
+                        date_rate: openingDetails.date_rate,
+                    } : undefined,
+                };
+            });
             setCashPoints(mappedCashPoints);
 
         } catch (error) {
@@ -908,8 +915,9 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
 
 const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: () => void }) => {
     const reportDetails = Array.isArray(reportData) ? reportData[0] : reportData;
-  
-    if (!reportDetails || !reportDetails.details) {
+    const { session, movements } = reportDetails?.details || { session: {}, movements: [] };
+
+    if (!reportDetails || !session || !movements) {
       return (
         <Card>
           <CardHeader><CardTitle>Session Report</CardTitle></CardHeader>
@@ -920,19 +928,6 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
         </Card>
       );
     }
-    
-    const { session, movements } = reportDetails.details;
-  
-    const parseJsonDetails = (jsonString: string | object | undefined) => {
-      if (!jsonString) return {};
-      if (typeof jsonString === 'object') return jsonString;
-      try {
-        return JSON.parse(jsonString);
-      } catch (e) {
-        console.error("Failed to parse details JSON", e);
-        return {};
-      }
-    };
   
     const formatCurrency = (value: number | string | null | undefined, currency: string) => {
       const numValue = Number(value);
@@ -1129,16 +1124,16 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 throw new Error(responsePayload.message || 'Failed to finalize session opening.');
             }
             
-            const fullSessionData: CajaSesion = {
-                id: sessionInfo.id,
+             const fullSessionData: CajaSesion = {
+                id: String(sessionInfo.id),
                 estado: 'ABIERTA',
                 fechaApertura: sessionInfo.opened_at,
-                montoApertura: Object.values(totalOpeningAmount).reduce((sum, val) => sum + val, 0),
+                montoApertura: Object.values(totalOpeningAmount).reduce((sum, val) => sum + (val as number), 0),
                 opening_details: sessionInfo.opening_details,
                 cash_point_name: sessionData.cash_point_name,
                 user_name: user?.name,
-                currency: sessionInfo.opening_details.currency,
-                date_rate: sessionInfo.opening_details.date_rate,
+                currency: openingDetails.currency,
+                date_rate: openingDetails.date_rate,
             };
 
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
@@ -1259,6 +1254,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             />
         ),
         'CONFIRM': (
+             <>
              <div className="space-y-6">
                 <Card>
                     <CardHeader><CardTitle>{t('confirmation.sessionInfo')}</CardTitle></CardHeader>
@@ -1271,7 +1267,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader><CardTitle>{t('confirmation.cashSummary')}</CardHeader></CardHeader>
+                    <CardHeader><CardTitle>{t('confirmation.cashSummary')}</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                         <div className="text-lg"><strong>{t('confirmation.totalUYU')}:</strong> {totalOpeningAmountUYU.toFixed(2)} UYU</div>
                         <div className="text-lg"><strong>{t('confirmation.totalUSD')}:</strong> {totalOpeningAmountUSD.toFixed(2)} USD</div>
@@ -1298,6 +1294,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                     </CardContent>
                 </Card>
             </div>
+            </>
         )
     };
     
@@ -1383,6 +1380,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
 
 
+
+    
 
     
 
