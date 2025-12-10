@@ -1125,7 +1125,7 @@ const handleConfirmAndOpen = async () => {
         const responseData = await response.json();
         const responsePayload = Array.isArray(responseData) ? responseData[0] : responseData;
 
-        if (!response.ok || (responsePayload.code >= 400 && !responsePayload.session)) {
+        if (!response.ok || responsePayload.code >= 400 || !responsePayload.session) {
             throw new Error(responsePayload.message || 'Failed to finalize session opening.');
         }
 
@@ -1268,7 +1268,7 @@ const handleConfirmAndOpen = async () => {
                 lastClosingDetails={lastClosingDetails?.usd}
             />
         ),
-        'CONFIRM': (
+        'CONFIRM': <>
              <div className="space-y-6">
                 <Card>
                     <CardHeader><CardTitle>{t('confirmation.sessionInfo')}</CardTitle></CardHeader>
@@ -1308,7 +1308,7 @@ const handleConfirmAndOpen = async () => {
                     </CardContent>
                 </Card>
             </div>
-        )
+        </>
     };
     
     return(
@@ -1414,5 +1414,6 @@ const handleConfirmAndOpen = async () => {
     
 
     
+
 
 
