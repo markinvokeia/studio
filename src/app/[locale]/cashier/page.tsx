@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -70,10 +69,10 @@ interface CashPointStatus extends CashPoint {
 
 export default function CashierPage() {
     const t = useTranslations('CashierPage');
-    const { user, activeCashSession, checkActiveSession } = useAuth();
+    const { user, checkActiveSession } = useAuth();
     const { toast } = useToast();
     
-    const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(activeCashSession);
+    const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(null);
     const [cashPoints, setCashPoints] = React.useState<CashPointStatus[]>([]);
     const [sessionMovements, setSessionMovements] = React.useState<CajaMovimiento[]>([]);
     const [closedSessionReport, setClosedSessionReport] = React.useState<any | null>(null);
@@ -126,13 +125,6 @@ export default function CashierPage() {
                 };
             });
             setCashPoints(mappedCashPoints);
-
-            const userSession = mappedCashPoints.find(cp => cp.session && cp.session.usuarioId === user?.id)?.session;
-            if (userSession) {
-                setActiveSession(userSession);
-            } else {
-                setActiveSession(null);
-            }
 
         } catch (error) {
             setServerError(error instanceof Error ? error.message : 'An unknown error occurred');
@@ -202,6 +194,7 @@ export default function CashierPage() {
                       setShowClosingWizard(false);
                       setCloseWizardStep('REVIEW');
                       setClosedSessionReport(null);
+                      setActiveSession(null);
                       checkActiveSession();
                       fetchCashPointStatus();
                     }}
@@ -1131,20 +1124,17 @@ const handleConfirmAndOpen = async () => {
         }
         
         const sessionInfo = responsePayload.session;
-        const parsedOpeningDetails = typeof sessionInfo.opening_details === 'string'
-            ? JSON.parse(sessionInfo.opening_details)
-            : sessionInfo.opening_details;
 
         const fullSessionData: CajaSesion = {
             id: String(sessionInfo.id),
             estado: 'ABIERTA',
             fechaApertura: sessionInfo.opened_at,
             montoApertura: Object.values(totalOpeningAmount).reduce((sum, val) => sum + (val as number), 0),
-            opening_details: parsedOpeningDetails,
+            opening_details: sessionInfo.opening_details,
             cash_point_name: sessionData.cash_point_name,
             user_name: user?.name,
-            currency: parsedOpeningDetails.currency,
-            date_rate: parsedOpeningDetails.date_rate,
+            currency: sessionInfo.opening_details.currency,
+            date_rate: sessionInfo.opening_details.date_rate,
             usuarioId: user?.id,
         };
 
@@ -1371,5 +1361,7 @@ const handleConfirmAndOpen = async () => {
 
 
 
+
+    
 
     
