@@ -97,14 +97,13 @@ export default function CashierPage() {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash_points/status');
             if (!response.ok) throw new Error('Failed to fetch cash points status');
             const data = await response.json();
-             const cashPointsData = (Array.isArray(data) ? data : (data.data || [])) as any[];
-
+            const cashPointsData = (Array.isArray(data) ? data : (data.data || [])) as any[];
+    
             const mappedCashPoints: CashPointStatus[] = cashPointsData.map(cp => {
                 const openingDetails = cp.opening_details || {};
                 
-                // Sum up amounts from opening_amounts array
                 const openingAmount = (cp.opening_amounts || []).reduce((sum: number, current: any) => sum + Number(current.opening_amount), 0);
-
+    
                 return {
                     id: String(cp.cash_point_id),
                     name: cp.cash_point_name,
@@ -1131,9 +1130,7 @@ const handleConfirmAndOpen = async () => {
 
         const sessionInfo = responsePayload.session;
 
-        const openingDetailsParsed = typeof sessionInfo.opening_details === 'string'
-            ? JSON.parse(sessionInfo.opening_details)
-            : sessionInfo.opening_details;
+        const openingDetailsParsed = sessionInfo.opening_details;
 
         const fullSessionData: CajaSesion = {
             id: String(sessionInfo.id),
@@ -1268,8 +1265,8 @@ const handleConfirmAndOpen = async () => {
                 lastClosingDetails={lastClosingDetails?.usd}
             />
         ),
-        'CONFIRM': <>
-             <div className="space-y-6">
+        'CONFIRM': (
+            <div className="space-y-6">
                 <Card>
                     <CardHeader><CardTitle>{t('confirmation.sessionInfo')}</CardTitle></CardHeader>
                     <CardContent className="grid grid-cols-2 gap-4 text-sm">
@@ -1308,7 +1305,7 @@ const handleConfirmAndOpen = async () => {
                     </CardContent>
                 </Card>
             </div>
-        </>
+        )
     };
     
     return(
@@ -1338,46 +1335,6 @@ const handleConfirmAndOpen = async () => {
         </Card>
     );
 }
-    
-
-    
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-  
-
-
-    
-
-    
-
-    
-
-
-
-    
-
-    
-
-    
-
-
     
 
     
@@ -1414,6 +1371,7 @@ const handleConfirmAndOpen = async () => {
     
 
     
+
 
 
 
