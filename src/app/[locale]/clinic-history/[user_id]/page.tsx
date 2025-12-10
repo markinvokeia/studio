@@ -1219,6 +1219,65 @@ const HabitCard = ({ userId, fetchPatientHabits }: { userId: string, fetchPatien
     );
 };
 
+const ImageViewer = ({ src, alt }: { src: string; alt: string; }) => {
+    const [zoom, setZoom] = useState(1);
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const imageRef = useRef<HTMLImageElement>(null);
+
+    const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
+        if (!imageRef.current) return;
+        e.preventDefault();
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    };
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!isDragging || !imageRef.current) return;
+        e.preventDefault();
+        setPosition({
+            x: e.clientX - dragStart.x,
+            y: e.clientY - dragStart.y,
+        });
+    };
+    
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+      setZoom((prev) => Math.max(0.1, Math.min(prev * zoomFactor, 5)));
+    };
+
+    return (
+        <div 
+            className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative bg-muted/20"
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onWheel={handleWheel}
+        >
+            <img
+                ref={imageRef}
+                src={src}
+                alt={alt}
+                className="max-w-none max-h-none cursor-grab transform-gpu"
+                style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`, transition: isDragging ? 'none' : 'transform 0.1s ease-out' }}
+                onMouseDown={handleMouseDown}
+            />
+             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 p-2 rounded-lg backdrop-blur-sm">
+                <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.2))}><ZoomOut className="h-4 w-4" /></Button>
+                <span className='text-sm font-medium w-16 text-center bg-transparent'>{(zoom * 100).toFixed(0)}%</span>
+                <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.min(prev + 0.2, 5))}><ZoomIn className="h-4 w-4" /></Button>
+                <Button variant="outline" size="icon" onClick={() => { setZoom(1); setPosition({ x: 0, y: 0 }); }}><RotateCcw className="h-4 w-4" /></Button>
+            </div>
+        </div>
+    );
+}
+
 const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => {
   const router = useRouter();
   const locale = useLocale();
@@ -1588,11 +1647,6 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const [uploadFile, setUploadFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [deletingDocument, setDeletingDocument] = useState<Document | null>(null);
-    const [zoom, setZoom] = useState(1);
-    const [position, setPosition] = useState({ x: 0, y: 0 });
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-    const imageRef = useRef<HTMLImageElement>(null);
 
 
     const fetchDocuments = useCallback(async () => {
@@ -1629,8 +1683,6 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
       setSelectedDocument(doc);
       setIsViewerOpen(true);
       setDocumentContent(null);
-      setZoom(1);
-      setPosition({ x: 0, y: 0 });
       try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${doc.id}&user_id=${userId}`);
         if (response.ok) {
@@ -1725,74 +1777,23 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         }
     };
     
-    const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
-      if (!imageRef.current) return;
-      e.preventDefault();
-      setIsDragging(true);
-      setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
-    };
-
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!isDragging || !imageRef.current) return;
-        e.preventDefault();
-        setPosition({
-            x: e.clientX - dragStart.x,
-            y: e.clientY - dragStart.y,
-        });
-    };
-    
-    const handleMouseUp = () => {
-        setIsDragging(false);
-    };
-
-    const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-      if (e.deltaY < 0) {
-        setZoom((prev) => Math.min(prev + 0.1, 5));
-      } else {
-        setZoom((prev) => Math.max(prev - 0.1, 0.1));
-      }
-    };
-
-
     const DocumentViewerModal = () => (
       <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
         <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
           <DialogHeader className="p-4 border-b">
             <DialogTitle>{selectedDocument?.name}</DialogTitle>
           </DialogHeader>
-          <div 
-            className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative bg-muted/20"
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onWheel={handleWheel}
-          >
-            {documentContent ? (
-                selectedDocument?.mimeType?.startsWith('image/') ? (
-                    <img
-                        ref={imageRef}
-                        src={documentContent}
-                        alt={selectedDocument.name}
-                        className="max-w-none max-h-none cursor-grab transform-gpu"
-                        style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`, transition: isDragging ? 'none' : 'transform 0.1s ease-out' }}
-                        onMouseDown={handleMouseDown}
-                    />
-                ) : (
-                    <iframe src={documentContent} className="h-full w-full border-0" title={selectedDocument?.name} />
-                )
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            )}
-             {selectedDocument?.mimeType?.startsWith('image/') && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 p-2 rounded-lg backdrop-blur-sm">
-                    <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.2))}><ZoomOut className="h-4 w-4" /></Button>
-                    <span className='text-sm font-medium w-16 text-center bg-transparent'>{(zoom * 100).toFixed(0)}%</span>
-                    <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.min(prev + 0.2, 5))}><ZoomIn className="h-4 w-4" /></Button>
-                    <Button variant="outline" size="icon" onClick={() => { setZoom(1); setPosition({ x: 0, y: 0 }); }}><RotateCcw className="h-4 w-4" /></Button>
-                </div>
-            )}
-          </div>
+          {documentContent ? (
+              selectedDocument?.mimeType?.startsWith('image/') ? (
+                  <ImageViewer src={documentContent} alt={selectedDocument.name} />
+              ) : (
+                  <iframe src={documentContent} className="h-full w-full border-0 flex-1" title={selectedDocument?.name} />
+              )
+          ) : (
+            <div className="flex-1 flex items-center justify-center h-full">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     );
@@ -2558,5 +2559,7 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
+
+    
 
     
