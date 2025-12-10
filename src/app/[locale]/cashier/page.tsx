@@ -100,8 +100,6 @@ export default function CashierPage() {
 
             const mappedCashPoints: CashPointStatus[] = cashPointsData.map(cp => {
                 const openingDetails = cp.opening_details || {};
-                const uyuTotal = openingDetails.uyu?.total || 0;
-                const usdTotal = openingDetails.usd?.total || 0;
                 
                 // Sum up amounts from opening_amounts array
                 const openingAmount = (cp.opening_amounts || []).reduce((sum: number, current: any) => sum + Number(current.opening_amount), 0);
@@ -237,7 +235,7 @@ export default function CashierPage() {
                         setShowOpeningWizard(false);
                         setOpenWizardStep('CONFIG');
                         if (newSession) {
-                            setActiveSession(newSession);
+                           setActiveSession(newSession);
                         }
                         checkActiveSession();
                         fetchCashPointStatus();
@@ -366,7 +364,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     const t = useTranslations('CashierPage');
     
     const openingDetails = React.useMemo(() => {
-        if (!session.opening_details) return { uyu: [], usd: [], totalUYU: 0, totalUSD: 0 };
+        if (!session.opening_details) return { uyu: [], usd: [], totalUYU: 0, totalUSD: 0, currency: 'UYU', date_rate: 0 };
         try {
             const details = typeof session.opening_details === 'string' 
                 ? JSON.parse(session.opening_details) 
@@ -382,11 +380,13 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 usd: parseDenominations(details.usd),
                 totalUYU: details.uyu?.total || 0,
                 totalUSD: details.usd?.total || 0,
+                currency: details.currency,
+                date_rate: details.date_rate,
             };
 
         } catch (e) {
             console.error("Failed to parse opening_details", e);
-            return { uyu: [], usd: [], totalUYU: 0, totalUSD: 0 };
+            return { uyu: [], usd: [], totalUYU: 0, totalUSD: 0, currency: 'UYU', date_rate: 0 };
         }
     }, [session.opening_details]);
 
@@ -1090,6 +1090,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     
     const handleConfirmAndOpen = async () => {
         setIsSubmitting(true);
+        setSubmissionError(null);
+    
         const openingDetails = {
             currency: sessionData.currency,
             date_rate: sessionData.date_rate,
@@ -1098,12 +1100,12 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             opened_by: user?.name,
             opened_at: new Date().toISOString()
         };
-
+    
         const totalOpeningAmount = {
             USD: totalOpeningAmountUSD,
             UYU: totalOpeningAmountUYU,
         };
-
+    
         try {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/open', {
                 method: 'POST',
@@ -1118,17 +1120,19 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                     opening_details: JSON.stringify(openingDetails),
                 })
             });
-             const responseData = await response.json();
-             const responsePayload = Array.isArray(responseData) ? responseData[0] : responseData;
-             const sessionInfo = typeof responsePayload?.session === 'string' 
-                ? JSON.parse(responsePayload.session) 
-                : responsePayload?.session;
-
-            if (!response.ok || (responsePayload.code >= 400 && !sessionInfo)) {
+    
+            const responseData = await response.json();
+            const responsePayload = Array.isArray(responseData) ? responseData[0] : responseData;
+    
+            if (!response.ok || (responsePayload.code >= 400 && !responsePayload.session)) {
                 throw new Error(responsePayload.message || 'Failed to finalize session opening.');
             }
-            
-             const fullSessionData: CajaSesion = {
+    
+            const sessionInfo = typeof responsePayload.session === 'string' 
+                ? JSON.parse(responsePayload.session) 
+                : responsePayload.session;
+    
+            const fullSessionData: CajaSesion = {
                 id: String(sessionInfo.id),
                 estado: 'ABIERTA',
                 fechaApertura: sessionInfo.opened_at,
@@ -1139,15 +1143,18 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 currency: openingDetails.currency,
                 date_rate: openingDetails.date_rate,
             };
-
+    
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
             onExitWizard(fullSessionData);
+    
         } catch (error) {
+            setSubmissionError(error instanceof Error ? error.message : 'Could not finalize session opening.');
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
         } finally {
             setIsSubmitting(false);
         }
     };
+    
 
     const handlePreviousStep = async () => {
         if (currentStep === 'CONFIRM') setCurrentStep('COUNT_USD');
@@ -1258,7 +1265,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             />
         ),
         'CONFIRM': (
-             <>
              <div className="space-y-6">
                 <Card>
                     <CardHeader><CardTitle>{t('confirmation.sessionInfo')}</CardTitle></CardHeader>
@@ -1298,7 +1304,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                     </CardContent>
                 </Card>
             </div>
-            </>
         )
     };
     
@@ -1311,6 +1316,13 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 </CardDescription>
             </CardHeader>
             <CardContent>
+                {submissionError && (
+                    <Alert variant="destructive" className="mb-4">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>{submissionError}</AlertDescription>
+                    </Alert>
+                )}
                  {stepComponents[currentStep]}
             </CardContent>
             <CardFooter className="justify-between">
@@ -1384,6 +1396,10 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
 
 
+
+    
+
+    
 
     
 
