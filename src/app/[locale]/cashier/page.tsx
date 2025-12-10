@@ -1087,70 +1087,70 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         }
     };
     
-    const handleConfirmAndOpen = async () => {
-        setIsSubmitting(true);
-        setSubmissionError(null);
+const handleConfirmAndOpen = async () => {
+    setIsSubmitting(true);
+    setSubmissionError(null);
 
-        const openingDetails = {
-            currency: sessionData.currency,
-            date_rate: sessionData.date_rate,
-            uyu: { ...uyuDenominations, total: uyuTotal },
-            usd: { ...usdDenominations, total: usdTotal },
-            opened_by: user?.name,
-            opened_at: new Date().toISOString()
-        };
-
-        const totalOpeningAmount = {
-            USD: totalOpeningAmountUSD,
-            UYU: totalOpeningAmountUYU,
-        };
-
-        try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/open', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    cash_point_id: sessionData.puntoDeCajaId,
-                    currency: sessionData.currency,
-                    date_rate: sessionData.date_rate,
-                    user_id: user?.id,
-                    status: 'OPEN',
-                    opening_amount: totalOpeningAmount,
-                    opening_details: JSON.stringify(openingDetails),
-                })
-            });
-
-            const responseData = await response.json();
-            const responsePayload = Array.isArray(responseData) ? responseData[0] : responseData;
-
-            if (!response.ok || responsePayload.code >= 400 || !responsePayload.session) {
-                throw new Error(responsePayload.message || 'Failed to finalize session opening.');
-            }
-            
-            const sessionInfo = responsePayload.session;
-
-            const fullSessionData: CajaSesion = {
-                id: String(sessionInfo.id),
-                estado: 'ABIERTA',
-                fechaApertura: sessionInfo.opened_at,
-                montoApertura: Object.values(totalOpeningAmount).reduce((sum, val) => sum + (val as number), 0),
-                opening_details: sessionInfo.opening_details,
-                cash_point_name: sessionData.cash_point_name,
-                user_name: user?.name,
-                currency: sessionInfo.opening_details.currency,
-                date_rate: sessionInfo.opening_details.date_rate,
-            };
-
-            toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
-            onExitWizard(fullSessionData);
-
-        } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : 'Could not finalize session opening.');
-            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
-        } finally {
-            setIsSubmitting(false);
-        }
+    const openingDetails = {
+        currency: sessionData.currency,
+        date_rate: sessionData.date_rate,
+        uyu: { ...uyuDenominations, total: uyuTotal },
+        usd: { ...usdDenominations, total: usdTotal },
+        opened_by: user?.name,
+        opened_at: new Date().toISOString()
     };
+
+    const totalOpeningAmount = {
+        USD: totalOpeningAmountUSD,
+        UYU: totalOpeningAmountUYU,
+    };
+
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/open', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                cash_point_id: sessionData.puntoDeCajaId,
+                currency: sessionData.currency,
+                date_rate: sessionData.date_rate,
+                user_id: user?.id,
+                status: 'OPEN',
+                opening_amount: totalOpeningAmount,
+                opening_details: JSON.stringify(openingDetails),
+            })
+        });
+
+        const responseData = await response.json();
+        const responsePayload = Array.isArray(responseData) ? responseData[0] : responseData;
+        
+        if (!response.ok || responsePayload.code >= 400 || !responsePayload.session) {
+            throw new Error(responsePayload.message || 'Failed to finalize session opening.');
+        }
+        
+        const sessionInfo = responsePayload.session;
+
+        const fullSessionData: CajaSesion = {
+            id: String(sessionInfo.id),
+            estado: 'ABIERTA',
+            fechaApertura: sessionInfo.opened_at,
+            montoApertura: Object.values(totalOpeningAmount).reduce((sum, val) => sum + (val as number), 0),
+            opening_details: sessionInfo.opening_details,
+            cash_point_name: sessionData.cash_point_name,
+            user_name: user?.name,
+            currency: sessionInfo.opening_details.currency,
+            date_rate: sessionInfo.opening_details.date_rate,
+        };
+
+        toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
+        onExitWizard(fullSessionData);
+
+    } catch (error) {
+        setSubmissionError(error instanceof Error ? error.message : 'Could not finalize session opening.');
+        toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
+    } finally {
+        setIsSubmitting(false);
+    }
+};
 
     
 
@@ -1263,47 +1263,45 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             />
         ),
         'CONFIRM': (
-             <>
-                 <div className="space-y-6">
-                    <Card>
-                        <CardHeader><CardTitle>{t('confirmation.sessionInfo')}</CardTitle></CardHeader>
-                        <CardContent className="grid grid-cols-2 gap-4 text-sm">
-                            <p><strong>{t('openSession.terminal')}:</strong> {sessionData.cash_point_name}</p>
-                            <p><strong>{t('openSession.user')}:</strong> {user?.name}</p>
-                            <p><strong>{t('openSession.openingDate')}:</strong> {new Date().toLocaleString()}</p>
-                            <p><strong>{t('openSession.currency')}:</strong> {sessionData.currency}</p>
-                            <p><strong>{t('openSession.exchangeRate')}:</strong> {sessionData.date_rate?.toFixed(5)}</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader><CardTitle>{t('confirmation.cashSummary')}</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="text-lg"><strong>{t('confirmation.totalUYU')}:</strong> {totalOpeningAmountUYU.toFixed(2)} UYU</div>
-                            <div className="text-lg"><strong>{t('confirmation.totalUSD')}:</strong> {totalOpeningAmountUSD.toFixed(2)} USD</div>
-                            
-                            <Collapsible>
-                                <CollapsibleTrigger asChild>
-                                    <Button variant="link" className="p-0 h-auto text-xs">Ver desglose</Button>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent className="space-y-4 mt-2">
-                                    <Table>
-                                        <TableHeader><TableRow><TableHead>Denominación UYU</TableHead><TableHead>Cantidad</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                            {Object.entries(uyuDenominations).map(([den, qty]) => qty > 0 && <TableRow key={den}><TableCell>{den}</TableCell><TableCell>{qty}</TableCell></TableRow>)}
-                                        </TableBody>
-                                    </Table>
-                                     <Table>
-                                        <TableHeader><TableRow><TableHead>Denominación USD</TableHead><TableHead>Cantidad</TableHead></TableRow></TableHeader>
-                                         <TableBody>
-                                            {Object.entries(usdDenominations).map(([den, qty]) => qty > 0 && <TableRow key={den}><TableCell>{den}</TableCell><TableCell>{qty}</TableCell></TableRow>)}
-                                        </TableBody>
-                                    </Table>
-                                </CollapsibleContent>
-                            </Collapsible>
-                        </CardContent>
-                    </Card>
-                </div>
-            </>
+             <div className="space-y-6">
+                 <Card>
+                     <CardHeader><CardTitle>{t('confirmation.sessionInfo')}</CardTitle></CardHeader>
+                     <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                         <p><strong>{t('openSession.terminal')}:</strong> {sessionData.cash_point_name}</p>
+                         <p><strong>{t('openSession.user')}:</strong> {user?.name}</p>
+                         <p><strong>{t('openSession.openingDate')}:</strong> {new Date().toLocaleString()}</p>
+                         <p><strong>{t('openSession.currency')}:</strong> {sessionData.currency}</p>
+                         <p><strong>{t('openSession.exchangeRate')}:</strong> {sessionData.date_rate?.toFixed(5)}</p>
+                     </CardContent>
+                 </Card>
+                 <Card>
+                     <CardHeader><CardTitle>{t('confirmation.cashSummary')}</CardTitle></CardHeader>
+                     <CardContent className="space-y-4">
+                         <div className="text-lg"><strong>{t('confirmation.totalUYU')}:</strong> {totalOpeningAmountUYU.toFixed(2)} UYU</div>
+                         <div className="text-lg"><strong>{t('confirmation.totalUSD')}:</strong> {totalOpeningAmountUSD.toFixed(2)} USD</div>
+                         
+                         <Collapsible>
+                             <CollapsibleTrigger asChild>
+                                 <Button variant="link" className="p-0 h-auto text-xs">Ver desglose</Button>
+                             </CollapsibleTrigger>
+                             <CollapsibleContent className="space-y-4 mt-2">
+                                 <Table>
+                                     <TableHeader><TableRow><TableHead>Denominación UYU</TableHead><TableHead>Cantidad</TableHead></TableRow></TableHeader>
+                                     <TableBody>
+                                         {Object.entries(uyuDenominations).map(([den, qty]) => qty > 0 && <TableRow key={den}><TableCell>{den}</TableCell><TableCell>{qty}</TableCell></TableRow>)}
+                                     </TableBody>
+                                 </Table>
+                                  <Table>
+                                     <TableHeader><TableRow><TableHead>Denominación USD</TableHead><TableHead>Cantidad</TableHead></TableRow></TableHeader>
+                                      <TableBody>
+                                         {Object.entries(usdDenominations).map(([den, qty]) => qty > 0 && <TableRow key={den}><TableCell>{den}</TableCell><TableCell>{qty}</TableCell></TableRow>)}
+                                     </TableBody>
+                                 </Table>
+                             </CollapsibleContent>
+                         </Collapsible>
+                     </CardContent>
+                 </Card>
+             </div>
         )
     };
     
