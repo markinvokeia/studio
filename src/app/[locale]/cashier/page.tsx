@@ -102,7 +102,9 @@ export default function CashierPage() {
                 const openingDetails = cp.opening_details || {};
                 const uyuTotal = openingDetails.uyu?.total || 0;
                 const usdTotal = openingDetails.usd?.total || 0;
-                const openingAmount = uyuTotal + usdTotal;
+                
+                // Sum up amounts from opening_amounts array
+                const openingAmount = (cp.opening_amounts || []).reduce((sum: number, current: any) => sum + Number(current.opening_amount), 0);
 
                 return {
                     id: String(cp.cash_point_id),
@@ -914,7 +916,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
 };
 
 const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: () => void }) => {
-    const reportDetails = Array.isArray(reportData) ? reportData[0] : reportData;
+    const reportDetails = Array.isArray(reportData) && reportData.length > 0 ? reportData[0] : reportData;
     const { session, movements } = reportDetails?.details || { session: {}, movements: [] };
 
     if (!reportDetails || !session || !movements) {
@@ -1118,7 +1120,9 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             });
              const responseData = await response.json();
              const responsePayload = Array.isArray(responseData) ? responseData[0] : responseData;
-             const sessionInfo = responsePayload?.session ? JSON.parse(responsePayload.session) : null;
+             const sessionInfo = typeof responsePayload?.session === 'string' 
+                ? JSON.parse(responsePayload.session) 
+                : responsePayload?.session;
 
             if (!response.ok || (responsePayload.code >= 400 && !sessionInfo)) {
                 throw new Error(responsePayload.message || 'Failed to finalize session opening.');
@@ -1380,6 +1384,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
 
 
+
+    
 
     
 
