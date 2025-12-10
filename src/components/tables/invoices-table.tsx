@@ -81,7 +81,6 @@ const createInvoiceFormSchema = z.object({
       total: z.coerce.number().optional(),
     })).min(1, 'At least one item is required.'),
     type: z.enum(['invoice', 'credit_note']),
-    is_refund: z.boolean().optional(),
     parent_id: z.string().optional(),
 });
 type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
@@ -817,13 +816,11 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
       currency: 'USD',
       items: [],
       total: 0,
-      is_refund: false,
     },
   });
   
   const items = form.watch('items');
   const invoiceType = form.watch('type');
-  const isRefund = form.watch('is_refund');
 
   React.useEffect(() => {
     const total = items.reduce((sum, item) => sum + (item.total || 0), 0);
@@ -947,46 +944,30 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                 </div>
             </div>
             {invoiceType === 'credit_note' && (
-                <div className="space-y-4 rounded-md border p-4">
-                    <FormField
-                        control={form.control}
-                        name="is_refund"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                </FormControl>
-                                <FormLabel>{t('isRefund')}</FormLabel>
-                            </FormItem>
-                        )}
-                    />
-                    {isRefund && (
-                        <FormField
-                            control={form.control}
-                            name="parent_id"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('parentInvoice')}</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder={t('selectParentInvoice')} />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {bookedInvoices.map(inv => (
-                                                <SelectItem key={inv.id} value={inv.id}>
-                                                    Invoice #{inv.id} - {inv.user_name} - ${inv.total}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    )}
-                </div>
+              <FormField
+                  control={form.control}
+                  name="parent_id"
+                  render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>{t('parentInvoice')}</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                  <SelectTrigger>
+                                      <SelectValue placeholder={t('selectParentInvoice')} />
+                                  </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                  {bookedInvoices.map(inv => (
+                                      <SelectItem key={inv.id} value={inv.id}>
+                                          Invoice #{inv.id} - {inv.user_name} - ${inv.total}
+                                      </SelectItem>
+                                  ))}
+                              </SelectContent>
+                          </Select>
+                          <FormMessage />
+                      </FormItem>
+                  )}
+              />
             )}
             <div className="grid grid-cols-2 gap-4">
                <FormField control={form.control} name="user_id" render={({ field }) => (
