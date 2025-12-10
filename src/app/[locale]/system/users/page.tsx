@@ -29,7 +29,7 @@ import { UserQuotes } from '@/components/users/user-quotes';
 import { UserMessages } from '@/components/users/user-messages';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserLogs } from '@/components/users/user-logs';
-import { X, AlertTriangle, KeyRound, Calendar as CalendarIcon, SlidersHorizontal, Filter, Search } from 'lucide-react';
+import { X, AlertTriangle, KeyRound } from 'lucide-react';
 import { RowSelectionState, PaginationState, ColumnFiltersState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
@@ -39,12 +39,6 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { UserOrders } from '@/components/users/user-orders';
 import { UserInvoices } from '@/components/users/user-invoices';
 import { UserPayments } from '@/components/users/user-payments';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { DateRange } from 'react-day-picker';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, endOfDay, sub } from 'date-fns';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 
 const userFormSchema = (t: (key: string) => string) => z.object({
@@ -65,20 +59,13 @@ type GetUsersResponse = {
   total: number;
 };
 
-async function getUsers(pagination: PaginationState, searchQuery: string, filterType: string, dateRange?: DateRange): Promise<GetUsersResponse> {
+async function getUsers(pagination: PaginationState, searchQuery: string): Promise<GetUsersResponse> {
   try {
     const params = new URLSearchParams({
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
       search: searchQuery,
-      filter_type: filterType === 'ALL' ? '' : filterType,
     });
-     if (dateRange?.from) {
-      params.append('date_from', format(dateRange.from, 'yyyy-MM-dd'));
-    }
-    if (dateRange?.to) {
-      params.append('date_to', format(dateRange.to, 'yyyy-MM-dd'));
-    }
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?${params.toString()}`, {
       method: 'GET',
       mode: 'cors',
@@ -201,8 +188,6 @@ export default function SystemUsersPage() {
     pageSize: 10,
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [date, setDate] = React.useState<DateRange | undefined>(undefined);
-  const [filterType, setFilterType] = React.useState<string>('ALL');
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
@@ -218,11 +203,11 @@ export default function SystemUsersPage() {
   const loadUsers = React.useCallback(async () => {
     setIsRefreshing(true);
     const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
-    const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery, filterType, date);
+    const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery);
     setUsers(fetchedUsers);
     setUserCount(total);
     setIsRefreshing(false);
-  }, [pagination, columnFilters, filterType, date]);
+  }, [pagination, columnFilters]);
 
   const loadUserRoles = React.useCallback(async (userId: string) => {
     setIsRolesLoading(true);
@@ -424,72 +409,11 @@ export default function SystemUsersPage() {
             <CardDescription>{t('SystemUsersPage.description')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-                <div className="flex flex-1 items-center space-x-2">
-                    <div className="relative flex items-center">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                        placeholder={t('SystemUsersPage.filterPlaceholder')}
-                        value={(columnFilters.find(f => f.id === 'email') as { value: string })?.value ?? ''}
-                        onChange={(event) =>
-                            setColumnFilters(prev => {
-                                const newFilters = prev.filter(f => f.id !== 'email');
-                                if (event.target.value) {
-                                    newFilters.push({ id: 'email', value: event.target.value });
-                                }
-                                return newFilters;
-                            })
-                        }
-                        className="h-9 w-[150px] lg:w-[250px] pl-9"
-                        />
-                    </div>
-                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-9">
-                            <Filter className="mr-2 h-4 w-4" />
-                            Type
-                        </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Filter by Type</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {['ALL', 'PACIENTE', 'DOCTOR', 'PROVEEDOR'].map((type) => (
-                                <DropdownMenuCheckboxItem
-                                key={type}
-                                checked={filterType === type}
-                                onCheckedChange={() => setFilterType(type)}
-                                >
-                                {type}
-                                </DropdownMenuCheckboxItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                        <Button id="date" variant="outline" size="sm" className={cn("h-9 justify-start text-left font-normal", !date && "text-muted-foreground")}>
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {date?.from ? (date.to ? (<>{format(date.from, "LLL dd, y")} - {format(date.to, "LLL dd, y")}</>) : (format(date.from, "LLL dd, y"))) : (<span>Pick a date</span>)}
-                        </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <div className="flex">
-                                <div className="flex flex-col p-2 border-r">
-                                    <Button variant="ghost" size="sm" className="justify-start" onClick={() => setDate({ from: startOfDay(new Date()), to: endOfDay(new Date()) })}>Today</Button>
-                                    <Button variant="ghost" size="sm" className="justify-start" onClick={() => setDate({ from: startOfWeek(new Date()), to: endOfWeek(new Date()) })}>This Week</Button>
-                                    <Button variant="ghost" size="sm" className="justify-start" onClick={() => setDate({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })}>This Month</Button>
-                                </div>
-                                <Calendar initialFocus mode="range" defaultMonth={date?.from} selected={date} onSelect={setDate} numberOfMonths={1} />
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-                </div>
-                 <Button variant="outline" size="icon" className="h-9 w-9" onClick={loadUsers} disabled={isRefreshing}>
-                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                </Button>
-            </div>
             <DataTable 
               columns={userColumns} 
               data={users} 
+              filterColumnId="email" 
+              filterPlaceholder={t('SystemUsersPage.filterPlaceholder')}
               onRowSelectionChange={handleRowSelectionChange}
               enableSingleRowSelection={true}
               onCreate={handleCreate}
@@ -501,6 +425,8 @@ export default function SystemUsersPage() {
               pagination={pagination}
               onPaginationChange={setPagination}
               manualPagination={true}
+              columnFilters={columnFilters}
+              onColumnFiltersChange={setColumnFilters}
             />
           </CardContent>
         </Card>

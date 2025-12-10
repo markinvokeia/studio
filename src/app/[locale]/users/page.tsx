@@ -29,7 +29,7 @@ import { UserQuotes } from '@/components/users/user-quotes';
 import { UserMessages } from '@/components/users/user-messages';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserLogs } from '@/components/users/user-logs';
-import { X, AlertTriangle, KeyRound, DollarSign, Receipt, CreditCard, Banknote } from 'lucide-react';
+import { X, AlertTriangle, KeyRound, DollarSign, Receipt, CreditCard, Banknote, CalendarIcon, Search, Filter, SlidersHorizontal, RefreshCw } from 'lucide-react';
 import { RowSelectionState, PaginationState, ColumnFiltersState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
@@ -39,6 +39,11 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { UserOrders } from '@/components/users/user-orders';
 import { UserInvoices } from '@/components/users/user-invoices';
 import { UserPayments } from '@/components/users/user-payments';
+import { DateRange } from 'react-day-picker';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, endOfDay, sub } from 'date-fns';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 
 const userFormSchema = (t: (key: string) => string) => z.object({
@@ -106,14 +111,20 @@ const UserStats = ({ user }: { user: User }) => {
 };
 
 
-async function getUsers(pagination: PaginationState, searchQuery: string): Promise<GetUsersResponse> {
+async function getUsers(pagination: PaginationState, searchQuery: string, filterType: string, dateRange?: DateRange): Promise<GetUsersResponse> {
   try {
     const params = new URLSearchParams({
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
       search: searchQuery,
-      filter_type: 'PACIENTE'
+      filter_type: filterType === 'ALL' ? '' : filterType,
     });
+     if (dateRange?.from) {
+      params.append('date_from', format(dateRange.from, 'yyyy-MM-dd'));
+    }
+    if (dateRange?.to) {
+      params.append('date_to', format(dateRange.to, 'yyyy-MM-dd'));
+    }
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?${params.toString()}`, {
       method: 'GET',
       mode: 'cors',
@@ -240,6 +251,8 @@ export default function UsersPage() {
     pageSize: 10,
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [date, setDate] = React.useState<DateRange | undefined>(undefined);
+  const [filterType, setFilterType] = React.useState<string>('PACIENTE');
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
@@ -255,11 +268,11 @@ export default function UsersPage() {
   const loadUsers = React.useCallback(async () => {
     setIsRefreshing(true);
     const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
-    const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery);
+    const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery, filterType, date);
     setUsers(fetchedUsers);
     setUserCount(total);
     setIsRefreshing(false);
-  }, [pagination, columnFilters]);
+  }, [pagination, columnFilters, filterType, date]);
 
   const loadUserRoles = React.useCallback(async (userId: string) => {
     setIsRolesLoading(true);
@@ -461,11 +474,30 @@ export default function UsersPage() {
             <CardDescription>{t('UsersPage.description')}</CardDescription>
           </CardHeader>
           <CardContent>
+             <div className="flex items-center justify-between">
+                <div className="flex flex-1 items-center space-x-2">
+                    <div className="relative flex items-center">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                        placeholder={t('UsersPage.filterPlaceholder')}
+                        value={(columnFilters.find(f => f.id === 'email') as { value: string })?.value ?? ''}
+                        onChange={(event) =>
+                            setColumnFilters(prev => {
+                                const newFilters = prev.filter(f => f.id !== 'email');
+                                if (event.target.value) {
+                                    newFilters.push({ id: 'email', value: event.target.value });
+                                }
+                                return newFilters;
+                            })
+                        }
+                        className="h-9 w-[150px] lg:w-[250px] pl-9"
+                        />
+                    </div>
+                </div>
+            </div>
             <DataTable 
               columns={userColumns} 
               data={users} 
-              filterColumnId="email" 
-              filterPlaceholder={t('UsersPage.filterPlaceholder')}
               onRowSelectionChange={handleRowSelectionChange}
               enableSingleRowSelection={true}
               onCreate={handleCreate}
@@ -477,8 +509,6 @@ export default function UsersPage() {
               pagination={pagination}
               onPaginationChange={setPagination}
               manualPagination={true}
-              columnFilters={columnFilters}
-              onColumnFiltersChange={setColumnFilters}
             />
           </CardContent>
         </Card>
@@ -652,9 +682,3 @@ export default function UsersPage() {
     </>
   );
 }
-
-    
-
-    
-
-    
