@@ -127,12 +127,19 @@ export default function CashierPage() {
             });
             setCashPoints(mappedCashPoints);
 
+            const userSession = mappedCashPoints.find(cp => cp.session && cp.session.usuarioId === user?.id)?.session;
+            if (userSession) {
+                setActiveSession(userSession);
+            } else {
+                setActiveSession(null);
+            }
+
         } catch (error) {
             setServerError(error instanceof Error ? error.message : 'An unknown error occurred');
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [user]);
 
     const fetchSessionMovements = React.useCallback(async (sessionId: string) => {
         try {
@@ -169,10 +176,6 @@ export default function CashierPage() {
             setSessionMovements([]);
         }
     }, [activeSession, fetchSessionMovements]);
-
-    React.useEffect(() => {
-        setActiveSession(activeCashSession);
-    }, [activeCashSession]);
     
     if (isLoading) {
         return <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1139,6 +1142,7 @@ const handleConfirmAndOpen = async () => {
             user_name: user?.name,
             currency: sessionInfo.opening_details.currency,
             date_rate: sessionInfo.opening_details.date_rate,
+            usuarioId: user?.id,
         };
 
         toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
