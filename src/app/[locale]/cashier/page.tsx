@@ -1013,7 +1013,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     const [avgRate, setAvgRate] = React.useState(0);
     const [exchangeRatesHtml, setExchangeRatesHtml] = React.useState('');
     const [exchangeRateStatus, setExchangeRateStatus] = React.useState<'loading' | 'loaded' | 'error'>('loading');
-    const [lastClosingDetails, setLastClosingDetails] = React.useState<{ uyu: Record<string, number>, usd: Record<string, number> } | null>(null);
+    const [lastClosingDetails, setLastClosingDetails] = React.useState<{ uyu: Record<string, number>; usd: Record<string, number> } | null>(null);
 
     const fetchRates = React.useCallback(async () => {
         setExchangeRateStatus('loading');
@@ -1088,72 +1088,77 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         }
     };
     
-    const handleConfirmAndOpen = async () => {
-        setIsSubmitting(true);
-        setSubmissionError(null);
-    
-        const openingDetails = {
-            currency: sessionData.currency,
-            date_rate: sessionData.date_rate,
-            uyu: { ...uyuDenominations, total: uyuTotal },
-            usd: { ...usdDenominations, total: usdTotal },
-            opened_by: user?.name,
-            opened_at: new Date().toISOString()
-        };
-    
-        const totalOpeningAmount = {
-            USD: totalOpeningAmountUSD,
-            UYU: totalOpeningAmountUYU,
-        };
-    
-        try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/open', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    cash_point_id: sessionData.puntoDeCajaId,
-                    currency: sessionData.currency,
-                    date_rate: sessionData.date_rate,
-                    user_id: user?.id,
-                    status: 'OPEN',
-                    opening_amount: totalOpeningAmount,
-                    opening_details: JSON.stringify(openingDetails),
-                })
-            });
-    
-            const responseData = await response.json();
-            const responsePayload = Array.isArray(responseData) ? responseData[0] : responseData;
-    
-            if (!response.ok || (responsePayload.code >= 400 && !responsePayload.session)) {
-                throw new Error(responsePayload.message || 'Failed to finalize session opening.');
-            }
-    
-            const sessionInfo = typeof responsePayload.session === 'string' 
-                ? JSON.parse(responsePayload.session) 
-                : responsePayload.session;
-    
-            const fullSessionData: CajaSesion = {
-                id: String(sessionInfo.id),
-                estado: 'ABIERTA',
-                fechaApertura: sessionInfo.opened_at,
-                montoApertura: Object.values(totalOpeningAmount).reduce((sum, val) => sum + (val as number), 0),
-                opening_details: sessionInfo.opening_details,
-                cash_point_name: sessionData.cash_point_name,
-                user_name: user?.name,
-                currency: openingDetails.currency,
-                date_rate: openingDetails.date_rate,
-            };
-    
-            toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
-            onExitWizard(fullSessionData);
-    
-        } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : 'Could not finalize session opening.');
-            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
-        } finally {
-            setIsSubmitting(false);
-        }
+const handleConfirmAndOpen = async () => {
+    setIsSubmitting(true);
+    setSubmissionError(null);
+
+    const openingDetails = {
+        currency: sessionData.currency,
+        date_rate: sessionData.date_rate,
+        uyu: { ...uyuDenominations, total: uyuTotal },
+        usd: { ...usdDenominations, total: usdTotal },
+        opened_by: user?.name,
+        opened_at: new Date().toISOString()
     };
+
+    const totalOpeningAmount = {
+        USD: totalOpeningAmountUSD,
+        UYU: totalOpeningAmountUYU,
+    };
+
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/open', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                cash_point_id: sessionData.puntoDeCajaId,
+                currency: sessionData.currency,
+                date_rate: sessionData.date_rate,
+                user_id: user?.id,
+                status: 'OPEN',
+                opening_amount: totalOpeningAmount,
+                opening_details: JSON.stringify(openingDetails),
+            })
+        });
+
+        const responseData = await response.json();
+        const responsePayload = Array.isArray(responseData) ? responseData[0] : responseData;
+
+        if (!response.ok || (responsePayload.code >= 400 && !responsePayload.session)) {
+            throw new Error(responsePayload.message || 'Failed to finalize session opening.');
+        }
+
+        const sessionInfo = typeof responsePayload.session === 'string' 
+            ? JSON.parse(responsePayload.session) 
+            : responsePayload.session;
+
+        const openingDetailsParsed = typeof sessionInfo.opening_details === 'string'
+            ? JSON.parse(sessionInfo.opening_details)
+            : sessionInfo.opening_details;
+
+        const fullSessionData: CajaSesion = {
+            id: String(sessionInfo.id),
+            estado: 'ABIERTA',
+            fechaApertura: sessionInfo.opened_at,
+            montoApertura: Object.values(totalOpeningAmount).reduce((sum, val) => sum + (val as number), 0),
+            opening_details: openingDetailsParsed,
+            cash_point_name: sessionData.cash_point_name,
+            user_name: user?.name,
+            currency: openingDetailsParsed.currency,
+            date_rate: openingDetailsParsed.date_rate,
+        };
+
+        toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
+        onExitWizard(fullSessionData);
+
+    } catch (error) {
+        setSubmissionError(error instanceof Error ? error.message : 'Could not finalize session opening.');
+        toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not finalize session opening.' });
+    } finally {
+        setIsSubmitting(false);
+    }
+};
+
     
 
     const handlePreviousStep = async () => {
