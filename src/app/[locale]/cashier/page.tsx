@@ -1131,17 +1131,20 @@ const handleConfirmAndOpen = async () => {
         }
         
         const sessionInfo = responsePayload.session;
+        const parsedOpeningDetails = typeof sessionInfo.opening_details === 'string'
+            ? JSON.parse(sessionInfo.opening_details)
+            : sessionInfo.opening_details;
 
         const fullSessionData: CajaSesion = {
             id: String(sessionInfo.id),
             estado: 'ABIERTA',
             fechaApertura: sessionInfo.opened_at,
             montoApertura: Object.values(totalOpeningAmount).reduce((sum, val) => sum + (val as number), 0),
-            opening_details: sessionInfo.opening_details,
+            opening_details: parsedOpeningDetails,
             cash_point_name: sessionData.cash_point_name,
             user_name: user?.name,
-            currency: sessionInfo.opening_details.currency,
-            date_rate: sessionInfo.opening_details.date_rate,
+            currency: parsedOpeningDetails.currency,
+            date_rate: parsedOpeningDetails.date_rate,
             usuarioId: user?.id,
         };
 
