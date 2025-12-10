@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -1013,7 +1014,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     const [avgRate, setAvgRate] = React.useState(0);
     const [exchangeRatesHtml, setExchangeRatesHtml] = React.useState('');
     const [exchangeRateStatus, setExchangeRateStatus] = React.useState<'loading' | 'loaded' | 'error'>('loading');
-    const [lastClosingDetails, setLastClosingDetails] = React.useState<{ uyu: Record<string, number>; usd: Record<string, number> } | null>(null);
+    const [lastClosingDetails, setLastClosingDetails] = React.useState<{ uyu: Record<string, number>, usd: Record<string, number> } | null>(null);
 
     const fetchRates = React.useCallback(async () => {
         setExchangeRateStatus('loading');
@@ -1128,9 +1129,7 @@ const handleConfirmAndOpen = async () => {
             throw new Error(responsePayload.message || 'Failed to finalize session opening.');
         }
 
-        const sessionInfo = typeof responsePayload.session === 'string' 
-            ? JSON.parse(responsePayload.session) 
-            : responsePayload.session;
+        const sessionInfo = responsePayload.session;
 
         const openingDetailsParsed = typeof sessionInfo.opening_details === 'string'
             ? JSON.parse(sessionInfo.opening_details)
@@ -1243,7 +1242,7 @@ const handleConfirmAndOpen = async () => {
         CONFIRM: 'Confirmation'
     };
 
-    const stepComponents = {
+    const stepComponents: Record<OpenSessionStep, React.ReactNode> = {
         'CONFIG': renderConfigContent(),
         'COUNT_UYU': (
             <DenominationCounter 
@@ -1415,3 +1414,5 @@ const handleConfirmAndOpen = async () => {
     
 
     
+
+
