@@ -1,4 +1,3 @@
-
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -697,7 +696,10 @@
       "successDescription": "The payment for invoice #{invoiceId} has been successfully added.",
       "error": "Failed to add payment.",
       "useCredits": "Use Credits",
-      "noCredits": "No credits available"
+      "noCredits": "No credits available",
+      "currency": "Currency",
+      "remaining_amount": "Remaining Amount",
+      "remainingAmount": "Remaining Amount"
     },
     "status": {
       "paid": "Paid",
@@ -1103,7 +1105,7 @@
       "phone": "Phone",
       "phonePlaceholder": "123-456-7890",
       "identity_document": "Identity Document",
-      "identity_document_placeholder": "e.g. 1234567890",
+      "identity_document_placeholder": "e.g., 1234567890",
       "isActive": "Is Active?",
       "cancel": "Cancel",
       "save": "Create"
@@ -1662,7 +1664,7 @@
       "anamnesis": "Anamnesis",
       "timeline": "Timeline",
       "odontogram": "Odontogram",
-      "documents": "Documents"
+      "images": "Images"
     },
     "selectPatientTitle": "Select a Patient",
     "selectPatientDescription": "Please select a patient to view their medical history",
@@ -1832,7 +1834,7 @@
       }
     },
     "images": {
-      "title": "Documents",
+      "title": "Images",
       "dicomCompliant": "DICOM Compliant",
       "all": "All",
       "xrays": "X-rays",
