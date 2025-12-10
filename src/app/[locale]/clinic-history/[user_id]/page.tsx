@@ -1760,16 +1760,6 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
           <DialogHeader className="p-4 border-b">
             <DialogTitle>{selectedDocument?.name}</DialogTitle>
           </DialogHeader>
-          <div className="absolute top-4 right-14 flex items-center gap-2">
-            {selectedDocument?.mimeType?.startsWith('image/') && (
-                <>
-                    <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.2))}><ZoomOut className="h-4 w-4" /></Button>
-                    <span className='text-sm font-medium w-12 text-center'>{(zoom * 100).toFixed(0)}%</span>
-                    <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.min(prev + 0.2, 5))}><ZoomIn className="h-4 w-4" /></Button>
-                    <Button variant="outline" size="icon" onClick={() => { setZoom(1); setPosition({ x: 0, y: 0 }); }}><RotateCcw className="h-4 w-4" /></Button>
-                </>
-            )}
-          </div>
           <div 
             className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative bg-muted/20"
             onMouseMove={handleMouseMove}
@@ -1793,6 +1783,14 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
+            )}
+             {selectedDocument?.mimeType?.startsWith('image/') && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 p-2 rounded-lg backdrop-blur-sm">
+                    <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.2))}><ZoomOut className="h-4 w-4" /></Button>
+                    <span className='text-sm font-medium w-16 text-center bg-transparent'>{(zoom * 100).toFixed(0)}%</span>
+                    <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.min(prev + 0.2, 5))}><ZoomIn className="h-4 w-4" /></Button>
+                    <Button variant="outline" size="icon" onClick={() => { setZoom(1); setPosition({ x: 0, y: 0 }); }}><RotateCcw className="h-4 w-4" /></Button>
+                </div>
             )}
           </div>
         </DialogContent>
