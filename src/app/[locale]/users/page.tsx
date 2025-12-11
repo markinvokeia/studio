@@ -715,6 +715,7 @@ export default function UsersPage() {
                     <TabsTrigger value="appointments">{t('UsersPage.tabs.appointments')}</TabsTrigger>
                     <TabsTrigger value="messages">{t('UsersPage.tabs.messages')}</TabsTrigger>
                     <TabsTrigger value="logs">{t('UsersPage.tabs.logs')}</TabsTrigger>
+                    <TabsTrigger value="roles">{t('UsersPage.tabs.roles')}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="history">
                     <MedicalHistory user={selectedUser} />
@@ -744,6 +745,14 @@ export default function UsersPage() {
                   </TabsContent>
                   <TabsContent value="logs">
                     <UserLogs userId={selectedUser.id} />
+                  </TabsContent>
+                  <TabsContent value="roles">
+                    <UserRoles
+                        userId={selectedUser.id}
+                        initialUserRoles={selectedUserRoles}
+                        isLoading={isRolesLoading}
+                        onRolesChange={() => loadUserRoles(selectedUser.id)}
+                    />
                   </TabsContent>
                 </Tabs>
               </CardContent>
