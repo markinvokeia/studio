@@ -29,7 +29,7 @@ import { UserQuotes } from '@/components/users/user-quotes';
 import { UserMessages } from '@/components/users/user-messages';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserLogs } from '@/components/users/user-logs';
-import { X, AlertTriangle, KeyRound, DollarSign, Receipt, CreditCard, Banknote, CalendarIcon, Search, Filter, SlidersHorizontal, RefreshCw, Check, ChevronsUpDown, MoreHorizontal, DropdownMenuSeparator } from 'lucide-react';
+import { X, AlertTriangle, KeyRound, DollarSign, Receipt, CreditCard, Banknote, CalendarIcon, Search, Filter, SlidersHorizontal, RefreshCw, Check, ChevronsUpDown, MoreHorizontal } from 'lucide-react';
 import { RowSelectionState, PaginationState, ColumnFiltersState, ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
@@ -43,7 +43,7 @@ import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, endOfDay, sub } from 'date-fns';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -288,10 +288,11 @@ export default function UsersPage() {
     setIsRefreshing(true);
     if (showDebtors) {
         const fetchedDebtors = await getDebtors();
-        const groupedDebtors = fetchedDebtors.reduce((acc, debtor) => {
-            const userId = debtor.user_id;
-            if (!acc[userId]) {
-                acc[userId] = {
+        const groupedDebtors: { [key: string]: any } = {};
+
+        fetchedDebtors.forEach(debtor => {
+            if (!groupedDebtors[debtor.user_id]) {
+                groupedDebtors[debtor.user_id] = {
                     id: debtor.user_id,
                     name: debtor.patient_name,
                     email: debtor.email,
@@ -299,18 +300,14 @@ export default function UsersPage() {
                     debts: {}
                 };
             }
-            if (!acc[userId].debts) {
-                acc[userId].debts = {};
-            }
-            acc[userId].debts[debtor.currency] = {
+            groupedDebtors[debtor.user_id].debts[debtor.currency] = {
                 pending_invoices_count: debtor.pending_invoices_count,
                 total_debt_amount: debtor.total_debt_amount
             };
-            return acc;
-        }, {} as { [key: string]: any });
+        });
         
         setUsers(Object.values(groupedDebtors));
-        setUserCount(Object.keys(groupedDebtors).length);
+        setUserCount(Object.values(groupedDebtors).length);
 
     } else {
         const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
@@ -590,7 +587,7 @@ export default function UsersPage() {
             <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-9">
                     <Filter className="mr-2 h-4 w-4" />
-                     {datePreset ? t(`UsersPage.filters.date.${datePreset}`) : 
+                    {datePreset ? t(`UsersPage.filters.date.${datePreset}`) : 
                      date?.from ? (
                         date.to ? `${format(date.from, 'LLL dd, y')} - ${format(date.to, 'LLL dd, y')}`
                                 : format(date.from, 'LLL dd, y')
@@ -862,3 +859,5 @@ export default function UsersPage() {
     </>
   );
 }
+
+    
