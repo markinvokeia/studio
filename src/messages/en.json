@@ -513,8 +513,8 @@
       "date": {
         "label": "Date Range",
         "today": "Today",
-        "thisWeek": "This Week",
-        "thisMonth": "This Month",
+        "week": "This Week",
+        "month": "This Month",
         "customRange": "Custom Range",
         "allTime": "All Time"
       }
