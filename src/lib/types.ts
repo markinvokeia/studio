@@ -16,6 +16,16 @@ export type User = {
   available_balance?: number;
 };
 
+export type Debtor = {
+    user_id: string;
+    patient_name: string;
+    email: string;
+    identity_document: string;
+    currency: 'UYU' | 'USD';
+    pending_invoices_count: string;
+    total_debt_amount: string;
+};
+
 export type Document = {
   id: string;
   name: string;

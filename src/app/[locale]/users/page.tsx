@@ -9,7 +9,7 @@ import { UserColumnsWrapper } from './columns';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, UserRole, UserRoleAssignment } from '@/lib/types';
+import { User, UserRole, Debtor } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -44,7 +44,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, endOfDay, sub } from 'date-fns';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 const userFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -180,6 +181,20 @@ async function getUsers(pagination: PaginationState, searchQuery: string, dateRa
   }
 }
 
+async function getDebtors(): Promise<Debtor[]> {
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/debtors`);
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+        }
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.error("Failed to fetch debtors:", error);
+        return [];
+    }
+}
+
 async function upsertUser(userData: UserFormValues) {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/upsert', {
         method: 'POST',
@@ -233,7 +248,7 @@ export default function UsersPage() {
   const t = useTranslations();
   
   const { toast } = useToast();
-  const [users, setUsers] = React.useState<User[]>([]);
+  const [users, setUsers] = React.useState<any[]>([]);
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
   const [selectedUserRoles, setSelectedUserRoles] = React.useState<UserRole[]>([]);
@@ -253,6 +268,7 @@ export default function UsersPage() {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
   const [datePreset, setDatePreset] = React.useState<string | null>('all');
+  const [showDebtors, setShowDebtors] = React.useState(false);
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
@@ -267,12 +283,38 @@ export default function UsersPage() {
 
   const loadUsers = React.useCallback(async () => {
     setIsRefreshing(true);
-    const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
-    const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery, date);
-    setUsers(fetchedUsers);
-    setUserCount(total);
+    if (showDebtors) {
+        const fetchedDebtors = await getDebtors();
+        const groupedDebtors: { [key: string]: any } = {};
+
+        fetchedDebtors.forEach(debtor => {
+            if (!groupedDebtors[debtor.user_id]) {
+                groupedDebtors[debtor.user_id] = {
+                    id: debtor.user_id,
+                    name: debtor.patient_name,
+                    email: debtor.email,
+                    identity_document: debtor.identity_document,
+                    debts: {}
+                };
+            }
+            groupedDebtors[debtor.user_id].debts[debtor.currency] = {
+                pending_invoices_count: debtor.pending_invoices_count,
+                total_debt_amount: debtor.total_debt_amount
+            };
+        });
+
+        setUsers(Object.values(groupedDebtors));
+        setUserCount(Object.keys(groupedDebtors).length);
+
+    } else {
+        const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
+        const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery, date);
+        setUsers(fetchedUsers);
+        setUserCount(total);
+    }
     setIsRefreshing(false);
-  }, [pagination, columnFilters, date]);
+  }, [pagination, columnFilters, date, showDebtors]);
+
 
   const loadUserRoles = React.useCallback(async (userId: string) => {
     setIsRolesLoading(true);
@@ -349,6 +391,57 @@ export default function UsersPage() {
   };
   
   const userColumns = UserColumnsWrapper({ onToggleActivate: handleToggleActivate, onEdit: handleEdit });
+
+  const debtorColumns: ColumnDef<any>[] = [
+    {
+      id: 'select',
+      header: () => null,
+      cell: ({ row, table }) => {
+        const isSelected = row.getIsSelected();
+        return (
+          <RadioGroup
+            value={isSelected ? row.original.id : ''}
+            onValueChange={() => {
+              table.toggleAllPageRowsSelected(false);
+              row.toggleSelected(true);
+            }}
+          >
+            <RadioGroupItem value={row.original.id} id={row.original.id} aria-label="Select row" />
+          </RadioGroup>
+        );
+      },
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+        accessorKey: 'name',
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.name')} />,
+    },
+    {
+        accessorKey: 'email',
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.email')} />,
+    },
+    {
+        accessorKey: 'identity_document',
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.identity_document')} />,
+    },
+    {
+        id: 'debt_uyu',
+        header: 'Debt (UYU)',
+        cell: ({ row }) => {
+            const debt = row.original.debts?.UYU;
+            return debt ? `$${debt.total_debt_amount} (${debt.pending_invoices_count} invoices)` : '-';
+        },
+    },
+    {
+        id: 'debt_usd',
+        header: 'Debt (USD)',
+        cell: ({ row }) => {
+            const debt = row.original.debts?.USD;
+            return debt ? `$${debt.total_debt_amount} (${debt.pending_invoices_count} invoices)` : '-';
+        },
+    },
+  ];
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
@@ -488,7 +581,7 @@ export default function UsersPage() {
             <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-9">
                     <Filter className="mr-2 h-4 w-4" />
-                    {datePreset ? t(`UsersPage.filters.date.${datePreset}`) : 
+                     {datePreset ? t(`UsersPage.filters.date.${datePreset}`) : 
                      date?.from ? (
                         date.to ? `${format(date.from, 'LLL dd, y')} - ${format(date.to, 'LLL dd, y')}`
                                 : format(date.from, 'LLL dd, y')
@@ -500,7 +593,7 @@ export default function UsersPage() {
             <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{t('UsersPage.filters.date.label')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleDatePreset('today')}>
+                 <DropdownMenuItem onClick={() => handleDatePreset('today')}>
                     <Check className={cn("mr-2 h-4 w-4", datePreset === 'today' ? 'opacity-100' : 'opacity-0')} />
                     {t('UsersPage.filters.date.today')}
                 </DropdownMenuItem>
@@ -538,6 +631,14 @@ export default function UsersPage() {
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
+        <div className="flex items-center space-x-2">
+            <Switch
+                id="debtors-mode"
+                checked={showDebtors}
+                onCheckedChange={setShowDebtors}
+            />
+            <Label htmlFor="debtors-mode">Show only debtors</Label>
+        </div>
     </div>
   );
 
@@ -552,7 +653,7 @@ export default function UsersPage() {
           </CardHeader>
           <CardContent>
             <DataTable 
-              columns={userColumns} 
+              columns={showDebtors ? debtorColumns : userColumns}
               data={users} 
               filterColumnId="email" 
               filterPlaceholder={t('UsersPage.filterPlaceholder')}
