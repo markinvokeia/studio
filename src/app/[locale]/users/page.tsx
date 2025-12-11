@@ -29,7 +29,7 @@ import { UserQuotes } from '@/components/users/user-quotes';
 import { UserMessages } from '@/components/users/user-messages';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserLogs } from '@/components/users/user-logs';
-import { X, AlertTriangle, KeyRound, DollarSign, Receipt, CreditCard, Banknote, CalendarIcon, Search, Filter, SlidersHorizontal, RefreshCw } from 'lucide-react';
+import { X, AlertTriangle, KeyRound, DollarSign, Receipt, CreditCard, Banknote, CalendarIcon, Search, Filter, SlidersHorizontal, RefreshCw, Check } from 'lucide-react';
 import { RowSelectionState, PaginationState, ColumnFiltersState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
