@@ -2566,7 +2566,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
+                            <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
                             <Button type="submit">{t('save')}</Button>
                         </DialogFooter>
                     </form>
