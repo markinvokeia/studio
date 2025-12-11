@@ -2381,7 +2381,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
     useEffect(() => {
         const fetchSessionDetails = async (sessionId: number) => {
             try {
-                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/patient_sessions?session_id=${sessionId}`);
+                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${sessionId}`);
                 if (response.ok) {
                     const data = await response.json();
                     const sessionDetails = Array.isArray(data) ? data[0] : data;
@@ -2389,7 +2389,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                         setFormData({
                             ...sessionDetails,
                             fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : '',
-                            tratamientos: sessionDetails.tratamientos || [],
+                            tratamientos: sessionDetails.lista_tratamientos || [],
                         });
                      }
                 }
@@ -2578,6 +2578,7 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
 
 
 
