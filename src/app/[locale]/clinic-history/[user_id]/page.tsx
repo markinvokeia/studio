@@ -1641,34 +1641,35 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const [deletingDocument, setDeletingDocument] = useState<Document | null>(null);
 
     const fetchDocuments = useCallback(async () => {
-      if (!userId) return;
-      setIsLoadingDocuments(true);
-      try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/documents?user_id=${userId}`);
-        if (response.ok) {
-          const data = await response.json();
-          const docs = (Array.isArray(data) && data.length > 0 && data[0].items) ? data[0].items : [];
-          setDocuments(docs.map((doc: any) => ({
-            id: String(doc.id),
-            name: doc.name,
-            mimeType: doc.mimeType,
-            hasThumbnail: doc.hasThumbnail,
-            thumbnailLink: doc.thumbnailLink
-          })));
-        } else {
-          setDocuments([]);
+        if (!userId) return;
+        setIsLoadingDocuments(true);
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/documents?user_id=${userId}`);
+            if (response.ok) {
+                const data = await response.json();
+                const docs = (Array.isArray(data) && data.length > 0 && data[0].items) ? data[0].items : [];
+                setDocuments(docs.map((doc: any) => ({
+                    id: String(doc.id),
+                    name: doc.name,
+                    mimeType: doc.mimeType,
+                    hasThumbnail: doc.hasThumbnail,
+                    thumbnailLink: doc.thumbnailLink
+                })));
+            } else {
+                setDocuments([]);
+            }
+        } catch (error) {
+            console.error("Failed to fetch documents:", error);
+            setDocuments([]);
+        } finally {
+            setIsLoadingDocuments(false);
         }
-      } catch (error) {
-        console.error("Failed to fetch documents:", error);
-        setDocuments([]);
-      } finally {
-        setIsLoadingDocuments(false);
-      }
     }, [userId]);
 
     useEffect(() => {
         fetchDocuments();
     }, [fetchDocuments]);
+
     
     const handleViewDocument = async (doc: Document) => {
       setSelectedDocument(doc);
@@ -2356,7 +2357,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         },
     });
 
-    const { fields, append, remove } = useFieldArray({
+    const { fields, append, remove, replace } = useFieldArray({
         control: form.control,
         name: "tratamientos",
     });
@@ -2375,31 +2376,30 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
             }
         }
 
-        async function fetchSessionDetails(sessionId: number) {
-            try {
-                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${sessionId}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    const sessionDetails = Array.isArray(data) && data.length > 0 ? data[0] : null;
-                    if (sessionDetails) {
-                        form.reset({
-                            ...sessionDetails,
-                            tratamientos: sessionDetails.lista_tratamientos || [],
-                            fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : ''
-                        });
-                    }
-                } else {
-                    toast({ variant: 'destructive', title: 'Error', description: 'Failed to load session details.' });
-                }
-            } catch (error) {
-                console.error('Failed to fetch session details', error);
-                toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while loading session details.' });
-            }
-        }
-
         if (isOpen) {
             fetchInitialData();
             if (session) {
+                const fetchSessionDetails = async (sessionId: number) => {
+                    try {
+                        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${sessionId}`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            const sessionDetails = Array.isArray(data) && data.length > 0 ? data[0] : null;
+                            if (sessionDetails) {
+                                form.reset({
+                                    ...sessionDetails,
+                                    tratamientos: sessionDetails.lista_tratamientos || [],
+                                    fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : ''
+                                });
+                            }
+                        } else {
+                            toast({ variant: 'destructive', title: 'Error', description: 'Failed to load session details.' });
+                        }
+                    } catch (error) {
+                        console.error('Failed to fetch session details', error);
+                        toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while loading session details.' });
+                    }
+                }
                 fetchSessionDetails(session.sesion_id);
             } else {
                 form.reset({
@@ -2424,7 +2424,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         };
 
         if (session) {
-            payload.id = session.sesion_id;
+            payload.sesion_id = session.sesion_id;
         }
 
         try {
