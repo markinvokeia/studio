@@ -29,7 +29,7 @@ import { UserQuotes } from '@/components/users/user-quotes';
 import { UserMessages } from '@/components/users/user-messages';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserLogs } from '@/components/users/user-logs';
-import { X, AlertTriangle, KeyRound, DollarSign, Receipt, CreditCard, Banknote, CalendarIcon, Search, Filter, SlidersHorizontal, RefreshCw, Check, ChevronsUpDown } from 'lucide-react';
+import { X, AlertTriangle, KeyRound, DollarSign, Receipt, CreditCard, Banknote, CalendarIcon, Search, Filter, SlidersHorizontal, RefreshCw, Check, ChevronsUpDown, MoreHorizontal, DropdownMenuSeparator } from 'lucide-react';
 import { RowSelectionState, PaginationState, ColumnFiltersState, ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
@@ -43,7 +43,7 @@ import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, endOfDay, sub } from 'date-fns';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -270,7 +270,7 @@ export default function UsersPage() {
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
-  const [datePreset, setDatePreset] = React.useState<string | null>('all');
+  const [datePreset, setDatePreset] = React.useState<string | null>('allTime');
   const [showDebtors, setShowDebtors] = React.useState(false);
 
   const form = useForm<UserFormValues>({
@@ -562,7 +562,7 @@ export default function UsersPage() {
     }
   };
   
-  const handleDatePreset = (preset: 'today' | 'week' | 'month' | 'all') => {
+  const handleDatePreset = (preset: 'today' | 'week' | 'month' | 'allTime') => {
     setDatePreset(preset);
     if (preset === 'today') {
       setDate({ from: startOfDay(new Date()), to: endOfDay(new Date()) });
@@ -570,7 +570,7 @@ export default function UsersPage() {
       setDate({ from: startOfWeek(new Date(), { weekStartsOn: 1 }), to: endOfWeek(new Date(), { weekStartsOn: 1 }) });
     } else if (preset === 'month') {
       setDate({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
-    } else if (preset === 'all') {
+    } else if (preset === 'allTime') {
       setDate(undefined);
     }
   };
@@ -630,8 +630,8 @@ export default function UsersPage() {
                     </PopoverContent>
                 </Popover>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleDatePreset('all')}>
-                    <Check className={cn("mr-2 h-4 w-4", datePreset === 'all' ? 'opacity-100' : 'opacity-0')} />
+                <DropdownMenuItem onClick={() => handleDatePreset('allTime')}>
+                    <Check className={cn("mr-2 h-4 w-4", datePreset === 'allTime' ? 'opacity-100' : 'opacity-0')} />
                     {t('UsersPage.filters.date.allTime')}
                 </DropdownMenuItem>
             </DropdownMenuContent>
@@ -858,6 +858,3 @@ export default function UsersPage() {
     </>
   );
 }
-
-
-    
