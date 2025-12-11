@@ -1656,7 +1656,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/documents?user_id=${userId}`);
         if (response.ok) {
           const data = await response.json();
-          const docs = Array.isArray(data) ? data : (data.documents || []);
+          const docs = Array.isArray(data) && data.length > 0 && data[0].items ? data[0].items : [];
           setDocuments(docs.map((doc: any) => ({
             id: String(doc.id),
             name: doc.name,
@@ -2563,3 +2563,4 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
