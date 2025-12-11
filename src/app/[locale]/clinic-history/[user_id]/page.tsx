@@ -49,6 +49,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
+import { useForm, useFieldArray } from 'react-hook-form';
 
 type PersonalHistoryItem = {
     id: number;
@@ -2352,16 +2353,26 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
 
 const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOpen: boolean, onOpenChange: (open: boolean) => void, session: PatientSession | null, userId: string, onSave: () => void }) => {
     const t = useTranslations('ClinicHistoryPage.sessionDialog');
-    const [formData, setFormData] = useState<Partial<PatientSession>>({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [doctors, setDoctors] = useState<UserType[]>([]);
     const { toast } = useToast();
 
-    const [newTreatmentDescription, setNewTreatmentDescription] = useState('');
-    const [newTreatmentTooth, setNewTreatmentTooth] = useState('');
+    const form = useForm<Partial<PatientSession>>({
+        defaultValues: {
+            fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+            diagnostico: '',
+            procedimiento_realizado: '',
+            notas_clinicas: '',
+            tratamientos: [],
+        },
+    });
+
+    const { fields, append, remove } = useFieldArray({
+        control: form.control,
+        name: "tratamientos",
+    });
 
     useEffect(() => {
-        async function fetchDoctors() {
+        async function fetchInitialData() {
             try {
                 const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
                 if (response.ok) {
@@ -2374,104 +2385,57 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
             }
         }
         if (isOpen) {
-            fetchDoctors();
-        }
-    }, [isOpen]);
-
-    useEffect(() => {
-        const fetchSessionDetails = async (sessionId: number) => {
-            try {
-                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${sessionId}`);
-                if (response.ok) {
-                    const data = await response.json();
-                     const sessionDetails = Array.isArray(data) && data.length > 0 ? data[0] : null;
-                     if(sessionDetails) {
-                        setFormData({
-                            ...sessionDetails,
-                            fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : '',
-                            tratamientos: sessionDetails.lista_tratamientos || [],
-                        });
-                     }
-                }
-            } catch (error) {
-                console.error('Failed to fetch session details', error);
-            }
-        };
-
-        if (isOpen) {
+            fetchInitialData();
             if (session) {
+                // Fetch full session details for editing
                 fetchSessionDetails(session.sesion_id);
             } else {
-                setFormData({
+                // Reset form for creating a new session
+                form.reset({
                     fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
                     diagnostico: '',
                     procedimiento_realizado: '',
                     notas_clinicas: '',
                     tratamientos: [],
+                    doctor_id: '',
                 });
             }
         }
     }, [session, isOpen]);
-  
-    const handleInputChange = (field: keyof PatientSession, value: any) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
-  
-    const handleAddTreatment = () => {
-        if (!newTreatmentDescription) {
-            toast({
-                variant: 'destructive',
-                title: t('toast.error'),
-                description: t('toast.treatmentDescriptionEmpty'),
-            });
-            return;
+    
+    const fetchSessionDetails = async (sessionId: number) => {
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${sessionId}`);
+            if (response.ok) {
+                const data = await response.json();
+                const sessionDetails = Array.isArray(data) && data.length > 0 ? data[0] : null;
+                if(sessionDetails) {
+                    form.reset({
+                        ...sessionDetails,
+                        fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : '',
+                        tratamientos: sessionDetails.lista_tratamientos || [],
+                    });
+                }
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: 'Failed to load session details.' });
+            }
+        } catch (error) {
+            console.error('Failed to fetch session details', error);
+            toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while loading session details.' });
         }
-
-        const toothNumber = newTreatmentTooth ? parseInt(newTreatmentTooth, 10) : null;
-        if (toothNumber !== null && (isNaN(toothNumber) || toothNumber < 11 || toothNumber > 85)) {
-            toast({
-                variant: 'destructive',
-                title: t('toast.error'),
-                description: "The tooth number must be between 11 and 85.",
-            });
-            return;
-        }
-
-        const newTreatment: TreatmentDetail = {
-            descripcion: newTreatmentDescription,
-            numero_diente: toothNumber,
-        };
-        setFormData(prev => ({
-            ...prev,
-            tratamientos: [...(prev.tratamientos || []), newTreatment]
-        }));
-        setNewTreatmentDescription('');
-        setNewTreatmentTooth('');
     };
   
-    const handleRemoveTreatment = (index: number) => {
-        setFormData(prev => ({
-            ...prev,
-            tratamientos: prev.tratamientos?.filter((_, i) => i !== index)
-        }));
-    };
-
-    const handleSave = async () => {
-        setIsSubmitting(true);
+    const handleSave = async (data: Partial<PatientSession>) => {
         const endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert';
 
         const payload: any = {
-            ...formData,
+            ...data,
             paciente_id: userId,
             tipo_sesion: 'clinica', 
         };
 
-        delete payload.estado_odontograma;
-
         if (session) {
             payload.id = session.sesion_id;
-        } else {
-            delete payload.sesion_id;
         }
 
         try {
@@ -2492,8 +2456,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         } catch (error) {
             console.error('Save error', error);
             toast({ variant: 'destructive', title: t('toast.error'), description: t('toast.saveError') });
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
@@ -2503,77 +2465,121 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                 <DialogHeader>
                     <DialogTitle>{session ? t('editTitle') : t('createTitle')}</DialogTitle>
                 </DialogHeader>
-                <div className="py-4 space-y-4">
-                    <div className="space-y-2">
-                        <Label>{t('date')}</Label>
-                        <Input type="datetime-local" value={formData.fecha_sesion || ''} onChange={e => handleInputChange('fecha_sesion', e.target.value)} />
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>{t('doctor')}</Label>
-                                <Select value={formData.doctor_id || ''} onValueChange={(value) => handleInputChange('doctor_id', value)}>
-                                    <SelectTrigger><SelectValue placeholder={t('selectDoctor')} /></SelectTrigger>
-                                    <SelectContent>
-                                        {doctors.map(doc => (
-                                            <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>{t('procedure')}</Label>
-                                <Input value={formData.procedimiento_realizado || ''} onChange={e => handleInputChange('procedimiento_realizado', e.target.value)} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>{t('diagnosis')}</Label>
-                                <Textarea value={formData.diagnostico || ''} onChange={e => handleInputChange('diagnostico', e.target.value)} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>{t('notes')}</Label>
-                                <Textarea value={formData.notas_clinicas || ''} onChange={e => handleInputChange('notas_clinicas', e.target.value)} />
-                            </div>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>{t('date')}</Label>
+                            <Input type="datetime-local" {...form.register('fecha_sesion')} />
                         </div>
-                        <div className="space-y-4">
-                            <h4 className="font-semibold">{t('treatments')}</h4>
-                            <div className="space-y-2 p-2 border rounded-md">
-                                <div className="flex gap-2">
-                                    <Input 
-                                        type="number"
-                                        placeholder={t('toothPlaceholder')}
-                                        value={newTreatmentTooth}
-                                        onChange={(e) => setNewTreatmentTooth(e.target.value)}
-                                        className="w-24"
-                                    />
-                                    <Input 
-                                        placeholder={t('treatmentPlaceholder')} 
-                                        value={newTreatmentDescription}
-                                        onChange={(e) => setNewTreatmentDescription(e.target.value)}
-                                    />
-                                    <Button type="button" onClick={handleAddTreatment} size="icon"><Plus className="h-4 w-4" /></Button>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                               <FormField
+                                    control={form.control}
+                                    name="doctor_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <Label>{t('doctor')}</Label>
+                                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                                                <FormControl>
+                                                    <SelectTrigger><SelectValue placeholder={t('selectDoctor')} /></SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {doctors.map(doc => (
+                                                        <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                    )}
+                                />
+                                <div className="space-y-2">
+                                    <Label>{t('procedure')}</Label>
+                                    <Input {...form.register('procedimiento_realizado')} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>{t('diagnosis')}</Label>
+                                    <Textarea {...form.register('diagnostico')} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>{t('notes')}</Label>
+                                    <Textarea {...form.register('notas_clinicas')} />
                                 </div>
                             </div>
-                            <div className="max-h-60 overflow-y-auto space-y-2">
-                                {formData.tratamientos && formData.tratamientos.map((treatment, index) => (
-                                    <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-md">
-                                        <div>
-                                            <p className="text-sm font-medium">{treatment.descripcion}</p>
-                                            {treatment.numero_diente && <p className="text-xs text-muted-foreground">{t('tooth')}: {treatment.numero_diente}</p>}
-                                        </div>
-                                        <Button type="button" variant="destructive-ghost" size="icon" onClick={() => handleRemoveTreatment(index)}>
-                                            <Trash2 className="h-4 w-4" />
+                            <div className="space-y-4">
+                                <h4 className="font-semibold">{t('treatments')}</h4>
+                                <div className="space-y-2 p-2 border rounded-md">
+                                    <div className="flex gap-2">
+                                        <Input 
+                                            type="number"
+                                            placeholder={t('toothPlaceholder')}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    const toothNum = parseInt((e.target as HTMLInputElement).value, 10);
+                                                    const desc = (document.getElementById('new-treatment-desc') as HTMLInputElement).value;
+                                                    if (desc) {
+                                                        if (toothNum && (toothNum < 11 || toothNum > 85)) {
+                                                            toast({ variant: 'destructive', title: 'Error', description: "The tooth number must be between 11 and 85."});
+                                                            return;
+                                                        }
+                                                        append({ descripcion: desc, numero_diente: toothNum || null });
+                                                        (e.target as HTMLInputElement).value = '';
+                                                        (document.getElementById('new-treatment-desc') as HTMLInputElement).value = '';
+                                                    }
+                                                }
+                                            }}
+                                            id="new-treatment-tooth"
+                                        />
+                                        <Input 
+                                            placeholder={t('treatmentPlaceholder')} 
+                                            id="new-treatment-desc"
+                                        />
+                                        <Button 
+                                            type="button" 
+                                            onClick={() => {
+                                                const toothInput = document.getElementById('new-treatment-tooth') as HTMLInputElement;
+                                                const descInput = document.getElementById('new-treatment-desc') as HTMLInputElement;
+                                                const toothNum = parseInt(toothInput.value, 10);
+                                                if (descInput.value) {
+                                                     if (toothNum && (toothNum < 11 || toothNum > 85)) {
+                                                        toast({ variant: 'destructive', title: 'Error', description: "The tooth number must be between 11 and 85."});
+                                                        return;
+                                                    }
+                                                    append({ descripcion: descInput.value, numero_diente: toothNum || null });
+                                                    toothInput.value = '';
+                                                    descInput.value = '';
+                                                }
+                                            }}
+                                            size="icon"
+                                        >
+                                            <Plus className="h-4 w-4" />
                                         </Button>
                                     </div>
-                                ))}
+                                </div>
+                                <ScrollArea className="h-48">
+                                    <div className="max-h-full space-y-2">
+                                        {fields.map((treatment, index) => (
+                                            <div key={treatment.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
+                                                <div>
+                                                    <p className="text-sm font-medium">{treatment.descripcion}</p>
+                                                    {treatment.numero_diente && <p className="text-xs text-muted-foreground">{t('tooth')}: {treatment.numero_diente}</p>}
+                                                </div>
+                                                <Button type="button" variant="destructive-ghost" size="icon" onClick={() => remove(index)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
                             </div>
                         </div>
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
-                    <Button onClick={handleSave} disabled={isSubmitting}>{isSubmitting ? t('saving') : t('save')}</Button>
-                </DialogFooter>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
+                            <Button type="submit">{t('save')}</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
             </DialogContent>
         </Dialog>
     );
@@ -2589,6 +2595,7 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
 
 
 
