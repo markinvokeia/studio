@@ -1949,6 +1949,19 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
   };
 
   const TreatmentTimeline = ({ sessions, onAction }: { sessions: PatientSession[], onAction: (action: 'add' | 'edit' | 'delete', session?: PatientSession) => void }) => {
+    const [selectedImage, setSelectedImage] = useState<AttachedFile | null>(null);
+    const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
+    const [imageContent, setImageContent] = useState<string | null>(null);
+
+    const handleViewImage = async (file: AttachedFile) => {
+        setSelectedImage(file);
+        setIsImageViewerOpen(true);
+        setImageContent(null);
+        // This is a simplified version. In a real scenario, you'd fetch the full image.
+        // For now, we'll assume the 'ruta' is a direct URL to the image.
+        setImageContent(file.ruta);
+    };
+
     const conditionLabels: { [key: string]: string } = {
         caries: t('odontogram.conditions.caries'),
         filling: t('odontogram.conditions.filling'),
@@ -2148,15 +2161,25 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                                     title={t('timeline.attachments')}
                                                     items={session.archivos_adjuntos.map((file, i) => (
                                                         <li key={i}>
-                                                            <a 
-                                                                href={file.ruta} 
-                                                                target="_blank" 
-                                                                rel="noopener noreferrer" 
-                                                                className="text-primary hover:underline flex items-center gap-1"
-                                                            >
-                                                                <Paperclip className="w-3 h-3" />
-                                                                {file.tipo} {file.diente_asociado && `(${t('timeline.tooth', {id: file.diente_asociado})})`}
-                                                            </a>
+                                                             {file.tipo.startsWith('image/') ? (
+                                                                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleViewImage(file)}>
+                                                                    <Paperclip className="w-3 h-3" />
+                                                                    <div className="relative h-10 w-10">
+                                                                        <Image src={file.ruta} alt={file.tipo} layout="fill" className="object-cover rounded-sm" />
+                                                                    </div>
+                                                                    <span className="text-primary hover:underline">{file.tipo} {file.diente_asociado && `(${t('timeline.tooth', { id: file.diente_asociado })})`}</span>
+                                                                </div>
+                                                            ) : (
+                                                                <a 
+                                                                    href={file.ruta} 
+                                                                    target="_blank" 
+                                                                    rel="noopener noreferrer" 
+                                                                    className="text-primary hover:underline flex items-center gap-1"
+                                                                >
+                                                                    <Paperclip className="w-3 h-3" />
+                                                                    {file.tipo} {file.diente_asociado && `(${t('timeline.tooth', { id: file.diente_asociado })})`}
+                                                                </a>
+                                                            )}
                                                         </li>
                                                     ))}
                                                 />
@@ -2170,6 +2193,22 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                     </TooltipProvider>
                 </div>
             </ScrollArea>
+            {selectedImage && (
+                <Dialog open={isImageViewerOpen} onOpenChange={setIsImageViewerOpen}>
+                    <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
+                        <DialogHeader className="p-4 border-b">
+                            <DialogTitle>{selectedImage.tipo}</DialogTitle>
+                        </DialogHeader>
+                        {imageContent ? (
+                            <ImageViewer src={imageContent} alt={selectedImage.tipo} />
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center h-full">
+                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
+            )}
         </div>
     );
 };
@@ -2580,3 +2619,4 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
+
