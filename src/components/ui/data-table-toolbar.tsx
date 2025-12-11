@@ -61,35 +61,7 @@ export function DataTableToolbar<TData>({
             className="h-9 w-[150px] lg:w-[250px] pl-9"
             />
         </div>
-         {filterOptions && onFilterChange && (
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9">
-                    <Filter className="mr-2 h-4 w-4" />
-                    Filter
-                </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Filter by Type</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem
-                    checked={filterValue === 'all'}
-                    onCheckedChange={() => onFilterChange('all')}
-                >
-                    All
-                </DropdownMenuCheckboxItem>
-                {filterOptions.map((option) => (
-                    <DropdownMenuCheckboxItem
-                    key={option.value}
-                    checked={filterValue === option.value}
-                    onCheckedChange={() => onFilterChange(option.value)}
-                    >
-                    {option.label}
-                    </DropdownMenuCheckboxItem>
-                ))}
-                </DropdownMenuContent>
-            </DropdownMenu>
-            )}
+         {extraButtons}
       </div>
       <div className="flex items-center space-x-2">
         {onCreate && (
@@ -107,7 +79,6 @@ export function DataTableToolbar<TData>({
             </Tooltip>
           </TooltipProvider>
         )}
-        {extraButtons}
          {onRefresh && (
           <Button
             variant="outline"

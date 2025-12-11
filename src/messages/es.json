@@ -440,6 +440,7 @@
     "title": "Pacientes",
     "description": "Gestionar todos los pacientes del sistema.",
     "filterPlaceholder": "Filtrar usuarios por email...",
+    "filterByPatient": "Filtrar por paciente...",
     "detailsFor": "Detalles para {name}",
     "close": "Cerrar detalles",
     "setInitialPassword": "Establecer Contraseña Inicial",
@@ -493,6 +494,23 @@
           "phone": "Teléfono",
           "identity_document": "Documento de Identidad"
         }
+      }
+    },
+    "filters": {
+      "type": {
+        "label": "Tipo de Usuario",
+        "all": "Todos",
+        "paciente": "Paciente",
+        "doctor": "Doctor",
+        "proveedor": "Proveedor"
+      },
+      "date": {
+        "label": "Rango de Fechas",
+        "today": "Hoy",
+        "thisWeek": "Esta Semana",
+        "thisMonth": "Este Mes",
+        "customRange": "Rango Personalizado",
+        "allTime": "Todo el Historial"
       }
     }
   },

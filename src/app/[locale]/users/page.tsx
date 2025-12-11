@@ -463,6 +463,74 @@ export default function UsersPage() {
         toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'An unexpected error occurred.' });
     }
   };
+  
+  const extraToolbarButtons = (
+      <div className="flex items-center gap-2">
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9">
+                    <Filter className="mr-2 h-4 w-4" />
+                    {t('UsersPage.filters.type.label')}
+                </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{t('UsersPage.filters.type.label')}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {['ALL', 'PACIENTE', 'DOCTOR', 'PROVEEDOR'].map((type) => (
+                    <DropdownMenuCheckboxItem
+                    key={type}
+                    checked={filterType === type}
+                    onCheckedChange={() => setFilterType(type)}
+                    >
+                    {t(`UsersPage.filters.type.${type.toLowerCase()}` as any)}
+                    </DropdownMenuCheckboxItem>
+                ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-9">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {date?.from ? (
+                            date.to ? (
+                                `${format(date.from, 'LLL dd, y')} - ${format(date.to, 'LLL dd, y')}`
+                            ) : (
+                                format(date.from, 'LLL dd, y')
+                            )
+                        ) : (
+                            <span>{t('UsersPage.filters.date.label')}</span>
+                        )}
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setDate({ from: startOfDay(new Date()), to: endOfDay(new Date()) })}>{t('UsersPage.filters.date.today')}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setDate({ from: startOfWeek(new Date()), to: endOfWeek(new Date()) })}>{t('UsersPage.filters.date.thisWeek')}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setDate({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })}>{t('UsersPage.filters.date.thisMonth')}</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                     <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="ghost" className="w-full justify-start font-normal">
+                                {t('UsersPage.filters.date.customRange')}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={date?.from}
+                                selected={date}
+                                onSelect={setDate}
+                                numberOfMonths={2}
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setDate(undefined)}>{t('UsersPage.filters.date.allTime')}</DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+  );
 
   return (
     <>
@@ -478,7 +546,7 @@ export default function UsersPage() {
               columns={userColumns} 
               data={users} 
               filterColumnId="email" 
-              filterPlaceholder={t('UsersPage.filterPlaceholder')}
+              filterPlaceholder={t('UsersPage.filterByPatient')}
               onRowSelectionChange={handleRowSelectionChange}
               enableSingleRowSelection={true}
               onCreate={handleCreate}
@@ -492,6 +560,7 @@ export default function UsersPage() {
               manualPagination={true}
               columnFilters={columnFilters}
               onColumnFiltersChange={setColumnFilters}
+              extraButtons={extraToolbarButtons}
             />
           </CardContent>
         </Card>
