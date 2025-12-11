@@ -1640,7 +1640,6 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const [isUploading, setIsUploading] = useState(false);
     const [deletingDocument, setDeletingDocument] = useState<Document | null>(null);
 
-
     const fetchDocuments = useCallback(async () => {
       if (!userId) return;
       setIsLoadingDocuments(true);
@@ -2375,18 +2374,18 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                 console.error("Failed to fetch doctors:", error);
             }
         }
-        
+
         async function fetchSessionDetails(sessionId: number) {
             try {
                 const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${sessionId}`);
                 if (response.ok) {
                     const data = await response.json();
                     const sessionDetails = Array.isArray(data) && data.length > 0 ? data[0] : null;
-                    if(sessionDetails) {
+                    if (sessionDetails) {
                         form.reset({
                             ...sessionDetails,
-                            fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : '',
                             tratamientos: sessionDetails.lista_tratamientos || [],
+                            fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : ''
                         });
                     }
                 } else {
@@ -2397,7 +2396,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                 toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while loading session details.' });
             }
         }
-        
+
         if (isOpen) {
             fetchInitialData();
             if (session) {
