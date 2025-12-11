@@ -404,9 +404,10 @@ export default function UsersPage() {
           <RadioGroup
             value={isSelected ? row.original.id : ''}
             onValueChange={() => {
-              if(onRowSelectionChange) {
+              if(handleRowSelectionChange) {
                 table.toggleAllPageRowsSelected(false);
                 row.toggleSelected(true);
+                handleRowSelectionChange([row.original]);
               }
             }}
           >
@@ -857,3 +858,6 @@ export default function UsersPage() {
     </>
   );
 }
+
+
+    
