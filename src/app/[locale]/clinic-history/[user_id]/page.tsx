@@ -50,6 +50,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { useForm, useFieldArray } from 'react-hook-form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 type PersonalHistoryItem = {
     id: number;
@@ -2371,39 +2372,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         name: "tratamientos",
     });
 
-    useEffect(() => {
-        async function fetchInitialData() {
-            try {
-                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
-                if (response.ok) {
-                    const data = await response.json();
-                    const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || data.result || []);
-                    setDoctors(doctorsData);
-                }
-            } catch (error) {
-                console.error("Failed to fetch doctors:", error);
-            }
-        }
-        if (isOpen) {
-            fetchInitialData();
-            if (session) {
-                // Fetch full session details for editing
-                fetchSessionDetails(session.sesion_id);
-            } else {
-                // Reset form for creating a new session
-                form.reset({
-                    fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-                    diagnostico: '',
-                    procedimiento_realizado: '',
-                    notas_clinicas: '',
-                    tratamientos: [],
-                    doctor_id: '',
-                });
-            }
-        }
-    }, [session, isOpen]);
-    
-    const fetchSessionDetails = async (sessionId: number) => {
+    const fetchSessionDetails = useCallback(async (sessionId: number) => {
         try {
             const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${sessionId}`);
             if (response.ok) {
@@ -2423,7 +2392,37 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
             console.error('Failed to fetch session details', error);
             toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while loading session details.' });
         }
-    };
+    }, [form, toast]);
+
+    useEffect(() => {
+        async function fetchInitialData() {
+            try {
+                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || data.result || []);
+                    setDoctors(doctorsData);
+                }
+            } catch (error) {
+                console.error("Failed to fetch doctors:", error);
+            }
+        }
+        if (isOpen) {
+            fetchInitialData();
+            if (session) {
+                fetchSessionDetails(session.sesion_id);
+            } else {
+                form.reset({
+                    fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+                    diagnostico: '',
+                    procedimiento_realizado: '',
+                    notas_clinicas: '',
+                    tratamientos: [],
+                    doctor_id: '',
+                });
+            }
+        }
+    }, [session, isOpen, form, fetchSessionDetails]);
   
     const handleSave = async (data: Partial<PatientSession>) => {
         const endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert';
@@ -2595,6 +2594,7 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
 
 
 
