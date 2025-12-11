@@ -1656,7 +1656,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/documents?user_id=${userId}`);
         if (response.ok) {
           const data = await response.json();
-          const docs = Array.isArray(data) && data.length > 0 && data[0].items ? data[0].items : [];
+          const docs = (Array.isArray(data) && data.length > 0 && data[0].items) ? data[0].items : [];
           setDocuments(docs.map((doc: any) => ({
             id: String(doc.id),
             name: doc.name,
@@ -2379,13 +2379,28 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
     }, [isOpen]);
 
     useEffect(() => {
+        const fetchSessionDetails = async (sessionId: number) => {
+            try {
+                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/patient_sessions?session_id=${sessionId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const sessionDetails = Array.isArray(data) ? data[0] : data;
+                     if(sessionDetails) {
+                        setFormData({
+                            ...sessionDetails,
+                            fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : '',
+                            tratamientos: sessionDetails.tratamientos || [],
+                        });
+                     }
+                }
+            } catch (error) {
+                console.error('Failed to fetch session details', error);
+            }
+        };
+
         if (isOpen) {
             if (session) {
-                setFormData({
-                    ...session,
-                    fecha_sesion: session.fecha_sesion ? format(parseISO(session.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : '',
-                    tratamientos: session.tratamientos || [],
-                });
+                fetchSessionDetails(session.sesion_id);
             } else {
                 setFormData({
                     fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
@@ -2563,5 +2578,6 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
 
 
