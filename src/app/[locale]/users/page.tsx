@@ -117,7 +117,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string, filter
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
       search: searchQuery,
-      filter_type: filterType === 'ALL' ? '' : filterType,
+      filter_type: filterType,
     });
      if (dateRange?.from) {
       params.append('date_from', format(dateRange.from, 'yyyy-MM-dd'));
@@ -252,7 +252,7 @@ export default function UsersPage() {
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
-  const [filterType, setFilterType] = React.useState<string>('PACIENTE');
+  const filterType = 'PACIENTE';
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
@@ -466,28 +466,6 @@ export default function UsersPage() {
   
   const extraToolbarButtons = (
       <div className="flex items-center gap-2">
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9">
-                    <Filter className="mr-2 h-4 w-4" />
-                    {t('UsersPage.filters.type.label')}
-                </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{t('UsersPage.filters.type.label')}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {['ALL', 'PACIENTE', 'DOCTOR', 'PROVEEDOR'].map((type) => (
-                    <DropdownMenuCheckboxItem
-                    key={type}
-                    checked={filterType === type}
-                    onCheckedChange={() => setFilterType(type)}
-                    >
-                    {t(`UsersPage.filters.type.${type.toLowerCase()}` as any)}
-                    </DropdownMenuCheckboxItem>
-                ))}
-                </DropdownMenuContent>
-            </DropdownMenu>
-
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="h-9">
@@ -734,5 +712,3 @@ export default function UsersPage() {
     </>
   );
 }
-
-    

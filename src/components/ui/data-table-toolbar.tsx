@@ -26,9 +26,6 @@ interface DataTableToolbarProps<TData> {
   isRefreshing?: boolean;
   columnTranslations?: { [key: string]: string };
   extraButtons?: React.ReactNode;
-  filterOptions?: { label: string; value: string }[];
-  onFilterChange?: (value: string) => void;
-  filterValue?: string;
   createButtonLabel?: string;
 }
 
@@ -41,9 +38,6 @@ export function DataTableToolbar<TData>({
   isRefreshing,
   columnTranslations = {},
   extraButtons,
-  filterOptions,
-  onFilterChange,
-  filterValue,
   createButtonLabel
 }: DataTableToolbarProps<TData>) {
   const t = useTranslations('DataTableToolbar');

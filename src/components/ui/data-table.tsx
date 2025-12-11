@@ -54,9 +54,6 @@ interface DataTableProps<TData, TValue> {
   onColumnFiltersChange?: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
   columnTranslations?: { [key: string]: string };
   extraButtons?: React.ReactNode;
-  filterOptions?: { label: string; value: string }[];
-  onFilterChange?: (value: string) => void;
-  filterValue?: string;
   createButtonLabel?: string;
 }
 
@@ -84,9 +81,6 @@ export function DataTable<TData, TValue>({
   onColumnFiltersChange: setControlledColumnFilters,
   columnTranslations = {},
   extraButtons,
-  filterOptions,
-  onFilterChange,
-  filterValue,
   createButtonLabel,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
@@ -153,9 +147,6 @@ export function DataTable<TData, TValue>({
           isRefreshing={isRefreshing}
           columnTranslations={columnTranslations}
           extraButtons={extraButtons}
-          filterOptions={filterOptions}
-          onFilterChange={onFilterChange}
-          filterValue={filterValue}
           createButtonLabel={createButtonLabel}
         />
       )}
