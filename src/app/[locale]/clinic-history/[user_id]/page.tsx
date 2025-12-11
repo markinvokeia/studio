@@ -2384,7 +2384,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                 const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${sessionId}`);
                 if (response.ok) {
                     const data = await response.json();
-                    const sessionDetails = Array.isArray(data) ? data[0] : data;
+                     const sessionDetails = Array.isArray(data) && data.length > 0 ? data[0] : null;
                      if(sessionDetails) {
                         setFormData({
                             ...sessionDetails,
@@ -2426,9 +2426,20 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
             });
             return;
         }
+
+        const toothNumber = newTreatmentTooth ? parseInt(newTreatmentTooth, 10) : null;
+        if (toothNumber !== null && (isNaN(toothNumber) || toothNumber < 11 || toothNumber > 85)) {
+            toast({
+                variant: 'destructive',
+                title: t('toast.error'),
+                description: "The tooth number must be between 11 and 85.",
+            });
+            return;
+        }
+
         const newTreatment: TreatmentDetail = {
             descripcion: newTreatmentDescription,
-            numero_diente: newTreatmentTooth ? parseInt(newTreatmentTooth) : null,
+            numero_diente: toothNumber,
         };
         setFormData(prev => ({
             ...prev,
@@ -2578,6 +2589,7 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
 
 
 
