@@ -1954,10 +1954,11 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const [imageContent, setImageContent] = useState<string | null>(null);
 
     const getGoogleDriveThumbnailUrl = (url: string) => {
-        if (url.includes('drive.google.com')) {
+        if (!url) return null;
+        if (url.includes('drive.google.com/file/d/')) {
             const fileId = url.split('/d/')[1]?.split('/')[0];
             if (fileId) {
-                return `https://drive.google.com/thumbnail?id=${fileId}&sz=w256-h256`;
+                return `https://drive.google.com/uc?id=${fileId}`;
             }
         }
         return url;
@@ -1967,9 +1968,21 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         setSelectedImage(file);
         setIsImageViewerOpen(true);
         setImageContent(null);
-        // This is a simplified version. In a real scenario, you'd fetch the full image.
-        // For now, we'll assume the 'ruta' is a direct URL to the image.
-        setImageContent(file.ruta);
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${file.ruta}&user_id=${userId}`);
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                setImageContent(url);
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not load image.' });
+                setIsImageViewerOpen(false);
+            }
+        } catch (error) {
+            console.error("Failed to load image content:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch image content.' });
+            setIsImageViewerOpen(false);
+        }
     };
 
     const conditionLabels: { [key: string]: string } = {
@@ -2498,7 +2511,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
             onOpenChange(false);
         } catch (error) {
             console.error('Save error', error);
-            toast({ variant: 'destructive', title: t('toast.error'), description: t('toast.saveError') });
+            toast({ variant: 'destructive', title: 'Error', description: t('toast.saveError') });
         }
     };
     
