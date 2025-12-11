@@ -515,6 +515,8 @@
         "today": "Hoy",
         "week": "Esta Semana",
         "month": "Este Mes",
+        "thisWeek": "This Week",
+        "thisMonth": "This Month",
         "customRange": "Rango Personalizado",
         "allTime": "Todo el Tiempo"
       }
