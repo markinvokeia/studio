@@ -29,7 +29,7 @@ import { UserQuotes } from '@/components/users/user-quotes';
 import { UserMessages } from '@/components/users/user-messages';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserLogs } from '@/components/users/user-logs';
-import { X, AlertTriangle, KeyRound, DollarSign, Receipt, CreditCard, Banknote, CalendarIcon, Search, Filter, SlidersHorizontal, RefreshCw, Check, ChevronsUpDown, MoreHorizontal } from 'lucide-react';
+import { X, AlertTriangle, KeyRound, DollarSign, Receipt, CreditCard, Banknote, CalendarIcon, Search, Filter, SlidersHorizontal, RefreshCw, Check, ChevronsUpDown, MoreHorizontal, DropdownMenuSeparator } from 'lucide-react';
 import { RowSelectionState, PaginationState, ColumnFiltersState, ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
@@ -43,7 +43,7 @@ import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, endOfDay, sub } from 'date-fns';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -115,13 +115,14 @@ const UserStats = ({ user }: { user: User }) => {
 };
 
 
-async function getUsers(pagination: PaginationState, searchQuery: string, dateRange?: DateRange): Promise<GetUsersResponse> {
+async function getUsers(pagination: PaginationState, searchQuery: string, onlyDebtors: boolean, dateRange?: DateRange): Promise<GetUsersResponse> {
   try {
     const params = new URLSearchParams({
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
       search: searchQuery,
       filter_type: "PACIENTE",
+      only_debtors: String(onlyDebtors)
     });
      if (dateRange?.from) {
       params.append('date_from', format(dateRange.from, 'yyyy-MM-dd'));
@@ -182,20 +183,6 @@ async function getUsers(pagination: PaginationState, searchQuery: string, dateRa
     console.error("Failed to fetch users:", error);
     return { users: [], total: 0 };
   }
-}
-
-async function getDebtors(): Promise<Debtor[]> {
-    try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/debtors`);
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-        }
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-    } catch (error) {
-        console.error("Failed to fetch debtors:", error);
-        return [];
-    }
 }
 
 async function upsertUser(userData: UserFormValues) {
@@ -286,38 +273,12 @@ export default function UsersPage() {
 
   const loadUsers = React.useCallback(async () => {
     setIsRefreshing(true);
-    if (showDebtors) {
-        const fetchedDebtors = await getDebtors();
-        const groupedDebtors: { [key: string]: any } = {};
-
-        fetchedDebtors.forEach(debtor => {
-            if (!groupedDebtors[debtor.user_id]) {
-                groupedDebtors[debtor.user_id] = {
-                    id: debtor.user_id,
-                    name: debtor.patient_name,
-                    email: debtor.email,
-                    identity_document: debtor.identity_document,
-                    debts: {}
-                };
-            }
-            groupedDebtors[debtor.user_id].debts[debtor.currency] = {
-                pending_invoices_count: debtor.pending_invoices_count,
-                total_debt_amount: debtor.total_debt_amount
-            };
-        });
-        
-        setUsers(Object.values(groupedDebtors));
-        setUserCount(Object.values(groupedDebtors).length);
-
-    } else {
-        const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
-        const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery, date);
-        setUsers(fetchedUsers);
-        setUserCount(total);
-    }
+    const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
+    const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery, showDebtors, date);
+    setUsers(fetchedUsers);
+    setUserCount(total);
     setIsRefreshing(false);
   }, [pagination, columnFilters, date, showDebtors]);
-
 
   const loadUserRoles = React.useCallback(async (userId: string) => {
     setIsRolesLoading(true);
@@ -325,7 +286,6 @@ export default function UsersPage() {
     setSelectedUserRoles(roles);
     setIsRolesLoading(false);
   }, []);
-
 
   React.useEffect(() => {
     const debounce = setTimeout(() => {
@@ -435,16 +395,16 @@ export default function UsersPage() {
         id: 'debt_uyu',
         header: 'Debt (UYU)',
         cell: ({ row }) => {
-            const debt = row.original.debts?.UYU;
-            return debt ? `$${debt.total_debt_amount} (${debt.pending_invoices_count} invoices)` : '-';
+            const debt = row.original.current_debt?.UYU;
+            return debt ? `$${Number(debt).toFixed(2)}` : '-';
         },
     },
     {
         id: 'debt_usd',
         header: 'Debt (USD)',
         cell: ({ row }) => {
-            const debt = row.original.debts?.USD;
-            return debt ? `$${debt.total_debt_amount} (${debt.pending_invoices_count} invoices)` : '-';
+            const debt = row.original.current_debt?.USD;
+            return debt ? `$${Number(debt).toFixed(2)}` : '-';
         },
     },
   ];
@@ -604,11 +564,11 @@ export default function UsersPage() {
                     {t('UsersPage.filters.date.today')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleDatePreset('week')}>
-                    <Check className={cn("mr-2 h-4 w-4", datePreset === 'week' ? 'opacity-100' : 'opacity-0')} />
+                    <Check className={cn("mr-2 h-4 w-4", datePreset === 'thisWeek' ? 'opacity-100' : 'opacity-0')} />
                     {t('UsersPage.filters.date.thisWeek')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleDatePreset('month')}>
-                    <Check className={cn("mr-2 h-4 w-4", datePreset === 'month' ? 'opacity-100' : 'opacity-0')} />
+                    <Check className={cn("mr-2 h-4 w-4", datePreset === 'thisMonth' ? 'opacity-100' : 'opacity-0')} />
                     {t('UsersPage.filters.date.thisMonth')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -859,5 +819,7 @@ export default function UsersPage() {
     </>
   );
 }
+
+    
 
     
