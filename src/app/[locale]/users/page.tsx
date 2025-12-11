@@ -29,8 +29,8 @@ import { UserQuotes } from '@/components/users/user-quotes';
 import { UserMessages } from '@/components/users/user-messages';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserLogs } from '@/components/users/user-logs';
-import { X, AlertTriangle, KeyRound, DollarSign, Receipt, CreditCard, Banknote, CalendarIcon, Search, Filter, SlidersHorizontal, RefreshCw, Check } from 'lucide-react';
-import { RowSelectionState, PaginationState, ColumnFiltersState } from '@tanstack/react-table';
+import { X, AlertTriangle, KeyRound, DollarSign, Receipt, CreditCard, Banknote, CalendarIcon, Search, Filter, SlidersHorizontal, RefreshCw, Check, ChevronsUpDown } from 'lucide-react';
+import { RowSelectionState, PaginationState, ColumnFiltersState, ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -46,6 +46,7 @@ import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, e
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 
 const userFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -593,7 +594,7 @@ export default function UsersPage() {
             <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{t('UsersPage.filters.date.label')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                 <DropdownMenuItem onClick={() => handleDatePreset('today')}>
+                <DropdownMenuItem onClick={() => handleDatePreset('today')}>
                     <Check className={cn("mr-2 h-4 w-4", datePreset === 'today' ? 'opacity-100' : 'opacity-0')} />
                     {t('UsersPage.filters.date.today')}
                 </DropdownMenuItem>
@@ -844,3 +845,5 @@ export default function UsersPage() {
     </>
   );
 }
+
+    
