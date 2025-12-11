@@ -111,13 +111,13 @@ const UserStats = ({ user }: { user: User }) => {
 };
 
 
-async function getUsers(pagination: PaginationState, searchQuery: string, filterType: string, dateRange?: DateRange): Promise<GetUsersResponse> {
+async function getUsers(pagination: PaginationState, searchQuery: string, dateRange?: DateRange): Promise<GetUsersResponse> {
   try {
     const params = new URLSearchParams({
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
       search: searchQuery,
-      filter_type: filterType,
+      filter_type: "PACIENTE",
     });
      if (dateRange?.from) {
       params.append('date_from', format(dateRange.from, 'yyyy-MM-dd'));
@@ -252,8 +252,7 @@ export default function UsersPage() {
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
-  const [datePreset, setDatePreset] = React.useState<string | null>(null);
-  const filterType = 'PACIENTE';
+  const [datePreset, setDatePreset] = React.useState<string | null>('all');
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
@@ -269,11 +268,11 @@ export default function UsersPage() {
   const loadUsers = React.useCallback(async () => {
     setIsRefreshing(true);
     const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
-    const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery, filterType, date);
+    const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery, date);
     setUsers(fetchedUsers);
     setUserCount(total);
     setIsRefreshing(false);
-  }, [pagination, columnFilters, filterType, date]);
+  }, [pagination, columnFilters, date]);
 
   const loadUserRoles = React.useCallback(async (userId: string) => {
     setIsRolesLoading(true);
@@ -470,7 +469,7 @@ export default function UsersPage() {
     if (preset === 'today') {
       setDate({ from: startOfDay(new Date()), to: endOfDay(new Date()) });
     } else if (preset === 'week') {
-      setDate({ from: startOfWeek(new Date()), to: endOfWeek(new Date()) });
+      setDate({ from: startOfWeek(new Date(), { weekStartsOn: 1 }), to: endOfWeek(new Date(), { weekStartsOn: 1 }) });
     } else if (preset === 'month') {
       setDate({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
     } else if (preset === 'all') {
@@ -480,11 +479,7 @@ export default function UsersPage() {
 
   const handleDateChange = (newDate: DateRange | undefined) => {
     setDate(newDate);
-    if (newDate === undefined) {
-      setDatePreset('all');
-    } else {
-      setDatePreset(null); // Custom range
-    }
+    setDatePreset(null); // Custom range
   };
 
   const extraToolbarButtons = (
@@ -492,24 +487,36 @@ export default function UsersPage() {
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-9">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    <Filter className="mr-2 h-4 w-4" />
                     {datePreset ? t(`UsersPage.filters.date.${datePreset}`) : 
                      date?.from ? (
                         date.to ? `${format(date.from, 'LLL dd, y')} - ${format(date.to, 'LLL dd, y')}`
                                 : format(date.from, 'LLL dd, y')
                      ) : (
-                        <span>{t('UsersPage.filters.date.label')}</span>
+                        <span>{t('UsersPage.filters.date.allTime')}</span>
                     )}
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleDatePreset('today')}>{t('UsersPage.filters.date.today')}</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleDatePreset('week')}>{t('UsersPage.filters.date.thisWeek')}</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleDatePreset('month')}>{t('UsersPage.filters.date.thisMonth')}</DropdownMenuItem>
+                <DropdownMenuLabel>{t('UsersPage.filters.date.label')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <Popover>
+                <DropdownMenuItem onClick={() => handleDatePreset('today')}>
+                    <Check className={cn("mr-2 h-4 w-4", datePreset === 'today' ? 'opacity-100' : 'opacity-0')} />
+                    {t('UsersPage.filters.date.today')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDatePreset('week')}>
+                    <Check className={cn("mr-2 h-4 w-4", datePreset === 'week' ? 'opacity-100' : 'opacity-0')} />
+                    {t('UsersPage.filters.date.thisWeek')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDatePreset('month')}>
+                    <Check className={cn("mr-2 h-4 w-4", datePreset === 'month' ? 'opacity-100' : 'opacity-0')} />
+                    {t('UsersPage.filters.date.thisMonth')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                 <Popover>
                     <PopoverTrigger asChild>
-                        <Button variant="ghost" className="w-full justify-start font-normal">
+                        <Button variant="ghost" className="w-full justify-start font-normal px-2">
+                             <Check className={cn("mr-2 h-4 w-4", !datePreset ? 'opacity-100' : 'opacity-0')} />
                             {t('UsersPage.filters.date.customRange')}
                         </Button>
                     </PopoverTrigger>
@@ -525,7 +532,10 @@ export default function UsersPage() {
                     </PopoverContent>
                 </Popover>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleDatePreset('all')}>{t('UsersPage.filters.date.allTime')}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDatePreset('all')}>
+                    <Check className={cn("mr-2 h-4 w-4", datePreset === 'all' ? 'opacity-100' : 'opacity-0')} />
+                    {t('UsersPage.filters.date.allTime')}
+                </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
     </div>
