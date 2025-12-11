@@ -43,7 +43,7 @@ import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, endOfDay, sub } from 'date-fns';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -68,12 +68,13 @@ type GetUsersResponse = {
 };
 
 const UserStats = ({ user }: { user: User }) => {
-    const formatCurrency = (value: number, currency: 'USD' | 'UYU') => {
+    const formatCurrency = (value: any, currency: 'USD' | 'UYU') => {
         const symbol = currency === 'USD' ? 'U$S' : '$U';
+        const numericValue = Number(value) || 0;
         const formattedValue = new Intl.NumberFormat('es-UY', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
-        }).format(value);
+        }).format(numericValue);
         return `${symbol} ${formattedValue}`;
     };
 
@@ -287,11 +288,9 @@ export default function UsersPage() {
     setIsRefreshing(true);
     if (showDebtors) {
         const fetchedDebtors = await getDebtors();
-        const groupedDebtors: { [key: string]: any } = {};
-
-        fetchedDebtors.forEach(debtor => {
-            if (!groupedDebtors[debtor.user_id]) {
-                groupedDebtors[debtor.user_id] = {
+        const groupedDebtors = fetchedDebtors.reduce((acc, debtor) => {
+            if (!acc[debtor.user_id]) {
+                acc[debtor.user_id] = {
                     id: debtor.user_id,
                     name: debtor.patient_name,
                     email: debtor.email,
@@ -299,12 +298,13 @@ export default function UsersPage() {
                     debts: {}
                 };
             }
-            groupedDebtors[debtor.user_id].debts[debtor.currency] = {
+            acc[debtor.user_id].debts[debtor.currency] = {
                 pending_invoices_count: debtor.pending_invoices_count,
                 total_debt_amount: debtor.total_debt_amount
             };
-        });
-
+            return acc;
+        }, {} as { [key: string]: any });
+        
         setUsers(Object.values(groupedDebtors));
         setUserCount(Object.keys(groupedDebtors).length);
 
@@ -404,8 +404,10 @@ export default function UsersPage() {
           <RadioGroup
             value={isSelected ? row.original.id : ''}
             onValueChange={() => {
-              table.toggleAllPageRowsSelected(false);
-              row.toggleSelected(true);
+              if(onRowSelectionChange) {
+                table.toggleAllPageRowsSelected(false);
+                row.toggleSelected(true);
+              }
             }}
           >
             <RadioGroupItem value={row.original.id} id={row.original.id} aria-label="Select row" />
@@ -725,13 +727,13 @@ export default function UsersPage() {
                   <TabsContent value="quotes">
                     <UserQuotes userId={selectedUser.id} />
                   </TabsContent>
-                  <TabsContent value="orders">
+                   <TabsContent value="orders">
                     <UserOrders userId={selectedUser.id} />
                   </TabsContent>
-                  <TabsContent value="invoices">
+                   <TabsContent value="invoices">
                     <UserInvoices userId={selectedUser.id} />
                   </TabsContent>
-                  <TabsContent value="payments">
+                   <TabsContent value="payments">
                     <UserPayments userId={selectedUser.id} />
                   </TabsContent>
                   <TabsContent value="appointments">
