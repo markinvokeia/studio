@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -2361,7 +2360,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         control: form.control,
         name: "tratamientos",
     });
-    
+
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
@@ -2384,7 +2383,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${sessionId}`);
                         if (response.ok) {
                             const data = await response.json();
-                            const sessionDetails = Array.isArray(data) && data.length > 0 ? data[0] : null;
+                            const sessionDetails = Array.isArray(data) ? data[0] : data;
                             if (sessionDetails) {
                                 form.reset({
                                     ...sessionDetails,
@@ -2399,7 +2398,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                         console.error('Failed to fetch session details', error);
                         toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while loading session details.' });
                     }
-                }
+                };
                 fetchSessionDetails(session.sesion_id);
             } else {
                 form.reset({
