@@ -2357,13 +2357,13 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         },
     });
 
-    const { fields, append, remove, replace } = useFieldArray({
+    const { fields, append, remove } = useFieldArray({
         control: form.control,
         name: "tratamientos",
     });
-
+    
     useEffect(() => {
-        async function fetchInitialData() {
+        const fetchInitialData = async () => {
             try {
                 const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
                 if (response.ok) {
@@ -2374,7 +2374,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
             } catch (error) {
                 console.error("Failed to fetch doctors:", error);
             }
-        }
+        };
 
         if (isOpen) {
             fetchInitialData();
@@ -2565,7 +2565,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
                             <Button type="submit">{t('save')}</Button>
                         </DialogFooter>
                     </form>
