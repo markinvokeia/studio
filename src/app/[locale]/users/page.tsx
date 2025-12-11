@@ -252,6 +252,7 @@ export default function UsersPage() {
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
+  const [datePreset, setDatePreset] = React.useState<string | null>(null);
   const filterType = 'PACIENTE';
 
   const form = useForm<UserFormValues>({
@@ -464,50 +465,70 @@ export default function UsersPage() {
     }
   };
   
+  const handleDatePreset = (preset: 'today' | 'week' | 'month' | 'all') => {
+    setDatePreset(preset);
+    if (preset === 'today') {
+      setDate({ from: startOfDay(new Date()), to: endOfDay(new Date()) });
+    } else if (preset === 'week') {
+      setDate({ from: startOfWeek(new Date()), to: endOfWeek(new Date()) });
+    } else if (preset === 'month') {
+      setDate({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
+    } else if (preset === 'all') {
+      setDate(undefined);
+    }
+  };
+
+  const handleDateChange = (newDate: DateRange | undefined) => {
+    setDate(newDate);
+    if (newDate === undefined) {
+      setDatePreset('all');
+    } else {
+      setDatePreset(null); // Custom range
+    }
+  };
+
   const extraToolbarButtons = (
-      <div className="flex items-center gap-2">
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-9">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date?.from ? (
-                            date.to ? (
-                                `${format(date.from, 'LLL dd, y')} - ${format(date.to, 'LLL dd, y')}`
-                            ) : (
-                                format(date.from, 'LLL dd, y')
-                            )
-                        ) : (
-                            <span>{t('UsersPage.filters.date.label')}</span>
-                        )}
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setDate({ from: startOfDay(new Date()), to: endOfDay(new Date()) })}>{t('UsersPage.filters.date.today')}</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setDate({ from: startOfWeek(new Date()), to: endOfWeek(new Date()) })}>{t('UsersPage.filters.date.thisWeek')}</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setDate({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })}>{t('UsersPage.filters.date.thisMonth')}</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                     <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="ghost" className="w-full justify-start font-normal">
-                                {t('UsersPage.filters.date.customRange')}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                initialFocus
-                                mode="range"
-                                defaultMonth={date?.from}
-                                selected={date}
-                                onSelect={setDate}
-                                numberOfMonths={2}
-                            />
-                        </PopoverContent>
-                    </Popover>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setDate(undefined)}>{t('UsersPage.filters.date.allTime')}</DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
+    <div className="flex items-center gap-2">
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {datePreset ? t(`UsersPage.filters.date.${datePreset}`) : 
+                     date?.from ? (
+                        date.to ? `${format(date.from, 'LLL dd, y')} - ${format(date.to, 'LLL dd, y')}`
+                                : format(date.from, 'LLL dd, y')
+                     ) : (
+                        <span>{t('UsersPage.filters.date.label')}</span>
+                    )}
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleDatePreset('today')}>{t('UsersPage.filters.date.today')}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDatePreset('week')}>{t('UsersPage.filters.date.thisWeek')}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDatePreset('month')}>{t('UsersPage.filters.date.thisMonth')}</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="ghost" className="w-full justify-start font-normal">
+                            {t('UsersPage.filters.date.customRange')}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                            initialFocus
+                            mode="range"
+                            defaultMonth={date?.from}
+                            selected={date}
+                            onSelect={handleDateChange}
+                            numberOfMonths={2}
+                        />
+                    </PopoverContent>
+                </Popover>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleDatePreset('all')}>{t('UsersPage.filters.date.allTime')}</DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    </div>
   );
 
   return (
