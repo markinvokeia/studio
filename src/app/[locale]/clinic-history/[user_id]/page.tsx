@@ -49,7 +49,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 type PersonalHistoryItem = {
@@ -1288,16 +1288,6 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
   const userId = params.user_id as string || initialUserId;
 
   const [activeView, setActiveView] = useState('anamnesis');
-  const [selectedTooth, setSelectedTooth] = useState(null);
-  const [selectedDate, setSelectedDate] = useState('2024-11-15');
-  const [hoveredTooth, setHoveredTooth] = useState(null);
-  const [compareMode, setCompareMode] = useState(false);
-  const [compareDate, setCompareDate] = useState('2024-01-15');
-  const [isRecording, setIsRecording] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<any>(null);
-  const [hoveredPoint, setHoveredPoint] = useState(null);
-  const [selectedPoint, setSelectedPoint] = useState(null);
-  const [dentitionType, setDentitionType] = useState('permanent');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Patient Search State
@@ -2372,28 +2362,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         name: "tratamientos",
     });
 
-    const fetchSessionDetails = useCallback(async (sessionId: number) => {
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${sessionId}`);
-            if (response.ok) {
-                const data = await response.json();
-                const sessionDetails = Array.isArray(data) && data.length > 0 ? data[0] : null;
-                if(sessionDetails) {
-                    form.reset({
-                        ...sessionDetails,
-                        fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : '',
-                        tratamientos: sessionDetails.lista_tratamientos || [],
-                    });
-                }
-            } else {
-                toast({ variant: 'destructive', title: 'Error', description: 'Failed to load session details.' });
-            }
-        } catch (error) {
-            console.error('Failed to fetch session details', error);
-            toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while loading session details.' });
-        }
-    }, [form, toast]);
-
     useEffect(() => {
         async function fetchInitialData() {
             try {
@@ -2407,6 +2375,29 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                 console.error("Failed to fetch doctors:", error);
             }
         }
+        
+        async function fetchSessionDetails(sessionId: number) {
+            try {
+                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${sessionId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const sessionDetails = Array.isArray(data) && data.length > 0 ? data[0] : null;
+                    if(sessionDetails) {
+                        form.reset({
+                            ...sessionDetails,
+                            fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : '',
+                            tratamientos: sessionDetails.lista_tratamientos || [],
+                        });
+                    }
+                } else {
+                    toast({ variant: 'destructive', title: 'Error', description: 'Failed to load session details.' });
+                }
+            } catch (error) {
+                console.error('Failed to fetch session details', error);
+                toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while loading session details.' });
+            }
+        }
+        
         if (isOpen) {
             fetchInitialData();
             if (session) {
@@ -2422,7 +2413,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                 });
             }
         }
-    }, [session, isOpen, form, fetchSessionDetails]);
+    }, [session, isOpen, form, toast]);
   
     const handleSave = async (data: Partial<PatientSession>) => {
         const endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert';
@@ -2455,6 +2446,36 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         } catch (error) {
             console.error('Save error', error);
             toast({ variant: 'destructive', title: t('toast.error'), description: t('toast.saveError') });
+        }
+    };
+    
+    const handleAddTreatment = () => {
+        const toothNumInput = document.getElementById('new-treatment-tooth') as HTMLInputElement;
+        const descInput = document.getElementById('new-treatment-desc') as HTMLInputElement;
+        
+        if (!toothNumInput || !descInput) return;
+
+        const toothNum = parseInt(toothNumInput.value, 10);
+        const desc = descInput.value;
+
+        if (desc) {
+            if (toothNum && (toothNum < 11 || toothNum > 85)) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: "The tooth number must be between 11 and 85."
+                });
+                return;
+            }
+            append({ descripcion: desc, numero_diente: toothNum || null });
+            toothNumInput.value = '';
+            descInput.value = '';
+        } else {
+             toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: t('toast.treatmentDescriptionEmpty'),
+            });
         }
     };
 
@@ -2512,22 +2533,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                                         <Input 
                                             type="number"
                                             placeholder={t('toothPlaceholder')}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    const toothNum = parseInt((e.target as HTMLInputElement).value, 10);
-                                                    const desc = (document.getElementById('new-treatment-desc') as HTMLInputElement).value;
-                                                    if (desc) {
-                                                        if (toothNum && (toothNum < 11 || toothNum > 85)) {
-                                                            toast({ variant: 'destructive', title: 'Error', description: "The tooth number must be between 11 and 85."});
-                                                            return;
-                                                        }
-                                                        append({ descripcion: desc, numero_diente: toothNum || null });
-                                                        (e.target as HTMLInputElement).value = '';
-                                                        (document.getElementById('new-treatment-desc') as HTMLInputElement).value = '';
-                                                    }
-                                                }
-                                            }}
                                             id="new-treatment-tooth"
                                         />
                                         <Input 
@@ -2536,20 +2541,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                                         />
                                         <Button 
                                             type="button" 
-                                            onClick={() => {
-                                                const toothInput = document.getElementById('new-treatment-tooth') as HTMLInputElement;
-                                                const descInput = document.getElementById('new-treatment-desc') as HTMLInputElement;
-                                                const toothNum = parseInt(toothInput.value, 10);
-                                                if (descInput.value) {
-                                                     if (toothNum && (toothNum < 11 || toothNum > 85)) {
-                                                        toast({ variant: 'destructive', title: 'Error', description: "The tooth number must be between 11 and 85."});
-                                                        return;
-                                                    }
-                                                    append({ descripcion: descInput.value, numero_diente: toothNum || null });
-                                                    toothInput.value = '';
-                                                    descInput.value = '';
-                                                }
-                                            }}
+                                            onClick={handleAddTreatment}
                                             size="icon"
                                         >
                                             <Plus className="h-4 w-4" />
@@ -2590,15 +2582,3 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
-
-    
-
-    
-
-
-
-
-
-
-
-
