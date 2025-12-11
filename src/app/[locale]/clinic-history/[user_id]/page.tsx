@@ -1953,6 +1953,16 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
     const [imageContent, setImageContent] = useState<string | null>(null);
 
+    const getGoogleDriveThumbnailUrl = (url: string) => {
+        if (url.includes('drive.google.com')) {
+            const fileId = url.split('/d/')[1]?.split('/')[0];
+            if (fileId) {
+                return `https://drive.google.com/thumbnail?id=${fileId}&sz=w256-h256`;
+            }
+        }
+        return url;
+    };
+    
     const handleViewImage = async (file: AttachedFile) => {
         setSelectedImage(file);
         setIsImageViewerOpen(true);
@@ -2159,29 +2169,35 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                             {session.archivos_adjuntos && (
                                                 <CollapsibleList
                                                     title={t('timeline.attachments')}
-                                                    items={session.archivos_adjuntos.map((file, i) => (
-                                                        <li key={i}>
-                                                             {file.tipo.startsWith('image/') ? (
-                                                                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleViewImage(file)}>
-                                                                    <Paperclip className="w-3 h-3" />
-                                                                    <div className="relative h-10 w-10">
-                                                                        <Image src={file.ruta} alt={file.tipo} layout="fill" className="object-cover rounded-sm" />
+                                                    items={session.archivos_adjuntos.map((file, i) => {
+                                                         const isImage = file.tipo.startsWith('image/');
+                                                         const thumbnailUrl = isImage ? getGoogleDriveThumbnailUrl(file.ruta) : null;
+                                                         return (
+                                                            <li key={i}>
+                                                                {isImage ? (
+                                                                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleViewImage(file)}>
+                                                                        <Paperclip className="w-3 h-3" />
+                                                                        {thumbnailUrl ? (
+                                                                            <div className="relative h-10 w-10">
+                                                                                <Image src={thumbnailUrl} alt={file.tipo} layout="fill" className="object-cover rounded-sm" />
+                                                                            </div>
+                                                                        ) : <FileText className="w-4 h-4"/> }
+                                                                        <span className="text-primary hover:underline">{file.tipo} {file.diente_asociado && `(${t('timeline.tooth', { id: file.diente_asociado })})`}</span>
                                                                     </div>
-                                                                    <span className="text-primary hover:underline">{file.tipo} {file.diente_asociado && `(${t('timeline.tooth', { id: file.diente_asociado })})`}</span>
-                                                                </div>
-                                                            ) : (
-                                                                <a 
-                                                                    href={file.ruta} 
-                                                                    target="_blank" 
-                                                                    rel="noopener noreferrer" 
-                                                                    className="text-primary hover:underline flex items-center gap-1"
-                                                                >
-                                                                    <Paperclip className="w-3 h-3" />
-                                                                    {file.tipo} {file.diente_asociado && `(${t('timeline.tooth', { id: file.diente_asociado })})`}
-                                                                </a>
-                                                            )}
-                                                        </li>
-                                                    ))}
+                                                                ) : (
+                                                                    <a 
+                                                                        href={file.ruta} 
+                                                                        target="_blank" 
+                                                                        rel="noopener noreferrer" 
+                                                                        className="text-primary hover:underline flex items-center gap-1"
+                                                                    >
+                                                                        <Paperclip className="w-3 h-3" />
+                                                                        {file.tipo} {file.diente_asociado && `(${t('timeline.tooth', { id: file.diente_asociado })})`}
+                                                                    </a>
+                                                                )}
+                                                            </li>
+                                                         )
+                                                    })}
                                                 />
                                             )}
                                         </div>
@@ -2422,7 +2438,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${sessionId}`);
                         if (response.ok) {
                             const data = await response.json();
-                            const sessionDetails = Array.isArray(data) ? data[0] : data;
+                            const sessionDetails = Array.isArray(data) && data.length > 0 ? data[0] : data;
                             if (sessionDetails) {
                                 form.reset({
                                     ...sessionDetails,
@@ -2619,4 +2635,3 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
-
