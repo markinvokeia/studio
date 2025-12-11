@@ -474,71 +474,24 @@ export default function UsersPage() {
             <CardDescription>{t('UsersPage.description')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-                <div className="relative flex items-center">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                    placeholder={t('UsersPage.filterPlaceholder')}
-                    value={(columnFilters.find(f => f.id === 'email') as { value: string })?.value ?? ''}
-                    onChange={(event) =>
-                        setColumnFilters(prev => {
-                            const newFilters = prev.filter(f => f.id !== 'email');
-                            if (event.target.value) {
-                                newFilters.push({ id: 'email', value: event.target.value });
-                            }
-                            return newFilters;
-                        })
-                    }
-                    className="h-9 w-[150px] lg:w-[250px] pl-9"
-                    />
-                </div>
-                <Popover>
-                    <PopoverTrigger asChild>
-                    <Button variant={"outline"} className={cn("w-[240px] justify-start text-left font-normal", !date && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date?.from ? (date.to ? <>{format(date.from, "LLL dd, y")} - {format(date.to, "LLL dd, y")}</> : format(date.from, "LLL dd, y")) : <span>Pick a date</span>}
-                    </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar initialFocus mode="range" defaultMonth={date?.from} selected={date} onSelect={setDate} numberOfMonths={2} />
-                    </PopoverContent>
-                </Popover>
-                <div className="flex items-center gap-2">
-                    <Button variant={!date ? "default" : "outline"} size="sm" onClick={() => setDate(undefined)}>All time</Button>
-                    <Button variant={date?.from === startOfDay(new Date()) ? "default" : "outline"} size="sm" onClick={() => setDate({ from: startOfDay(new Date()), to: endOfDay(new Date()) })}>Today</Button>
-                    <Button variant={date?.from === startOfWeek(new Date()) ? "default" : "outline"} size="sm" onClick={() => setDate({ from: startOfWeek(new Date()), to: endOfWeek(new Date()) })}>This Week</Button>
-                    <Button variant={date?.from === startOfMonth(new Date()) ? "default" : "outline"} size="sm" onClick={() => setDate({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })}>This Month</Button>
-                </div>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-9">
-                        <Filter className="mr-2 h-4 w-4" />
-                        {filterType}
-                    </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Filter by type</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuCheckboxItem checked={filterType === 'ALL'} onCheckedChange={() => setFilterType('ALL')}>ALL</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem checked={filterType === 'PACIENTE'} onCheckedChange={() => setFilterType('PACIENTE')}>PACIENTE</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem checked={filterType === 'DOCTOR'} onCheckedChange={() => setFilterType('DOCTOR')}>DOCTOR</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem checked={filterType === 'PROVEEDOR'} onCheckedChange={() => setFilterType('PROVEEDOR')}>PROVEEDOR</DropdownMenuCheckboxItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-                <Button variant="outline" size="icon" onClick={() => loadUsers()} disabled={isRefreshing}><RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} /></Button>
-            </div>
             <DataTable 
               columns={userColumns} 
               data={users} 
+              filterColumnId="email" 
+              filterPlaceholder={t('UsersPage.filterPlaceholder')}
               onRowSelectionChange={handleRowSelectionChange}
               enableSingleRowSelection={true}
               onCreate={handleCreate}
+              onRefresh={loadUsers}
+              isRefreshing={isRefreshing}
               rowSelection={rowSelection}
               setRowSelection={setRowSelection}
               pageCount={Math.ceil(userCount / pagination.pageSize)}
               pagination={pagination}
               onPaginationChange={setPagination}
               manualPagination={true}
+              columnFilters={columnFilters}
+              onColumnFiltersChange={setColumnFilters}
             />
           </CardContent>
         </Card>
@@ -712,3 +665,5 @@ export default function UsersPage() {
     </>
   );
 }
+
+    

@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -436,8 +437,8 @@
     "delete": "Delete"
   },
   "UsersPage": {
-    "title": "Users",
-    "description": "Manage all users in the system.",
+    "title": "Patients",
+    "description": "Manage all patients in the system.",
     "filterPlaceholder": "Filter users by email...",
     "detailsFor": "Details for {name}",
     "close": "Close details",
@@ -455,7 +456,7 @@
       "payments": "Payments"
     },
     "createDialog": {
-      "title": "Create New User",
+      "title": "Create New Patient",
       "description": "Fill in the details below to add a new user.",
       "editTitle": "Edit User",
       "editDescription": "Update the details for this user.",
@@ -1105,7 +1106,7 @@
       "phone": "Phone",
       "phonePlaceholder": "123-456-7890",
       "identity_document": "Identity Document",
-      "identity_document_placeholder": "e.g., 1234567890",
+      "identity_document_placeholder": "e.g. 1234567890",
       "isActive": "Is Active?",
       "cancel": "Cancel",
       "save": "Create"
@@ -1846,3 +1847,5 @@
     "filterPlaceholder": "Filter here..."
   }
 }
+
+    
