@@ -1877,12 +1877,12 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const [imageContent, setImageContent] = useState<string | null>(null);
   
     const getGoogleDriveThumbnailUrl = (url: string) => {
-        if (!url || !url.includes('drive.google.com')) return url; // return original if not a drive url
+        if (!url || !url.includes('drive.google.com')) return url;
         const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
         if (fileIdMatch && fileIdMatch[1]) {
-            return `https://drive.google.com/thumbnail?id=${fileIdMatch[1]}`;
+            return `https://drive.google.com/uc?id=${fileIdMatch[1]}`;
         }
-        return url; // return original if no ID found
+        return url;
     };
     
     const handleViewImage = async (file: AttachedFile) => {
@@ -2403,28 +2403,21 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
     }, [session, isOpen, form, toast]);
   
     const handleSave = async (data: Partial<PatientSession>) => {
-      const sessionData:any = {
+      const sessionData = {
         ...data,
         paciente_id: userId,
         tipo_sesion: 'clinica',
         sesion_id: session?.sesion_id,
         tratamientos: data.tratamientos,
       };
-
-      const formData = new FormData();
-
-      Object.keys(sessionData).forEach(key => {
-        if(key === 'tratamientos') {
-            formData.append(key, JSON.stringify(sessionData[key]));
-        } else if (sessionData[key] !== undefined && sessionData[key] !== null) {
-          formData.append(key, sessionData[key]);
-        }
-      });
-  
+      
       try {
           const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert', {
               method: 'POST',
-              body: formData,
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(sessionData),
           });
   
           if (!response.ok) {
