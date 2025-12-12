@@ -50,7 +50,8 @@ async function getCashSessions(pagination: PaginationState, searchQuery: string)
             sessions: sessionsData.map((s: any) => {
               const openingDetails = typeof s.opening_details === 'string' ? JSON.parse(s.opening_details) : s.opening_details;
               const closingDetails = typeof s.closing_details === 'string' ? JSON.parse(s.closing_details) : s.closing_details;
-
+              const openingAmount = (s.currencies_data || []).reduce((sum: number, curr: any) => sum + (Number(curr.opening_amount) || 0), 0);
+              
               return { 
                 id: String(s.id),
                 user_name: s.user_name,
@@ -58,22 +59,11 @@ async function getCashSessions(pagination: PaginationState, searchQuery: string)
                 estado: s.status,
                 fechaApertura: s.opened_at,
                 fechaCierre: s.closed_at,
-                montoApertura: s.opening_amount,
+                montoApertura: openingAmount,
                 opening_details: openingDetails,
-                montoCierreDeclaradoEfectivo: s.declared_cash,
-                montoCierreCalculadoEfectivo: s.calculated_cash,
-                montoCierreDeclaradoTarjeta: s.declared_card,
-                montoCierreCalculadoTarjeta: s.calculated_card,
-                montoCierreDeclaradoTransferencia: s.declared_transfer,
-                montoCierreCalculadoTransferencia: s.calculated_transfer,
-                montoCierreDeclaradoOtro: s.declared_other,
-                montoCierreCalculadoOtro: s.calculated_other,
-                descuadreEfectivo: s.cash_discrepancy || s.cash_variance,
-                descuadreTarjeta: s.card_discrepancy,
-                descuadreTransferencia: s.transfer_discrepancy,
-                descuadreOtro: s.other_discrepancy,
-                closing_denominations: closingDetails,
+                closing_details: closingDetails,
                 notasCierre: s.notes,
+                currencies_data: s.currencies_data,
              }
             }),
             total
@@ -99,6 +89,7 @@ async function getSessionMovements(sessionId: string): Promise<CajaMovimiento[]>
         fecha: mov.created_at,
         usuarioId: mov.registered_by_user,
         metodoPago: (mov.payment_method_name || 'otro').toUpperCase() as any,
+        currency: mov.currency,
     }));
   } catch(error) {
     console.error("Failed to fetch session movements:", error);
@@ -110,18 +101,16 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
     const t = useTranslations('CashSessionsPage');
     const tMovementColumns = useTranslations('CashierPage.activeSession.columns');
 
-    const formatCurrency = (value: number | null | undefined) => {
-        if (value === null || value === undefined) return '$0.00';
+    const formatCurrency = (value: number | null | undefined, currency: string) => {
+        if (value === null || value === undefined) return `${currency} 0.00`;
         const numValue = Number(value);
-        if (isNaN(numValue)) return '$0.00';
-        return numValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+        if (isNaN(numValue)) return `${currency} 0.00`;
+        return numValue.toLocaleString('en-US', { style: 'currency', currency });
     };
-    
-    const totalDeclaredAmount = (session.montoCierreDeclaradoEfectivo || 0) + (session.montoCierreDeclaradoTarjeta || 0) + (session.montoCierreDeclaradoTransferencia || 0) + (session.montoCierreDeclaradoOtro || 0);
 
     const DenominationTable = ({ title, details }: { title: string, details: string | object | null | undefined }) => {
         const tDenominations = useTranslations('CashSessionsPage.denominationDetails');
-        let parsedDetails: Record<string, number> = {};
+        let parsedDetails: Record<string, any> = {};
 
         if (typeof details === 'string') {
             try {
@@ -130,63 +119,70 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                 console.error("Failed to parse details", e);
             }
         } else if (typeof details === 'object' && details !== null) {
-            parsedDetails = details as Record<string, number>;
+            parsedDetails = details as Record<string, any>;
         }
 
-        const denominations = Object.entries(parsedDetails)
-            .map(([key, value]) => ({ denomination: Number(key), quantity: Number(value) }))
-            .filter(item => !isNaN(item.denomination) && item.quantity > 0);
-
-        const total = denominations.reduce((acc, { denomination, quantity }) => acc + (denomination * quantity), 0);
-
         return (
-            <div className="space-y-2">
+            <div className="space-y-4">
                 <h4 className="font-semibold">{title}</h4>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>{tDenominations('denomination')}</TableHead>
-                            <TableHead className="text-right">{tDenominations('quantity')}</TableHead>
-                            <TableHead className="text-right">{tDenominations('subtotal')}</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {denominations.length > 0 ? denominations.map(({ denomination, quantity }) => (
-                            <TableRow key={denomination}>
-                                <TableCell>{formatCurrency(denomination)}</TableCell>
-                                <TableCell className="text-right">{quantity}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(denomination * quantity)}</TableCell>
-                            </TableRow>
-                        )) : (
-                            <TableRow>
-                                <TableCell colSpan={3} className="text-center text-muted-foreground">{t('noDetails')}</TableCell>
-                            </TableRow>
-                        )}
-                        <TableRow className="font-bold border-t">
-                            <TableCell colSpan={2}>{tDenominations('total')}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(total)}</TableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
+                {Object.entries(parsedDetails).map(([currency, currencyDetails]) => {
+                    if (currency === 'opened_by' || currency === 'opened_at' || currency === 'currency' || currency === 'date_rate') return null;
+                    const denominations = Object.entries(currencyDetails)
+                        .map(([key, value]) => ({ denomination: Number(key), quantity: Number(value) }))
+                        .filter(item => !isNaN(item.denomination) && item.quantity > 0);
+                    const total = currencyDetails.total || 0;
+
+                    return (
+                        <div key={currency} className="space-y-2">
+                             <h5 className="font-medium text-md">{currency}</h5>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>{tDenominations('denomination')}</TableHead>
+                                        <TableHead className="text-right">{tDenominations('quantity')}</TableHead>
+                                        <TableHead className="text-right">{tDenominations('subtotal')}</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {denominations.length > 0 ? denominations.map(({ denomination, quantity }) => (
+                                        <TableRow key={denomination}>
+                                            <TableCell>{formatCurrency(denomination, currency)}</TableCell>
+                                            <TableCell className="text-right">{quantity}</TableCell>
+                                            <TableCell className="text-right">{formatCurrency(denomination * quantity, currency)}</TableCell>
+                                        </TableRow>
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="text-center text-muted-foreground">{t('noDetails')}</TableCell>
+                                        </TableRow>
+                                    )}
+                                    <TableRow className="font-bold border-t">
+                                        <TableCell colSpan={2}>{tDenominations('total')}</TableCell>
+                                        <TableCell className="text-right">{formatCurrency(total, currency)}</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </div>
+                    );
+                })}
             </div>
         );
     };
 
 
-    const DifferenceRow = ({ label, calculated, declared, difference }: { label: string, calculated?: number, declared?: number, difference?: number }) => (
+    const DifferenceRow = ({ label, calculated, declared, difference, currency }: { label: string, calculated?: number, declared?: number, difference?: number, currency: string }) => (
         <TableRow>
             <TableCell className="font-medium">{label}</TableCell>
-            <TableCell className="text-right">{formatCurrency(calculated)}</TableCell>
-            <TableCell className="text-right">{formatCurrency(declared)}</TableCell>
+            <TableCell className="text-right">{formatCurrency(calculated, currency)}</TableCell>
+            <TableCell className="text-right">{formatCurrency(declared, currency)}</TableCell>
             <TableCell className={cn("text-right font-semibold", (difference ?? 0) < 0 ? "text-destructive" : (difference ?? 0) > 0 ? "text-green-600" : "")}>
-                {formatCurrency(difference)}
+                {formatCurrency(difference, currency)}
             </TableCell>
         </TableRow>
     );
 
     const movementColumns: ColumnDef<CajaMovimiento>[] = [
       { accessorKey: 'descripcion', header: ({column}) => <DataTableColumnHeader column={column} title={tMovementColumns('description')} /> },
-      { accessorKey: 'monto', header: ({column}) => <DataTableColumnHeader column={column} title={tMovementColumns('amount')} />, cell: ({ row }) => `$${row.original.monto.toFixed(2)}` },
+      { accessorKey: 'monto', header: ({column}) => <DataTableColumnHeader column={column} title={tMovementColumns('amount')} />, cell: ({ row }) => `${row.original.currency} ${row.original.monto.toFixed(2)}` },
       { accessorKey: 'metodoPago', header: ({column}) => <DataTableColumnHeader column={column} title={tMovementColumns('method')} /> },
       { accessorKey: 'fecha', header: ({column}) => <DataTableColumnHeader column={column} title={tMovementColumns('date')} />, cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
     ];
@@ -200,8 +196,6 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                     <div><span className="font-semibold">{t('columns.cashPoint')}:</span> {session.cash_point_name}</div>
                     <div><span className="font-semibold">{t('columns.openDate')}:</span> {format(parseISO(session.fechaApertura), 'Pp')}</div>
                     <div><span className="font-semibold">{t('columns.closeDate')}:</span> {session.fechaCierre ? format(parseISO(session.fechaCierre), 'Pp') : 'N/A'}</div>
-                    <div><span className="font-semibold">{t('columns.openingAmount')}:</span> {formatCurrency(session.montoApertura)}</div>
-                    {session.fechaCierre && <div><span className="font-semibold">{t('columns.closingAmount')}:</span> {formatCurrency(totalDeclaredAmount)}</div>}
                 </div>
             </div>
             
@@ -213,7 +207,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                 <CollapsibleContent className="pt-4">
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <DenominationTable title={t('openingDenominations')} details={session.opening_details} />
-                        <DenominationTable title={t('closingDenominations')} details={session.closing_denominations} />
+                        <DenominationTable title={t('closingDenominations')} details={session.closing_details} />
                     </div>
                 </CollapsibleContent>
             </Collapsible>
@@ -228,29 +222,43 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                 </CollapsibleContent>
             </Collapsible>
 
-            {session.fechaCierre && (
+            {session.estado === 'CLOSE' && (
                  <Collapsible defaultOpen className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
                     <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold">
                         {t('reconciliationSummary')}
                         <ChevronDown className="h-4 w-4" />
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="pt-4">
-                         <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>{t('reconciliation.paymentMethod')}</TableHead>
-                                    <TableHead className="text-right">{t('reconciliation.system')}</TableHead>
-                                    <TableHead className="text-right">{t('reconciliation.declared')}</TableHead>
-                                    <TableHead className="text-right">{t('reconciliation.difference')}</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                <DifferenceRow label={t('reconciliation.cash')} calculated={session.montoCierreCalculadoEfectivo} declared={session.montoCierreDeclaradoEfectivo} difference={session.descuadreEfectivo} />
-                                <DifferenceRow label={t('reconciliation.card')} calculated={session.montoCierreCalculadoTarjeta} declared={session.montoCierreDeclaradoTarjeta} difference={session.descuadreTarjeta} />
-                                <DifferenceRow label={t('reconciliation.transfer')} calculated={session.montoCierreCalculadoTransferencia} declared={session.montoCierreDeclaradoTransferencia} difference={session.descuadreTransferencia} />
-                                <DifferenceRow label={t('reconciliation.other')} calculated={session.montoCierreCalculadoOtro} declared={session.montoCierreDeclaradoOtro} difference={session.descuadreOtro} />
-                            </TableBody>
-                        </Table>
+                    <CollapsibleContent className="pt-4 space-y-6">
+                        {(session.currencies_data || []).map(currencyData => (
+                           <div key={currencyData.currency}>
+                               <h4 className="font-semibold text-lg mb-2">{currencyData.currency}</h4>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>{t('reconciliation.paymentMethod')}</TableHead>
+                                            <TableHead className="text-right">{t('reconciliation.system')}</TableHead>
+                                            <TableHead className="text-right">{t('reconciliation.declared')}</TableHead>
+                                            <TableHead className="text-right">{t('reconciliation.difference')}</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <DifferenceRow label={t('reconciliation.cash')} calculated={currencyData.calculated_cash} declared={currencyData.declared_cash} difference={currencyData.cash_variance} currency={currencyData.currency}/>
+                                        <TableRow>
+                                            <TableCell className="font-medium">{t('reconciliation.card')}</TableCell>
+                                            <TableCell className="text-right" colSpan={3}>{formatCurrency(currencyData.calculated_card, currencyData.currency)}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell className="font-medium">{t('reconciliation.transfer')}</TableCell>
+                                            <TableCell className="text-right" colSpan={3}>{formatCurrency(currencyData.calculated_transfer, currencyData.currency)}</TableCell>
+                                        </TableRow>
+                                         <TableRow>
+                                            <TableCell className="font-medium">{t('reconciliation.other')}</TableCell>
+                                            <TableCell className="text-right" colSpan={3}>{formatCurrency(currencyData.calculated_other, currencyData.currency)}</TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                           </div>
+                        ))}
                         {session.notasCierre && <p className="mt-4 text-sm"><span className="font-semibold">{t('reconciliation.notes')}:</span> {session.notasCierre}</p>}
                     </CollapsibleContent>
                 </Collapsible>

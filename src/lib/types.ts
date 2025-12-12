@@ -404,6 +404,11 @@ export type DentalSurface = {
 export type TreatmentDetail = {
   numero_diente: number | null;
   descripcion: string;
+  imagen_adjunta?: {
+    file_name: string;
+    mime_type: string;
+    base64: string;
+  };
 };
 
 export type AttachedFile = {
@@ -453,28 +458,25 @@ export type CajaSesion = {
   user_name?: string;
   puntoDeCajaId?: string;
   cash_point_name?: string;
-  estado: 'ABIERTA' | 'CERRADA';
+  estado: 'OPEN' | 'CLOSE';
   fechaApertura: string;
-  fechaCierre?: string;
+  fechaCierre?: string | null;
   montoApertura: number;
-  opening_details?: string | object;
-  montoCierreDeclaradoEfectivo?: number;
-  montoCierreDeclaradoTarjeta?: number;
-  montoCierreDeclaradoTransferencia?: number;
-  montoCierreDeclaradoOtro?: number;
-  montoCierreCalculadoEfectivo?: number;
-  montoCierreCalculadoTarjeta?: number;
-  montoCierreCalculadoTransferencia?: number;
-  montoCierreCalculadoOtro?: number;
-  totalEgresosEfectivo?: number;
-  descuadreEfectivo?: number;
-  descuadreTarjeta?: number;
-  descuadreTransferencia?: number;
-  descuadreOtro?: number;
-  notasCierre?: string;
-  closing_denominations?: string | object;
-  currency: string;
-  date_rate: number;
+  opening_details?: object | string;
+  closing_details?: object | string | null;
+  notasCierre?: string | null;
+  currencies_data?: Array<{
+    currency: 'UYU' | 'USD';
+    opening_amount: number;
+    declared_cash: number;
+    calculated_cash: number;
+    cash_variance: number;
+    calculated_card: number;
+    calculated_transfer: number;
+    calculated_other: number;
+  }>;
+  currency?: string;
+  date_rate?: number;
 };
 
 export type CajaMovimiento = {
