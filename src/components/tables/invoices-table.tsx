@@ -55,33 +55,33 @@ const paymentFormSchema = (t: (key: string) => string) => z.object({
   payment_currency: z.string(),
   exchange_rate: z.coerce.number().optional(),
 }).refine(data => {
-    if (data.invoice_currency !== data.payment_currency) {
-        return data.exchange_rate && data.exchange_rate > 0;
-    }
-    return true;
+  if (data.invoice_currency !== data.payment_currency) {
+    return data.exchange_rate && data.exchange_rate > 0;
+  }
+  return true;
 }, {
-    message: 'Exchange rate is required when currencies are different.',
-    path: ['exchange_rate'],
+  message: 'Exchange rate is required when currencies are different.',
+  path: ['exchange_rate'],
 });
 
 type PaymentFormValues = z.infer<ReturnType<typeof paymentFormSchema>>;
 
 const createInvoiceFormSchema = z.object({
-    user_id: z.string().min(1, 'A user or provider is required.'),
-    total: z.coerce.number().min(0, 'Total must be a non-negative number.'),
-    currency: z.enum(['UYU', 'USD']),
-    invoice_ref: z.string().optional(),
-    order_id: z.string().optional(),
-    quote_id: z.string().optional(),
-    items: z.array(z.object({
-      id: z.string().optional(),
-      service_id: z.string().min(1, 'Service name is required'),
-      quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
-      unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
-      total: z.coerce.number().optional(),
-    })).min(1, 'At least one item is required.'),
-    type: z.enum(['invoice', 'credit_note']),
-    parent_id: z.string().optional(),
+  user_id: z.string().min(1, 'A user or provider is required.'),
+  total: z.coerce.number().min(0, 'Total must be a non-negative number.'),
+  currency: z.enum(['UYU', 'USD']),
+  invoice_ref: z.string().optional(),
+  order_id: z.string().optional(),
+  quote_id: z.string().optional(),
+  items: z.array(z.object({
+    id: z.string().optional(),
+    service_id: z.string().min(1, 'Service name is required'),
+    quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+    unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
+    total: z.coerce.number().optional(),
+  })).min(1, 'At least one item is required.'),
+  type: z.enum(['invoice', 'credit_note']),
+  parent_id: z.string().optional(),
 });
 type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
 
@@ -104,171 +104,179 @@ async function getServices(isSales: boolean): Promise<Service[]> {
 }
 
 const getColumns = (
-    t: (key: string) => string,
-    tStatus: (key: string) => string,
-    tMethods: (key: string) => string,
-    columnTranslations: { [key: string]: string },
-    onPrint?: (invoice: Invoice) => void,
-    onSendEmail?: (invoice: Invoice) => void,
-    onAddPayment?: (invoice: Invoice) => void,
-    onConfirm?: (invoice: Invoice) => void
-  ): ColumnDef<Invoice>[] => {
-    const isPaymentActionVisible = (invoice: Invoice) => {
-        const status = invoice.status.toLowerCase();
-        const paymentStatus = invoice.payment_status?.toLowerCase();
-        return status === 'booked' && paymentStatus !== 'paid';
-    };
-    return [
-      {
-        id: 'select',
-        header: () => null,
-        cell: ({ row, table }) => {
-          const isSelected = row.getIsSelected();
-          return (
-            <RadioGroup
-              value={isSelected ? row.id : ''}
-              onValueChange={() => {
-                table.toggleAllPageRowsSelected(false);
-                row.toggleSelected(true);
-              }}
-            >
-              <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
-            </RadioGroup>
-          );
-        },
-        enableSorting: false,
-        enableHiding: false,
+  t: (key: string) => string,
+  tStatus: (key: string) => string,
+  tMethods: (key: string) => string,
+  columnTranslations: { [key: string]: string },
+  onPrint?: (invoice: Invoice) => void,
+  onSendEmail?: (invoice: Invoice) => void,
+  onAddPayment?: (invoice: Invoice) => void,
+  onConfirm?: (invoice: Invoice) => void
+): ColumnDef<Invoice>[] => {
+  const isPaymentActionVisible = (invoice: Invoice) => {
+    const status = invoice.status.toLowerCase();
+    const paymentStatus = invoice.payment_status?.toLowerCase();
+    return status === 'booked' && paymentStatus !== 'paid';
+  };
+  return [
+    {
+      id: 'select',
+      header: () => null,
+      cell: ({ row, table }) => {
+        const isSelected = row.getIsSelected();
+        return (
+          <RadioGroup
+            value={isSelected ? row.id : ''}
+            onValueChange={() => {
+              table.toggleAllPageRowsSelected(false);
+              row.toggleSelected(true);
+            }}
+          >
+            <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
+          </RadioGroup>
+        );
       },
-      {
-        accessorKey: 'id',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={columnTranslations.id || "Invoice ID"} />
-        ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: 'id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={columnTranslations.id || "Invoice ID"} />
+      ),
+    },
+    {
+      accessorKey: 'user_name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.user_name || "User"} />,
+    },
+    {
+      accessorKey: 'order_id',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.order_id || "Order ID"} />,
+    },
+    {
+      accessorKey: 'quote_id',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.quote_id || "Quote ID"} />,
+    },
+    {
+      accessorKey: 'total',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={columnTranslations.total || "Total"} />
+      ),
+      cell: ({ row }) => {
+        const amount = parseFloat(row.getValue('total'));
+        const formatted = new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: row.original.currency || 'USD',
+        }).format(amount);
+        return <div className="text-right font-medium pr-4">{formatted}</div>;
       },
-      {
-          accessorKey: 'user_name',
-          header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.user_name || "User"} />,
+    },
+    {
+      accessorKey: 'currency',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={columnTranslations.currency || "Currency"} />
+      ),
+      cell: ({ row }) => row.original.currency || 'N/A',
+    },
+    {
+      accessorKey: 'status',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.status || "Status"} />,
+      cell: ({ row }) => {
+        const status = row.getValue('status') as string;
+        const variant = {
+          paid: 'success',
+          sent: 'default',
+          draft: 'outline',
+          overdue: 'destructive',
+          booked: 'info'
+        }[status?.toLowerCase()] ?? ('default' as any);
+        return <Badge variant={variant} className="capitalize">{tStatus(status.toLowerCase())}</Badge>;
       },
-      {
-          accessorKey: 'order_id',
-          header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.order_id || "Order ID"} />,
+    },
+    {
+      accessorKey: 'type',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.type || "Type"} />,
+      cell: ({ row }) => {
+        const type = row.original.type;
+        return <div className="capitalize">{type ? type.replace('_', ' ') : '-'}</div>;
       },
-      {
-          accessorKey: 'quote_id',
-          header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.quote_id || "Quote ID"} />,
+    },
+    {
+      accessorKey: 'payment_status',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.payment_status || "Payment"} />,
+      cell: ({ row }) => {
+        const status = row.original.payment_status;
+        const variant = {
+          paid: 'success',
+          partial: 'info',
+          unpaid: 'outline',
+          partially_paid: 'info'
+        }[status?.toLowerCase() ?? ('default' as any)];
+        return <Badge variant={variant} className="capitalize">{status ? (tStatus.has(status.toLowerCase()) ? tStatus(status.toLowerCase()) : status) : ''}</Badge>;
       },
-      {
-        accessorKey: 'total',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={columnTranslations.total || "Total"} />
-        ),
-        cell: ({ row }) => {
-          const amount = parseFloat(row.getValue('total'));
-          const formatted = new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: row.original.currency || 'USD',
-          }).format(amount);
-          return <div className="text-right font-medium pr-4">{formatted}</div>;
-        },
+    },
+    {
+      accessorKey: 'paid_amount',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.paid_amount || "Paid Amount"} />,
+      cell: ({ row }) => {
+        const amount = row.original.paid_amount ? parseFloat(row.original.paid_amount.toString()) : 0;
+        const formatted = new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: row.original.currency || 'USD',
+        }).format(amount);
+        return <div className="text-right font-medium pr-4">{formatted}</div>;
       },
-       {
-        accessorKey: 'currency',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={columnTranslations.currency || "Currency"} />
-        ),
-        cell: ({ row }) => row.original.currency || 'N/A',
+    },
+    {
+      accessorKey: 'createdAt',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={columnTranslations.createdAt || "Created At"} />
+      ),
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => {
+        const invoice = row.original;
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">{t('actions.openMenu')}</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{t('actions.title')}</DropdownMenuLabel>
+                {onAddPayment && isPaymentActionVisible(invoice) && (
+                  <DropdownMenuItem onClick={() => onAddPayment(invoice)}>
+                    {t('paymentDialog.add')}
+                  </DropdownMenuItem>
+                )}
+                {onConfirm && invoice.status.toLowerCase() === 'draft' && (
+                  <DropdownMenuItem onClick={() => onConfirm(invoice)}>
+                    {t('confirmInvoice')}
+                  </DropdownMenuItem>
+                )}
+                {onPrint && (
+                  <DropdownMenuItem onClick={() => onPrint(invoice)}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    <span>{t('actions.print')}</span>
+                  </DropdownMenuItem>
+                )}
+                {onSendEmail && (
+                  <DropdownMenuItem onClick={() => onSendEmail(invoice)}>
+                    <Send className="mr-2 h-4 w-4" />
+                    <span>{t('actions.sendEmail')}</span>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
       },
-      {
-        accessorKey: 'status',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.status || "Status"} />,
-        cell: ({ row }) => {
-          const status = row.getValue('status') as string;
-          const variant = {
-            paid: 'success',
-            sent: 'default',
-            draft: 'outline',
-            overdue: 'destructive',
-            booked: 'info'
-          }[status?.toLowerCase()] ?? ('default' as any);
-          return <Badge variant={variant} className="capitalize">{tStatus(status.toLowerCase())}</Badge>;
-        },
-      },
-      {
-        accessorKey: 'payment_status',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.payment_status || "Payment"} />,
-        cell: ({ row }) => {
-          const status = row.original.payment_status;
-          const variant = {
-            paid: 'success',
-            partial: 'info',
-            unpaid: 'outline',
-            partially_paid: 'info'
-          }[status?.toLowerCase() ?? ('default' as any)];
-          return <Badge variant={variant} className="capitalize">{status ? tStatus(status.toLowerCase()) : ''}</Badge>;
-        },
-      },
-      {
-        accessorKey: 'paid_amount',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.paid_amount || "Paid Amount"} />,
-        cell: ({ row }) => {
-            const amount = row.original.paid_amount ? parseFloat(row.original.paid_amount.toString()) : 0;
-            const formatted = new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: row.original.currency || 'USD',
-            }).format(amount);
-            return <div className="text-right font-medium pr-4">{formatted}</div>;
-        },
-      },
-       {
-        accessorKey: 'createdAt',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={columnTranslations.createdAt || "Created At"} />
-        ),
-      },
-      {
-        id: 'actions',
-        cell: ({ row }) => {
-          const invoice = row.original;
-          return (
-            <div onClick={(e) => e.stopPropagation()}>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">{t('actions.openMenu')}</span>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>{t('actions.title')}</DropdownMenuLabel>
-                    {onAddPayment && isPaymentActionVisible(invoice) && (
-                        <DropdownMenuItem onClick={() => onAddPayment(invoice)}>
-                            {t('paymentDialog.add')}
-                        </DropdownMenuItem>
-                    )}
-                     {onConfirm && invoice.status.toLowerCase() === 'draft' && (
-                        <DropdownMenuItem onClick={() => onConfirm(invoice)}>
-                            {t('confirmInvoice')}
-                        </DropdownMenuItem>
-                    )}
-                    {onPrint && (
-                      <DropdownMenuItem onClick={() => onPrint(invoice)}>
-                        <Printer className="mr-2 h-4 w-4" />
-                        <span>{t('actions.print')}</span>
-                      </DropdownMenuItem>
-                    )}
-                     {onSendEmail && (
-                      <DropdownMenuItem onClick={() => onSendEmail(invoice)}>
-                        <Send className="mr-2 h-4 w-4" />
-                        <span>{t('actions.sendEmail')}</span>
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-          );
-        },
-      },
-    ];
+    },
+  ];
 };
 
 
@@ -315,14 +323,14 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       status: 'completed',
     }
   });
-  
+
   const watchedAmount = form.watch('amount');
   const watchedPaymentCurrency = form.watch('payment_currency');
   const watchedInvoiceCurrency = form.watch('invoice_currency');
   const watchedExchangeRate = form.watch('exchange_rate');
 
   const showExchangeRate = watchedInvoiceCurrency && watchedPaymentCurrency && watchedInvoiceCurrency !== watchedPaymentCurrency;
-  
+
   const totalAppliedCredits = React.useMemo(() => {
     return Array.from(appliedCredits.values()).reduce((sum, amount) => sum + amount, 0);
   }, [appliedCredits]);
@@ -337,17 +345,17 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
     return null;
   }, [showExchangeRate, watchedAmount, watchedExchangeRate, watchedInvoiceCurrency, watchedPaymentCurrency]);
-  
+
   const remainingAmountToPay = React.useMemo(() => {
     if (!selectedInvoiceForPayment) return 0;
     const invoiceTotal = selectedInvoiceForPayment.total || 0;
     const paidAmount = selectedInvoiceForPayment.paid_amount || 0;
     let amountBeingPaid = watchedAmount || 0;
-    
+
     const amountInInvoiceCurrency = showExchangeRate && equivalentAmount ? equivalentAmount : amountBeingPaid;
-    
+
     return invoiceTotal - paidAmount - amountInInvoiceCurrency - totalAppliedCredits;
-}, [selectedInvoiceForPayment, watchedAmount, showExchangeRate, equivalentAmount, totalAppliedCredits]);
+  }, [selectedInvoiceForPayment, watchedAmount, showExchangeRate, equivalentAmount, totalAppliedCredits]);
 
   const fetchPaymentMethods = async () => {
     try {
@@ -368,20 +376,20 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
   const fetchUserCredits = React.useCallback(async (userId: string | undefined) => {
     if (!userId) {
-        setUserCredits([]);
-        return;
+      setUserCredits([]);
+      return;
     };
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_credit?user_id=${userId}`);
-        if(response.ok) {
-            const data = await response.json();
-            setUserCredits(data || []);
-        } else {
-            setUserCredits([]);
-        }
-    } catch (error) {
-        console.error("Failed to fetch user credits", error);
+      const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_credit?user_id=${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setUserCredits(data || []);
+      } else {
         setUserCredits([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch user credits", error);
+      setUserCredits([]);
     }
   }, []);
 
@@ -389,118 +397,118 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     if (!user) return;
 
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/active?user_id=${user.id}`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/active?user_id=${user.id}`, {
+        method: 'GET',
+        mode: 'cors',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await response.json();
+
+      if (data.code === 200 && data.data?.id) {
+        setSelectedInvoiceForPayment(invoice);
+        setActiveCashSessionId(data.data.id);
+        fetchPaymentMethods();
+        fetchUserCredits(invoice.user_id);
+        form.reset({
+          amount: invoice.total - (invoice.paid_amount || 0),
+          method: '',
+          status: 'completed',
+          payment_date: new Date(),
+          invoice_currency: invoice.currency || 'USD',
+          payment_currency: invoice.currency || 'USD',
+          exchange_rate: 1,
         });
-        const data = await response.json();
-        
-        if (data.code === 200 && data.data?.id) {
-            setSelectedInvoiceForPayment(invoice);
-            setActiveCashSessionId(data.data.id);
-            fetchPaymentMethods();
-            fetchUserCredits(invoice.user_id);
-            form.reset({
-                amount: invoice.total - (invoice.paid_amount || 0),
-                method: '',
-                status: 'completed',
-                payment_date: new Date(),
-                invoice_currency: invoice.currency || 'USD',
-                payment_currency: invoice.currency || 'USD',
-                exchange_rate: 1,
-            });
-            setPaymentSubmissionError(null);
-            setAppliedCredits(new Map());
-            setIsPaymentDialogOpen(true);
-        } else {
-            setIsNoSessionAlertOpen(true);
-        }
+        setPaymentSubmissionError(null);
+        setAppliedCredits(new Map());
+        setIsPaymentDialogOpen(true);
+      } else {
+        setIsNoSessionAlertOpen(true);
+      }
     } catch (error) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: t('toast.sessionCheckError'),
-        });
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: t('toast.sessionCheckError'),
+      });
     }
   };
-  
+
   const handlePaymentSubmit = async (values: PaymentFormValues) => {
     if (!selectedInvoiceForPayment || !activeCashSessionId) return;
     setPaymentSubmissionError(null);
-    
+
     const selectedMethod = paymentMethods.find(pm => pm.id === values.method);
 
     let convertedAmount = values.amount;
     if (showExchangeRate && equivalentAmount) {
-        convertedAmount = equivalentAmount;
+      convertedAmount = equivalentAmount;
     }
 
     try {
-        const payload = {
-            invoice_id: selectedInvoiceForPayment.id,
-            cash_session_id: activeCashSessionId,
-            user: user, 
-            client_user: { id: selectedInvoiceForPayment.user_id, name: selectedInvoiceForPayment.user_name, email: selectedInvoiceForPayment.userEmail },
-            credit_payment: Array.from(appliedCredits.entries()).map(([id, amount]) => {
-                const credit = userCredits.find(c => c.source_id === id);
-                return {
-                    source_id: id,
-                    amount: amount,
-                    type: credit?.type,
-                    currency: credit?.currency,
-                };
-            }),
-            query: JSON.stringify({
-                invoice_id: parseInt(selectedInvoiceForPayment.id, 10),
-                payment_date: values.payment_date.toISOString(),
-                amount: values.amount,
-                converted_amount: convertedAmount,
-                method: selectedMethod?.name,
-                payment_method_id: values.method,
-                status: values.status,
-                user_id: selectedInvoiceForPayment.user_id,
-                invoice_currency: selectedInvoiceForPayment.currency,
-                payment_currency: values.payment_currency,
-                exchange_rate: values.exchange_rate || 1,
-                is_sales: isSales
-            }),
-        };
+      const payload = {
+        invoice_id: selectedInvoiceForPayment.id,
+        cash_session_id: activeCashSessionId,
+        user: user,
+        client_user: { id: selectedInvoiceForPayment.user_id, name: selectedInvoiceForPayment.user_name, email: selectedInvoiceForPayment.userEmail },
+        credit_payment: Array.from(appliedCredits.entries()).map(([id, amount]) => {
+          const credit = userCredits.find(c => c.source_id === id);
+          return {
+            source_id: id,
+            amount: amount,
+            type: credit?.type,
+            currency: credit?.currency,
+          };
+        }),
+        query: JSON.stringify({
+          invoice_id: parseInt(selectedInvoiceForPayment.id, 10),
+          payment_date: values.payment_date.toISOString(),
+          amount: values.amount,
+          converted_amount: convertedAmount,
+          method: selectedMethod?.name,
+          payment_method_id: values.method,
+          status: values.status,
+          user_id: selectedInvoiceForPayment.user_id,
+          invoice_currency: selectedInvoiceForPayment.currency,
+          payment_currency: values.payment_currency,
+          exchange_rate: values.exchange_rate || 1,
+          is_sales: isSales
+        }),
+      };
 
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice/payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
+      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice/payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-        const responseData = await response.json();
-        
-        if (responseData.error || (responseData.code && responseData.code >= 400)) {
-            const message = responseData.message || 'Failed to add payment.';
-            throw new Error(message);
-        }
+      const responseData = await response.json();
 
-        toast({
-            title: t('paymentDialog.success'),
-            description: t('paymentDialog.successDescription', { invoiceId: selectedInvoiceForPayment.id }),
-        });
-        
-        if (onRefresh) {
-            onRefresh();
-        }
+      if (responseData.error || (responseData.code && responseData.code >= 400)) {
+        const message = responseData.message || 'Failed to add payment.';
+        throw new Error(message);
+      }
 
-        setIsPaymentDialogOpen(false);
-        setSelectedInvoiceForPayment(null);
+      toast({
+        title: t('paymentDialog.success'),
+        description: t('paymentDialog.successDescription', { invoiceId: selectedInvoiceForPayment.id }),
+      });
+
+      if (onRefresh) {
+        onRefresh();
+      }
+
+      setIsPaymentDialogOpen(false);
+      setSelectedInvoiceForPayment(null);
 
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to add payment.';
-        setPaymentSubmissionError(errorMessage);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add payment.';
+      setPaymentSubmissionError(errorMessage);
     }
   };
 
   const columns = React.useMemo(() => getColumns(t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail, handleAddPaymentClick, onConfirm), [t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail, onConfirm]);
 
-    if (isLoading) {
+  if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
         <Skeleton className="h-8 w-full" />
@@ -510,171 +518,173 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       </div>
     );
   }
-  
+
   return (
     <>
-    <DataTable
-      columns={columns}
-      data={invoices}
-      filterColumnId="id"
-      filterPlaceholder={t('filterPlaceholder')}
-      onRowSelectionChange={onRowSelectionChange}
-      enableSingleRowSelection={!!onRowSelectionChange}
-      onRefresh={onRefresh}
-      isRefreshing={isRefreshing}
-      onCreate={onCreate}
-      rowSelection={rowSelection}
-      setRowSelection={setRowSelection}
-      columnTranslations={columnTranslations}
-      filterOptions={filterOptions}
-      onFilterChange={onFilterChange}
-      filterValue={filterValue}
-      extraButtons={
-         <>
-          {onImport && (
-            <Button variant="outline" size="sm" className="h-9" onClick={onImport}>
-              <FileUp className="mr-2 h-4 w-4" /> {t('import')}
-            </Button>
-          )}
-        </>
-      }
-    />
+      <DataTable
+        columns={columns}
+        data={invoices}
+        filterColumnId="id"
+        filterPlaceholder={t('filterPlaceholder')}
+        onRowSelectionChange={onRowSelectionChange}
+        enableSingleRowSelection={!!onRowSelectionChange}
+        onRefresh={onRefresh}
+        isRefreshing={isRefreshing}
+        onCreate={onCreate}
+        rowSelection={rowSelection}
+        setRowSelection={setRowSelection}
+        columnTranslations={columnTranslations}
+        filterOptions={filterOptions}
+        onFilterChange={onFilterChange}
+        filterValue={filterValue}
+        extraButtons={
+          <>
+            {onImport && (
+              <Button variant="outline" size="sm" className="h-9" onClick={onImport}>
+                <FileUp className="mr-2 h-4 w-4" /> {t('import')}
+              </Button>
+            )}
+          </>
+        }
+      />
 
-    <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{t('paymentDialog.title')}</DialogTitle>
-          <DialogDescription>
-            {t('paymentDialog.description', { invoiceId: selectedInvoiceForPayment?.id })}
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
+      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t('paymentDialog.title')}</DialogTitle>
+            <DialogDescription>
+              {t('paymentDialog.description', { invoiceId: selectedInvoiceForPayment?.id })}
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
             <form onSubmit={form.handleSubmit(handlePaymentSubmit)} className="space-y-4 py-4">
-               {paymentSubmissionError && (
-                  <Alert variant="destructive">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertTitle>{t('toast.error')}</AlertTitle>
-                      <AlertDescription>{paymentSubmissionError}</AlertDescription>
-                  </Alert>
+              {paymentSubmissionError && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{t('toast.error')}</AlertTitle>
+                  <AlertDescription>{paymentSubmissionError}</AlertDescription>
+                </Alert>
               )}
+              {selectedInvoiceForPayment?.type !== 'credit_note' && (
                 <div className="space-y-2">
-                    <h4 className="font-semibold">{t('paymentDialog.useCredits')}</h4>
-                    <ScrollArea className="h-32 border rounded-md p-2">
-                        {userCredits.length > 0 ? (
-                            userCredits.map(credit => (
-                                <div key={credit.source_id} className="flex items-center justify-between p-2">
-                                    <div className="flex items-center gap-2">
-                                        <Checkbox 
-                                            id={`credit-${credit.source_id}`}
-                                            onCheckedChange={(checked) => {
-                                                const newApplied = new Map(appliedCredits);
-                                                if (checked) {
-                                                    const available = Number(credit.available_balance) || 0;
-                                                    newApplied.set(credit.source_id, available);
-                                                } else {
-                                                    newApplied.delete(credit.source_id);
-                                                }
-                                                setAppliedCredits(newApplied);
-                                            }}
-                                            checked={appliedCredits.has(credit.source_id)}
-                                        />
-                                        <Label htmlFor={`credit-${credit.source_id}`}>
-                                            {credit.type === 'credit_note' ? t('paymentDialog.creditNote') : t('paymentDialog.paymentRef')} #{credit.source_id} ({credit.currency})
-                                        </Label>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Input
-                                            type="number"
-                                            className="h-8 w-24"
-                                            max={Number(credit.available_balance) || 0}
-                                            value={appliedCredits.get(credit.source_id) || ''}
-                                            onChange={(e) => {
-                                                const newApplied = new Map(appliedCredits);
-                                                const value = Math.min(Number(e.target.value), Number(credit.available_balance) || 0);
-                                                newApplied.set(credit.source_id, value);
-                                                setAppliedCredits(newApplied);
-                                            }}
-                                            disabled={!appliedCredits.has(credit.source_id)}
-                                        />
-                                        <span className="text-sm text-muted-foreground">/ {Number(credit.available_balance).toFixed(2)}</span>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                                {t('paymentDialog.noCredits')}
-                            </div>
-                        )}
-                    </ScrollArea>
+                  <h4 className="font-semibold">{t('paymentDialog.useCredits')}</h4>
+                  <ScrollArea className="h-32 border rounded-md p-2">
+                    {userCredits.length > 0 ? (
+                      userCredits.map(credit => (
+                        <div key={credit.source_id} className="flex items-center justify-between p-2">
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id={`credit-${credit.source_id}`}
+                              onCheckedChange={(checked) => {
+                                const newApplied = new Map(appliedCredits);
+                                if (checked) {
+                                  const available = Number(credit.available_balance) || 0;
+                                  newApplied.set(credit.source_id, available);
+                                } else {
+                                  newApplied.delete(credit.source_id);
+                                }
+                                setAppliedCredits(newApplied);
+                              }}
+                              checked={appliedCredits.has(credit.source_id)}
+                            />
+                            <Label htmlFor={`credit-${credit.source_id}`}>
+                              {credit.type === 'credit_note' ? t('paymentDialog.creditNote') : t('paymentDialog.paymentRef')} #{credit.source_id} ({credit.currency})
+                            </Label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              className="h-8 w-24"
+                              max={Number(credit.available_balance) || 0}
+                              value={appliedCredits.get(credit.source_id) || ''}
+                              onChange={(e) => {
+                                const newApplied = new Map(appliedCredits);
+                                const value = Math.min(Number(e.target.value), Number(credit.available_balance) || 0);
+                                newApplied.set(credit.source_id, value);
+                                setAppliedCredits(newApplied);
+                              }}
+                              disabled={!appliedCredits.has(credit.source_id)}
+                            />
+                            <span className="text-sm text-muted-foreground">/ {Number(credit.available_balance).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                        {t('paymentDialog.noCredits')}
+                      </div>
+                    )}
+                  </ScrollArea>
                 </div>
-                 <div className="grid grid-cols-3 gap-4">
-                    <FormField
-                    control={form.control}
-                    name="amount"
-                    render={({ field }) => (
-                        <FormItem className="col-span-2">
-                        <FormLabel>{t('paymentDialog.amount')} ({watchedPaymentCurrency})</FormLabel>
+              )}
+              <div className="grid grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2">
+                      <FormLabel>{t('paymentDialog.amount')} ({watchedPaymentCurrency})</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="payment_currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('paymentDialog.currency')}</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                            <Input type="number" step="0.01" {...field} />
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('paymentDialog.selectCurrency')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="UYU">UYU</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {showExchangeRate && (
+                <div className="grid grid-cols-2 gap-4 rounded-md border p-4">
+                  <FormField
+                    control={form.control}
+                    name="exchange_rate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('paymentDialog.exchangeRate')}</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" {...field} />
                         </FormControl>
                         <FormMessage />
-                        </FormItem>
+                      </FormItem>
                     )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="payment_currency"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>{t('paymentDialog.currency')}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder={t('paymentDialog.selectCurrency')} />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            <SelectItem value="USD">USD</SelectItem>
-                            <SelectItem value="UYU">UYU</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
+                  />
+                  {equivalentAmount !== null && (
+                    <FormItem>
+                      <FormLabel>{t('paymentDialog.equivalentAmount')} ({watchedInvoiceCurrency})</FormLabel>
+                      <FormControl>
+                        <Input type="number" value={equivalentAmount.toFixed(2)} readOnly disabled />
+                      </FormControl>
+                    </FormItem>
+                  )}
                 </div>
-                
-                {showExchangeRate && (
-                  <div className="grid grid-cols-2 gap-4 rounded-md border p-4">
-                    <FormField
-                      control={form.control}
-                      name="exchange_rate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('paymentDialog.exchangeRate')}</FormLabel>
-                          <FormControl>
-                            <Input type="number" step="0.01" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    {equivalentAmount !== null && (
-                       <FormItem>
-                          <FormLabel>{t('paymentDialog.equivalentAmount')} ({watchedInvoiceCurrency})</FormLabel>
-                          <FormControl>
-                            <Input type="number" value={equivalentAmount.toFixed(2)} readOnly disabled />
-                          </FormControl>
-                        </FormItem>
-                    )}
-                  </div>
-                )}
-                 {selectedInvoiceForPayment && (
-                    <div className="flex justify-between items-center bg-muted p-3 rounded-md">
-                        <span className="font-semibold text-lg">{t('paymentDialog.remainingAmount')}</span>
-                        <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
-                    </div>
-                )}
+              )}
+              {selectedInvoiceForPayment && (
+                <div className="flex justify-between items-center bg-muted p-3 rounded-md">
+                  <span className="font-semibold text-lg">{t('paymentDialog.remainingAmount')}</span>
+                  <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
+                </div>
+              )}
               <FormField
                 control={form.control}
                 name="method"
@@ -689,7 +699,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                       </FormControl>
                       <SelectContent>
                         {paymentMethods.map(method => (
-                           <SelectItem key={method.id} value={method.id}>{method.name}</SelectItem>
+                          <SelectItem key={method.id} value={method.id}>{method.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -762,32 +772,32 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 <Button type="submit">{t('paymentDialog.add')}</Button>
               </DialogFooter>
             </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
-    <AlertDialog open={isNoSessionAlertOpen} onOpenChange={setIsNoSessionAlertOpen}>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={isNoSessionAlertOpen} onOpenChange={setIsNoSessionAlertOpen}>
         <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-6 w-6 text-yellow-500" />
-                    {t('noSessionDialog.title')}
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                    {t('noSessionDialog.description')}
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>{t('paymentDialog.cancel')}</AlertDialogCancel>
-                <Link href={`/${locale}/cashier`} passHref>
-                  <Button>
-                      <Box className="mr-2 h-4 w-4" />
-                      {t('noSessionDialog.openCashSession')}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-            </AlertDialogFooter>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-6 w-6 text-yellow-500" />
+              {t('noSessionDialog.title')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('noSessionDialog.description')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('paymentDialog.cancel')}</AlertDialogCancel>
+            <Link href={`/${locale}/cashier`} passHref>
+              <Button>
+                <Box className="mr-2 h-4 w-4" />
+                {t('noSessionDialog.openCashSession')}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </AlertDialogFooter>
         </AlertDialogContent>
-    </AlertDialog>
+      </AlertDialog>
     </>
   );
 }
@@ -805,7 +815,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
   const [services, setServices] = React.useState<Service[]>([]);
   const [bookedInvoices, setBookedInvoices] = React.useState<Invoice[]>([]);
   const { toast } = useToast();
-  
+
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
   const form = useForm<CreateInvoiceFormValues>({
@@ -818,7 +828,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
       total: 0,
     },
   });
-  
+
   const items = form.watch('items');
   const invoiceType = form.watch('type');
 
@@ -826,7 +836,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
     const total = items.reduce((sum, item) => sum + (item.total || 0), 0);
     form.setValue('total', total);
   }, [items, form]);
-  
+
   React.useEffect(() => {
     if (isOpen) {
       const fetchData = async () => {
@@ -837,7 +847,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
             fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=${isSales}`),
             fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?is_sales=${isSales}&status=booked&type=invoice`)
           ]);
-  
+
           if (usersRes.ok) {
             const data = await usersRes.json();
             const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
@@ -868,7 +878,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
       const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/upsert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({...values, is_sales: isSales}),
+        body: JSON.stringify({ ...values, is_sales: isSales }),
       });
       const responseData = await response.json();
       if (!response.ok || (responseData.error && responseData.code >= 400)) {
@@ -886,7 +896,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
   const handleAddItem = () => {
     form.setValue('items', [...items, { service_id: '', quantity: 1, unit_price: 0, total: 0 }]);
   };
-  
+
   const handleRemoveItem = (index: number) => {
     form.setValue('items', items.filter((_, i) => i !== index));
   };
@@ -901,7 +911,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-             {submissionError && (
+            {submissionError && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>{t('errors.title')}</AlertTitle>
@@ -909,68 +919,68 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
               </Alert>
             )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                    control={form.control}
-                    name="type"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>{t('type')}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent>
-                                <SelectItem value="invoice">{t('types.invoice')}</SelectItem>
-                                <SelectItem value="credit_note">{t('types.credit_note')}</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                 <FormField control={form.control} name="currency" render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>{t('currency')}</FormLabel>
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('type')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                        <SelectContent>
-                            <SelectItem value="USD">USD</SelectItem>
-                            <SelectItem value="UYU">UYU</SelectItem>
-                        </SelectContent>
+                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="invoice">{t('types.invoice')}</SelectItem>
+                        <SelectItem value="credit_note">{t('types.credit_note')}</SelectItem>
+                      </SelectContent>
                     </Select>
                     <FormMessage />
-                    </FormItem>
-                )}/>
-                 <div className="text-right pt-7">
-                    <span className="font-semibold text-lg">{t('total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(form.watch('total'))}</span>
-                </div>
+                  </FormItem>
+                )}
+              />
+              <FormField control={form.control} name="currency" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('currency')}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="UYU">UYU</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <div className="text-right pt-7">
+                <span className="font-semibold text-lg">{t('total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(form.watch('total'))}</span>
+              </div>
             </div>
             {invoiceType === 'credit_note' && (
               <FormField
-                  control={form.control}
-                  name="parent_id"
-                  render={({ field }) => (
-                      <FormItem>
-                          <FormLabel>{t('parentInvoice')}</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                  <SelectTrigger>
-                                      <SelectValue placeholder={t('selectParentInvoice')} />
-                                  </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                  {bookedInvoices.map(inv => (
-                                      <SelectItem key={inv.id} value={inv.id}>
-                                          Invoice #{inv.id} - {inv.user_name} - ${inv.total}
-                                      </SelectItem>
-                                  ))}
-                              </SelectContent>
-                          </Select>
-                          <FormMessage />
-                      </FormItem>
-                  )}
+                control={form.control}
+                name="parent_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('parentInvoice')}</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('selectParentInvoice')} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {bookedInvoices.map(inv => (
+                          <SelectItem key={inv.id} value={inv.id}>
+                            Invoice #{inv.id} - {inv.user_name} - ${inv.total}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             )}
             <div className="grid grid-cols-2 gap-4">
-               <FormField control={form.control} name="user_id" render={({ field }) => (
+              <FormField control={form.control} name="user_id" render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('user')}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -980,74 +990,74 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={form.control} name="invoice_ref" render={({ field }) => (<FormItem><FormLabel>{t('invoiceRef')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="invoice_ref" render={({ field }) => (<FormItem><FormLabel>{t('invoiceRef')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
             </div>
-            
+
             <Card>
               <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle>{t('items.title')}</CardTitle>
-                    <Button type="button" size="sm" variant="outline" onClick={handleAddItem}>{t('addItem')}</Button>
-                  </div>
+                <div className="flex justify-between items-center">
+                  <CardTitle>{t('items.title')}</CardTitle>
+                  <Button type="button" size="sm" variant="outline" onClick={handleAddItem}>{t('addItem')}</Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="hidden md:flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                        <div className="flex-1">{t('items.service')}</div>
-                        <div className="w-20">{t('items.quantity')}</div>
-                        <div className="w-28">{t('items.unitPrice')}</div>
-                        <div className="w-28">{t('items.total')}</div>
-                        <div className="w-10"></div>
+                    <div className="flex-1">{t('items.service')}</div>
+                    <div className="w-20">{t('items.quantity')}</div>
+                    <div className="w-28">{t('items.unitPrice')}</div>
+                    <div className="w-28">{t('items.total')}</div>
+                    <div className="w-10"></div>
                   </div>
                   {items.map((item, index) => (
                     <div key={index} className="flex flex-col md:flex-row md:items-start gap-2">
-                       <FormField control={form.control} name={`items.${index}.service_id`} render={({ field }) => (
-                         <FormItem className="flex-1">
+                      <FormField control={form.control} name={`items.${index}.service_id`} render={({ field }) => (
+                        <FormItem className="flex-1">
                           <Select
                             onValueChange={(value) => {
-                                field.onChange(value);
-                                const service = services.find(s => s.id === value);
-                                if(service) {
-                                    const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                                    form.setValue(`items.${index}.unit_price`, service.price);
-                                    form.setValue(`items.${index}.total`, service.price * quantity);
-                                }
+                              field.onChange(value);
+                              const service = services.find(s => s.id === value);
+                              if (service) {
+                                const quantity = form.getValues(`items.${index}.quantity`) || 1;
+                                form.setValue(`items.${index}.unit_price`, service.price);
+                                form.setValue(`items.${index}.total`, service.price * quantity);
+                              }
                             }}
                             value={field.value}
                           >
-                             <FormControl>
-                               <SelectTrigger>
-                                 <SelectValue placeholder={t('items.selectService')} />
-                               </SelectTrigger>
-                             </FormControl>
-                             <SelectContent>
-                               {services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                             </SelectContent>
-                           </Select>
-                           <FormMessage />
-                         </FormItem>
-                       )} />
-                        <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
-                            <FormItem className="w-full md:w-20"><FormControl><Input type="number" {...field} onChange={(e) => {
-                                field.onChange(e);
-                                const price = form.getValues(`items.${index}.unit_price`) || 0;
-                                form.setValue(`items.${index}.total`, price * Number(e.target.value));
-                            }} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                        <FormField control={form.control} name={`items.${index}.unit_price`} render={({ field }) => (
-                           <FormItem className="w-full md:w-28"><FormControl><Input type="number" {...field} onChange={(e) => {
-                                field.onChange(e);
-                                const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                                form.setValue(`items.${index}.total`, quantity * Number(e.target.value));
-                            }} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                        <FormField control={form.control} name={`items.${index}.total`} render={({ field }) => (
-                          <FormItem className="w-full md:w-28"><FormControl><Input type="number" readOnly disabled {...field} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                        <Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveItem(index)}><Trash2 className="h-4 w-4"/></Button>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={t('items.selectService')} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
+                        <FormItem className="w-full md:w-20"><FormControl><Input type="number" {...field} onChange={(e) => {
+                          field.onChange(e);
+                          const price = form.getValues(`items.${index}.unit_price`) || 0;
+                          form.setValue(`items.${index}.total`, price * Number(e.target.value));
+                        }} /></FormControl><FormMessage /></FormItem>
+                      )} />
+                      <FormField control={form.control} name={`items.${index}.unit_price`} render={({ field }) => (
+                        <FormItem className="w-full md:w-28"><FormControl><Input type="number" {...field} onChange={(e) => {
+                          field.onChange(e);
+                          const quantity = form.getValues(`items.${index}.quantity`) || 1;
+                          form.setValue(`items.${index}.total`, quantity * Number(e.target.value));
+                        }} /></FormControl><FormMessage /></FormItem>
+                      )} />
+                      <FormField control={form.control} name={`items.${index}.total`} render={({ field }) => (
+                        <FormItem className="w-full md:w-28"><FormControl><Input type="number" readOnly disabled {...field} /></FormControl><FormMessage /></FormItem>
+                      )} />
+                      <Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveItem(index)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   ))}
-                   <FormMessage>{form.formState.errors.items?.root?.message}</FormMessage>
+                  <FormMessage>{form.formState.errors.items?.root?.message}</FormMessage>
                 </div>
               </CardContent>
             </Card>

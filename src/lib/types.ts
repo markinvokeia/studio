@@ -17,13 +17,13 @@ export type User = {
 };
 
 export type Debtor = {
-    user_id: string;
-    patient_name: string;
-    email: string;
-    identity_document: string;
-    currency: 'UYU' | 'USD';
-    pending_invoices_count: string;
-    total_debt_amount: string;
+  user_id: string;
+  patient_name: string;
+  email: string;
+  identity_document: string;
+  currency: 'UYU' | 'USD';
+  pending_invoices_count: string;
+  total_debt_amount: string;
 };
 
 export type Document = {
@@ -58,8 +58,8 @@ export type UserRole = {
 
 
 export type UserRoleAssignment = {
-    role_id: string;
-    is_active: boolean;
+  role_id: string;
+  is_active: boolean;
 };
 
 export type UserClinic = {
@@ -104,16 +104,16 @@ export type Order = {
 };
 
 export type OrderItem = {
-    id: string;
-    service_id: string;
-    service_name: string;
-    quantity: number;
-    unit_price: number;
-    total: number;
-    status: 'scheduled' | 'completed' | 'cancelled';
-    scheduled_date?: string;
-    completed_date?: string;
-    invoiced_date?: string;
+  id: string;
+  service_id: string;
+  service_name: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+  status: 'scheduled' | 'completed' | 'cancelled';
+  scheduled_date?: string;
+  completed_date?: string;
+  invoiced_date?: string;
 };
 
 export type Invoice = {
@@ -128,17 +128,18 @@ export type Invoice = {
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'booked';
   payment_status: 'unpaid' | 'paid' | 'partial' | 'partially_paid';
   paid_amount?: number;
+  type?: string;
   createdAt: string;
   updatedAt: string;
 };
 
 export type InvoiceItem = {
-    id: string;
-    service_id: string;
-    service_name: string;
-    quantity: number;
-    unit_price: number;
-    total: number;
+  id: string;
+  service_id: string;
+  service_name: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
 };
 
 export type Payment = {
@@ -166,11 +167,11 @@ export type Payment = {
 };
 
 export type PaymentMethod = {
-    id: string;
-    name: string;
-    code: string;
-    is_cash_equivalent: boolean;
-    is_active: boolean;
+  id: string;
+  name: string;
+  code: string;
+  is_cash_equivalent: boolean;
+  is_active: boolean;
 }
 
 export type Service = {
@@ -324,46 +325,46 @@ export type Stat = {
 };
 
 export type SalesChartData = {
-    month: string;
-    revenue: number;
+  month: string;
+  revenue: number;
 };
 
 export type SalesByServiceChartData = {
-    name: string;
-    sales: number;
-    percentage: number;
-    color: string;
+  name: string;
+  sales: number;
+  percentage: number;
+  color: string;
 };
 
 export type InvoiceStatusData = {
-    name: string;
-    value: number;
-    fill: string;
+  name: string;
+  value: number;
+  fill: string;
 };
 
 export type KpiChangeType = 'positive' | 'negative' | 'neutral';
 
 export type AverageBilling = {
-    value: number;
-    change: number;
-    changeType: KpiChangeType;
+  value: number;
+  change: number;
+  changeType: KpiChangeType;
 };
 
 export type PatientDemographicsData = {
-    type: 'New' | 'Recurrent';
-    count: number;
-    fill: string;
+  type: 'New' | 'Recurrent';
+  count: number;
+  fill: string;
 };
 
 export type PatientDemographics = {
-    total: number;
-    data: PatientDemographicsData[];
+  total: number;
+  data: PatientDemographicsData[];
 };
 
 export type AppointmentAttendanceRate = {
-    value: number;
-    change: number;
-    changeType: KpiChangeType;
+  value: number;
+  change: number;
+  changeType: KpiChangeType;
 };
 
 export type Calendar = {
@@ -375,29 +376,29 @@ export type Calendar = {
 };
 
 export type Ailment = {
-    id: string;
-    nombre: string;
-    categoria: string;
-    nivel_alerta: number;
+  id: string;
+  nombre: string;
+  categoria: string;
+  nivel_alerta: number;
 };
 
 export type Medication = {
-    id: string;
-    nombre_generico: string;
-    nombre_comercial?: string;
+  id: string;
+  nombre_generico: string;
+  nombre_comercial?: string;
 };
 
 export type DentalCondition = {
-    id: string;
-    nombre: string;
-    codigo_visual: string;
-    color_hex?: string;
+  id: string;
+  nombre: string;
+  codigo_visual: string;
+  color_hex?: string;
 };
 
 export type DentalSurface = {
-    id: string;
-    nombre: string;
-    codigo: string;
+  id: string;
+  nombre: string;
+  codigo: string;
 };
 
 export type TreatmentDetail = {
@@ -425,25 +426,25 @@ export type PatientSession = {
 };
 
 export type AvailabilityRule = {
-    id: string;
-    user_id: string;
-    user_name?: string;
-    recurrence: 'daily' | 'weekly' | 'biweekly';
-    day_of_week?: number;
-    start_time: string;
-    end_time: string;
-    start_date: string;
-    end_date?: string;
+  id: string;
+  user_id: string;
+  user_name?: string;
+  recurrence: 'daily' | 'weekly' | 'biweekly';
+  day_of_week?: number;
+  start_time: string;
+  end_time: string;
+  start_date: string;
+  end_date?: string;
 };
 
 export type AvailabilityException = {
-    id: string;
-    user_id: string;
-    user_name?: string;
-    exception_date: string;
-    start_time: string;
-    end_time: string;
-    is_available: boolean;
+  id: string;
+  user_id: string;
+  user_name?: string;
+  exception_date: string;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
 };
 
 export type CajaSesion = {
@@ -498,51 +499,51 @@ export type CashPoint = {
 };
 
 export type MiscellaneousCategory = {
-    id: string;
-    name: string;
-    code: string;
-    description: string;
-    type: 'income' | 'expense';
-    is_active: boolean;
-    parent_category_id?: string;
-    accounting_code?: string;
-    created_at: string;
-    updated_at: string;
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  type: 'income' | 'expense';
+  is_active: boolean;
+  parent_category_id?: string;
+  accounting_code?: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export type MiscellaneousTransaction = {
-    id: string;
-    transaction_number: string;
-    transaction_date: string;
-    amount: number;
-    currency: string;
-    exchange_rate: number;
-    converted_amount: number;
-    description: string;
-    external_reference?: string;
-    status: 'pending' | 'completed' | 'cancelled';
-    category_id: string;
-    category_code: string;
-    category_name: string;
-    category_type: 'income' | 'expense';
-    beneficiary_id?: string;
-    beneficiary_name?: string;
-    beneficiary_type?: string;
-    created_by: string;
-    created_at: string;
-    payment_method_id?: string;
-    payment_method_name?: string;
-    cash_session_id?: string;
-    tags?: string[];
-    is_recurring?: boolean;
-    recurrence_pattern?: string;
-    completed_at?: string;
+  id: string;
+  transaction_number: string;
+  transaction_date: string;
+  amount: number;
+  currency: string;
+  exchange_rate: number;
+  converted_amount: number;
+  description: string;
+  external_reference?: string;
+  status: 'pending' | 'completed' | 'cancelled';
+  category_id: string;
+  category_code: string;
+  category_name: string;
+  category_type: 'income' | 'expense';
+  beneficiary_id?: string;
+  beneficiary_name?: string;
+  beneficiary_type?: string;
+  created_by: string;
+  created_at: string;
+  payment_method_id?: string;
+  payment_method_name?: string;
+  cash_session_id?: string;
+  tags?: string[];
+  is_recurring?: boolean;
+  recurrence_pattern?: string;
+  completed_at?: string;
 };
 
 
 export type Credit = {
-    source_id: string;
-    available_balance: string;
-    currency: 'UYU' | 'USD';
-    type: 'credit_note' | 'prepaid';
+  source_id: string;
+  available_balance: string;
+  currency: 'UYU' | 'USD';
+  type: 'credit_note' | 'prepaid';
 };

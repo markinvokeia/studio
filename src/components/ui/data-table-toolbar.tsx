@@ -16,6 +16,7 @@ import { PlusCircle, RefreshCw, SlidersHorizontal, Filter, Search } from 'lucide
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -27,6 +28,9 @@ interface DataTableToolbarProps<TData> {
   columnTranslations?: { [key: string]: string };
   extraButtons?: React.ReactNode;
   createButtonLabel?: string;
+  filterOptions?: { label: string; value: string }[];
+  onFilterChange?: (value: string) => void;
+  filterValue?: string;
 }
 
 export function DataTableToolbar<TData>({
@@ -38,24 +42,45 @@ export function DataTableToolbar<TData>({
   isRefreshing,
   columnTranslations = {},
   extraButtons,
-  createButtonLabel
+  createButtonLabel,
+  filterOptions,
+  onFilterChange,
+  filterValue,
 }: DataTableToolbarProps<TData>) {
   const t = useTranslations('DataTableToolbar');
   return (
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center space-x-2">
         <div className="relative flex items-center">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
             placeholder={filterPlaceholder}
             value={(table.getColumn(filterColumnId)?.getFilterValue() as string) ?? ''}
             onChange={(event) =>
-                table.getColumn(filterColumnId)?.setFilterValue(event.target.value)
+              table.getColumn(filterColumnId)?.setFilterValue(event.target.value)
             }
             className="h-9 w-[150px] lg:w-[250px] pl-9"
-            />
+          />
         </div>
-         {extraButtons}
+        {filterOptions && onFilterChange && (
+          <Select value={filterValue || 'all'} onValueChange={onFilterChange}>
+            <SelectTrigger className="h-9 w-[150px]">
+              <div className="flex items-center">
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Filter" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              {filterOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {extraButtons}
       </div>
       <div className="flex items-center space-x-2">
         {onCreate && (
@@ -73,7 +98,7 @@ export function DataTableToolbar<TData>({
             </Tooltip>
           </TooltipProvider>
         )}
-         {onRefresh && (
+        {onRefresh && (
           <Button
             variant="outline"
             size="icon"

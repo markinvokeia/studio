@@ -55,6 +55,9 @@ interface DataTableProps<TData, TValue> {
   columnTranslations?: { [key: string]: string };
   extraButtons?: React.ReactNode;
   createButtonLabel?: string;
+  filterOptions?: { label: string; value: string }[];
+  onFilterChange?: (value: string) => void;
+  filterValue?: string;
 }
 
 export function DataTable<TData, TValue>({
@@ -82,6 +85,9 @@ export function DataTable<TData, TValue>({
   columnTranslations = {},
   extraButtons,
   createButtonLabel,
+  filterOptions,
+  onFilterChange,
+  filterValue,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
@@ -93,7 +99,7 @@ export function DataTable<TData, TValue>({
   const [internalSorting, setInternalSorting] = React.useState<SortingState>([]);
 
   const isControlledPagination = manualPagination && pagination !== undefined && onPaginationChange !== undefined;
-  
+
   const sorting = controlledSorting ?? internalSorting;
   const setSorting = setControlledSorting ?? setInternalSorting;
   const columnFilters = controlledColumnFilters ?? internalColumnFilters;
@@ -126,7 +132,7 @@ export function DataTable<TData, TValue>({
     manualFiltering: !!controlledColumnFilters,
     ...(isControlledPagination && { onPaginationChange: onPaginationChange }),
   });
-  
+
   React.useEffect(() => {
     if (onRowSelectionChange) {
       const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original);
@@ -138,7 +144,7 @@ export function DataTable<TData, TValue>({
   return (
     <div className="space-y-4">
       {(filterColumnId && filterPlaceholder) && (
-        <DataTableToolbar 
+        <DataTableToolbar
           table={table}
           filterColumnId={filterColumnId}
           filterPlaceholder={filterPlaceholder}
@@ -148,6 +154,9 @@ export function DataTable<TData, TValue>({
           columnTranslations={columnTranslations}
           extraButtons={extraButtons}
           createButtonLabel={createButtonLabel}
+          filterOptions={filterOptions}
+          onFilterChange={onFilterChange}
+          filterValue={filterValue}
         />
       )}
       <div className="rounded-md border overflow-x-auto">
@@ -161,9 +170,9 @@ export function DataTable<TData, TValue>({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   );
                 })}
@@ -178,8 +187,8 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() && 'selected'}
                   onClick={() => {
                     if (enableSingleRowSelection) {
-                       table.toggleAllPageRowsSelected(false);
-                       row.toggleSelected(true);
+                      table.toggleAllPageRowsSelected(false);
+                      row.toggleSelected(true);
                     }
                   }}
                   className={enableSingleRowSelection ? 'cursor-pointer' : ''}
