@@ -1757,9 +1757,12 @@
       "toast": {
         "success": "Session saved successfully",
         "error": "Failed to save session",
-        "treatmentDescriptionEmpty": "Treatment description cannot be empty"
+        "treatmentDescriptionEmpty": "Treatment description cannot be empty",
+        "saveSuccess": "Session saved successfully",
+        "saveError": "Error occurred when saving session"
       },
-      "tooth": "Tooth"
+      "tooth": "Tooth",
+      "saving": "Saving"
     },
     "timeline": {
       "deleteDialog": {
@@ -1794,6 +1797,7 @@
           "editTitle": "Edit Personal Information",
           "editDescription": "Edit personal information for the patient"
         },
+        "saving": "Saving",
         "ailment": "Ailment",
         "selectAilment": "Select Ailment",
         "comments": "Comments",
@@ -1841,6 +1845,17 @@
         "searchAilment": "Search Ailment",
         "noAilmentFound": "No ailment found"
       },
+      "toast": {
+        "success": "Success",
+        "personalSuccess": "Personal information saved successfully",
+        "deleteSuccess": "Deleted successfully",
+        "medicationSuccess": "Medication saved successfully",
+        "allergySuccess": "Allergy saved successfully"
+      },
+      "itemTypes": {
+        "personal": "Personal",
+        "medication": "Medication"
+      },
       "deleteDialog": {
         "title": "Delete",
         "description": "Are you sure you want to delete this item?",
@@ -1854,6 +1869,7 @@
         "personal": "Personal"
       },
       "relative": "Relative",
+      "present": "Present",
       "noData": {
         "personal": "No personal information available",
         "family": "No family information available",
@@ -1871,7 +1887,12 @@
       "smokingPlaceholder": "",
       "alcoholPlaceholder": "",
       "bruxismPlaceholder": "",
-      "noData": "No habits available"
+      "noData": "No habits available",
+      "saving": "Saving",
+      "toast": {
+        "success": "Success",
+        "saveSuccess": "Habits saved successfully"
+      }
     },
     "odontogram": {
       "conditions": {
