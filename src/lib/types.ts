@@ -196,6 +196,7 @@ export type Clinic = {
   phone_number: string;
   logo?: string;
   logo_base64?: string;
+  currency?: 'UYU' | 'USD';
 };
 
 export type ClinicSchedule = {

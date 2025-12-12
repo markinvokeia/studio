@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -820,7 +821,7 @@
     "import": "Import"
   },
   "InvoiceItemsTable": {
-    "title": "Ítems de factura",
+    "title": "Ítems de Factura",
     "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
@@ -1139,7 +1140,7 @@
       "phone": "Phone",
       "phonePlaceholder": "123-456-7890",
       "identity_document": "Identity Document",
-      "identity_document_placeholder": "e.g., 1234567890",
+      "identity_document_placeholder": "e.g. 1234567890",
       "isActive": "Is Active?",
       "cancel": "Cancel",
       "save": "Create"
@@ -1171,7 +1172,7 @@
       "unitPrice": "Precio Unitario",
       "total": "Total",
       "status": "Estado",
-      "scheduled": "Programado",
+      "scheduled": "Programado El",
       "completed": "Completado El",
       "invoiced": "Facturado El"
     },
@@ -1179,8 +1180,8 @@
       "invoiced": "Facturado"
     },
     "actions": {
-      "title": "Title",
-      "schedule": "Schedule",
+      "title": "Título",
+      "schedule": "Programar",
       "openMenu": "Open menu"
     }
   },
@@ -1207,7 +1208,9 @@
     "phonePlaceholder": "e.g. +1 234 567 890",
     "emailLabel": "Email",
     "emailPlaceholder": "e.g. john.doe@example.com",
-    "save": "Save"
+    "save": "Save",
+    "currencyLabel": "Currency",
+    "currencyPlaceholder": "Select a currency"
   },
   "SchedulesPage": {
     "title": "Schedules",
@@ -1868,13 +1871,13 @@
         "medications": "Medications",
         "personal": "Personal"
       },
-      "relative": "Relative",
-      "present": "Present",
+      "relative": "Pariente",
+      "present": "Presente",
       "noData": {
-        "personal": "No personal information available",
-        "family": "No family information available",
-        "medications": "No medications available",
-        "allergies": "No allergies available"
+        "personal": "No hay información personal disponible",
+        "family": "No hay información familiar disponible",
+        "medications": "No hay medicamentos disponibles",
+        "allergies": "No hay alergias disponibles"
       }
     },
     "habits": {
@@ -1931,20 +1934,20 @@
       "xrays": "X-rays",
       "photos": "Photos"
     },
-    "searching": "Searching..."
+    "searching": "Buscando..."
   },
   "UserQuotes": {
-    "filterPlaceholder": "Filter here..."
+    "filterPlaceholder": "Filtrar aquí..."
   },
   "SystemUserColumns": {
-    "name": "Name",
-    "email": "Email",
-    "phone": "Phone",
-    "identity_document": "Identity Document",
-    "status": "Status",
-    "actions": "Actions",
-    "edit": "Edit",
-    "deactivate": "Deactivate",
-    "copyId": "Copy user ID"
+    "name": "Nombre",
+    "email": "Correo Electrónico",
+    "phone": "Teléfono",
+    "identity_document": "Documento de Identidad",
+    "status": "Estado",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "deactivate": "Desactivar",
+    "copyId": "Copiar ID de usuario"
   }
 }

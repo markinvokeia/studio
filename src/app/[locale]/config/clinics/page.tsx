@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { RefreshCw, UploadCloud } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 async function getClinic(): Promise<Clinic | null> {
     try {
@@ -44,6 +45,7 @@ async function getClinic(): Promise<Clinic | null> {
             contact_email: apiClinic.email || 'no-email@example.com',
             phone_number: apiClinic.phone || '000-000-0000',
             logo_base64: apiClinic.logo_base64,
+            currency: apiClinic.currency || 'USD',
         };
     } catch (error) {
         console.error("Failed to fetch clinics:", error);
@@ -81,6 +83,11 @@ export default function ClinicsPage() {
         setClinic({ ...clinic, [id]: value });
     };
 
+    const handleSelectChange = (id: keyof Clinic, value: string) => {
+        if (!clinic) return;
+        setClinic({ ...clinic, [id]: value });
+    };
+
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -111,6 +118,9 @@ export default function ClinicsPage() {
         formData.append('address', clinic.location);
         formData.append('email', clinic.contact_email);
         formData.append('phone', clinic.phone_number);
+        if (clinic.currency) {
+            formData.append('currency', clinic.currency);
+        }
 
         if (logoFile) {
             formData.append('logo', logoFile);
@@ -239,6 +249,18 @@ export default function ClinicsPage() {
                         <div className="space-y-2">
                             <Label htmlFor="phone_number">{t('phoneLabel')}</Label>
                             <Input id="phone_number" value={clinic.phone_number} onChange={handleInputChange} placeholder={t('phonePlaceholder')} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="currency">{t('currencyLabel')}</Label>
+                            <Select onValueChange={(value) => handleSelectChange('currency', value)} value={clinic.currency}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder={t('currencyPlaceholder')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="USD">USD</SelectItem>
+                                    <SelectItem value="UYU">UYU</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                     <div className="h-[400px] w-full overflow-hidden rounded-lg md:h-full">

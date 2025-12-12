@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Panel de Control",
@@ -824,9 +825,9 @@
     "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
-      "service": "Servicio",
-      "quantity": "Cantidad",
-      "unitPrice": "Precio Unitario",
+      "service": "Service",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
       "total": "Total"
     }
   },
@@ -857,7 +858,7 @@
       "title": "Cerrar Sesión"
     },
     "confirmation": {
-      "sessionInfo": "Información de Sesión",
+      "sessionInfo": "Info de Sesión",
       "cashSummary": "Resumen de Efectivo",
       "totalUYU": "Total UYU",
       "totalUSD": "Total USD",
@@ -1139,7 +1140,7 @@
       "phone": "Teléfono",
       "phonePlaceholder": "123-456-7890",
       "identity_document": "Documento de Identidad",
-      "identity_document_placeholder": "ej., 1234567890",
+      "identity_document_placeholder": "ej. 1234567890",
       "isActive": "¿Está Activo?",
       "cancel": "Cancelar",
       "save": "Crear"
@@ -1207,7 +1208,9 @@
     "phonePlaceholder": "ej. +1 234 567 890",
     "emailLabel": "Correo Electrónico",
     "emailPlaceholder": "ej. john.doe@example.com",
-    "save": "Guardar"
+    "save": "Guardar",
+    "currencyLabel": "Moneda",
+    "currencyPlaceholder": "Seleccionar una moneda"
   },
   "SchedulesPage": {
     "title": "Horarios",
