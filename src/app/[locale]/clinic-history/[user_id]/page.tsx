@@ -1870,30 +1870,34 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         </div>
     );
   };
+  
+const getGoogleDriveThumbnailUrl = (url: string) => {
+    if (!url || !url.includes('drive.google.com')) return url;
+    // This regex is more robust to handle different URL formats
+    const fileIdMatch = url.match(/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+    if (fileIdMatch && fileIdMatch[1]) {
+        return `https://drive.google.com/uc?id=${fileIdMatch[1]}`;
+    }
+    return url; // return original if ID not found
+};
 
   const TreatmentTimeline = ({ sessions, onAction }: { sessions: PatientSession[], onAction: (action: 'add' | 'edit' | 'delete', session?: PatientSession) => void }) => {
     const [selectedImage, setSelectedImage] = useState<AttachedFile | null>(null);
     const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
     const [imageContent, setImageContent] = useState<string | null>(null);
   
-    const getGoogleDriveThumbnailUrl = (url: string) => {
-        if (!url || !url.includes('drive.google.com')) return url;
-        const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-        if (fileIdMatch && fileIdMatch[1]) {
-            return `https://drive.google.com/uc?id=${fileIdMatch[1]}`;
-        }
-        return url;
-    };
     
     const handleViewImage = async (file: AttachedFile) => {
         setSelectedImage(file);
         setIsImageViewerOpen(true);
-        setImageContent(null);
+        setImageContent(null); // Reset content while loading
         try {
-            const fileIdMatch = file.ruta.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            const fileIdMatch = file.ruta.match(/d\/([a-zA-Z0-9_-]+)/) || file.ruta.match(/id=([a-zA-Z0-9_-]+)/);
             if (!fileIdMatch || !fileIdMatch[1]) throw new Error("Invalid Google Drive URL");
 
-            const directDownloadUrl = `https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${fileIdMatch[1]}&user_id=${userId}`;
+            const fileId = fileIdMatch[1];
+            // Use the direct download link format for fetching the image blob
+            const directDownloadUrl = `https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${fileId}&user_id=${userId}`;
             
             const response = await fetch(directDownloadUrl);
 
@@ -2250,7 +2254,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                     {activeView === 'anamnesis' && 
                       <ScrollArea className='flex-1'>
                         <div className="pr-4">
-                            <AnamnesisDashboard
+                           <AnamnesisDashboard
                                 personalHistory={personalHistory}
                                 isLoadingPersonalHistory={isLoadingPersonalHistory}
                                 fetchPersonalHistory={fetchPersonalHistory}
@@ -2369,7 +2373,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                 try {
                     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${session.sesion_id}`);
                     if (response.ok) {
-                        const sessionDetails = await response.json();
+                        const data = await response.json();
+                        const sessionDetails = Array.isArray(data) && data.length > 0 ? data[0] : data;
                         
                         const formattedDetails = {
                             ...sessionDetails,
@@ -2433,11 +2438,15 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
       }
     };
 
-    const fileToBase64 = (file: File): Promise<string> => {
+    const fileToBase64 = (file: File): Promise<{file_name: string; mime_type: string; base64: string}> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result as string);
+            reader.onload = () => resolve({
+                file_name: file.name,
+                mime_type: file.type,
+                base64: reader.result as string
+            });
             reader.onerror = error => reject(error);
         });
     };
@@ -2462,15 +2471,15 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
             return;
         }
 
-        let imageBase64: string | undefined = undefined;
+        let imageAttachment: { file_name: string; mime_type: string; base64: string; } | undefined = undefined;
         if (file) {
-            imageBase64 = await fileToBase64(file);
+            imageAttachment = await fileToBase64(file);
         }
         
         const newTreatment = {
             descripcion: desc,
             numero_diente: toothNumStr ? parseInt(toothNumStr, 10) : null,
-            imagen_adjunta: imageBase64,
+            imagen_adjunta: imageAttachment,
         };
 
         if (toothNumStr && (parseInt(toothNumStr, 10) < 11 || parseInt(toothNumStr, 10) > 85)) {
@@ -2558,7 +2567,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                                                 <div>
                                                     <p className="text-sm font-medium">{treatment.descripcion}</p>
                                                     {treatment.numero_diente && <p className="text-xs text-muted-foreground">{t('tooth')}: {treatment.numero_diente}</p>}
-                                                    {treatment.imagen_adjunta && <img src={treatment.imagen_adjunta} alt="preview" className="h-10 w-10 rounded mt-1 object-cover" />}
+                                                    {treatment.imagen_adjunta && typeof treatment.imagen_adjunta === 'object' && (
+                                                      <img src={treatment.imagen_adjunta.base64} alt="preview" className="h-10 w-10 rounded mt-1 object-cover" />
+                                                    )}
                                                 </div>
                                                 <Button type="button" variant="destructive-ghost" size="icon" onClick={() => remove(index)}>
                                                     <Trash2 className="h-4 w-4" />
