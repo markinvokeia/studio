@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -2431,73 +2432,73 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         },
     });
 
-    const { fields, append, remove } = useFieldArray({
+    const { fields, append, remove, replace } = useFieldArray({
         control: form.control,
         name: "tratamientos",
     });
 
     useEffect(() => {
-      const fetchInitialData = async () => {
-        if (!isOpen) {
-          setAttachedFiles([]);
-          return;
-        };
-  
-        try {
-          const doctorsRes = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
-          if (doctorsRes.ok) {
-            const data = await doctorsRes.json();
-            const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || data.result || []);
-            setDoctors(doctorsData);
-          }
-        } catch (error) {
-          console.error("Failed to fetch doctors:", error);
-        }
-  
-        if (session) {
-          try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${session.sesion_id}`);
-            if (response.ok) {
-              const sessionDetails = await response.json();
-              if (sessionDetails) {
-                  form.reset({
-                    ...sessionDetails,
-                    tratamientos: sessionDetails.lista_tratamientos || [],
-                    fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : ''
-                  });
-              }
-            } else {
-              toast({ variant: 'destructive', title: 'Error', description: 'Failed to load session details.' });
-              form.reset({
-                  ...session,
-                  tratamientos: session.tratamientos || [],
-                  fecha_sesion: session.fecha_sesion ? format(parseISO(session.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : ''
-              });
+        const fetchInitialData = async () => {
+            if (!isOpen) {
+                setAttachedFiles([]);
+                return;
             }
-          } catch (error) {
-            console.error('Failed to fetch session details', error);
-            toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while loading session details.' });
-          }
-        } else {
-          form.reset({
-            fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-            diagnostico: '',
-            procedimiento_realizado: '',
-            notas_clinicas: '',
-            tratamientos: [],
-            doctor_id: '',
-          });
-        }
-      };
-  
-      fetchInitialData();
+
+            try {
+                const doctorsRes = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
+                if (doctorsRes.ok) {
+                    const data = await doctorsRes.json();
+                    const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || data.result || []);
+                    setDoctors(doctorsData);
+                }
+            } catch (error) {
+                console.error("Failed to fetch doctors:", error);
+            }
+        };
+
+        fetchInitialData();
+    }, [isOpen]);
+    
+    useEffect(() => {
+        const fetchSessionDetails = async () => {
+            if (session && isOpen) {
+                try {
+                    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${session.sesion_id}`);
+                    if (response.ok) {
+                        const sessionDetails = await response.json();
+                        
+                        const formattedDetails = {
+                            ...sessionDetails,
+                            tratamientos: sessionDetails.lista_tratamientos || [],
+                            fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : ''
+                        };
+                        form.reset(formattedDetails);
+
+                    } else {
+                        toast({ variant: 'destructive', title: 'Error', description: 'Failed to load session details.' });
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch session details', error);
+                    toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while loading session details.' });
+                }
+            } else if (isOpen) {
+                form.reset({
+                    fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+                    diagnostico: '',
+                    procedimiento_realizado: '',
+                    notas_clinicas: '',
+                    tratamientos: [],
+                    doctor_id: '',
+                });
+            }
+        };
+        fetchSessionDetails();
     }, [session, isOpen, form, toast]);
   
     const handleSave = async (data: Partial<PatientSession>) => {
         const formData = new FormData();
         
-        // Append form data as JSON string under a specific key, e.g., 'data'
-        const sessionData = {
+        const sessionData: any = {
           ...data,
           paciente_id: userId,
           tipo_sesion: 'clinica',
@@ -2505,17 +2506,17 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         if (session) {
           sessionData.sesion_id = session.sesion_id;
         }
+        
         formData.append('data', JSON.stringify(sessionData));
     
-        // Append files
-        attachedFiles.forEach((file, index) => {
+        attachedFiles.forEach((file) => {
           formData.append(`files`, file);
         });
 
         try {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert', {
                 method: 'POST',
-                body: formData // No Content-Type header needed, browser sets it for FormData
+                body: formData,
             });
 
             if (!response.ok) {
@@ -2568,7 +2569,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
     
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-          setAttachedFiles(Array.from(e.target.files));
+          setAttachedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
         }
     };
 
