@@ -1952,29 +1952,35 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const [selectedImage, setSelectedImage] = useState<AttachedFile | null>(null);
     const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
     const [imageContent, setImageContent] = useState<string | null>(null);
-
+  
     const getGoogleDriveThumbnailUrl = (url: string) => {
-        if (!url) return null;
-        if (url.includes('drive.google.com/file/d/')) {
-            const fileId = url.split('/d/')[1]?.split('/')[0];
-            if (fileId) {
-                return `https://drive.google.com/uc?id=${fileId}`;
-            }
+        if (!url || !url.includes('drive.google.com')) return null;
+        const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (fileIdMatch && fileIdMatch[1]) {
+            return `https://drive.google.com/uc?id=${fileIdMatch[1]}`;
         }
-        return url;
+        return null;
     };
     
     const handleViewImage = async (file: AttachedFile) => {
         setSelectedImage(file);
         setIsImageViewerOpen(true);
-        setImageContent(null);
+        setImageContent(null); // Reset content while loading
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${file.ruta}&user_id=${userId}`);
+            const fileIdMatch = file.ruta.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (!fileIdMatch || !fileIdMatch[1]) throw new Error("Invalid Google Drive URL");
+
+            const directDownloadUrl = `https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${fileIdMatch[1]}&user_id=${userId}`;
+            
+            const response = await fetch(directDownloadUrl);
+
             if (response.ok) {
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
                 setImageContent(url);
             } else {
+                const errorText = await response.text();
+                console.error("Image fetch error:", errorText);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not load image.' });
                 setIsImageViewerOpen(false);
             }
@@ -1984,7 +1990,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             setIsImageViewerOpen(false);
         }
     };
-
+  
     const conditionLabels: { [key: string]: string } = {
         caries: t('odontogram.conditions.caries'),
         filling: t('odontogram.conditions.filling'),
@@ -2005,7 +2011,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         edentulism: t('odontogram.conditions.edentulism'),
         eruption: t('odontogram.conditions.eruption'),
     };
-
+  
     const surfaceLabels: { [key: string]: string } = {
         center: t('odontogram.surfaces.center'),
         top: t('odontogram.surfaces.top'),
@@ -2013,16 +2019,16 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         left: t('odontogram.surfaces.left'),
         right: t('odontogram.surfaces.right'),
     };
-
+  
     const getDescriptionsForTooth = (toothState: any) => {
         if (!toothState) return [];
-
+  
         const descriptions = [];
         if (toothState.whole) {
             const conditionLabel = conditionLabels[toothState.whole] || toothState.whole;
             descriptions.push(conditionLabel);
         }
-
+  
         const surfaceGroups: { [key: string]: string[] } = {};
         for (const surface in surfaceLabels) {
             const conditionId = toothState[surface];
@@ -2033,23 +2039,23 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                 surfaceGroups[conditionId].push(surfaceLabels[surface]);
             }
         }
-
+  
         for (const conditionId in surfaceGroups) {
             const conditionLabel = conditionLabels[conditionId] || conditionId;
             const affectedSurfaces = surfaceGroups[conditionId].join(', ');
             descriptions.push(`${conditionLabel} (${affectedSurfaces})`);
         }
-
+  
         if (toothState.overlays && Array.isArray(toothState.overlays)) {
             toothState.overlays.forEach((overlayId: string) => {
                 const conditionLabel = conditionLabels[overlayId] || overlayId;
                 descriptions.push(conditionLabel);
             });
         }
-
+  
         return descriptions;
     };
-
+  
     const generateOdontogramSummary = (odontogramState: any) => {
         if (!odontogramState) return null;
         const summary: { toothId: string, conditions: string[] }[] = [];
@@ -2062,11 +2068,11 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                summary.push({ toothId, conditions });
             }
         });
-
+  
         return summary;
     };
-
-
+  
+  
     if (isLoadingPatientSessions) {
         return (
             <div className="bg-card rounded-xl shadow-lg p-6">
@@ -2431,55 +2437,53 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
 
     useEffect(() => {
         const fetchInitialData = async () => {
+          if (!isOpen) return;
+    
+          try {
+            const doctorsRes = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
+            if (doctorsRes.ok) {
+              const data = await doctorsRes.json();
+              const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || data.result || []);
+              setDoctors(doctorsData);
+            }
+          } catch (error) {
+            console.error("Failed to fetch doctors:", error);
+          }
+    
+          if (session) {
             try {
-                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
-                if (response.ok) {
-                    const data = await response.json();
-                    const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || data.result || []);
-                    setDoctors(doctorsData);
+              const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${session.sesion_id}`);
+              if (response.ok) {
+                const sessionDetails = await response.json();
+                
+                if (sessionDetails) {
+                    form.reset({
+                      ...sessionDetails,
+                      tratamientos: sessionDetails.lista_tratamientos || [],
+                      fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : ''
+                    });
                 }
+              } else {
+                toast({ variant: 'destructive', title: 'Error', description: 'Failed to load session details.' });
+              }
             } catch (error) {
-                console.error("Failed to fetch doctors:", error);
+              console.error('Failed to fetch session details', error);
+              toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while loading session details.' });
             }
+          } else {
+            form.reset({
+              fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+              diagnostico: '',
+              procedimiento_realizado: '',
+              notas_clinicas: '',
+              tratamientos: [],
+              doctor_id: '',
+            });
+          }
         };
-
-        if (isOpen) {
-            fetchInitialData();
-            if (session) {
-                const fetchSessionDetails = async (sessionId: number) => {
-                    try {
-                        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${sessionId}`);
-                        if (response.ok) {
-                            const data = await response.json();
-                            const sessionDetails = Array.isArray(data) && data.length > 0 ? data[0] : data;
-                            if (sessionDetails) {
-                                form.reset({
-                                    ...sessionDetails,
-                                    tratamientos: sessionDetails.lista_tratamientos || [],
-                                    fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : ''
-                                });
-                            }
-                        } else {
-                            toast({ variant: 'destructive', title: 'Error', description: 'Failed to load session details.' });
-                        }
-                    } catch (error) {
-                        console.error('Failed to fetch session details', error);
-                        toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while loading session details.' });
-                    }
-                };
-                fetchSessionDetails(session.sesion_id);
-            } else {
-                form.reset({
-                    fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-                    diagnostico: '',
-                    procedimiento_realizado: '',
-                    notas_clinicas: '',
-                    tratamientos: [],
-                    doctor_id: '',
-                });
-            }
-        }
-    }, [session, isOpen, form, toast]);
+    
+        fetchInitialData();
+      }, [session, isOpen, form, toast]);
   
     const handleSave = async (data: Partial<PatientSession>) => {
         const endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert';
@@ -2521,19 +2525,24 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         
         if (!toothNumInput || !descInput) return;
 
-        const toothNum = parseInt(toothNumInput.value, 10);
+        const toothNumStr = toothNumInput.value;
         const desc = descInput.value;
 
         if (desc) {
-            if (toothNum && (toothNum < 11 || toothNum > 85)) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Error',
-                    description: "The tooth number must be between 11 and 85."
-                });
-                return;
+             if (toothNumStr) {
+                const toothNum = parseInt(toothNumStr, 10);
+                if (toothNum < 11 || toothNum > 85) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Error',
+                        description: "The tooth number must be between 11 and 85."
+                    });
+                    return;
+                }
+                append({ descripcion: desc, numero_diente: toothNum });
+            } else {
+                 append({ descripcion: desc, numero_diente: null });
             }
-            append({ descripcion: desc, numero_diente: toothNum || null });
             toothNumInput.value = '';
             descInput.value = '';
         } else {
@@ -2648,3 +2657,4 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
+
