@@ -1877,12 +1877,12 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const [imageContent, setImageContent] = useState<string | null>(null);
   
     const getGoogleDriveThumbnailUrl = (url: string) => {
-        if (!url || !url.includes('drive.google.com')) return null;
+        if (!url || !url.includes('drive.google.com')) return url; // return original if not a drive url
         const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
         if (fileIdMatch && fileIdMatch[1]) {
             return `https://drive.google.com/thumbnail?id=${fileIdMatch[1]}`;
         }
-        return null;
+        return url; // return original if no ID found
     };
     
     const handleViewImage = async (file: AttachedFile) => {
@@ -2329,8 +2329,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
     const t = useTranslations('ClinicHistoryPage.sessionDialog');
     const [doctors, setDoctors] = useState<UserType[]>([]);
     const { toast } = useToast();
-    const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
-
+    
     const form = useForm<Partial<PatientSession>>({
         defaultValues: {
             fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
@@ -2348,11 +2347,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
 
     useEffect(() => {
         const fetchInitialData = async () => {
-            if (!isOpen) {
-                setAttachedFiles([]);
-                return;
-            }
-
+            if (!isOpen) return;
             try {
                 const doctorsRes = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
                 if (doctorsRes.ok) {
@@ -2408,30 +2403,22 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
     }, [session, isOpen, form, toast]);
   
     const handleSave = async (data: Partial<PatientSession>) => {
-      const formData = new FormData();
-      
-      const sessionData = {
+      const sessionData:any = {
         ...data,
         paciente_id: userId,
         tipo_sesion: 'clinica',
         sesion_id: session?.sesion_id,
         tratamientos: data.tratamientos,
       };
-      
-      // Append all fields from sessionData to formData
-      for (const key in sessionData) {
-          if (Object.prototype.hasOwnProperty.call(sessionData, key)) {
-              const value = (sessionData as any)[key];
-              if (key === 'tratamientos') {
-                  formData.append(key, JSON.stringify(value));
-              } else if (value !== undefined && value !== null) {
-                  formData.append(key, String(value));
-              }
-          }
-      }
-  
-      attachedFiles.forEach((file) => {
-        formData.append(`files`, file);
+
+      const formData = new FormData();
+
+      Object.keys(sessionData).forEach(key => {
+        if(key === 'tratamientos') {
+            formData.append(key, JSON.stringify(sessionData[key]));
+        } else if (sessionData[key] !== undefined && sessionData[key] !== null) {
+          formData.append(key, sessionData[key]);
+        }
       });
   
       try {
@@ -2451,47 +2438,62 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
           console.error('Save error', error);
           toast({ variant: 'destructive', title: 'Error', description: t('toast.saveError') });
       }
-  };
+    };
+
+    const fileToBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = error => reject(error);
+        });
+    };
     
-    const handleAddTreatment = () => {
+    const handleAddTreatment = async () => {
         const toothNumInput = document.getElementById('new-treatment-tooth') as HTMLInputElement;
         const descInput = document.getElementById('new-treatment-desc') as HTMLInputElement;
+        const fileInput = document.getElementById('new-treatment-file') as HTMLInputElement;
+
+        if (!toothNumInput || !descInput || !fileInput) return;
         
-        if (!toothNumInput || !descInput) return;
-
-        const toothNumStr = toothNumInput.value;
         const desc = descInput.value;
+        const toothNumStr = toothNumInput.value;
+        const file = fileInput.files?.[0];
 
-        if (desc) {
-             if (toothNumStr) {
-                const toothNum = parseInt(toothNumStr, 10);
-                if (toothNum < 11 || toothNum > 85) {
-                    toast({
-                        variant: 'destructive',
-                        title: 'Error',
-                        description: "The tooth number must be between 11 and 85."
-                    });
-                    return;
-                }
-                append({ descripcion: desc, numero_diente: toothNum });
-            } else {
-                 append({ descripcion: desc, numero_diente: null });
-            }
-            toothNumInput.value = '';
-            descInput.value = '';
-        } else {
-             toast({
+        if (!desc) {
+            toast({
                 variant: 'destructive',
                 title: 'Error',
                 description: t('toast.treatmentDescriptionEmpty'),
             });
+            return;
         }
-    };
-    
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-          setAttachedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+
+        let imageBase64: string | undefined = undefined;
+        if (file) {
+            imageBase64 = await fileToBase64(file);
         }
+        
+        const newTreatment = {
+            descripcion: desc,
+            numero_diente: toothNumStr ? parseInt(toothNumStr, 10) : null,
+            imagen_adjunta: imageBase64,
+        };
+
+        if (toothNumStr && (parseInt(toothNumStr, 10) < 11 || parseInt(toothNumStr, 10) > 85)) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: "The tooth number must be between 11 and 85."
+            });
+            return;
+        }
+
+        append(newTreatment);
+        
+        toothNumInput.value = '';
+        descInput.value = '';
+        fileInput.value = '';
     };
 
     return (
@@ -2545,23 +2547,16 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                                 <h4 className="font-semibold">{t('treatments')}</h4>
                                 <div className="space-y-2 p-2 border rounded-md">
                                     <div className="flex gap-2">
-                                        <Input 
-                                            type="number"
-                                            placeholder={t('toothPlaceholder')}
-                                            id="new-treatment-tooth"
-                                        />
-                                        <Input 
-                                            placeholder={t('treatmentPlaceholder')} 
-                                            id="new-treatment-desc"
-                                        />
-                                        <Button 
-                                            type="button" 
-                                            onClick={handleAddTreatment}
-                                            size="icon"
-                                        >
-                                            <Plus className="h-4 w-4" />
-                                        </Button>
+                                        <Input type="number" placeholder={t('toothPlaceholder')} id="new-treatment-tooth"/>
+                                        <Input placeholder={t('treatmentPlaceholder')} id="new-treatment-desc"/>
                                     </div>
+                                    <div className="pt-2">
+                                      <Label htmlFor="new-treatment-file" className="text-xs">Attach Image</Label>
+                                      <Input id="new-treatment-file" type="file" accept="image/*" className="h-9"/>
+                                    </div>
+                                    <Button type="button" onClick={handleAddTreatment} size="sm" className="w-full mt-2">
+                                        <Plus className="h-4 w-4 mr-2" /> Add Treatment
+                                    </Button>
                                 </div>
                                 <ScrollArea className="h-48">
                                     <div className="max-h-full space-y-2">
@@ -2570,6 +2565,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                                                 <div>
                                                     <p className="text-sm font-medium">{treatment.descripcion}</p>
                                                     {treatment.numero_diente && <p className="text-xs text-muted-foreground">{t('tooth')}: {treatment.numero_diente}</p>}
+                                                    {treatment.imagen_adjunta && <img src={treatment.imagen_adjunta} alt="preview" className="h-10 w-10 rounded mt-1 object-cover" />}
                                                 </div>
                                                 <Button type="button" variant="destructive-ghost" size="icon" onClick={() => remove(index)}>
                                                     <Trash2 className="h-4 w-4" />
@@ -2578,20 +2574,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                                         ))}
                                     </div>
                                 </ScrollArea>
-                                 <div className="space-y-2">
-                                    <Label htmlFor="attachments">Attach Images</Label>
-                                    <Input id="attachments" type="file" multiple onChange={handleFileChange} />
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                        {attachedFiles.map((file, index) => (
-                                            <div key={index} className="relative w-20 h-20">
-                                                <Image src={URL.createObjectURL(file)} alt={file.name} layout="fill" className="object-cover rounded-md" />
-                                                <Button type="button" size="icon" variant="destructive" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => setAttachedFiles(prev => prev.filter((_, i) => i !== index))}>
-                                                    <X className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
                             </div>
                         </div>
                         <DialogFooter>
