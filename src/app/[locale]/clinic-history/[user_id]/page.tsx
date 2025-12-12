@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -88,6 +87,104 @@ type PatientHabits = {
   alcohol: string | null;
   bruxismo: string | null;
 };
+
+const HabitCard = ({ userId, fetchPatientHabits, habits, isLoading }: { userId: string, fetchPatientHabits: (userId: string) => void, habits: PatientHabits | null, isLoading: boolean }) => {
+    const t = useTranslations('ClinicHistoryPage.habits');
+    const { toast } = useToast();
+    const [isEditing, setIsEditing] = useState(false);
+    const [formData, setFormData] = useState<PatientHabits>({ tabaquismo: '', alcohol: '', bruxismo: '' });
+
+    useEffect(() => {
+        if (habits) {
+            setFormData(habits);
+        } else {
+            setFormData({ tabaquismo: '', alcohol: '', bruxismo: '' });
+        }
+    }, [habits]);
+
+    const handleSave = async () => {
+        try {
+            const payload = { ...formData, user_id: userId };
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/habitos_paciente/upsert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (!response.ok) throw new Error('Failed to save habits');
+            toast({ title: t('toast.success'), description: t('toast.saveSuccess') });
+            fetchPatientHabits(userId);
+            setIsEditing(false);
+        } catch (error) {
+            toast({ variant: 'destructive', title: t('toast.error'), description: error instanceof Error ? error.message : String(error) });
+        }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    return (
+        <div className="bg-card rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                    <User className="w-5 h-5 text-blue-600 mr-2" />
+                    <h3 className="text-lg font-bold text-card-foreground">{t('title')}</h3>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
+                    <Edit3 className="h-4 w-4" />
+                </Button>
+            </div>
+            {isLoading ? (
+                <p>Loading patient habits...</p>
+            ) : isEditing ? (
+                <div className="space-y-4">
+                    <div>
+                        <Label htmlFor="tabaquismo">{t('smoking')}</Label>
+                        <Input id="tabaquismo" name="tabaquismo" value={formData.tabaquismo || ''} onChange={handleChange} placeholder={t('smokingPlaceholder')} />
+                    </div>
+                    <div>
+                        <Label htmlFor="alcohol">{t('alcohol')}</Label>
+                        <Input id="alcohol" name="alcohol" value={formData.alcohol || ''} onChange={handleChange} placeholder={t('alcoholPlaceholder')} />
+                    </div>
+                    <div>
+                        <Label htmlFor="bruxismo">{t('bruxism')}</Label>
+                        <Input id="bruxismo" name="bruxismo" value={formData.bruxismo || ''} onChange={handleChange} placeholder={t('bruxismPlaceholder')} />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setIsEditing(false)}>{t('cancel')}</Button>
+                        <Button onClick={handleSave}>{t('save')}</Button>
+                    </div>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    <div className="flex items-start gap-4">
+                        <Wind className="w-5 h-5 text-muted-foreground mt-1" />
+                        <div>
+                            <h4 className="font-semibold">{t('smoking')}</h4>
+                            <p className="text-sm text-foreground/80">{habits?.tabaquismo || t('noData')}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                        <GlassWater className="w-5 h-5 text-muted-foreground mt-1" />
+                        <div>
+                            <h4 className="font-semibold">{t('alcohol')}</h4>
+                            <p className="text-sm text-foreground/80">{habits?.alcohol || t('noData')}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                        <Smile className="w-5 h-5 text-muted-foreground mt-1" />
+                        <div>
+                            <h4 className="font-semibold">{t('bruxism')}</h4>
+                            <p className="text-sm text-foreground/80">{habits?.bruxismo || t('noData')}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 
 const AnamnesisDashboard = ({
     personalHistory,
@@ -758,7 +855,7 @@ const AnamnesisDashboard = ({
                             )}
                         </div>
                     </div>
-                    <HabitCard userId={userId} fetchPatientHabits={fetchPatientHabits} />
+                    <HabitCard userId={userId} fetchPatientHabits={fetchPatientHabits} habits={patientHabits} isLoading={isLoadingPatientHabits} />
                 </div>
             </div>
             <Dialog open={isPersonalHistoryDialogOpen} onOpenChange={setIsPersonalHistoryDialogOpen}>
@@ -1783,7 +1880,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         if (!url || !url.includes('drive.google.com')) return null;
         const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
         if (fileIdMatch && fileIdMatch[1]) {
-            return `https://drive.google.com/uc?id=${fileIdMatch[1]}`;
+            return `https://drive.google.com/thumbnail?id=${fileIdMatch[1]}`;
         }
         return null;
     };
@@ -2011,12 +2108,11 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                                     ))}
                                                 />
                                             )}
-                                            {session.archivos_adjuntos && (
+                                            {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
                                                 <CollapsibleList
                                                     title={t('timeline.attachments')}
                                                     items={session.archivos_adjuntos.map((file, i) => {
-                                                         const isImage = file.tipo.startsWith('image/');
-                                                         const thumbnailUrl = isImage ? getGoogleDriveThumbnailUrl(file.ruta) : null;
+                                                        const thumbnailUrl = getGoogleDriveThumbnailUrl(file.ruta);
                                                          return (
                                                             <li key={i}>
                                                                 <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleViewImage(file)}>
@@ -2274,16 +2370,18 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
     
     useEffect(() => {
         const fetchSessionDetails = async () => {
-            if (session && isOpen) {
+             if (session && isOpen) {
                 try {
                     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${session.sesion_id}`);
                     if (response.ok) {
-                        const data = await response.json();
-                        const sessionDetails = Array.isArray(data) ? data[0] : data;
+                        const sessionDetails = await response.json();
                         
                         const formattedDetails = {
                             ...sessionDetails,
-                            tratamientos: sessionDetails.lista_tratamientos || [],
+                            tratamientos: sessionDetails.lista_tratamientos?.map((t: any) => ({
+                                numero_diente: t.numero_diente,
+                                descripcion: t.descripcion
+                            })) || [],
                             fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : ''
                         };
                         form.reset(formattedDetails);
@@ -2513,8 +2611,7 @@ export default function DentalClinicalSystemPage() {
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
-
-
-
     
 
+    
+    
