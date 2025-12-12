@@ -1965,7 +1965,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const handleViewImage = async (file: AttachedFile) => {
         setSelectedImage(file);
         setIsImageViewerOpen(true);
-        setImageContent(null); // Reset content while loading
+        setImageContent(null);
         try {
             const fileIdMatch = file.ruta.match(/\/d\/([a-zA-Z0-9_-]+)/);
             if (!fileIdMatch || !fileIdMatch[1]) throw new Error("Invalid Google Drive URL");
@@ -2419,6 +2419,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
     const t = useTranslations('ClinicHistoryPage.sessionDialog');
     const [doctors, setDoctors] = useState<UserType[]>([]);
     const { toast } = useToast();
+    const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 
     const form = useForm<Partial<PatientSession>>({
         defaultValues: {
@@ -2436,74 +2437,85 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
     });
 
     useEffect(() => {
-        const fetchInitialData = async () => {
-          if (!isOpen) return;
-    
+      const fetchInitialData = async () => {
+        if (!isOpen) {
+          setAttachedFiles([]);
+          return;
+        };
+  
+        try {
+          const doctorsRes = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
+          if (doctorsRes.ok) {
+            const data = await doctorsRes.json();
+            const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || data.result || []);
+            setDoctors(doctorsData);
+          }
+        } catch (error) {
+          console.error("Failed to fetch doctors:", error);
+        }
+  
+        if (session) {
           try {
-            const doctorsRes = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
-            if (doctorsRes.ok) {
-              const data = await doctorsRes.json();
-              const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || data.result || []);
-              setDoctors(doctorsData);
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${session.sesion_id}`);
+            if (response.ok) {
+              const sessionDetails = await response.json();
+              if (sessionDetails) {
+                  form.reset({
+                    ...sessionDetails,
+                    tratamientos: sessionDetails.lista_tratamientos || [],
+                    fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : ''
+                  });
+              }
+            } else {
+              toast({ variant: 'destructive', title: 'Error', description: 'Failed to load session details.' });
+              form.reset({
+                  ...session,
+                  tratamientos: session.tratamientos || [],
+                  fecha_sesion: session.fecha_sesion ? format(parseISO(session.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : ''
+              });
             }
           } catch (error) {
-            console.error("Failed to fetch doctors:", error);
+            console.error('Failed to fetch session details', error);
+            toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while loading session details.' });
           }
-    
-          if (session) {
-            try {
-              const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${session.sesion_id}`);
-              if (response.ok) {
-                const sessionDetails = await response.json();
-                
-                if (sessionDetails) {
-                    form.reset({
-                      ...sessionDetails,
-                      tratamientos: sessionDetails.lista_tratamientos || [],
-                      fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : ''
-                    });
-                }
-              } else {
-                toast({ variant: 'destructive', title: 'Error', description: 'Failed to load session details.' });
-              }
-            } catch (error) {
-              console.error('Failed to fetch session details', error);
-              toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while loading session details.' });
-            }
-          } else {
-            form.reset({
-              fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-              diagnostico: '',
-              procedimiento_realizado: '',
-              notas_clinicas: '',
-              tratamientos: [],
-              doctor_id: '',
-            });
-          }
-        };
-    
-        fetchInitialData();
-      }, [session, isOpen, form, toast]);
+        } else {
+          form.reset({
+            fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+            diagnostico: '',
+            procedimiento_realizado: '',
+            notas_clinicas: '',
+            tratamientos: [],
+            doctor_id: '',
+          });
+        }
+      };
+  
+      fetchInitialData();
+    }, [session, isOpen, form, toast]);
   
     const handleSave = async (data: Partial<PatientSession>) => {
-        const endpoint = 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert';
-
-        const payload: any = {
-            ...data,
-            paciente_id: userId,
-            tipo_sesion: 'clinica', 
+        const formData = new FormData();
+        
+        // Append form data as JSON string under a specific key, e.g., 'data'
+        const sessionData = {
+          ...data,
+          paciente_id: userId,
+          tipo_sesion: 'clinica',
         };
-
         if (session) {
-            payload.sesion_id = session.sesion_id;
+          sessionData.sesion_id = session.sesion_id;
         }
+        formData.append('data', JSON.stringify(sessionData));
+    
+        // Append files
+        attachedFiles.forEach((file, index) => {
+          formData.append(`files`, file);
+        });
 
         try {
-            const response = await fetch(endpoint, {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert', {
                 method: 'POST',
-                mode: 'cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: formData // No Content-Type header needed, browser sets it for FormData
             });
 
             if (!response.ok) {
@@ -2551,6 +2563,12 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                 title: 'Error',
                 description: t('toast.treatmentDescriptionEmpty'),
             });
+        }
+    };
+    
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+          setAttachedFiles(Array.from(e.target.files));
         }
     };
 
@@ -2638,6 +2656,20 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                                         ))}
                                     </div>
                                 </ScrollArea>
+                                 <div className="space-y-2">
+                                    <Label htmlFor="attachments">Attach Images</Label>
+                                    <Input id="attachments" type="file" multiple onChange={handleFileChange} />
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {attachedFiles.map((file, index) => (
+                                            <div key={index} className="relative w-20 h-20">
+                                                <Image src={URL.createObjectURL(file)} alt={file.name} layout="fill" className="object-cover rounded-md" />
+                                                <Button type="button" size="icon" variant="destructive" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => setAttachedFiles(prev => prev.filter((_, i) => i !== index))}>
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <DialogFooter>
@@ -2658,3 +2690,6 @@ export default function DentalClinicalSystemPage() {
     return <DentalClinicalSystem userId={userId} />;
 }
 
+
+
+    
