@@ -1046,181 +1046,6 @@ const AnamnesisDashboard = ({
     );
 };
 
-const HabitCard = ({ userId, fetchPatientHabits }: { userId: string, fetchPatientHabits: (userId: string) => void }) => {
-    const t = useTranslations('ClinicHistoryPage.habits');
-    const [isEditing, setIsEditing] = useState(false);
-    const [editedHabits, setEditedHabits] = useState<PatientHabits>({ tabaquismo: '', alcohol: '', bruxismo: '' });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submissionError, setSubmissionError] = useState<string | null>(null);
-    const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(true);
-    const [initialHabits, setInitialHabits] = useState<PatientHabits | null>(null);
-
-    const loadHabits = useCallback(async () => {
-        if (!userId) return;
-        setIsLoading(true);
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/habitos_paciente?user_id=${userId}`);
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => null);
-                if (response.status === 404) {
-                    setInitialHabits(null);
-                    setEditedHabits({ tabaquismo: '', alcohol: '', bruxismo: '' });
-                    return;
-                }
-                throw new Error(errorData?.message || 'Network response was not ok for patient habits');
-            }
-            const data = await response.json();
-            const habitsData = Array.isArray(data) && data.length > 0 ? data[0] : (data.habitos_paciente || data.data || null);
-            setInitialHabits(habitsData);
-            setEditedHabits(habitsData || { tabaquismo: '', alcohol: '', bruxismo: '' });
-        } catch (error) {
-            console.error("Failed to fetch patient habits:", error);
-            setInitialHabits(null);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [userId]);
-    
-    useEffect(() => {
-        loadHabits();
-    }, [loadHabits]);
-
-    const handleInputChange = (field: keyof Omit<PatientHabits, 'id'>, value: string) => {
-        setEditedHabits(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleEdit = () => {
-        setIsEditing(true);
-    };
-
-    const handleCancel = () => {
-        setIsEditing(false);
-        setEditedHabits(initialHabits || { tabaquismo: '', alcohol: '', bruxismo: '' });
-        setSubmissionError(null);
-    };
-    
-    const handleSave = async () => {
-        if (!userId) return;
-        setIsSubmitting(true);
-        setSubmissionError(null);
-        try {
-            const payload: any = {
-                paciente_id: userId,
-                ...editedHabits
-            };
-            if(initialHabits?.id) {
-                payload.id = initialHabits.id;
-            }
-
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/habitos/upsert', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            if (response.status > 299) throw new Error((await response.json()).message || 'Server error');
-            
-            toast({ title: t('toast.success'), description: t('toast.saveSuccess') });
-            setIsEditing(false);
-            loadHabits(); // Re-fetch to update initialHabits
-
-        } catch (error: any) {
-            setSubmissionError(error.message || t('toast.saveError'));
-            toast({ variant: 'destructive', title: t('toast.error'), description: error.message || t('toast.saveError') });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    if (isLoading) {
-        return (
-            <div className="bg-card rounded-xl shadow-lg p-6">
-                 <div className="flex items-center justify-between mb-4">
-                    <Skeleton className="h-6 w-1/2" />
-                    <Skeleton className="h-8 w-8" />
-                </div>
-                <div className="space-y-4">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="bg-card rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center">
-                    <User className="w-5 h-5 text-primary mr-2" />
-                    <h3 className="text-lg font-bold text-card-foreground">{t('title')}</h3>
-                </div>
-                {!isEditing && (
-                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleEdit}>
-                        <Edit3 className="h-4 w-4" />
-                    </Button>
-                )}
-            </div>
-            {isEditing ? (
-                <div className="space-y-4">
-                    <div className="space-y-1">
-                        <Label htmlFor="tabaquismo">{t('smoking')}</Label>
-                        <Input id="tabaquismo" placeholder={t('smokingPlaceholder')} value={editedHabits.tabaquismo || ''} onChange={(e) => handleInputChange('tabaquismo', e.target.value)} />
-                    </div>
-                     <div className="space-y-1">
-                        <Label htmlFor="alcohol">{t('alcohol')}</Label>
-                        <Input id="alcohol" placeholder={t('alcoholPlaceholder')} value={editedHabits.alcohol || ''} onChange={(e) => handleInputChange('alcohol', e.target.value)} />
-                    </div>
-                     <div className="space-y-1">
-                        <Label htmlFor="bruxismo">{t('bruxism')}</Label>
-                        <Input id="bruxismo" placeholder={t('bruxismPlaceholder')} value={editedHabits.bruxismo || ''} onChange={(e) => handleInputChange('bruxismo', e.target.value)} />
-                    </div>
-                     {submissionError && (
-                        <Alert variant="destructive">
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>{t('toast.error')}</AlertTitle>
-                            <AlertDescription>{submissionError}</AlertDescription>
-                        </Alert>
-                    )}
-                    <div className="flex justify-end gap-2 mt-4">
-                        <Button variant="outline" onClick={handleCancel}>{t('cancel')}</Button>
-                        <Button onClick={handleSave} disabled={isSubmitting}>
-                            {isSubmitting ? t('saving') : t('save')}
-                        </Button>
-                    </div>
-                </div>
-            ) : initialHabits ? (
-              <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <Wind className="w-5 h-5 text-muted-foreground mt-1" />
-                  <div>
-                    <h4 className="font-semibold text-foreground">{t('smoking')}</h4>
-                    <p className="text-sm text-muted-foreground">{initialHabits.tabaquismo || t('notSpecified')}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <GlassWater className="w-5 h-5 text-muted-foreground mt-1" />
-                  <div>
-                    <h4 className="font-semibold text-foreground">{t('alcohol')}</h4>
-                    <p className="text-sm text-muted-foreground">{initialHabits.alcohol || t('notSpecified')}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <Smile className="w-5 h-5 text-muted-foreground mt-1" />
-                  <div>
-                    <h4 className="font-semibold text-foreground">{t('bruxism')}</h4>
-                    <p className="text-sm text-muted-foreground">{initialHabits.bruxismo || t('notSpecified')}</p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p className="text-muted-foreground">{t('noData')}</p>
-            )}
-        </div>
-    );
-};
-
 const ImageViewer = ({ src, alt }: { src: string; alt: string; }) => {
     const [zoom, setZoom] = useState(1);
     const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -2194,27 +2019,15 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                                          const thumbnailUrl = isImage ? getGoogleDriveThumbnailUrl(file.ruta) : null;
                                                          return (
                                                             <li key={i}>
-                                                                {isImage ? (
-                                                                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleViewImage(file)}>
-                                                                        <Paperclip className="w-3 h-3" />
-                                                                        {thumbnailUrl ? (
-                                                                            <div className="relative h-10 w-10">
-                                                                                <Image src={thumbnailUrl} alt={file.tipo} layout="fill" className="object-cover rounded-sm" />
-                                                                            </div>
-                                                                        ) : <FileText className="w-4 h-4"/> }
-                                                                        <span className="text-primary hover:underline">{file.tipo} {file.diente_asociado && `(${t('timeline.tooth', { id: file.diente_asociado })})`}</span>
-                                                                    </div>
-                                                                ) : (
-                                                                    <a 
-                                                                        href={file.ruta} 
-                                                                        target="_blank" 
-                                                                        rel="noopener noreferrer" 
-                                                                        className="text-primary hover:underline flex items-center gap-1"
-                                                                    >
-                                                                        <Paperclip className="w-3 h-3" />
-                                                                        {file.tipo} {file.diente_asociado && `(${t('timeline.tooth', { id: file.diente_asociado })})`}
-                                                                    </a>
-                                                                )}
+                                                                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleViewImage(file)}>
+                                                                    <Paperclip className="w-3 h-3" />
+                                                                    {thumbnailUrl ? (
+                                                                        <div className="relative h-10 w-10">
+                                                                            <Image src={thumbnailUrl} alt={file.tipo} layout="fill" className="object-cover rounded-sm" />
+                                                                        </div>
+                                                                    ) : <FileText className="w-4 h-4"/> }
+                                                                    <span className="text-primary hover:underline">{file.tipo} {file.diente_asociado && `(${t('timeline.tooth', { id: file.diente_asociado })})`}</span>
+                                                                </div>
                                                             </li>
                                                          )
                                                     })}
@@ -2432,7 +2245,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         },
     });
 
-    const { fields, append, remove, replace } = useFieldArray({
+    const { fields, append, remove } = useFieldArray({
         control: form.control,
         name: "tratamientos",
     });
@@ -2465,7 +2278,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                 try {
                     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${session.sesion_id}`);
                     if (response.ok) {
-                        const sessionDetails = await response.json();
+                        const data = await response.json();
+                        const sessionDetails = Array.isArray(data) ? data[0] : data;
                         
                         const formattedDetails = {
                             ...sessionDetails,
@@ -2496,41 +2310,50 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
     }, [session, isOpen, form, toast]);
   
     const handleSave = async (data: Partial<PatientSession>) => {
-        const formData = new FormData();
-        
-        const sessionData: any = {
-          ...data,
-          paciente_id: userId,
-          tipo_sesion: 'clinica',
-        };
-        if (session) {
-          sessionData.sesion_id = session.sesion_id;
-        }
-        
-        formData.append('data', JSON.stringify(sessionData));
-    
-        attachedFiles.forEach((file) => {
-          formData.append(`files`, file);
-        });
-
-        try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Failed to save session: ${errorText}`);
-            }
-            toast({ title: t('toast.success'), description: t('toast.saveSuccess') });
-            onSave();
-            onOpenChange(false);
-        } catch (error) {
-            console.error('Save error', error);
-            toast({ variant: 'destructive', title: 'Error', description: t('toast.saveError') });
-        }
-    };
+      const formData = new FormData();
+      
+      const sessionData = {
+        ...data,
+        paciente_id: userId,
+        tipo_sesion: 'clinica',
+        sesion_id: session?.sesion_id,
+        tratamientos: data.tratamientos,
+      };
+      
+      // Append all fields from sessionData to formData
+      for (const key in sessionData) {
+          if (Object.prototype.hasOwnProperty.call(sessionData, key)) {
+              const value = (sessionData as any)[key];
+              if (key === 'tratamientos') {
+                  formData.append(key, JSON.stringify(value));
+              } else if (value !== undefined && value !== null) {
+                  formData.append(key, String(value));
+              }
+          }
+      }
+  
+      attachedFiles.forEach((file) => {
+        formData.append(`files`, file);
+      });
+  
+      try {
+          const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert', {
+              method: 'POST',
+              body: formData,
+          });
+  
+          if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(`Failed to save session: ${errorText}`);
+          }
+          toast({ title: t('toast.success'), description: t('toast.saveSuccess') });
+          onSave();
+          onOpenChange(false);
+      } catch (error) {
+          console.error('Save error', error);
+          toast({ variant: 'destructive', title: 'Error', description: t('toast.saveError') });
+      }
+  };
     
     const handleAddTreatment = () => {
         const toothNumInput = document.getElementById('new-treatment-tooth') as HTMLInputElement;
@@ -2694,3 +2517,4 @@ export default function DentalClinicalSystemPage() {
 
 
     
+
