@@ -7,7 +7,7 @@ import {
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
   BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw,
-  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown, ChevronsUpDown, Check, Trash2, MoreVertical, FolderArchive, Upload, Loader2, MoreHorizontal
+  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown, ChevronsUpDown, Check, Trash2, MoreVertical, FolderArchive, Upload, Loader2, FileUp
 } from 'lucide-react';
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
@@ -1143,6 +1143,15 @@ const AnamnesisDashboard = ({
     );
 };
 
+const getGoogleDriveThumbnailUrl = (url: string) => {
+    if (!url || !url.includes('drive.google.com')) return url;
+    const fileIdMatch = url.match(/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+    if (fileIdMatch && fileIdMatch[1]) {
+        return `https://drive.google.com/uc?id=${fileIdMatch[1]}`;
+    }
+    return url;
+};
+
 const ImageViewer = ({ src, alt }: { src: string; alt: string; }) => {
     const [zoom, setZoom] = useState(1);
     const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -1550,8 +1559,178 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     }
   };
 
+  const Navigation = () => {
+    const navItems = [
+      { id: 'anamnesis', label: t('tabs.anamnesis'), icon: FileText },
+      { id: 'timeline', label: t('tabs.timeline'), icon: Clock },
+      { id: 'odontogram', label: t('tabs.odontogram'), icon: Smile },
+      { id: 'documents', label: t('tabs.documents'), icon: FolderArchive },
+    ];
 
-  const ImageGallery = () => {
+    return (
+        <div className="flex space-x-1">
+        {navItems.map(({ id, label, icon: Icon }) => (
+            <Button
+                key={id}
+                variant={activeView === id ? 'default' : 'ghost'}
+                onClick={() => setActiveView(id)}
+                className="flex items-center space-x-2"
+            >
+                <Icon className="w-4 h-4" />
+                <span className="font-medium">{label}</span>
+            </Button>
+        ))}
+        </div>
+    );
+  };
+
+  return (
+    <div className={cn("min-h-screen", !isFullscreen && "bg-background")}>
+      {/* Header */}
+      {!isFullscreen && (
+      <div className="bg-card shadow-sm border-b border-border px-6 py-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-card-foreground">{t('title')}</h1>
+            {selectedPatient && (
+                <div className="flex items-center gap-2">
+                    <p className="text-2xl font-bold text-foreground">{selectedPatient.name}</p>
+                    <Button variant="ghost" size="icon" onClick={refreshAllData}>
+                        <RefreshCw className="h-5 w-5" />
+                    </Button>
+                </div>
+            )}
+          </div>
+        </div>
+        <div className="flex justify-between items-center mt-4">
+            <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
+                <PopoverTrigger asChild>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value)
+                                if(!patientSearchOpen) setPatientSearchOpen(true)
+                            }}
+                            placeholder={t('searchPlaceholder')}
+                            className="pl-9 w-96"
+                        />
+                    </div>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-96" align="start">
+                    <Command>
+                        <CommandInput placeholder={t('searchPlaceholder')} value={searchQuery} onValueChange={setSearchQuery}/>
+                        <CommandList>
+                            <CommandEmpty>
+                                {isSearching ? t('searching') : t('noPatientsFound')}
+                            </CommandEmpty>
+                            <CommandGroup>
+                                {searchResults.map((user) => (
+                                    <CommandItem
+                                        key={user.id}
+                                        value={user.name}
+                                        onSelect={() => handleSelectPatient(user)}
+                                    >
+                                        {user.name}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+            <Navigation />
+        </div>
+      </div>
+      )}
+    
+      {selectedPatient ? (
+        <>
+            <div className={cn(!isFullscreen && "px-6 py-8")}>
+                <div className={cn("h-[calc(100vh-230px)]", 
+                    activeView === 'timeline' && 'flex flex-col',
+                    activeView !== 'odontogram' && 'space-y-6')}>
+
+                    {activeView === 'anamnesis' && 
+                      <ScrollArea className='flex-1'>
+                        <div className="pr-4">
+                           <AnamnesisDashboard
+                                personalHistory={personalHistory}
+                                isLoadingPersonalHistory={isLoadingPersonalHistory}
+                                fetchPersonalHistory={fetchPersonalHistory}
+                                familyHistory={familyHistory}
+                                isLoadingFamilyHistory={isLoadingFamilyHistory}
+                                fetchFamilyHistory={fetchFamilyHistory}
+                                allergies={allergies}
+                                isLoadingAllergies={isLoadingAllergies}
+                                fetchAllergies={fetchAllergies}
+                                medications={medications}
+                                isLoadingMedications={isLoadingMedications}
+                                fetchMedications={fetchMedications}
+                                patientHabits={patientHabits}
+                                isLoadingPatientHabits={isLoadingPatientHabits}
+                                fetchPatientHabits={fetchPatientHabits}
+                                userId={userId}
+                            />
+                          </div>
+                      </ScrollArea>
+                    }
+                    {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} onAction={handleSessionAction} />}
+                    {activeView === 'odontogram' && (
+                        <div className={cn("relative", isFullscreen ? "fixed inset-0 z-50 bg-background" : "h-[800px] w-full")}>
+                           <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="absolute top-2 right-2 z-10 bg-background/50 hover:bg-background/80"
+                              onClick={() => setIsFullscreen(!isFullscreen)}
+                            >
+                              {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+                           </Button>
+                            <iframe src={`https://odontogramiia.invokeia.com/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
+                        </div>
+                    )}
+                    {activeView === 'documents' && <ImageGallery userId={userId}/>}
+                </div>
+            </div>
+        </>
+      ) : (
+        !isFullscreen && (
+          <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
+            <SearchCheck className="w-24 h-24 text-muted-foreground/30 mb-4" />
+            <h2 className="text-2xl font-semibold text-foreground/80">{t('selectPatientTitle')}</h2>
+            <p className="text-muted-foreground mt-2">{t('selectPatientDescription')}</p>
+          </div>
+        )
+      )}
+
+       <SessionDialog 
+            isOpen={isSessionDialogOpen} 
+            onOpenChange={setIsSessionDialogOpen} 
+            session={editingSession} 
+            userId={userId} 
+            onSave={refreshAllData} 
+        />
+
+        <AlertDialog open={!!deletingSession} onOpenChange={() => setDeletingSession(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{t('timeline.deleteDialog.title')}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        {t('timeline.deleteDialog.description')}
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>{t('timeline.deleteDialog.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmDeleteSession}>{t('timeline.deleteDialog.confirm')}</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    </div>
+  );
+};
+
+const ImageGallery = ({ userId }: { userId: string}) => {
     const [documents, setDocuments] = useState<Document[]>([]);
     const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
     const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
@@ -1561,6 +1740,8 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const [uploadFile, setUploadFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [deletingDocument, setDeletingDocument] = useState<Document | null>(null);
+    const t = useTranslations('ClinicHistoryPage');
+    const {toast} = useToast();
 
     const fetchDocuments = useCallback(async () => {
         if (!userId) return;
@@ -1819,825 +2000,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         </AlertDialog>
       </div>
     );
-  };
-
-  const MedicalAlerts = ({ alerts }: { alerts: any[] }) => (
-    <div className="bg-destructive/10 border-l-4 border-destructive rounded-xl p-6 shadow-lg">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center">
-          <AlertTriangle className="w-6 h-6 text-destructive mr-3" />
-          <h3 className="text-lg font-bold text-destructive-foreground">{t('alerts.title')}</h3>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Shield className="w-4 h-4 text-blue-600" />
-          <span className="text-xs text-muted-foreground">SNOMED-CT</span>
-        </div>
-      </div>
-      <div className="space-y-3">
-        {alerts.map((alert, index) => (
-          <div key={index} className={`p-3 rounded-lg ${
-            alert.severity === 'high' ? 'bg-destructive/20 border border-destructive/50' : 'bg-yellow-500/20 border border-yellow-500/50'
-          }`}>
-            <div className="flex justify-between items-center">
-              <span className={`font-semibold ${alert.severity === 'high' ? 'text-destructive-foreground' : 'text-yellow-800 dark:text-yellow-300'}`}>
-                🔴 {alert.text}
-              </span>
-              <span className="text-xs text-muted-foreground">{alert.code}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  const CollapsibleList = ({ title, items }: { title: string, items: React.ReactNode[] }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    if (!items || items.length === 0) return null;
-    
-    const visibleItems = isOpen ? items : items.slice(0, 3);
-
-    return (
-        <div>
-            <strong className="text-foreground/80">{title}:</strong>
-            <ul className="list-disc pl-5 mt-1">
-                {visibleItems}
-            </ul>
-            {items.length > 3 && (
-                <Button variant="link" onClick={() => setIsOpen(!isOpen)} className="p-0 h-auto text-xs">
-                    {isOpen ? t('timeline.showLess') : t('timeline.showMore', { count: items.length - 3 })}
-                </Button>
-            )}
-        </div>
-    );
-  };
-  
-const getGoogleDriveThumbnailUrl = (url: string) => {
-    if (!url || !url.includes('drive.google.com')) return url;
-    // This regex is more robust to handle different URL formats
-    const fileIdMatch = url.match(/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
-    if (fileIdMatch && fileIdMatch[1]) {
-        return `https://drive.google.com/uc?id=${fileIdMatch[1]}`;
-    }
-    return url; // return original if ID not found
 };
-
-  const TreatmentTimeline = ({ sessions, onAction }: { sessions: PatientSession[], onAction: (action: 'add' | 'edit' | 'delete', session?: PatientSession) => void }) => {
-    const [selectedImage, setSelectedImage] = useState<AttachedFile | null>(null);
-    const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
-    const [imageContent, setImageContent] = useState<string | null>(null);
-  
-    
-    const handleViewImage = async (file: AttachedFile) => {
-        setSelectedImage(file);
-        setIsImageViewerOpen(true);
-        setImageContent(null); // Reset content while loading
-        try {
-            const fileIdMatch = file.ruta.match(/d\/([a-zA-Z0-9_-]+)/) || file.ruta.match(/id=([a-zA-Z0-9_-]+)/);
-            if (!fileIdMatch || !fileIdMatch[1]) throw new Error("Invalid Google Drive URL");
-
-            const fileId = fileIdMatch[1];
-            // Use the direct download link format for fetching the image blob
-            const directDownloadUrl = `https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${fileId}&user_id=${userId}`;
-            
-            const response = await fetch(directDownloadUrl);
-
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                setImageContent(url);
-            } else {
-                const errorText = await response.text();
-                console.error("Image fetch error:", errorText);
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not load image.' });
-                setIsImageViewerOpen(false);
-            }
-        } catch (error) {
-            console.error("Failed to load image content:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch image content.' });
-            setIsImageViewerOpen(false);
-        }
-    };
-  
-    const conditionLabels: { [key: string]: string } = {
-        caries: t('odontogram.conditions.caries'),
-        filling: t('odontogram.conditions.filling'),
-        crown: t('odontogram.conditions.crown'),
-        missing: t('odontogram.conditions.missing'),
-        fracture: t('odontogram.conditions.fracture'),
-        'fixed-ortho': t('odontogram.conditions.fixed-ortho'),
-        implant: t('odontogram.conditions.implant'),
-        endodontics: t('odontogram.conditions.endodontics'),
-        pulp: t('odontogram.conditions.pulp'),
-        'crown-tmp': t('odontogram.conditions.crown-tmp'),
-        bolt: t('odontogram.conditions.bolt'),
-        diastema: t('odontogram.conditions.diastema'),
-        rotation: t('odontogram.conditions.rotation'),
-        worn: t('odontogram.conditions.worn'),
-        supernumerary: t('odontogram.conditions.supernumerary'),
-        prosthesis: t('odontogram.conditions.prosthesis'),
-        edentulism: t('odontogram.conditions.edentulism'),
-        eruption: t('odontogram.conditions.eruption'),
-    };
-  
-    const surfaceLabels: { [key: string]: string } = {
-        center: t('odontogram.surfaces.center'),
-        top: t('odontogram.surfaces.top'),
-        bottom: t('odontogram.surfaces.bottom'),
-        left: t('odontogram.surfaces.left'),
-        right: t('odontogram.surfaces.right'),
-    };
-  
-    const getDescriptionsForTooth = (toothState: any) => {
-        if (!toothState) return [];
-  
-        const descriptions = [];
-        if (toothState.whole) {
-            const conditionLabel = conditionLabels[toothState.whole] || toothState.whole;
-            descriptions.push(conditionLabel);
-        }
-  
-        const surfaceGroups: { [key: string]: string[] } = {};
-        for (const surface in surfaceLabels) {
-            const conditionId = toothState[surface];
-            if (conditionId) {
-                if (!surfaceGroups[conditionId]) {
-                    surfaceGroups[conditionId] = [];
-                }
-                surfaceGroups[conditionId].push(surfaceLabels[surface]);
-            }
-        }
-  
-        for (const conditionId in surfaceGroups) {
-            const conditionLabel = conditionLabels[conditionId] || conditionId;
-            const affectedSurfaces = surfaceGroups[conditionId].join(', ');
-            descriptions.push(`${conditionLabel} (${affectedSurfaces})`);
-        }
-  
-        if (toothState.overlays && Array.isArray(toothState.overlays)) {
-            toothState.overlays.forEach((overlayId: string) => {
-                const conditionLabel = conditionLabels[overlayId] || overlayId;
-                descriptions.push(conditionLabel);
-            });
-        }
-  
-        return descriptions;
-    };
-  
-    const generateOdontogramSummary = (odontogramState: any) => {
-        if (!odontogramState) return null;
-        const summary: { toothId: string, conditions: string[] }[] = [];
-        const toothIds = Object.keys(odontogramState).sort((a, b) => Number(a) - Number(b));
-        
-        toothIds.forEach(toothId => {
-            const toothState = odontogramState[toothId];
-            const conditions = getDescriptionsForTooth(toothState);
-            if(conditions.length > 0) {
-               summary.push({ toothId, conditions });
-            }
-        });
-  
-        return summary;
-    };
-  
-  
-    if (isLoadingPatientSessions) {
-        return (
-            <div className="bg-card rounded-xl shadow-lg p-6">
-                <h3 className="text-xl font-bold text-card-foreground mb-6">{t('timeline.title')}</h3>
-                <div className="space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                        <div key={i} className="flex gap-4">
-                            <div className="flex flex-col items-center">
-                               <div className="w-6 h-6 rounded-full bg-muted animate-pulse"></div>
-                               <div className="w-0.5 h-20 bg-muted animate-pulse mt-2"></div>
-                            </div>
-                            <div className="flex-1 space-y-2">
-                                <div className="h-5 w-3/4 bg-muted rounded animate-pulse"></div>
-                                <div className="h-4 w-1/2 bg-muted rounded animate-pulse"></div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    }
-    
-    return (
-        <div className="bg-card rounded-xl shadow-lg p-6 flex flex-col h-full">
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-card-foreground">{t('timeline.title')}</h3>
-                <Button variant="outline" size="icon" onClick={() => onAction('add')}>
-                    <Plus className="h-4 w-4" />
-                </Button>
-            </div>
-            <ScrollArea className="flex-1 -mr-6">
-                <div className="relative pr-6">
-                    <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 to-primary"></div>
-                    <TooltipProvider>
-                    {sessions.map((session, index) => {
-                        const odontogramSummary = session.tipo_sesion === 'odontograma' ? generateOdontogramSummary(session.estado_odontograma) : null;
-                        const isOdontogramSession = session.tipo_sesion === 'odontograma';
-                        return (
-                            <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
-                                <div className={`absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-4 border-background shadow-lg bg-primary`}></div>
-                                <div className="flex-1">
-                                    <div className="bg-muted/50 rounded-lg p-4 hover:bg-muted transition-colors duration-200">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div>
-                                                <h4 className="font-semibold text-foreground">{session.procedimiento_realizado}</h4>
-                                                <span className="text-sm text-muted-foreground">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</span>
-                                            </div>
-                                             <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                        <MoreVertical className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <div className={cn('w-full', isOdontogramSession && 'cursor-not-allowed')}>
-                                                                <DropdownMenuItem 
-                                                                    onSelect={(e) => isOdontogramSession && e.preventDefault()}
-                                                                    onClick={() => !isOdontogramSession && onAction('edit', session)} 
-                                                                    disabled={isOdontogramSession}
-                                                                >
-                                                                    <Edit3 className="mr-2 h-4 w-4" />
-                                                                    <span>{t('timeline.edit')}</span>
-                                                                </DropdownMenuItem>
-                                                            </div>
-                                                        </TooltipTrigger>
-                                                        {isOdontogramSession && <TooltipContent>{t('timeline.odontogramTooltip')}</TooltipContent>}
-                                                    </Tooltip>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <div className={cn('w-full', isOdontogramSession && 'cursor-not-allowed')}>
-                                                                <DropdownMenuItem
-                                                                    onSelect={(e) => isOdontogramSession && e.preventDefault()}
-                                                                    onClick={() => !isOdontogramSession && onAction('delete', session)}
-                                                                    disabled={isOdontogramSession}
-                                                                    className="text-destructive"
-                                                                >
-                                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                                    <span>{t('timeline.delete')}</span>
-                                                                </DropdownMenuItem>
-                                                            </div>
-                                                        </TooltipTrigger>
-                                                         {isOdontogramSession && <TooltipContent>{t('timeline.odontogramTooltip')}</TooltipContent>}
-                                                    </Tooltip>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                        <div className="space-y-3 text-sm text-foreground/80">
-                                            {session.tipo_sesion && <p><strong className="text-foreground/90">{t('timeline.sessionType')}:</strong> <span className="capitalize bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-300">{session.tipo_sesion}</span></p>}
-                                            {session.diagnostico && <p><strong className="text-foreground/90">{t('timeline.diagnosis')}:</strong> {session.diagnostico}</p>}
-                                            {session.notas_clinicas && <p><strong className="text-foreground/90">{t('timeline.notes')}:</strong> {session.notas_clinicas}</p>}
-                                            {session.plan_proxima_cita && <p><strong className="text-foreground/90">{t('sessionDialog.nextSessionPlan')}:</strong> {session.plan_proxima_cita}</p>}
-                                            
-                                            {odontogramSummary && (
-                                                <CollapsibleList
-                                                    title={t('timeline.odontogramUpdate')}
-                                                    items={odontogramSummary.map(item => (
-                                                        <li key={item.toothId}>
-                                                            <strong className="font-medium">{t('timeline.tooth', {id: item.toothId})}:</strong> {item.conditions.join(', ')}
-                                                        </li>
-                                                    ))}
-                                                />
-                                            )}
-
-                                            {session.tratamientos && (
-                                               <CollapsibleList
-                                                    title={t('timeline.treatments')}
-                                                    items={session.tratamientos.map((tr, i) => (
-                                                        <li key={i}>{tr.descripcion} {tr.numero_diente && `(${t('timeline.tooth', {id: tr.numero_diente})})`}</li>
-                                                    ))}
-                                                />
-                                            )}
-                                            {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
-                                                <CollapsibleList
-                                                    title={t('timeline.attachments')}
-                                                    items={session.archivos_adjuntos.map((file, i) => {
-                                                        const thumbnailUrl = getGoogleDriveThumbnailUrl(file.ruta);
-                                                         return (
-                                                            <li key={i}>
-                                                                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleViewImage(file)}>
-                                                                    <Paperclip className="w-3 h-3" />
-                                                                    {thumbnailUrl ? (
-                                                                        <div className="relative h-10 w-10">
-                                                                            <Image src={thumbnailUrl} alt={file.tipo} layout="fill" className="object-cover rounded-sm" />
-                                                                        </div>
-                                                                    ) : <FileText className="w-4 h-4"/> }
-                                                                    <span className="text-primary hover:underline">{file.tipo} {file.diente_asociado && `(${t('timeline.tooth', { id: file.diente_asociado })})`}</span>
-                                                                </div>
-                                                            </li>
-                                                         )
-                                                    })}
-                                                />
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )
-                    })}
-                    </TooltipProvider>
-                </div>
-            </ScrollArea>
-            {selectedImage && (
-                <Dialog open={isImageViewerOpen} onOpenChange={setIsImageViewerOpen}>
-                    <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
-                        <DialogHeader className="p-4 border-b">
-                            <DialogTitle>{selectedImage.tipo}</DialogTitle>
-                        </DialogHeader>
-                        {imageContent ? (
-                            <ImageViewer src={imageContent} alt={selectedImage.tipo} />
-                        ) : (
-                            <div className="flex-1 flex items-center justify-center h-full">
-                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                            </div>
-                        )}
-                    </DialogContent>
-                </Dialog>
-            )}
-        </div>
-    );
-};
-  
-  const Navigation = () => {
-    const navItems = [
-      { id: 'anamnesis', label: t('tabs.anamnesis'), icon: FileText },
-      { id: 'timeline', label: t('tabs.timeline'), icon: Clock },
-      { id: 'odontogram', label: t('tabs.odontogram'), icon: Smile },
-      { id: 'documents', label: t('tabs.documents'), icon: FolderArchive },
-    ];
-
-    return (
-        <div className="flex space-x-1">
-        {navItems.map(({ id, label, icon: Icon }) => (
-            <Button
-                key={id}
-                variant={activeView === id ? 'default' : 'ghost'}
-                onClick={() => setActiveView(id)}
-                className="flex items-center space-x-2"
-            >
-                <Icon className="w-4 h-4" />
-                <span className="font-medium">{label}</span>
-            </Button>
-        ))}
-        </div>
-    );
-  };
-
-  return (
-    <div className={cn("min-h-screen", !isFullscreen && "bg-background")}>
-      {/* Header */}
-      {!isFullscreen && (
-      <div className="bg-card shadow-sm border-b border-border px-6 py-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-card-foreground">{t('title')}</h1>
-            {selectedPatient && (
-                <div className="flex items-center gap-2">
-                    <p className="text-2xl font-bold text-foreground">{selectedPatient.name}</p>
-                    <Button variant="ghost" size="icon" onClick={refreshAllData}>
-                        <RefreshCw className="h-5 w-5" />
-                    </Button>
-                </div>
-            )}
-          </div>
-        </div>
-        <div className="flex justify-between items-center mt-4">
-            <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
-                <PopoverTrigger asChild>
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            value={searchQuery}
-                            onChange={(e) => {
-                                setSearchQuery(e.target.value)
-                                if(!patientSearchOpen) setPatientSearchOpen(true)
-                            }}
-                            placeholder={t('searchPlaceholder')}
-                            className="pl-9 w-96"
-                        />
-                    </div>
-                </PopoverTrigger>
-                <PopoverContent className="p-0 w-96" align="start">
-                    <Command>
-                        <CommandInput placeholder={t('searchPlaceholder')} value={searchQuery} onValueChange={setSearchQuery}/>
-                        <CommandList>
-                            <CommandEmpty>
-                                {isSearching ? t('searching') : t('noPatientsFound')}
-                            </CommandEmpty>
-                            <CommandGroup>
-                                {searchResults.map((user) => (
-                                    <CommandItem
-                                        key={user.id}
-                                        value={user.name}
-                                        onSelect={() => handleSelectPatient(user)}
-                                    >
-                                        {user.name}
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
-                        </CommandList>
-                    </Command>
-                </PopoverContent>
-            </Popover>
-            <Navigation />
-        </div>
-      </div>
-      )}
-    
-      {selectedPatient ? (
-        <>
-            <div className={cn(!isFullscreen && "px-6 py-8")}>
-                <div className={cn("h-[calc(100vh-230px)]", 
-                    activeView === 'timeline' && 'flex flex-col',
-                    activeView !== 'odontogram' && 'space-y-6')}>
-
-                    {activeView === 'anamnesis' && 
-                      <ScrollArea className='flex-1'>
-                        <div className="pr-4">
-                           <AnamnesisDashboard
-                                personalHistory={personalHistory}
-                                isLoadingPersonalHistory={isLoadingPersonalHistory}
-                                fetchPersonalHistory={fetchPersonalHistory}
-                                familyHistory={familyHistory}
-                                isLoadingFamilyHistory={isLoadingFamilyHistory}
-                                fetchFamilyHistory={fetchFamilyHistory}
-                                allergies={allergies}
-                                isLoadingAllergies={isLoadingAllergies}
-                                fetchAllergies={fetchAllergies}
-                                medications={medications}
-                                isLoadingMedications={isLoadingMedications}
-                                fetchMedications={fetchMedications}
-                                patientHabits={patientHabits}
-                                isLoadingPatientHabits={isLoadingPatientHabits}
-                                fetchPatientHabits={fetchPatientHabits}
-                                userId={userId}
-                            />
-                          </div>
-                      </ScrollArea>
-                    }
-                    {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} onAction={handleSessionAction} />}
-                    {activeView === 'odontogram' && (
-                        <div className={cn("relative", isFullscreen ? "fixed inset-0 z-50 bg-background" : "h-[800px] w-full")}>
-                           <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="absolute top-2 right-2 z-10 bg-background/50 hover:bg-background/80"
-                              onClick={() => setIsFullscreen(!isFullscreen)}
-                            >
-                              {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
-                           </Button>
-                            <iframe src={`https://odontogramiia.invokeia.com/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
-                        </div>
-                    )}
-                    {activeView === 'documents' && <ImageGallery />}
-                </div>
-            </div>
-        </>
-      ) : (
-        !isFullscreen && (
-          <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
-            <SearchCheck className="w-24 h-24 text-muted-foreground/30 mb-4" />
-            <h2 className="text-2xl font-semibold text-foreground/80">{t('selectPatientTitle')}</h2>
-            <p className="text-muted-foreground mt-2">{t('selectPatientDescription')}</p>
-          </div>
-        )
-      )}
-
-       <SessionDialog 
-            isOpen={isSessionDialogOpen} 
-            onOpenChange={setIsSessionDialogOpen} 
-            session={editingSession} 
-            userId={userId} 
-            onSave={refreshAllData} 
-        />
-
-        <AlertDialog open={!!deletingSession} onOpenChange={() => setDeletingSession(null)}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{t('timeline.deleteDialog.title')}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        {t('timeline.deleteDialog.description')}
-                    </AlertDialogDescription>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>{t('timeline.deleteDialog.cancel')}</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleConfirmDeleteSession}>{t('timeline.deleteDialog.confirm')}</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-    </div>
-  );
-};
-
-const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOpen: boolean, onOpenChange: (open: boolean) => void, session: PatientSession | null, userId: string, onSave: () => void }) => {
-    const t = useTranslations('ClinicHistoryPage.sessionDialog');
-    const [doctors, setDoctors] = useState<UserType[]>([]);
-    const { toast } = useToast();
-    
-    const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
-    const [uploadFile, setUploadFile] = useState<File | null>(null);
-    const [attachmentTooth, setAttachmentTooth] = useState('');
-    const [attachmentType, setAttachmentType] = useState('');
-    const [isUploading, setIsUploading] = useState(false);
-
-    const form = useForm<Partial<PatientSession>>({
-        defaultValues: {
-            fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-            diagnostico: '',
-            procedimiento_realizado: '',
-            notas_clinicas: '',
-            plan_proxima_cita: '',
-            tratamientos: [],
-            archivos_adjuntos: [],
-        },
-    });
-
-    const { fields: treatmentFields, append: appendTreatment, remove: removeTreatment } = useFieldArray({
-      control: form.control,
-      name: 'tratamientos',
-    });
-    
-    const { fields: fileFields, append: appendFile, remove: removeFile } = useFieldArray({
-      control: form.control,
-      name: 'archivos_adjuntos',
-    });
-
-
-    useEffect(() => {
-        const fetchInitialData = async () => {
-            if (!isOpen) return;
-            try {
-                const doctorsRes = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`);
-                if (doctorsRes.ok) {
-                    const data = await doctorsRes.json();
-                    const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || data.result || []);
-                    setDoctors(doctorsData);
-                }
-            } catch (error) {
-                console.error("Failed to fetch doctors:", error);
-            }
-        };
-
-        fetchInitialData();
-    }, [isOpen]);
-    
-    useEffect(() => {
-        const fetchSessionDetails = async () => {
-             if (session && isOpen) {
-                try {
-                    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/details?session_id=${session.sesion_id}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        const sessionDetails = Array.isArray(data) && data.length > 0 ? data[0] : data;
-                        
-                        const formattedDetails = {
-                            ...sessionDetails,
-                            tratamientos: sessionDetails.lista_tratamientos?.map((t: any) => ({
-                                numero_diente: t.numero_diente,
-                                descripcion: t.descripcion
-                            })) || [],
-                            fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : ''
-                        };
-                        form.reset(formattedDetails);
-                        appendFile(sessionDetails.archivos_adjuntos || []);
-                    } else {
-                        toast({ variant: 'destructive', title: 'Error', description: 'Failed to load session details.' });
-                    }
-                } catch (error) {
-                    console.error('Failed to fetch session details', error);
-                    toast({ variant: 'destructive', title: 'Error', description: 'An error occurred while loading session details.' });
-                }
-            } else if (isOpen) {
-                form.reset({
-                    fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-                    diagnostico: '',
-                    procedimiento_realizado: '',
-                    notas_clinicas: '',
-                    plan_proxima_cita: '',
-                    tratamientos: [],
-                    archivos_adjuntos: [],
-                    doctor_id: '',
-                });
-            }
-        };
-        fetchSessionDetails();
-    }, [session, isOpen, form, toast]);
-  
-    const handleSave = async (data: Partial<PatientSession>) => {
-      const sessionData = {
-        ...data,
-        paciente_id: userId,
-        tipo_sesion: 'clinica',
-        sesion_id: session?.sesion_id,
-      };
-      
-      try {
-          const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert', {
-              method: 'POST',
-              body: JSON.stringify(sessionData),
-              headers: { 'Content-Type': 'application/json' },
-          });
-  
-          if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error(`Failed to save session: ${errorText}`);
-          }
-          toast({ title: t('toast.success'), description: t('toast.saveSuccess') });
-          onSave();
-          onOpenChange(false);
-      } catch (error) {
-          console.error('Save error', error);
-          toast({ variant: 'destructive', title: 'Error', description: t('toast.saveError') });
-      }
-    };
-    
-    const fileToBase64 = (file: File): Promise<string> => {
-      return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = error => reject(error);
-      });
-    };
-
-    const handleAddTreatment = () => {
-      const descInput = document.getElementById('new-treatment-desc') as HTMLInputElement;
-      const toothNumInput = document.getElementById('new-treatment-tooth') as HTMLInputElement;
-  
-      if (!descInput) return;
-      
-      const desc = descInput.value;
-      const toothNumStr = toothNumInput.value;
-  
-      if (!desc) {
-          toast({
-              variant: 'destructive',
-              title: 'Error',
-              description: t('toast.treatmentDescriptionEmpty'),
-          });
-          return;
-      }
-      
-      const newTreatment: TreatmentDetail = {
-          descripcion: desc,
-          numero_diente: toothNumStr ? parseInt(toothNumStr, 10) : null,
-      };
-
-      if (toothNumStr && (parseInt(toothNumStr, 10) < 11 || parseInt(toothNumStr, 10) > 85)) {
-          toast({
-              variant: 'destructive',
-              title: 'Error',
-              description: "The tooth number must be between 11 and 85."
-          });
-          return;
-      }
-  
-      appendTreatment(newTreatment);
-      
-      descInput.value = '';
-      if (toothNumInput) toothNumInput.value = '';
-    };
-    
-    const handleAddFile = async () => {
-      if (!uploadFile) return;
-      setIsUploading(true);
-      
-      const base64 = await fileToBase64(uploadFile);
-
-      appendFile({
-          diente_asociado: attachmentTooth ? parseInt(attachmentTooth, 10) : null,
-          tipo: attachmentType || uploadFile.type,
-          file_name: uploadFile.name,
-          mime_type: uploadFile.type,
-          base64: base64,
-          ruta: '', // Will be handled by backend
-      });
-      
-      setIsUploading(false);
-      setUploadFile(null);
-      setAttachmentTooth('');
-      setAttachmentType('');
-      setIsAttachmentDialogOpen(false);
-    };
-
-    return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl">
-                <DialogHeader>
-                    <DialogTitle>{session ? t('editTitle') : t('createTitle')}</DialogTitle>
-                </DialogHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4 py-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-4">
-                               <FormField control={form.control} name="fecha_sesion" render={({ field }) => (<FormItem><FormLabel>{t('date')}</FormLabel><FormControl><Input type="datetime-local" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                               <FormField control={form.control} name="doctor_id" render={({ field }) => (<FormItem><Label>{t('doctor')}</Label><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder={t('selectDoctor')} /></SelectTrigger></FormControl><SelectContent>{doctors.map(doc => (<SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>))}</SelectContent></Select></FormItem>)} />
-                               <FormField control={form.control} name="procedimiento_realizado" render={({ field }) => (<FormItem><FormLabel>{t('procedure')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                               <FormField control={form.control} name="diagnostico" render={({ field }) => (<FormItem><FormLabel>{t('diagnosis')}</FormLabel><Textarea {...field} /></FormItem>)} />
-                               <FormField control={form.control} name="notas_clinicas" render={({ field }) => (<FormItem><FormLabel>{t('notes')}</FormLabel><Textarea {...field} /></FormItem>)} />
-                               <FormField control={form.control} name="plan_proxima_cita" render={({ field }) => (<FormItem><FormLabel>{t('nextSessionPlan')}</FormLabel><Textarea {...field} /></FormItem>)} />
-                            </div>
-                            <div className="space-y-4">
-                                <Card>
-                                  <CardHeader><CardTitle>{t('treatments')}</CardTitle></CardHeader>
-                                  <CardContent className="space-y-4">
-                                    <div className="space-y-2 p-2 border rounded-md">
-                                        <div className="flex gap-2">
-                                            <Input type="number" placeholder={t('toothPlaceholder')} id="new-treatment-tooth"/>
-                                            <Input placeholder={t('treatmentPlaceholder')} id="new-treatment-desc"/>
-                                        </div>
-                                        <Button type="button" onClick={handleAddTreatment} size="sm" className="w-full mt-2"><Plus className="h-4 w-4 mr-2" /> Add Treatment</Button>
-                                    </div>
-                                    <ScrollArea className="h-24"><div className="space-y-2">
-                                        {treatmentFields.map((treatment, index) => (
-                                            <div key={treatment.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
-                                                <div>
-                                                    <p className="text-sm font-medium">{treatment.descripcion}</p>
-                                                    {treatment.numero_diente && <p className="text-xs text-muted-foreground">{t('tooth')}: {treatment.numero_diente}</p>}
-                                                </div>
-                                                <Button type="button" variant="destructive-ghost" size="icon" onClick={() => removeTreatment(index)}><Trash2 className="h-4 w-4" /></Button>
-                                            </div>
-                                        ))}
-                                    </div></ScrollArea>
-                                  </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardHeader><CardTitle>{t('attachments')}</CardTitle></CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <Button type="button" onClick={() => setIsAttachmentDialogOpen(true)} size="sm" className="w-full"><Plus className="h-4 w-4 mr-2" /> Add Attachment</Button>
-                                        <ScrollArea className="h-24"><div className="space-y-2">
-                                            {fileFields.map((file, index) => (
-                                                <div key={file.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
-                                                    <div>
-                                                        <p className="text-sm font-medium">{file.tipo || file.file_name}</p>
-                                                        {file.diente_asociado && <p className="text-xs text-muted-foreground">Tooth: {file.diente_asociado}</p>}
-                                                    </div>
-                                                    <Button type="button" variant="destructive-ghost" size="icon" onClick={() => removeFile(index)}><Trash2 className="h-4 w-4" /></Button>
-                                                </div>
-                                            ))}
-                                        </div></ScrollArea>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
-                            <Button type="submit">{t('save')}</Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-                 <Dialog open={isAttachmentDialogOpen} onOpenChange={setIsAttachmentDialogOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Add Attachment</DialogTitle>
-                        </DialogHeader>
-                        <div className="py-4 space-y-4">
-                            <div className="flex items-center justify-center w-full">
-                                <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
-                                    {uploadFile ? (
-                                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                            <FileText className="w-8 h-8 mb-4 text-primary" />
-                                            <p className="font-semibold text-foreground">{uploadFile.name}</p>
-                                            <p className="text-xs text-muted-foreground">{(uploadFile.size / 1024).toFixed(2)} KB</p>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                            <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
-                                            <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                        </div>
-                                    )}
-                                </label>
-                                <Input id="dropzone-file" type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="attachment-tooth">Tooth Number (Optional)</Label>
-                                    <Input id="attachment-tooth" type="number" placeholder="e.g., 18" value={attachmentTooth} onChange={(e) => setAttachmentTooth(e.target.value)} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="attachment-type">Attachment Type</Label>
-                                    <Input id="attachment-type" placeholder="e.g., Radiograph" value={attachmentType} onChange={(e) => setAttachmentType(e.target.value)} />
-                                </div>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsAttachmentDialogOpen(false)}>Cancel</Button>
-                            <Button onClick={handleAddFile} disabled={!uploadFile || isUploading}>
-                                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                                {isUploading ? 'Adding...' : 'Add Attachment'}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </DialogContent>
-        </Dialog>
-    );
-};
-
 
 export default function DentalClinicalSystemPage() {
     const params = useParams();
@@ -2653,3 +2016,6 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
+    
+
