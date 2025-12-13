@@ -2162,26 +2162,30 @@ const getGoogleDriveThumbnailUrl = (url: string) => {
     );
 };
   
-  const Navigation = () => (
-    <div className="flex space-x-1">
-      {[
-        { id: 'anamnesis', label: t('tabs.anamnesis'), icon: FileText },
-        { id: 'timeline', label: t('tabs.timeline'), icon: Clock },
-        { id: 'odontogram', label: t('tabs.odontogram'), icon: Smile },
-        { id: 'documents', label: t('tabs.documents'), icon: FolderArchive },
-      ].map(({ id, label, icon: Icon }) => (
-        <Button
-            key={id}
-            variant={activeView === id ? 'default' : 'ghost'}
-            onClick={() => setActiveView(id)}
-            className="flex items-center space-x-2"
-        >
-            <Icon className="w-4 h-4" />
-            <span className="font-medium">{label}</span>
-        </Button>
-      ))}
-    </div>
-  );
+  const Navigation = () => {
+    const navItems = [
+      { id: 'anamnesis', label: t('tabs.anamnesis'), icon: FileText },
+      { id: 'timeline', label: t('tabs.timeline'), icon: Clock },
+      { id: 'odontogram', label: t('tabs.odontogram'), icon: Smile },
+      { id: 'documents', label: t('tabs.documents'), icon: FolderArchive },
+    ];
+
+    return (
+        <div className="flex space-x-1">
+        {navItems.map(({ id, label, icon: Icon }) => (
+            <Button
+                key={id}
+                variant={activeView === id ? 'default' : 'ghost'}
+                onClick={() => setActiveView(id)}
+                className="flex items-center space-x-2"
+            >
+                <Icon className="w-4 h-4" />
+                <span className="font-medium">{label}</span>
+            </Button>
+        ))}
+        </div>
+    );
+    };
 
   return (
     <div className={cn("min-h-screen", !isFullscreen && "bg-background")}>
@@ -2340,6 +2344,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
             diagnostico: '',
             procedimiento_realizado: '',
             notas_clinicas: '',
+            next_session_plan: '',
             tratamientos: [],
         },
     });
@@ -2399,6 +2404,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                     diagnostico: '',
                     procedimiento_realizado: '',
                     notas_clinicas: '',
+                    next_session_plan: '',
                     tratamientos: [],
                     doctor_id: '',
                 });
@@ -2543,6 +2549,10 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                                 <div className="space-y-2">
                                     <Label>{t('notes')}</Label>
                                     <Textarea {...form.register('notas_clinicas')} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>{t('nextSessionPlan')}</Label>
+                                    <Textarea {...form.register('next_session_plan')} />
                                 </div>
                             </div>
                             <div className="space-y-4">

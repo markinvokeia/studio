@@ -425,6 +425,7 @@ export type PatientSession = {
   diagnostico: string | null;
   procedimiento_realizado: string;
   notas_clinicas: string;
+  next_session_plan?: string;
   doctor_id: string | null;
   estado_odontograma?: any;
   tratamientos: TreatmentDetail[];
