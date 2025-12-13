@@ -1,5 +1,4 @@
 
-
 export type User = {
   id: string;
   name: string;
@@ -425,7 +424,7 @@ export type PatientSession = {
   diagnostico: string | null;
   procedimiento_realizado: string;
   notas_clinicas: string;
-  next_session_plan?: string;
+  plan_proxima_cita?: string;
   doctor_id: string | null;
   estado_odontograma?: any;
   tratamientos: TreatmentDetail[];

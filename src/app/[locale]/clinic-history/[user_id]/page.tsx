@@ -2092,6 +2092,7 @@ const getGoogleDriveThumbnailUrl = (url: string) => {
                                             {session.tipo_sesion && <p><strong className="text-foreground/90">{t('timeline.sessionType')}:</strong> <span className="capitalize bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-300">{session.tipo_sesion}</span></p>}
                                             {session.diagnostico && <p><strong className="text-foreground/90">{t('timeline.diagnosis')}:</strong> {session.diagnostico}</p>}
                                             {session.notas_clinicas && <p><strong className="text-foreground/90">{t('timeline.notes')}:</strong> {session.notas_clinicas}</p>}
+                                            {session.plan_proxima_cita && <p><strong className="text-foreground/90">{t('sessionDialog.nextSessionPlan')}:</strong> {session.plan_proxima_cita}</p>}
                                             
                                             {odontogramSummary && (
                                                 <CollapsibleList
@@ -2344,7 +2345,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
             diagnostico: '',
             procedimiento_realizado: '',
             notas_clinicas: '',
-            next_session_plan: '',
+            plan_proxima_cita: '',
             tratamientos: [],
         },
     });
@@ -2404,7 +2405,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                     diagnostico: '',
                     procedimiento_realizado: '',
                     notas_clinicas: '',
-                    next_session_plan: '',
+                    plan_proxima_cita: '',
                     tratamientos: [],
                     doctor_id: '',
                 });
@@ -2552,7 +2553,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                                 </div>
                                 <div className="space-y-2">
                                     <Label>{t('nextSessionPlan')}</Label>
-                                    <Textarea {...form.register('next_session_plan')} />
+                                    <Textarea {...form.register('plan_proxima_cita')} />
                                 </div>
                             </div>
                             <div className="space-y-4">
@@ -2608,6 +2609,5 @@ export default function DentalClinicalSystemPage() {
     return <DentalClinicalSystem userId={userId} />;
 }
     
-
     
     
