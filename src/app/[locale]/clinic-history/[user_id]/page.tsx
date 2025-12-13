@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -2339,6 +2340,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
     const [doctors, setDoctors] = useState<UserType[]>([]);
     const { toast } = useToast();
     
+    const [attachedFiles, setAttachedFiles] = React.useState<any[]>([]);
+
     const form = useForm<Partial<PatientSession>>({
         defaultValues: {
             fecha_sesion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
@@ -2347,6 +2350,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
             notas_clinicas: '',
             plan_proxima_cita: '',
             tratamientos: [],
+            archivos_adjuntos: [],
         },
     });
 
@@ -2391,7 +2395,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                             fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : ''
                         };
                         form.reset(formattedDetails);
-
+                        setAttachedFiles(sessionDetails.archivos_adjuntos || []);
                     } else {
                         toast({ variant: 'destructive', title: 'Error', description: 'Failed to load session details.' });
                     }
@@ -2407,8 +2411,10 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                     notas_clinicas: '',
                     plan_proxima_cita: '',
                     tratamientos: [],
+                    archivos_adjuntos: [],
                     doctor_id: '',
                 });
+                setAttachedFiles([]);
             }
         };
         fetchSessionDetails();
@@ -2421,6 +2427,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         tipo_sesion: 'clinica',
         sesion_id: session?.sesion_id,
         tratamientos: data.tratamientos,
+        archivos_adjuntos: attachedFiles,
       };
       
       try {
@@ -2458,16 +2465,14 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         });
     };
     
-    const handleAddTreatment = async () => {
-        const toothNumInput = document.getElementById('new-treatment-tooth') as HTMLInputElement;
+    const handleAddTreatment = () => {
         const descInput = document.getElementById('new-treatment-desc') as HTMLInputElement;
-        const fileInput = document.getElementById('new-treatment-file') as HTMLInputElement;
+        const toothNumInput = document.getElementById('new-treatment-tooth') as HTMLInputElement;
 
-        if (!toothNumInput || !descInput || !fileInput) return;
+        if (!descInput) return;
         
         const desc = descInput.value;
         const toothNumStr = toothNumInput.value;
-        const file = fileInput.files?.[0];
 
         if (!desc) {
             toast({
@@ -2477,16 +2482,10 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
             });
             return;
         }
-
-        let imageAttachment: { file_name: string; mime_type: string; base64: string; } | undefined = undefined;
-        if (file) {
-            imageAttachment = await fileToBase64(file);
-        }
         
         const newTreatment = {
             descripcion: desc,
             numero_diente: toothNumStr ? parseInt(toothNumStr, 10) : null,
-            imagen_adjunta: imageAttachment,
         };
 
         if (toothNumStr && (parseInt(toothNumStr, 10) < 11 || parseInt(toothNumStr, 10) > 85)) {
@@ -2500,10 +2499,44 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
 
         append(newTreatment);
         
-        toothNumInput.value = '';
         descInput.value = '';
+        if (toothNumInput) toothNumInput.value = '';
+    };
+
+    const handleAddFile = async () => {
+        const toothNumInput = document.getElementById('new-attachment-tooth') as HTMLInputElement;
+        const fileInput = document.getElementById('new-attachment-file') as HTMLInputElement;
+        const fileTypeInput = document.getElementById('new-attachment-type') as HTMLInputElement;
+
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Please select a file to attach.' });
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const toothNumStr = toothNumInput?.value || null;
+        const fileType = fileTypeInput?.value || 'Attachment';
+
+        const base64File = await fileToBase64(file);
+
+        setAttachedFiles(prev => [
+            ...prev,
+            {
+                diente_asociado: toothNumStr ? parseInt(toothNumStr, 10) : null,
+                tipo: fileType,
+                ...base64File,
+            }
+        ]);
+        
+        if (toothNumInput) toothNumInput.value = '';
+        if (fileTypeInput) fileTypeInput.value = '';
         fileInput.value = '';
     };
+    
+    const handleRemoveFile = (index: number) => {
+        setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+    };
+    
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -2513,82 +2546,63 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label>{t('date')}</Label>
-                            <Input type="datetime-local" {...form.register('fecha_sesion')} />
-                        </div>
-                        
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-4">
-                               <FormField
-                                    control={form.control}
-                                    name="doctor_id"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <Label>{t('doctor')}</Label>
-                                            <Select onValueChange={field.onChange} value={field.value || ''}>
-                                                <FormControl>
-                                                    <SelectTrigger><SelectValue placeholder={t('selectDoctor')} /></SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {doctors.map(doc => (
-                                                        <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )}
-                                />
-                                <div className="space-y-2">
-                                    <Label>{t('procedure')}</Label>
-                                    <Input {...form.register('procedimiento_realizado')} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>{t('diagnosis')}</Label>
-                                    <Textarea {...form.register('diagnostico')} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>{t('notes')}</Label>
-                                    <Textarea {...form.register('notas_clinicas')} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>{t('nextSessionPlan')}</Label>
-                                    <Textarea {...form.register('plan_proxima_cita')} />
-                                </div>
+                               <FormField control={form.control} name="fecha_sesion" render={({ field }) => (<FormItem><FormLabel>{t('date')}</FormLabel><FormControl><Input type="datetime-local" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                               <FormField control={form.control} name="doctor_id" render={({ field }) => (<FormItem><Label>{t('doctor')}</Label><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder={t('selectDoctor')} /></SelectTrigger></FormControl><SelectContent>{doctors.map(doc => (<SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>))}</SelectContent></Select></FormItem>)} />
+                               <FormField control={form.control} name="procedimiento_realizado" render={({ field }) => (<FormItem><FormLabel>{t('procedure')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                               <FormField control={form.control} name="diagnostico" render={({ field }) => (<FormItem><FormLabel>{t('diagnosis')}</FormLabel><Textarea {...field} /></FormItem>)} />
+                               <FormField control={form.control} name="notas_clinicas" render={({ field }) => (<FormItem><FormLabel>{t('notes')}</FormLabel><Textarea {...field} /></FormItem>)} />
+                               <FormField control={form.control} name="plan_proxima_cita" render={({ field }) => (<FormItem><FormLabel>{t('nextSessionPlan')}</FormLabel><Textarea {...field} /></FormItem>)} />
                             </div>
                             <div className="space-y-4">
-                                <h4 className="font-semibold">{t('treatments')}</h4>
-                                <div className="space-y-2 p-2 border rounded-md">
-                                    <div className="flex gap-2">
-                                        <Input type="number" placeholder={t('toothPlaceholder')} id="new-treatment-tooth"/>
-                                        <Input placeholder={t('treatmentPlaceholder')} id="new-treatment-desc"/>
+                                <Card>
+                                  <CardHeader><CardTitle>{t('treatments')}</CardTitle></CardHeader>
+                                  <CardContent className="space-y-4">
+                                    <div className="space-y-2 p-2 border rounded-md">
+                                        <div className="flex gap-2">
+                                            <Input type="number" placeholder={t('toothPlaceholder')} id="new-treatment-tooth"/>
+                                            <Input placeholder={t('treatmentPlaceholder')} id="new-treatment-desc"/>
+                                        </div>
+                                        <Button type="button" onClick={handleAddTreatment} size="sm" className="w-full mt-2"><Plus className="h-4 w-4 mr-2" /> Add Treatment</Button>
                                     </div>
-                                    <div className="pt-2">
-                                      <Label htmlFor="new-treatment-file" className="text-xs">Attach Image</Label>
-                                      <Input id="new-treatment-file" type="file" accept="image/*" className="h-9"/>
-                                    </div>
-                                    <Button type="button" onClick={handleAddTreatment} size="sm" className="w-full mt-2">
-                                        <Plus className="h-4 w-4 mr-2" /> Add Treatment
-                                    </Button>
-                                </div>
-                                <ScrollArea className="h-48">
-                                    <div className="max-h-full space-y-2">
+                                    <ScrollArea className="h-24"><div className="space-y-2">
                                         {fields.map((treatment, index) => (
                                             <div key={treatment.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
                                                 <div>
                                                     <p className="text-sm font-medium">{treatment.descripcion}</p>
                                                     {treatment.numero_diente && <p className="text-xs text-muted-foreground">{t('tooth')}: {treatment.numero_diente}</p>}
-                                                    {treatment.imagen_adjunta && typeof treatment.imagen_adjunta === 'object' && (
-                                                      <img src={treatment.imagen_adjunta.base64} alt="preview" className="h-10 w-10 rounded mt-1 object-cover" />
-                                                    )}
                                                 </div>
-                                                <Button type="button" variant="destructive-ghost" size="icon" onClick={() => remove(index)}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                                <Button type="button" variant="destructive-ghost" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
                                             </div>
                                         ))}
-                                    </div>
-                                </ScrollArea>
+                                    </div></ScrollArea>
+                                  </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader><CardTitle>{t('attachments')}</CardTitle></CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="space-y-2 p-2 border rounded-md">
+                                            <div className="flex gap-2">
+                                                <Input type="number" placeholder={t('toothPlaceholder')} id="new-attachment-tooth"/>
+                                                <Input placeholder="Attachment Type" id="new-attachment-type"/>
+                                            </div>
+                                            <div className="pt-2"><Input id="new-attachment-file" type="file" accept="image/*" className="h-9"/></div>
+                                            <Button type="button" onClick={handleAddFile} size="sm" className="w-full mt-2"><Plus className="h-4 w-4 mr-2" /> Add Attachment</Button>
+                                        </div>
+                                        <ScrollArea className="h-24"><div className="space-y-2">
+                                            {attachedFiles.map((file, index) => (
+                                                <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-md">
+                                                    <div>
+                                                        <p className="text-sm font-medium">{file.tipo || file.file_name}</p>
+                                                        {file.diente_asociado && <p className="text-xs text-muted-foreground">Tooth: {file.diente_asociado}</p>}
+                                                    </div>
+                                                    <Button type="button" variant="destructive-ghost" size="icon" onClick={() => handleRemoveFile(index)}><Trash2 className="h-4 w-4" /></Button>
+                                                </div>
+                                            ))}
+                                        </div></ScrollArea>
+                                    </CardContent>
+                                </Card>
                             </div>
                         </div>
                         <DialogFooter>
@@ -2611,3 +2625,4 @@ export default function DentalClinicalSystemPage() {
     
     
     
+

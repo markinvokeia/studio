@@ -1,4 +1,5 @@
 
+
 export type User = {
   id: string;
   name: string;
@@ -404,17 +405,15 @@ export type DentalSurface = {
 export type TreatmentDetail = {
   numero_diente: number | null;
   descripcion: string;
-  imagen_adjunta?: {
-    file_name: string;
-    mime_type: string;
-    base64: string;
-  };
 };
 
 export type AttachedFile = {
   diente_asociado: number | null;
   ruta: string;
   tipo: string;
+  file_name?: string;
+  mime_type?: string;
+  base64?: string;
 };
 
 export type PatientSession = {
@@ -550,3 +549,4 @@ export type Credit = {
   currency: 'UYU' | 'USD';
   type: 'credit_note' | 'prepaid';
 };
+
