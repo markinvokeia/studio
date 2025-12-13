@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -48,7 +47,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
@@ -2187,7 +2186,7 @@ const getGoogleDriveThumbnailUrl = (url: string) => {
         ))}
         </div>
     );
-    };
+  };
 
   return (
     <div className={cn("min-h-screen", !isFullscreen && "bg-background")}>
@@ -2324,7 +2323,6 @@ const getGoogleDriveThumbnailUrl = (url: string) => {
                     <AlertDialogDescription>
                         {t('timeline.deleteDialog.description')}
                     </AlertDialogDescription>
-                </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>{t('timeline.deleteDialog.cancel')}</AlertDialogCancel>
                     <AlertDialogAction onClick={handleConfirmDeleteSession}>{t('timeline.deleteDialog.confirm')}</AlertDialogAction>
@@ -2340,7 +2338,11 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
     const [doctors, setDoctors] = useState<UserType[]>([]);
     const { toast } = useToast();
     
-    const [attachedFiles, setAttachedFiles] = React.useState<any[]>([]);
+    const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
+    const [uploadFile, setUploadFile] = useState<File | null>(null);
+    const [attachmentTooth, setAttachmentTooth] = useState('');
+    const [attachmentType, setAttachmentType] = useState('');
+    const [isUploading, setIsUploading] = useState(false);
 
     const form = useForm<Partial<PatientSession>>({
         defaultValues: {
@@ -2401,7 +2403,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                             fecha_sesion: sessionDetails.fecha_sesion ? format(parseISO(sessionDetails.fecha_sesion), "yyyy-MM-dd'T'HH:mm") : ''
                         };
                         form.reset(formattedDetails);
-                        setAttachedFiles(sessionDetails.archivos_adjuntos || []);
+                        appendFile(sessionDetails.archivos_adjuntos || []);
                     } else {
                         toast({ variant: 'destructive', title: 'Error', description: 'Failed to load session details.' });
                     }
@@ -2420,7 +2422,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                     archivos_adjuntos: [],
                     doctor_id: '',
                 });
-                setAttachedFiles([]);
             }
         };
         fetchSessionDetails();
@@ -2432,8 +2433,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         paciente_id: userId,
         tipo_sesion: 'clinica',
         sesion_id: session?.sesion_id,
-        tratamientos: JSON.stringify(data.tratamientos),
-        archivos_adjuntos: data.archivos_adjuntos,
       };
       
       try {
@@ -2456,18 +2455,14 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
       }
     };
     
-    const fileToBase64 = (file: File): Promise<{file_name: string, mime_type: string, base64: string}> => {
+    const fileToBase64 = (file: File): Promise<string> => {
       return new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.readAsDataURL(file);
-          reader.onload = () => resolve({
-              file_name: file.name,
-              mime_type: file.type,
-              base64: reader.result as string
-          });
+          reader.onload = () => resolve(reader.result as string);
           reader.onerror = error => reject(error);
       });
-  };
+    };
 
     const handleAddTreatment = () => {
       const descInput = document.getElementById('new-treatment-desc') as HTMLInputElement;
@@ -2505,33 +2500,28 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
       
       descInput.value = '';
       if (toothNumInput) toothNumInput.value = '';
-  };
+    };
     
     const handleAddFile = async () => {
-        const toothNumInput = document.getElementById('new-attachment-tooth') as HTMLInputElement;
-        const fileInput = document.getElementById('new-attachment-file') as HTMLInputElement;
-        const fileTypeInput = document.getElementById('new-attachment-type') as HTMLInputElement;
+      if (!uploadFile) return;
+      setIsUploading(true);
+      
+      const base64 = await fileToBase64(uploadFile);
 
-        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please select a file to attach.' });
-            return;
-        }
-
-        const file = fileInput.files[0];
-        const toothNumStr = toothNumInput?.value || null;
-        const fileType = fileTypeInput?.value || 'Attachment';
-
-        const base64File = await fileToBase64(file);
-
-        appendFile({
-            diente_asociado: toothNumStr ? parseInt(toothNumStr, 10) : null,
-            tipo: fileType,
-            ...base64File,
-        });
-        
-        if (toothNumInput) toothNumInput.value = '';
-        if (fileTypeInput) fileTypeInput.value = '';
-        fileInput.value = '';
+      appendFile({
+          diente_asociado: attachmentTooth ? parseInt(attachmentTooth, 10) : null,
+          tipo: attachmentType || uploadFile.type,
+          file_name: uploadFile.name,
+          mime_type: uploadFile.type,
+          base64: base64,
+          ruta: '', // Will be handled by backend
+      });
+      
+      setIsUploading(false);
+      setUploadFile(null);
+      setAttachmentTooth('');
+      setAttachmentType('');
+      setIsAttachmentDialogOpen(false);
     };
 
     return (
@@ -2578,19 +2568,12 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                                 <Card>
                                     <CardHeader><CardTitle>{t('attachments')}</CardTitle></CardHeader>
                                     <CardContent className="space-y-4">
-                                        <div className="space-y-2 p-2 border rounded-md">
-                                            <div className="flex gap-2">
-                                                <Input type="number" placeholder={t('toothPlaceholder')} id="new-attachment-tooth"/>
-                                                <Input placeholder="Attachment Type" id="new-attachment-type"/>
-                                            </div>
-                                            <div className="pt-2"><Input id="new-attachment-file" type="file" accept="image/*" className="h-9"/></div>
-                                            <Button type="button" onClick={handleAddFile} size="sm" className="w-full mt-2"><Plus className="h-4 w-4 mr-2" /> Add Attachment</Button>
-                                        </div>
+                                        <Button type="button" onClick={() => setIsAttachmentDialogOpen(true)} size="sm" className="w-full"><Plus className="h-4 w-4 mr-2" /> Add Attachment</Button>
                                         <ScrollArea className="h-24"><div className="space-y-2">
                                             {fileFields.map((file, index) => (
                                                 <div key={file.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
                                                     <div>
-                                                        <p className="text-sm font-medium">{file.tipo || (file as any).file_name}</p>
+                                                        <p className="text-sm font-medium">{file.tipo || file.file_name}</p>
                                                         {file.diente_asociado && <p className="text-xs text-muted-foreground">Tooth: {file.diente_asociado}</p>}
                                                     </div>
                                                     <Button type="button" variant="destructive-ghost" size="icon" onClick={() => removeFile(index)}><Trash2 className="h-4 w-4" /></Button>
@@ -2607,6 +2590,49 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                         </DialogFooter>
                     </form>
                 </Form>
+                 <Dialog open={isAttachmentDialogOpen} onOpenChange={setIsAttachmentDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Add Attachment</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4 space-y-4">
+                            <div className="flex items-center justify-center w-full">
+                                <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
+                                    {uploadFile ? (
+                                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <FileText className="w-8 h-8 mb-4 text-primary" />
+                                            <p className="font-semibold text-foreground">{uploadFile.name}</p>
+                                            <p className="text-xs text-muted-foreground">{(uploadFile.size / 1024).toFixed(2)} KB</p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
+                                            <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                        </div>
+                                    )}
+                                </label>
+                                <Input id="dropzone-file" type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="attachment-tooth">Tooth Number (Optional)</Label>
+                                    <Input id="attachment-tooth" type="number" placeholder="e.g., 18" value={attachmentTooth} onChange={(e) => setAttachmentTooth(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="attachment-type">Attachment Type</Label>
+                                    <Input id="attachment-type" placeholder="e.g., Radiograph" value={attachmentType} onChange={(e) => setAttachmentType(e.target.value)} />
+                                </div>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsAttachmentDialogOpen(false)}>Cancel</Button>
+                            <Button onClick={handleAddFile} disabled={!uploadFile || isUploading}>
+                                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                                {isUploading ? 'Adding...' : 'Add Attachment'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </DialogContent>
         </Dialog>
     );
@@ -2623,3 +2649,7 @@ export default function DentalClinicalSystemPage() {
     
 
 
+
+    
+
+    
