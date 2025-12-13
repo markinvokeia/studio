@@ -48,7 +48,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
@@ -2354,10 +2354,16 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         },
     });
 
-    const { fields, append, remove } = useFieldArray({
-        control: form.control,
-        name: "tratamientos",
+    const { fields: treatmentFields, append: appendTreatment, remove: removeTreatment } = useFieldArray({
+      control: form.control,
+      name: 'tratamientos',
     });
+    
+    const { fields: fileFields, append: appendFile, remove: removeFile } = useFieldArray({
+      control: form.control,
+      name: 'archivos_adjuntos',
+    });
+
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -2426,17 +2432,15 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
         paciente_id: userId,
         tipo_sesion: 'clinica',
         sesion_id: session?.sesion_id,
-        tratamientos: data.tratamientos,
-        archivos_adjuntos: attachedFiles,
+        tratamientos: JSON.stringify(data.tratamientos),
+        archivos_adjuntos: data.archivos_adjuntos,
       };
       
       try {
           const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert', {
               method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
               body: JSON.stringify(sessionData),
+              headers: { 'Content-Type': 'application/json' },
           });
   
           if (!response.ok) {
@@ -2451,58 +2455,58 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
           toast({ variant: 'destructive', title: 'Error', description: t('toast.saveError') });
       }
     };
-
-    const fileToBase64 = (file: File): Promise<{file_name: string; mime_type: string; base64: string}> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve({
-                file_name: file.name,
-                mime_type: file.type,
-                base64: reader.result as string
-            });
-            reader.onerror = error => reject(error);
-        });
-    };
     
+    const fileToBase64 = (file: File): Promise<{file_name: string, mime_type: string, base64: string}> => {
+      return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve({
+              file_name: file.name,
+              mime_type: file.type,
+              base64: reader.result as string
+          });
+          reader.onerror = error => reject(error);
+      });
+  };
+
     const handleAddTreatment = () => {
-        const descInput = document.getElementById('new-treatment-desc') as HTMLInputElement;
-        const toothNumInput = document.getElementById('new-treatment-tooth') as HTMLInputElement;
+      const descInput = document.getElementById('new-treatment-desc') as HTMLInputElement;
+      const toothNumInput = document.getElementById('new-treatment-tooth') as HTMLInputElement;
+  
+      if (!descInput) return;
+      
+      const desc = descInput.value;
+      const toothNumStr = toothNumInput.value;
+  
+      if (!desc) {
+          toast({
+              variant: 'destructive',
+              title: 'Error',
+              description: t('toast.treatmentDescriptionEmpty'),
+          });
+          return;
+      }
+      
+      const newTreatment: TreatmentDetail = {
+          descripcion: desc,
+          numero_diente: toothNumStr ? parseInt(toothNumStr, 10) : null,
+      };
 
-        if (!descInput) return;
-        
-        const desc = descInput.value;
-        const toothNumStr = toothNumInput.value;
-
-        if (!desc) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: t('toast.treatmentDescriptionEmpty'),
-            });
-            return;
-        }
-        
-        const newTreatment = {
-            descripcion: desc,
-            numero_diente: toothNumStr ? parseInt(toothNumStr, 10) : null,
-        };
-
-        if (toothNumStr && (parseInt(toothNumStr, 10) < 11 || parseInt(toothNumStr, 10) > 85)) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: "The tooth number must be between 11 and 85."
-            });
-            return;
-        }
-
-        append(newTreatment);
-        
-        descInput.value = '';
-        if (toothNumInput) toothNumInput.value = '';
-    };
-
+      if (toothNumStr && (parseInt(toothNumStr, 10) < 11 || parseInt(toothNumStr, 10) > 85)) {
+          toast({
+              variant: 'destructive',
+              title: 'Error',
+              description: "The tooth number must be between 11 and 85."
+          });
+          return;
+      }
+  
+      appendTreatment(newTreatment);
+      
+      descInput.value = '';
+      if (toothNumInput) toothNumInput.value = '';
+  };
+    
     const handleAddFile = async () => {
         const toothNumInput = document.getElementById('new-attachment-tooth') as HTMLInputElement;
         const fileInput = document.getElementById('new-attachment-file') as HTMLInputElement;
@@ -2519,24 +2523,16 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
 
         const base64File = await fileToBase64(file);
 
-        setAttachedFiles(prev => [
-            ...prev,
-            {
-                diente_asociado: toothNumStr ? parseInt(toothNumStr, 10) : null,
-                tipo: fileType,
-                ...base64File,
-            }
-        ]);
+        appendFile({
+            diente_asociado: toothNumStr ? parseInt(toothNumStr, 10) : null,
+            tipo: fileType,
+            ...base64File,
+        });
         
         if (toothNumInput) toothNumInput.value = '';
         if (fileTypeInput) fileTypeInput.value = '';
         fileInput.value = '';
     };
-    
-    const handleRemoveFile = (index: number) => {
-        setAttachedFiles(prev => prev.filter((_, i) => i !== index));
-    };
-    
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -2567,13 +2563,13 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                                         <Button type="button" onClick={handleAddTreatment} size="sm" className="w-full mt-2"><Plus className="h-4 w-4 mr-2" /> Add Treatment</Button>
                                     </div>
                                     <ScrollArea className="h-24"><div className="space-y-2">
-                                        {fields.map((treatment, index) => (
+                                        {treatmentFields.map((treatment, index) => (
                                             <div key={treatment.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
                                                 <div>
                                                     <p className="text-sm font-medium">{treatment.descripcion}</p>
                                                     {treatment.numero_diente && <p className="text-xs text-muted-foreground">{t('tooth')}: {treatment.numero_diente}</p>}
                                                 </div>
-                                                <Button type="button" variant="destructive-ghost" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
+                                                <Button type="button" variant="destructive-ghost" size="icon" onClick={() => removeTreatment(index)}><Trash2 className="h-4 w-4" /></Button>
                                             </div>
                                         ))}
                                     </div></ScrollArea>
@@ -2591,13 +2587,13 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOp
                                             <Button type="button" onClick={handleAddFile} size="sm" className="w-full mt-2"><Plus className="h-4 w-4 mr-2" /> Add Attachment</Button>
                                         </div>
                                         <ScrollArea className="h-24"><div className="space-y-2">
-                                            {attachedFiles.map((file, index) => (
-                                                <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-md">
+                                            {fileFields.map((file, index) => (
+                                                <div key={file.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
                                                     <div>
-                                                        <p className="text-sm font-medium">{file.tipo || file.file_name}</p>
+                                                        <p className="text-sm font-medium">{file.tipo || (file as any).file_name}</p>
                                                         {file.diente_asociado && <p className="text-xs text-muted-foreground">Tooth: {file.diente_asociado}</p>}
                                                     </div>
-                                                    <Button type="button" variant="destructive-ghost" size="icon" onClick={() => handleRemoveFile(index)}><Trash2 className="h-4 w-4" /></Button>
+                                                    <Button type="button" variant="destructive-ghost" size="icon" onClick={() => removeFile(index)}><Trash2 className="h-4 w-4" /></Button>
                                                 </div>
                                             ))}
                                         </div></ScrollArea>
@@ -2625,4 +2621,5 @@ export default function DentalClinicalSystemPage() {
     
     
     
+
 
