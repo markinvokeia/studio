@@ -11,22 +11,22 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { QuoteItemsTable } from '@/components/tables/quote-items-table';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
@@ -44,13 +44,13 @@ import { useTranslations } from 'next-intl';
 
 
 const quoteFormSchema = (t: (key: string) => string) => z.object({
-  id: z.string().optional(),
-  user_id: z.string().min(1, t('validation.userRequired')),
-  total: z.coerce.number().min(0, 'Total must be a positive number'),
-  currency: z.enum(['UYU', 'USD']).default('USD'),
-  status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed']),
-  payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid']),
-  billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced']),
+    id: z.string().optional(),
+    user_id: z.string().min(1, t('validation.userRequired')),
+    total: z.coerce.number().min(0, 'Total must be a positive number'),
+    currency: z.enum(['UYU', 'USD']).default('USD'),
+    status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed']),
+    payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid']),
+    billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced']),
 });
 
 type QuoteFormValues = z.infer<ReturnType<typeof quoteFormSchema>>;
@@ -69,39 +69,39 @@ type QuoteItemFormValues = z.infer<ReturnType<typeof quoteItemFormSchema>>;
 
 
 async function getQuotes(): Promise<Quote[]> {
-  try {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quotes?is_sales=true', {
-      method: 'GET',
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json',
-      },
-      cache: 'no-store',
-    });
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quotes?is_sales=true', {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/json',
+            },
+            cache: 'no-store',
+        });
 
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const quotesData = Array.isArray(data) ? data : (data.quotes || data.data || data.result || []);
+
+        return quotesData.map((apiQuote: any) => ({
+            id: apiQuote.id ? String(apiQuote.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
+            user_id: apiQuote.user_id || 'N/A',
+            total: apiQuote.total || 0,
+            status: apiQuote.status || 'draft',
+            payment_status: apiQuote.payment_status || 'unpaid',
+            billing_status: apiQuote.billing_status || 'not invoiced',
+            currency: apiQuote.currency || 'UYU',
+            user_name: apiQuote.user_name || 'No Name',
+            userEmail: apiQuote.userEmail || 'no-email@example.com',
+            createdAt: apiQuote.created_at || new Date().toISOString().split('T')[0],
+        }));
+    } catch (error) {
+        console.error("Failed to fetch quotes:", error);
+        return [];
     }
-
-    const data = await response.json();
-    const quotesData = Array.isArray(data) ? data : (data.quotes || data.data || data.result || []);
-    
-    return quotesData.map((apiQuote: any) => ({
-      id: apiQuote.id ? String(apiQuote.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
-      user_id: apiQuote.user_id || 'N/A',
-      total: apiQuote.total || 0,
-      status: apiQuote.status || 'draft',
-      payment_status: apiQuote.payment_status || 'unpaid',
-      billing_status: apiQuote.billing_status || 'not invoiced',
-      currency: apiQuote.currency || 'UYU',
-      user_name: apiQuote.user_name || 'No Name',
-      userEmail: apiQuote.userEmail || 'no-email@example.com',
-      createdAt: apiQuote.created_at || new Date().toISOString().split('T')[0],
-    }));
-  } catch (error) {
-    console.error("Failed to fetch quotes:", error);
-    return [];
-  }
 }
 
 async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
@@ -122,7 +122,7 @@ async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
 
         const data = await response.json();
         const itemsData = Array.isArray(data) ? data : (data.quote_items || data.data || data.result || []);
-        
+
         return itemsData.map((apiItem: any) => ({
             id: apiItem.id ? String(apiItem.id) : `qi_${Math.random().toString(36).substr(2, 9)}`,
             service_id: apiItem.service_id || 'N/A',
@@ -138,30 +138,30 @@ async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
 }
 
 async function getServices(): Promise<Service[]> {
-  try {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=true', {
-      method: 'GET',
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json',
-      },
-      cache: 'no-store',
-    });
-    if (!response.ok) return [];
-    const data = await response.json();
-    const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
-    return servicesData.map((s: any) => ({ ...s, id: String(s.id), currency: s.currency || 'USD' }));
-  } catch (error) {
-    console.error("Failed to fetch services:", error);
-    return [];
-  }
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=true', {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/json',
+            },
+            cache: 'no-store',
+        });
+        if (!response.ok) return [];
+        const data = await response.json();
+        const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
+        return servicesData.map((s: any) => ({ ...s, id: String(s.id), currency: s.currency || 'USD' }));
+    } catch (error) {
+        console.error("Failed to fetch services:", error);
+        return [];
+    }
 }
 
 async function upsertQuoteItem(itemData: QuoteItemFormValues) {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/lines/upsert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({...itemData, is_sales: true}),
+        body: JSON.stringify({ ...itemData, is_sales: true }),
     });
     const responseData = await response.json();
     if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
@@ -190,10 +190,10 @@ async function getOrders(quoteId: string): Promise<Order[]> {
     if (!quoteId) return [];
     try {
         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_orders?quote_id=${quoteId}&is_sales=true`, {
-             method: 'GET',
-             mode: 'cors',
-             headers: { 'Accept': 'application/json' },
-             cache: 'no-store',
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
@@ -331,31 +331,31 @@ async function getPayments(quoteId: string): Promise<Payment[]> {
 
 async function getUsers(): Promise<User[]> {
     try {
-      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users');
-      if (!response.ok) return [];
-      const responseData = await response.json();
-      const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
-      const usersData = Array.isArray(data.data) ? data.data : [];
-      return usersData.map((apiUser: any) => ({
-        id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
-        name: apiUser.name || 'No Name',
-        email: apiUser.email || 'no-email@example.com',
-        phone_number: apiUser.phone_number || '000-000-0000',
-        is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
-        avatar: '',
-        identity_document: ''
-      }));
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users');
+        if (!response.ok) return [];
+        const responseData = await response.json();
+        const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
+        const usersData = Array.isArray(data.data) ? data.data : [];
+        return usersData.map((apiUser: any) => ({
+            id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+            name: apiUser.name || 'No Name',
+            email: apiUser.email || 'no-email@example.com',
+            phone_number: apiUser.phone_number || '000-000-0000',
+            is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+            avatar: '',
+            identity_document: ''
+        }));
     } catch (error) {
-      console.error("Failed to fetch users:", error);
-      return [];
+        console.error("Failed to fetch users:", error);
+        return [];
     }
-  }
-  
+}
+
 async function upsertQuote(quoteData: QuoteFormValues) {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quotes/upsert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({...quoteData, is_sales: true}),
+        body: JSON.stringify({ ...quoteData, is_sales: true }),
     });
     const responseData = await response.json();
     if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
@@ -364,7 +364,7 @@ async function upsertQuote(quoteData: QuoteFormValues) {
     }
     return responseData;
 }
-  
+
 async function deleteQuote(id: string) {
     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/delete', {
         method: 'DELETE',
@@ -387,11 +387,11 @@ export default function QuotesPage() {
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
     const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
-    
+
     const [orders, setOrders] = React.useState<Order[]>([]);
     const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
     const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
-    
+
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
@@ -404,7 +404,7 @@ export default function QuotesPage() {
     const [isLoadingInvoices, setIsLoadingInvoices] = React.useState(false);
     const [isLoadingInvoiceItems, setIsLoadingInvoiceItems] = React.useState(false);
     const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
-    
+
     const [isQuoteDialogOpen, setIsQuoteDialogOpen] = React.useState(false);
     const [editingQuote, setEditingQuote] = React.useState<Quote | null>(null);
     const [deletingQuote, setDeletingQuote] = React.useState<Quote | null>(null);
@@ -514,9 +514,9 @@ export default function QuotesPage() {
             setPayments([]);
         }
     }, [selectedQuote, loadQuoteItems, loadOrders, loadInvoices, loadPayments]);
-    
+
     React.useEffect(() => {
-        if(selectedOrder) {
+        if (selectedOrder) {
             loadOrderItems();
         } else {
             setOrderItems([]);
@@ -524,7 +524,7 @@ export default function QuotesPage() {
     }, [selectedOrder, loadOrderItems]);
 
     React.useEffect(() => {
-        if(selectedInvoice) {
+        if (selectedInvoice) {
             loadInvoiceItems();
         } else {
             setInvoiceItems([]);
@@ -537,8 +537,8 @@ export default function QuotesPage() {
         setQuoteSubmissionError(null);
         setAllUsers(await getUsers());
         setIsQuoteDialogOpen(true);
-      };
-      
+    };
+
     const handleEditQuote = async (quote: Quote) => {
         if (quote.status.toLowerCase() !== 'draft') {
             toast({ variant: 'destructive', title: 'Cannot Edit Quote', description: 'You can only edit quotes that are in "Draft" status.' });
@@ -550,7 +550,7 @@ export default function QuotesPage() {
         setAllUsers(await getUsers());
         setIsQuoteDialogOpen(true);
     };
-    
+
     const handleDeleteQuote = (quote: Quote) => {
         if (quote.status.toLowerCase() !== 'draft') {
             toast({ variant: 'destructive', title: 'Cannot Delete Quote', description: 'You can only delete quotes that are in "Draft" status.' });
@@ -573,7 +573,7 @@ export default function QuotesPage() {
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('toast.quoteDeleteError') });
         }
     };
-    
+
     const onQuoteSubmit = async (values: QuoteFormValues) => {
         setQuoteSubmissionError(null);
         try {
@@ -603,7 +603,7 @@ export default function QuotesPage() {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not load services.' });
         }
     };
-    
+
     const handleEditQuoteItem = async (item: QuoteItem) => {
         if (!selectedQuote) return;
         try {
@@ -614,33 +614,33 @@ export default function QuotesPage() {
             setShowConversion(false);
 
             const service = fetchedServices.find(s => String(s.id) === String(item.service_id));
-            
+
             if (service) {
                 const servicePrice = Number(service.price);
                 setOriginalServicePrice(servicePrice);
                 setOriginalServiceCurrency(service.currency || 'USD');
-                
+
                 const quoteCurrency = selectedQuote.currency || 'USD';
                 const serviceCurrency = service.currency || 'USD';
                 const conversionNeeded = quoteCurrency !== serviceCurrency;
                 setShowConversion(conversionNeeded);
-                setExchangeRate(1); 
+                setExchangeRate(1);
             } else {
                 setOriginalServicePrice(null);
                 setOriginalServiceCurrency('');
             }
-            
-            quoteItemForm.reset({ 
-                id: item.id, 
-                quote_id: selectedQuote.id, 
-                service_id: String(item.service_id), 
-                quantity: item.quantity, 
-                unit_price: item.unit_price, 
-                total: item.total 
+
+            quoteItemForm.reset({
+                id: item.id,
+                quote_id: selectedQuote.id,
+                service_id: String(item.service_id),
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                total: item.total
             });
-            
+
             setIsQuoteItemDialogOpen(true);
-        } catch(error) {
+        } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not load service data for editing.' });
         }
     };
@@ -685,13 +685,13 @@ export default function QuotesPage() {
             const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const responseData = await response.json();
             if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
-                const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : t('toast.quoteActionError', {action: action});
+                const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : t('toast.quoteActionError', { action: action });
                 throw new Error(message);
             }
             toast({ title: action === 'confirm' ? t('toast.quoteConfirmed') : t('toast.quoteRejected'), description: t(action === 'confirm' ? 'toast.quoteConfirmSuccess' : 'toast.quoteRejectSuccess', { id: quote.id }) });
             loadQuotes();
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('toast.quoteActionError', {action: action}) });
+            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('toast.quoteActionError', { action: action }) });
         }
     };
 
@@ -722,9 +722,9 @@ export default function QuotesPage() {
         const service = allServices.find(s => String(s.id) === watchedServiceId);
         if (service && selectedQuote) {
             const servicePrice = Number(service.price);
-            
+
             setOriginalServicePrice(servicePrice);
-            
+
             const quoteCurrency = selectedQuote.currency || 'USD';
             const serviceCurrency = service.currency || 'USD';
             setOriginalServiceCurrency(serviceCurrency);
@@ -742,7 +742,7 @@ export default function QuotesPage() {
             } else {
                 setExchangeRate(1);
             }
-            
+
             const quantity = Number(watchedQuantity) || 0;
             quoteItemForm.setValue('unit_price', newUnitPrice);
             quoteItemForm.setValue('total', newUnitPrice * quantity);
@@ -751,11 +751,11 @@ export default function QuotesPage() {
 
     return (
         <>
-            <div className="relative">
+            <div className="relative overflow-hidden">
                 <div className={cn("transition-all duration-300 w-full")}>
-                    <RecentQuotesTable 
-                        quotes={quotes} 
-                        onRowSelectionChange={handleRowSelectionChange} 
+                    <RecentQuotesTable
+                        quotes={quotes}
+                        onRowSelectionChange={handleRowSelectionChange}
                         onCreate={handleCreateQuote}
                         onRefresh={loadQuotes}
                         isRefreshing={isRefreshing}
@@ -767,9 +767,9 @@ export default function QuotesPage() {
                     />
                 </div>
 
-                <div 
+                <div
                     className={cn(
-                        "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l transition-transform duration-300 ease-in-out",
+                        "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l z-20 transition-transform duration-300 ease-in-out",
                         selectedQuote ? 'translate-x-0' : 'translate-x-full'
                     )}
                 >
@@ -794,8 +794,8 @@ export default function QuotesPage() {
                                         <TabsTrigger value="payments">{t('tabs.payments')}</TabsTrigger>
                                     </TabsList>
                                     <TabsContent value="items">
-                                        <QuoteItemsTable 
-                                            items={quoteItems} 
+                                        <QuoteItemsTable
+                                            items={quoteItems}
                                             isLoading={isLoadingItems}
                                             onRefresh={loadQuoteItems}
                                             isRefreshing={isLoadingItems}
@@ -806,10 +806,10 @@ export default function QuotesPage() {
                                         />
                                     </TabsContent>
                                     <TabsContent value="orders">
-                                        <OrdersTable 
-                                            orders={orders} 
-                                            isLoading={isLoadingOrders} 
-                                            onRowSelectionChange={handleOrderSelectionChange} 
+                                        <OrdersTable
+                                            orders={orders}
+                                            isLoading={isLoadingOrders}
+                                            onRowSelectionChange={handleOrderSelectionChange}
                                             onRefresh={loadOrders}
                                             isRefreshing={isLoadingOrders}
                                             columnsToHide={['user_name', 'quote_id']}
@@ -827,9 +827,9 @@ export default function QuotesPage() {
                                         )}
                                     </TabsContent>
                                     <TabsContent value="invoices">
-                                        <InvoicesTable 
-                                            invoices={invoices} 
-                                            isLoading={isLoadingInvoices} 
+                                        <InvoicesTable
+                                            invoices={invoices}
+                                            isLoading={isLoadingInvoices}
                                             onRowSelectionChange={handleInvoiceSelectionChange}
                                             onRefresh={loadInvoices}
                                             isRefreshing={isLoadingInvoices}
@@ -837,7 +837,7 @@ export default function QuotesPage() {
                                         {selectedInvoice && (
                                             <div className="mt-4">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', {id: selectedInvoice.id})}</h4>
+                                                    <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', { id: selectedInvoice.id })}</h4>
                                                     <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
                                                         <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
                                                     </Button>
@@ -847,8 +847,8 @@ export default function QuotesPage() {
                                         )}
                                     </TabsContent>
                                     <TabsContent value="payments">
-                                        <PaymentsTable 
-                                            payments={payments} 
+                                        <PaymentsTable
+                                            payments={payments}
                                             isLoading={isLoadingPayments}
                                             onRefresh={loadPayments}
                                             isRefreshing={isLoadingPayments}
@@ -938,11 +938,11 @@ export default function QuotesPage() {
                                         <FormItem className={cn(!editingQuote && 'col-span-2')}>
                                             <FormLabel>{t('quoteDialog.currency')}</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectCurrency')} /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="USD">USD</SelectItem>
-                                                <SelectItem value="UYU">UYU</SelectItem>
-                                            </SelectContent>
+                                                <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectCurrency')} /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="USD">USD</SelectItem>
+                                                    <SelectItem value="UYU">UYU</SelectItem>
+                                                </SelectContent>
                                             </Select>
                                             <FormMessage />
                                         </FormItem>
@@ -956,13 +956,13 @@ export default function QuotesPage() {
                                     <FormItem>
                                         <FormLabel>{t('quoteDialog.status')}</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectStatus')} /></SelectTrigger></FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="draft">{t('quoteDialog.draft')}</SelectItem>
-                                            <SelectItem value="pending">{t('quoteDialog.pending')}</SelectItem>
-                                            <SelectItem value="confirmed">{t('quoteDialog.confirmed')}</SelectItem>
-                                            <SelectItem value="rejected">{t('quoteDialog.rejected')}</SelectItem>
-                                        </SelectContent>
+                                            <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectStatus')} /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="draft">{t('quoteDialog.draft')}</SelectItem>
+                                                <SelectItem value="pending">{t('quoteDialog.pending')}</SelectItem>
+                                                <SelectItem value="confirmed">{t('quoteDialog.confirmed')}</SelectItem>
+                                                <SelectItem value="rejected">{t('quoteDialog.rejected')}</SelectItem>
+                                            </SelectContent>
                                         </Select>
                                         <FormMessage />
                                     </FormItem>
@@ -973,16 +973,16 @@ export default function QuotesPage() {
                                 name="payment_status"
                                 render={({ field }) => (
                                     <FormItem>
-                                    <FormLabel>{t('quoteDialog.paymentStatus')}</FormLabel>
+                                        <FormLabel>{t('quoteDialog.paymentStatus')}</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value} disabled={isStatusDraft}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectPaymentStatus')} /></SelectTrigger></FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="unpaid">{t('quoteDialog.unpaid')}</SelectItem>
-                                            <SelectItem value="partially_paid">{t('quoteDialog.partiallyPaid')}</SelectItem>
-                                            <SelectItem value="paid">{t('quoteDialog.paid')}</SelectItem>
-                                        </SelectContent>
+                                            <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectPaymentStatus')} /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="unpaid">{t('quoteDialog.unpaid')}</SelectItem>
+                                                <SelectItem value="partially_paid">{t('quoteDialog.partiallyPaid')}</SelectItem>
+                                                <SelectItem value="paid">{t('quoteDialog.paid')}</SelectItem>
+                                            </SelectContent>
                                         </Select>
-                                    <FormMessage />
+                                        <FormMessage />
                                     </FormItem>
                                 )}
                             />
@@ -991,16 +991,16 @@ export default function QuotesPage() {
                                 name="billing_status"
                                 render={({ field }) => (
                                     <FormItem>
-                                    <FormLabel>{t('quoteDialog.billingStatus')}</FormLabel>
+                                        <FormLabel>{t('quoteDialog.billingStatus')}</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value} disabled={isStatusDraft}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectBillingStatus')} /></SelectTrigger></FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="not invoiced">{t('quoteDialog.notInvoiced')}</SelectItem>
-                                            <SelectItem value="partially invoiced">{t('quoteDialog.partiallyInvoiced')}</SelectItem>
-                                            <SelectItem value="invoiced">{t('quoteDialog.invoiced')}</SelectItem>
-                                        </SelectContent>
+                                            <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectBillingStatus')} /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="not invoiced">{t('quoteDialog.notInvoiced')}</SelectItem>
+                                                <SelectItem value="partially invoiced">{t('quoteDialog.partiallyInvoiced')}</SelectItem>
+                                                <SelectItem value="invoiced">{t('quoteDialog.invoiced')}</SelectItem>
+                                            </SelectContent>
                                         </Select>
-                                    <FormMessage />
+                                        <FormMessage />
                                     </FormItem>
                                 )}
                             />
@@ -1048,40 +1048,40 @@ export default function QuotesPage() {
                                 name="service_id"
                                 render={({ field }) => (
                                     <FormItem>
-                                    <FormLabel>{t('itemDialog.service')}</FormLabel>
-                                    <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
-                                        <PopoverTrigger asChild>
-                                        <FormControl>
-                                            <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                            {field.value ? allServices.find(s => s.id === field.value)?.name : t('itemDialog.selectService')}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                        <Command>
-                                            <CommandInput placeholder={t('itemDialog.searchService')} />
-                                            <CommandList>
-                                            <CommandEmpty>{t('itemDialog.noServiceFound')}</CommandEmpty>
-                                            <CommandGroup>
-                                                {allServices.map((service) => (
-                                                <CommandItem value={service.name} key={service.id} onSelect={() => { quoteItemForm.setValue("service_id", String(service.id)); setServiceSearchOpen(false); }}>
-                                                    <Check className={cn("mr-2 h-4 w-4", String(service.id) === field.value ? "opacity-100" : "opacity-0")} />
-                                                    {service.name}
-                                                </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
+                                        <FormLabel>{t('itemDialog.service')}</FormLabel>
+                                        <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                                                        {field.value ? allServices.find(s => s.id === field.value)?.name : t('itemDialog.selectService')}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                <Command>
+                                                    <CommandInput placeholder={t('itemDialog.searchService')} />
+                                                    <CommandList>
+                                                        <CommandEmpty>{t('itemDialog.noServiceFound')}</CommandEmpty>
+                                                        <CommandGroup>
+                                                            {allServices.map((service) => (
+                                                                <CommandItem value={service.name} key={service.id} onSelect={() => { quoteItemForm.setValue("service_id", String(service.id)); setServiceSearchOpen(false); }}>
+                                                                    <Check className={cn("mr-2 h-4 w-4", String(service.id) === field.value ? "opacity-100" : "opacity-0")} />
+                                                                    {service.name}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
                                     </FormItem>
                                 )}
                             />
                             {showConversion && (
                                 <div className="grid grid-cols-2 gap-4">
-                                <FormItem>
+                                    <FormItem>
                                         <FormLabel>{t('itemDialog.originalPrice')} ({originalServiceCurrency})</FormLabel>
                                         <Input
                                             value={originalServicePrice !== null ? Number(originalServicePrice).toFixed(2) : ''}
@@ -1093,14 +1093,14 @@ export default function QuotesPage() {
                                         control={quoteItemForm.control}
                                         name="exchange_rate"
                                         render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('itemDialog.exchangeRate')}</FormLabel>
-                                            <Input
-                                                type="number"
-                                                value={exchangeRate}
-                                                onChange={(e) => setExchangeRate(Number(e.target.value) || 1)}
+                                            <FormItem>
+                                                <FormLabel>{t('itemDialog.exchangeRate')}</FormLabel>
+                                                <Input
+                                                    type="number"
+                                                    value={exchangeRate}
+                                                    onChange={(e) => setExchangeRate(Number(e.target.value) || 1)}
                                                 />
-                                        </FormItem>
+                                            </FormItem>
                                         )}
                                     />
                                 </div>
@@ -1111,21 +1111,21 @@ export default function QuotesPage() {
                                     <FormControl><Input type="number" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
-                            )}/>
+                            )} />
                             <FormField control={quoteItemForm.control} name="unit_price" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{t('itemDialog.unitPrice')} ({selectedQuote?.currency})</FormLabel>
                                     <FormControl><Input type="number" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
-                            )}/>
+                            )} />
                             <FormField control={quoteItemForm.control} name="total" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{t('itemDialog.total')}</FormLabel>
                                     <FormControl><Input type="number" readOnly disabled {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
-                            )}/>
+                            )} />
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsQuoteItemDialogOpen(false)}>{t('itemDialog.cancel')}</Button>
                                 <Button type="submit">{editingQuoteItem ? t('itemDialog.editSave') : t('itemDialog.save')}</Button>

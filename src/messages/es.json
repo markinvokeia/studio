@@ -727,7 +727,14 @@
       "noCredits": "No hay créditos disponibles",
       "currency": "Moneda",
       "remaining_amount": "Monto Restante",
-      "remainingAmount": "Monto Restante"
+      "remainingAmount": "Monto Restante",
+      "summary": "Resumen de Pago",
+      "exchangeRateApplied": "Tasa de Cambio Aplicada",
+      "creditsApplied": "Créditos Aplicados",
+      "manualPayment": "Pago Manual",
+      "totalPayment": "Pago Total",
+      "noPayment": "Ningún pago seleccionado",
+      "overpayment": "El pago total excede el monto restante de la factura."
     },
     "status": {
       "paid": "Pagada",

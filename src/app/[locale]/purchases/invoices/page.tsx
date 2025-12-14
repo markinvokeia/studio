@@ -25,29 +25,29 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const invoiceItemSchema = z.object({
-  id: z.string().optional(),
-  service_id: z.string().min(1, 'Service name is required'),
-  quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
-  unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
+    id: z.string().optional(),
+    service_id: z.string().min(1, 'Service name is required'),
+    quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+    unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
 });
 type InvoiceItemFormValues = z.infer<typeof invoiceItemSchema>;
 
 async function getServices(): Promise<Service[]> {
-  try {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=false', {
-      method: 'GET',
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' },
-      cache: 'no-store',
-    });
-    if (!response.ok) return [];
-    const data = await response.json();
-    const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
-    return servicesData.map((s: any) => ({ ...s, id: String(s.id) }));
-  } catch (error) {
-    console.error("Failed to fetch services:", error);
-    return [];
-  }
+    try {
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=false', {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+        });
+        if (!response.ok) return [];
+        const data = await response.json();
+        const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
+        return servicesData.map((s: any) => ({ ...s, id: String(s.id) }));
+    } catch (error) {
+        console.error("Failed to fetch services:", error);
+        return [];
+    }
 }
 
 async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
@@ -174,7 +174,7 @@ export default function InvoicesPage() {
     const [isLoadingInvoices, setIsLoadingInvoices] = React.useState(false);
     const [isLoadingInvoiceItems, setIsLoadingInvoiceItems] = React.useState(false);
     const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
-    
+
     const [editingItem, setEditingItem] = React.useState<InvoiceItem | null>(null);
     const [isCreateItemDialogOpen, setIsCreateItemDialogOpen] = React.useState(false);
     const [isEditItemDialogOpen, setIsEditItemDialogOpen] = React.useState(false);
@@ -186,9 +186,9 @@ export default function InvoicesPage() {
     const [invoiceType, setInvoiceType] = React.useState('all');
 
     const itemForm = useForm<InvoiceItemFormValues>({
-      resolver: zodResolver(invoiceItemSchema),
+        resolver: zodResolver(invoiceItemSchema),
     });
-    
+
     const watchedServiceId = itemForm.watch('service_id');
     const watchedQuantity = itemForm.watch('quantity');
 
@@ -212,7 +212,7 @@ export default function InvoicesPage() {
     React.useEffect(() => {
         loadInvoices();
     }, [loadInvoices]);
-    
+
     const loadInvoiceItems = React.useCallback(async () => {
         if (!selectedInvoice) return;
         setIsLoadingInvoiceItems(true);
@@ -273,10 +273,10 @@ export default function InvoicesPage() {
             a.click();
             window.URL.revokeObjectURL(url);
             a.remove();
-            
+
             toast({
-              title: "Download Started",
-              description: `Your PDF for Invoice #${invoice.id} is downloading.`,
+                title: "Download Started",
+                description: `Your PDF for Invoice #${invoice.id} is downloading.`,
             });
 
         } catch (error) {
@@ -287,7 +287,7 @@ export default function InvoicesPage() {
             });
         }
     };
-    
+
     const handleSendEmailClick = (invoice: Invoice) => {
         setSelectedInvoiceForEmail(invoice);
         setEmailRecipients(invoice.userEmail || '');
@@ -371,7 +371,7 @@ export default function InvoicesPage() {
             });
 
             if (!response.ok) {
-                 const errorData = await response.json().catch(() => ({ message: 'Failed to import invoice.' }));
+                const errorData = await response.json().catch(() => ({ message: 'Failed to import invoice.' }));
                 throw new Error(errorData.message || 'An error occurred during import.');
             }
 
@@ -400,76 +400,76 @@ export default function InvoicesPage() {
     };
 
     const handleEditItem = async (item: InvoiceItem) => {
-      setEditingItem(item);
-      itemForm.reset({
-        id: item.id,
-        service_id: item.service_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-      });
-      const fetchedServices = await getServices();
-      setServices(fetchedServices);
-      setIsEditItemDialogOpen(true);
+        setEditingItem(item);
+        itemForm.reset({
+            id: item.id,
+            service_id: item.service_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+        });
+        const fetchedServices = await getServices();
+        setServices(fetchedServices);
+        setIsEditItemDialogOpen(true);
     };
 
     const handleDeleteItem = (item: InvoiceItem) => {
-      setDeletingItem(item);
-      setIsDeleteItemDialogOpen(true);
+        setDeletingItem(item);
+        setIsDeleteItemDialogOpen(true);
     };
 
     const onItemSubmit = async (data: InvoiceItemFormValues) => {
-      if (!selectedInvoice) return;
-      try {
-        const payload = {
-          ...data,
-          id: editingItem?.id ? parseInt(editingItem.id, 10) : undefined,
-          invoice_id: parseInt(selectedInvoice.id, 10),
-          service_id: parseInt(data.service_id, 10),
-          order_item_id: selectedInvoice.order_id,
-          quantity: Number(data.quantity),
-          unit_price: Number(data.unit_price),
-        };
-        
+        if (!selectedInvoice) return;
+        try {
+            const payload = {
+                ...data,
+                id: editingItem?.id ? parseInt(editingItem.id, 10) : undefined,
+                invoice_id: parseInt(selectedInvoice.id, 10),
+                service_id: parseInt(data.service_id, 10),
+                order_item_id: selectedInvoice.order_id,
+                quantity: Number(data.quantity),
+                unit_price: Number(data.unit_price),
+            };
 
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/upsert`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-        if (response.status !== 200) {
-            const responseData = await response.json();
-            throw new Error(responseData.message || `Failed to ${editingItem ? 'update' : 'create'} invoice item.`);
+
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/upsert`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (response.status !== 200) {
+                const responseData = await response.json();
+                throw new Error(responseData.message || `Failed to ${editingItem ? 'update' : 'create'} invoice item.`);
+            }
+            toast({ title: 'Success', description: `Invoice item ${editingItem ? 'updated' : 'created'} successfully.` });
+            loadInvoiceItems();
+            setIsEditItemDialogOpen(false);
+            setIsCreateItemDialogOpen(false);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : `Failed to ${editingItem ? 'update' : 'create'} invoice item.` });
         }
-        toast({ title: 'Success', description: `Invoice item ${editingItem ? 'updated' : 'created'} successfully.`});
-        loadInvoiceItems();
-        setIsEditItemDialogOpen(false);
-        setIsCreateItemDialogOpen(false);
-      } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : `Failed to ${editingItem ? 'update' : 'create'} invoice item.`});
-      }
     };
-    
+
     const confirmDeleteItem = async () => {
-      if (!deletingItem) return;
-      try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/delete`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: parseInt(deletingItem.id, 10) }),
-        });
-        if (response.status >= 400) {
+        if (!deletingItem) return;
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: parseInt(deletingItem.id, 10) }),
+            });
+            if (response.status >= 400) {
+                const responseData = await response.json();
+                throw new Error(responseData.message || 'Failed to delete invoice item.');
+            }
             const responseData = await response.json();
-            throw new Error(responseData.message || 'Failed to delete invoice item.');
+            toast({ title: 'Success', description: responseData.message || 'Invoice item deleted successfully.' });
+            loadInvoiceItems();
+            setIsDeleteItemDialogOpen(false);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Failed to delete invoice item.' });
         }
-        const responseData = await response.json();
-        toast({ title: 'Success', description: responseData.message || 'Invoice item deleted successfully.'});
-        loadInvoiceItems();
-        setIsDeleteItemDialogOpen(false);
-      } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Failed to delete invoice item.'});
-      }
     };
-    
+
     const handleConfirmInvoiceClick = (invoice: Invoice) => {
         setConfirmingInvoice(invoice);
         setIsConfirmDialogOpen(true);
@@ -515,10 +515,10 @@ export default function InvoicesPage() {
         payment_status: t('columns.payment'),
         createdAt: t('columns.createdAt'),
     };
-    
+
     const canEditItems = selectedInvoice?.status.toLowerCase() === 'draft';
 
-     const ItemFormDialog = ({
+    const ItemFormDialog = ({
         isOpen,
         onOpenChange,
         title,
@@ -599,15 +599,15 @@ export default function InvoicesPage() {
     );
 
     return (
-        <div className="relative">
+        <div className="relative overflow-hidden">
             <div className={cn("transition-all duration-300 w-full")}>
-                 <Card>
+                <Card>
                     <CardHeader>
                         <CardTitle>{t('title')}</CardTitle>
                         <CardDescription>{t('description')}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <InvoicesTable 
+                        <InvoicesTable
                             invoices={invoices}
                             isLoading={isLoadingInvoices}
                             onRowSelectionChange={handleRowSelectionChange}
@@ -636,9 +636,9 @@ export default function InvoicesPage() {
                 </Card>
             </div>
 
-            <div 
+            <div
                 className={cn(
-                    "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l transition-transform duration-300 ease-in-out",
+                    "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l z-20 transition-transform duration-300 ease-in-out",
                     selectedInvoice ? 'translate-x-0' : 'translate-x-full'
                 )}
             >
@@ -669,8 +669,8 @@ export default function InvoicesPage() {
                                     <TabsTrigger value="payments">{t('tabs.payments')}</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="items">
-                                     <div className="flex items-center justify-between mb-2">
-                                        <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', {id: selectedInvoice.id})}</h4>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', { id: selectedInvoice.id })}</h4>
                                         <div className="flex items-center gap-2">
                                             {canEditItems && (
                                                 <Button variant="outline" size="icon" onClick={handleCreateItem}>
@@ -685,8 +685,8 @@ export default function InvoicesPage() {
                                     <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} canEdit={canEditItems} onEdit={handleEditItem} onDelete={handleDeleteItem} />
                                 </TabsContent>
                                 <TabsContent value="payments">
-                                    <PaymentsTable 
-                                        payments={payments} 
+                                    <PaymentsTable
+                                        payments={payments}
                                         isLoading={isLoadingPayments}
                                         onRefresh={loadPayments}
                                         isRefreshing={isLoadingPayments}
@@ -701,22 +701,22 @@ export default function InvoicesPage() {
             <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                    <DialogTitle>Send Invoice by Email</DialogTitle>
-                    <DialogDescription>Enter the recipient emails for invoice #{selectedInvoiceForEmail?.id}.</DialogDescription>
+                        <DialogTitle>Send Invoice by Email</DialogTitle>
+                        <DialogDescription>Enter the recipient emails for invoice #{selectedInvoiceForEmail?.id}.</DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
-                    <Label htmlFor="email-recipients">Recipients</Label>
-                    <Input
-                        id="email-recipients"
-                        value={emailRecipients}
-                        onChange={(e) => setEmailRecipients(e.target.value)}
-                        placeholder="email1@example.com, email2@example.com"
-                    />
-                    <p className="text-sm text-muted-foreground mt-1">Separate multiple emails with commas.</p>
+                        <Label htmlFor="email-recipients">Recipients</Label>
+                        <Input
+                            id="email-recipients"
+                            value={emailRecipients}
+                            onChange={(e) => setEmailRecipients(e.target.value)}
+                            placeholder="email1@example.com, email2@example.com"
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">Separate multiple emails with commas.</p>
                     </div>
                     <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleConfirmSendEmail}>Send Email</Button>
+                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={handleConfirmSendEmail}>Send Email</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -732,7 +732,7 @@ export default function InvoicesPage() {
                         <div className="flex items-center justify-center w-full">
                             <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
                                 {importFile ? (
-                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                         <File className="w-8 h-8 mb-4 text-primary" />
                                         <p className="font-semibold text-foreground">{importFile.name}</p>
                                         <p className="text-xs text-muted-foreground">{(importFile.size / 1024).toFixed(2)} KB</p>
@@ -746,7 +746,7 @@ export default function InvoicesPage() {
                                 )}
                                 <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
                             </label>
-                        </div> 
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isProcessingImport}>Cancel</Button>
@@ -770,14 +770,14 @@ export default function InvoicesPage() {
                 isSales={false}
             />
 
-            <ItemFormDialog 
+            <ItemFormDialog
                 isOpen={isCreateItemDialogOpen}
                 onOpenChange={setIsCreateItemDialogOpen}
                 title="Create Invoice Item"
                 onSubmit={onItemSubmit}
             />
-            
-            <ItemFormDialog 
+
+            <ItemFormDialog
                 isOpen={isEditItemDialogOpen}
                 onOpenChange={setIsEditItemDialogOpen}
                 title="Edit Invoice Item"
@@ -786,14 +786,14 @@ export default function InvoicesPage() {
 
             <AlertDialog open={isDeleteItemDialogOpen} onOpenChange={setIsDeleteItemDialogOpen}>
                 <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>This will permanently delete the invoice item. This action cannot be undone.</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                  </AlertDialogFooter>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>This will permanently delete the invoice item. This action cannot be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
             <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>

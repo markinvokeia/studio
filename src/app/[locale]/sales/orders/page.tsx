@@ -18,10 +18,10 @@ import { useTranslations } from 'next-intl';
 async function getOrders(): Promise<Order[]> {
     try {
         const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_orders?is_sales=true', {
-             method: 'GET',
-             mode: 'cors',
-             headers: { 'Accept': 'application/json' },
-             cache: 'no-store',
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
         });
         if (!response.ok) {
             console.error(`HTTP error! status: ${response.status}`);
@@ -194,7 +194,7 @@ export default function OrdersPage() {
     React.useEffect(() => {
         loadOrders();
     }, [loadOrders]);
-    
+
     const loadOrderItems = React.useCallback(async () => {
         if (!selectedOrder) return;
         setIsLoadingOrderItems(true);
@@ -238,7 +238,7 @@ export default function OrdersPage() {
     }, [selectedOrder, loadOrderItems, loadInvoices, loadPayments]);
 
     React.useEffect(() => {
-        if(selectedInvoice) {
+        if (selectedInvoice) {
             loadInvoiceItems();
         } else {
             setInvoiceItems([]);
@@ -254,7 +254,7 @@ export default function OrdersPage() {
         const invoice = selectedRows.length > 0 ? selectedRows[0] : null;
         setSelectedInvoice(invoice);
     };
-    
+
     const handleCloseDetails = () => {
         setSelectedOrder(null);
         setRowSelection({});
@@ -262,7 +262,7 @@ export default function OrdersPage() {
 
     return (
         <>
-            <div className="relative">
+            <div className="relative overflow-hidden">
                 <div className={cn("transition-all duration-300 w-full")}>
                     <Card>
                         <CardHeader>
@@ -270,7 +270,7 @@ export default function OrdersPage() {
                             <CardDescription>{t('description')}</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <OrdersTable 
+                            <OrdersTable
                                 orders={orders}
                                 isLoading={isLoadingOrders}
                                 onRowSelectionChange={handleRowSelectionChange}
@@ -285,7 +285,7 @@ export default function OrdersPage() {
                 </div>
 
                 <div className={cn(
-                    "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l transition-transform duration-300 ease-in-out",
+                    "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l z-20 transition-transform duration-300 ease-in-out",
                     selectedOrder ? 'translate-x-0' : 'translate-x-full'
                 )}>
                     {selectedOrder && (
@@ -309,7 +309,7 @@ export default function OrdersPage() {
                                     </TabsList>
                                     <TabsContent value="items">
                                         <div className="flex items-center justify-between mb-2">
-                                            <h4 className="text-md font-semibold">{tOrderItems('title', {id: selectedOrder.id})}</h4>
+                                            <h4 className="text-md font-semibold">{tOrderItems('title', { id: selectedOrder.id })}</h4>
                                             <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
                                                 <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                             </Button>
@@ -317,8 +317,8 @@ export default function OrdersPage() {
                                         <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedOrder.quote_id} />
                                     </TabsContent>
                                     <TabsContent value="invoices">
-                                        <InvoicesTable 
-                                            invoices={invoices} 
+                                        <InvoicesTable
+                                            invoices={invoices}
                                             isLoading={isLoadingInvoices}
                                             onRowSelectionChange={handleInvoiceSelectionChange}
                                             onRefresh={loadInvoices}
@@ -327,7 +327,7 @@ export default function OrdersPage() {
                                         {selectedInvoice && (
                                             <div className="mt-4">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-md font-semibold">{tInvoiceItems('title', {id: selectedInvoice.id})}</h4>
+                                                    <h4 className="text-md font-semibold">{tInvoiceItems('title', { id: selectedInvoice.id })}</h4>
                                                     <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
                                                         <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
                                                     </Button>
@@ -337,8 +337,8 @@ export default function OrdersPage() {
                                         )}
                                     </TabsContent>
                                     <TabsContent value="payments">
-                                        <PaymentsTable 
-                                            payments={payments} 
+                                        <PaymentsTable
+                                            payments={payments}
                                             isLoading={isLoadingPayments}
                                             onRefresh={loadPayments}
                                             isRefreshing={isLoadingPayments}
@@ -350,7 +350,7 @@ export default function OrdersPage() {
                     )}
                 </div>
             </div>
-            <CreateOrderDialog 
+            <CreateOrderDialog
                 isOpen={isCreateDialogOpen}
                 onOpenChange={setIsCreateDialogOpen}
                 onOrderCreated={loadOrders}

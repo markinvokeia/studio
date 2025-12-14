@@ -30,6 +30,8 @@ import { DataTablePagination } from './data-table-pagination';
 import { DataTableToolbar } from './data-table-toolbar';
 import { useTranslations } from 'next-intl';
 
+import { cn } from '@/lib/utils';
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -159,9 +161,9 @@ export function DataTable<TData, TValue>({
           filterValue={filterValue}
         />
       )}
-      <div className="rounded-md border overflow-x-auto">
-        <Table>
-          <TableHeader>
+      <div className="rounded-md border overflow-auto max-h-[calc(100vh-220px)] relative">
+        <table className={cn("w-full caption-bottom text-sm")}>
+          <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
@@ -214,7 +216,7 @@ export function DataTable<TData, TValue>({
               </TableRow>
             )}
           </TableBody>
-        </Table>
+        </table>
       </div>
       <DataTablePagination table={table} />
     </div>

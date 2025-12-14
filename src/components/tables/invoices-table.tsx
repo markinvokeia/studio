@@ -45,8 +45,8 @@ import { Label } from '../ui/label';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().positive(t('validation.amountPositive')),
-  method: z.string().min(1, t('validation.methodRequired')),
+  amount: z.coerce.number().min(0, t('validation.amountPositive')), // Allow 0
+  method: z.string().optional(), // Optional
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
     required_error: t('validation.dateRequired'),
@@ -54,6 +54,14 @@ const paymentFormSchema = (t: (key: string) => string) => z.object({
   invoice_currency: z.string(),
   payment_currency: z.string(),
   exchange_rate: z.coerce.number().optional(),
+}).refine(data => {
+  if (data.amount > 0 && !data.method) {
+    return false; // Method required if paying cash
+  }
+  return true;
+}, {
+  message: 'Method is required when paying an amount.',
+  path: ['method'],
 }).refine(data => {
   if (data.invoice_currency !== data.payment_currency) {
     return data.exchange_rate && data.exchange_rate > 0;
@@ -212,7 +220,7 @@ const getColumns = (
           unpaid: 'outline',
           partially_paid: 'info'
         }[status?.toLowerCase() ?? ('default' as any)];
-        return <Badge variant={variant} className="capitalize">{status ? (tStatus.has(status.toLowerCase()) ? tStatus(status.toLowerCase()) : status) : ''}</Badge>;
+        return <Badge variant={variant as any} className="capitalize">{status ? tStatus(status.toLowerCase()) : ''}</Badge>;
       },
     },
     {
@@ -292,7 +300,7 @@ interface InvoicesTableProps {
   onConfirm?: (invoice: Invoice) => void;
   isRefreshing?: boolean;
   rowSelection?: RowSelectionState;
-  setRowSelection?: (selection: RowSelectionState) => void;
+  setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
   columnTranslations?: { [key: string]: string };
   filterOptions?: { label: string; value: string }[];
   onFilterChange?: (value: string) => void;
@@ -316,6 +324,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
   const [userCredits, setUserCredits] = React.useState<Credit[]>([]);
   const [appliedCredits, setAppliedCredits] = React.useState<Map<string, number>>(new Map());
+  const [companyCurrency, setCompanyCurrency] = React.useState<string>('USD');
+  const [sessionExchangeRate, setSessionExchangeRate] = React.useState<number>(1);
 
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentFormSchema(t)),
@@ -346,16 +356,53 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     return null;
   }, [showExchangeRate, watchedAmount, watchedExchangeRate, watchedInvoiceCurrency, watchedPaymentCurrency]);
 
+  // Update exchange rate when currencies change or session rate is loaded
+  React.useEffect(() => {
+    if (showExchangeRate) {
+      form.setValue('exchange_rate', sessionExchangeRate);
+    }
+  }, [showExchangeRate, sessionExchangeRate, form]);
+
   const remainingAmountToPay = React.useMemo(() => {
     if (!selectedInvoiceForPayment) return 0;
     const invoiceTotal = selectedInvoiceForPayment.total || 0;
     const paidAmount = selectedInvoiceForPayment.paid_amount || 0;
-    let amountBeingPaid = watchedAmount || 0;
+    const invoiceCurrency = selectedInvoiceForPayment.currency || 'USD';
 
-    const amountInInvoiceCurrency = showExchangeRate && equivalentAmount ? equivalentAmount : amountBeingPaid;
+    // 1. Convert Manual Payment Amount to Invoice Currency
+    let paymentAmountInInvoiceCurrency = 0;
+    if (watchedAmount) {
+      if (showExchangeRate && equivalentAmount) {
+        paymentAmountInInvoiceCurrency = equivalentAmount;
+      } else {
+        paymentAmountInInvoiceCurrency = watchedAmount;
+      }
+    }
 
-    return invoiceTotal - paidAmount - amountInInvoiceCurrency - totalAppliedCredits;
-  }, [selectedInvoiceForPayment, watchedAmount, showExchangeRate, equivalentAmount, totalAppliedCredits]);
+    // 2. Convert Credits to Invoice Currency
+    const creditsTotalInInvoiceCurrency = Array.from(appliedCredits.entries()).reduce((sum, [creditId, amount]) => {
+      const credit = userCredits.find(c => c.source_id === creditId);
+      if (!credit) return sum;
+
+      let creditAmountConverted = amount;
+
+      // If credit currency differs from invoice currency, convert it
+      if (credit.currency !== invoiceCurrency) {
+        // Assuming sessionExchangeRate is always UYU per USD (or Local per Base)
+        // If Invoice is USD and Credit is UYU: Divide by rate
+        if (invoiceCurrency === 'USD' && credit.currency === 'UYU') {
+          creditAmountConverted = amount / sessionExchangeRate;
+        }
+        // If Invoice is UYU and Credit is USD: Multiply by rate
+        else if (invoiceCurrency === 'UYU' && credit.currency === 'USD') {
+          creditAmountConverted = amount * sessionExchangeRate;
+        }
+      }
+      return sum + creditAmountConverted;
+    }, 0);
+
+    return Math.max(0, invoiceTotal - paidAmount - paymentAmountInInvoiceCurrency - creditsTotalInInvoiceCurrency);
+  }, [selectedInvoiceForPayment, watchedAmount, showExchangeRate, equivalentAmount, appliedCredits, userCredits, sessionExchangeRate]);
 
   const fetchPaymentMethods = async () => {
     try {
@@ -397,26 +444,48 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     if (!user) return;
 
     try {
-      const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/active?user_id=${user.id}`, {
-        method: 'GET',
-        mode: 'cors',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await response.json();
+      const [sessionResponse, clinicResponse] = await Promise.all([
+        fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash_points/status?user_id=${user.id}`, {
+          method: 'GET',
+          mode: 'cors',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        }),
+        fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/clinic')
+      ]);
 
-      if (data.code === 200 && data.data?.id) {
+      if (!sessionResponse.ok) throw new Error('Failed to fetch session status');
+
+      const rawSessionData = await sessionResponse.json();
+      const clinicData = await clinicResponse.json();
+
+      // Handle potential array response from n8n
+      const sessionData = Array.isArray(rawSessionData) ? rawSessionData[0] : (rawSessionData || {});
+
+      console.log("Session Data:", sessionData); // Debug log
+
+      if (sessionData && sessionData.active_session_id) {
         setSelectedInvoiceForPayment(invoice);
-        setActiveCashSessionId(data.data.id);
+        setActiveCashSessionId(sessionData.active_session_id);
+
+        // Set session exchange rate from opening_details if available, default to 1
+        const rate = sessionData.opening_details?.date_rate ? Number(sessionData.opening_details.date_rate) : 1;
+        setSessionExchangeRate(rate);
+
+        // Set company currency
+        const currency = clinicData.currency || 'USD';
+        setCompanyCurrency(currency);
+
         fetchPaymentMethods();
         fetchUserCredits(invoice.user_id);
+
         form.reset({
           amount: invoice.total - (invoice.paid_amount || 0),
           method: '',
           status: 'completed',
           payment_date: new Date(),
           invoice_currency: invoice.currency || 'USD',
-          payment_currency: invoice.currency || 'USD',
-          exchange_rate: 1,
+          payment_currency: invoice.currency || 'USD', // Default to invoice currency initially
+          exchange_rate: 1, // Will be updated by useEffect or manual input
         });
         setPaymentSubmissionError(null);
         setAppliedCredits(new Map());
@@ -425,6 +494,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         setIsNoSessionAlertOpen(true);
       }
     } catch (error) {
+      console.error("Payment session check error:", error);
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -435,6 +505,73 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
   const handlePaymentSubmit = async (values: PaymentFormValues) => {
     if (!selectedInvoiceForPayment || !activeCashSessionId) return;
+
+    // Validate that we are paying SOMETHING
+    const totalCredits = Array.from(appliedCredits.values()).reduce((a, b) => a + b, 0);
+    if (values.amount <= 0 && totalCredits <= 0) {
+      setPaymentSubmissionError(t('validation.noPaymentAmount'));
+      return;
+    }
+
+    // Validate Overpayment
+    const invoiceTotal = selectedInvoiceForPayment.total || 0;
+    const paidAmount = selectedInvoiceForPayment.paid_amount || 0;
+    const invoiceCurrency = selectedInvoiceForPayment.currency || 'USD';
+
+    let paymentAmountInInvoiceCurrency = 0;
+    if (values.amount) {
+      if (showExchangeRate && equivalentAmount) {
+        paymentAmountInInvoiceCurrency = equivalentAmount;
+      } else {
+        paymentAmountInInvoiceCurrency = values.amount;
+      }
+    }
+
+    const creditsTotalInInvoiceCurrency = Array.from(appliedCredits.entries()).reduce((sum, [creditId, amount]) => {
+      const credit = userCredits.find(c => c.source_id === creditId);
+      if (!credit) return sum;
+
+      let creditAmountConverted = amount;
+      if (credit.currency !== invoiceCurrency) {
+        if (invoiceCurrency === 'USD' && credit.currency === 'UYU') {
+          creditAmountConverted = amount / sessionExchangeRate;
+        }
+        else if (invoiceCurrency === 'UYU' && credit.currency === 'USD') {
+          creditAmountConverted = amount * sessionExchangeRate;
+        }
+      }
+      return sum + creditAmountConverted;
+    }, 0);
+
+    const totalAttemptedPayment = paymentAmountInInvoiceCurrency + creditsTotalInInvoiceCurrency;
+    const remainingBalance = invoiceTotal - paidAmount;
+
+    // Calculate total available credit in invoice currency to decide if we should validate
+    const totalAvailableCreditInInvoiceCurrency = userCredits.reduce((sum, credit) => {
+      let amount = Number(credit.available_balance) || 0;
+      let converted = amount;
+      if (credit.currency !== invoiceCurrency) {
+        if (invoiceCurrency === 'USD' && credit.currency === 'UYU') {
+          converted = amount / sessionExchangeRate;
+        }
+        else if (invoiceCurrency === 'UYU' && credit.currency === 'USD') {
+          converted = amount * sessionExchangeRate;
+        }
+      }
+      return sum + converted;
+    }, 0);
+
+    // Only validate overpayment if the user has enough credit to pay the full debt
+    // This allows overpayment (e.g. for change) when credit is insufficient,
+    // but prevents wasting credit or gross errors when credit IS sufficient.
+    if (totalAvailableCreditInInvoiceCurrency >= remainingBalance - 0.01) {
+      // Allow a small epsilon for floating point issues, but generally strict
+      if (totalAttemptedPayment > remainingBalance + 0.01) {
+        setPaymentSubmissionError(t('validation.overpayment'));
+        return;
+      }
+    }
+
     setPaymentSubmissionError(null);
 
     const selectedMethod = paymentMethods.find(pm => pm.id === values.method);
@@ -457,6 +594,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             amount: amount,
             type: credit?.type,
             currency: credit?.currency,
+            exchange_rate: sessionExchangeRate, // Send the session rate
           };
         }),
         query: JSON.stringify({
@@ -464,14 +602,15 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           payment_date: values.payment_date.toISOString(),
           amount: values.amount,
           converted_amount: convertedAmount,
-          method: selectedMethod?.name,
+          method: selectedMethod?.name || 'Credit', // Fallback name if only credit
           payment_method_id: values.method,
           status: values.status,
           user_id: selectedInvoiceForPayment.user_id,
           invoice_currency: selectedInvoiceForPayment.currency,
           payment_currency: values.payment_currency,
           exchange_rate: values.exchange_rate || 1,
-          is_sales: isSales
+          is_sales: isSales,
+          total_paid: totalAttemptedPayment
         }),
       };
 
@@ -617,45 +756,111 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                   </ScrollArea>
                 </div>
               )}
-              <div className="grid grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="amount"
-                  render={({ field }) => (
-                    <FormItem className="col-span-2">
-                      <FormLabel>{t('paymentDialog.amount')} ({watchedPaymentCurrency})</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="payment_currency"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('paymentDialog.currency')}</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <div className="space-y-4 pt-4 border-t">
+                <h4 className="font-semibold text-sm">{t('paymentDialog.manualPayment')}</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="method"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('paymentDialog.method')}</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t('paymentDialog.selectMethod')} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {paymentMethods.map(method => (
+                              <SelectItem key={method.id} value={method.id}>{method.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="payment_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('paymentDialog.date')}</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>{t('paymentDialog.pickDate')}</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) =>
+                                date > new Date() || date < new Date("1900-01-01")
+                              }
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('paymentDialog.amount')} ({watchedPaymentCurrency})</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('paymentDialog.selectCurrency')} />
-                          </SelectTrigger>
+                          <Input type="number" step="0.01" {...field} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="USD">USD</SelectItem>
-                          <SelectItem value="UYU">UYU</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="payment_currency"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('paymentDialog.currency')}</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t('paymentDialog.selectCurrency')} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="USD">USD</SelectItem>
+                            <SelectItem value="UYU">UYU</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
 
               {showExchangeRate && (
-                <div className="grid grid-cols-2 gap-4 rounded-md border p-4">
+                <div className="grid grid-cols-2 gap-4 rounded-md border p-4 mt-4">
                   <FormField
                     control={form.control}
                     name="exchange_rate"
@@ -679,94 +884,94 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                   )}
                 </div>
               )}
+              <div className="rounded-md border p-4 bg-muted/50 space-y-3 mt-4">
+                <h4 className="font-semibold text-sm">{t('paymentDialog.summary')}</h4>
+
+                {showExchangeRate && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{t('paymentDialog.exchangeRateApplied')}:</span>
+                    <span>{sessionExchangeRate}</span>
+                  </div>
+                )}
+
+                {appliedCredits.size > 0 && (
+                  <div className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground">{t('paymentDialog.creditsApplied')}:</span>
+                    {Array.from(appliedCredits.entries()).map(([id, amount]) => {
+                      const credit = userCredits.find(c => c.source_id === id);
+                      const invoiceCurrency = selectedInvoiceForPayment?.currency || 'USD';
+                      let converted = amount;
+                      if (credit && credit.currency !== invoiceCurrency) {
+                        if (invoiceCurrency === 'USD' && credit.currency === 'UYU') converted = amount / sessionExchangeRate;
+                        else if (invoiceCurrency === 'UYU' && credit.currency === 'USD') converted = amount * sessionExchangeRate;
+                      }
+
+                      return (
+                        <div key={id} className="flex justify-between text-sm pl-2">
+                          <span>#{id} ({credit?.currency})</span>
+                          <div className="flex flex-col items-end">
+                            <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: credit?.currency }).format(amount)}</span>
+                            {credit?.currency !== invoiceCurrency && (
+                              <span className="text-xs text-muted-foreground">
+                                ≈ {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceCurrency }).format(converted)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {watchedAmount > 0 && (
+                  <div className="space-y-1 pt-2 border-t">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">{t('paymentDialog.manualPayment')}:</span>
+                      <div className="flex flex-col items-end">
+                        <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedPaymentCurrency }).format(watchedAmount)}</span>
+                        {watchedPaymentCurrency !== (selectedInvoiceForPayment?.currency || 'USD') && equivalentAmount && (
+                          <span className="text-xs text-muted-foreground">
+                            ≈ {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment?.currency || 'USD' }).format(equivalentAmount)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center pt-2 border-t font-semibold">
+                  <span>{t('paymentDialog.totalPayment')}:</span>
+                  <span>
+                    {(() => {
+                      const invoiceCurrency = selectedInvoiceForPayment?.currency || 'USD';
+                      let total = 0;
+                      // Manual
+                      if (watchedAmount) {
+                        const amountVal = Number(watchedAmount);
+                        total += (showExchangeRate && equivalentAmount) ? equivalentAmount : amountVal;
+                      }
+                      // Credits
+                      Array.from(appliedCredits.entries()).forEach(([id, amount]) => {
+                        const credit = userCredits.find(c => c.source_id === id);
+                        let converted = amount;
+                        if (credit && credit.currency !== invoiceCurrency) {
+                          if (invoiceCurrency === 'USD' && credit.currency === 'UYU') converted = amount / sessionExchangeRate;
+                          else if (invoiceCurrency === 'UYU' && credit.currency === 'USD') converted = amount * sessionExchangeRate;
+                        }
+                        total += converted;
+                      });
+                      return new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceCurrency }).format(total);
+                    })()}
+                  </span>
+                </div>
+              </div>
+
               {selectedInvoiceForPayment && (
                 <div className="flex justify-between items-center bg-muted p-3 rounded-md">
                   <span className="font-semibold text-lg">{t('paymentDialog.remainingAmount')}</span>
                   <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
                 </div>
               )}
-              <FormField
-                control={form.control}
-                name="method"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('paymentDialog.method')}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('paymentDialog.selectMethod')} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {paymentMethods.map(method => (
-                          <SelectItem key={method.id} value={method.id}>{method.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('paymentDialog.status')}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('paymentDialog.selectStatus')} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="completed">{tStatus('completed')}</SelectItem>
-                        <SelectItem value="pending">{tStatus('pending')}</SelectItem>
-                        <SelectItem value="failed">{tStatus('failed')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="payment_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>{t('paymentDialog.date')}</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>{t('paymentDialog.pickDate')}</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => setIsPaymentDialogOpen(false)}>{t('paymentDialog.cancel')}</Button>
                 <Button type="submit">{t('paymentDialog.add')}</Button>
@@ -823,7 +1028,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
     defaultValues: {
       type: 'invoice',
       user_id: '',
-      currency: 'USD',
+      currency: 'UYU',
       items: [],
       total: 0,
     },
@@ -939,7 +1144,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
               <FormField control={form.control} name="currency" render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('currency')}</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                     <SelectContent>
                       <SelectItem value="USD">USD</SelectItem>
@@ -960,7 +1165,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('parentInvoice')}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder={t('selectParentInvoice')} />
@@ -968,7 +1173,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                       </FormControl>
                       <SelectContent>
                         {bookedInvoices.map(inv => (
-                          <SelectItem key={inv.id} value={inv.id}>
+                          <SelectItem key={inv.id} value={String(inv.id)}>
                             Invoice #{inv.id} - {inv.user_name} - ${inv.total}
                           </SelectItem>
                         ))}

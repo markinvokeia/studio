@@ -12,32 +12,32 @@ import { cn } from '@/lib/utils';
 import { navItems } from '@/config/nav';
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
-    const pathname = usePathname();
-    const locale = useLocale();
+  const pathname = usePathname();
+  const locale = useLocale();
 
-    const getEffectivePathname = (p: string, l: string) => {
-        const localePrefix = `/${l}`;
-        if (p.startsWith(localePrefix)) {
-            return p.substring(localePrefix.length) || '/';
-        }
-        return p;
-    };
-    
-    const effectivePathname = getEffectivePathname(pathname, locale);
-    const activeParentItem = navItems.find(item => item.href !== '/' && effectivePathname.startsWith(item.href) && item.items);
-    
-    return (
-        <div className="flex h-screen bg-background">
-            <Sidebar />
-            <div className={cn("flex flex-col flex-1 transition-all duration-300 ml-20")}>
-                <Header />
-                <main className="flex-1 overflow-auto bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 lg:p-6">
-                    {children}
-                </main>
-            </div>
-            <FloatingActionsWrapper />
-        </div>
-    );
+  const getEffectivePathname = (p: string, l: string) => {
+    const localePrefix = `/${l}`;
+    if (p.startsWith(localePrefix)) {
+      return p.substring(localePrefix.length) || '/';
+    }
+    return p;
+  };
+
+  const effectivePathname = getEffectivePathname(pathname, locale);
+  const activeParentItem = navItems.find(item => item.href !== '/' && effectivePathname.startsWith(item.href) && item.items);
+
+  return (
+    <div className="flex h-screen bg-background">
+      <Sidebar />
+      <div className={cn("flex flex-col flex-1 transition-all duration-300 ml-20 min-w-0")}>
+        <Header />
+        <main className="flex-1 overflow-auto bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 lg:p-6">
+          {children}
+        </main>
+      </div>
+      <FloatingActionsWrapper />
+    </div>
+  );
 }
 
 export function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -65,24 +65,24 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  
+
   if (!user && !isPublicPage) {
     return null; // or a loading spinner, since the redirect is happening
   }
 
   if (user && isPublicPage && !pathname.startsWith(`/${locale}/reset-password`) && !pathname.startsWith(`/${locale}/set-first-password`)) {
-     return null;
+    return null;
   }
 
   if (isPublicPage) {
     return <>{children}</>;
   }
-  
+
   if (user) {
     return (
-        <AuthenticatedLayout>
-          {children}
-        </AuthenticatedLayout>
+      <AuthenticatedLayout>
+        {children}
+      </AuthenticatedLayout>
     );
   }
 

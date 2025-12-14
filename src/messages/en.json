@@ -727,7 +727,14 @@
       "noCredits": "No credits available",
       "currency": "Currency",
       "remaining_amount": "Remaining Amount",
-      "remainingAmount": "Remaining Amount"
+      "remainingAmount": "Remaining Amount",
+      "summary": "Payment Summary",
+      "exchangeRateApplied": "Exchange Rate Applied",
+      "creditsApplied": "Credits Applied",
+      "manualPayment": "Manual Payment",
+      "totalPayment": "Total Payment",
+      "noPayment": "No payment selected",
+      "overpayment": "The total payment exceeds the remaining amount of the invoice."
     },
     "status": {
       "paid": "Paid",
@@ -755,7 +762,8 @@
       "amountPositive": "Amount must be a positive number.",
       "methodRequired": "Payment method is required.",
       "dateRequired": "Payment date is required.",
-      "userRequired": "An user is required"
+      "userRequired": "An user is required",
+      "noPaymentAmount": "Please enter an amount or select credits to pay."
     },
     "toast": {
       "error": "Error",

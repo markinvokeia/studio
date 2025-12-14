@@ -601,7 +601,7 @@ export default function InvoicesPage() {
     );
 
     return (
-        <div className="relative">
+        <div className="relative overflow-hidden">
             <div className={cn("transition-all duration-300 w-full")}>
                 <Card>
                     <CardHeader>
@@ -641,7 +641,7 @@ export default function InvoicesPage() {
 
             <div
                 className={cn(
-                    "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l transition-transform duration-300 ease-in-out",
+                    "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l z-20 transition-transform duration-300 ease-in-out",
                     selectedInvoice ? 'translate-x-0' : 'translate-x-full'
                 )}
             >
