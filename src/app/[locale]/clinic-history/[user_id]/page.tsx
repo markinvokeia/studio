@@ -2190,7 +2190,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     const { toast } = useToast();
     const [doctors, setDoctors] = useState<UserType[]>([]);
     const [attachments, setAttachments] = useState<File[]>([]);
-    const [attachmentToothNumbers, setAttachmentToothNumbers] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
 
@@ -2248,7 +2247,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                 });
             }
              setAttachments([]);
-             setAttachmentToothNumbers({});
         }
     }, [isOpen, session, form]);
 
@@ -2272,10 +2270,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         
         attachments.forEach((file, index) => {
             formData.append(`archivos_adjuntos_${index}`, file);
-            const toothNumber = attachmentToothNumbers[file.name];
-            if (toothNumber) {
-                 formData.append(`diente_asociado_${index}`, toothNumber);
-            }
         });
 
         try {
@@ -2299,11 +2293,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
             setAttachments(Array.from(event.target.files));
         }
     };
-
-    const handleAttachmentToothNumberChange = (fileName: string, toothNumber: string) => {
-        setAttachmentToothNumbers(prev => ({...prev, [fileName]: toothNumber}));
-    }
-
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -2389,7 +2378,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                       name={`treatments.${index}.numero_diente`}
                                                       render={({ field }) => (
                                                         <FormItem className="w-24">
-                                                          <FormLabel className="text-xs">Diente</FormLabel>
+                                                          <FormLabel className="text-xs">{t('tooth')}</FormLabel>
                                                           <FormControl>
                                                             <Input type="number" placeholder={t('tooth')} {...field} className="h-8" />
                                                           </FormControl>
@@ -2425,11 +2414,11 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                     </CardHeader>
                                     <CardContent>
                                         <Button type="button" variant="outline" onClick={() => setIsAttachmentDialogOpen(true)}>Add Attachment</Button>
-                                        <div className="mt-2 space-y-2">
+                                        <div className="mt-2 grid grid-cols-3 gap-2">
                                             {attachments.map((file, index) => (
-                                                <div key={index} className="flex items-center justify-between text-sm">
-                                                    <span>{file.name}</span>
-                                                    <Button type="button" variant="ghost" size="icon" onClick={() => setAttachments(attachments.filter((_, i) => i !== index))}>
+                                                <div key={index} className="relative group">
+                                                    <Image src={URL.createObjectURL(file)} alt={file.name} width={100} height={100} className="rounded-md object-cover w-full aspect-square" />
+                                                    <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => setAttachments(attachments.filter((_, i) => i !== index))}>
                                                         <X className="h-4 w-4" />
                                                     </Button>
                                                 </div>
@@ -2455,35 +2444,24 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                     </DialogHeader>
                     <div className="flex items-center justify-center w-full">
                         <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
-                            {attachments.length > 0 ? (
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <FileText className="w-8 h-8 mb-4 text-primary" />
-                                    <p className="font-semibold text-foreground">{attachments.length} file(s) selected</p>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
-                                    <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                    <p className="text-xs text-muted-foreground">PDF, PNG, JPG, etc.</p>
-                                </div>
-                            )}
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
+                                <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                <p className="text-xs text-muted-foreground">PDF, PNG, JPG, etc.</p>
+                            </div>
                             <Input id="dropzone-file" type="file" multiple className="hidden" onChange={handleAttachmentFileChange} />
                         </label>
                     </div>
                     {attachments.length > 0 && (
                         <ScrollArea className="h-40 mt-4 border rounded-md p-2">
+                          <div className="grid grid-cols-2 gap-2">
                             {attachments.map((file, index) => (
                                 <div key={index} className="flex items-center justify-between gap-2 p-1">
+                                    <Image src={URL.createObjectURL(file)} alt={file.name} width={40} height={40} className="rounded-md object-cover aspect-square"/>
                                     <span className="text-sm truncate flex-1">{file.name}</span>
-                                    <Input
-                                        type="number"
-                                        placeholder="Tooth #"
-                                        className="w-24 h-8"
-                                        value={attachmentToothNumbers[file.name] || ''}
-                                        onChange={(e) => handleAttachmentToothNumberChange(file.name, e.target.value)}
-                                    />
                                 </div>
                             ))}
+                          </div>
                         </ScrollArea>
                     )}
                     <DialogFooter>
