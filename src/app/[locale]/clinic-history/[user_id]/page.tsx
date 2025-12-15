@@ -1143,74 +1143,6 @@ const AnamnesisDashboard = ({
     );
 };
 
-const getGoogleDriveThumbnailUrl = (url: string) => {
-    if (!url || !url.includes('drive.google.com')) return url;
-    const fileIdMatch = url.match(/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
-    if (fileIdMatch && fileIdMatch[1]) {
-        return `https://drive.google.com/uc?id=${fileIdMatch[1]}`;
-    }
-    return url;
-};
-
-const ImageViewer = ({ src, alt }: { src: string; alt: string; }) => {
-    const [zoom, setZoom] = useState(1);
-    const [position, setPosition] = useState({ x: 0, y: 0 });
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-    const imageRef = useRef<HTMLImageElement>(null);
-
-    const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
-        if (!imageRef.current) return;
-        e.preventDefault();
-        setIsDragging(true);
-        setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
-    };
-
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!isDragging || !imageRef.current) return;
-        e.preventDefault();
-        setPosition({
-            x: e.clientX - dragStart.x,
-            y: e.clientY - dragStart.y,
-        });
-    };
-    
-    const handleMouseUp = () => {
-        setIsDragging(false);
-    };
-
-    const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-      setZoom((prev) => Math.max(0.1, Math.min(prev * zoomFactor, 5)));
-    };
-
-    return (
-        <div 
-            className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative bg-muted/20"
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onWheel={handleWheel}
-        >
-            <img
-                ref={imageRef}
-                src={src}
-                alt={alt}
-                className="max-w-none max-h-none cursor-grab transform-gpu"
-                style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`, transition: isDragging ? 'none' : 'transform 0.1s ease-out' }}
-                onMouseDown={handleMouseDown}
-            />
-             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 p-2 rounded-lg backdrop-blur-sm">
-                <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.2))}><ZoomOut className="h-4 w-4" /></Button>
-                <span className='text-sm font-medium w-16 text-center bg-transparent'>{(zoom * 100).toFixed(0)}%</span>
-                <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.min(prev + 0.2, 5))}><ZoomIn className="h-4 w-4" /></Button>
-                <Button variant="outline" size="icon" onClick={() => { setZoom(1); setPosition({ x: 0, y: 0 }); }}><RotateCcw className="h-4 w-4" /></Button>
-            </div>
-        </div>
-    );
-}
-
 const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => {
   const router = useRouter();
   const locale = useLocale();
@@ -1843,6 +1775,154 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         );
     };
 
+    const TreatmentTimeline = ({ sessions, onAction }: { sessions: PatientSession[], onAction: (action: 'add' | 'edit' | 'delete', session?: PatientSession) => void }) => {
+    const t = useTranslations('ClinicHistoryPage.timeline');
+    const [openItems, setOpenItems] = useState<string[]>([]);
+
+    const toggleItem = (id: string) => {
+        setOpenItems(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+    };
+
+    if (isLoadingPatientSessions) {
+      return (
+        <div className="bg-card rounded-xl shadow-lg p-6">
+          <h3 className="text-xl font-bold text-gray-800 mb-6">{t('title')}</h3>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div className="flex gap-4" key={i}>
+                <Skeleton className="w-6 h-6 rounded-full mt-1" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+  
+    return (
+      <div className="bg-card rounded-xl shadow-lg p-6">
+        <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-card-foreground">{t('title')}</h3>
+            <Button onClick={() => onAction('add')}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Session
+            </Button>
+        </div>
+        <div className="relative">
+          <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-muted"></div>
+          {sessions.map((session, index) => {
+            const Icon = {
+                'odontograma': Smile,
+                'clinica': Stethoscope
+            }[session.tipo_sesion || 'clinica'] || Stethoscope;
+            const isOpen = openItems.includes(String(session.sesion_id));
+            
+            return (
+              <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
+                <div className="absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-2 border-background shadow-md bg-card flex items-center justify-center">
+                   <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Icon className="h-4 w-4 text-primary" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{session.tipo_sesion === 'odontograma' ? t('odontogramTooltip') : t('sessionType')}: {session.tipo_sesion}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                   </TooltipProvider>
+                </div>
+                <div className="flex-1">
+                  <div className="bg-card rounded-lg border p-4 transition-colors duration-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-semibold text-foreground">{session.procedimiento_realizado}</h4>
+                        <p className="text-sm text-muted-foreground">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</p>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => onAction('edit', session)}>{t('edit')}</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onAction('delete', session)} className="text-destructive">{t('delete')}</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <div className="space-y-3 text-sm text-muted-foreground">
+                      <p><strong>{t('diagnosis')}:</strong> {session.diagnostico}</p>
+                      <p><strong>{t('notes')}:</strong> {session.notas_clinicas}</p>
+                      {session.plan_proxima_cita && <p><strong>{t('nextSessionPlan')}:</strong> {session.plan_proxima_cita}</p>}
+                      <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>
+                        {(session.tratamientos?.length > 0 || session.archivos_adjuntos?.length > 0 || session.estado_odontograma) && (
+                          <CollapsibleTrigger asChild>
+                            <Button variant="link" className="p-0 h-auto text-xs flex items-center gap-1">
+                              {isOpen ? t('showLess') : t('showMore')}
+                              <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
+                            </Button>
+                          </CollapsibleTrigger>
+                        )}
+                        <CollapsibleContent>
+                          <div className="mt-2 space-y-3">
+                            {session.estado_odontograma && (
+                                <div>
+                                    <strong className="text-foreground">{t('odontogramUpdate')}</strong>
+                                    <ul className="list-disc pl-5">
+                                        {Object.entries(session.estado_odontograma).map(([tooth, data]: [string, any]) => (
+                                            <li key={tooth}>Diente {tooth}: {data.condition} ({data.surface})</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {session.tratamientos && session.tratamientos.length > 0 && (
+                              <div>
+                                <strong className="text-foreground">{t('treatments')}:</strong>
+                                <ul className="list-disc pl-5">
+                                  {session.tratamientos.map((t, i) => (
+                                    <li key={i}>{t.descripcion} {t.numero_diente && `(${t('tooth')}: ${t.numero_diente})`}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
+                              <div>
+                                <strong className="text-foreground">{t('attachments')}:</strong>
+                                <ul className="list-disc pl-5">
+                                  {session.archivos_adjuntos.map((file, i) => (
+                                    <li key={i}>
+                                      <a
+                                        href={`https://n8n-project-n8n.7ig1i3.easypanel.host${file.ruta}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-primary hover:underline flex items-center gap-1"
+                                      >
+                                        <Paperclip className="w-3 h-3" />
+                                        {file.tipo} {file.diente_asociado && `(${t('tooth')}: ${file.diente_asociado})`}
+                                      </a>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+  
+
   return (
     <div className={cn("min-h-screen", !isFullscreen && "bg-background")}>
       {/* Header */}
@@ -2261,6 +2341,65 @@ const ImageGallery = ({ userId }: { userId: string}) => {
     );
 };
 
+const ImageViewer = ({ src, alt }: { src: string; alt: string; }) => {
+    const [zoom, setZoom] = useState(1);
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const imageRef = useRef<HTMLImageElement>(null);
+
+    const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
+        if (!imageRef.current) return;
+        e.preventDefault();
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    };
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!isDragging || !imageRef.current) return;
+        e.preventDefault();
+        setPosition({
+            x: e.clientX - dragStart.x,
+            y: e.clientY - dragStart.y,
+        });
+    };
+    
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+      setZoom((prev) => Math.max(0.1, Math.min(prev * zoomFactor, 5)));
+    };
+
+    return (
+        <div 
+            className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative bg-muted/20"
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onWheel={handleWheel}
+        >
+            <img
+                ref={imageRef}
+                src={src}
+                alt={alt}
+                className="max-w-none max-h-none cursor-grab transform-gpu"
+                style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`, transition: isDragging ? 'none' : 'transform 0.1s ease-out' }}
+                onMouseDown={handleMouseDown}
+            />
+             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 p-2 rounded-lg backdrop-blur-sm">
+                <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.2))}><ZoomOut className="h-4 w-4" /></Button>
+                <span className='text-sm font-medium w-16 text-center bg-transparent'>{(zoom * 100).toFixed(0)}%</span>
+                <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.min(prev + 0.2, 5))}><ZoomIn className="h-4 w-4" /></Button>
+                <Button variant="outline" size="icon" onClick={() => { setZoom(1); setPosition({ x: 0, y: 0 }); }}><RotateCcw className="h-4 w-4" /></Button>
+            </div>
+        </div>
+    );
+}
+
 export default function DentalClinicalSystemPage() {
     const params = useParams();
     const userId = params.user_id as string;
@@ -2277,3 +2416,4 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
