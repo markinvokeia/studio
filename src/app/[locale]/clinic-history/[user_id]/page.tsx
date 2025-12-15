@@ -131,7 +131,7 @@ const HabitCard = ({ userId, fetchPatientHabits, habits, isLoading }: { userId: 
         <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
-                    <User className="w-5 h-5 text-blue-600 mr-2" />
+                    <User className="w-5 h-5 text-primary mr-2" />
                     <h3 className="text-lg font-bold text-card-foreground">{t('title')}</h3>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
@@ -2161,15 +2161,15 @@ const sessionFormSchema = z.object({
   treatments: z.array(z.object({
     descripcion: z.string().min(1, 'Description is required'),
     numero_diente: z.string().refine(val => {
-      if (val === '') return true; // Optional
+      if (val === '' || val === undefined) return true;
       const num = parseInt(val);
       if (isNaN(num)) return false;
       const lastDigit = num % 10;
-      if (lastDigit === 0 || lastDigit === 9) return false; // No 9s or 0s
+      if (lastDigit === 0 || lastDigit === 9) return false;
       const firstDigit = Math.floor(num / 10);
-      if (firstDigit < 1 || firstDigit > 8) return false; // Quadrants 1-8
-      if (firstDigit >= 1 && firstDigit <= 4 && num > 48) return false; // Permanent teeth range
-      if (firstDigit >= 5 && firstDigit <= 8 && num > 85) return false; // Deciduous teeth range
+      if (firstDigit < 1 || firstDigit > 8) return false; 
+      if (firstDigit >= 1 && firstDigit <= 4 && num > 48) return false;
+      if (firstDigit >= 5 && firstDigit <= 8 && num > 85) return false;
       return true;
     }, {
       message: 'Invalid tooth number'
@@ -2377,20 +2377,21 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                             </div>
                             <div className="space-y-4">
                                 <Card>
-                                    <CardHeader>
-                                        <CardTitle>{t('treatments')}</CardTitle>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-base">{t('treatments')}</CardTitle>
                                     </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="max-h-60 overflow-y-auto space-y-2 p-2 border rounded-md">
+                                    <CardContent className="space-y-2">
+                                        <div className="max-h-48 overflow-y-auto space-y-3 p-1">
                                             {fields.map((field, index) => (
-                                                <div key={field.id} className="flex gap-2 items-start">
+                                                <div key={field.id} className="flex gap-2 items-start p-2 border rounded-md">
                                                     <FormField
                                                       control={form.control}
                                                       name={`treatments.${index}.numero_diente`}
                                                       render={({ field }) => (
-                                                        <FormItem>
+                                                        <FormItem className="w-24">
+                                                          <FormLabel className="text-xs">Diente</FormLabel>
                                                           <FormControl>
-                                                            <Input type="number" placeholder={t('tooth')} {...field} className="w-24" />
+                                                            <Input type="number" placeholder={t('tooth')} {...field} className="h-8" />
                                                           </FormControl>
                                                           <FormMessage />
                                                         </FormItem>
@@ -2401,25 +2402,26 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                       name={`treatments.${index}.descripcion`}
                                                       render={({ field }) => (
                                                         <FormItem className="flex-1">
+                                                          <FormLabel className="text-xs">Tratamiento</FormLabel>
                                                           <FormControl>
-                                                            <Textarea placeholder={t('treatmentPlaceholder')} {...field} />
+                                                            <Textarea placeholder={t('treatmentPlaceholder')} {...field} className="min-h-[32px] h-8" />
                                                           </FormControl>
                                                           <FormMessage />
                                                         </FormItem>
                                                       )}
                                                     />
-                                                    <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}>
-                                                        <Trash2 className="h-4 w-4" />
+                                                    <Button type="button" variant="ghost" size="icon" className="mt-5" onClick={() => remove(index)}>
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
                                                     </Button>
                                                 </div>
                                             ))}
-                                            <Button type="button" variant="outline" size="sm" onClick={() => append({ descripcion: '', numero_diente: '' })}>{t('addTreatment')}</Button>
                                         </div>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => append({ descripcion: '', numero_diente: '' })}>{t('addTreatment')}</Button>
                                     </CardContent>
                                 </Card>
                                 <Card>
-                                    <CardHeader>
-                                        <CardTitle>{t('attachments')}</CardTitle>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-base">{t('attachments')}</CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         <Button type="button" variant="outline" onClick={() => setIsAttachmentDialogOpen(true)}>Add Attachment</Button>
