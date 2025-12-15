@@ -1184,6 +1184,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     const { toast } = useToast();
     const [doctors, setDoctors] = useState<UserType[]>([]);
     const [attachments, setAttachments] = useState<File[]>([]);
+    const [existingAttachments, setExistingAttachments] = useState<AttachedFile[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm<SessionFormValues>({
@@ -1228,6 +1229,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                     plan_proxima_cita: session.plan_proxima_cita || '',
                     treatments: session.tratamientos?.map(t => ({...t, numero_diente: String(t.numero_diente)})) || [],
                 });
+                setExistingAttachments(session.archivos_adjuntos || []);
             } else {
                 form.reset({
                     doctor_id: '',
@@ -1238,6 +1240,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                     plan_proxima_cita: '',
                     treatments: [],
                 });
+                setExistingAttachments([]);
             }
              setAttachments([]);
         }
@@ -1289,8 +1292,23 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         }
     };
     
-    const removeAttachment = (indexToRemove: number) => {
+    const removeNewAttachment = (indexToRemove: number) => {
         setAttachments(prev => prev.filter((_, index) => index !== indexToRemove));
+    };
+
+    const removeExistingAttachment = async (fileId: string) => {
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesion/attachment/delete', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ file_id: fileId }),
+            });
+            if (!response.ok) throw new Error('Failed to delete attachment.');
+            setExistingAttachments(prev => prev.filter(f => f.ruta !== fileId));
+            toast({ title: 'Success', description: 'Attachment deleted.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not delete attachment.' });
+        }
     };
 
     return (
@@ -1424,23 +1442,48 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                 <Input id="session-attachments" type="file" multiple className="hidden" onChange={handleAttachmentFileChange} />
                                             </label>
                                         </div>
-                                        {attachments.length > 0 && (
-                                            <ScrollArea className="h-24 mt-4 border rounded-md p-2">
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    {attachments.map((file, index) => (
-                                                        <div key={index} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
-                                                          <div className="flex items-center gap-2 overflow-hidden">
-                                                            <Image src={URL.createObjectURL(file)} alt={file.name} width={24} height={24} className="rounded object-cover aspect-square"/>
-                                                            <span className="text-sm truncate flex-1">{file.name}</span>
-                                                          </div>
-                                                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeAttachment(index)}>
-                                                              <X className="h-3 w-3"/>
-                                                          </Button>
+                                        <div className="mt-4 space-y-2">
+                                            {existingAttachments.length > 0 && (
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">Existing Files</Label>
+                                                    <ScrollArea className="h-24 mt-1 border rounded-md p-2">
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            {existingAttachments.map((file, index) => (
+                                                                <div key={index} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
+                                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                                    <Image src={`https://n8n-project-n8n.7ig1i3.easypanel.host${file.ruta}`} alt={file.file_name || 'attachment'} width={24} height={24} className="rounded object-cover aspect-square"/>
+                                                                    <span className="text-sm truncate flex-1">{file.file_name}</span>
+                                                                </div>
+                                                                <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeExistingAttachment(file.ruta)}>
+                                                                    <X className="h-3 w-3"/>
+                                                                </Button>
+                                                                </div>
+                                                            ))}
                                                         </div>
-                                                    ))}
+                                                    </ScrollArea>
                                                 </div>
-                                            </ScrollArea>
-                                        )}
+                                            )}
+                                            {attachments.length > 0 && (
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">New Files</Label>
+                                                    <ScrollArea className="h-24 mt-1 border rounded-md p-2">
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            {attachments.map((file, index) => (
+                                                                <div key={index} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
+                                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                                    <Image src={URL.createObjectURL(file)} alt={file.name} width={24} height={24} className="rounded object-cover aspect-square"/>
+                                                                    <span className="text-sm truncate flex-1">{file.name}</span>
+                                                                </div>
+                                                                <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeNewAttachment(index)}>
+                                                                    <X className="h-3 w-3"/>
+                                                                </Button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </ScrollArea>
+                                                </div>
+                                            )}
+                                        </div>
                                     </CardContent>
                                 </Card>
                             </div>
@@ -1772,6 +1815,9 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
   const [isSessionDialogOpen, setIsSessionDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<PatientSession | null>(null);
   const [deletingSession, setDeletingSession] = useState<PatientSession | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [documentContent, setDocumentContent] = useState<string | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
   const { toast } = useToast();
 
   const handleSessionAction = (action: 'add' | 'edit' | 'delete', session?: PatientSession) => {
@@ -1805,6 +1851,25 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         setDeletingSession(null);
     }
   };
+
+  const handleViewAttachment = async (file: AttachedFile) => {
+    setSelectedDocument({ id: file.ruta, name: file.file_name || 'Attachment' });
+    setIsViewerOpen(true);
+    setDocumentContent(null); // Reset previous content
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host${file.ruta}`);
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            setDocumentContent(url);
+        } else {
+            throw new Error("Failed to load attachment");
+        }
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: "Could not load attachment." });
+        setIsViewerOpen(false);
+    }
+};
 
   const Navigation = () => {
     const navItems = [
@@ -1950,15 +2015,13 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                     <ul className="list-disc pl-5">
                                     {session.archivos_adjuntos.map((file, i) => (
                                         <li key={i}>
-                                        <a
-                                            href={`https://n8n-project-n8n.7ig1i3.easypanel.host${file.ruta}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                        <button
+                                            onClick={() => handleViewAttachment(file)}
                                             className="text-primary hover:underline flex items-center gap-1"
                                         >
                                             <Paperclip className="w-3 h-3" />
-                                            {file.tipo} {file.diente_asociado && `(${t('tooth')}: ${file.diente_asociado})`}
-                                        </a>
+                                            {file.file_name || 'Attachment'}
+                                        </button>
                                         </li>
                                     ))}
                                     </ul>
@@ -2084,7 +2147,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                 <iframe src={`https://odontogramiia.invokeia.com/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
                             </div>
                         )}
-                        {activeView === 'documents' && <ImageGallery userId={userId}/>}
+                        {activeView === 'documents' && <ImageGallery userId={userId} onViewDocument={handleViewAttachment}/>}
                     </div>
                 </div>
             </>
@@ -2120,16 +2183,19 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <DocumentViewerModal
+                isOpen={isViewerOpen}
+                onOpenChange={setIsViewerOpen}
+                document={selectedDocument}
+                documentContent={documentContent}
+            />
         </div>
     );
 };
 
-const ImageGallery = ({ userId }: { userId: string}) => {
+const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocument: (doc: any) => void }) => {
     const [documents, setDocuments] = useState<Document[]>([]);
     const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
-    const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
-    const [documentContent, setDocumentContent] = useState<string | null>(null);
-    const [isViewerOpen, setIsViewerOpen] = useState(false);
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
     const [uploadFile, setUploadFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -2150,7 +2216,8 @@ const ImageGallery = ({ userId }: { userId: string}) => {
                     name: doc.name,
                     mimeType: doc.mimeType,
                     hasThumbnail: doc.hasThumbnail,
-                    thumbnailLink: getGoogleDriveThumbnailUrl(doc.thumbnailLink)
+                    thumbnailLink: getGoogleDriveThumbnailUrl(doc.thumbnailLink),
+                    webViewLink: doc.webViewLink,
                 })));
             } else {
                 setDocuments([]);
@@ -2167,35 +2234,6 @@ const ImageGallery = ({ userId }: { userId: string}) => {
         fetchDocuments();
     }, [fetchDocuments]);
 
-    
-    const handleViewDocument = async (doc: Document) => {
-      setSelectedDocument(doc);
-      setIsViewerOpen(true);
-      setDocumentContent(null);
-      try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${doc.id}&user_id=${userId}`);
-        if (response.ok) {
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
-          setDocumentContent(url);
-        } else {
-          toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Could not load document.',
-          });
-          setIsViewerOpen(false);
-        }
-      } catch (error) {
-        console.error("Failed to load document content:", error);
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Failed to fetch document content.',
-        });
-        setIsViewerOpen(false);
-      }
-    };
     
      const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -2272,27 +2310,6 @@ const ImageGallery = ({ userId }: { userId: string}) => {
       return url.replace(/=s\d+$/, '=s800');
     };
     
-    const DocumentViewerModal = () => (
-      <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
-          <DialogHeader className="p-4 border-b">
-            <DialogTitle>{selectedDocument?.name}</DialogTitle>
-          </DialogHeader>
-          {documentContent ? (
-              selectedDocument?.mimeType?.startsWith('image/') ? (
-                  <ImageViewer src={documentContent} alt={selectedDocument.name} />
-              ) : (
-                  <iframe src={documentContent} className="h-full w-full border-0 flex-1" title={selectedDocument?.name} />
-              )
-          ) : (
-            <div className="flex-1 flex items-center justify-center h-full">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    );
-
     return (
       <div className="space-y-6">
         <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
@@ -2312,7 +2329,7 @@ const ImageGallery = ({ userId }: { userId: string}) => {
               {documents.map((doc) => (
                 <Card key={doc.id} className="overflow-hidden">
                     <CardContent className="p-0 flex flex-col justify-between h-full">
-                        <div className="relative aspect-video w-full bg-muted cursor-pointer" onClick={() => handleViewDocument(doc)}>
+                        <div className="relative aspect-video w-full bg-muted cursor-pointer" onClick={() => onViewDocument(doc)}>
                             {doc.hasThumbnail && doc.thumbnailLink ? (
                                 <Image src={doc.thumbnailLink} alt={doc.name} layout="fill" className="object-cover" />
                             ) : (
@@ -2348,7 +2365,6 @@ const ImageGallery = ({ userId }: { userId: string}) => {
             <p className="text-muted-foreground">No documents found for this patient.</p>
           )}
         </div>
-        {isViewerOpen && <DocumentViewerModal />}
         
         <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
             <DialogContent>
@@ -2461,7 +2477,29 @@ const ImageViewer = ({ src, alt }: { src: string; alt: string; }) => {
     );
 }
 
-function DentalClinicalSystemPage() {
+const DocumentViewerModal = ({ isOpen, onOpenChange, document, documentContent }: { isOpen: boolean, onOpenChange: (open: boolean) => void, document: Document | null, documentContent: string | null }) => (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
+        <DialogHeader className="p-4 border-b">
+        <DialogTitle>{document?.name}</DialogTitle>
+        </DialogHeader>
+        {documentContent ? (
+            document?.mimeType?.startsWith('image/') ? (
+                <ImageViewer src={documentContent} alt={document.name} />
+            ) : (
+                <iframe src={documentContent} className="h-full w-full border-0 flex-1" title={document?.name} />
+            )
+        ) : (
+        <div className="flex-1 flex items-center justify-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+        )}
+    </DialogContent>
+    </Dialog>
+);
+
+
+const DentalClinicalSystemPage = () => {
     const params = useParams();
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
@@ -2469,4 +2507,3 @@ function DentalClinicalSystemPage() {
     
 export default DentalClinicalSystemPage;
 
-    
