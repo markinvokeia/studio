@@ -2159,7 +2159,7 @@ const sessionFormSchema = z.object({
   notas_clinicas: z.string().optional(),
   plan_proxima_cita: z.string().optional(),
   treatments: z.array(z.object({
-    descripcion: z.string().min(1, 'Description is required'),
+    descripcion: z.string().min(1, 'Treatment description is required'),
     numero_diente: z.string().refine(val => {
       if (val === '' || val === undefined) return true;
       const num = parseInt(val);
@@ -2191,7 +2191,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     const [doctors, setDoctors] = useState<UserType[]>([]);
     const [attachments, setAttachments] = useState<File[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
 
     const form = useForm<SessionFormValues>({
         resolver: zodResolver(sessionFormSchema),
@@ -2290,8 +2289,12 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
 
     const handleAttachmentFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
-            setAttachments(Array.from(event.target.files));
+            setAttachments(prev => [...prev, ...Array.from(event.target.files!)]);
         }
+    };
+    
+    const removeAttachment = (indexToRemove: number) => {
+        setAttachments(prev => prev.filter((_, index) => index !== indexToRemove));
     };
 
     return (
@@ -2413,17 +2416,33 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                         <CardTitle className="text-base">{t('attachments')}</CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        <Button type="button" variant="outline" onClick={() => setIsAttachmentDialogOpen(true)}>Add Attachment</Button>
-                                        <div className="mt-2 grid grid-cols-3 gap-2">
-                                            {attachments.map((file, index) => (
-                                                <div key={index} className="relative group">
-                                                    <Image src={URL.createObjectURL(file)} alt={file.name} width={100} height={100} className="rounded-md object-cover w-full aspect-square" />
-                                                    <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => setAttachments(attachments.filter((_, i) => i !== index))}>
-                                                        <X className="h-4 w-4" />
-                                                    </Button>
+                                        <div className="flex items-center justify-center w-full">
+                                            <label htmlFor="session-attachments" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
+                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                    <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
+                                                    <p className="mb-1 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                                    <p className="text-xs text-muted-foreground">PDF, PNG, JPG, etc.</p>
                                                 </div>
-                                            ))}
+                                                <Input id="session-attachments" type="file" multiple className="hidden" onChange={handleAttachmentFileChange} />
+                                            </label>
                                         </div>
+                                        {attachments.length > 0 && (
+                                            <ScrollArea className="h-24 mt-4 border rounded-md p-2">
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {attachments.map((file, index) => (
+                                                        <div key={index} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
+                                                          <div className="flex items-center gap-2 overflow-hidden">
+                                                            <Image src={URL.createObjectURL(file)} alt={file.name} width={24} height={24} className="rounded object-cover aspect-square"/>
+                                                            <span className="text-sm truncate flex-1">{file.name}</span>
+                                                          </div>
+                                                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeAttachment(index)}>
+                                                              <X className="h-3 w-3"/>
+                                                          </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </ScrollArea>
+                                        )}
                                     </CardContent>
                                 </Card>
                             </div>
@@ -2437,38 +2456,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                     </form>
                 </Form>
             </DialogContent>
-            <Dialog open={isAttachmentDialogOpen} onOpenChange={setIsAttachmentDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Add Attachments</DialogTitle>
-                    </DialogHeader>
-                    <div className="flex items-center justify-center w-full">
-                        <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
-                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
-                                <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                <p className="text-xs text-muted-foreground">PDF, PNG, JPG, etc.</p>
-                            </div>
-                            <Input id="dropzone-file" type="file" multiple className="hidden" onChange={handleAttachmentFileChange} />
-                        </label>
-                    </div>
-                    {attachments.length > 0 && (
-                        <ScrollArea className="h-40 mt-4 border rounded-md p-2">
-                          <div className="grid grid-cols-2 gap-2">
-                            {attachments.map((file, index) => (
-                                <div key={index} className="flex items-center justify-between gap-2 p-1">
-                                    <Image src={URL.createObjectURL(file)} alt={file.name} width={40} height={40} className="rounded-md object-cover aspect-square"/>
-                                    <span className="text-sm truncate flex-1">{file.name}</span>
-                                </div>
-                            ))}
-                          </div>
-                        </ScrollArea>
-                    )}
-                    <DialogFooter>
-                        <Button onClick={() => setIsAttachmentDialogOpen(false)}>Done</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </Dialog>
     );
 };
