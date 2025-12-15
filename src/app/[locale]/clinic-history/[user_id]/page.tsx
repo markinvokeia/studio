@@ -1259,12 +1259,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
           }
         });
         
-        values.treatments?.forEach((treatment, index) => {
-          formData.append(`tratamientos[${index}][descripcion]`, treatment.descripcion);
-          if (treatment.numero_diente) {
-            formData.append(`tratamientos[${index}][numero_diente]`, String(treatment.numero_diente));
-          }
-        });
+        if (values.treatments) {
+          formData.append('tratamientos', JSON.stringify(values.treatments));
+        }
         
         attachments.forEach((file, index) => {
             formData.append(`archivos_adjuntos_${index}`, file);
@@ -1372,7 +1369,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                         <CardTitle className="text-base">{t('treatments')}</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-2">
-                                        <div className="max-h-48 overflow-y-auto space-y-3 p-1">
+                                        <ScrollArea className="h-48 pr-4">
+                                        <div className="space-y-3">
                                             {fields.map((field, index) => (
                                                 <div key={field.id} className="flex gap-2 items-start p-2 border rounded-md">
                                                     <FormField
@@ -1407,6 +1405,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                 </div>
                                             ))}
                                         </div>
+                                        </ScrollArea>
                                         <Button type="button" variant="outline" size="sm" onClick={() => append({ descripcion: '', numero_diente: '' })}>{t('addTreatment')}</Button>
                                     </CardContent>
                                 </Card>
