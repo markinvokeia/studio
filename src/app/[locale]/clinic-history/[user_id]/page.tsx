@@ -1796,112 +1796,116 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                     <DialogHeader>
                         <DialogTitle>{session ? t('editTitle') : t('createTitle')}</DialogTitle>
                     </DialogHeader>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
-                        <div className="space-y-4">
-                            <FormField control={form.control} name="fecha_sesion" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('date')}</FormLabel>
-                                    <FormControl>
-                                        <Input type="date" {...field} />
-                                    </FormControl>
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="doctor_id" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('doctor')}</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder={t('selectDoctor')} />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {doctors.map(doc => <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="procedimiento_realizado" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('procedure')}</FormLabel>
-                                    <FormControl><Input {...field} /></FormControl>
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="diagnostico" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('diagnosis')}</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="notas_clinicas" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('notes')}</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="plan_proxima_cita" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('nextSessionPlan')}</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
-                                </FormItem>
-                            )} />
-                        </div>
-                        <div className="space-y-4">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>{t('treatments')}</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="max-h-60 overflow-y-auto space-y-2 p-2 border rounded-md">
-                                        {treatments.map((treatment, index) => (
-                                            <div key={index} className="flex gap-2 items-start">
-                                                <Input
-                                                    type="number"
-                                                    placeholder={t('tooth')}
-                                                    value={treatment.numero_diente || ''}
-                                                    onChange={e => handleTreatmentChange(index, 'numero_diente', parseInt(e.target.value))}
-                                                    className="w-20"
-                                                />
-                                                <Textarea
-                                                    placeholder="Treatment description"
-                                                    value={treatment.descripcion}
-                                                    onChange={e => handleTreatmentChange(index, 'descripcion', e.target.value)}
-                                                />
-                                                <Button variant="destructive" size="icon" onClick={() => handleRemoveTreatment(index)}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                     <Form {...form}>
+                        <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
+                                <div className="space-y-4">
+                                    <FormField control={form.control} name="fecha_sesion" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('date')}</FormLabel>
+                                            <FormControl>
+                                                <Input type="date" {...field} />
+                                            </FormControl>
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="doctor_id" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('doctor')}</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('selectDoctor')} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {doctors.map(doc => <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="procedimiento_realizado" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('procedure')}</FormLabel>
+                                            <FormControl><Input {...field} /></FormControl>
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="diagnostico" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('diagnosis')}</FormLabel>
+                                            <FormControl><Textarea {...field} /></FormControl>
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="notas_clinicas" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('notes')}</FormLabel>
+                                            <FormControl><Textarea {...field} /></FormControl>
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="plan_proxima_cita" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('nextSessionPlan')}</FormLabel>
+                                            <FormControl><Textarea {...field} /></FormControl>
+                                        </FormItem>
+                                    )} />
+                                </div>
+                                <div className="space-y-4">
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>{t('treatments')}</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4">
+                                            <div className="max-h-60 overflow-y-auto space-y-2 p-2 border rounded-md">
+                                                {treatments.map((treatment, index) => (
+                                                    <div key={index} className="flex gap-2 items-start">
+                                                        <Input
+                                                            type="number"
+                                                            placeholder={t('tooth')}
+                                                            value={treatment.numero_diente || ''}
+                                                            onChange={e => handleTreatmentChange(index, 'numero_diente', parseInt(e.target.value))}
+                                                            className="w-20"
+                                                        />
+                                                        <Textarea
+                                                            placeholder="Treatment description"
+                                                            value={treatment.descripcion}
+                                                            onChange={e => handleTreatmentChange(index, 'descripcion', e.target.value)}
+                                                        />
+                                                        <Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveTreatment(index)}>
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
-                                    <Button type="button" variant="outline" size="sm" onClick={handleAddTreatment}>Add Treatment</Button>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>{t('attachments')}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <Button type="button" variant="outline" onClick={() => setIsAttachmentDialogOpen(true)}>Add Attachment</Button>
-                                    <div className="mt-2 space-y-2">
-                                        {attachments.map((file, index) => (
-                                            <div key={index} className="flex items-center justify-between text-sm">
-                                                <span>{file.name}</span>
-                                                <Button variant="ghost" size="icon" onClick={() => setAttachments(attachments.filter((_, i) => i !== index))}>
-                                                    <X className="h-4 w-4" />
-                                                </Button>
+                                            <Button type="button" variant="outline" size="sm" onClick={handleAddTreatment}>Add Treatment</Button>
+                                        </CardContent>
+                                    </Card>
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>{t('attachments')}</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <Button type="button" variant="outline" onClick={() => setIsAttachmentDialogOpen(true)}>Add Attachment</Button>
+                                            <div className="mt-2 space-y-2">
+                                                {attachments.map((file, index) => (
+                                                    <div key={index} className="flex items-center justify-between text-sm">
+                                                        <span>{file.name}</span>
+                                                        <Button type="button" variant="ghost" size="icon" onClick={() => setAttachments(attachments.filter((_, i) => i !== index))}>
+                                                            <X className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
-                        <Button onClick={handleSave} disabled={isSubmitting}>
-                            {isSubmitting ? t('saving') : t('save')}
-                        </Button>
-                    </DialogFooter>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
+                                <Button type="submit" disabled={isSubmitting}>
+                                    {isSubmitting ? t('saving') : t('save')}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
                 </DialogContent>
                 <Dialog open={isAttachmentDialogOpen} onOpenChange={setIsAttachmentDialogOpen}>
                     <DialogContent>
@@ -2450,3 +2454,4 @@ export default function DentalClinicalSystemPage() {
 
     
 
+    
