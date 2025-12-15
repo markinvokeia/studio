@@ -2161,18 +2161,15 @@ const sessionFormSchema = z.object({
   treatments: z.array(z.object({
     descripcion: z.string().min(1, 'Treatment description is required'),
     numero_diente: z.string().refine(val => {
-      if (val === '' || val === undefined) return true;
-      const num = parseInt(val);
-      if (isNaN(num)) return false;
+      if (val === '' || val === undefined) return true; // Optional field
+      const num = parseInt(val, 10);
+      if (isNaN(num)) return false; // Must be a number
+      if (num < 11 || num > 85) return false; // Must be within the general range
       const lastDigit = num % 10;
-      if (lastDigit === 0 || lastDigit === 9) return false;
-      const firstDigit = Math.floor(num / 10);
-      if (firstDigit < 1 || firstDigit > 8) return false; 
-      if (firstDigit >= 1 && firstDigit <= 4 && num > 48) return false;
-      if (firstDigit >= 5 && firstDigit <= 8 && num > 85) return false;
+      if (lastDigit === 0 || lastDigit === 9) return false; // Last digit can't be 0 or 9
       return true;
     }, {
-      message: 'Invalid tooth number'
+      message: 'Invalid tooth number (must be 11-88, not ending in 0 or 9).'
     }).optional(),
   }))
 });
