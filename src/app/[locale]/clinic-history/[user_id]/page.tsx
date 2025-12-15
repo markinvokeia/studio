@@ -49,7 +49,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useForm, useFieldArray, Controller, SubmitHandler } from 'react-hook-form';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Timeline, TimelineItem, TimelineConnector, TimelineHeader, TimelineTitle, TimelineIcon, TimelineContent } from '@/components/ui/timeline';
@@ -1261,6 +1260,15 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         formData.append('paciente_id', userId);
         if (session?.sesion_id) formData.append('sesion_id', String(session.sesion_id));
         
+        const existingAttachmentData = existingAttachments.map(file => ({
+            ruta: file.ruta,
+            tipo: file.tipo,
+            diente_asociado: file.diente_asociado,
+            file_name: file.file_name,
+            mime_type: file.mime_type,
+        }));
+        formData.append('existing_attachments', JSON.stringify(existingAttachmentData));
+        
         Object.entries(values).forEach(([key, value]) => {
           if (key !== 'treatments' && value) {
             if (value instanceof Date) {
@@ -1305,19 +1313,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         setAttachments(prev => prev.filter((_, index) => index !== indexToRemove));
     };
 
-    const removeExistingAttachment = async (fileId: string) => {
-        try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesion/attachment/delete', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ file_id: fileId }),
-            });
-            if (!response.ok) throw new Error('Failed to delete attachment.');
-            setExistingAttachments(prev => prev.filter(f => f.ruta !== fileId));
-            toast({ title: 'Success', description: 'Attachment deleted.' });
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Could not delete attachment.' });
-        }
+    const removeExistingAttachment = (fileId: string) => {
+        setExistingAttachments(prev => prev.filter(f => f.ruta !== fileId));
+        toast({ title: 'Attachment Marked for Deletion', description: 'The attachment will be removed when you save the session.' });
     };
 
     return (
@@ -1507,6 +1505,312 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                 </Form>
             </DialogContent>
         </Dialog>
+    );
+};
+
+const DocumentViewerModal = ({ isOpen, onOpenChange, document, documentContent }: { isOpen: boolean, onOpenChange: (open: boolean) => void, document: Document | null, documentContent: string | null }) => {
+    const ImageViewer = ({ src, alt }: { src: string; alt: string; }) => {
+        const [zoom, setZoom] = useState(1);
+        const [position, setPosition] = useState({ x: 0, y: 0 });
+        const [isDragging, setIsDragging] = useState(false);
+        const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+        const imageRef = useRef<HTMLImageElement>(null);
+
+        const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
+            if (!imageRef.current) return;
+            e.preventDefault();
+            setIsDragging(true);
+            setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+        };
+
+        const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+            if (!isDragging || !imageRef.current) return;
+            e.preventDefault();
+            setPosition({
+                x: e.clientX - dragStart.x,
+                y: e.clientY - dragStart.y,
+            });
+        };
+        
+        const handleMouseUp = () => {
+            setIsDragging(false);
+        };
+
+        const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+        setZoom((prev) => Math.max(0.1, Math.min(prev * zoomFactor, 5)));
+        };
+
+        return (
+            <div 
+                className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative bg-muted/20"
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onWheel={handleWheel}
+            >
+                <img
+                    ref={imageRef}
+                    src={src}
+                    alt={alt}
+                    className="max-w-none max-h-none cursor-grab transform-gpu"
+                    style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`, transition: isDragging ? 'none' : 'transform 0.1s ease-out' }}
+                    onMouseDown={handleMouseDown}
+                />
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 p-2 rounded-lg backdrop-blur-sm">
+                    <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.2))}><ZoomOut className="h-4 w-4" /></Button>
+                    <span className='text-sm font-medium w-16 text-center bg-transparent'>{(zoom * 100).toFixed(0)}%</span>
+                    <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.min(prev + 0.2, 5))}><ZoomIn className="h-4 w-4" /></Button>
+                    <Button variant="outline" size="icon" onClick={() => { setZoom(1); setPosition({ x: 0, y: 0 }); }}><RotateCcw className="h-4 w-4" /></Button>
+                </div>
+            </div>
+        );
+    }
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
+            <DialogHeader className="p-4 border-b">
+            <DialogTitle>{document?.name}</DialogTitle>
+            </DialogHeader>
+            {documentContent ? (
+                document?.mimeType?.startsWith('image/') ? (
+                    <ImageViewer src={documentContent} alt={document.name} />
+                ) : (
+                    <iframe src={documentContent} className="h-full w-full border-0 flex-1" title={document?.name} />
+                )
+            ) : (
+            <div className="flex-1 flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+            )}
+        </DialogContent>
+        </Dialog>
+    );
+};
+
+const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocument: (doc: any) => void }) => {
+    const [documents, setDocuments] = useState<Document[]>([]);
+    const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
+    const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+    const [uploadFile, setUploadFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [deletingDocument, setDeletingDocument] = useState<Document | null>(null);
+    const t = useTranslations('ClinicHistoryPage');
+    const {toast} = useToast();
+
+    const fetchDocuments = useCallback(async () => {
+        if (!userId) return;
+        setIsLoadingDocuments(true);
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/documents?user_id=${userId}`);
+            if (response.ok) {
+                const data = await response.json();
+                const docs = (Array.isArray(data) && data.length > 0 && data[0].items) ? data[0].items : [];
+                setDocuments(docs.map((doc: any) => ({
+                    id: String(doc.id),
+                    name: doc.name,
+                    mimeType: doc.mimeType,
+                    hasThumbnail: doc.hasThumbnail,
+                    thumbnailLink: getGoogleDriveThumbnailUrl(doc.thumbnailLink),
+                    webViewLink: doc.webViewLink,
+                })));
+            } else {
+                setDocuments([]);
+            }
+        } catch (error) {
+            console.error("Failed to fetch documents:", error);
+            setDocuments([]);
+        } finally {
+            setIsLoadingDocuments(false);
+        }
+    }, [userId]);
+
+    useEffect(() => {
+        fetchDocuments();
+    }, [fetchDocuments]);
+
+    
+     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            setUploadFile(file);
+        }
+    };
+    
+    const handleUpload = async () => {
+        if (!uploadFile || !userId) return;
+        setIsUploading(true);
+
+        const formData = new FormData();
+        formData.append('file', uploadFile);
+        formData.append('user_id', userId);
+        
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/import', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.status === 201) {
+                toast({ title: "Upload Successful", description: "Document has been uploaded." });
+                fetchDocuments(); // Refresh the list
+                setIsUploadDialogOpen(false);
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'File upload failed');
+            }
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Upload Error',
+                description: error instanceof Error ? error.message : 'An unknown error occurred.',
+            });
+        } finally {
+            setIsUploading(false);
+            setUploadFile(null);
+        }
+    };
+
+    const handleDeleteDocument = (doc: Document) => {
+        setDeletingDocument(doc);
+    };
+
+    const confirmDeleteDocument = async () => {
+        if (!deletingDocument || !userId) return;
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${deletingDocument.id}&user_id=${userId}`, {
+                method: 'DELETE',
+            });
+            if (response.status === 204) {
+                toast({ title: "Document Deleted", description: `Document "${deletingDocument.name}" has been deleted.` });
+                fetchDocuments();
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to delete document.');
+            }
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Deletion Error',
+                description: error instanceof Error ? error.message : 'An unknown error occurred.',
+            });
+        } finally {
+            setDeletingDocument(null);
+        }
+    };
+
+    const getGoogleDriveThumbnailUrl = (url: string | undefined) => {
+      if (!url) return undefined;
+      // Transforms the URL to get a larger thumbnail
+      return url.replace(/=s\d+$/, '=s800');
+    };
+    
+    return (
+      <div className="space-y-6">
+        <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-card-foreground">{t('images.title')}</h3>
+            <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline">
+                <Upload className="mr-2 h-4 w-4" />
+                Upload Document
+            </Button>
+          </div>
+          {isLoadingDocuments ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
+            </div>
+          ) : documents.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {documents.map((doc) => (
+                <Card key={doc.id} className="overflow-hidden">
+                    <CardContent className="p-0 flex flex-col justify-between h-full">
+                        <div className="relative aspect-video w-full bg-muted cursor-pointer" onClick={() => onViewDocument(doc)}>
+                            {doc.hasThumbnail && doc.thumbnailLink ? (
+                                <Image src={doc.thumbnailLink} alt={doc.name} layout="fill" className="object-cover" />
+                            ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <FileText className="h-10 w-10 text-muted-foreground" />
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-3">
+                          <p className="font-semibold text-sm truncate leading-tight">{doc.name}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{doc.mimeType}</p>
+                        </div>
+                        <div className="flex justify-end p-1 pt-0">
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem onClick={() => handleDeleteDocument(doc)} className="text-destructive">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">No documents found for this patient.</p>
+          )}
+        </div>
+        
+        <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Upload Document</DialogTitle>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                    <div className="flex items-center justify-center w-full">
+                        <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
+                            {uploadFile ? (
+                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <FileText className="w-8 h-8 mb-4 text-primary" />
+                                    <p className="font-semibold text-foreground">{uploadFile.name}</p>
+                                    <p className="text-xs text-muted-foreground">{(uploadFile.size / 1024).toFixed(2)} KB</p>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
+                                    <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                    <p className="text-xs text-muted-foreground">PDF, PNG, JPG or GIF (MAX. 10MB)</p>
+                                </div>
+                            )}
+                            <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
+                        </label>
+                    </div> 
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)} disabled={isUploading}>Cancel</Button>
+                    <Button onClick={handleUpload} disabled={!uploadFile || isUploading}>
+                        {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isUploading ? 'Uploading...' : 'Upload'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        <AlertDialog open={!!deletingDocument} onOpenChange={() => setDeletingDocument(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will permanently delete the document "{deletingDocument?.name}". This action cannot be undone.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDeleteDocument} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+      </div>
     );
 };
 
@@ -2202,312 +2506,6 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     );
 };
 
-const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocument: (doc: any) => void }) => {
-    const [documents, setDocuments] = useState<Document[]>([]);
-    const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
-    const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-    const [uploadFile, setUploadFile] = useState<File | null>(null);
-    const [isUploading, setIsUploading] = useState(false);
-    const [deletingDocument, setDeletingDocument] = useState<Document | null>(null);
-    const t = useTranslations('ClinicHistoryPage');
-    const {toast} = useToast();
-
-    const fetchDocuments = useCallback(async () => {
-        if (!userId) return;
-        setIsLoadingDocuments(true);
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/documents?user_id=${userId}`);
-            if (response.ok) {
-                const data = await response.json();
-                const docs = (Array.isArray(data) && data.length > 0 && data[0].items) ? data[0].items : [];
-                setDocuments(docs.map((doc: any) => ({
-                    id: String(doc.id),
-                    name: doc.name,
-                    mimeType: doc.mimeType,
-                    hasThumbnail: doc.hasThumbnail,
-                    thumbnailLink: getGoogleDriveThumbnailUrl(doc.thumbnailLink),
-                    webViewLink: doc.webViewLink,
-                })));
-            } else {
-                setDocuments([]);
-            }
-        } catch (error) {
-            console.error("Failed to fetch documents:", error);
-            setDocuments([]);
-        } finally {
-            setIsLoadingDocuments(false);
-        }
-    }, [userId]);
-
-    useEffect(() => {
-        fetchDocuments();
-    }, [fetchDocuments]);
-
-    
-     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            setUploadFile(file);
-        }
-    };
-    
-    const handleUpload = async () => {
-        if (!uploadFile || !userId) return;
-        setIsUploading(true);
-
-        const formData = new FormData();
-        formData.append('file', uploadFile);
-        formData.append('user_id', userId);
-        
-        try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/import', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (response.status === 201) {
-                toast({ title: "Upload Successful", description: "Document has been uploaded." });
-                fetchDocuments(); // Refresh the list
-                setIsUploadDialogOpen(false);
-            } else {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || 'File upload failed');
-            }
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Upload Error',
-                description: error instanceof Error ? error.message : 'An unknown error occurred.',
-            });
-        } finally {
-            setIsUploading(false);
-            setUploadFile(null);
-        }
-    };
-
-    const handleDeleteDocument = (doc: Document) => {
-        setDeletingDocument(doc);
-    };
-
-    const confirmDeleteDocument = async () => {
-        if (!deletingDocument || !userId) return;
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?id=${deletingDocument.id}&user_id=${userId}`, {
-                method: 'DELETE',
-            });
-            if (response.status === 204) {
-                toast({ title: "Document Deleted", description: `Document "${deletingDocument.name}" has been deleted.` });
-                fetchDocuments();
-            } else {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || 'Failed to delete document.');
-            }
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Deletion Error',
-                description: error instanceof Error ? error.message : 'An unknown error occurred.',
-            });
-        } finally {
-            setDeletingDocument(null);
-        }
-    };
-
-    const getGoogleDriveThumbnailUrl = (url: string | undefined) => {
-      if (!url) return undefined;
-      // Transforms the URL to get a larger thumbnail
-      return url.replace(/=s\d+$/, '=s800');
-    };
-    
-    return (
-      <div className="space-y-6">
-        <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-card-foreground">{t('images.title')}</h3>
-            <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline">
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Document
-            </Button>
-          </div>
-          {isLoadingDocuments ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
-            </div>
-          ) : documents.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {documents.map((doc) => (
-                <Card key={doc.id} className="overflow-hidden">
-                    <CardContent className="p-0 flex flex-col justify-between h-full">
-                        <div className="relative aspect-video w-full bg-muted cursor-pointer" onClick={() => onViewDocument(doc)}>
-                            {doc.hasThumbnail && doc.thumbnailLink ? (
-                                <Image src={doc.thumbnailLink} alt={doc.name} layout="fill" className="object-cover" />
-                            ) : (
-                                <div className="flex items-center justify-center h-full">
-                                  <FileText className="h-10 w-10 text-muted-foreground" />
-                                </div>
-                            )}
-                        </div>
-                        <div className="p-3">
-                          <p className="font-semibold text-sm truncate leading-tight">{doc.name}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{doc.mimeType}</p>
-                        </div>
-                        <div className="flex justify-end p-1 pt-0">
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                    <DropdownMenuItem onClick={() => handleDeleteDocument(doc)} className="text-destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Delete
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground">No documents found for this patient.</p>
-          )}
-        </div>
-        
-        <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Upload Document</DialogTitle>
-                </DialogHeader>
-                <div className="py-4 space-y-4">
-                    <div className="flex items-center justify-center w-full">
-                        <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
-                            {uploadFile ? (
-                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <FileText className="w-8 h-8 mb-4 text-primary" />
-                                    <p className="font-semibold text-foreground">{uploadFile.name}</p>
-                                    <p className="text-xs text-muted-foreground">{(uploadFile.size / 1024).toFixed(2)} KB</p>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
-                                    <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                    <p className="text-xs text-muted-foreground">PDF, PNG, JPG or GIF (MAX. 10MB)</p>
-                                </div>
-                            )}
-                            <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
-                        </label>
-                    </div> 
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)} disabled={isUploading}>Cancel</Button>
-                    <Button onClick={handleUpload} disabled={!uploadFile || isUploading}>
-                        {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isUploading ? 'Uploading...' : 'Upload'}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-        <AlertDialog open={!!deletingDocument} onOpenChange={() => setDeletingDocument(null)}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This will permanently delete the document "{deletingDocument?.name}". This action cannot be undone.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={confirmDeleteDocument} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-      </div>
-    );
-};
-
-const ImageViewer = ({ src, alt }: { src: string; alt: string; }) => {
-    const [zoom, setZoom] = useState(1);
-    const [position, setPosition] = useState({ x: 0, y: 0 });
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-    const imageRef = useRef<HTMLImageElement>(null);
-
-    const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
-        if (!imageRef.current) return;
-        e.preventDefault();
-        setIsDragging(true);
-        setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
-    };
-
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!isDragging || !imageRef.current) return;
-        e.preventDefault();
-        setPosition({
-            x: e.clientX - dragStart.x,
-            y: e.clientY - dragStart.y,
-        });
-    };
-    
-    const handleMouseUp = () => {
-        setIsDragging(false);
-    };
-
-    const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-      setZoom((prev) => Math.max(0.1, Math.min(prev * zoomFactor, 5)));
-    };
-
-    return (
-        <div 
-            className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative bg-muted/20"
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onWheel={handleWheel}
-        >
-            <img
-                ref={imageRef}
-                src={src}
-                alt={alt}
-                className="max-w-none max-h-none cursor-grab transform-gpu"
-                style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`, transition: isDragging ? 'none' : 'transform 0.1s ease-out' }}
-                onMouseDown={handleMouseDown}
-            />
-             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 p-2 rounded-lg backdrop-blur-sm">
-                <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.2))}><ZoomOut className="h-4 w-4" /></Button>
-                <span className='text-sm font-medium w-16 text-center bg-transparent'>{(zoom * 100).toFixed(0)}%</span>
-                <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.min(prev + 0.2, 5))}><ZoomIn className="h-4 w-4" /></Button>
-                <Button variant="outline" size="icon" onClick={() => { setZoom(1); setPosition({ x: 0, y: 0 }); }}><RotateCcw className="h-4 w-4" /></Button>
-            </div>
-        </div>
-    );
-}
-
-const DocumentViewerModal = ({ isOpen, onOpenChange, document, documentContent }: { isOpen: boolean, onOpenChange: (open: boolean) => void, document: Document | null, documentContent: string | null }) => (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-    <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-4 border-b">
-        <DialogTitle>{document?.name}</DialogTitle>
-        </DialogHeader>
-        {documentContent ? (
-            document?.mimeType?.startsWith('image/') ? (
-                <ImageViewer src={documentContent} alt={document.name} />
-            ) : (
-                <iframe src={documentContent} className="h-full w-full border-0 flex-1" title={document?.name} />
-            )
-        ) : (
-        <div className="flex-1 flex items-center justify-center h-full">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-        )}
-    </DialogContent>
-    </Dialog>
-);
-
-
 const DentalClinicalSystemPage = () => {
     const params = useParams();
     const userId = params.user_id as string;
@@ -2515,3 +2513,4 @@ const DentalClinicalSystemPage = () => {
 }
     
 export default DentalClinicalSystemPage;
+
