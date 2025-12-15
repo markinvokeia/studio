@@ -1437,7 +1437,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         };
         setIsSearching(true);
         try {
-          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?search=${searchQuery}`, {
+          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?search=${searchQuery}&filter_type=PACIENTE`, {
             method: 'GET',
             mode: 'cors',
             headers: {
@@ -1486,7 +1486,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         
         // Fetch patient details
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?search=${currentUserId}`, {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?search=${currentUserId}&filter_type=PACIENTE`, {
                 method: 'GET',
                 mode: 'cors',
                 headers: { 'Accept': 'application/json' },
@@ -1583,6 +1583,265 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         </div>
     );
   };
+  
+    const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOpen: boolean; onOpenChange: (open: boolean) => void; session: PatientSession | null; userId: string; onSave: () => void; }) => {
+        const t = useTranslations('ClinicHistoryPage.sessionDialog');
+        const [doctors, setDoctors] = useState<UserType[]>([]);
+        const [treatmentsCatalog, setTreatmentsCatalog] = useState<any[]>([]);
+        const { toast } = useToast();
+        const [isSubmitting, setIsSubmitting] = useState(false);
+        const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
+        const [currentAttachment, setCurrentAttachment] = useState<Partial<AttachedFile>>({});
+        
+        const form = useForm({
+            defaultValues: {
+                sesion_id: session?.sesion_id || undefined,
+                fecha_sesion: session?.fecha_sesion ? format(parseISO(session.fecha_sesion), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+                doctor_id: session?.doctor_id || '',
+                procedimiento_realizado: session?.procedimiento_realizado || '',
+                diagnostico: session?.diagnostico || '',
+                notas_clinicas: session?.notas_clinicas || '',
+                plan_proxima_cita: session?.plan_proxima_cita || '',
+                tratamientos: session?.tratamientos || [],
+                archivos_adjuntos: session?.archivos_adjuntos || [],
+            }
+        });
+        
+        const { fields: treatmentFields, append: appendTreatment, remove: removeTreatment } = useFieldArray({
+            control: form.control,
+            name: "tratamientos",
+        });
+
+        const { fields: attachmentFields, append: appendAttachment, remove: removeAttachment } = useFieldArray({
+            control: form.control,
+            name: "archivos_adjuntos",
+        });
+
+        const fetchInitialData = useCallback(async () => {
+            try {
+                const [doctorsRes, treatmentsRes] = await Promise.all([
+                    fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=DOCTOR`),
+                    fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services`)
+                ]);
+                
+                if (doctorsRes.ok) {
+                    const data = await doctorsRes.json();
+                    const doctorsData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
+                    setDoctors(doctorsData);
+                }
+
+                if(treatmentsRes.ok) {
+                    const data = await treatmentsRes.json();
+                    const servicesData = Array.isArray(data) ? data : (data.services || []);
+                    setTreatmentsCatalog(servicesData);
+                }
+
+            } catch (error) {
+                console.error("Failed to fetch session dialog data:", error);
+            }
+        }, []);
+
+        useEffect(() => {
+            if (isOpen) {
+                fetchInitialData();
+                 form.reset({
+                    sesion_id: session?.sesion_id || undefined,
+                    fecha_sesion: session?.fecha_sesion ? format(parseISO(session.fecha_sesion), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+                    doctor_id: session?.doctor_id || '',
+                    procedimiento_realizado: session?.procedimiento_realizado || '',
+                    diagnostico: session?.diagnostico || '',
+                    notas_clinicas: session?.notas_clinicas || '',
+                    plan_proxima_cita: session?.plan_proxima_cita || '',
+                    tratamientos: session?.tratamientos || [],
+                    archivos_adjuntos: session?.archivos_adjuntos || [],
+                });
+            }
+        }, [isOpen, session, form, fetchInitialData]);
+
+        const handleSave = async (data: any) => {
+            setIsSubmitting(true);
+            try {
+                const payload = {
+                    ...data,
+                    user_id: userId,
+                    tratamientos: data.tratamientos.map((t:any) => ({...t, numero_diente: Number(t.numero_diente) || null })),
+                    archivos_adjuntos: data.archivos_adjuntos.map((a:any) => ({
+                        ...a,
+                        diente_asociado: Number(a.diente_asociado) || null,
+                    }))
+                };
+                
+                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                
+                if (!response.ok) {
+                     const errorData = await response.json();
+                     throw new Error(errorData.message || 'Failed to save session');
+                }
+    
+                toast({ title: t('toast.success'), description: t('toast.saveSuccess') });
+                onSave();
+                onOpenChange(false);
+            } catch (error) {
+                console.error("Error saving session", error);
+                toast({ variant: 'destructive', title: t('toast.error'), description: error instanceof Error ? error.message : t('toast.saveError') });
+            } finally {
+                setIsSubmitting(false);
+            }
+        };
+
+        const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setCurrentAttachment(prev => ({
+                        ...prev,
+                        base64: reader.result as string,
+                        file_name: file.name,
+                        mime_type: file.type,
+                    }));
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        const handleAddAttachment = () => {
+            if (currentAttachment.base64) {
+                appendAttachment(currentAttachment);
+                setCurrentAttachment({});
+                setIsAttachmentDialogOpen(false);
+            } else {
+                toast({ variant: 'destructive', title: 'No file selected', description: 'Please select a file to attach.' });
+            }
+        };
+
+        return (
+            <>
+                <Dialog open={isOpen} onOpenChange={onOpenChange}>
+                    <DialogContent className="max-w-4xl">
+                        <DialogHeader>
+                            <DialogTitle>{session ? t('editTitle') : t('createTitle')}</DialogTitle>
+                        </DialogHeader>
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(handleSave)}>
+                                <ScrollArea className="h-[70vh] p-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-4">
+                                            <FormField name="fecha_sesion" control={form.control} render={({ field }) => (
+                                                <FormItem><FormLabel>{t('date')}</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                            <FormField name="doctor_id" control={form.control} render={({ field }) => (
+                                                <FormItem><FormLabel>{t('doctor')}</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('selectDoctor')} /></SelectTrigger></FormControl><SelectContent>{doctors.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                            )} />
+                                            <FormField name="procedimiento_realizado" control={form.control} render={({ field }) => (
+                                                <FormItem><FormLabel>{t('procedure')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                            <FormField name="diagnostico" control={form.control} render={({ field }) => (
+                                                <FormItem><FormLabel>{t('diagnosis')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                            <FormField name="notas_clinicas" control={form.control} render={({ field }) => (
+                                                <FormItem><FormLabel>{t('notes')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                            <FormField name="plan_proxima_cita" control={form.control} render={({ field }) => (
+                                                <FormItem><FormLabel>{t('nextSessionPlan')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                        </div>
+                                        <div className="space-y-4">
+                                            <Card>
+                                                <CardHeader><CardTitle>{t('treatments')}</CardTitle></CardHeader>
+                                                <CardContent className="space-y-4">
+                                                    <div className="space-y-2 p-2 border rounded-md">
+                                                        {treatmentFields.map((field, index) => (
+                                                            <div key={field.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+                                                                <FormField name={`tratamientos.${index}.descripcion`} control={form.control} render={({ field }) => (
+                                                                    <FormItem><FormLabel className="text-xs">Treatment</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('treatmentPlaceholder')} /></SelectTrigger></FormControl><SelectContent>{treatmentsCatalog.map(t => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                                                )} />
+                                                                <FormField name={`tratamientos.${index}.numero_diente`} control={form.control} render={({ field }) => (
+                                                                    <FormItem><FormLabel className="text-xs">{t('tooth')}</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                                                )} />
+                                                                <Button type="button" variant="destructive" size="icon" onClick={() => removeTreatment(index)}><Trash2 className="h-4 w-4" /></Button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <Button type="button" variant="outline" className="w-full" onClick={() => appendTreatment({ numero_diente: null, descripcion: '' })}>{t('addTreatment')}</Button>
+                                                </CardContent>
+                                            </Card>
+                                             <Card>
+                                                <CardHeader>
+                                                    <div className="flex justify-between items-center">
+                                                        <CardTitle>{t('attachments')}</CardTitle>
+                                                        <Button type="button" size="sm" variant="outline" onClick={() => { setCurrentAttachment({}); setIsAttachmentDialogOpen(true); }}>{t('addAttachment')}</Button>
+                                                    </div>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <ScrollArea className="h-40">
+                                                        <div className="space-y-2">
+                                                            {attachmentFields.map((field, index) => (
+                                                                <div key={field.id} className="flex items-center justify-between bg-muted p-2 rounded">
+                                                                    <div className="flex items-center gap-2 text-sm">
+                                                                        <FileText className="h-4 w-4" />
+                                                                        <span className="truncate max-w-xs">{form.getValues(`archivos_adjuntos.${index}.file_name`) || `Attachment ${index + 1}`}</span>
+                                                                        {form.getValues(`archivos_adjuntos.${index}.diente_asociado`) && <span className="text-xs text-muted-foreground">(Diente: {form.getValues(`archivos_adjuntos.${index}.diente_asociado`)})</span>}
+                                                                    </div>
+                                                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeAttachment(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </ScrollArea>
+                                                </CardContent>
+                                            </Card>
+                                        </div>
+                                    </div>
+                                </ScrollArea>
+                                <DialogFooter className="mt-4">
+                                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
+                                    <Button type="submit" disabled={isSubmitting}>{isSubmitting ? t('saving') : t('save')}</Button>
+                                </DialogFooter>
+                            </form>
+                        </Form>
+                    </DialogContent>
+                </Dialog>
+                <Dialog open={isAttachmentDialogOpen} onOpenChange={setIsAttachmentDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Add Attachment</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4 space-y-4">
+                            <div className="flex items-center justify-center w-full">
+                                <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
+                                    {currentAttachment.base64 ? (
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <FileText className="w-8 h-8 mb-4 text-primary" />
+                                            <p className="font-semibold text-foreground">{currentAttachment.file_name}</p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
+                                            <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                            <p className="text-xs text-muted-foreground">Image or PDF (MAX. 10MB)</p>
+                                        </div>
+                                    )}
+                                    <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
+                                </label>
+                            </div>
+                            <div>
+                                <Label htmlFor="diente_asociado">Associated Tooth (Optional)</Label>
+                                <Input id="diente_asociado" type="number" value={currentAttachment.diente_asociado || ''} onChange={e => setCurrentAttachment(prev => ({ ...prev, diente_asociado: Number(e.target.value) }))} />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsAttachmentDialogOpen(false)}>Cancel</Button>
+                            <Button onClick={handleAddAttachment}>Add</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </>
+        );
+    };
 
   return (
     <div className={cn("min-h-screen", !isFullscreen && "bg-background")}>
@@ -1929,7 +2188,7 @@ const ImageGallery = ({ userId }: { userId: string}) => {
                              <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
-                                        <MoreHorizontal className="h-4 w-4" />
+                                        <MoreVertical className="h-4 w-4" />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent>
@@ -2018,4 +2277,3 @@ export default function DentalClinicalSystemPage() {
     
 
     
-
