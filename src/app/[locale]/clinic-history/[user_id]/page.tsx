@@ -50,9 +50,18 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useForm, useFieldArray, Controller, SubmitHandler } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { Timeline, TimelineItem, TimelineConnector, TimelineHeader, TimelineTitle, TimelineIcon, TimelineContent } from '@/components/ui/timeline';
+
+const getAttachmentUrl = (path: string) => {
+    try {
+        new URL(path);
+        return path;
+    } catch (_) {
+        return `https://n8n-project-n8n.7ig1i3.easypanel.host${path}`;
+    }
+};
 
 type PersonalHistoryItem = {
     id: number;
@@ -726,7 +735,7 @@ const AnamnesisDashboard = ({
                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditPersonalClick(item)}>
                                                 <Edit3 className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'personal')}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={()={() => handleDeleteClick(item, 'personal')}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>
@@ -1451,7 +1460,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                             {existingAttachments.map((file, index) => (
                                                                 <div key={index} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
                                                                 <div className="flex items-center gap-2 overflow-hidden">
-                                                                    <Image src={`https://n8n-project-n8n.7ig1i3.easypanel.host${file.ruta}`} alt={file.file_name || 'attachment'} width={24} height={24} className="rounded object-cover aspect-square"/>
+                                                                    <Image src={getAttachmentUrl(file.ruta)} alt={file.file_name || 'attachment'} width={24} height={24} className="rounded object-cover aspect-square"/>
                                                                     <span className="text-sm truncate flex-1">{file.file_name}</span>
                                                                 </div>
                                                                 <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeExistingAttachment(file.ruta)}>
@@ -1857,7 +1866,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     setIsViewerOpen(true);
     setDocumentContent(null); // Reset previous content
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host${file.ruta}`);
+        const response = await fetch(getAttachmentUrl(file.ruta));
         if (response.ok) {
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
@@ -2507,3 +2516,4 @@ const DentalClinicalSystemPage = () => {
     
 export default DentalClinicalSystemPage;
 
+    
