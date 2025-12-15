@@ -1516,557 +1516,297 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     );
   };
   
-    const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: { isOpen: boolean; onOpenChange: (open: boolean) => void; session: PatientSession | null; userId: string; onSave: () => void; }) => {
-        const t = useTranslations('ClinicHistoryPage.sessionDialog');
-        const [doctors, setDoctors] = useState<UserType[]>([]);
-        const [treatmentsCatalog, setTreatmentsCatalog] = useState<any[]>([]);
-        const { toast } = useToast();
-        const [isSubmitting, setIsSubmitting] = useState(false);
-        const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
-        const [currentAttachment, setCurrentAttachment] = useState<Partial<AttachedFile>>({});
-        
-        const form = useForm({
-            defaultValues: {
-                sesion_id: session?.sesion_id || undefined,
-                fecha_sesion: session?.fecha_sesion ? format(parseISO(session.fecha_sesion), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-                doctor_id: session?.doctor_id || '',
-                procedimiento_realizado: session?.procedimiento_realizado || '',
-                diagnostico: session?.diagnostico || '',
-                notas_clinicas: session?.notas_clinicas || '',
-                plan_proxima_cita: session?.plan_proxima_cita || '',
-                tratamientos: session?.tratamientos || [],
-                archivos_adjuntos: session?.archivos_adjuntos || [],
-            }
-        });
-        
-        const { fields: treatmentFields, append: appendTreatment, remove: removeTreatment } = useFieldArray({
-            control: form.control,
-            name: "tratamientos",
-        });
+    const TreatmentTimeline = ({ sessions, onAction }: { sessions: PatientSession[], onAction: (action: 'add' | 'edit' | 'delete', session?: PatientSession) => void }) => {
+        const t = useTranslations('ClinicHistoryPage.timeline');
+        const [openItems, setOpenItems] = useState<string[]>([]);
 
-        const { fields: attachmentFields, append: appendAttachment, remove: removeAttachment } = useFieldArray({
-            control: form.control,
-            name: "archivos_adjuntos",
-        });
-
-        const fetchInitialData = useCallback(async () => {
-            try {
-                const [doctorsRes, treatmentsRes] = await Promise.all([
-                    fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=DOCTOR`),
-                    fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services`)
-                ]);
-                
-                if (doctorsRes.ok) {
-                    const data = await doctorsRes.json();
-                    const doctorsData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
-                    setDoctors(doctorsData);
-                }
-
-                if(treatmentsRes.ok) {
-                    const data = await treatmentsRes.json();
-                    const servicesData = Array.isArray(data) ? data : (data.services || []);
-                    setTreatmentsCatalog(servicesData);
-                }
-
-            } catch (error) {
-                console.error("Failed to fetch session dialog data:", error);
-            }
-        }, []);
-
-        useEffect(() => {
-            if (isOpen) {
-                fetchInitialData();
-                 form.reset({
-                    sesion_id: session?.sesion_id || undefined,
-                    fecha_sesion: session?.fecha_sesion ? format(parseISO(session.fecha_sesion), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-                    doctor_id: session?.doctor_id || '',
-                    procedimiento_realizado: session?.procedimiento_realizado || '',
-                    diagnostico: session?.diagnostico || '',
-                    notas_clinicas: session?.notas_clinicas || '',
-                    plan_proxima_cita: session?.plan_proxima_cita || '',
-                    tratamientos: session?.tratamientos || [],
-                    archivos_adjuntos: session?.archivos_adjuntos || [],
-                });
-            }
-        }, [isOpen, session, form, fetchInitialData]);
-
-        const handleSave = async (data: any) => {
-            setIsSubmitting(true);
-            try {
-                const payload = {
-                    ...data,
-                    user_id: userId,
-                    tratamientos: data.tratamientos.map((t:any) => ({...t, numero_diente: Number(t.numero_diente) || null })),
-                    archivos_adjuntos: data.archivos_adjuntos.map((a:any) => ({
-                        ...a,
-                        diente_asociado: Number(a.diente_asociado) || null,
-                    }))
-                };
-                
-                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
-                
-                if (!response.ok) {
-                     const errorData = await response.json();
-                     throw new Error(errorData.message || 'Failed to save session');
-                }
-    
-                toast({ title: t('toast.success'), description: t('toast.saveSuccess') });
-                onSave();
-                onOpenChange(false);
-            } catch (error) {
-                console.error("Error saving session", error);
-                toast({ variant: 'destructive', title: t('toast.error'), description: error instanceof Error ? error.message : t('toast.saveError') });
-            } finally {
-                setIsSubmitting(false);
-            }
+        const toggleItem = (id: string) => {
+            setOpenItems(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
         };
 
-        const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-            const file = e.target.files?.[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setCurrentAttachment(prev => ({
-                        ...prev,
-                        base64: reader.result as string,
-                        file_name: file.name,
-                        mime_type: file.type,
-                    }));
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-
-        const handleAddAttachment = () => {
-            if (currentAttachment.base64) {
-                appendAttachment(currentAttachment);
-                setCurrentAttachment({});
-                setIsAttachmentDialogOpen(false);
-            } else {
-                toast({ variant: 'destructive', title: 'No file selected', description: 'Please select a file to attach.' });
-            }
-        };
-
+        if (isLoadingPatientSessions) {
         return (
-            <>
-                <Dialog open={isOpen} onOpenChange={onOpenChange}>
-                    <DialogContent className="max-w-4xl">
-                        <DialogHeader>
-                            <DialogTitle>{session ? t('editTitle') : t('createTitle')}</DialogTitle>
-                        </DialogHeader>
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit(handleSave)}>
-                                <ScrollArea className="h-[70vh] p-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="space-y-4">
-                                            <FormField name="fecha_sesion" control={form.control} render={({ field }) => (
-                                                <FormItem><FormLabel>{t('date')}</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
-                                            )} />
-                                            <FormField name="doctor_id" control={form.control} render={({ field }) => (
-                                                <FormItem><FormLabel>{t('doctor')}</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('selectDoctor')} /></SelectTrigger></FormControl><SelectContent>{doctors.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                                            )} />
-                                            <FormField name="procedimiento_realizado" control={form.control} render={({ field }) => (
-                                                <FormItem><FormLabel>{t('procedure')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                            )} />
-                                            <FormField name="diagnostico" control={form.control} render={({ field }) => (
-                                                <FormItem><FormLabel>{t('diagnosis')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                                            )} />
-                                            <FormField name="notas_clinicas" control={form.control} render={({ field }) => (
-                                                <FormItem><FormLabel>{t('notes')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                                            )} />
-                                            <FormField name="plan_proxima_cita" control={form.control} render={({ field }) => (
-                                                <FormItem><FormLabel>{t('nextSessionPlan')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                                            )} />
-                                        </div>
-                                        <div className="space-y-4">
-                                            <Card>
-                                                <CardHeader><CardTitle>{t('treatments')}</CardTitle></CardHeader>
-                                                <CardContent className="space-y-4">
-                                                    <div className="space-y-2 p-2 border rounded-md">
-                                                        {treatmentFields.map((field, index) => (
-                                                            <div key={field.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
-                                                                <FormField name={`tratamientos.${index}.descripcion`} control={form.control} render={({ field }) => (
-                                                                    <FormItem><FormLabel className="text-xs">Treatment</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('treatmentPlaceholder')} /></SelectTrigger></FormControl><SelectContent>{treatmentsCatalog.map(t => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                                                                )} />
-                                                                <FormField name={`tratamientos.${index}.numero_diente`} control={form.control} render={({ field }) => (
-                                                                    <FormItem><FormLabel className="text-xs">{t('tooth')}</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                                                                )} />
-                                                                <Button type="button" variant="destructive" size="icon" onClick={() => removeTreatment(index)}><Trash2 className="h-4 w-4" /></Button>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                    <Button type="button" variant="outline" className="w-full" onClick={() => appendTreatment({ numero_diente: null, descripcion: '' })}>{t('addTreatment')}</Button>
-                                                </CardContent>
-                                            </Card>
-                                             <Card>
-                                                <CardHeader>
-                                                    <div className="flex justify-between items-center">
-                                                        <CardTitle>{t('attachments')}</CardTitle>
-                                                        <Button type="button" size="sm" variant="outline" onClick={() => { setCurrentAttachment({}); setIsAttachmentDialogOpen(true); }}>{t('addAttachment')}</Button>
-                                                    </div>
-                                                </CardHeader>
-                                                <CardContent>
-                                                    <ScrollArea className="h-40">
-                                                        <div className="space-y-2">
-                                                            {attachmentFields.map((field, index) => (
-                                                                <div key={field.id} className="flex items-center justify-between bg-muted p-2 rounded">
-                                                                    <div className="flex items-center gap-2 text-sm">
-                                                                        <FileText className="h-4 w-4" />
-                                                                        <span className="truncate max-w-xs">{form.getValues(`archivos_adjuntos.${index}.file_name`) || `Attachment ${index + 1}`}</span>
-                                                                        {form.getValues(`archivos_adjuntos.${index}.diente_asociado`) && <span className="text-xs text-muted-foreground">(Diente: {form.getValues(`archivos_adjuntos.${index}.diente_asociado`)})</span>}
-                                                                    </div>
-                                                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeAttachment(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </ScrollArea>
-                                                </CardContent>
-                                            </Card>
-                                        </div>
-                                    </div>
-                                </ScrollArea>
-                                <DialogFooter className="mt-4">
-                                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
-                                    <Button type="submit" disabled={isSubmitting}>{isSubmitting ? t('saving') : t('save')}</Button>
-                                </DialogFooter>
-                            </form>
-                        </Form>
-                    </DialogContent>
-                </Dialog>
-                <Dialog open={isAttachmentDialogOpen} onOpenChange={setIsAttachmentDialogOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Add Attachment</DialogTitle>
-                        </DialogHeader>
-                        <div className="py-4 space-y-4">
-                            <div className="flex items-center justify-center w-full">
-                                <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
-                                    {currentAttachment.base64 ? (
-                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                            <FileText className="w-8 h-8 mb-4 text-primary" />
-                                            <p className="font-semibold text-foreground">{currentAttachment.file_name}</p>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                            <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
-                                            <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                            <p className="text-xs text-muted-foreground">Image or PDF (MAX. 10MB)</p>
-                                        </div>
-                                    )}
-                                    <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
-                                </label>
-                            </div>
-                            <div>
-                                <Label htmlFor="diente_asociado">Associated Tooth (Optional)</Label>
-                                <Input id="diente_asociado" type="number" value={currentAttachment.diente_asociado || ''} onChange={e => setCurrentAttachment(prev => ({ ...prev, diente_asociado: Number(e.target.value) }))} />
-                            </div>
+            <div className="bg-card rounded-xl shadow-lg p-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-6">{t('title')}</h3>
+            <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                <div className="flex gap-4" key={i}>
+                    <Skeleton className="w-6 h-6 rounded-full mt-1" />
+                    <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                    </div>
+                </div>
+                ))}
+            </div>
+            </div>
+        );
+        }
+    
+        return (
+        <div className="bg-card rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-card-foreground">{t('title')}</h3>
+                <Button onClick={() => onAction('add')}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Session
+                </Button>
+            </div>
+            <div className="relative">
+            <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-muted"></div>
+            {sessions.map((session, index) => {
+                const Icon = {
+                    'odontograma': Smile,
+                    'clinica': Stethoscope
+                }[session.tipo_sesion || 'clinica'] || Stethoscope;
+                const isOpen = openItems.includes(String(session.sesion_id));
+                
+                return (
+                <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
+                    <div className="absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-2 border-background shadow-md bg-card flex items-center justify-center">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Icon className="h-4 w-4 text-primary" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{session.tipo_sesion === 'odontograma' ? t('odontogramTooltip') : t('sessionType')}: {session.tipo_sesion}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                    </div>
+                    <div className="flex-1">
+                    <div className="bg-card rounded-lg border p-4 transition-colors duration-200">
+                        <div className="flex justify-between items-start mb-2">
+                        <div>
+                            <h4 className="font-semibold text-foreground">{session.procedimiento_realizado}</h4>
+                            <p className="text-sm text-muted-foreground">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</p>
                         </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsAttachmentDialogOpen(false)}>Cancel</Button>
-                            <Button onClick={handleAddAttachment}>Add</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => onAction('edit', session)}>{t('edit')}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onAction('delete', session)} className="text-destructive">{t('delete')}</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        </div>
+                        <div className="space-y-3 text-sm text-muted-foreground">
+                        <p><strong>{t('diagnosis')}:</strong> {session.diagnostico}</p>
+                        <p><strong>{t('notes')}:</strong> {session.notas_clinicas}</p>
+                        {session.plan_proxima_cita && <p><strong>{t('nextSessionPlan')}:</strong> {session.plan_proxima_cita}</p>}
+                        <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>
+                            {(session.tratamientos?.length > 0 || session.archivos_adjuntos?.length > 0 || session.estado_odontograma) && (
+                            <CollapsibleTrigger asChild>
+                                <Button variant="link" className="p-0 h-auto text-xs flex items-center gap-1">
+                                {isOpen ? t('showLess') : t('showMore')}
+                                <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
+                                </Button>
+                            </CollapsibleTrigger>
+                            )}
+                            <CollapsibleContent>
+                            <div className="mt-2 space-y-3">
+                                {session.estado_odontograma && (
+                                    <div>
+                                        <strong className="text-foreground">{t('odontogramUpdate')}</strong>
+                                        <ul className="list-disc pl-5">
+                                            {Object.entries(session.estado_odontograma).map(([tooth, data]: [string, any]) => (
+                                                <li key={tooth}>Diente {tooth}: {data.condition} ({data.surface})</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                {session.tratamientos && session.tratamientos.length > 0 && (
+                                <div>
+                                    <strong className="text-foreground">{t('treatments')}:</strong>
+                                    <ul className="list-disc pl-5">
+                                    {session.tratamientos.map((treatment, i) => (
+                                        <li key={i}>{treatment.descripcion} {treatment.numero_diente && `(${t('tooth')}: ${treatment.numero_diente})`}</li>
+                                    ))}
+                                    </ul>
+                                </div>
+                                )}
+                                {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
+                                <div>
+                                    <strong className="text-foreground">{t('attachments')}:</strong>
+                                    <ul className="list-disc pl-5">
+                                    {session.archivos_adjuntos.map((file, i) => (
+                                        <li key={i}>
+                                        <a
+                                            href={`https://n8n-project-n8n.7ig1i3.easypanel.host${file.ruta}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary hover:underline flex items-center gap-1"
+                                        >
+                                            <Paperclip className="w-3 h-3" />
+                                            {file.tipo} {file.diente_asociado && `(${t('tooth')}: ${file.diente_asociado})`}
+                                        </a>
+                                        </li>
+                                    ))}
+                                    </ul>
+                                </div>
+                                )}
+                            </div>
+                            </CollapsibleContent>
+                        </Collapsible>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                );
+            })}
+            </div>
+        </div>
         );
     };
 
-    const TreatmentTimeline = ({ sessions, onAction }: { sessions: PatientSession[], onAction: (action: 'add' | 'edit' | 'delete', session?: PatientSession) => void }) => {
-    const t = useTranslations('ClinicHistoryPage.timeline');
-    const [openItems, setOpenItems] = useState<string[]>([]);
-
-    const toggleItem = (id: string) => {
-        setOpenItems(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
-    };
-
-    if (isLoadingPatientSessions) {
-      return (
-        <div className="bg-card rounded-xl shadow-lg p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-6">{t('title')}</h3>
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <div className="flex gap-4" key={i}>
-                <Skeleton className="w-6 h-6 rounded-full mt-1" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-  
     return (
-      <div className="bg-card rounded-xl shadow-lg p-6">
-        <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-card-foreground">{t('title')}</h3>
-            <Button onClick={() => onAction('add')}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Session
-            </Button>
-        </div>
-        <div className="relative">
-          <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-muted"></div>
-          {sessions.map((session, index) => {
-            const Icon = {
-                'odontograma': Smile,
-                'clinica': Stethoscope
-            }[session.tipo_sesion || 'clinica'] || Stethoscope;
-            const isOpen = openItems.includes(String(session.sesion_id));
-            
-            return (
-              <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
-                <div className="absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-2 border-background shadow-md bg-card flex items-center justify-center">
-                   <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Icon className="h-4 w-4 text-primary" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{session.tipo_sesion === 'odontograma' ? t('odontogramTooltip') : t('sessionType')}: {session.tipo_sesion}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                   </TooltipProvider>
-                </div>
-                <div className="flex-1">
-                  <div className="bg-card rounded-lg border p-4 transition-colors duration-200">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h4 className="font-semibold text-foreground">{session.procedimiento_realizado}</h4>
-                        <p className="text-sm text-muted-foreground">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</p>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => onAction('edit', session)}>{t('edit')}</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onAction('delete', session)} className="text-destructive">{t('delete')}</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+        <div className={cn("min-h-screen", !isFullscreen && "bg-background")}>
+        {/* Header */}
+        {!isFullscreen && (
+        <div className="bg-card shadow-sm border-b border-border px-6 py-4">
+            <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+                <h1 className="text-2xl font-bold text-card-foreground">{t('title')}</h1>
+                {selectedPatient && (
+                    <div className="flex items-center gap-2">
+                        <p className="text-2xl font-bold text-foreground">{selectedPatient.name}</p>
+                        <Button variant="ghost" size="icon" onClick={refreshAllData}>
+                            <RefreshCw className="h-5 w-5" />
+                        </Button>
                     </div>
-                    <div className="space-y-3 text-sm text-muted-foreground">
-                      <p><strong>{t('diagnosis')}:</strong> {session.diagnostico}</p>
-                      <p><strong>{t('notes')}:</strong> {session.notas_clinicas}</p>
-                      {session.plan_proxima_cita && <p><strong>{t('nextSessionPlan')}:</strong> {session.plan_proxima_cita}</p>}
-                      <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>
-                        {(session.tratamientos?.length > 0 || session.archivos_adjuntos?.length > 0 || session.estado_odontograma) && (
-                          <CollapsibleTrigger asChild>
-                            <Button variant="link" className="p-0 h-auto text-xs flex items-center gap-1">
-                              {isOpen ? t('showLess') : t('showMore')}
-                              <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
-                            </Button>
-                          </CollapsibleTrigger>
-                        )}
-                        <CollapsibleContent>
-                          <div className="mt-2 space-y-3">
-                            {session.estado_odontograma && (
-                                <div>
-                                    <strong className="text-foreground">{t('odontogramUpdate')}</strong>
-                                    <ul className="list-disc pl-5">
-                                        {Object.entries(session.estado_odontograma).map(([tooth, data]: [string, any]) => (
-                                            <li key={tooth}>Diente {tooth}: {data.condition} ({data.surface})</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                            {session.tratamientos && session.tratamientos.length > 0 && (
-                              <div>
-                                <strong className="text-foreground">{t('treatments')}:</strong>
-                                <ul className="list-disc pl-5">
-                                  {session.tratamientos.map((t, i) => (
-                                    <li key={i}>{t.descripcion} {t.numero_diente && `(${t('tooth')}: ${t.numero_diente})`}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
-                              <div>
-                                <strong className="text-foreground">{t('attachments')}:</strong>
-                                <ul className="list-disc pl-5">
-                                  {session.archivos_adjuntos.map((file, i) => (
-                                    <li key={i}>
-                                      <a
-                                        href={`https://n8n-project-n8n.7ig1i3.easypanel.host${file.ruta}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-primary hover:underline flex items-center gap-1"
-                                      >
-                                        <Paperclip className="w-3 h-3" />
-                                        {file.tipo} {file.diente_asociado && `(${t('tooth')}: ${file.diente_asociado})`}
-                                      </a>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-  
-
-  return (
-    <div className={cn("min-h-screen", !isFullscreen && "bg-background")}>
-      {/* Header */}
-      {!isFullscreen && (
-      <div className="bg-card shadow-sm border-b border-border px-6 py-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-card-foreground">{t('title')}</h1>
-            {selectedPatient && (
-                <div className="flex items-center gap-2">
-                    <p className="text-2xl font-bold text-foreground">{selectedPatient.name}</p>
-                    <Button variant="ghost" size="icon" onClick={refreshAllData}>
-                        <RefreshCw className="h-5 w-5" />
-                    </Button>
-                </div>
-            )}
-          </div>
-        </div>
-        <div className="flex justify-between items-center mt-4">
-            <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
-                <PopoverTrigger asChild>
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            value={searchQuery}
-                            onChange={(e) => {
-                                setSearchQuery(e.target.value)
-                                if(!patientSearchOpen) setPatientSearchOpen(true)
-                            }}
-                            placeholder={t('searchPlaceholder')}
-                            className="pl-9 w-96"
-                        />
-                    </div>
-                </PopoverTrigger>
-                <PopoverContent className="p-0 w-96" align="start">
-                    <Command>
-                        <CommandInput placeholder={t('searchPlaceholder')} value={searchQuery} onValueChange={setSearchQuery}/>
-                        <CommandList>
-                            <CommandEmpty>
-                                {isSearching ? t('searching') : t('noPatientsFound')}
-                            </CommandEmpty>
-                            <CommandGroup>
-                                {searchResults.map((user) => (
-                                    <CommandItem
-                                        key={user.id}
-                                        value={user.name}
-                                        onSelect={() => handleSelectPatient(user)}
-                                    >
-                                        {user.name}
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
-                        </CommandList>
-                    </Command>
-                </PopoverContent>
-            </Popover>
-            <Navigation />
-        </div>
-      </div>
-      )}
-    
-      {selectedPatient ? (
-        <>
-            <div className={cn(!isFullscreen && "px-6 py-8")}>
-                <div className={cn("h-[calc(100vh-230px)]", 
-                    activeView === 'timeline' && 'flex flex-col',
-                    activeView !== 'odontogram' && 'space-y-6')}>
-
-                    {activeView === 'anamnesis' && 
-                      <ScrollArea className='flex-1'>
-                        <div className="pr-4">
-                           <AnamnesisDashboard
-                                personalHistory={personalHistory}
-                                isLoadingPersonalHistory={isLoadingPersonalHistory}
-                                fetchPersonalHistory={fetchPersonalHistory}
-                                familyHistory={familyHistory}
-                                isLoadingFamilyHistory={isLoadingFamilyHistory}
-                                fetchFamilyHistory={fetchFamilyHistory}
-                                allergies={allergies}
-                                isLoadingAllergies={isLoadingAllergies}
-                                fetchAllergies={fetchAllergies}
-                                medications={medications}
-                                isLoadingMedications={isLoadingMedications}
-                                fetchMedications={fetchMedications}
-                                patientHabits={patientHabits}
-                                isLoadingPatientHabits={isLoadingPatientHabits}
-                                fetchPatientHabits={fetchPatientHabits}
-                                userId={userId}
-                            />
-                          </div>
-                      </ScrollArea>
-                    }
-                    {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} onAction={handleSessionAction} />}
-                    {activeView === 'odontogram' && (
-                        <div className={cn("relative", isFullscreen ? "fixed inset-0 z-50 bg-background" : "h-[800px] w-full")}>
-                           <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="absolute top-2 right-2 z-10 bg-background/50 hover:bg-background/80"
-                              onClick={() => setIsFullscreen(!isFullscreen)}
-                            >
-                              {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
-                           </Button>
-                            <iframe src={`https://odontogramiia.invokeia.com/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
-                        </div>
-                    )}
-                    {activeView === 'documents' && <ImageGallery userId={userId}/>}
-                </div>
+                )}
             </div>
-        </>
-      ) : (
-        !isFullscreen && (
-          <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
-            <SearchCheck className="w-24 h-24 text-muted-foreground/30 mb-4" />
-            <h2 className="text-2xl font-semibold text-foreground/80">{t('selectPatientTitle')}</h2>
-            <p className="text-muted-foreground mt-2">{t('selectPatientDescription')}</p>
-          </div>
-        )
-      )}
+            </div>
+            <div className="flex justify-between items-center mt-4">
+                <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
+                    <PopoverTrigger asChild>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value)
+                                    if(!patientSearchOpen) setPatientSearchOpen(true)
+                                }}
+                                placeholder={t('searchPlaceholder')}
+                                className="pl-9 w-96"
+                            />
+                        </div>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0 w-96" align="start">
+                        <Command>
+                            <CommandInput placeholder={t('searchPlaceholder')} value={searchQuery} onValueChange={setSearchQuery}/>
+                            <CommandList>
+                                <CommandEmpty>
+                                    {isSearching ? t('searching') : t('noPatientsFound')}
+                                </CommandEmpty>
+                                <CommandGroup>
+                                    {searchResults.map((user) => (
+                                        <CommandItem
+                                            key={user.id}
+                                            value={user.name}
+                                            onSelect={() => handleSelectPatient(user)}
+                                        >
+                                            {user.name}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
+                <Navigation />
+            </div>
+        </div>
+        )}
+        
+        {selectedPatient ? (
+            <>
+                <div className={cn(!isFullscreen && "px-6 py-8")}>
+                    <div className={cn("h-[calc(100vh-230px)]", 
+                        activeView === 'timeline' && 'flex flex-col',
+                        activeView !== 'odontogram' && 'space-y-6')}>
 
-       <SessionDialog 
-            isOpen={isSessionDialogOpen} 
-            onOpenChange={setIsSessionDialogOpen} 
-            session={editingSession} 
-            userId={userId} 
-            onSave={refreshAllData} 
-        />
+                        {activeView === 'anamnesis' && 
+                        <ScrollArea className='flex-1'>
+                            <div className="pr-4">
+                            <AnamnesisDashboard
+                                    personalHistory={personalHistory}
+                                    isLoadingPersonalHistory={isLoadingPersonalHistory}
+                                    fetchPersonalHistory={fetchPersonalHistory}
+                                    familyHistory={familyHistory}
+                                    isLoadingFamilyHistory={isLoadingFamilyHistory}
+                                    fetchFamilyHistory={fetchFamilyHistory}
+                                    allergies={allergies}
+                                    isLoadingAllergies={isLoadingAllergies}
+                                    fetchAllergies={fetchAllergies}
+                                    medications={medications}
+                                    isLoadingMedications={isLoadingMedications}
+                                    fetchMedications={fetchMedications}
+                                    patientHabits={patientHabits}
+                                    isLoadingPatientHabits={isLoadingPatientHabits}
+                                    fetchPatientHabits={fetchPatientHabits}
+                                    userId={userId}
+                                />
+                            </div>
+                        </ScrollArea>
+                        }
+                        {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} onAction={handleSessionAction} />}
+                        {activeView === 'odontogram' && (
+                            <div className={cn("relative", isFullscreen ? "fixed inset-0 z-50 bg-background" : "h-[800px] w-full")}>
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="absolute top-2 right-2 z-10 bg-background/50 hover:bg-background/80"
+                                onClick={() => setIsFullscreen(!isFullscreen)}
+                                >
+                                {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+                            </Button>
+                                <iframe src={`https://odontogramiia.invokeia.com/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
+                            </div>
+                        )}
+                        {activeView === 'documents' && <ImageGallery userId={userId}/>}
+                    </div>
+                </div>
+            </>
+        ) : (
+            !isFullscreen && (
+            <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
+                <SearchCheck className="w-24 h-24 text-muted-foreground/30 mb-4" />
+                <h2 className="text-2xl font-semibold text-foreground/80">{t('selectPatientTitle')}</h2>
+                <p className="text-muted-foreground mt-2">{t('selectPatientDescription')}</p>
+            </div>
+            )
+        )}
 
-        <AlertDialog open={!!deletingSession} onOpenChange={() => setDeletingSession(null)}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{t('timeline.deleteDialog.title')}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        {t('timeline.deleteDialog.description')}
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>{t('timeline.deleteDialog.cancel')}</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleConfirmDeleteSession}>{t('timeline.deleteDialog.confirm')}</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-    </div>
-  );
+        <SessionDialog 
+                isOpen={isSessionDialogOpen} 
+                onOpenChange={setIsSessionDialogOpen} 
+                session={editingSession} 
+                userId={userId} 
+                onSave={refreshAllData} 
+            />
+
+            <AlertDialog open={!!deletingSession} onOpenChange={() => setDeletingSession(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('timeline.deleteDialog.title')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {t('timeline.deleteDialog.description')}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t('timeline.deleteDialog.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmDeleteSession}>{t('timeline.deleteDialog.confirm')}</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
+    );
 };
 
 const ImageGallery = ({ userId }: { userId: string}) => {
@@ -2416,4 +2156,3 @@ export default function DentalClinicalSystemPage() {
     
 
     
-
