@@ -1397,41 +1397,41 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                     </CardHeader>
                                     <CardContent className="space-y-2">
                                         <ScrollArea className="h-48 pr-4">
-                                        <div className="space-y-3">
-                                            {fields.map((field, index) => (
-                                                <div key={field.id} className="flex gap-2 items-start p-2 border rounded-md">
-                                                    <FormField
-                                                      control={form.control}
-                                                      name={`treatments.${index}.numero_diente`}
-                                                      render={({ field }) => (
-                                                        <FormItem className="w-24">
-                                                          <FormLabel className="text-xs">{t('tooth')}</FormLabel>
-                                                          <FormControl>
-                                                            <Input type="number" placeholder={t('tooth')} {...field} className="h-8" />
-                                                          </FormControl>
-                                                          <FormMessage />
-                                                        </FormItem>
-                                                      )}
-                                                    />
-                                                    <FormField
-                                                      control={form.control}
-                                                      name={`treatments.${index}.descripcion`}
-                                                      render={({ field }) => (
-                                                        <FormItem className="flex-1">
-                                                          <FormLabel className="text-xs">Tratamiento</FormLabel>
-                                                          <FormControl>
-                                                            <Textarea placeholder={t('treatmentPlaceholder')} {...field} className="min-h-[32px] h-8" />
-                                                          </FormControl>
-                                                          <FormMessage />
-                                                        </FormItem>
-                                                      )}
-                                                    />
-                                                    <Button type="button" variant="ghost" size="icon" className="mt-5" onClick={() => remove(index)}>
-                                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                                    </Button>
-                                                </div>
-                                            ))}
-                                        </div>
+                                            <div className="space-y-3">
+                                                {fields.map((field, index) => (
+                                                    <div key={field.id} className="flex gap-2 items-start p-2 border rounded-md">
+                                                        <FormField
+                                                          control={form.control}
+                                                          name={`treatments.${index}.numero_diente`}
+                                                          render={({ field }) => (
+                                                            <FormItem className="w-24">
+                                                              <FormLabel className="text-xs">{t('tooth')}</FormLabel>
+                                                              <FormControl>
+                                                                <Input type="number" placeholder={t('tooth')} {...field} className="h-8" />
+                                                              </FormControl>
+                                                              <FormMessage />
+                                                            </FormItem>
+                                                          )}
+                                                        />
+                                                        <FormField
+                                                          control={form.control}
+                                                          name={`treatments.${index}.descripcion`}
+                                                          render={({ field }) => (
+                                                            <FormItem className="flex-1">
+                                                              <FormLabel className="text-xs">Tratamiento</FormLabel>
+                                                              <FormControl>
+                                                                <Textarea placeholder={t('treatmentPlaceholder')} {...field} className="min-h-[32px] h-8" />
+                                                              </FormControl>
+                                                              <FormMessage />
+                                                            </FormItem>
+                                                          )}
+                                                        />
+                                                        <Button type="button" variant="ghost" size="icon" className="mt-5" onClick={() => remove(index)}>
+                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </ScrollArea>
                                         <Button type="button" variant="outline" size="sm" onClick={() => append({ descripcion: '', numero_diente: '' })}>{t('addTreatment')}</Button>
                                     </CardContent>
@@ -2515,5 +2515,6 @@ const DentalClinicalSystemPage = () => {
 }
     
 export default DentalClinicalSystemPage;
+
 
 
