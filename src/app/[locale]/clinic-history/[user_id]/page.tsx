@@ -1146,6 +1146,319 @@ const AnamnesisDashboard = ({
     );
 };
 
+const sessionFormSchema = z.object({
+  doctor_id: z.string().optional(),
+  fecha_sesion: z.date({
+    required_error: 'Date is required'
+  }),
+  procedimiento_realizado: z.string().min(1, 'Procedure is required'),
+  diagnostico: z.string().optional(),
+  notas_clinicas: z.string().optional(),
+  plan_proxima_cita: z.string().optional(),
+  treatments: z.array(z.object({
+    descripcion: z.string().min(1, 'Treatment description is required'),
+    numero_diente: z.string().refine(val => {
+      if (val === '' || val === undefined) return true; // Optional field
+      const num = parseInt(val, 10);
+      if (isNaN(num)) return false; // Must be a number
+      if (num < 11 || num > 85) return false; // Must be within the general range
+      const lastDigit = num % 10;
+      if (lastDigit === 0 || lastDigit === 9) return false; // Last digit can't be 0 or 9
+      return true;
+    }, {
+      message: 'Invalid tooth number (must be 11-85, not ending in 0 or 9).'
+    }).optional(),
+  }))
+});
+
+type SessionFormValues = z.infer<typeof sessionFormSchema>;
+
+const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+    session: PatientSession | null;
+    userId: string;
+    onSave: () => void;
+}) => {
+    const t = useTranslations('ClinicHistoryPage.sessionDialog');
+    const { toast } = useToast();
+    const [doctors, setDoctors] = useState<UserType[]>([]);
+    const [attachments, setAttachments] = useState<File[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const form = useForm<SessionFormValues>({
+        resolver: zodResolver(sessionFormSchema),
+        defaultValues: {
+            doctor_id: '',
+            fecha_sesion: new Date(),
+            procedimiento_realizado: '',
+            diagnostico: '',
+            notas_clinicas: '',
+            plan_proxima_cita: '',
+            treatments: [],
+        }
+    });
+
+    const { fields, append, remove } = useFieldArray({
+      control: form.control,
+      name: 'treatments'
+    });
+
+    useEffect(() => {
+        if (isOpen) {
+            const fetchDoctors = async () => {
+                try {
+                    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=DOCTOR');
+                    const data = await response.json();
+                    const doctorsData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
+                    setDoctors(doctorsData);
+                } catch (error) {
+                    console.error('Failed to fetch doctors', error);
+                }
+            };
+            fetchDoctors();
+
+            if (session) {
+                form.reset({
+                    doctor_id: session.doctor_id || '',
+                    fecha_sesion: session.fecha_sesion ? parseISO(session.fecha_sesion) : new Date(),
+                    procedimiento_realizado: session.procedimiento_realizado || '',
+                    diagnostico: session.diagnostico || '',
+                    notas_clinicas: session.notas_clinicas || '',
+                    plan_proxima_cita: session.plan_proxima_cita || '',
+                    treatments: session.tratamientos?.map(t => ({...t, numero_diente: String(t.numero_diente)})) || [],
+                });
+            } else {
+                form.reset({
+                    doctor_id: '',
+                    fecha_sesion: new Date(),
+                    procedimiento_realizado: '',
+                    diagnostico: '',
+                    notas_clinicas: '',
+                    plan_proxima_cita: '',
+                    treatments: [],
+                });
+            }
+             setAttachments([]);
+        }
+    }, [isOpen, session, form]);
+
+    const handleSave: SubmitHandler<SessionFormValues> = async (values) => {
+        setIsSubmitting(true);
+        const formData = new FormData();
+        formData.append('paciente_id', userId);
+        if (session?.sesion_id) formData.append('sesion_id', String(session.sesion_id));
+        
+        Object.entries(values).forEach(([key, value]) => {
+          if (key !== 'treatments' && value) {
+            if (value instanceof Date) {
+              formData.append(key, value.toISOString());
+            } else {
+              formData.append(key, String(value));
+            }
+          }
+        });
+        
+        values.treatments?.forEach((treatment, index) => {
+          formData.append(`tratamientos[${index}][descripcion]`, treatment.descripcion);
+          if (treatment.numero_diente) {
+            formData.append(`tratamientos[${index}][numero_diente]`, String(treatment.numero_diente));
+          }
+        });
+        
+        attachments.forEach((file, index) => {
+            formData.append(`archivos_adjuntos_${index}`, file);
+        });
+
+        try {
+            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert', {
+                method: 'POST',
+                body: formData,
+            });
+            if (!response.ok) throw new Error(t('toast.saveError'));
+            toast({ title: t('toast.success'), description: t('toast.saveSuccess') });
+            onSave();
+            onOpenChange(false);
+        } catch (error) {
+            toast({ variant: 'destructive', title: t('toast.error'), description: error instanceof Error ? error.message : t('toast.saveError') });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleAttachmentFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files) {
+            setAttachments(prev => [...prev, ...Array.from(event.target.files!)]);
+        }
+    };
+    
+    const removeAttachment = (indexToRemove: number) => {
+        setAttachments(prev => prev.filter((_, index) => index !== indexToRemove));
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                    <DialogTitle>{session ? t('editTitle') : t('createTitle')}</DialogTitle>
+                </DialogHeader>
+                 <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
+                            <div className="space-y-4">
+                                <FormField control={form.control} name="fecha_sesion" render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>{t('date')}</FormLabel>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="doctor_id" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('doctor')}</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder={t('selectDoctor')} />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {doctors.map(doc => <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="procedimiento_realizado" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('procedure')}</FormLabel>
+                                        <FormControl><Input {...field} /></FormControl>
+                                         <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="diagnostico" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('diagnosis')}</FormLabel>
+                                        <FormControl><Textarea {...field} /></FormControl>
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="notas_clinicas" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('notes')}</FormLabel>
+                                        <FormControl><Textarea {...field} /></FormControl>
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="plan_proxima_cita" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('nextSessionPlan')}</FormLabel>
+                                        <FormControl><Textarea {...field} /></FormControl>
+                                    </FormItem>
+                                )} />
+                            </div>
+                            <div className="space-y-4">
+                                <Card>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-base">{t('treatments')}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-2">
+                                        <div className="max-h-48 overflow-y-auto space-y-3 p-1">
+                                            {fields.map((field, index) => (
+                                                <div key={field.id} className="flex gap-2 items-start p-2 border rounded-md">
+                                                    <FormField
+                                                      control={form.control}
+                                                      name={`treatments.${index}.numero_diente`}
+                                                      render={({ field }) => (
+                                                        <FormItem className="w-24">
+                                                          <FormLabel className="text-xs">{t('tooth')}</FormLabel>
+                                                          <FormControl>
+                                                            <Input type="number" placeholder={t('tooth')} {...field} className="h-8" />
+                                                          </FormControl>
+                                                          <FormMessage />
+                                                        </FormItem>
+                                                      )}
+                                                    />
+                                                    <FormField
+                                                      control={form.control}
+                                                      name={`treatments.${index}.descripcion`}
+                                                      render={({ field }) => (
+                                                        <FormItem className="flex-1">
+                                                          <FormLabel className="text-xs">Tratamiento</FormLabel>
+                                                          <FormControl>
+                                                            <Textarea placeholder={t('treatmentPlaceholder')} {...field} className="min-h-[32px] h-8" />
+                                                          </FormControl>
+                                                          <FormMessage />
+                                                        </FormItem>
+                                                      )}
+                                                    />
+                                                    <Button type="button" variant="ghost" size="icon" className="mt-5" onClick={() => remove(index)}>
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => append({ descripcion: '', numero_diente: '' })}>{t('addTreatment')}</Button>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-base">{t('attachments')}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex items-center justify-center w-full">
+                                            <label htmlFor="session-attachments" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
+                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                    <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
+                                                    <p className="mb-1 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                                    <p className="text-xs text-muted-foreground">PDF, PNG, JPG, etc.</p>
+                                                </div>
+                                                <Input id="session-attachments" type="file" multiple className="hidden" onChange={handleAttachmentFileChange} />
+                                            </label>
+                                        </div>
+                                        {attachments.length > 0 && (
+                                            <ScrollArea className="h-24 mt-4 border rounded-md p-2">
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {attachments.map((file, index) => (
+                                                        <div key={index} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
+                                                          <div className="flex items-center gap-2 overflow-hidden">
+                                                            <Image src={URL.createObjectURL(file)} alt={file.name} width={24} height={24} className="rounded object-cover aspect-square"/>
+                                                            <span className="text-sm truncate flex-1">{file.name}</span>
+                                                          </div>
+                                                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeAttachment(index)}>
+                                                              <X className="h-3 w-3"/>
+                                                          </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </ScrollArea>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? t('saving') : t('save')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => {
   const router = useRouter();
   const locale = useLocale();
@@ -2149,316 +2462,12 @@ const ImageViewer = ({ src, alt }: { src: string; alt: string; }) => {
     );
 }
 
-const sessionFormSchema = z.object({
-  doctor_id: z.string().optional(),
-  fecha_sesion: z.date({
-    required_error: 'Date is required'
-  }),
-  procedimiento_realizado: z.string().min(1, 'Procedure is required'),
-  diagnostico: z.string().optional(),
-  notas_clinicas: z.string().optional(),
-  plan_proxima_cita: z.string().optional(),
-  treatments: z.array(z.object({
-    descripcion: z.string().min(1, 'Treatment description is required'),
-    numero_diente: z.string().refine(val => {
-      if (val === '' || val === undefined) return true; // Optional field
-      const num = parseInt(val, 10);
-      if (isNaN(num)) return false; // Must be a number
-      if (num < 11 || num > 85) return false; // Must be within the general range
-      const lastDigit = num % 10;
-      if (lastDigit === 0 || lastDigit === 9) return false; // Last digit can't be 0 or 9
-      return true;
-    }, {
-      message: 'Invalid tooth number (must be 11-88, not ending in 0 or 9).'
-    }).optional(),
-  }))
-});
-
-type SessionFormValues = z.infer<typeof sessionFormSchema>;
-
-const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
-    isOpen: boolean;
-    onOpenChange: (open: boolean) => void;
-    session: PatientSession | null;
-    userId: string;
-    onSave: () => void;
-}) => {
-    const t = useTranslations('ClinicHistoryPage.sessionDialog');
-    const { toast } = useToast();
-    const [doctors, setDoctors] = useState<UserType[]>([]);
-    const [attachments, setAttachments] = useState<File[]>([]);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const form = useForm<SessionFormValues>({
-        resolver: zodResolver(sessionFormSchema),
-        defaultValues: {
-            doctor_id: '',
-            fecha_sesion: new Date(),
-            procedimiento_realizado: '',
-            diagnostico: '',
-            notas_clinicas: '',
-            plan_proxima_cita: '',
-            treatments: [],
-        }
-    });
-
-    const { fields, append, remove } = useFieldArray({
-      control: form.control,
-      name: 'treatments'
-    });
-
-    useEffect(() => {
-        if (isOpen) {
-            const fetchDoctors = async () => {
-                try {
-                    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=DOCTOR');
-                    const data = await response.json();
-                    const doctorsData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
-                    setDoctors(doctorsData);
-                } catch (error) {
-                    console.error('Failed to fetch doctors', error);
-                }
-            };
-            fetchDoctors();
-
-            if (session) {
-                form.reset({
-                    doctor_id: session.doctor_id || '',
-                    fecha_sesion: session.fecha_sesion ? parseISO(session.fecha_sesion) : new Date(),
-                    procedimiento_realizado: session.procedimiento_realizado || '',
-                    diagnostico: session.diagnostico || '',
-                    notas_clinicas: session.notas_clinicas || '',
-                    plan_proxima_cita: session.plan_proxima_cita || '',
-                    treatments: session.tratamientos?.map(t => ({...t, numero_diente: String(t.numero_diente)})) || [],
-                });
-            } else {
-                form.reset({
-                    doctor_id: '',
-                    fecha_sesion: new Date(),
-                    procedimiento_realizado: '',
-                    diagnostico: '',
-                    notas_clinicas: '',
-                    plan_proxima_cita: '',
-                    treatments: [],
-                });
-            }
-             setAttachments([]);
-        }
-    }, [isOpen, session, form]);
-
-    const handleSave: SubmitHandler<SessionFormValues> = async (values) => {
-        setIsSubmitting(true);
-        const formData = new FormData();
-        formData.append('paciente_id', userId);
-        if (session?.sesion_id) formData.append('sesion_id', String(session.sesion_id));
-        
-        Object.entries(values).forEach(([key, value]) => {
-          if (key !== 'treatments' && value) {
-            if (value instanceof Date) {
-              formData.append(key, value.toISOString());
-            } else {
-              formData.append(key, String(value));
-            }
-          }
-        });
-        
-        formData.append('tratamientos', JSON.stringify(values.treatments?.map(t => ({...t, numero_diente: t.numero_diente ? parseInt(t.numero_diente) : null}))));
-        
-        attachments.forEach((file, index) => {
-            formData.append(`archivos_adjuntos_${index}`, file);
-        });
-
-        try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert', {
-                method: 'POST',
-                body: formData,
-            });
-            if (!response.ok) throw new Error(t('toast.saveError'));
-            toast({ title: t('toast.success'), description: t('toast.saveSuccess') });
-            onSave();
-            onOpenChange(false);
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('toast.error'), description: error instanceof Error ? error.message : t('toast.saveError') });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleAttachmentFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files) {
-            setAttachments(prev => [...prev, ...Array.from(event.target.files!)]);
-        }
-    };
-    
-    const removeAttachment = (indexToRemove: number) => {
-        setAttachments(prev => prev.filter((_, index) => index !== indexToRemove));
-    };
-
-    return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl">
-                <DialogHeader>
-                    <DialogTitle>{session ? t('editTitle') : t('createTitle')}</DialogTitle>
-                </DialogHeader>
-                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
-                            <div className="space-y-4">
-                                <FormField control={form.control} name="fecha_sesion" render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                        <FormLabel>{t('date')}</FormLabel>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="doctor_id" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('doctor')}</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('selectDoctor')} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {doctors.map(doc => <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="procedimiento_realizado" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('procedure')}</FormLabel>
-                                        <FormControl><Input {...field} /></FormControl>
-                                         <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="diagnostico" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('diagnosis')}</FormLabel>
-                                        <FormControl><Textarea {...field} /></FormControl>
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="notas_clinicas" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('notes')}</FormLabel>
-                                        <FormControl><Textarea {...field} /></FormControl>
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="plan_proxima_cita" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('nextSessionPlan')}</FormLabel>
-                                        <FormControl><Textarea {...field} /></FormControl>
-                                    </FormItem>
-                                )} />
-                            </div>
-                            <div className="space-y-4">
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-base">{t('treatments')}</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-2">
-                                        <div className="max-h-48 overflow-y-auto space-y-3 p-1">
-                                            {fields.map((field, index) => (
-                                                <div key={field.id} className="flex gap-2 items-start p-2 border rounded-md">
-                                                    <FormField
-                                                      control={form.control}
-                                                      name={`treatments.${index}.numero_diente`}
-                                                      render={({ field }) => (
-                                                        <FormItem className="w-24">
-                                                          <FormLabel className="text-xs">{t('tooth')}</FormLabel>
-                                                          <FormControl>
-                                                            <Input type="number" placeholder={t('tooth')} {...field} className="h-8" />
-                                                          </FormControl>
-                                                          <FormMessage />
-                                                        </FormItem>
-                                                      )}
-                                                    />
-                                                    <FormField
-                                                      control={form.control}
-                                                      name={`treatments.${index}.descripcion`}
-                                                      render={({ field }) => (
-                                                        <FormItem className="flex-1">
-                                                          <FormLabel className="text-xs">Tratamiento</FormLabel>
-                                                          <FormControl>
-                                                            <Textarea placeholder={t('treatmentPlaceholder')} {...field} className="min-h-[32px] h-8" />
-                                                          </FormControl>
-                                                          <FormMessage />
-                                                        </FormItem>
-                                                      )}
-                                                    />
-                                                    <Button type="button" variant="ghost" size="icon" className="mt-5" onClick={() => remove(index)}>
-                                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                                    </Button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <Button type="button" variant="outline" size="sm" onClick={() => append({ descripcion: '', numero_diente: '' })}>{t('addTreatment')}</Button>
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-base">{t('attachments')}</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="flex items-center justify-center w-full">
-                                            <label htmlFor="session-attachments" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
-                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                                                    <p className="mb-1 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                                    <p className="text-xs text-muted-foreground">PDF, PNG, JPG, etc.</p>
-                                                </div>
-                                                <Input id="session-attachments" type="file" multiple className="hidden" onChange={handleAttachmentFileChange} />
-                                            </label>
-                                        </div>
-                                        {attachments.length > 0 && (
-                                            <ScrollArea className="h-24 mt-4 border rounded-md p-2">
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    {attachments.map((file, index) => (
-                                                        <div key={index} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
-                                                          <div className="flex items-center gap-2 overflow-hidden">
-                                                            <Image src={URL.createObjectURL(file)} alt={file.name} width={24} height={24} className="rounded object-cover aspect-square"/>
-                                                            <span className="text-sm truncate flex-1">{file.name}</span>
-                                                          </div>
-                                                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeAttachment(index)}>
-                                                              <X className="h-3 w-3"/>
-                                                          </Button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </ScrollArea>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
-                            <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting ? t('saving') : t('save')}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
-    );
-};
-
-export default function DentalClinicalSystemPage() {
+function DentalClinicalSystemPage() {
     const params = useParams();
     const userId = params.user_id as string;
     return <DentalClinicalSystem userId={userId} />;
 }
+    
+export default DentalClinicalSystemPage;
+
+    
