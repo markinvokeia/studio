@@ -1663,6 +1663,293 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         );
     };
 
+    const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
+        isOpen: boolean;
+        onOpenChange: (open: boolean) => void;
+        session: PatientSession | null;
+        userId: string;
+        onSave: () => void;
+    }) => {
+        const t = useTranslations('ClinicHistoryPage.sessionDialog');
+        const { toast } = useToast();
+        const [doctors, setDoctors] = useState<UserType[]>([]);
+        const [treatments, setTreatments] = useState<Partial<TreatmentDetail>[]>([]);
+        const [attachments, setAttachments] = useState<File[]>([]);
+        const [attachmentToothNumbers, setAttachmentToothNumbers] = useState<Record<string, string>>({});
+        const [isSubmitting, setIsSubmitting] = useState(false);
+        const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
+
+        const form = useForm({
+            defaultValues: {
+                doctor_id: '',
+                procedimiento_realizado: '',
+                diagnostico: '',
+                notas_clinicas: '',
+                plan_proxima_cita: '',
+            }
+        });
+
+        useEffect(() => {
+            if (isOpen) {
+                const fetchDoctors = async () => {
+                    try {
+                        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=DOCTOR');
+                        const data = await response.json();
+                        const doctorsData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
+                        setDoctors(doctorsData);
+                    } catch (error) {
+                        console.error('Failed to fetch doctors', error);
+                    }
+                };
+                fetchDoctors();
+
+                if (session) {
+                    form.reset({
+                        doctor_id: session.doctor_id || '',
+                        procedimiento_realizado: session.procedimiento_realizado || '',
+                        diagnostico: session.diagnostico || '',
+                        notas_clinicas: session.notas_clinicas || '',
+                        plan_proxima_cita: session.plan_proxima_cita || '',
+                    });
+                    setTreatments(session.tratamientos || []);
+                } else {
+                    form.reset({
+                        doctor_id: '',
+                        procedimiento_realizado: '',
+                        diagnostico: '',
+                        notas_clinicas: '',
+                        plan_proxima_cita: '',
+                    });
+                    setTreatments([]);
+                }
+                 setAttachments([]);
+                 setAttachmentToothNumbers({});
+            }
+        }, [isOpen, session, form]);
+
+        const handleSave = async () => {
+            setIsSubmitting(true);
+            const formData = new FormData();
+            formData.append('paciente_id', userId);
+            if (session?.sesion_id) formData.append('sesion_id', String(session.sesion_id));
+            const values = form.getValues();
+            Object.entries(values).forEach(([key, value]) => {
+                if (value) formData.append(key, value);
+            });
+            formData.append('tratamientos', JSON.stringify(treatments));
+            
+            attachments.forEach((file, index) => {
+                formData.append(`archivos_adjuntos_${index}`, file);
+                const toothNumber = attachmentToothNumbers[file.name];
+                if (toothNumber) {
+                     formData.append(`diente_asociado_${index}`, toothNumber);
+                }
+            });
+
+            try {
+                const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert', {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (!response.ok) throw new Error(t('toast.saveError'));
+                toast({ title: t('toast.success'), description: t('toast.saveSuccess') });
+                onSave();
+                onOpenChange(false);
+            } catch (error) {
+                toast({ variant: 'destructive', title: t('toast.error'), description: error instanceof Error ? error.message : t('toast.saveError') });
+            } finally {
+                setIsSubmitting(false);
+            }
+        };
+
+        const handleAddTreatment = () => {
+            setTreatments([...treatments, { numero_diente: null, descripcion: '' }]);
+        };
+
+        const handleRemoveTreatment = (index: number) => {
+            setTreatments(treatments.filter((_, i) => i !== index));
+        };
+
+        const handleTreatmentChange = (index: number, field: keyof TreatmentDetail, value: string | number) => {
+            const newTreatments = [...treatments];
+            const treatment = newTreatments[index];
+            if(treatment) {
+                (treatment as any)[field] = value;
+                setTreatments(newTreatments);
+            }
+        };
+
+        const handleAttachmentFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+            if (event.target.files) {
+                setAttachments(Array.from(event.target.files));
+            }
+        };
+
+        const handleAttachmentToothNumberChange = (fileName: string, toothNumber: string) => {
+            setAttachmentToothNumbers(prev => ({...prev, [fileName]: toothNumber}));
+        }
+
+
+        return (
+            <Dialog open={isOpen} onOpenChange={onOpenChange}>
+                <DialogContent className="max-w-4xl">
+                    <DialogHeader>
+                        <DialogTitle>{session ? t('editTitle') : t('createTitle')}</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
+                        <div className="space-y-4">
+                            <FormField control={form.control} name="fecha_sesion" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('date')}</FormLabel>
+                                    <FormControl>
+                                        <Input type="date" {...field} />
+                                    </FormControl>
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="doctor_id" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('doctor')}</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={t('selectDoctor')} />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {doctors.map(doc => <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="procedimiento_realizado" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('procedure')}</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="diagnostico" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('diagnosis')}</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="notas_clinicas" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('notes')}</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="plan_proxima_cita" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('nextSessionPlan')}</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                </FormItem>
+                            )} />
+                        </div>
+                        <div className="space-y-4">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>{t('treatments')}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="max-h-60 overflow-y-auto space-y-2 p-2 border rounded-md">
+                                        {treatments.map((treatment, index) => (
+                                            <div key={index} className="flex gap-2 items-start">
+                                                <Input
+                                                    type="number"
+                                                    placeholder={t('tooth')}
+                                                    value={treatment.numero_diente || ''}
+                                                    onChange={e => handleTreatmentChange(index, 'numero_diente', parseInt(e.target.value))}
+                                                    className="w-20"
+                                                />
+                                                <Textarea
+                                                    placeholder="Treatment description"
+                                                    value={treatment.descripcion}
+                                                    onChange={e => handleTreatmentChange(index, 'descripcion', e.target.value)}
+                                                />
+                                                <Button variant="destructive" size="icon" onClick={() => handleRemoveTreatment(index)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <Button type="button" variant="outline" size="sm" onClick={handleAddTreatment}>Add Treatment</Button>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>{t('attachments')}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <Button type="button" variant="outline" onClick={() => setIsAttachmentDialogOpen(true)}>Add Attachment</Button>
+                                    <div className="mt-2 space-y-2">
+                                        {attachments.map((file, index) => (
+                                            <div key={index} className="flex items-center justify-between text-sm">
+                                                <span>{file.name}</span>
+                                                <Button variant="ghost" size="icon" onClick={() => setAttachments(attachments.filter((_, i) => i !== index))}>
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
+                        <Button onClick={handleSave} disabled={isSubmitting}>
+                            {isSubmitting ? t('saving') : t('save')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+                <Dialog open={isAttachmentDialogOpen} onOpenChange={setIsAttachmentDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Add Attachments</DialogTitle>
+                        </DialogHeader>
+                        <div className="flex items-center justify-center w-full">
+                            <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
+                                {attachments.length > 0 ? (
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <FileText className="w-8 h-8 mb-4 text-primary" />
+                                        <p className="font-semibold text-foreground">{attachments.length} file(s) selected</p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
+                                        <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                        <p className="text-xs text-muted-foreground">PDF, PNG, JPG, etc.</p>
+                                    </div>
+                                )}
+                                <Input id="dropzone-file" type="file" multiple className="hidden" onChange={handleAttachmentFileChange} />
+                            </label>
+                        </div>
+                        {attachments.length > 0 && (
+                            <ScrollArea className="h-40 mt-4 border rounded-md p-2">
+                                {attachments.map((file, index) => (
+                                    <div key={index} className="flex items-center justify-between gap-2 p-1">
+                                        <span className="text-sm truncate flex-1">{file.name}</span>
+                                        <Input
+                                            type="number"
+                                            placeholder="Tooth #"
+                                            className="w-24 h-8"
+                                            value={attachmentToothNumbers[file.name] || ''}
+                                            onChange={(e) => handleAttachmentToothNumberChange(file.name, e.target.value)}
+                                        />
+                                    </div>
+                                ))}
+                            </ScrollArea>
+                        )}
+                        <DialogFooter>
+                            <Button onClick={() => setIsAttachmentDialogOpen(false)}>Done</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </Dialog>
+        );
+    };
+
     return (
         <div className={cn("min-h-screen", !isFullscreen && "bg-background")}>
         {/* Header */}
@@ -1783,13 +2070,13 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             )
         )}
 
-        <SessionDialog 
-                isOpen={isSessionDialogOpen} 
-                onOpenChange={setIsSessionDialogOpen} 
-                session={editingSession} 
-                userId={userId} 
-                onSave={refreshAllData} 
-            />
+       <SessionDialog 
+            isOpen={isSessionDialogOpen} 
+            onOpenChange={setIsSessionDialogOpen} 
+            session={editingSession} 
+            userId={userId} 
+            onSave={refreshAllData} 
+        />
 
             <AlertDialog open={!!deletingSession} onOpenChange={() => setDeletingSession(null)}>
                 <AlertDialogContent>
@@ -1835,7 +2122,7 @@ const ImageGallery = ({ userId }: { userId: string}) => {
                     name: doc.name,
                     mimeType: doc.mimeType,
                     hasThumbnail: doc.hasThumbnail,
-                    thumbnailLink: doc.thumbnailLink
+                    thumbnailLink: getGoogleDriveThumbnailUrl(doc.thumbnailLink)
                 })));
             } else {
                 setDocuments([]);
@@ -1949,6 +2236,12 @@ const ImageGallery = ({ userId }: { userId: string}) => {
         } finally {
             setDeletingDocument(null);
         }
+    };
+
+    const getGoogleDriveThumbnailUrl = (url: string | undefined) => {
+      if (!url) return undefined;
+      // Transforms the URL to get a larger thumbnail
+      return url.replace(/=s\d+$/, '=s800');
     };
     
     const DocumentViewerModal = () => (
@@ -2156,3 +2449,4 @@ export default function DentalClinicalSystemPage() {
     
 
     
+
