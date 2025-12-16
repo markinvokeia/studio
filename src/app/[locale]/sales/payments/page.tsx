@@ -59,7 +59,7 @@ async function getPayments(): Promise<Payment[]> {
             user_name: apiPayment.user_name || 'N/A',
             userEmail: apiPayment.user_email,
             amount: parseFloat(apiPayment.amount) || 0,
-            method: apiPayment.payment_method || 'credit_card',
+            method: apiPayment.method || 'credit_card',
             status: apiPayment.status || 'pending',
             createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
@@ -82,23 +82,23 @@ async function getPayments(): Promise<Payment[]> {
 
 async function getUsers(): Promise<User[]> {
     try {
-      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=PACIENTE');
-      if (!response.ok) return [];
-      const responseData = await response.json();
-      const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
-      const usersData = Array.isArray(data.data) ? data.data : [];
-      return usersData.map((apiUser: any) => ({
-        id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
-        name: apiUser.name || 'No Name',
-        email: apiUser.email || 'no-email@example.com',
-        phone_number: apiUser.phone_number || '000-000-0000',
-        is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
-        avatar: '',
-        identity_document: ''
-      }));
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=PACIENTE');
+        if (!response.ok) return [];
+        const responseData = await response.json();
+        const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
+        const usersData = Array.isArray(data.data) ? data.data : [];
+        return usersData.map((apiUser: any) => ({
+            id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+            name: apiUser.name || 'No Name',
+            email: apiUser.email || 'no-email@example.com',
+            phone_number: apiUser.phone_number || '000-000-0000',
+            is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+            avatar: '',
+            identity_document: ''
+        }));
     } catch (error) {
-      console.error("Failed to fetch users:", error);
-      return [];
+        console.error("Failed to fetch users:", error);
+        return [];
     }
 }
 
@@ -186,10 +186,10 @@ export default function PaymentsPage() {
             a.click();
             window.URL.revokeObjectURL(url);
             a.remove();
-            
+
             toast({
-              title: "Download Started",
-              description: `Your PDF for Payment #${payment.id} is downloading.`,
+                title: "Download Started",
+                description: `Your PDF for Payment #${payment.id} is downloading.`,
             });
 
         } catch (error) {
@@ -200,7 +200,7 @@ export default function PaymentsPage() {
             });
         }
     };
-    
+
     const handleSendEmailClick = (payment: Payment) => {
         setSelectedPaymentForEmail(payment);
         setEmailRecipients(payment.userEmail || '');
@@ -258,7 +258,7 @@ export default function PaymentsPage() {
             });
         }
     };
-    
+
     const handleCreatePrepaid = async () => {
         form.reset();
         setSubmissionError(null);
@@ -267,7 +267,7 @@ export default function PaymentsPage() {
         setPaymentMethods(fetchedMethods);
         setIsPrepaidDialogOpen(true);
     };
-    
+
     const onPrepaidSubmit = (data: PrepaidFormValues) => {
         setPrepaidData(data);
         setIsConfirmPrepaidOpen(true);
@@ -275,7 +275,7 @@ export default function PaymentsPage() {
 
     const handleConfirmPrepaid = async () => {
         if (!prepaidData || !user) return;
-        
+
         try {
             const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/active?user_id=${user.id}`, {
                 method: 'GET',
@@ -285,13 +285,13 @@ export default function PaymentsPage() {
             if (!response.ok || sessionData.code !== 200 || !sessionData.data?.id) {
                 throw new Error("No active cash session found. Please open a session first.");
             }
-            
+
             const selectedMethod = paymentMethods.find(pm => pm.id === prepaidData.payment_method_id);
             const clientUser = users.find(u => u.id === prepaidData.user_id);
 
             const payload = {
                 cash_session_id: sessionData.data.id,
-                user: user, 
+                user: user,
                 client_user: clientUser,
                 query: JSON.stringify({
                     payment_date: prepaidData.created_at.toISOString(),
@@ -318,14 +318,14 @@ export default function PaymentsPage() {
                 const errorData = await prepaidResponse.json().catch(() => ({}));
                 throw new Error(errorData.message || "Failed to create prepaid payment.");
             }
-            
-            toast({ title: "Prepaid Created", description: "The prepaid payment has been successfully recorded." });
+
+            toast({ title: t('prepaidDialog.toasts.successTitle'), description: t('prepaidDialog.toasts.successDescription') });
             setIsPrepaidDialogOpen(false);
             setIsConfirmPrepaidOpen(false);
             loadPayments();
-            
+
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : "An unexpected error occurred." });
+            toast({ variant: 'destructive', title: t('prepaidDialog.toasts.errorTitle'), description: error instanceof Error ? error.message : t('prepaidDialog.toasts.errorDescription') });
         }
     };
 
@@ -345,6 +345,7 @@ export default function PaymentsPage() {
                         onPrint={handlePrintPayment}
                         onSendEmail={handleSendEmailClick}
                         onCreate={handleCreatePrepaid}
+                        columnsToHide={['transaction_type']}
                     />
                 </CardContent>
             </Card>
@@ -352,22 +353,22 @@ export default function PaymentsPage() {
             <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                    <DialogTitle>Send Payment Receipt by Email</DialogTitle>
-                    <DialogDescription>Enter the recipient emails for payment #{selectedPaymentForEmail?.id}.</DialogDescription>
+                        <DialogTitle>Send Payment Receipt by Email</DialogTitle>
+                        <DialogDescription>Enter the recipient emails for payment #{selectedPaymentForEmail?.id}.</DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
-                    <Label htmlFor="email-recipients">Recipients</Label>
-                    <Input
-                        id="email-recipients"
-                        value={emailRecipients}
-                        onChange={(e) => setEmailRecipients(e.target.value)}
-                        placeholder="email1@example.com, email2@example.com"
-                    />
-                    <p className="text-sm text-muted-foreground mt-1">Separate multiple emails with commas.</p>
+                        <Label htmlFor="email-recipients">Recipients</Label>
+                        <Input
+                            id="email-recipients"
+                            value={emailRecipients}
+                            onChange={(e) => setEmailRecipients(e.target.value)}
+                            placeholder="email1@example.com, email2@example.com"
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">Separate multiple emails with commas.</p>
                     </div>
                     <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleConfirmSendEmail}>Send Email</Button>
+                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={handleConfirmSendEmail}>Send Email</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -375,11 +376,11 @@ export default function PaymentsPage() {
             <Dialog open={isPrepaidDialogOpen} onOpenChange={setIsPrepaidDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Create Prepaid Payment</DialogTitle>
+                        <DialogTitle>{t('prepaidDialog.title')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onPrepaidSubmit)} className="space-y-4">
-                             {submissionError && (
+                            {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
                                     <AlertTitle>Error</AlertTitle>
@@ -391,21 +392,21 @@ export default function PaymentsPage() {
                                 name="user_id"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Client</FormLabel>
+                                        <FormLabel>{t('prepaidDialog.client')}</FormLabel>
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <FormControl>
                                                     <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                        {field.value ? users.find(u => u.id === field.value)?.name : "Select client"}
+                                                        {field.value ? users.find(u => u.id === field.value)?.name : t('prepaidDialog.selectClient')}
                                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                     </Button>
                                                 </FormControl>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                                 <Command>
-                                                    <CommandInput placeholder="Search client..." />
+                                                    <CommandInput placeholder={t('prepaidDialog.searchClient')} />
                                                     <CommandList>
-                                                        <CommandEmpty>No client found.</CommandEmpty>
+                                                        <CommandEmpty>{t('prepaidDialog.noClient')}</CommandEmpty>
                                                         <CommandGroup>
                                                             {users.map((user) => (
                                                                 <CommandItem value={user.name} key={user.id} onSelect={() => form.setValue("user_id", user.id)}>
@@ -423,17 +424,17 @@ export default function PaymentsPage() {
                                 )}
                             />
                             <div className="grid grid-cols-3 gap-4">
-                                <FormField control={form.control} name="payment_amount" render={({ field }) => (<FormItem className="col-span-2"><FormLabel>Amount</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>Currency</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="payment_amount" render={({ field }) => (<FormItem className="col-span-2"><FormLabel>{t('prepaidDialog.amount')}</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>{t('prepaidDialog.currency')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                             </div>
                             <FormField
                                 control={form.control}
                                 name="payment_method_id"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Payment Method</FormLabel>
+                                        <FormLabel>{t('prepaidDialog.paymentMethod')}</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select a method" /></SelectTrigger></FormControl>
+                                            <FormControl><SelectTrigger><SelectValue placeholder={t('prepaidDialog.selectMethod')} /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 {paymentMethods.map(method => <SelectItem key={method.id} value={method.id}>{method.name}</SelectItem>)}
                                             </SelectContent>
@@ -447,12 +448,12 @@ export default function PaymentsPage() {
                                 name="created_at"
                                 render={({ field }) => (
                                     <FormItem className="flex flex-col">
-                                        <FormLabel>Payment Date</FormLabel>
+                                        <FormLabel>{t('prepaidDialog.paymentDate')}</FormLabel>
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <FormControl>
                                                     <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                        {field.value ? format(field.value, "PPP") : <span>{t('prepaidDialog.pickDate')}</span>}
                                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                     </Button>
                                                 </FormControl>
@@ -466,8 +467,8 @@ export default function PaymentsPage() {
                                 )}
                             />
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsPrepaidDialogOpen(false)}>Cancel</Button>
-                                <Button type="submit">Save</Button>
+                                <Button type="button" variant="outline" onClick={() => setIsPrepaidDialogOpen(false)}>{t('prepaidDialog.cancel')}</Button>
+                                <Button type="submit">{t('prepaidDialog.save')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
@@ -477,12 +478,12 @@ export default function PaymentsPage() {
             <AlertDialog open={isConfirmPrepaidOpen} onOpenChange={setIsConfirmPrepaidOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Confirm Prepaid Payment</AlertDialogTitle>
-                        <AlertDialogDescription>Are you sure you want to create this prepaid payment?</AlertDialogDescription>
+                        <AlertDialogTitle>{t('prepaidDialog.confirmTitle')}</AlertDialogTitle>
+                        <AlertDialogDescription>{t('prepaidDialog.confirmDescription')}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleConfirmPrepaid}>Confirm</AlertDialogAction>
+                        <AlertDialogCancel>{t('prepaidDialog.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmPrepaid}>{t('prepaidDialog.confirm')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

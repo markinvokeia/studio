@@ -219,7 +219,9 @@
       "descriptionLabel": "Descripción",
       "cancelAppointmentDescription": "Cancelar Cita",
       "close": "Cerrar",
-      "cancelAppointmentTitle": "Cancelar Cita"
+      "cancelAppointmentTitle": "Cancelar Cita",
+      "servicesSelected": "{count, plural, =0 {Ningún servicio seleccionado} one {# Servicio Seleccionado} other {# Servicios Seleccionados}}",
+      "selectedServices": "Servicios Seleccionados"
     },
     "AppointmentsColumns": {
       "service": "Servicio",
@@ -233,6 +235,35 @@
       "actions": "Acciones",
       "edit": "Editar",
       "cancel": "Cancelar"
+    },
+    "assignees": "Asignados",
+    "groupByAssignee": "Agrupar por Asignado",
+    "deselectAll": "Deseleccionar Todos",
+    "checking": "Comprobando...",
+    "noSuggestions": "No hay sugerencias disponibles para los criterios seleccionados.",
+    "suggestionFormat": "{date} a las {time} con {doctor} en {calendar}",
+    "search": "Buscar",
+    "selectedServices": "Servicios Seleccionados",
+    "toasts": {
+      "slotUnavailableTitle": "Horario No Disponible",
+      "slotUnavailableDescription": "El horario seleccionado no está disponible. Por favor elige un horario diferente o una sugerencia.",
+      "missingInfoTitle": "Información Faltante",
+      "dateTimeRequired": "La fecha y la hora son obligatorias.",
+      "fillRequired": "Por favor completa todos los campos requeridos.",
+      "appointmentUpdated": "Cita Actualizada",
+      "appointmentCreated": "Cita Creada",
+      "appointmentSavedSuccess": "La cita ha sido {action} exitosamente.",
+      "slotNoLongerAvailable": "El horario seleccionado ya no está disponible. Por favor elige un horario diferente.",
+      "colorUpdated": "Color Actualizado",
+      "colorUpdatedDesc": "El color de la cita ha sido actualizado.",
+      "errorUpdatingColor": "Error actualizando el color",
+      "errorUpdatingColorDesc": "No se pudo actualizar el color de la cita.",
+      "appointmentCancelled": "Cita Cancelada",
+      "appointmentCancelledDesc": "La cita ha sido cancelada exitosamente.",
+      "failedDelete": "Fallo al eliminar la cita",
+      "failedCancel": "No se pudo cancelar la cita.",
+      "error": "Error",
+      "unexpectedError": "Ocurrió un error inesperado."
     }
   },
   "AppointmentsColumns": {
@@ -241,6 +272,7 @@
     "time": "Hora",
     "status": "Estado",
     "doctor": "Doctor",
+    "calendar": "Calendario",
     "edit": "Editar"
   },
   "AppointmentStatus": {
@@ -248,6 +280,21 @@
     "confirmed": "Confirmada",
     "pending": "Pendiente",
     "cancelled": "Cancelada"
+  },
+  "Calendar": {
+    "title": "Calendario",
+    "today": "Hoy",
+    "views": {
+      "day": "Día",
+      "2day": "2 Días",
+      "3day": "3 Días",
+      "week": "Semana",
+      "month": "Mes",
+      "year": "Año",
+      "schedule": "Agenda"
+    },
+    "all": "Todos",
+    "weekShort": "Sem"
   },
   "AilmentsPage": {
     "title": "Dolencias/Afecciones",
@@ -1075,8 +1122,33 @@
       "reference_doc_id": "ID de Documento de Referencia"
     },
     "transactionType": {
-      "payment_allocation": "Asignación de Pago",
-      "direct_payment": "Pago Directo"
+      "payment_allocation": "Ajuste",
+      "direct_payment": "Pago",
+      "credit_note_allocation": "Reembolso"
+    },
+    "prepaidDialog": {
+      "title": "Crear Pago Anticipado",
+      "client": "Cliente",
+      "selectClient": "Seleccionar cliente",
+      "searchClient": "Buscar cliente...",
+      "noClient": "No se encontró cliente.",
+      "amount": "Monto",
+      "currency": "Moneda",
+      "paymentMethod": "Método de Pago",
+      "selectMethod": "Seleccionar un método",
+      "paymentDate": "Fecha de Pago",
+      "pickDate": "Elegir una fecha",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "confirmTitle": "Confirmar Pago Anticipado",
+      "confirmDescription": "¿Estás seguro de que quieres crear este pago anticipado?",
+      "confirm": "Confirmar",
+      "toasts": {
+        "successTitle": "Pago Anticipado Creado",
+        "successDescription": "El pago anticipado se ha registrado correctamente.",
+        "errorTitle": "Error",
+        "errorDescription": "Ocurrió un error inesperado."
+      }
     },
     "createPrepaid": "Crear Prepago"
   },
@@ -1135,7 +1207,34 @@
       "indicationsLabel": "Indicaciones",
       "indicationsPlaceholder": "ej. Debe cepillarse y usar hilo dental a fondo antes de la cita.",
       "cancel": "Cancelar",
-      "save": "Guardar"
+      "save": "Guardar",
+      "editTitle": "Editar Servicio",
+      "editDescription": "Editar los detalles del servicio existente",
+      "editSave": "Guardar Cambios",
+      "selectCurrency": "Seleccionar Moneda"
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio",
+      "categoryRequired": "La categoría es obligatoria",
+      "pricePositive": "El precio debe ser positivo",
+      "durationInteger": "La duración debe ser un número entero positivo",
+      "colorInvalid": "Formato de color inválido"
+    },
+    "toast": {
+      "deleteSuccessTitle": "Servicio Eliminado",
+      "deleteSuccessDescription": "Servicio {name} eliminado correctamente",
+      "errorTitle": "Error",
+      "deleteErrorDescription": "Error al eliminar el servicio",
+      "editSuccessTitle": "Servicio Actualizado",
+      "createSuccessTitle": "Servicio Creado",
+      "successDescription": "Servicio {name} guardado correctamente",
+      "genericError": "Ocurrió un error inesperado"
+    },
+    "deleteDialog": {
+      "title": "Eliminar Servicio",
+      "description": "¿Estás seguro de que deseas eliminar {name}? Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
     },
     "CalendarsPage": {
       "dialog": {
