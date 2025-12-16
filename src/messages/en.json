@@ -220,8 +220,9 @@
       "cancelAppointmentDescription": "Cancel Appointment",
       "close": "Close",
       "cancelAppointmentTitle": "Cancel Appointment",
-      "servicesSelected": "{count, plural, =0 {No services selected} one {# Service Selected} other {# Services Selected}}",
-      "selectedServices": "Selected Services"
+      "servicesSelected": "Services Selected",
+      "selectedServices": "Selected Services",
+      "searching": "Searching..."
     },
     "AppointmentsColumns": {
       "service": "Service",
@@ -237,33 +238,33 @@
       "cancel": "Cancel"
     },
     "assignees": "Assignees",
-    "groupByAssignee": "Group by Assignee",
+    "checking": "Checking",
     "deselectAll": "Deselect All",
-    "checking": "Checking...",
-    "noSuggestions": "No suggestions available for the selected criteria.",
-    "suggestionFormat": "{date} at {time} with {doctor} in {calendar}",
+    "groupByAssignee": "Group by Assignee",
+    "noSuggestions": "No suggestions",
     "search": "Search",
     "selectedServices": "Selected Services",
+    "suggestionFormat": "Suggestion Format",
     "toasts": {
-      "slotUnavailableTitle": "Slot Unavailable",
-      "slotUnavailableDescription": "The selected time is not available. Please choose a different time or suggestion.",
-      "missingInfoTitle": "Missing Information",
-      "dateTimeRequired": "Date and time are required.",
-      "fillRequired": "Please fill out all required fields.",
-      "appointmentUpdated": "Appointment Updated",
-      "appointmentCreated": "Appointment Created",
-      "appointmentSavedSuccess": "The appointment has been successfully {action}.",
-      "slotNoLongerAvailable": "The selected time is no longer available. Please choose a different time.",
-      "colorUpdated": "Color Updated",
-      "colorUpdatedDesc": "The appointment color has been updated.",
-      "errorUpdatingColor": "Error updating color",
-      "errorUpdatingColorDesc": "Could not update appointment color.",
-      "appointmentCancelled": "Appointment Cancelled",
-      "appointmentCancelledDesc": "The appointment has been successfully cancelled.",
-      "failedDelete": "Failed to delete appointment",
-      "failedCancel": "Could not cancel the appointment.",
+      "appointmentCancelled": "Appointment cancelled",
+      "appointmentCancelledDesc": "Appointment has been cancelled.",
+      "appointmentCreated": "Appointment created",
+      "appointmentSavedSuccess": "Appointment saved successfully",
+      "appointmentUpdated": "Appointment updated",
+      "colorUpdated": "Color updated",
+      "colorUpdatedDesc": "Color has been updated.",
+      "dateTimeRequired": "Date and time are required",
       "error": "Error",
-      "unexpectedError": "An unexpected error occurred."
+      "errorUpdatingColor": "Error updating color",
+      "errorUpdatingColorDesc": "There was an error updating the color.",
+      "failedCancel": "Failed to cancel",
+      "failedDelete": "Failed to delete",
+      "fillRequired": "Please fill in the required fields",
+      "missingInfoTitle": "Missing Information",
+      "slotNoLongerAvailable": "Slot no longer available",
+      "slotUnavailableDescription": "The selected time slot is no longer available.",
+      "slotUnavailableTitle": "Slot Unavailable",
+      "unexpectedError": "Unexpected error"
     }
   },
   "AppointmentsColumns": {
@@ -272,29 +273,15 @@
     "time": "Time",
     "status": "Status",
     "doctor": "Doctor",
+    "edit": "Edit",
     "calendar": "Calendar",
-    "edit": "Edit"
+    "patient": "Patient"
   },
   "AppointmentStatus": {
     "completed": "Completed",
     "confirmed": "Confirmed",
     "pending": "Pending",
     "cancelled": "Cancelled"
-  },
-  "Calendar": {
-    "title": "Calendar",
-    "today": "Today",
-    "views": {
-      "day": "Day",
-      "2day": "2 Days",
-      "3day": "3 Days",
-      "week": "Week",
-      "month": "Month",
-      "year": "Year",
-      "schedule": "Schedule"
-    },
-    "all": "All",
-    "weekShort": "Week"
   },
   "AilmentsPage": {
     "title": "Ailments",
@@ -1122,35 +1109,34 @@
       "reference_doc_id": "Reference Document ID"
     },
     "transactionType": {
-      "payment_allocation": "Adjustment",
-      "direct_payment": "Payment",
-      "credit_note_allocation": "Refund"
+      "payment_allocation": "Payment Allocation",
+      "direct_payment": "Direct Payment"
     },
+    "createPrepaid": "Create Prepaid",
     "prepaidDialog": {
-      "title": "Create Prepaid Payment",
-      "client": "Client",
-      "selectClient": "Select client",
-      "searchClient": "Search client...",
-      "noClient": "No client found.",
       "amount": "Amount",
+      "cancel": "Cancel",
+      "client": "Client",
+      "confirm": "Confirm",
+      "confirmDescription": "Are you sure you want to proceed?",
+      "confirmTitle": "Confirm Action",
       "currency": "Currency",
-      "paymentMethod": "Payment Method",
-      "selectMethod": "Select a method",
+      "noClient": "No client selected",
       "paymentDate": "Payment Date",
+      "paymentMethod": "Payment Method",
       "pickDate": "Pick a date",
       "save": "Save",
-      "cancel": "Cancel",
-      "confirmTitle": "Confirm Prepaid Payment",
-      "confirmDescription": "Are you sure you want to create this prepaid payment?",
-      "confirm": "Confirm",
+      "searchClient": "Search client",
+      "selectClient": "Select client",
+      "selectMethod": "Select method",
+      "title": "Prepaid Payment",
       "toasts": {
-        "successTitle": "Prepaid Created",
-        "successDescription": "The prepaid payment has been successfully recorded.",
+        "errorDescription": "An error occurred.",
         "errorTitle": "Error",
-        "errorDescription": "An unexpected error occurred."
+        "successDescription": "Operation completed successfully.",
+        "successTitle": "Success"
       }
-    },
-    "createPrepaid": "Create Prepaid"
+    }
   },
   "PaymentMethodsPage": {
     "title": "Payments Methods",
@@ -1208,38 +1194,38 @@
       "indicationsPlaceholder": "e.g. Should brush and floss thoroughly before the appointment.",
       "cancel": "Cancel",
       "save": "Save",
-      "editTitle": "Edit Service",
-      "editDescription": "Edit existing service details",
+      "editDescription": "Edit the service details.",
       "editSave": "Save Changes",
+      "editTitle": "Edit Service",
       "selectCurrency": "Select Currency"
-    },
-    "validation": {
-      "nameRequired": "Name is required",
-      "categoryRequired": "Category is required",
-      "pricePositive": "Price must be positive",
-      "durationInteger": "Duration must be a positive integer",
-      "colorInvalid": "Invalid color format"
-    },
-    "toast": {
-      "deleteSuccessTitle": "Service Deleted",
-      "deleteSuccessDescription": "Service {name} deleted successfully",
-      "errorTitle": "Error",
-      "deleteErrorDescription": "Failed to delete service",
-      "editSuccessTitle": "Service Updated",
-      "createSuccessTitle": "Service Created",
-      "successDescription": "Service {name} saved successfully",
-      "genericError": "An unexpected error occurred"
-    },
-    "deleteDialog": {
-      "title": "Delete Service",
-      "description": "Are you sure you want to delete {name}? This action cannot be undone.",
-      "cancel": "Cancel",
-      "confirm": "Delete"
     },
     "CalendarsPage": {
       "dialog": {
         "color": "Color"
       }
+    },
+    "deleteDialog": {
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "description": "Are you sure you want to delete this service?",
+      "title": "Delete Service"
+    },
+    "toast": {
+      "createSuccessTitle": "Service Created",
+      "deleteErrorDescription": "Failed to delete the service.",
+      "deleteSuccessDescription": "Service deleted successfully.",
+      "deleteSuccessTitle": "Service Deleted",
+      "editSuccessTitle": "Service Updated",
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "successDescription": "Operation completed successfully."
+    },
+    "validation": {
+      "categoryRequired": "Category is required.",
+      "colorInvalid": "Invalid color.",
+      "durationInteger": "Duration must be an integer.",
+      "nameRequired": "Name is required.",
+      "pricePositive": "Price must be positive."
     }
   },
   "ServicesColumns": {
@@ -2085,5 +2071,20 @@
     "edit": "Edit",
     "deactivate": "Deactivate",
     "copyId": "Copy user ID"
+  },
+  "Calendar": {
+    "all": "All",
+    "title": "Calendar",
+    "today": "Today",
+    "views": {
+      "2day": "2 Day",
+      "3day": "3 Day",
+      "day": "Day",
+      "month": "Month",
+      "schedule": "Schedule",
+      "week": "Week",
+      "year": "Year"
+    },
+    "weekShort": "Wk"
   }
 }
