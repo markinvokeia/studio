@@ -934,7 +934,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         }
     });
 
-    const { fields, append, remove, replace } = useFieldArray({
+    const { fields, append, remove } = useFieldArray({
       control: form.control,
       name: 'treatments'
     });
@@ -942,6 +942,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     useEffect(() => {
         const fetchInitialData = async () => {
             if (isOpen) {
+                setIsLoadingAttachments(true);
                 try {
                     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=DOCTOR');
                     const data = await response.json();
@@ -951,9 +952,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                     console.error('Failed to fetch doctors', error);
                 }
 
-                setAttachments([]);
-
-                if (session) {
+                if (session && session.sesion_id) {
                     form.reset({
                         doctor_id: session.doctor_id || '',
                         fecha_sesion: session.fecha_sesion ? parseISO(session.fecha_sesion) : new Date(),
@@ -963,33 +962,31 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         plan_proxima_cita: session.plan_proxima_cita || '',
                         treatments: session.tratamientos?.map(t => ({...t, id: String(t.id), numero_diente: String(t.numero_diente)})) || [],
                     });
-                    
-                    if (session.sesion_id) {
-                      setIsLoadingAttachments(true);
-                      try {
-                        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/attachments?session_id=${session.sesion_id}`);
-                        if (response.ok) {
-                            const filesData = await response.json();
-                            const filePromises = filesData.map(async (fileData: any) => {
-                                try {
-                                    const res = await fetch(getAttachmentUrl(fileData.ruta));
-                                    const blob = await res.blob();
-                                    return new File([blob], fileData.file_name, { type: blob.type });
-                                } catch (e) {
-                                    console.error("Could not fetch attachment:", fileData.ruta, e);
-                                    return null;
-                                }
-                            });
-                            const fetchedFiles = (await Promise.all(filePromises)).filter((f): f is File => f !== null);
-                            setAttachments(fetchedFiles);
-                        }
-                      } catch (error) {
-                        console.error('Failed to fetch session attachments:', error);
-                      } finally {
-                        setIsLoadingAttachments(false);
-                      }
-                    }
 
+                    if (session.archivos_adjuntos && session.archivos_adjuntos.length > 0) {
+                        try {
+                            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/attachments?session_id=${session.sesion_id}`);
+                            if (response.ok) {
+                                const filesData = await response.json();
+                                const filePromises = filesData.map(async (fileData: any) => {
+                                    try {
+                                        const res = await fetch(getAttachmentUrl(fileData.ruta));
+                                        const blob = await res.blob();
+                                        return new File([blob], fileData.file_name, { type: blob.type });
+                                    } catch (e) {
+                                        console.error("Could not fetch attachment:", fileData.ruta, e);
+                                        return null;
+                                    }
+                                });
+                                const fetchedFiles = (await Promise.all(filePromises)).filter((f): f is File => f !== null);
+                                setAttachments(fetchedFiles);
+                            }
+                        } catch (error) {
+                            console.error('Failed to fetch session attachments:', error);
+                        }
+                    } else {
+                        setAttachments([]);
+                    }
                 } else {
                      form.reset({
                         doctor_id: '',
@@ -1000,7 +997,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         plan_proxima_cita: '',
                         treatments: [],
                     });
+                    setAttachments([]);
                 }
+                setIsLoadingAttachments(false);
             }
         };
         fetchInitialData();
@@ -1891,29 +1890,31 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     }
   };
 
-  const handleViewAttachment = async (file: any) => {
-    const doc: Document = {
-      id: file.ruta,
-      name: file.file_name,
-      mimeType: file.mime_type
-    };
-    setSelectedDocument(doc);
-    setIsViewerOpen(true);
-    setDocumentContent(null);
-    try {
-        const response = await fetch(getAttachmentUrl(file.ruta));
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            setDocumentContent(url);
-        } else {
-            throw new Error("Failed to load attachment");
+    const handleViewSessionAttachment = async (session: PatientSession, attachment: AttachedFile) => {
+        const doc: Document = {
+            id: attachment.id,
+            name: attachment.file_name || 'Attachment',
+            mimeType: attachment.tipo,
+            thumbnailLink: attachment.thumbnail_url
+        };
+        setSelectedDocument(doc);
+        setIsViewerOpen(true);
+        setDocumentContent(null);
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/attachment?session_id=${session.sesion_id}&id=${attachment.id}`);
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                setDocumentContent(url);
+            } else {
+                throw new Error("Failed to load attachment");
+            }
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: "Could not load attachment." });
+            setIsViewerOpen(false);
         }
-    } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: "Could not load attachment." });
-        setIsViewerOpen(false);
-    }
-};
+    };
+
 
   const handleViewDocument = async (doc: Document) => {
     setSelectedDocument(doc);
@@ -2073,22 +2074,25 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                 </div>
                                 )}
                                 {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
-                                <div>
-                                    <strong className="text-foreground">{t('attachments')}:</strong>
-                                    <ul className="list-disc pl-5">
-                                    {session.archivos_adjuntos.map((file, i) => (
-                                        <li key={i}>
-                                        <button
-                                            onClick={() => handleViewAttachment(file)}
-                                            className="text-primary hover:underline flex items-center gap-1"
-                                        >
-                                            <Paperclip className="w-3 h-3" />
-                                            {file.file_name || 'Attachment'}
-                                        </button>
-                                        </li>
-                                    ))}
-                                    </ul>
-                                </div>
+                                    <div>
+                                        <strong className="text-foreground">{t('attachments')}:</strong>
+                                        <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                                            {session.archivos_adjuntos.map((file, i) => (
+                                                <div key={i} className="relative aspect-square cursor-pointer group" onClick={() => handleViewSessionAttachment(session, file)}>
+                                                    {file.thumbnail_url ? (
+                                                        <Image src={file.thumbnail_url} alt={file.file_name || 'Attachment'} layout="fill" className="object-cover rounded-md" />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
+                                                            <FileText className="h-6 w-6 text-muted-foreground" />
+                                                        </div>
+                                                    )}
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <Eye className="h-6 w-6 text-white" />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                             </CollapsibleContent>
@@ -2263,5 +2267,9 @@ const DentalClinicalSystemPage = () => {
 }
     
 export default DentalClinicalSystemPage;
+
+    
+
+    
 
     
