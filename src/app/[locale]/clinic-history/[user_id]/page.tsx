@@ -1194,7 +1194,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     const { toast } = useToast();
     const [doctors, setDoctors] = useState<UserType[]>([]);
     const [attachments, setAttachments] = useState<File[]>([]);
-    const [existingAttachments, setExistingAttachments] = useState<AttachedFile[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm<SessionFormValues>({
@@ -1216,8 +1215,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     });
 
     useEffect(() => {
-        if (isOpen) {
-            const fetchDoctors = async () => {
+        const fetchInitialData = async () => {
+            if (isOpen) {
+                // Fetch doctors
                 try {
                     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=DOCTOR');
                     const data = await response.json();
@@ -1226,35 +1226,52 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                 } catch (error) {
                     console.error('Failed to fetch doctors', error);
                 }
-            };
-            fetchDoctors();
 
-            if (session) {
-                form.reset({
-                    doctor_id: session.doctor_id || '',
-                    fecha_sesion: session.fecha_sesion ? parseISO(session.fecha_sesion) : new Date(),
-                    procedimiento_realizado: session.procedimiento_realizado || '',
-                    diagnostico: session.diagnostico || '',
-                    notas_clinicas: session.notas_clinicas || '',
-                    plan_proxima_cita: session.plan_proxima_cita || '',
-                    treatments: session.tratamientos?.map(t => ({...t, numero_diente: String(t.numero_diente)})) || [],
-                });
-                setExistingAttachments(session.archivos_adjuntos || []);
-            } else {
-                form.reset({
-                    doctor_id: '',
-                    fecha_sesion: new Date(),
-                    procedimiento_realizado: '',
-                    diagnostico: '',
-                    notas_clinicas: '',
-                    plan_proxima_cita: '',
-                    treatments: [],
-                });
-                setExistingAttachments([]);
+                // Reset form and attachments
+                setAttachments([]);
+
+                if (session) {
+                    form.reset({
+                        doctor_id: session.doctor_id || '',
+                        fecha_sesion: session.fecha_sesion ? parseISO(session.fecha_sesion) : new Date(),
+                        procedimiento_realizado: session.procedimiento_realizado || '',
+                        diagnostico: session.diagnostico || '',
+                        notas_clinicas: session.notas_clinicas || '',
+                        plan_proxima_cita: session.plan_proxima_cita || '',
+                        treatments: session.tratamientos?.map(t => ({...t, numero_diente: String(t.numero_diente)})) || [],
+                    });
+
+                    // Pre-fetch existing images as Files
+                    if (session.archivos_adjuntos && session.archivos_adjuntos.length > 0) {
+                        const filePromises = session.archivos_adjuntos.map(async (file) => {
+                            try {
+                                const response = await fetch(getAttachmentUrl(file.ruta));
+                                const blob = await response.blob();
+                                return new File([blob], file.file_name || 'attachment.jpg', { type: blob.type });
+                            } catch (e) {
+                                console.error("Could not fetch attachment:", file.ruta, e);
+                                return null;
+                            }
+                        });
+                        const fetchedFiles = (await Promise.all(filePromises)).filter((f): f is File => f !== null);
+                        setAttachments(fetchedFiles);
+                    }
+                } else {
+                    form.reset({
+                        doctor_id: '',
+                        fecha_sesion: new Date(),
+                        procedimiento_realizado: '',
+                        diagnostico: '',
+                        notas_clinicas: '',
+                        plan_proxima_cita: '',
+                        treatments: [],
+                    });
+                }
             }
-             setAttachments([]);
-        }
+        };
+        fetchInitialData();
     }, [isOpen, session, form]);
+
 
     const handleSave: SubmitHandler<SessionFormValues> = async (values) => {
         setIsSubmitting(true);
@@ -1262,17 +1279,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         formData.append('paciente_id', userId);
         if (session?.sesion_id) formData.append('sesion_id', String(session.sesion_id));
         
-        const existingAttachmentData = existingAttachments.map(file => ({
-            ruta: file.ruta,
-            tipo: file.tipo,
-            diente_asociado: file.diente_asociado,
-            file_name: file.file_name,
-            mime_type: file.mime_type,
-        }));
-        formData.append('existing_attachments', JSON.stringify(existingAttachmentData));
-        
         Object.entries(values).forEach(([key, value]) => {
-          if (key !== 'treatments' && value) {
+          if (key !== 'treatments' && key !== 'archivos_adjuntos' && value) {
             if (value instanceof Date) {
               formData.append(key, value.toISOString());
             } else {
@@ -1311,13 +1319,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         }
     };
     
-    const removeNewAttachment = (indexToRemove: number) => {
+    const removeAttachment = (indexToRemove: number) => {
         setAttachments(prev => prev.filter((_, index) => index !== indexToRemove));
-    };
-
-    const removeExistingAttachment = (fileId: string) => {
-        setExistingAttachments(prev => prev.filter(f => f.ruta !== fileId));
-        toast({ title: 'Attachment Marked for Deletion', description: 'The attachment will be removed when you save the session.' });
     };
 
     return (
@@ -1451,48 +1454,25 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                 <Input id="session-attachments" type="file" multiple className="hidden" onChange={handleAttachmentFileChange} />
                                             </label>
                                         </div>
-                                        <div className="mt-4 space-y-2">
-                                            {existingAttachments.length > 0 && (
-                                                <div>
-                                                    <Label className="text-xs text-muted-foreground">Existing Files</Label>
-                                                    <ScrollArea className="h-24 mt-1 border rounded-md p-2">
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            {existingAttachments.map((file, index) => (
-                                                                <div key={index} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
-                                                                <div className="flex items-center gap-2 overflow-hidden">
-                                                                    <Image src={getAttachmentUrl(file.ruta)} alt={file.file_name || 'attachment'} width={24} height={24} className="rounded object-cover aspect-square"/>
-                                                                    <span className="text-sm truncate flex-1">{file.file_name}</span>
-                                                                </div>
-                                                                <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeExistingAttachment(file.ruta)}>
-                                                                    <X className="h-3 w-3"/>
-                                                                </Button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </ScrollArea>
-                                                </div>
-                                            )}
-                                            {attachments.length > 0 && (
-                                                <div>
-                                                    <Label className="text-xs text-muted-foreground">New Files</Label>
-                                                    <ScrollArea className="h-24 mt-1 border rounded-md p-2">
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            {attachments.map((file, index) => (
-                                                                <div key={index} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
-                                                                <div className="flex items-center gap-2 overflow-hidden">
-                                                                    <Image src={URL.createObjectURL(file)} alt={file.name} width={24} height={24} className="rounded object-cover aspect-square"/>
-                                                                    <span className="text-sm truncate flex-1">{file.name}</span>
-                                                                </div>
-                                                                <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeNewAttachment(index)}>
-                                                                    <X className="h-3 w-3"/>
-                                                                </Button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </ScrollArea>
-                                                </div>
-                                            )}
-                                        </div>
+                                        {attachments.length > 0 && (
+                                            <div className="mt-4">
+                                                <ScrollArea className="h-24 mt-1 border rounded-md p-2">
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {attachments.map((file, index) => (
+                                                            <div key={index} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
+                                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                                <Image src={URL.createObjectURL(file)} alt={file.name} width={24} height={24} className="rounded object-cover aspect-square"/>
+                                                                <span className="text-sm truncate flex-1">{file.name}</span>
+                                                            </div>
+                                                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeAttachment(index)}>
+                                                                <X className="h-3 w-3"/>
+                                                            </Button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </ScrollArea>
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
                             </div>
@@ -2168,7 +2148,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
   };
 
   const handleViewAttachment = async (file: AttachedFile) => {
-    setSelectedDocument({ id: file.ruta, name: file.file_name || 'Attachment' });
+    setSelectedDocument({ id: file.ruta, name: file.file_name || 'Attachment', mimeType: file.mime_type });
     setIsViewerOpen(true);
     setDocumentContent(null); // Reset previous content
     try {
@@ -2515,6 +2495,7 @@ const DentalClinicalSystemPage = () => {
 }
     
 export default DentalClinicalSystemPage;
+
 
 
 
