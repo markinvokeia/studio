@@ -947,7 +947,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                 }
 
                 if (session && session.sesion_id) {
-                    form.reset({
+                     form.reset({
                         doctor_id: session.doctor_id || '',
                         fecha_sesion: session.fecha_sesion ? parseISO(session.fecha_sesion) : new Date(),
                         procedimiento_realizado: session.procedimiento_realizado || '',
@@ -1127,7 +1127,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                         <FormItem className="w-24">
                                                         <FormLabel className="text-xs">{t('tooth')}</FormLabel>
                                                         <FormControl>
-                                                            <Input type="number" placeholder={t('tooth')} {...field} className="h-8" />
+                                                            <Input type="number" placeholder={t('tooth')} {...field} value={field.value || ''} />
                                                         </FormControl>
                                                         <FormMessage />
                                                         </FormItem>
@@ -1153,7 +1153,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                             ))}
                                         </div>
                                         </ScrollArea>
-                                        <Button type="button" variant="outline" size="sm" onClick={() => append({ descripcion: '', numero_diente: '' })}>{t('addTreatment')}</Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => append({ tratamiento_id: undefined, descripcion: '', numero_diente: '' })}>{t('addTreatment')}</Button>
                                     </CardContent>
                                 </Card>
                                 <Card>
@@ -2276,4 +2276,5 @@ const DentalClinicalSystemPage = () => {
 }
     
 export default DentalClinicalSystemPage;
+
 
