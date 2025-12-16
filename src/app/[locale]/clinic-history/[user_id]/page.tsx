@@ -954,11 +954,10 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                 }
 
                 // Reset form and attachments
-                setNewAttachments([]);
+                setAttachments([]);
 
                 if (session) {
                     setIsLoadingAttachments(true);
-                    setExistingAttachments(session.archivos_adjuntos || []);
                     
                     form.reset({
                         doctor_id: session.doctor_id || '',
@@ -984,12 +983,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         });
                         const fetchedFiles = await Promise.all(filePromises);
                         setAttachments(fetchedFiles.filter((f): f is File => f !== null));
-                    } else {
-                        setAttachments([]);
                     }
                     setIsLoadingAttachments(false);
                 } else {
-                     setExistingAttachments([]);
                      setAttachments([]);
                      form.reset({
                         doctor_id: '',
@@ -1004,7 +1000,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
             }
         };
         fetchInitialData();
-    }, [isOpen, session, form, replace]);
+    }, [isOpen, session, form]);
 
 
     const handleSave: SubmitHandler<SessionFormValues> = async (values) => {
@@ -1013,18 +1009,12 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         formData.append('paciente_id', userId);
         if (session?.sesion_id) formData.append('sesion_id', String(session.sesion_id));
         
-        Object.entries(values).forEach(([key, value]) => {
-            if (key !== 'treatments' && key !== 'archivos_adjuntos' && value) {
-                if (value instanceof Date) {
-                    formData.append(key, value.toISOString());
-                } else if (key === 'treatments' && Array.isArray(value)) {
-                    formData.append('tratamientos', JSON.stringify(value));
-                }
-                else {
-                    formData.append(key, String(value));
-                }
-            }
-        });
+        formData.append('doctor_id', values.doctor_id || '');
+        formData.append('fecha_sesion', values.fecha_sesion.toISOString());
+        formData.append('procedimiento_realizado', values.procedimiento_realizado);
+        formData.append('diagnostico', values.diagnostico || '');
+        formData.append('notas_clinicas', values.notas_clinicas || '');
+        formData.append('plan_proxima_cita', values.plan_proxima_cita || '');
         
         formData.append('tratamientos', JSON.stringify(values.treatments));
 
@@ -1137,39 +1127,45 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                     <CardContent className="space-y-2">
                                         <ScrollArea className="h-48 pr-4">
                                             <div className="space-y-3">
-                                                {fields.map((field, index) => (
-                                                    <div key={field.id} className="flex gap-2 items-start p-2 border rounded-md">
-                                                        <FormField
-                                                          control={form.control}
-                                                          name={`treatments.${index}.numero_diente`}
-                                                          render={({ field }) => (
-                                                            <FormItem className="w-24">
-                                                              <FormLabel className="text-xs">{t('tooth')}</FormLabel>
-                                                              <FormControl>
-                                                                <Input type="number" placeholder={t('tooth')} {...field} className="h-8" />
-                                                              </FormControl>
-                                                              <FormMessage />
-                                                            </FormItem>
-                                                          )}
-                                                        />
-                                                        <FormField
-                                                          control={form.control}
-                                                          name={`treatments.${index}.descripcion`}
-                                                          render={({ field }) => (
-                                                            <FormItem className="flex-1">
-                                                              <FormLabel className="text-xs">Tratamiento</FormLabel>
-                                                              <FormControl>
-                                                                <Textarea placeholder={t('treatmentPlaceholder')} {...field} className="min-h-[32px] h-8" />
-                                                              </FormControl>
-                                                              <FormMessage />
-                                                            </FormItem>
-                                                          )}
-                                                        />
-                                                        <Button type="button" variant="ghost" size="icon" className="mt-5" onClick={() => remove(index)}>
-                                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                                        </Button>
+                                                {fields.length > 0 ? (
+                                                    fields.map((field, index) => (
+                                                        <div key={field.id} className="flex gap-2 items-start p-2 border rounded-md">
+                                                            <FormField
+                                                            control={form.control}
+                                                            name={`treatments.${index}.numero_diente`}
+                                                            render={({ field }) => (
+                                                                <FormItem className="w-24">
+                                                                <FormLabel className="text-xs">{t('tooth')}</FormLabel>
+                                                                <FormControl>
+                                                                    <Input type="number" placeholder={t('tooth')} {...field} className="h-8" />
+                                                                </FormControl>
+                                                                <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                            />
+                                                            <FormField
+                                                            control={form.control}
+                                                            name={`treatments.${index}.descripcion`}
+                                                            render={({ field }) => (
+                                                                <FormItem className="flex-1">
+                                                                <FormLabel className="text-xs">Tratamiento</FormLabel>
+                                                                <FormControl>
+                                                                    <Textarea placeholder={t('treatmentPlaceholder')} {...field} className="min-h-[32px] h-8" />
+                                                                </FormControl>
+                                                                <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                            />
+                                                            <Button type="button" variant="ghost" size="icon" className="mt-5" onClick={() => remove(index)}>
+                                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                                            </Button>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                                                        No treatments added yet.
                                                     </div>
-                                                ))}
+                                                )}
                                             </div>
                                         </ScrollArea>
                                         <Button type="button" variant="outline" size="sm" onClick={() => append({ descripcion: '', numero_diente: '' })}>{t('addTreatment')}</Button>
@@ -1889,8 +1885,13 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     }
   };
 
-  const handleViewAttachment = async (file: AttachedFile) => {
-    setSelectedDocument({ id: file.ruta, name: file.file_name || 'Attachment', mimeType: file.mime_type });
+  const handleViewAttachment = async (file: any) => {
+    const doc: Document = {
+      id: file.ruta,
+      name: file.file_name,
+      mimeType: file.mime_type
+    };
+    setSelectedDocument(doc);
     setIsViewerOpen(true);
     setDocumentContent(null);
     try {
