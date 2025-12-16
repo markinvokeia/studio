@@ -955,11 +955,11 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         diagnostico: session.diagnostico || '',
                         notas_clinicas: session.notas_clinicas || '',
                         plan_proxima_cita: session.plan_proxima_cita || '',
-                        treatments: session.tratamientos?.map(t => ({
+                        treatments: (session.tratamientos || []).map(t => ({
                           tratamiento_id: String(t.tratamiento_id),
                           numero_diente: t.numero_diente ? String(t.numero_diente) : '',
                           descripcion: t.descripcion || ''
-                        })) || [],
+                        })),
                     });
                     setExistingAttachments(session.archivos_adjuntos || []);
                 } else {
@@ -1001,7 +1001,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
             }))));
         }
 
-        const keptAttachmentIds = existingAttachments.map(att => att.id);
+        const keptAttachmentIds = existingAttachments.map(att => String(att.id));
         formData.append('existing_attachment_ids', JSON.stringify(keptAttachmentIds));
         formData.append('deleted_attachment_ids', JSON.stringify(deletedAttachmentIds));
 
@@ -1275,7 +1275,7 @@ const DocumentViewerModal = ({ isOpen, onOpenChange, document, documentContent }
         };
 
         return (
-            <div 
+             <div 
                 className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative bg-muted/20"
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
@@ -1717,7 +1717,10 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                 ...session,
                 sesion_id: String(session.sesion_id),
                 tratamientos: session.lista_tratamientos || [],
-                archivos_adjuntos: session.lista_archivos || [],
+                archivos_adjuntos: (session.lista_archivos || []).map((file: any) => ({
+                    ...file,
+                    id: String(file.id), // Ensure ID is a string
+                })),
             })));
         } catch (error) {
             console.error("Failed to fetch patient sessions:", error);
@@ -2087,7 +2090,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                         <strong className="text-foreground">{t('attachments')}:</strong>
                                         <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                                             {session.archivos_adjuntos.map((file, i) => (
-                                                <div key={i} className="relative aspect-square cursor-pointer group" onClick={() => handleViewSessionAttachment(session, file)}>
+                                                <div key={i} className="relative aspect-video w-full bg-muted cursor-pointer group" onClick={() => handleViewSessionAttachment(session, file)}>
                                                     {file.thumbnail_url ? (
                                                         <Image src={getAttachmentUrl(file.thumbnail_url)} alt={file.file_name || 'Attachment'} layout="fill" className="object-cover rounded-md" />
                                                     ) : (
@@ -2276,5 +2279,3 @@ const DentalClinicalSystemPage = () => {
 }
     
 export default DentalClinicalSystemPage;
-
-    
