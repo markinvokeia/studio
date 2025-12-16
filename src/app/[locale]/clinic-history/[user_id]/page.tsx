@@ -55,7 +55,8 @@ import { Timeline, TimelineItem, TimelineConnector, TimelineHeader, TimelineTitl
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 
-const getAttachmentUrl = (path: string) => {
+const getAttachmentUrl = (path: string | null | undefined) => {
+    if (!path) return '';
     try {
         new URL(path);
         if (path.includes('drive.google.com') || path.includes('lh3.googleusercontent.com')) {
@@ -955,7 +956,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         notas_clinicas: session.notas_clinicas || '',
                         plan_proxima_cita: session.plan_proxima_cita || '',
                         treatments: session.tratamientos?.map(t => ({
-                          tratamiento_id: String(t.tratamiento_id),
+                          tratamiento_id: t.tratamiento_id ? String(t.tratamiento_id) : undefined,
                           numero_diente: t.numero_diente ? String(t.numero_diente) : '',
                           descripcion: t.descripcion || ''
                         })) || [],
@@ -1300,22 +1301,22 @@ const DocumentViewerModal = ({ isOpen, onOpenChange, document, documentContent }
     }
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
-            <DialogHeader className="p-4 border-b">
-            <DialogTitle>{document?.name}</DialogTitle>
-            </DialogHeader>
-            {documentContent ? (
-                document?.mimeType?.startsWith('image/') ? (
-                    <ImageViewer src={documentContent} alt={document.name} />
+            <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
+                <DialogHeader className="p-4 border-b">
+                <DialogTitle>{document?.name}</DialogTitle>
+                </DialogHeader>
+                {documentContent ? (
+                    document?.mimeType?.startsWith('image/') ? (
+                        <ImageViewer src={documentContent} alt={document.name} />
+                    ) : (
+                        <iframe src={documentContent} className="h-full w-full border-0 flex-1" title={document?.name} />
+                    )
                 ) : (
-                    <iframe src={documentContent} className="h-full w-full border-0 flex-1" title={document?.name} />
-                )
-            ) : (
-            <div className="flex-1 flex items-center justify-center h-full">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-            )}
-        </DialogContent>
+                <div className="flex-1 flex items-center justify-center h-full">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+                )}
+            </DialogContent>
         </Dialog>
     );
 };
@@ -2276,7 +2277,4 @@ const DentalClinicalSystemPage = () => {
     
 export default DentalClinicalSystemPage;
 
-
-
-
-
+    
