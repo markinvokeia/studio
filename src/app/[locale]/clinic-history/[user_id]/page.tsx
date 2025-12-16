@@ -39,7 +39,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -1181,18 +1181,17 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                 <div>
                                                     <h4 className="font-semibold text-sm mb-2">Existing Files</h4>
                                                     <ScrollArea className="h-24 mt-1 border rounded-md p-2">
-                                                        <div className="grid grid-cols-2 gap-2">
+                                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                                                             {existingAttachments.map((file) => (
-                                                                <div key={`existing-${file.id}`} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
-                                                                    <div className="flex items-center gap-2 overflow-hidden">
-                                                                        {file.thumbnail_url ? (
-                                                                            <Image src={getAttachmentUrl(file.thumbnail_url)} alt={file.file_name || 'attachment'} width={24} height={24} className="rounded object-cover aspect-square"/>
-                                                                        ) : (
+                                                                <div key={`existing-${file.id}`} className="relative group aspect-square">
+                                                                     {file.thumbnail_url ? (
+                                                                        <Image src={getAttachmentUrl(file.thumbnail_url)} alt={file.file_name || 'attachment'} layout="fill" className="rounded-md object-cover"/>
+                                                                    ) : (
+                                                                        <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
                                                                             <FileText className="h-6 w-6 text-muted-foreground"/>
-                                                                        )}
-                                                                        <span className="text-sm truncate flex-1">{file.file_name}</span>
-                                                                    </div>
-                                                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeExistingAttachment(String(file.id))}>
+                                                                        </div>
+                                                                    )}
+                                                                    <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100" onClick={() => removeExistingAttachment(String(file.id))}>
                                                                         <X className="h-3 w-3"/>
                                                                     </Button>
                                                                 </div>
@@ -1205,14 +1204,11 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                 <div>
                                                     <h4 className="font-semibold text-sm mb-2">New Files</h4>
                                                     <ScrollArea className="h-24 mt-1 border rounded-md p-2">
-                                                         <div className="grid grid-cols-2 gap-2">
+                                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                                                             {newAttachments.map((file, index) => (
-                                                                <div key={`new-${index}`} className="flex items-center justify-between gap-2 p-1 bg-blue-100 dark:bg-blue-900/50 rounded-md">
-                                                                    <div className="flex items-center gap-2 overflow-hidden">
-                                                                        <Image src={URL.createObjectURL(file)} alt={file.name} width={24} height={24} className="rounded object-cover aspect-square"/>
-                                                                        <span className="text-sm truncate flex-1">{file.name}</span>
-                                                                    </div>
-                                                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeNewAttachment(index)}>
+                                                                <div key={`new-${index}`} className="relative group aspect-square">
+                                                                    <Image src={URL.createObjectURL(file)} alt={file.name} layout="fill" className="rounded-md object-cover"/>
+                                                                    <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100" onClick={() => removeNewAttachment(index)}>
                                                                         <X className="h-3 w-3"/>
                                                                     </Button>
                                                                 </div>
@@ -1443,7 +1439,7 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
             </Button>
           </div>
           {isLoadingDocuments ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
               {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
             </div>
           ) : documents.length > 0 ? (
@@ -1719,7 +1715,8 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                 tratamientos: session.lista_tratamientos || [],
                 archivos_adjuntos: (session.lista_archivos || []).map((file: any) => ({
                     ...file,
-                    id: String(file.id), // Ensure ID is a string
+                    id: String(file.id),
+                    thumbnail_url: file.thumbnail_url,
                 })),
             })));
         } catch (error) {
@@ -1981,22 +1978,22 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         };
 
         if (isLoadingPatientSessions) {
-        return (
-            <div className="bg-card rounded-xl shadow-lg p-6">
-            <h3 className="text-xl font-bold text-card-foreground mb-6">{t('title')}</h3>
-            <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                <div className="flex gap-4" key={i}>
-                    <Skeleton className="w-6 h-6 rounded-full mt-1" />
-                    <div className="flex-1 space-y-2">
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
+            return (
+                <div className="bg-card rounded-xl shadow-lg p-6">
+                <h3 className="text-xl font-bold text-card-foreground mb-6">{t('title')}</h3>
+                <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                    <div className="flex gap-4" key={i}>
+                        <Skeleton className="w-6 h-6 rounded-full mt-1" />
+                        <div className="flex-1 space-y-2">
+                        <Skeleton className="h-5 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                        </div>
                     </div>
+                    ))}
                 </div>
-                ))}
-            </div>
-            </div>
-        );
+                </div>
+            );
         }
     
         return (
@@ -2106,7 +2103,6 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                         </div>
                                     </div>
                                 )}
-                            </div>
                             </CollapsibleContent>
                         </Collapsible>
                         </div>
