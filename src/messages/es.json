@@ -1975,7 +1975,8 @@
         "personalSuccess": "Información personal guardada exitosamente",
         "deleteSuccess": "Eliminado exitosamente",
         "medicationSuccess": "Medicamento guardado exitosamente",
-        "allergySuccess": "Alergia guardada exitosamente"
+        "allergySuccess": "Alergia guardada exitosamente",
+        "familySuccess": "Información de familia guardada exitosamente"
       },
       "itemTypes": {
         "personal": "Personal",
@@ -2016,7 +2017,8 @@
       "saving": "Guardando",
       "toast": {
         "success": "Éxito",
-        "saveSuccess": "Hábitos guardados exitosamente"
+        "saveSuccess": "Hábitos guardados exitosamente",
+        "error": "Error guardando hábitos"
       }
     },
     "odontogram": {
