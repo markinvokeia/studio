@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -1892,7 +1893,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
 
     const handleViewSessionAttachment = async (session: PatientSession, attachment: AttachedFile) => {
         const doc: Document = {
-            id: attachment.id,
+            id: String(attachment.id),
             name: attachment.file_name || 'Attachment',
             mimeType: attachment.tipo,
             thumbnailLink: attachment.thumbnail_url
@@ -2076,7 +2077,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                 {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
                                     <div>
                                         <strong className="text-foreground">{t('attachments')}:</strong>
-                                        <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                                        <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                                             {session.archivos_adjuntos.map((file, i) => (
                                                 <div key={i} className="relative aspect-square cursor-pointer group" onClick={() => handleViewSessionAttachment(session, file)}>
                                                     {file.thumbnail_url ? (
