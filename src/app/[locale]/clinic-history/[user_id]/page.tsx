@@ -954,7 +954,11 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         diagnostico: session.diagnostico || '',
                         notas_clinicas: session.notas_clinicas || '',
                         plan_proxima_cita: session.plan_proxima_cita || '',
-                        treatments: session.lista_tratamientos?.map(t => ({...t, tratamiento_id: String(t.tratamiento_id), numero_diente: String(t.numero_diente) })) || [],
+                        treatments: session.lista_tratamientos?.map(t => ({
+                          tratamiento_id: String(t.tratamiento_id), 
+                          numero_diente: t.numero_diente ? String(t.numero_diente) : '',
+                          descripcion: t.descripcion || ''
+                        })) || [],
                     });
                     setExistingAttachments(session.lista_archivos || []);
                 } else {
@@ -2272,3 +2276,4 @@ const DentalClinicalSystemPage = () => {
 }
     
 export default DentalClinicalSystemPage;
+
