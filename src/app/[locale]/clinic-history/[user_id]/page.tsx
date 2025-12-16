@@ -964,7 +964,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         diagnostico: session.diagnostico || '',
                         notas_clinicas: session.notas_clinicas || '',
                         plan_proxima_cita: session.plan_proxima_cita || '',
-                        treatments: session.lista_tratamientos?.map(t => ({...t, tratamiento_id: String(t.tratamiento_id), numero_diente: String(t.numero_diente)})) || [],
+                        treatments: session.lista_tratamientos?.map(t => ({...t, tratamiento_id: String(t.tratamiento_id), numero_diente: String(t.numero_diente) })) || [],
                     });
                     setExistingAttachments(session.lista_archivos || []);
                 } else {
@@ -1457,11 +1457,11 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
               {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
             </div>
           ) : documents.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
               {documents.map((doc) => (
                 <Card key={doc.id} className="overflow-hidden">
                     <CardContent className="p-0 flex flex-col justify-between h-full">
-                        <div className="relative aspect-video w-full bg-muted cursor-pointer" onClick={() => onViewDocument(doc)}>
+                        <div className="relative aspect-video w-full bg-muted cursor-pointer group" onClick={() => onViewDocument(doc)}>
                             {doc.hasThumbnail && doc.thumbnailLink ? (
                                 <Image src={doc.thumbnailLink} alt={doc.name} layout="fill" className="object-cover" />
                             ) : (
@@ -1469,6 +1469,9 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
                                   <FileText className="h-10 w-10 text-muted-foreground" />
                                 </div>
                             )}
+                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <Eye className="h-6 w-6 text-white" />
+                            </div>
                         </div>
                         <div className="p-3">
                           <p className="font-semibold text-sm truncate leading-tight">{doc.name}</p>
@@ -2054,7 +2057,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                         <p><strong>{t('notes')}:</strong> {session.notas_clinicas}</p>
                         {session.plan_proxima_cita && <p><strong>{t('nextSessionPlan')}:</strong> {session.plan_proxima_cita}</p>}
                         <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>
-                            {(session.tratamientos?.length > 0 || session.archivos_adjuntos?.length > 0 || session.estado_odontograma) && (
+                            {(session.lista_tratamientos?.length > 0 || session.lista_archivos?.length > 0 || session.estado_odontograma) && (
                             <CollapsibleTrigger asChild>
                                 <Button variant="link" className="p-0 h-auto text-xs flex items-center gap-1">
                                 {isOpen ? t('showLess') : t('showMore')}
@@ -2074,21 +2077,21 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                         </ul>
                                     </div>
                                 )}
-                                {session.tratamientos && session.tratamientos.length > 0 && (
+                                {session.lista_tratamientos && session.lista_tratamientos.length > 0 && (
                                 <div>
                                     <strong className="text-foreground">{t('treatments')}:</strong>
                                     <ul className="list-disc pl-5">
-                                    {session.tratamientos.map((treatment, i) => (
+                                    {session.lista_tratamientos.map((treatment, i) => (
                                         <li key={i}>{treatment.descripcion} {treatment.numero_diente && `(${t('tooth')}: ${treatment.numero_diente})`}</li>
                                     ))}
                                     </ul>
                                 </div>
                                 )}
-                                {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
+                                {session.lista_archivos && session.lista_archivos.length > 0 && (
                                     <div>
                                         <strong className="text-foreground">{t('attachments')}:</strong>
                                         <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                                            {session.archivos_adjuntos.map((file, i) => (
+                                            {session.lista_archivos.map((file, i) => (
                                                 <div key={i} className="relative aspect-square cursor-pointer group" onClick={() => handleViewSessionAttachment(session, file)}>
                                                     {file.thumbnail_url ? (
                                                         <Image src={file.thumbnail_url} alt={file.file_name || 'Attachment'} layout="fill" className="object-cover rounded-md" />
@@ -2278,11 +2281,3 @@ const DentalClinicalSystemPage = () => {
 }
     
 export default DentalClinicalSystemPage;
-
-    
-
-    
-
-    
-
-
