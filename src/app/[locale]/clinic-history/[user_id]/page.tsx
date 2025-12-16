@@ -926,18 +926,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
 
     const form = useForm<SessionFormValues>({
         resolver: zodResolver(sessionFormSchema),
-        defaultValues: {
-            doctor_id: '',
-            fecha_sesion: new Date(),
-            procedimiento_realizado: '',
-            diagnostico: '',
-            notas_clinicas: '',
-            plan_proxima_cita: '',
-            treatments: [],
-        }
     });
 
-    const { fields, append, remove } = useFieldArray({
+    const { fields, append, remove, replace } = useFieldArray({
       control: form.control,
       name: 'treatments'
     });
@@ -947,6 +938,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
             if (isOpen) {
                 setIsSubmitting(false);
                 setIsLoadingAttachments(false);
+                setNewAttachments([]);
+                setDeletedAttachmentIds([]);
+
                 try {
                     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=DOCTOR');
                     const data = await response.json();
@@ -979,8 +973,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                     });
                     setExistingAttachments([]);
                 }
-                setNewAttachments([]);
-                setDeletedAttachmentIds([]);
             }
         };
         fetchInitialData();
@@ -2090,7 +2082,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                 {session.lista_archivos && session.lista_archivos.length > 0 && (
                                     <div>
                                         <strong className="text-foreground">{t('attachments')}:</strong>
-                                        <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                                        <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                                             {session.lista_archivos.map((file, i) => (
                                                 <div key={i} className="relative aspect-square cursor-pointer group" onClick={() => handleViewSessionAttachment(session, file)}>
                                                     {file.thumbnail_url ? (
@@ -2100,7 +2092,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                                             <FileText className="h-6 w-6 text-muted-foreground" />
                                                         </div>
                                                     )}
-                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                         <Eye className="h-6 w-6 text-white" />
                                                     </div>
                                                 </div>
