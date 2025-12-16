@@ -57,15 +57,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 
 const getAttachmentUrl = (path: string) => {
     try {
-        // Check if the path is already a full URL
         new URL(path);
-        // If it's a Google Drive link, we might need a special handler, but for now, we pass it to the proxy
         if (path.includes('drive.google.com')) {
              return `/api/attachment-proxy?url=${encodeURIComponent(path)}`;
         }
         return path;
     } catch (_) {
-        // If it's a relative path, construct the full URL
         return `https://n8n-project-n8n.7ig1i3.easypanel.host${path}`;
     }
 };
@@ -895,6 +892,8 @@ const sessionFormSchema = z.object({
       const num = parseInt(val, 10);
       if (isNaN(num)) return false; // Must be a number
       if (num < 11 || num > 85) return false; // Must be within the general range
+      if (num > 48 && num < 51) return false; // Gap between 48 and 51
+      if (num > 85) return false; // Out of range
       const lastDigit = num % 10;
       if (lastDigit === 0 || lastDigit === 9) return false; // Last digit can't be 0 or 9
       return true;
@@ -917,7 +916,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     const { toast } = useToast();
     const [doctors, setDoctors] = useState<UserType[]>([]);
     const [attachments, setAttachments] = useState<File[]>([]);
+    const [existingAttachments, setExistingAttachments] = useState<AttachedFile[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
 
     const form = useForm<SessionFormValues>({
         resolver: zodResolver(sessionFormSchema),
@@ -952,6 +953,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
 
                 // Reset form and attachments
                 setAttachments([]);
+                setExistingAttachments([]);
 
                 if (session) {
                     form.reset({
@@ -963,22 +965,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         plan_proxima_cita: session.plan_proxima_cita || '',
                         treatments: session.tratamientos?.map(t => ({...t, numero_diente: String(t.numero_diente)})) || [],
                     });
-
-                    // Pre-fetch existing images as Files
-                    if (session.archivos_adjuntos && session.archivos_adjuntos.length > 0) {
-                        const filePromises = session.archivos_adjuntos.map(async (file) => {
-                            try {
-                                const response = await fetch(getAttachmentUrl(file.ruta));
-                                const blob = await response.blob();
-                                return new File([blob], file.file_name || 'attachment.jpg', { type: blob.type });
-                            } catch (e) {
-                                console.error("Could not fetch attachment:", file.ruta, e);
-                                return null;
-                            }
-                        });
-                        const fetchedFiles = (await Promise.all(filePromises)).filter((f): f is File => f !== null);
-                        setAttachments(fetchedFiles);
-                    }
+                    setExistingAttachments(session.archivos_adjuntos || []);
                 } else {
                     form.reset({
                         doctor_id: '',
@@ -1006,19 +993,22 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
           if (key !== 'treatments' && key !== 'archivos_adjuntos' && value) {
             if (value instanceof Date) {
               formData.append(key, value.toISOString());
+            } else if (Array.isArray(value)) {
+              // Correctly format treatments
+              formData.append('tratamientos', JSON.stringify(value));
             } else {
               formData.append(key, String(value));
             }
           }
         });
         
-        if (values.treatments) {
-          formData.append('tratamientos', JSON.stringify(values.treatments));
-        }
-        
+        // Append new attachments
         attachments.forEach((file, index) => {
             formData.append(`archivos_adjuntos_${index}`, file);
         });
+
+        // Send information about which existing attachments to keep
+        formData.append('existing_attachments_routes', JSON.stringify(existingAttachments.map(f => f.ruta)));
 
         try {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert', {
@@ -1042,9 +1032,14 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         }
     };
     
-    const removeAttachment = (indexToRemove: number) => {
+    const removeNewAttachment = (indexToRemove: number) => {
         setAttachments(prev => prev.filter((_, index) => index !== indexToRemove));
     };
+
+    const removeExistingAttachment = (ruta: string) => {
+        setExistingAttachments(prev => prev.filter(f => f.ruta !== ruta));
+    };
+
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -1166,7 +1161,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                     <CardHeader className="pb-2">
                                         <CardTitle className="text-base">{t('attachments')}</CardTitle>
                                     </CardHeader>
-                                    <CardContent>
+                                     <CardContent>
                                         <div className="flex items-center justify-center w-full">
                                             <label htmlFor="session-attachments" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
                                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -1177,32 +1172,49 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                 <Input id="session-attachments" type="file" multiple className="hidden" onChange={handleAttachmentFileChange} />
                                             </label>
                                         </div>
-                                        {attachments.length > 0 && (
-                                            <div className="mt-4">
+                                        <div className="mt-4">
+                                            <h4 className="font-semibold text-sm mb-2">Existing Files</h4>
+                                            {isLoadingAttachments ? (
+                                                <div className="flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
+                                            ) : existingAttachments.length === 0 && attachments.length === 0 ? (
+                                                <p className="text-xs text-muted-foreground text-center py-2">No files attached.</p>
+                                            ) : (
                                                 <ScrollArea className="h-24 mt-1 border rounded-md p-2">
                                                     <div className="grid grid-cols-2 gap-2">
+                                                        {existingAttachments.map((file, index) => (
+                                                            <div key={`existing-${index}`} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
+                                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                                     <Image src={getAttachmentUrl(file.ruta)} alt={file.file_name || 'attachment'} width={24} height={24} className="rounded object-cover aspect-square"/>
+                                                                    <span className="text-sm truncate flex-1">{file.file_name}</span>
+                                                                </div>
+                                                                <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeExistingAttachment(file.ruta)}>
+                                                                    <X className="h-3 w-3"/>
+                                                                </Button>
+                                                            </div>
+                                                        ))}
                                                         {attachments.map((file, index) => (
-                                                            <div key={index} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
+                                                            <div key={`new-${index}`} className="flex items-center justify-between gap-2 p-1 bg-blue-100 dark:bg-blue-900/50 rounded-md">
                                                             <div className="flex items-center gap-2 overflow-hidden">
                                                                 <Image src={URL.createObjectURL(file)} alt={file.name} width={24} height={24} className="rounded object-cover aspect-square"/>
                                                                 <span className="text-sm truncate flex-1">{file.name}</span>
                                                             </div>
-                                                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeAttachment(index)}>
+                                                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeNewAttachment(index)}>
                                                                 <X className="h-3 w-3"/>
                                                             </Button>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </ScrollArea>
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
                                     </CardContent>
                                 </Card>
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>{t('cancel')}</Button>
                             <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {isSubmitting ? t('saving') : t('save')}
                             </Button>
                         </DialogFooter>
@@ -1873,7 +1885,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
   const handleViewAttachment = async (file: AttachedFile) => {
     setSelectedDocument({ id: file.ruta, name: file.file_name || 'Attachment', mimeType: file.mime_type });
     setIsViewerOpen(true);
-    setDocumentContent(null); // Reset previous content
+    setDocumentContent(null);
     try {
         const response = await fetch(getAttachmentUrl(file.ruta));
         if (response.ok) {
@@ -2218,6 +2230,7 @@ const DentalClinicalSystemPage = () => {
 }
     
 export default DentalClinicalSystemPage;
+
 
 
 
