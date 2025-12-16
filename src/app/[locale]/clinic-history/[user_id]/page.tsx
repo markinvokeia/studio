@@ -956,7 +956,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         notas_clinicas: session.notas_clinicas || '',
                         plan_proxima_cita: session.plan_proxima_cita || '',
                         treatments: (session.tratamientos || []).map(t => ({
-                          tratamiento_id: String(t.tratamiento_id),
+                          tratamiento_id: t.tratamiento_id ? String(t.tratamiento_id) : undefined,
                           numero_diente: t.numero_diente ? String(t.numero_diente) : '',
                           descripcion: t.descripcion || ''
                         })),
@@ -1712,8 +1712,8 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             setPatientSessions(sessionsData.map((session: any) => ({
                 ...session,
                 sesion_id: String(session.sesion_id),
-                tratamientos: session.lista_tratamientos || [],
-                archivos_adjuntos: (session.lista_archivos || []).map((file: any) => ({
+                tratamientos: session.tratamientos || [],
+                archivos_adjuntos: (session.archivos_adjuntos || []).map((file: any) => ({
                     ...file,
                     id: String(file.id),
                     thumbnail_url: file.thumbnail_url,
@@ -1997,122 +1997,123 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         }
     
         return (
-        <div className="bg-card rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-card-foreground">{t('title')}</h3>
-                <Button onClick={() => onAction('add')}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Session
-                </Button>
-            </div>
-            <div className="relative">
-            <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-muted"></div>
-            {sessions.map((session, index) => {
-                const Icon = {
-                    'odontograma': Smile,
-                    'clinica': Stethoscope
-                }[session.tipo_sesion || 'clinica'] || Stethoscope;
-                const isOpen = openItems.includes(String(session.sesion_id));
-                
-                return (
-                <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
-                    <div className="absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-2 border-background shadow-md bg-card flex items-center justify-center">
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Icon className="h-4 w-4 text-primary" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{session.tipo_sesion === 'odontograma' ? t('odontogramTooltip') : t('sessionType')}: {session.tipo_sesion}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                    </div>
-                    <div className="flex-1">
-                    <div className="bg-card rounded-lg border p-4 transition-colors duration-200">
-                        <div className="flex justify-between items-start mb-2">
-                        <div>
-                            <h4 className="font-semibold text-foreground">{session.procedimiento_realizado}</h4>
-                            <p className="text-sm text-muted-foreground">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</p>
-                        </div>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => onAction('edit', session)}>{t('edit')}</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onAction('delete', session)} className="text-destructive">{t('delete')}</DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        </div>
-                        <div className="space-y-3 text-sm text-muted-foreground">
-                        <p><strong>{t('diagnosis')}:</strong> {session.diagnostico}</p>
-                        <p><strong>{t('notes')}:</strong> {session.notas_clinicas}</p>
-                        {session.plan_proxima_cita && <p><strong>{t('nextSessionPlan')}:</strong> {session.plan_proxima_cita}</p>}
-                        <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>
-                            {(session.tratamientos?.length > 0 || session.archivos_adjuntos?.length > 0 || session.estado_odontograma) && (
-                            <CollapsibleTrigger asChild>
-                                <Button variant="link" className="p-0 h-auto text-xs flex items-center gap-1">
-                                {isOpen ? t('showLess') : t('showMore')}
-                                <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
-                                </Button>
-                            </CollapsibleTrigger>
-                            )}
-                            <CollapsibleContent>
-                            <div className="mt-2 space-y-3">
-                                {session.estado_odontograma && (
-                                    <div>
-                                        <strong className="text-foreground">{t('odontogramUpdate')}</strong>
-                                        <ul className="list-disc pl-5">
-                                            {Object.entries(session.estado_odontograma).map(([tooth, data]: [string, any]) => (
-                                                <li key={tooth}>Diente {tooth}: {data.condition} ({data.surface})</li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                                {session.tratamientos && session.tratamientos.length > 0 && (
-                                <div>
-                                    <strong className="text-foreground">{t('treatments')}:</strong>
-                                    <ul className="list-disc pl-5">
-                                    {session.tratamientos.map((treatment, i) => (
-                                        <li key={i}>{treatment.descripcion} {treatment.numero_diente && `(${t('tooth')}: ${treatment.numero_diente})`}</li>
-                                    ))}
-                                    </ul>
+            <div className="bg-card rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-bold text-card-foreground">{t('title')}</h3>
+                    <Button onClick={() => onAction('add')}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Session
+                    </Button>
+                </div>
+                <div className="relative">
+                    <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-muted"></div>
+                    {sessions.map((session, index) => {
+                        const Icon = {
+                            'odontograma': Smile,
+                            'clinica': Stethoscope
+                        }[session.tipo_sesion || 'clinica'] || Stethoscope;
+                        const isOpen = openItems.includes(String(session.sesion_id));
+                        
+                        return (
+                            <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
+                                <div className="absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-2 border-background shadow-md bg-card flex items-center justify-center">
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Icon className="h-4 w-4 text-primary" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>{session.tipo_sesion === 'odontograma' ? t('odontogramTooltip') : t('sessionType')}: {session.tipo_sesion}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
                                 </div>
-                                )}
-                                {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
-                                    <div>
-                                        <strong className="text-foreground">{t('attachments')}:</strong>
-                                        <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                                            {session.archivos_adjuntos.map((file, i) => (
-                                                <div key={i} className="relative aspect-video w-full bg-muted cursor-pointer group" onClick={() => handleViewSessionAttachment(session, file)}>
-                                                    {file.thumbnail_url ? (
-                                                        <Image src={getAttachmentUrl(file.thumbnail_url)} alt={file.file_name || 'Attachment'} layout="fill" className="object-cover rounded-md" />
-                                                    ) : (
-                                                        <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
-                                                            <FileText className="h-6 w-6 text-muted-foreground" />
-                                                        </div>
-                                                    )}
-                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                        <Eye className="h-6 w-6 text-white" />
+                                <div className="flex-1">
+                                    <div className="bg-card rounded-lg border p-4 transition-colors duration-200">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <h4 className="font-semibold text-foreground">{session.procedimiento_realizado}</h4>
+                                                <p className="text-sm text-muted-foreground">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</p>
+                                            </div>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent>
+                                                    <DropdownMenuItem onClick={() => onAction('edit', session)}>{t('edit')}</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => onAction('delete', session)} className="text-destructive">{t('delete')}</DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                        <div className="space-y-3 text-sm text-muted-foreground">
+                                            <p><strong>{t('diagnosis')}:</strong> {session.diagnostico}</p>
+                                            <p><strong>{t('notes')}:</strong> {session.notas_clinicas}</p>
+                                            {session.plan_proxima_cita && <p><strong>{t('nextSessionPlan')}:</strong> {session.plan_proxima_cita}</p>}
+                                            <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>
+                                                {(session.tratamientos?.length > 0 || session.archivos_adjuntos?.length > 0 || session.estado_odontograma) && (
+                                                    <CollapsibleTrigger asChild>
+                                                        <Button variant="link" className="p-0 h-auto text-xs flex items-center gap-1">
+                                                            {isOpen ? t('showLess') : t('showMore')}
+                                                            <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
+                                                        </Button>
+                                                    </CollapsibleTrigger>
+                                                )}
+                                                <CollapsibleContent>
+                                                    <div className="mt-2 space-y-3">
+                                                        {session.estado_odontograma && (
+                                                            <div>
+                                                                <strong className="text-foreground">{t('odontogramUpdate')}</strong>
+                                                                <ul className="list-disc pl-5">
+                                                                    {Object.entries(session.estado_odontograma).map(([tooth, data]: [string, any]) => (
+                                                                        <li key={tooth}>Diente {tooth}: {data.condition} ({data.surface})</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                        {session.tratamientos && session.tratamientos.length > 0 && (
+                                                            <div>
+                                                                <strong className="text-foreground">{t('treatments')}:</strong>
+                                                                <ul className="list-disc pl-5">
+                                                                    {session.tratamientos.map((treatment, i) => (
+                                                                        <li key={i}>{treatment.descripcion} {treatment.numero_diente && `(${t('tooth')}: ${treatment.numero_diente})`}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                        {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
+                                                            <div>
+                                                                <strong className="text-foreground">{t('attachments')}:</strong>
+                                                                <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                                                                    {session.archivos_adjuntos.map((file, i) => (
+                                                                        <div key={i} className="relative aspect-video w-full bg-muted cursor-pointer group" onClick={() => handleViewSessionAttachment(session, file)}>
+                                                                            {file.thumbnail_url ? (
+                                                                                <Image src={getAttachmentUrl(file.thumbnail_url)} alt={file.file_name || 'Attachment'} layout="fill" className="object-cover rounded-md" />
+                                                                            ) : (
+                                                                                <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
+                                                                                    <FileText className="h-6 w-6 text-muted-foreground" />
+                                                                                </div>
+                                                                            )}
+                                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                                <Eye className="h-6 w-6 text-white" />
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                </div>
-                                            ))}
+                                                </CollapsibleContent>
+                                            </Collapsible>
                                         </div>
                                     </div>
-                                )}
-                            </CollapsibleContent>
-                        </Collapsible>
-                        </div>
-                    </div>
-                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
-                );
-            })}
             </div>
-        </div>
         );
     };
 
