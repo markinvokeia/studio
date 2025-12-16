@@ -918,6 +918,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     const [attachments, setAttachments] = useState<File[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
+    const [existingAttachments, setExistingAttachments] = useState<AttachedFile[]>([]);
+    const [newAttachments, setNewAttachments] = useState<File[]>([]);
+
 
     const form = useForm<SessionFormValues>({
         resolver: zodResolver(sessionFormSchema),
@@ -932,7 +935,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         }
     });
 
-    const { fields, append, remove } = useFieldArray({
+    const { fields, append, remove, replace } = useFieldArray({
       control: form.control,
       name: 'treatments'
     });
@@ -951,10 +954,12 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                 }
 
                 // Reset form and attachments
-                setAttachments([]);
+                setNewAttachments([]);
 
                 if (session) {
                     setIsLoadingAttachments(true);
+                    setExistingAttachments(session.archivos_adjuntos || []);
+                    
                     form.reset({
                         doctor_id: session.doctor_id || '',
                         fecha_sesion: session.fecha_sesion ? parseISO(session.fecha_sesion) : new Date(),
@@ -964,7 +969,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         plan_proxima_cita: session.plan_proxima_cita || '',
                         treatments: session.tratamientos?.map(t => ({...t, numero_diente: String(t.numero_diente)})) || [],
                     });
-
+                    
                     if (session.archivos_adjuntos && session.archivos_adjuntos.length > 0) {
                         const filePromises = session.archivos_adjuntos.map(async (file) => {
                             try {
@@ -979,10 +984,14 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         });
                         const fetchedFiles = await Promise.all(filePromises);
                         setAttachments(fetchedFiles.filter((f): f is File => f !== null));
+                    } else {
+                        setAttachments([]);
                     }
                     setIsLoadingAttachments(false);
                 } else {
-                    form.reset({
+                     setExistingAttachments([]);
+                     setAttachments([]);
+                     form.reset({
                         doctor_id: '',
                         fecha_sesion: new Date(),
                         procedimiento_realizado: '',
@@ -995,7 +1004,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
             }
         };
         fetchInitialData();
-    }, [isOpen, session, form]);
+    }, [isOpen, session, form, replace]);
 
 
     const handleSave: SubmitHandler<SessionFormValues> = async (values) => {
@@ -1008,15 +1017,16 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
             if (key !== 'treatments' && key !== 'archivos_adjuntos' && value) {
                 if (value instanceof Date) {
                     formData.append(key, value.toISOString());
-                } else {
+                } else if (key === 'treatments' && Array.isArray(value)) {
+                    formData.append('tratamientos', JSON.stringify(value));
+                }
+                else {
                     formData.append(key, String(value));
                 }
             }
         });
-
-        if (values.treatments) {
-            formData.append('tratamientos', JSON.stringify(values.treatments));
-        }
+        
+        formData.append('tratamientos', JSON.stringify(values.treatments));
 
         attachments.forEach((file, index) => {
             formData.append(`archivos_adjuntos_${index}`, file);
@@ -1081,7 +1091,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                 <FormField control={form.control} name="doctor_id" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('doctor')}</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <Select onValueChange={field.onChange} value={field.value}>
                                             <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder={t('selectDoctor')} />
@@ -2228,9 +2238,4 @@ const DentalClinicalSystemPage = () => {
     
 export default DentalClinicalSystemPage;
 
-
-
-
-
-
-
+    
