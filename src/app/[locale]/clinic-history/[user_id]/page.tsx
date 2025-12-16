@@ -873,6 +873,344 @@ const AnamnesisDashboard = ({
                 </div>
                 <HabitCard userId={userId} fetchPatientHabits={fetchPatientHabits} habits={patientHabits} isLoading={isLoadingPatientHabits} />
             </div>
+
+            {/* Personal History Dialog */}
+            <Dialog open={isPersonalHistoryDialogOpen} onOpenChange={setIsPersonalHistoryDialogOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {editingPersonalHistory ? t('anamnesis.dialogs.personal.editTitle') : t('anamnesis.dialogs.personal.addTitle')}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {editingPersonalHistory ? t('anamnesis.dialogs.personal.editDescription') : t('anamnesis.dialogs.personal.addDescription')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmitPersonalHistory} className="space-y-4">
+                        <div>
+                            <Label htmlFor="personal-ailment">{t('anamnesis.dialogs.ailment')}</Label>
+                            <Popover open={isPersonalHistoryComboboxOpen} onOpenChange={setIsPersonalHistoryComboboxOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" role="combobox" className="w-full justify-between">
+                                        {selectedPersonalAilmentName || t('anamnesis.dialogs.selectAilment')}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-full p-0">
+                                    <Command>
+                                        <CommandInput placeholder={t('anamnesis.dialogs.searchAilment')} />
+                                        <CommandList>
+                                            <CommandEmpty>{t('anamnesis.dialogs.noAilmentFound')}</CommandEmpty>
+                                            <CommandGroup>
+                                                {ailmentsCatalog.map((ailment) => (
+                                                    <CommandItem
+                                                        key={ailment.id}
+                                                        value={ailment.nombre}
+                                                        onSelect={(value) => {
+                                                            setSelectedPersonalAilmentName(value);
+                                                            setIsPersonalHistoryComboboxOpen(false);
+                                                        }}
+                                                    >
+                                                        <Check className={cn("mr-2 h-4 w-4", selectedPersonalAilmentName === ailment.nombre ? "opacity-100" : "opacity-0")} />
+                                                        {ailment.nombre}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div>
+                            <Label htmlFor="personal-comments">{t('anamnesis.dialogs.comments')}</Label>
+                            <Textarea 
+                                id="personal-comments" 
+                                value={personalComentarios} 
+                                onChange={(e) => setPersonalComentarios(e.target.value)} 
+                                placeholder={t('anamnesis.dialogs.commentsPlaceholder')} 
+                            />
+                        </div>
+                        {personalSubmissionError && (
+                            <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertDescription>{personalSubmissionError}</AlertDescription>
+                            </Alert>
+                        )}
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsPersonalHistoryDialogOpen(false)} disabled={isSubmittingPersonal}>
+                                {t('anamnesis.dialogs.cancel')}
+                            </Button>
+                            <Button type="submit" disabled={isSubmittingPersonal}>
+                                {isSubmittingPersonal && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isSubmittingPersonal ? t('anamnesis.dialogs.saving') : t('anamnesis.dialogs.save')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Family History Dialog */}
+            <Dialog open={isFamilyHistoryDialogOpen} onOpenChange={setIsFamilyHistoryDialogOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {editingFamilyHistory ? t('anamnesis.dialogs.family.editTitle') : t('anamnesis.dialogs.family.addTitle')}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {editingFamilyHistory ? t('anamnesis.dialogs.family.editDescription') : t('anamnesis.dialogs.family.addDescription')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmitFamilyHistory} className="space-y-4">
+                        <div>
+                            <Label htmlFor="family-ailment">{t('anamnesis.dialogs.ailment')}</Label>
+                            <Popover open={isFamilyHistoryComboboxOpen} onOpenChange={setIsFamilyHistoryComboboxOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" role="combobox" className="w-full justify-between">
+                                        {selectedFamilyAilmentName || t('anamnesis.dialogs.selectAilment')}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-full p-0">
+                                    <Command>
+                                        <CommandInput placeholder={t('anamnesis.dialogs.searchAilment')} />
+                                        <CommandList>
+                                            <CommandEmpty>{t('anamnesis.dialogs.noAilmentFound')}</CommandEmpty>
+                                            <CommandGroup>
+                                                {ailmentsCatalog.map((ailment) => (
+                                                    <CommandItem
+                                                        key={ailment.id}
+                                                        value={ailment.nombre}
+                                                        onSelect={(value) => {
+                                                            setSelectedFamilyAilmentName(value);
+                                                            setIsFamilyHistoryComboboxOpen(false);
+                                                        }}
+                                                    >
+                                                        <Check className={cn("mr-2 h-4 w-4", selectedFamilyAilmentName === ailment.nombre ? "opacity-100" : "opacity-0")} />
+                                                        {ailment.nombre}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div>
+                            <Label htmlFor="family-relationship">{t('anamnesis.dialogs.family.relationship')}</Label>
+                            <Input 
+                                id="family-relationship" 
+                                value={familyParentesco} 
+                                onChange={(e) => setFamilyParentesco(e.target.value)} 
+                                placeholder={t('anamnesis.dialogs.family.selectRelationship')} 
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="family-comments">{t('anamnesis.dialogs.comments')}</Label>
+                            <Textarea 
+                                id="family-comments" 
+                                value={familyComentarios} 
+                                onChange={(e) => setFamilyComentarios(e.target.value)} 
+                                placeholder={t('anamnesis.dialogs.family.commentsPlaceholder')} 
+                            />
+                        </div>
+                        {familySubmissionError && (
+                            <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertDescription>{familySubmissionError}</AlertDescription>
+                            </Alert>
+                        )}
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsFamilyHistoryDialogOpen(false)} disabled={isSubmittingFamily}>
+                                {t('anamnesis.dialogs.cancel')}
+                            </Button>
+                            <Button type="submit" disabled={isSubmittingFamily}>
+                                {isSubmittingFamily && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isSubmittingFamily ? t('anamnesis.dialogs.saving') : t('anamnesis.dialogs.save')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Allergy Dialog */}
+            <Dialog open={isAllergyDialogOpen} onOpenChange={setIsAllergyDialogOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {editingAllergy ? t('anamnesis.dialogs.allergy.editTitle') : t('anamnesis.dialogs.allergy.addTitle')}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {editingAllergy ? t('anamnesis.dialogs.allergy.editDescription') : t('anamnesis.dialogs.allergy.addDescription')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmitAllergy} className="space-y-4">
+                        <div>
+                            <Label htmlFor="allergen">{t('anamnesis.dialogs.allergy.allergen')}</Label>
+                            <Input 
+                                id="allergen" 
+                                value={allergyData.alergeno} 
+                                onChange={(e) => setAllergyData(prev => ({ ...prev, alergeno: e.target.value }))} 
+                                placeholder={t('anamnesis.dialogs.allergy.allergen')} 
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="reaction">{t('anamnesis.dialogs.allergy.reaction')}</Label>
+                            <Textarea 
+                                id="reaction" 
+                                value={allergyData.reaccion_descrita} 
+                                onChange={(e) => setAllergyData(prev => ({ ...prev, reaccion_descrita: e.target.value }))} 
+                                placeholder={t('anamnesis.dialogs.allergy.reaction')} 
+                            />
+                        </div>
+                        {allergySubmissionError && (
+                            <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertDescription>{allergySubmissionError}</AlertDescription>
+                            </Alert>
+                        )}
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsAllergyDialogOpen(false)} disabled={isSubmittingAllergy}>
+                                {t('anamnesis.dialogs.cancel')}
+                            </Button>
+                            <Button type="submit" disabled={isSubmittingAllergy}>
+                                {isSubmittingAllergy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isSubmittingAllergy ? t('anamnesis.dialogs.saving') : t('anamnesis.dialogs.save')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Medication Dialog */}
+            <Dialog open={isMedicationDialogOpen} onOpenChange={setIsMedicationDialogOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {editingMedication ? t('anamnesis.dialogs.medication.editTitle') : t('anamnesis.dialogs.medication.addTitle')}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {editingMedication ? t('anamnesis.dialogs.medication.editDescription') : t('anamnesis.dialogs.medication.addDescription')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmitMedication} className="space-y-4">
+                        <div>
+                            <Label htmlFor="medication">{t('anamnesis.dialogs.medication.name')}</Label>
+                            <Popover open={isMedicationComboboxOpen} onOpenChange={setIsMedicationComboboxOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" role="combobox" className="w-full justify-between">
+                                        {selectedMedication?.name || t('anamnesis.dialogs.medication.selectMedication')}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-full p-0">
+                                    <Command>
+                                        <CommandInput placeholder={t('anamnesis.dialogs.medication.searchMedication')} />
+                                        <CommandList>
+                                            <CommandEmpty>{t('anamnesis.dialogs.medication.noMedicationFound')}</CommandEmpty>
+                                            <CommandGroup>
+                                                {medicationsCatalog.map((med) => (
+                                                    <CommandItem
+                                                        key={med.id}
+                                                        value={med.nombre_generico}
+                                                        onSelect={() => {
+                                                            setSelectedMedication({ id: med.id, name: med.nombre_generico });
+                                                            setIsMedicationComboboxOpen(false);
+                                                        }}
+                                                    >
+                                                        <Check className={cn("mr-2 h-4 w-4", selectedMedication?.id === med.id ? "opacity-100" : "opacity-0")} />
+                                                        {med.nombre_generico}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="dosage">{t('anamnesis.dialogs.medication.dose')}</Label>
+                                <Input 
+                                    id="dosage" 
+                                    value={medicationData.dosis} 
+                                    onChange={(e) => setMedicationData(prev => ({ ...prev, dosis: e.target.value }))} 
+                                    placeholder="500mg" 
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="frequency">{t('anamnesis.dialogs.medication.frequency')}</Label>
+                                <Input 
+                                    id="frequency" 
+                                    value={medicationData.frecuencia} 
+                                    onChange={(e) => setMedicationData(prev => ({ ...prev, frecuencia: e.target.value }))} 
+                                    placeholder="Cada 8 horas" 
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="start-date">{t('anamnesis.dialogs.medication.startDate')}</Label>
+                                <Input 
+                                    id="start-date" 
+                                    type="date" 
+                                    value={medicationData.fecha_inicio} 
+                                    onChange={(e) => setMedicationData(prev => ({ ...prev, fecha_inicio: e.target.value }))} 
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="end-date">{t('anamnesis.dialogs.medication.endDate')}</Label>
+                                <Input 
+                                    id="end-date" 
+                                    type="date" 
+                                    value={medicationData.fecha_fin} 
+                                    onChange={(e) => setMedicationData(prev => ({ ...prev, fecha_fin: e.target.value }))} 
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <Label htmlFor="reason">{t('anamnesis.dialogs.medication.reason')}</Label>
+                            <Textarea 
+                                id="reason" 
+                                value={medicationData.motivo} 
+                                onChange={(e) => setMedicationData(prev => ({ ...prev, motivo: e.target.value }))} 
+                                placeholder={t('anamnesis.dialogs.medication.reason')} 
+                            />
+                        </div>
+                        {medicationSubmissionError && (
+                            <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertDescription>{medicationSubmissionError}</AlertDescription>
+                            </Alert>
+                        )}
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsMedicationDialogOpen(false)} disabled={isSubmittingMedication}>
+                                {t('anamnesis.dialogs.cancel')}
+                            </Button>
+                            <Button type="submit" disabled={isSubmittingMedication}>
+                                {isSubmittingMedication && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isSubmittingMedication ? t('anamnesis.dialogs.saving') : t('anamnesis.dialogs.save')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('anamnesis.deleteDialog.title')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {t('anamnesis.deleteDialog.description')}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t('anamnesis.deleteDialog.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
+                            {t('anamnesis.deleteDialog.confirm')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };
