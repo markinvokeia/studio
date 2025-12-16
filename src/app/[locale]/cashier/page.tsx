@@ -138,20 +138,12 @@ export default function CashierPage() {
             const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/movements?cash_session_id=${sessionId}`);
             if (!response.ok) throw new Error('Failed to fetch session movements');
             const data = await response.json();
-            let movementsData = [];
-
-            if (Array.isArray(data) && data.length > 0 && data[0].json) {
-                movementsData = data.map(item => item.json);
-            } else if (Array.isArray(data)) {
-                movementsData = data;
-            } else if (data.data) {
-                movementsData = data.data;
-            }
+            let movementsData = Array.isArray(data) ? data : (data.data || []);
             
             setSessionMovements(movementsData.map((mov: any): CajaMovimiento => ({
                 id: String(mov.movement_id),
                 cajaSesionId: sessionId,
-                tipo: mov.type === 'INFLOW' ? 'INGRESO' : 'EGRESO',
+                tipo: mov.type.toLowerCase() === 'inflow' ? 'INGRESO' : 'EGRESO',
                 monto: parseFloat(mov.amount),
                 currency: mov.currency,
                 descripcion: mov.description,
@@ -406,8 +398,21 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
             });
         return income;
     }, [movements]);
+    
+    const totalOutcome = React.useMemo(() => {
+        const outcome: { UYU: number; USD: number } = { UYU: 0, USD: 0 };
+        movements
+            .filter(m => m.tipo === 'EGRESO')
+            .forEach(mov => {
+                const currency = mov.currency as ('UYU' | 'USD');
+                if (outcome[currency] !== undefined) {
+                    outcome[currency] += mov.monto;
+                }
+            });
+        return outcome;
+    }, [movements]);
 
-    const dailyPayments = React.useMemo(() => movements.filter(m => m.tipo === 'INGRESO'), [movements]);
+    const allMovements = React.useMemo(() => movements, [movements]);
 
     const tColumns = useTranslations('CashierPage.activeSession.columns');
     const movementColumns: ColumnDef<CajaMovimiento>[] = [
@@ -415,7 +420,14 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
       { 
         accessorKey: 'monto', 
         header: tColumns('amount'), 
-        cell: ({ row }) => `${row.original.currency} ${row.original.monto.toFixed(2)}` 
+        cell: ({ row }) => {
+            const isExpense = row.original.tipo === 'EGRESO';
+            return (
+                <span className={cn(isExpense && 'text-red-500')}>
+                    {isExpense ? '-' : ''}${row.original.monto.toFixed(2)} {row.original.currency}
+                </span>
+            );
+        }
       },
       { accessorKey: 'metodoPago', header: tColumns('method') },
       { accessorKey: 'fecha', header: tColumns('date'), cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
@@ -440,7 +452,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">{t('openSession.openingAmount')}</CardTitle>
@@ -468,16 +480,29 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                             </div>
                         </CardContent>
                     </Card>
+                     <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Total Outcome</CardTitle>
+                            <TrendingDown className="h-4 w-4 text-red-500" />
+                        </CardHeader>
+                        <CardContent>
+                           <div className="text-2xl font-bold text-red-500">
+                                {totalOutcome.UYU > 0 && <div>UYU {totalOutcome.UYU.toFixed(2)}</div>}
+                                {totalOutcome.USD > 0 && <div>USD {totalOutcome.USD.toFixed(2)}</div>}
+                                {(totalOutcome.UYU === 0 && totalOutcome.USD === 0) && <div>$0.00</div>}
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
-                <Tabs defaultValue="payments">
+                <Tabs defaultValue="transactions">
                     <TabsList>
-                        <TabsTrigger value="payments">{t('activeSession.dailyPayments')}</TabsTrigger>
+                        <TabsTrigger value="transactions">Transactions</TabsTrigger>
                         {(openingDetails.uyu.length > 0 || openingDetails.usd.length > 0) && (
                             <TabsTrigger value="opening_details">{t('activeSession.openingDetails')}</TabsTrigger>
                         )}
                     </TabsList>
-                    <TabsContent value="payments">
-                        <DataTable columns={movementColumns} data={dailyPayments} />
+                    <TabsContent value="transactions">
+                        <DataTable columns={movementColumns} data={allMovements} />
                     </TabsContent>
                     <TabsContent value="opening_details">
                         {(openingDetails.uyu.length > 0 || openingDetails.usd.length > 0) ? (
@@ -1374,3 +1399,5 @@ const handleConfirmAndOpen = async () => {
     
 
     
+
+      
