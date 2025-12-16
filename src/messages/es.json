@@ -1,4 +1,3 @@
-
 {
   "Navigation": {
     "Dashboard": "Panel de Control",
@@ -7,7 +6,7 @@
     "Users": "Pacientes",
     "Pacientes": "Pacientes",
     "Providers": "Proveedores",
-    "ClinicHistory": "Historial Clínico",
+    "ClinicHistory": "Historia Clínica",
     "Studies": "Estudios",
     "SharedStudies": "Estudios Compartidos",
     "Sales": "Ventas",
@@ -16,7 +15,7 @@
     "PurchaseOrders": "Órdenes de Compra",
     "PurchaseInvoices": "Facturas de Compra",
     "PurchasePayments": "Pagos de Compra",
-    "ProviderProducts": "Productos y Servicios del Proveedor",
+    "ProviderProducts": "Productos y Servicios de Proveedores",
     "Quotes": "Cotizaciones",
     "Orders": "Pedidos",
     "Invoices": "Facturas",
@@ -24,7 +23,7 @@
     "PaymentMethods": "Métodos de Pago",
     "Services": "Servicios",
     "ClinicCatalog": "Catálogo Clínico",
-    "Ailments": "Dolencias",
+    "Ailments": "Dolencias/Afecciones",
     "Medications": "Medicamentos",
     "DentalConditions": "Condiciones Dentales",
     "DentalSurfaces": "Superficies Dentales",
@@ -65,7 +64,7 @@
       "title": "Sesión de Caja Activa",
       "description": "Tienes una sesión de caja abierta. Por favor, ciérrala antes de salir.",
       "goToCashier": "Ir a Cerrar Sesión",
-      "logoutAnyway": "Cerrar Sesión de Todos Modos",
+      "logoutAnyway": "Cerrar Sesión de todas formas",
       "cancel": "Cancelar"
     },
     "changePasswordDialog": {
@@ -77,7 +76,7 @@
       "save": "Guardar Cambios"
     },
     "validation": {
-      "oldPasswordRequired": "Se requiere la contraseña actual.",
+      "oldPasswordRequired": "La contraseña actual es requerida.",
       "newPasswordMin": "La nueva contraseña debe tener al menos 8 caracteres.",
       "newPasswordUpper": "La nueva contraseña debe contener una letra mayúscula.",
       "newPasswordNumber": "La nueva contraseña debe contener un número.",
@@ -95,23 +94,23 @@
     }
   },
   "OpenCashSessionWidget": {
-    "checkingStatus": "Comprobando estado de la sesión de caja...",
+    "checkingStatus": "Comprobando el estado de la sesión de caja...",
     "activeSession": {
       "title": "Sesión de Caja Activa",
-      "description": "La sesión de {user} en {cashPoint} está actualmente abierta.",
+      "description": "La sesión para {user} en {cashPoint} está actualmente abierta.",
       "button": "Ir a Caja"
     },
-    "title": "Sin Sesión de Caja Activa",
-    "description": "No tienes una sesión de caja activa. Por favor, abre una para empezar a registrar transacciones.",
+    "title": "No Hay Sesión de Caja Activa",
+    "description": "No tienes una sesión de caja activa. Por favor, abre una para comenzar a registrar transacciones.",
     "button": "Abrir Sesión de Caja"
   },
   "DataTableToolbar": {
-    "toggleColumns": "Alternar columnas"
+    "toggleColumns": "Mostrar/Ocultar columnas"
   },
   "DataTablePagination": {
     "selected": "{count, plural, one {# seleccionado} other {# seleccionados}} de {total} fila(s).",
     "rowsPerPage": "Filas por página",
-    "all": "Todo",
+    "all": "Todos",
     "page": "Página {current} de {total}",
     "goToFirst": "Ir a la primera página",
     "goToPrevious": "Ir a la página anterior",
@@ -135,9 +134,9 @@
   },
   "SalesSummaryChart": {
     "title": "Resumen de Ventas",
-    "description": "Mostrando ingresos totales para el período seleccionado.",
-    "trendingUp": "Tendencia al alza en {trend}% este mes",
-    "trendingDown": "Tendencia a la baja en {trend}% este mes",
+    "description": "Mostrando el ingreso total para el período seleccionado.",
+    "trendingUp": "Tendencia al alza por {trend}% este mes",
+    "trendingDown": "Tendencia a la baja por {trend}% este mes",
     "last12Months": "Mostrando datos de los últimos 12 meses",
     "januaryToDecember": "Enero - Diciembre {year}",
     "dateRange": "Desde {from} hasta {to}",
@@ -156,7 +155,7 @@
   "KpiRow": {
     "avgBilling": "Facturación Promedio por Paciente",
     "vsPreviousPeriod": "vs período anterior",
-    "newVsRecurring": "Pacientes Nuevos vs Recurrentes",
+    "newVsRecurring": "Pacientes Nuevos vs. Recurrentes",
     "activePatients": "Pacientes Activos",
     "new": "Nuevos",
     "recurrent": "Recurrentes",
@@ -164,12 +163,12 @@
   },
   "RecentQuotesTable": {
     "title": "Cotizaciones Recientes",
-    "description": "Una visión general de las últimas cotizaciones.",
+    "description": "Un resumen de las últimas cotizaciones.",
     "filterPlaceholder": "Filtrar cotizaciones por nombre de usuario..."
   },
   "RecentOrdersTable": {
     "title": "Pedidos Recientes",
-    "description": "Una visión general de los últimos pedidos.",
+    "description": "Un resumen de los últimos pedidos.",
     "filterPlaceholder": "Filtrar por ID de pedido..."
   },
   "NewUsersTable": {
@@ -202,7 +201,7 @@
       "cancel": "Cancelar",
       "calendar": "Calendario",
       "showSuggestions": "Mostrar Sugerencias",
-      "suggestedTimes": "Horas Sugeridas",
+      "suggestedTimes": "Horarios Sugeridos",
       "suggested": {
         "calendar": "Calendario",
         "date": "Fecha",
@@ -251,14 +250,14 @@
     "cancelled": "Cancelada"
   },
   "AilmentsPage": {
-    "title": "Dolencias",
-    "description": "Administrar condiciones médicas y enfermedades estandarizadas.",
+    "title": "Dolencias/Afecciones",
+    "description": "Gestionar condiciones médicas y enfermedades estandarizadas.",
     "filterPlaceholder": "Filtrar por nombre...",
     "createDialog": {
       "title": "Crear Nueva Dolencia",
       "description": "Rellena los detalles a continuación para añadir una nueva dolencia.",
       "editTitle": "Editar Dolencia",
-      "editDescription": "Actualiza los detalles para esta dolencia.",
+      "editDescription": "Actualizar los detalles para esta dolencia.",
       "name": "Nombre",
       "namePlaceholder": "ej., Hipertensión Arterial",
       "category": "Categoría",
@@ -289,9 +288,9 @@
       "deleteErrorDescription": "No se pudo eliminar la dolencia."
     },
     "validation": {
-      "nameRequired": "El nombre es obligatorio.",
-      "categoryRequired": "La categoría es obligatoria.",
-      "alertLevelRequired": "El nivel de alerta es obligatorio."
+      "nameRequired": "El nombre es requerido.",
+      "categoryRequired": "La categoría es requerida.",
+      "alertLevelRequired": "El nivel de alerta es requerido."
     }
   },
   "AilmentsColumns": {
@@ -305,13 +304,13 @@
   },
   "MedicationsPage": {
     "title": "Medicamentos",
-    "description": "Administrar el catálogo de medicamentos para autocompletar.",
+    "description": "Gestionar el catálogo de medicamentos para autocompletado.",
     "filterPlaceholder": "Filtrar por nombre genérico...",
     "createDialog": {
       "title": "Crear Nuevo Medicamento",
       "description": "Rellena los detalles a continuación para añadir un nuevo medicamento.",
       "editTitle": "Editar Medicamento",
-      "editDescription": "Actualiza los detalles para este medicamento.",
+      "editDescription": "Actualizar los detalles para este medicamento.",
       "genericName": "Nombre Genérico",
       "genericNamePlaceholder": "ej., Ibuprofeno",
       "commercialName": "Nombre Comercial",
@@ -337,7 +336,7 @@
       "deleteErrorDescription": "No se pudo eliminar el medicamento."
     },
     "validation": {
-      "nameRequired": "El nombre genérico es obligatorio."
+      "nameRequired": "El nombre genérico es requerido."
     }
   },
   "MedicationsColumns": {
@@ -350,13 +349,13 @@
   },
   "DentalConditionsPage": {
     "title": "Condiciones Dentales",
-    "description": "Administrar posibles hallazgos en un odontograma.",
+    "description": "Gestionar posibles hallazgos en un odontograma.",
     "filterPlaceholder": "Filtrar por nombre...",
     "createDialog": {
       "title": "Crear Nueva Condición Dental",
       "description": "Rellena los detalles a continuación para añadir una nueva condición dental.",
       "editTitle": "Editar Condición Dental",
-      "editDescription": "Actualiza los detalles para esta condición dental.",
+      "editDescription": "Actualizar los detalles para esta condición dental.",
       "name": "Nombre",
       "namePlaceholder": "ej., Caries",
       "visualCode": "Código Visual",
@@ -383,9 +382,9 @@
       "deleteErrorDescription": "No se pudo eliminar la condición."
     },
     "validation": {
-      "nameRequired": "El nombre es obligatorio.",
-      "codeRequired": "El código visual es obligatorio.",
-      "colorInvalid": "Formato de color hexadecimal no válido."
+      "nameRequired": "El nombre es requerido.",
+      "codeRequired": "El código visual es requerido.",
+      "colorInvalid": "Formato de color hexadecimal inválido."
     }
   },
   "DentalConditionsColumns": {
@@ -399,13 +398,13 @@
   },
   "DentalSurfacesPage": {
     "title": "Superficies Dentales",
-    "description": "Administrar las superficies de un diente.",
+    "description": "Gestionar las superficies de un diente.",
     "filterPlaceholder": "Filtrar por nombre...",
     "createDialog": {
       "title": "Crear Nueva Superficie Dental",
       "description": "Rellena los detalles a continuación para añadir una nueva superficie dental.",
       "editTitle": "Editar Superficie Dental",
-      "editDescription": "Actualiza los detalles para esta superficie dental.",
+      "editDescription": "Actualizar los detalles para esta superficie dental.",
       "name": "Nombre",
       "namePlaceholder": "ej., Oclusal",
       "code": "Código",
@@ -431,8 +430,8 @@
       "deleteErrorDescription": "No se pudo eliminar la superficie."
     },
     "validation": {
-      "nameRequired": "El nombre es obligatorio.",
-      "codeRequired": "El código es obligatorio."
+      "nameRequired": "El nombre es requerido.",
+      "codeRequired": "El código es requerido."
     }
   },
   "DentalSurfacesColumns": {
@@ -445,7 +444,7 @@
   },
   "UsersPage": {
     "title": "Pacientes",
-    "description": "Administrar todos los pacientes en el sistema.",
+    "description": "Gestionar todos los pacientes en el sistema.",
     "filterPlaceholder": "Filtrar pacientes por correo electrónico...",
     "filterByPatient": "Filtrar por paciente...",
     "detailsFor": "Detalles para {name}",
@@ -458,7 +457,7 @@
       "appointments": "Citas",
       "messages": "Mensajes",
       "logs": "Registros",
-      "history": "Historial Clínico",
+      "history": "Historia Clínica",
       "orders": "Pedidos",
       "invoices": "Facturas",
       "payments": "Pagos"
@@ -467,7 +466,7 @@
       "title": "Crear Nuevo Paciente",
       "description": "Rellena los detalles a continuación para añadir un nuevo usuario.",
       "editTitle": "Editar Usuario",
-      "editDescription": "Actualiza los detalles para este usuario.",
+      "editDescription": "Actualizar los detalles para este usuario.",
       "createSuccessTitle": "Usuario Creado",
       "createSuccessDescription": "El nuevo usuario ha sido añadido exitosamente.",
       "editSuccessTitle": "Usuario Actualizado",
@@ -486,15 +485,15 @@
       "editSave": "Guardar Cambios",
       "validation": {
         "errorTitle": "Error",
-        "nameRequired": "El nombre es obligatorio",
-        "emailInvalid": "Dirección de correo electrónico no válida",
-        "phoneInvalid": "Número de teléfono no válido",
-        "phoneRequired": "El teléfono es obligatorio",
-        "identityRequired": "El documento de identidad es obligatorio",
+        "nameRequired": "El nombre es requerido",
+        "emailInvalid": "Dirección de correo electrónico inválida",
+        "phoneInvalid": "Número de teléfono inválido",
+        "phoneRequired": "El teléfono es requerido",
+        "identityRequired": "El documento de identidad es requerido",
         "identityInvalid": "El documento de identidad debe ser un número.",
         "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
         "genericError": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
-        "serverError": "Error del servidor, por favor inténtalo más tarde.",
+        "serverError": "Error del servidor, por favor, inténtalo de nuevo más tarde.",
         "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
         "fields": {
           "email": "Correo Electrónico",
@@ -555,7 +554,7 @@
     },
     "filterPlaceholder": "Filtrar por rol...",
     "dialog": {
-      "title": "Asignar Roles al Usuario",
+      "title": "Añadir Roles al Usuario",
       "description": "Selecciona los roles a asignar a este usuario.",
       "availableRoles": "Roles Disponibles",
       "activeLabel": "Activo",
@@ -576,12 +575,12 @@
       "roleRemoved": "El rol \"{roleName}\" ha sido eliminado del usuario.",
       "roleRemoveFailed": "No se pudo eliminar el rol \"{roleName}\".",
       "rolesAssigned": "Roles asignados exitosamente.",
-      "rolesAssignFailed": "No se pudieron asignar los roles."
+      "rolesAssignFailed": "No se pudieron asignar roles."
     }
   },
   "UserServices": {
     "dialog": {
-      "title": "Asignar Servicios al Usuario",
+      "title": "Añadir Servicios al Usuario",
       "description": "Selecciona los servicios a asignar a este usuario.",
       "availableServices": "Servicios Disponibles",
       "cancel": "Cancelar",
@@ -592,7 +591,7 @@
       "success": "Éxito",
       "error": "Error",
       "servicesAssigned": "Servicios asignados exitosamente.",
-      "servicesAssignFailed": "No se pudieron asignar los servicios."
+      "servicesAssignFailed": "No se pudieron asignar servicios."
     }
   },
   "QuoteColumns": {
@@ -612,7 +611,7 @@
   "QuotesPage": {
     "sendEmailDialog": {
       "title": "Enviar Cotización por Correo Electrónico",
-      "description": "Introduce los correos electrónicos de los destinatarios para la cotización #{id}.",
+      "description": "Introduce los correos de los destinatarios para la cotización #{id}.",
       "recipients": "Destinatarios",
       "placeholder": "email1@example.com, email2@example.com",
       "helperText": "Separa múltiples correos electrónicos con comas."
@@ -631,21 +630,21 @@
       "confirmed": "Confirmada",
       "rejected": "Rechazada",
       "paymentStatus": "Estado de Pago",
-      "unpaid": "No Pagada",
+      "unpaid": "Impago",
       "billingStatus": "Estado de Facturación",
-      "notInvoiced": "No Facturado",
+      "notInvoiced": "No facturado",
       "save": "Guardar",
-      "noUserFound": "No se encontró usuario",
+      "noUserFound": "Usuario no encontrado",
       "selectCurrency": "Seleccionar Moneda",
       "selectStatus": "Seleccionar Estado",
       "selectPaymentStatus": "Seleccionar Estado de Pago",
-      "partially_paid": "Parcialmente Pagada",
-      "paid": "Pagada",
+      "partially_paid": "Pagado Parcialmente",
+      "paid": "Pagado",
       "selectBillingStatus": "Seleccionar Estado de Facturación",
-      "partially_invoiced": "Parcialmente Facturado",
+      "partially_invoiced": "Facturado Parcialmente",
       "invoiced": "Facturado",
       "notinvoiced": "No Facturado",
-      "partiallyPaid": "Parcialmente Pagado",
+      "partiallyPaid": "Pagado Parcialmente",
       "not invoiced": "No Facturado",
       "accepted": "Aceptada",
       "fully_invoiced": "Totalmente Facturado",
@@ -656,7 +655,7 @@
     "detailsFor": "Detalles para {name}",
     "quoteId": "ID de Cotización",
     "tabs": {
-      "items": "Ítems",
+      "items": "Elementos",
       "orders": "Pedidos",
       "invoices": "Facturas",
       "payments": "Pagos"
@@ -668,8 +667,8 @@
       "quantity": "Cantidad",
       "unitPrice": "Precio Unitario",
       "total": "Total",
-      "createTitle": "Crear Ítem de Cotización",
-      "description": "Crear un nuevo ítem de cotización",
+      "createTitle": "Crear Elemento de Cotización",
+      "description": "Crear un nuevo elemento de cotización",
       "cancel": "Cancelar",
       "save": "Guardar",
       "actions": "Acciones",
@@ -687,15 +686,15 @@
       "confirm": "Confirmar"
     },
     "deleteItemDialog": {
-      "title": "Eliminar ítem",
-      "description": "Eliminar un ítem",
+      "title": "Eliminar elemento",
+      "description": "Eliminar un elemento",
       "cancel": "Cancelar",
       "confirm": "Confirmar"
     }
   },
   "InvoicesPage": {
     "title": "Facturas",
-    "description": "Administra todas tus facturas aquí.",
+    "description": "Gestiona todas tus facturas aquí.",
     "columns": {
       "invoiceId": "ID de Factura",
       "provider": "Proveedor",
@@ -706,7 +705,8 @@
       "status": "Estado",
       "payment": "Pago",
       "createdAt": "Creado El",
-      "currency": "Moneda"
+      "currency": "Moneda",
+      "type": "Tipo"
     },
     "paymentDialog": {
       "add": "Añadir Pago",
@@ -728,12 +728,16 @@
       "currency": "Moneda",
       "remaining_amount": "Monto Restante",
       "remainingAmount": "Monto Restante",
-      "summary": "Resumen de Pago",
-      "exchangeRateApplied": "Tasa de Cambio Aplicada",
+      "creditNote": "Nota de Crédito",
+      "paymentref": "Referencia de Pago",
+      "exchangeRage": "Tipo de Cambio",
+      "equivalentAmount": "Monto Equivalente",
+      "summary": "Resumen del Pago",
+      "exchangeRateApplied": "Tipo de Cambio Aplicado",
       "creditsApplied": "Créditos Aplicados",
       "manualPayment": "Pago Manual",
       "totalPayment": "Pago Total",
-      "noPayment": "Ningún pago seleccionado",
+      "noPayment": "No se seleccionó ningún pago",
       "overpayment": "El pago total excede el monto restante de la factura."
     },
     "status": {
@@ -741,9 +745,9 @@
       "sent": "Enviada",
       "draft": "Borrador",
       "overdue": "Vencida",
-      "unpaid": "No Pagada",
+      "unpaid": "Impagada",
       "partial": "Parcial",
-      "partially_paid": "Parcialmente Pagada",
+      "partially_paid": "Pagada Parcialmente",
       "completed": "Completada",
       "pending": "Pendiente",
       "failed": "Fallida",
@@ -760,23 +764,24 @@
     },
     "validation": {
       "amountPositive": "El monto debe ser un número positivo.",
-      "methodRequired": "El método de pago es obligatorio.",
-      "dateRequired": "La fecha de pago es obligatoria.",
-      "userRequired": "Se requiere un usuario"
+      "methodRequired": "El método de pago es requerido.",
+      "dateRequired": "La fecha de pago es requerida.",
+      "userRequired": "Se requiere un usuario",
+      "noPaymentAmount": "Por favor, introduce un monto o selecciona créditos para pagar."
     },
     "toast": {
       "error": "Error",
       "sessionCheckError": "No se pudo verificar la sesión de caja activa. Por favor, inténtalo de nuevo."
     },
     "noSessionDialog": {
-      "title": "Sin Sesión de Caja Activa",
+      "title": "No Hay Sesión de Caja Activa",
       "description": "Debes tener una sesión de caja activa para registrar un pago.",
       "openCashSession": "Abrir Sesión de Caja"
     },
     "detailsFor": "Detalles para",
     "invoiceId": "ID de Factura",
     "tabs": {
-      "items": "Ítems",
+      "items": "Elementos",
       "payments": "Pagos"
     },
     "filterPlaceholder": "Filtrar aquí...",
@@ -786,7 +791,7 @@
       "user": "Usuario",
       "selectUser": "Seleccionar Usuario",
       "invoiceRef": "Referencia de Factura",
-      "addItem": "Añadir Ítem",
+      "addItem": "Añadir Elemento",
       "total": "Total",
       "currency": "Moneda",
       "cancel": "Cancelar",
@@ -795,7 +800,7 @@
         "description": "Factura creada exitosamente."
       },
       "items": {
-        "title": "Ítems",
+        "title": "Elementos",
         "service": "Servicio",
         "quantity": "Cantidad",
         "unitPrice": "Precio Unitario",
@@ -806,10 +811,11 @@
         "invoice": "Factura",
         "credit_note": "Nota de Crédito"
       },
-      "type": "Tipo"
+      "type": "Tipo",
+      "parentInvoice": "Factura Padre"
     },
     "InvoiceItemsTable": {
-      "title": "Ítems de Factura",
+      "title": "Elementos de Factura",
       "columns": {
         "id": "ID",
         "service": "Servicio",
@@ -828,13 +834,13 @@
     "import": "Importar"
   },
   "InvoiceItemsTable": {
-    "title": "Ítems de Factura",
+    "title": "Elementos de Factura",
     "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
-      "service": "Service",
-      "quantity": "Quantity",
-      "unitPrice": "Unit Price",
+      "service": "Servicio",
+      "quantity": "Cantidad",
+      "unitPrice": "Precio Unitario",
       "total": "Total"
     }
   },
@@ -858,14 +864,14 @@
       "next": "Siguiente",
       "startClosing": "Comenzar Cierre",
       "steps": {
-        "review": "Revisar",
+        "review": "Revisión",
         "declare": "Declarar",
         "report": "Reporte"
       },
       "title": "Cerrar Sesión"
     },
     "confirmation": {
-      "sessionInfo": "Info de Sesión",
+      "sessionInfo": "Información de Sesión",
       "cashSummary": "Resumen de Efectivo",
       "totalUYU": "Total UYU",
       "totalUSD": "Total USD",
@@ -894,8 +900,8 @@
     },
     "viewAllCashPoints": "Ver Todos los Puntos de Caja",
     "declareCashup": {
-      "title": "Declarar Arqueo",
-      "description": "Declarar Arqueo",
+      "title": "Declarar Cierre de Caja",
+      "description": "Declarar Cierre de Caja",
       "methods": {
         "cash": "Efectivo",
         "card": "Tarjeta",
@@ -921,7 +927,8 @@
       "closeDate": "Fecha de Cierre",
       "openingAmount": "Monto Inicial",
       "actions": "Acciones",
-      "viewDetails": "Ver detalles"
+      "viewDetails": "Ver detalles",
+      "closingAmount": "Monto de Cierre"
     },
     "detailsTitle": "Detalles de la Sesión de Caja",
     "detailsDescription": "Detalles de la Sesión de Caja",
@@ -936,7 +943,18 @@
     "openingDenominations": "Denominaciones de Apertura",
     "closingDenominations": "Denominaciones de Cierre",
     "noDetails": "No hay detalles disponibles",
-    "movements": "Movimientos"
+    "movements": "Movimientos",
+    "reconciliationSummary": "Resumen de Conciliación",
+    "reconciliation": {
+      "paymentMethod": "Método de Pago",
+      "system": "Sistema",
+      "declared": "Declarado",
+      "difference": "Diferencia",
+      "cash": "Efectivo",
+      "transfer": "Transferencia",
+      "other": "Otro",
+      "card": "Tarjeta"
+    }
   },
   "MiscellaneousTransactionsPage": {
     "dashboard": {
@@ -966,10 +984,10 @@
       "status": "Estado"
     },
     "validation": {
-      "categoryRequired": "La categoría es obligatoria.",
-      "dateRequired": "La fecha es obligatoria.",
+      "categoryRequired": "La categoría es requerida.",
+      "dateRequired": "La fecha es requerida.",
       "amountPositive": "El monto debe ser un número positivo.",
-      "descriptionRequired": "La descripción es obligatoria."
+      "descriptionRequired": "La descripción es requerida."
     }
   },
   "PhysicalCashRegistersPage": {
@@ -980,8 +998,8 @@
       "id": "ID",
       "name": "Nombre",
       "isActive": "¿Está Activa?",
-      "createdAt": "Creada El",
-      "updatedAt": "Actualizada El",
+      "createdAt": "Creado El",
+      "updatedAt": "Actualizado El",
       "yes": "Sí",
       "no": "No",
       "actions": "Acciones",
@@ -999,7 +1017,7 @@
       "save": "Guardar Cambios"
     },
     "validation": {
-      "nameRequired": "El nombre es obligatorio"
+      "nameRequired": "El nombre es requerido"
     },
     "deleteDialog": {
       "title": "Eliminar Caja Registradora",
@@ -1018,7 +1036,7 @@
     },
     "filterPlaceholder": "Filtrar aquí...",
     "title": "Pedidos",
-    "description": "Una visión general de los pedidos.",
+    "description": "Un resumen de los pedidos.",
     "createTitle": "Crear Pedido",
     "createDescription": "Crear un nuevo pedido",
     "selectUser": "Seleccionar Usuario",
@@ -1035,7 +1053,7 @@
   },
   "PaymentsPage": {
     "title": "Pagos",
-    "description": "Una visión general de los pagos.",
+    "description": "Un resumen de los pagos.",
     "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
@@ -1056,12 +1074,15 @@
       "transaction_type": "Tipo de Transacción",
       "reference_doc_id": "ID de Documento de Referencia"
     },
-    "transactionType": "Tipo de Transacción",
+    "transactionType": {
+      "payment_allocation": "Asignación de Pago",
+      "direct_payment": "Pago Directo"
+    },
     "createPrepaid": "Crear Prepago"
   },
   "PaymentMethodsPage": {
     "title": "Métodos de Pago",
-    "description": "Una visión general de los métodos de pago.",
+    "description": "Un resumen de los métodos de pago.",
     "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
@@ -1097,7 +1118,7 @@
   },
   "ServicesPage": {
     "title": "Servicios",
-    "description": "Una visión general de los servicios.",
+    "description": "Un resumen de los servicios.",
     "filterPlaceholder": "Filtrar aquí...",
     "createDialog": {
       "title": "Crear Servicio",
@@ -1110,7 +1131,7 @@
       "currency": "Moneda",
       "duration": "Duración",
       "descriptionLabel": "Descripción",
-      "descriptionPlaceholder": "ej. Un procedimiento para restaurar un diente que ha sido dañado por la caries.",
+      "descriptionPlaceholder": "ej. Un procedimiento para restaurar un diente que ha sido dañado por caries.",
       "indicationsLabel": "Indicaciones",
       "indicationsPlaceholder": "ej. Debe cepillarse y usar hilo dental a fondo antes de la cita.",
       "cancel": "Cancelar",
@@ -1170,7 +1191,7 @@
     "deactivate": "Desactivar"
   },
   "OrderItemsTable": {
-    "title": "Ítems de Pedido",
+    "title": "Elementos de Pedido",
     "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
@@ -1187,7 +1208,7 @@
       "invoiced": "Facturado"
     },
     "actions": {
-      "title": "Título",
+      "title": "Acciones",
       "schedule": "Programar",
       "openMenu": "Abrir menú"
     }
@@ -1227,7 +1248,7 @@
       "id": "ID",
       "dayOfWeek": "Día de la Semana",
       "startTime": "Hora de Inicio",
-      "endTime": "Hora de Finalización",
+      "endTime": "Hora de Fin",
       "actions": "Acciones",
       "edit": "Editar",
       "delete": "Eliminar"
@@ -1247,7 +1268,7 @@
       "dayOfWeek": "Día de la Semana",
       "selectDay": "Seleccionar Día",
       "startTime": "Hora de Inicio",
-      "endTime": "Hora de Finalización",
+      "endTime": "Hora de Fin",
       "save": "Guardar",
       "cancel": "Cancelar",
       "editTitle": "Editar horario",
@@ -1255,9 +1276,9 @@
       "editSave": "Guardar Cambios"
     },
     "validation": {
-      "dayOfWeekRequired": "El día de la semana es obligatorio.",
-      "startTimeRequired": "La hora de inicio es obligatoria.",
-      "endTimeRequired": "La hora de finalización es obligatoria."
+      "dayOfWeekRequired": "El día de la semana es requerido.",
+      "startTimeRequired": "La hora de inicio es requerida.",
+      "endTimeRequired": "La hora de fin es requerida."
     },
     "deleteDialog": {
       "title": "Eliminar Horario",
@@ -1275,7 +1296,7 @@
       "date": "Fecha",
       "status": "Estado",
       "startTime": "Hora de Inicio",
-      "endTime": "Hora de Finalización",
+      "endTime": "Hora de Fin",
       "notes": "Notas",
       "open": "Abierto",
       "closed": "Cerrado",
@@ -1289,7 +1310,7 @@
       "date": "Fecha",
       "isOpen": "¿Está Abierto?",
       "startTime": "Hora de Inicio",
-      "endTime": "Hora de Finalización",
+      "endTime": "Hora de Fin",
       "notes": "Notas",
       "notesPlaceholder": "Introduce notas aquí...",
       "save": "Guardar",
@@ -1299,7 +1320,7 @@
       "editSave": "Guardar Cambios"
     },
     "validation": {
-      "dateRequired": "La fecha es obligatoria."
+      "dateRequired": "La fecha es requerida."
     },
     "deleteDialog": {
       "title": "Eliminar Día Festivo",
@@ -1384,7 +1405,7 @@
   },
   "DoctorAvailabilityPage": {
     "title": "Disponibilidad del Doctor",
-    "description": "Administrar la disponibilidad del doctor para la clínica",
+    "description": "Gestionar la disponibilidad del doctor para la clínica",
     "filterPlaceholder": "Filtrar aquí...",
     "dialog": {
       "daily": "Diario",
@@ -1400,7 +1421,7 @@
       "recurrence": "Recurrencia",
       "dayOfWeek": "Día de la Semana",
       "startTime": "Hora de Inicio",
-      "endTime": "Hora de Finalización",
+      "endTime": "Hora de Fin",
       "startDate": "Fecha de Inicio",
       "endDate": "Fecha de Fin",
       "create": "Crear",
@@ -1421,7 +1442,7 @@
     "recurrence": "Recurrencia",
     "day": "Día",
     "startTime": "Hora de Inicio",
-    "endTime": "Hora de Finalización",
+    "endTime": "Hora de Fin",
     "startDate": "Fecha de Inicio",
     "endDate": "Fecha de Fin",
     "actions": "Acciones",
@@ -1430,14 +1451,14 @@
   },
   "DoctorAvailabilityExceptionsPage": {
     "title": "Excepciones de Disponibilidad del Doctor",
-    "description": "Administrar excepciones de disponibilidad del doctor para la clínica",
+    "description": "Gestionar excepciones de disponibilidad del doctor para la clínica",
     "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "doctor": "Doctor",
       "date": "Fecha",
       "available": "Disponible",
       "startTime": "Hora de Inicio",
-      "endTime": "Hora de Finalización",
+      "endTime": "Hora de Fin",
       "yes": "Sí",
       "no": "No",
       "actions": "Acciones",
@@ -1454,7 +1475,7 @@
       "date": "Fecha",
       "isAvailable": "¿Está Disponible?",
       "startTime": "Hora de Inicio",
-      "endTime": "Hora de Finalización",
+      "endTime": "Hora de Fin",
       "create": "Crear",
       "cancel": "Cancelar",
       "save": "Guardar Cambios"
@@ -1462,9 +1483,9 @@
   },
   "CurrenciesPage": {
     "title": "Monedas",
-    "description": "Administrar monedas para la clínica",
+    "description": "Gestionar monedas para la clínica",
     "baseCurrency": "Moneda Base",
-    "exchangeRateHistory": "Historial de Tipo de Cambio",
+    "exchangeRateHistory": "Historial de Tipos de Cambio",
     "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "date": "Fecha",
@@ -1487,8 +1508,8 @@
     }
   },
   "ProductCategoriesPage": {
-    "title": "Categorías de Producto",
-    "description": "Administrar categorías de producto para la clínica",
+    "title": "Categorías de Productos",
+    "description": "Gestionar categorías de productos para la clínica",
     "filterPlaceholder": "Filtrar aquí...",
     "dialog": {
       "createTitle": "Crear Categoría de Producto",
@@ -1496,11 +1517,11 @@
       "editTitle": "Editar Categoría de Producto",
       "editDescription": "Editar la categoría de producto para la clínica",
       "name": "Nombre",
-      "namePlaceholder": "Introducir nombre de la categoría de producto",
+      "namePlaceholder": "Introduce el nombre de la categoría de producto",
       "code": "Código",
-      "codePlaceholder": "Introducir código de la categoría de producto",
+      "codePlaceholder": "Introduce el código de la categoría de producto",
       "description": "Descripción",
-      "descriptionPlaceholder": "Introducir descripción de la categoría de producto",
+      "descriptionPlaceholder": "Introduce la descripción de la categoría de producto",
       "type": "Tipo",
       "selectType": "Seleccionar un tipo",
       "expense": "Gasto",
@@ -1530,7 +1551,7 @@
   },
   "SystemUsersPage": {
     "title": "Usuarios del Sistema",
-    "description": "Administrar usuarios del sistema para la clínica",
+    "description": "Gestionar usuarios del sistema para la clínica",
     "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "name": "Nombre",
@@ -1560,9 +1581,9 @@
       "editTitle": "Editar Usuario del Sistema",
       "editDescription": "Editar el usuario del sistema para la clínica",
       "validation": {
-        "nameRequired": "El nombre es obligatorio",
-        "emailInvalid": "Dirección de correo electrónico no válida",
-        "phoneInvalid": "Número de teléfono no válido",
+        "nameRequired": "El nombre es requerido",
+        "emailInvalid": "Dirección de correo electrónico inválida",
+        "phoneInvalid": "Número de teléfono inválido",
         "identityInvalid": "El documento de identidad debe ser un número.",
         "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos."
       }
@@ -1570,7 +1591,7 @@
   },
   "RolesPage": {
     "title": "Roles",
-    "description": "Administrar roles para la clínica",
+    "description": "Gestionar roles para la clínica",
     "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "roleId": "ID",
@@ -1598,7 +1619,7 @@
   },
   "PermissionsPage": {
     "title": "Permisos",
-    "description": "Administrar permisos para la clínica",
+    "description": "Gestionar permisos para la clínica",
     "filterPlaceholder": "Filtrar aquí...",
     "permissionId": "ID",
     "columns": {
@@ -1632,7 +1653,7 @@
         "create": "Crear",
         "update": "Actualizar",
         "delete": "Eliminar",
-        "manage": "Administrar"
+        "manage": "Gestionar"
       }
     },
     "validation": {},
@@ -1649,7 +1670,7 @@
   },
   "ConfigurationsPage": {
     "title": "Configuraciones",
-    "description": "Administrar configuraciones para la clínica",
+    "description": "Gestionar configuraciones para la clínica",
     "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
@@ -1693,7 +1714,7 @@
       "table": "Tabla",
       "recordId": "ID de Registro",
       "operation": "Operación",
-      "oldValue": "Valor Antiguo",
+      "oldValue": "Valor Anterior",
       "newValue": "Nuevo Valor",
       "changedBy": "Cambiado Por",
       "actions": "Acciones",
@@ -1736,7 +1757,9 @@
       "showMore": "Mostrar más",
       "notes": "Notas",
       "treatments": "Tratamientos",
-      "tooth": "Diente"
+      "tooth": "Diente",
+      "showLess": "Mostrar menos",
+      "attachments": "Archivos Adjuntos"
     },
     "searchPlaceholder": "Buscar historial médico...",
     "tabs": {
@@ -1749,7 +1772,7 @@
     "selectPatientTitle": "Seleccionar un Paciente",
     "selectPatientDescription": "Por favor, selecciona un paciente para ver su historial médico",
     "noPatientsFound": "No se encontraron pacientes",
-    "title": "Historial Clínico",
+    "title": "Historia Clínica",
     "sessionDialog": {
       "createTitle": "Crear Sesión",
       "date": "Fecha",
@@ -1772,7 +1795,9 @@
         "saveError": "Ocurrió un error al guardar la sesión"
       },
       "tooth": "Diente",
-      "saving": "Guardando"
+      "saving": "Guardando",
+      "nextSessionPlan": "Plan de Próxima Sesión",
+      "attachments": "Archivos Adjuntos"
     },
     "timeline": {
       "deleteDialog": {
@@ -1793,7 +1818,11 @@
       "showLess": "Mostrar menos",
       "edit": "Editar",
       "delete": "Eliminar",
-      "odontogramTooltip": "Ver odontograma"
+      "odontogramTooltip": "Ver odontograma",
+      "toast": {
+        "success": "Éxito",
+        "deleteSuccess": "Eliminado exitosamente"
+      }
     },
     "anamnesis": {
       "personalTitle": "Información Personal",
@@ -1811,7 +1840,7 @@
         "ailment": "Dolencia",
         "selectAilment": "Seleccionar Dolencia",
         "comments": "Comentarios",
-        "commentsPlaceholder": "Introducir comentarios aquí...",
+        "commentsPlaceholder": "Introduce comentarios aquí...",
         "cancel": "Cancelar",
         "save": "Guardar",
         "family": {
@@ -1827,7 +1856,7 @@
           "maternalGrandmother": "Abuela Materna",
           "paternalGrandfather": "Abuelo Paterno",
           "paternalGrandmother": "Abuela Paterna",
-          "commentsPlaceholder": "Introducir comentarios aquí..."
+          "commentsPlaceholder": "Introduce comentarios aquí..."
         },
         "medication": {
           "addTitle": "Añadir Medicamento",
@@ -1840,7 +1869,7 @@
           "frequency": "Frecuencia",
           "startDate": "Fecha de Inicio",
           "endDate": "Fecha de Fin",
-          "reason": "Motivo",
+          "reason": "Razón",
           "searchMedication": "Buscar Medicamento",
           "noMedicationFound": "No se encontró medicamento"
         },
@@ -1868,13 +1897,13 @@
       },
       "deleteDialog": {
         "title": "Eliminar",
-        "description": "¿Estás seguro de que quieres eliminar este ítem?",
+        "description": "¿Estás seguro de que quieres eliminar este elemento?",
         "cancel": "Cancelar",
         "confirm": "Eliminar"
       },
       "loading": {
         "allergies": "Alergias",
-        "family": "Familiares",
+        "family": "Familia",
         "medications": "Medicamentos",
         "personal": "Personal"
       },
@@ -1907,7 +1936,7 @@
     "odontogram": {
       "conditions": {
         "fusion": "Fusión",
-        "crown-tmp": "Corona-tmp",
+        "crown-tmp": "Corona-temporal",
         "filling": "Empaste",
         "fixed-ortho": "Ortodoncia Fija",
         "caries": "Caries",
@@ -1937,8 +1966,8 @@
     "images": {
       "title": "Imágenes",
       "dicomCompliant": "Compatible con DICOM",
-      "all": "Todas",
-      "xrays": "Radiografías",
+      "all": "Todos",
+      "xrays": "Rayos X",
       "photos": "Fotos"
     },
     "searching": "Buscando..."

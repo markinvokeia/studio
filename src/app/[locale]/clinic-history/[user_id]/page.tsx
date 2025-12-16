@@ -918,8 +918,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     const [attachments, setAttachments] = useState<File[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
-    const [existingAttachments, setExistingAttachments] = useState<AttachedFile[]>([]);
-    const [newAttachments, setNewAttachments] = useState<File[]>([]);
 
 
     const form = useForm<SessionFormValues>({
@@ -943,7 +941,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     useEffect(() => {
         const fetchInitialData = async () => {
             if (isOpen) {
-                // Fetch doctors
                 try {
                     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=DOCTOR');
                     const data = await response.json();
@@ -953,12 +950,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                     console.error('Failed to fetch doctors', error);
                 }
 
-                // Reset form and attachments
                 setAttachments([]);
 
                 if (session) {
-                    setIsLoadingAttachments(true);
-                    
                     form.reset({
                         doctor_id: session.doctor_id || '',
                         fecha_sesion: session.fecha_sesion ? parseISO(session.fecha_sesion) : new Date(),
@@ -969,24 +963,28 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         treatments: session.tratamientos?.map(t => ({...t, numero_diente: String(t.numero_diente)})) || [],
                     });
                     
-                    if (session.archivos_adjuntos && session.archivos_adjuntos.length > 0) {
-                        const filePromises = session.archivos_adjuntos.map(async (file) => {
-                            try {
-                                const response = await fetch(getAttachmentUrl(file.ruta));
-                                if (!response.ok) throw new Error('Failed to fetch attachment blob');
-                                const blob = await response.blob();
-                                return new File([blob], file.file_name || 'attachment.jpg', { type: blob.type });
-                            } catch (e) {
-                                console.error("Could not fetch attachment:", file.ruta, e);
-                                return null;
-                            }
-                        });
-                        const fetchedFiles = await Promise.all(filePromises);
-                        setAttachments(fetchedFiles.filter((f): f is File => f !== null));
+                    if (session.sesion_id) {
+                      setIsLoadingAttachments(true);
+                      try {
+                        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/attachments?session_id=${session.sesion_id}`);
+                        if (response.ok) {
+                          const filesData = await response.json();
+                          const filePromises = filesData.map(async (fileData: any) => {
+                            const res = await fetch(getAttachmentUrl(fileData.ruta));
+                            const blob = await res.blob();
+                            return new File([blob], fileData.file_name, { type: fileData.mime_type });
+                          });
+                          const fetchedFiles = await Promise.all(filePromises);
+                          setAttachments(fetchedFiles);
+                        }
+                      } catch (error) {
+                        console.error('Failed to fetch session attachments:', error);
+                      } finally {
+                        setIsLoadingAttachments(false);
+                      }
                     }
-                    setIsLoadingAttachments(false);
+
                 } else {
-                     setAttachments([]);
                      form.reset({
                         doctor_id: '',
                         fecha_sesion: new Date(),
@@ -1196,7 +1194,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                 <ScrollArea className="h-24 mt-1 border rounded-md p-2">
                                                     <div className="grid grid-cols-2 gap-2">
                                                         {attachments.map((file, index) => (
-                                                            <div key={`new-${index}`} className="flex items-center justify-between gap-2 p-1 bg-blue-100 dark:bg-blue-900/50 rounded-md">
+                                                            <div key={`new-${index}`} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
                                                             <div className="flex items-center gap-2 overflow-hidden">
                                                                 <Image src={URL.createObjectURL(file)} alt={file.name} width={24} height={24} className="rounded object-cover aspect-square"/>
                                                                 <span className="text-sm truncate flex-1">{file.name}</span>
@@ -2238,5 +2236,3 @@ const DentalClinicalSystemPage = () => {
 }
     
 export default DentalClinicalSystemPage;
-
-    
