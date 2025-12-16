@@ -7,7 +7,7 @@ import {
   Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
   ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
   BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw,
-  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown, ChevronsUpDown, Check, Trash2, MoreHorizontal, FolderArchive, Upload, Loader2, FileUp, CalendarIcon
+  Wind, GlassWater, Smile, Maximize, Minimize, ChevronDown, ChevronsUpDown, Check, Trash2, MoreHorizontal, FolderArchive, Upload, Loader2, CalendarIcon
 } from 'lucide-react';
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
@@ -58,7 +58,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 const getAttachmentUrl = (path: string) => {
     try {
         new URL(path);
-        if (path.includes('drive.google.com')) {
+        if (path.includes('drive.google.com') || path.includes('lh3.googleusercontent.com')) {
              return `/api/attachment-proxy?url=${encodeURIComponent(path)}`;
         }
         return path;
@@ -995,7 +995,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         if (values.treatments) {
             formData.append('tratamientos', JSON.stringify(values.treatments.map(t => ({
                 ...t,
-                tratamiento_id: t.tratamiento_id ? parseInt(t.tratamiento_id, 10) : undefined
+                tratamiento_id: t.tratamiento_id ? parseInt(t.tratamiento_id, 10) : undefined,
+                numero_diente: t.numero_diente ? parseInt(t.numero_diente, 10) : null
             }))));
         }
 
@@ -1184,7 +1185,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                                 <div key={`existing-${file.id}`} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
                                                                     <div className="flex items-center gap-2 overflow-hidden">
                                                                         {file.thumbnail_url ? (
-                                                                            <Image src={file.thumbnail_url} alt={file.file_name || 'attachment'} width={24} height={24} className="rounded object-cover aspect-square"/>
+                                                                            <Image src={getAttachmentUrl(file.thumbnail_url)} alt={file.file_name || 'attachment'} width={24} height={24} className="rounded object-cover aspect-square"/>
                                                                         ) : (
                                                                             <FileText className="h-6 w-6 text-muted-foreground"/>
                                                                         )}
@@ -1342,7 +1343,7 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
                     name: doc.name,
                     mimeType: doc.mimeType,
                     hasThumbnail: doc.hasThumbnail,
-                    thumbnailLink: getGoogleDriveThumbnailUrl(doc.thumbnailLink),
+                    thumbnailLink: getAttachmentUrl(doc.thumbnailLink),
                     webViewLink: doc.webViewLink,
                 })));
             } else {
@@ -1428,12 +1429,6 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
         } finally {
             setDeletingDocument(null);
         }
-    };
-
-    const getGoogleDriveThumbnailUrl = (url: string | undefined) => {
-      if (!url) return undefined;
-      // Transforms the URL to get a larger thumbnail
-      return url.replace(/=s\d+$/, '=s800');
     };
     
     return (
@@ -1719,8 +1714,9 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             const sessionsData = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
             setPatientSessions(sessionsData.map((session: any) => ({
                 ...session,
-                lista_tratamientos: session.tratamientos || [],
-                lista_archivos: session.archivos_adjuntos || [],
+                sesion_id: String(session.sesion_id),
+                tratamientos: session.lista_tratamientos || [],
+                archivos_adjuntos: session.lista_archivos || [],
             })));
         } catch (error) {
             console.error("Failed to fetch patient sessions:", error);
@@ -1907,7 +1903,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             id: String(attachment.id),
             name: attachment.file_name || 'Attachment',
             mimeType: attachment.tipo,
-            thumbnailLink: attachment.thumbnail_url
+            thumbnailLink: getAttachmentUrl(attachment.thumbnail_url || '')
         };
         setSelectedDocument(doc);
         setIsViewerOpen(true);
@@ -2055,7 +2051,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                         <p><strong>{t('notes')}:</strong> {session.notas_clinicas}</p>
                         {session.plan_proxima_cita && <p><strong>{t('nextSessionPlan')}:</strong> {session.plan_proxima_cita}</p>}
                         <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>
-                            {(session.lista_tratamientos?.length > 0 || session.lista_archivos?.length > 0 || session.estado_odontograma) && (
+                            {(session.tratamientos?.length > 0 || session.archivos_adjuntos?.length > 0 || session.estado_odontograma) && (
                             <CollapsibleTrigger asChild>
                                 <Button variant="link" className="p-0 h-auto text-xs flex items-center gap-1">
                                 {isOpen ? t('showLess') : t('showMore')}
@@ -2075,24 +2071,24 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                         </ul>
                                     </div>
                                 )}
-                                {session.lista_tratamientos && session.lista_tratamientos.length > 0 && (
+                                {session.tratamientos && session.tratamientos.length > 0 && (
                                 <div>
                                     <strong className="text-foreground">{t('treatments')}:</strong>
                                     <ul className="list-disc pl-5">
-                                    {session.lista_tratamientos.map((treatment, i) => (
+                                    {session.tratamientos.map((treatment, i) => (
                                         <li key={i}>{treatment.descripcion} {treatment.numero_diente && `(${t('tooth')}: ${treatment.numero_diente})`}</li>
                                     ))}
                                     </ul>
                                 </div>
                                 )}
-                                {session.lista_archivos && session.lista_archivos.length > 0 && (
+                                {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
                                     <div>
                                         <strong className="text-foreground">{t('attachments')}:</strong>
                                         <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                                            {session.lista_archivos.map((file, i) => (
+                                            {session.archivos_adjuntos.map((file, i) => (
                                                 <div key={i} className="relative aspect-square cursor-pointer group" onClick={() => handleViewSessionAttachment(session, file)}>
                                                     {file.thumbnail_url ? (
-                                                        <Image src={file.thumbnail_url} alt={file.file_name || 'Attachment'} layout="fill" className="object-cover rounded-md" />
+                                                        <Image src={getAttachmentUrl(file.thumbnail_url)} alt={file.file_name || 'Attachment'} layout="fill" className="object-cover rounded-md" />
                                                     ) : (
                                                         <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
                                                             <FileText className="h-6 w-6 text-muted-foreground" />
@@ -2279,6 +2275,7 @@ const DentalClinicalSystemPage = () => {
 }
     
 export default DentalClinicalSystemPage;
+
 
 
 
