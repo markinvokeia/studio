@@ -887,7 +887,7 @@ const sessionFormSchema = z.object({
   notas_clinicas: z.string().optional(),
   plan_proxima_cita: z.string().optional(),
   treatments: z.array(z.object({
-    id: z.string().optional(),
+    tratamiento_id: z.string().optional(),
     descripcion: z.string().min(1, 'Treatment description is required'),
     numero_diente: z.string().refine(val => {
       if (val === '' || val === undefined) return true; // Optional field
@@ -917,7 +917,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     const t = useTranslations('ClinicHistoryPage.sessionDialog');
     const { toast } = useToast();
     const [doctors, setDoctors] = useState<UserType[]>([]);
-    const [attachments, setAttachments] = useState<File[]>([]);
+    const [newAttachments, setNewAttachments] = useState<File[]>([]);
+    const [existingAttachments, setExistingAttachments] = useState<AttachedFile[]>([]);
+    const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
 
@@ -961,33 +963,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         diagnostico: session.diagnostico || '',
                         notas_clinicas: session.notas_clinicas || '',
                         plan_proxima_cita: session.plan_proxima_cita || '',
-                        treatments: session.tratamientos?.map(t => ({...t, id: String(t.id), numero_diente: String(t.numero_diente)})) || [],
+                        treatments: session.lista_tratamientos?.map(t => ({...t, tratamiento_id: String(t.tratamiento_id), numero_diente: String(t.numero_diente)})) || [],
                     });
-
-                    if (session.archivos_adjuntos && session.archivos_adjuntos.length > 0) {
-                        try {
-                            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/attachments?session_id=${session.sesion_id}`);
-                            if (response.ok) {
-                                const filesData = await response.json();
-                                const filePromises = filesData.map(async (fileData: any) => {
-                                    try {
-                                        const res = await fetch(getAttachmentUrl(fileData.ruta));
-                                        const blob = await res.blob();
-                                        return new File([blob], fileData.file_name, { type: blob.type });
-                                    } catch (e) {
-                                        console.error("Could not fetch attachment:", fileData.ruta, e);
-                                        return null;
-                                    }
-                                });
-                                const fetchedFiles = (await Promise.all(filePromises)).filter((f): f is File => f !== null);
-                                setAttachments(fetchedFiles);
-                            }
-                        } catch (error) {
-                            console.error('Failed to fetch session attachments:', error);
-                        }
-                    } else {
-                        setAttachments([]);
-                    }
+                    setExistingAttachments(session.lista_archivos || []);
                 } else {
                      form.reset({
                         doctor_id: '',
@@ -998,8 +976,10 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         plan_proxima_cita: '',
                         treatments: [],
                     });
-                    setAttachments([]);
+                    setExistingAttachments([]);
                 }
+                setNewAttachments([]);
+                setDeletedAttachmentIds([]);
                 setIsLoadingAttachments(false);
             }
         };
@@ -1024,8 +1004,12 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
             formData.append('tratamientos', JSON.stringify(values.treatments));
         }
 
-        attachments.forEach((file, index) => {
-            formData.append(`archivos_adjuntos_${index}`, file);
+        const keptAttachmentIds = existingAttachments.map(att => att.id);
+        formData.append('existing_attachment_ids', JSON.stringify(keptAttachmentIds));
+        formData.append('deleted_attachment_ids', JSON.stringify(deletedAttachmentIds));
+
+        newAttachments.forEach((file, index) => {
+            formData.append(`newly_added_files`, file);
         });
 
         try {
@@ -1046,12 +1030,17 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     
     const handleAttachmentFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
-            setAttachments(prev => [...prev, ...Array.from(event.target.files!)]);
+            setNewAttachments(prev => [...prev, ...Array.from(event.target.files!)]);
         }
     };
     
-    const removeAttachment = (indexToRemove: number) => {
-        setAttachments(prev => prev.filter((_, index) => index !== indexToRemove));
+    const removeNewAttachment = (indexToRemove: number) => {
+        setNewAttachments(prev => prev.filter((_, index) => index !== indexToRemove));
+    };
+    
+    const removeExistingAttachment = (idToRemove: string) => {
+        setExistingAttachments(prev => prev.filter(att => String(att.id) !== idToRemove));
+        setDeletedAttachmentIds(prev => [...prev, idToRemove]);
     };
 
 
@@ -1132,42 +1121,41 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                     </CardHeader>
                                     <CardContent className="space-y-2">
                                         <ScrollArea className="h-48 pr-4">
-                                            <div className="space-y-3">
-                                                {fields.length > 0 ? (
-                                                    fields.map((field, index) => (
-                                                        <div key={field.id} className="flex gap-2 items-start p-2 border rounded-md">
-                                                            <FormField
-                                                            control={form.control}
-                                                            name={`treatments.${index}.numero_diente`}
-                                                            render={({ field }) => (
-                                                                <FormItem className="w-24">
-                                                                <FormLabel className="text-xs">{t('tooth')}</FormLabel>
-                                                                <FormControl>
-                                                                    <Input type="number" placeholder={t('tooth')} {...field} className="h-8" />
-                                                                </FormControl>
-                                                                <FormMessage />
-                                                                </FormItem>
-                                                            )}
-                                                            />
-                                                            <FormField
-                                                            control={form.control}
-                                                            name={`treatments.${index}.descripcion`}
-                                                            render={({ field }) => (
-                                                                <FormItem className="flex-1">
-                                                                <FormLabel className="text-xs">Tratamiento</FormLabel>
-                                                                <FormControl>
-                                                                    <Textarea placeholder={t('treatmentPlaceholder')} {...field} className="min-h-[32px] h-8" />
-                                                                </FormControl>
-                                                                <FormMessage />
-                                                                </FormItem>
-                                                            )}
-                                                            />
-                                                            <Button type="button" variant="ghost" size="icon" className="mt-5" onClick={() => remove(index)}>
-                                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                                            </Button>
-                                                        </div>
-                                                    ))
-                                                ) : (
+                                             <div className="space-y-3">
+                                                {fields.map((field, index) => (
+                                                    <div key={field.id} className="flex gap-2 items-start p-2 border rounded-md">
+                                                        <FormField
+                                                        control={form.control}
+                                                        name={`treatments.${index}.numero_diente`}
+                                                        render={({ field }) => (
+                                                            <FormItem className="w-24">
+                                                            <FormLabel className="text-xs">{t('tooth')}</FormLabel>
+                                                            <FormControl>
+                                                                <Input type="number" placeholder={t('tooth')} {...field} className="h-8" />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                        />
+                                                        <FormField
+                                                        control={form.control}
+                                                        name={`treatments.${index}.descripcion`}
+                                                        render={({ field }) => (
+                                                            <FormItem className="flex-1">
+                                                            <FormLabel className="text-xs">Tratamiento</FormLabel>
+                                                            <FormControl>
+                                                                <Textarea placeholder={t('treatmentPlaceholder')} {...field} className="min-h-[32px] h-8" />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                        />
+                                                        <Button type="button" variant="ghost" size="icon" className="mt-5" onClick={() => remove(index)}>
+                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                                {fields.length === 0 && (
                                                     <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
                                                         No treatments added yet.
                                                     </div>
@@ -1192,30 +1180,45 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                 <Input id="session-attachments" type="file" multiple className="hidden" onChange={handleAttachmentFileChange} />
                                             </label>
                                         </div>
-                                        <div className="mt-4">
-                                            <h4 className="font-semibold text-sm mb-2">Existing Files</h4>
-                                            {isLoadingAttachments ? (
-                                                <div className="flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
-                                            ) : attachments.length === 0 ? (
-                                                <p className="text-xs text-muted-foreground text-center py-2">No files attached.</p>
-                                            ) : (
-                                                <ScrollArea className="h-24 mt-1 border rounded-md p-2">
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        {attachments.map((file, index) => (
-                                                            <div key={`new-${index}`} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
-                                                            <div className="flex items-center gap-2 overflow-hidden">
-                                                                <Image src={URL.createObjectURL(file)} alt={file.name} width={24} height={24} className="rounded object-cover aspect-square"/>
-                                                                <span className="text-sm truncate flex-1">{file.name}</span>
-                                                            </div>
-                                                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeAttachment(index)}>
-                                                                <X className="h-3 w-3"/>
-                                                            </Button>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </ScrollArea>
-                                            )}
-                                        </div>
+                                        {(existingAttachments.length > 0 || newAttachments.length > 0) && (
+                                            <div className="mt-4">
+                                                <h4 className="font-semibold text-sm mb-2">Attached Files</h4>
+                                                {isLoadingAttachments ? (
+                                                    <div className="flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
+                                                ) : (
+                                                    <ScrollArea className="h-24 mt-1 border rounded-md p-2">
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            {existingAttachments.map((file, index) => (
+                                                                <div key={`existing-${file.id}`} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
+                                                                    <div className="flex items-center gap-2 overflow-hidden">
+                                                                        {file.thumbnail_url ? (
+                                                                            <Image src={file.thumbnail_url} alt={file.file_name || 'attachment'} width={24} height={24} className="rounded object-cover aspect-square"/>
+                                                                        ) : (
+                                                                            <FileText className="h-6 w-6 text-muted-foreground"/>
+                                                                        )}
+                                                                        <span className="text-sm truncate flex-1">{file.file_name}</span>
+                                                                    </div>
+                                                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeExistingAttachment(String(file.id))}>
+                                                                        <X className="h-3 w-3"/>
+                                                                    </Button>
+                                                                </div>
+                                                            ))}
+                                                             {newAttachments.map((file, index) => (
+                                                                <div key={`new-${index}`} className="flex items-center justify-between gap-2 p-1 bg-blue-100 dark:bg-blue-900/50 rounded-md">
+                                                                    <div className="flex items-center gap-2 overflow-hidden">
+                                                                        <Image src={URL.createObjectURL(file)} alt={file.name} width={24} height={24} className="rounded object-cover aspect-square"/>
+                                                                        <span className="text-sm truncate flex-1">{file.name}</span>
+                                                                    </div>
+                                                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeNewAttachment(index)}>
+                                                                        <X className="h-3 w-3"/>
+                                                                    </Button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </ScrollArea>
+                                                )}
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
                             </div>
@@ -2274,3 +2277,4 @@ export default DentalClinicalSystemPage;
     
 
     
+
