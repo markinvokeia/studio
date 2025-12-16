@@ -537,9 +537,13 @@ export default function UsersPage() {
   };
 
   const handleDateChange = (newDate: DateRange | undefined) => {
-    setDate(newDate);
+    if (newDate?.from && newDate?.to) {
+        setDate({ from: startOfDay(newDate.from), to: endOfDay(newDate.to) });
+    } else {
+        setDate(newDate);
+    }
     setDatePreset(null); // Custom range
-  };
+};
 
   const extraToolbarButtons = (
     <div className="flex items-center gap-2">
