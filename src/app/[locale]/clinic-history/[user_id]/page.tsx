@@ -945,7 +945,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     useEffect(() => {
         const fetchInitialData = async () => {
             if (isOpen) {
-                setIsLoadingAttachments(true);
+                setIsSubmitting(false);
+                setIsLoadingAttachments(false);
                 try {
                     const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=DOCTOR');
                     const data = await response.json();
@@ -980,7 +981,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                 }
                 setNewAttachments([]);
                 setDeletedAttachmentIds([]);
-                setIsLoadingAttachments(false);
             }
         };
         fetchInitialData();
@@ -1008,7 +1008,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         formData.append('existing_attachment_ids', JSON.stringify(keptAttachmentIds));
         formData.append('deleted_attachment_ids', JSON.stringify(deletedAttachmentIds));
 
-        newAttachments.forEach((file, index) => {
+        newAttachments.forEach((file) => {
             formData.append(`newly_added_files`, file);
         });
 
@@ -1180,15 +1180,13 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                 <Input id="session-attachments" type="file" multiple className="hidden" onChange={handleAttachmentFileChange} />
                                             </label>
                                         </div>
-                                        {(existingAttachments.length > 0 || newAttachments.length > 0) && (
-                                            <div className="mt-4">
-                                                <h4 className="font-semibold text-sm mb-2">Attached Files</h4>
-                                                {isLoadingAttachments ? (
-                                                    <div className="flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
-                                                ) : (
+                                         <div className="mt-4 space-y-2">
+                                            {existingAttachments.length > 0 && (
+                                                <div>
+                                                    <h4 className="font-semibold text-sm mb-2">Existing Files</h4>
                                                     <ScrollArea className="h-24 mt-1 border rounded-md p-2">
                                                         <div className="grid grid-cols-2 gap-2">
-                                                            {existingAttachments.map((file, index) => (
+                                                            {existingAttachments.map((file) => (
                                                                 <div key={`existing-${file.id}`} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
                                                                     <div className="flex items-center gap-2 overflow-hidden">
                                                                         {file.thumbnail_url ? (
@@ -1203,7 +1201,16 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                                     </Button>
                                                                 </div>
                                                             ))}
-                                                             {newAttachments.map((file, index) => (
+                                                        </div>
+                                                    </ScrollArea>
+                                                </div>
+                                            )}
+                                            {newAttachments.length > 0 && (
+                                                <div>
+                                                    <h4 className="font-semibold text-sm mb-2">New Files</h4>
+                                                    <ScrollArea className="h-24 mt-1 border rounded-md p-2">
+                                                         <div className="grid grid-cols-2 gap-2">
+                                                            {newAttachments.map((file, index) => (
                                                                 <div key={`new-${index}`} className="flex items-center justify-between gap-2 p-1 bg-blue-100 dark:bg-blue-900/50 rounded-md">
                                                                     <div className="flex items-center gap-2 overflow-hidden">
                                                                         <Image src={URL.createObjectURL(file)} alt={file.name} width={24} height={24} className="rounded object-cover aspect-square"/>
@@ -1216,9 +1223,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                             ))}
                                                         </div>
                                                     </ScrollArea>
-                                                )}
-                                            </div>
-                                        )}
+                                                </div>
+                                            )}
+                                        </div>
                                     </CardContent>
                                 </Card>
                             </div>
@@ -2277,4 +2284,5 @@ export default DentalClinicalSystemPage;
     
 
     
+
 
