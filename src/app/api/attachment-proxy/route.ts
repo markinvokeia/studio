@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
   try {
     let urlToFetch = fileUrl;
     // Transform Google Drive viewer URL to a direct download link if applicable
-    if (fileUrl.includes('drive.google.com')) {
+    if (fileUrl.includes('drive.google.com/file/d/')) {
         const fileIdMatch = fileUrl.match(/d\/(.+?)(?:\/|$)/);
         if (fileIdMatch && fileIdMatch[1]) {
             urlToFetch = `https://drive.google.com/uc?export=download&id=${fileIdMatch[1]}`;
@@ -36,3 +37,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: `Failed to fetch attachment: ${errorMessage}` }, { status: 500 });
   }
 }
+
+    

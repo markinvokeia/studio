@@ -886,6 +886,7 @@ const sessionFormSchema = z.object({
   notas_clinicas: z.string().optional(),
   plan_proxima_cita: z.string().optional(),
   treatments: z.array(z.object({
+    id: z.string().optional(),
     descripcion: z.string().min(1, 'Treatment description is required'),
     numero_diente: z.string().refine(val => {
       if (val === '' || val === undefined) return true; // Optional field
@@ -960,7 +961,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         diagnostico: session.diagnostico || '',
                         notas_clinicas: session.notas_clinicas || '',
                         plan_proxima_cita: session.plan_proxima_cita || '',
-                        treatments: session.tratamientos?.map(t => ({...t, numero_diente: String(t.numero_diente)})) || [],
+                        treatments: session.tratamientos?.map(t => ({...t, id: String(t.id), numero_diente: String(t.numero_diente)})) || [],
                     });
                     
                     if (session.sesion_id) {
@@ -968,14 +969,19 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                       try {
                         const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/attachments?session_id=${session.sesion_id}`);
                         if (response.ok) {
-                          const filesData = await response.json();
-                          const filePromises = filesData.map(async (fileData: any) => {
-                            const res = await fetch(getAttachmentUrl(fileData.ruta));
-                            const blob = await res.blob();
-                            return new File([blob], fileData.file_name, { type: fileData.mime_type });
-                          });
-                          const fetchedFiles = await Promise.all(filePromises);
-                          setAttachments(fetchedFiles);
+                            const filesData = await response.json();
+                            const filePromises = filesData.map(async (fileData: any) => {
+                                try {
+                                    const res = await fetch(getAttachmentUrl(fileData.ruta));
+                                    const blob = await res.blob();
+                                    return new File([blob], fileData.file_name, { type: blob.type });
+                                } catch (e) {
+                                    console.error("Could not fetch attachment:", fileData.ruta, e);
+                                    return null;
+                                }
+                            });
+                            const fetchedFiles = (await Promise.all(filePromises)).filter((f): f is File => f !== null);
+                            setAttachments(fetchedFiles);
                         }
                       } catch (error) {
                         console.error('Failed to fetch session attachments:', error);
@@ -1014,7 +1020,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         formData.append('notas_clinicas', values.notas_clinicas || '');
         formData.append('plan_proxima_cita', values.plan_proxima_cita || '');
         
-        formData.append('tratamientos', JSON.stringify(values.treatments));
+        if (values.treatments) {
+            formData.append('tratamientos', JSON.stringify(values.treatments));
+        }
 
         attachments.forEach((file, index) => {
             formData.append(`archivos_adjuntos_${index}`, file);
@@ -1907,6 +1915,25 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     }
 };
 
+  const handleViewDocument = async (doc: Document) => {
+    setSelectedDocument(doc);
+    setIsViewerOpen(true);
+    setDocumentContent(null);
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/users/document?user_id=${userId}&id=${doc.id}`);
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            setDocumentContent(url);
+        } else {
+            throw new Error("Failed to load document");
+        }
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: "Could not load document." });
+        setIsViewerOpen(false);
+    }
+  };
+
   const Navigation = () => {
     const navItems = [
       { id: 'anamnesis', label: t('tabs.anamnesis'), icon: FileText },
@@ -2183,7 +2210,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                 <iframe src={`https://odontogramiia.invokeia.com/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
                             </div>
                         )}
-                        {activeView === 'documents' && <ImageGallery userId={userId} onViewDocument={handleViewAttachment}/>}
+                        {activeView === 'documents' && <ImageGallery userId={userId} onViewDocument={handleViewDocument}/>}
                     </div>
                 </div>
             </>
@@ -2236,3 +2263,5 @@ const DentalClinicalSystemPage = () => {
 }
     
 export default DentalClinicalSystemPage;
+
+    
