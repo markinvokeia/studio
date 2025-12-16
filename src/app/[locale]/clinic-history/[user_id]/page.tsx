@@ -954,13 +954,13 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         diagnostico: session.diagnostico || '',
                         notas_clinicas: session.notas_clinicas || '',
                         plan_proxima_cita: session.plan_proxima_cita || '',
-                        treatments: session.lista_tratamientos?.map(t => ({
-                          tratamiento_id: String(t.tratamiento_id), 
+                        treatments: session.tratamientos?.map(t => ({
+                          tratamiento_id: String(t.tratamiento_id),
                           numero_diente: t.numero_diente ? String(t.numero_diente) : '',
                           descripcion: t.descripcion || ''
                         })) || [],
                     });
-                    setExistingAttachments(session.lista_archivos || []);
+                    setExistingAttachments(session.archivos_adjuntos || []);
                 } else {
                      form.reset({
                         doctor_id: '',
@@ -993,7 +993,10 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         formData.append('plan_proxima_cita', values.plan_proxima_cita || '');
         
         if (values.treatments) {
-            formData.append('tratamientos', JSON.stringify(values.treatments));
+            formData.append('tratamientos', JSON.stringify(values.treatments.map(t => ({
+                ...t,
+                tratamiento_id: t.tratamiento_id ? parseInt(t.tratamiento_id, 10) : undefined
+            }))));
         }
 
         const keptAttachmentIds = existingAttachments.map(att => att.id);
@@ -1090,19 +1093,19 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                 <FormField control={form.control} name="diagnostico" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('diagnosis')}</FormLabel>
-                                        <FormControl><Textarea {...field} value={field.value || ''} /></FormControl>
+                                        <FormControl><Textarea {...field} /></FormControl>
                                     </FormItem>
                                 )} />
                                 <FormField control={form.control} name="notas_clinicas" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('notes')}</FormLabel>
-                                        <FormControl><Textarea {...field} value={field.value || ''} /></FormControl>
+                                        <FormControl><Textarea {...field} /></FormControl>
                                     </FormItem>
                                 )} />
                                 <FormField control={form.control} name="plan_proxima_cita" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('nextSessionPlan')}</FormLabel>
-                                        <FormControl><Textarea {...field} value={field.value || ''} /></FormControl>
+                                        <FormControl><Textarea {...field} /></FormControl>
                                     </FormItem>
                                 )} />
                             </div>
@@ -1127,7 +1130,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                         <FormItem className="w-24">
                                                         <FormLabel className="text-xs">{t('tooth')}</FormLabel>
                                                         <FormControl>
-                                                            <Input type="number" placeholder={t('tooth')} {...field} value={field.value || ''} />
+                                                            <Input type="number" placeholder={t('tooth')} {...field} />
                                                         </FormControl>
                                                         <FormMessage />
                                                         </FormItem>
@@ -2276,5 +2279,6 @@ const DentalClinicalSystemPage = () => {
 }
     
 export default DentalClinicalSystemPage;
+
 
 
