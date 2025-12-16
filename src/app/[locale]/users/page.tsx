@@ -124,12 +124,19 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
       filter_type: "PACIENTE",
       only_debtors: String(onlyDebtors)
     });
-     if (dateRange?.from) {
-      params.append('date_from', format(dateRange.from, 'yyyy-MM-dd'));
+    
+    if (dateRange?.from) {
+      const dateFrom = new Date(dateRange.from);
+      dateFrom.setHours(0, 0, 0, 0);
+      params.append('date_from', dateFrom.toISOString());
     }
+    
     if (dateRange?.to) {
-      params.append('date_to', format(dateRange.to, 'yyyy-MM-dd'));
+      const dateTo = new Date(dateRange.to);
+      dateTo.setHours(23, 59, 59, 999);
+      params.append('date_to', dateTo.toISOString());
     }
+    
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?${params.toString()}`, {
       method: 'GET',
       mode: 'cors',
@@ -161,7 +168,6 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
         usersData = responseData.data;
         total = Number(responseData.total) || usersData.length;
     }
-
 
     const mappedUsers = usersData.map((apiUser: any) => ({
       id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
