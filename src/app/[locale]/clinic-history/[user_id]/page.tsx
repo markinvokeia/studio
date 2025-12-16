@@ -887,7 +887,6 @@ const sessionFormSchema = z.object({
   plan_proxima_cita: z.string().optional(),
   treatments: z.array(z.object({
     tratamiento_id: z.string().optional(),
-    descripcion: z.string().min(1, 'Treatment description is required'),
     numero_diente: z.string().refine(val => {
       if (val === '' || val === undefined) return true; // Optional field
       const num = parseInt(val, 10);
@@ -901,6 +900,7 @@ const sessionFormSchema = z.object({
     }, {
       message: 'Invalid tooth number (must be 11-85, not ending in 0 or 9).'
     }).optional(),
+    descripcion: z.string().min(1, 'Treatment description is required'),
   }))
 });
 
@@ -1072,7 +1072,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                 <FormField control={form.control} name="doctor_id" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('doctor')}</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
+                                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                             <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder={t('selectDoctor')} />
@@ -1087,26 +1087,26 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                 <FormField control={form.control} name="procedimiento_realizado" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('procedure')}</FormLabel>
-                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
                                          <FormMessage />
                                     </FormItem>
                                 )} />
                                 <FormField control={form.control} name="diagnostico" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('diagnosis')}</FormLabel>
-                                        <FormControl><Textarea {...field} /></FormControl>
+                                        <FormControl><Textarea {...field} value={field.value ?? ''} /></FormControl>
                                     </FormItem>
                                 )} />
                                 <FormField control={form.control} name="notas_clinicas" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('notes')}</FormLabel>
-                                        <FormControl><Textarea {...field} /></FormControl>
+                                        <FormControl><Textarea {...field} value={field.value ?? ''} /></FormControl>
                                     </FormItem>
                                 )} />
                                 <FormField control={form.control} name="plan_proxima_cita" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('nextSessionPlan')}</FormLabel>
-                                        <FormControl><Textarea {...field} /></FormControl>
+                                        <FormControl><Textarea {...field} value={field.value ?? ''} /></FormControl>
                                     </FormItem>
                                 )} />
                             </div>
@@ -1131,7 +1131,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                         <FormItem className="w-24">
                                                         <FormLabel className="text-xs">{t('tooth')}</FormLabel>
                                                         <FormControl>
-                                                            <Input type="number" placeholder={t('tooth')} {...field} />
+                                                            <Input type="number" placeholder={t('tooth')} {...field} value={field.value ?? ''} />
                                                         </FormControl>
                                                         <FormMessage />
                                                         </FormItem>
@@ -1144,7 +1144,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                         <FormItem className="flex-1">
                                                         <FormLabel className="text-xs">Tratamiento</FormLabel>
                                                         <FormControl>
-                                                            <Textarea placeholder={t('treatmentPlaceholder')} {...field} className="min-h-[32px] h-8" />
+                                                            <Textarea placeholder={t('treatmentPlaceholder')} {...field} className="min-h-[32px] h-8" value={field.value ?? ''} />
                                                         </FormControl>
                                                         <FormMessage />
                                                         </FormItem>
@@ -2275,6 +2275,7 @@ const DentalClinicalSystemPage = () => {
 }
     
 export default DentalClinicalSystemPage;
+
 
 
 
