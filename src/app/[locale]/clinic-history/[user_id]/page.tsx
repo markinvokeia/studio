@@ -916,7 +916,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     const { toast } = useToast();
     const [doctors, setDoctors] = useState<UserType[]>([]);
     const [attachments, setAttachments] = useState<File[]>([]);
-    const [existingAttachments, setExistingAttachments] = useState<AttachedFile[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
 
@@ -953,9 +952,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
 
                 // Reset form and attachments
                 setAttachments([]);
-                setExistingAttachments([]);
 
                 if (session) {
+                    setIsLoadingAttachments(true);
                     form.reset({
                         doctor_id: session.doctor_id || '',
                         fecha_sesion: session.fecha_sesion ? parseISO(session.fecha_sesion) : new Date(),
@@ -965,7 +964,23 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         plan_proxima_cita: session.plan_proxima_cita || '',
                         treatments: session.tratamientos?.map(t => ({...t, numero_diente: String(t.numero_diente)})) || [],
                     });
-                    setExistingAttachments(session.archivos_adjuntos || []);
+
+                    if (session.archivos_adjuntos && session.archivos_adjuntos.length > 0) {
+                        const filePromises = session.archivos_adjuntos.map(async (file) => {
+                            try {
+                                const response = await fetch(getAttachmentUrl(file.ruta));
+                                if (!response.ok) throw new Error('Failed to fetch attachment blob');
+                                const blob = await response.blob();
+                                return new File([blob], file.file_name || 'attachment.jpg', { type: blob.type });
+                            } catch (e) {
+                                console.error("Could not fetch attachment:", file.ruta, e);
+                                return null;
+                            }
+                        });
+                        const fetchedFiles = await Promise.all(filePromises);
+                        setAttachments(fetchedFiles.filter((f): f is File => f !== null));
+                    }
+                    setIsLoadingAttachments(false);
                 } else {
                     form.reset({
                         doctor_id: '',
@@ -990,25 +1005,22 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         if (session?.sesion_id) formData.append('sesion_id', String(session.sesion_id));
         
         Object.entries(values).forEach(([key, value]) => {
-          if (key !== 'treatments' && key !== 'archivos_adjuntos' && value) {
-            if (value instanceof Date) {
-              formData.append(key, value.toISOString());
-            } else if (Array.isArray(value)) {
-              // Correctly format treatments
-              formData.append('tratamientos', JSON.stringify(value));
-            } else {
-              formData.append(key, String(value));
+            if (key !== 'treatments' && key !== 'archivos_adjuntos' && value) {
+                if (value instanceof Date) {
+                    formData.append(key, value.toISOString());
+                } else {
+                    formData.append(key, String(value));
+                }
             }
-          }
         });
-        
-        // Append new attachments
+
+        if (values.treatments) {
+            formData.append('tratamientos', JSON.stringify(values.treatments));
+        }
+
         attachments.forEach((file, index) => {
             formData.append(`archivos_adjuntos_${index}`, file);
         });
-
-        // Send information about which existing attachments to keep
-        formData.append('existing_attachments_routes', JSON.stringify(existingAttachments.map(f => f.ruta)));
 
         try {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/sesiones/upsert', {
@@ -1025,19 +1037,15 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
             setIsSubmitting(false);
         }
     };
-
+    
     const handleAttachmentFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
             setAttachments(prev => [...prev, ...Array.from(event.target.files!)]);
         }
     };
     
-    const removeNewAttachment = (indexToRemove: number) => {
+    const removeAttachment = (indexToRemove: number) => {
         setAttachments(prev => prev.filter((_, index) => index !== indexToRemove));
-    };
-
-    const removeExistingAttachment = (ruta: string) => {
-        setExistingAttachments(prev => prev.filter(f => f.ruta !== ruta));
     };
 
 
@@ -1176,29 +1184,18 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                             <h4 className="font-semibold text-sm mb-2">Existing Files</h4>
                                             {isLoadingAttachments ? (
                                                 <div className="flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
-                                            ) : existingAttachments.length === 0 && attachments.length === 0 ? (
+                                            ) : attachments.length === 0 ? (
                                                 <p className="text-xs text-muted-foreground text-center py-2">No files attached.</p>
                                             ) : (
                                                 <ScrollArea className="h-24 mt-1 border rounded-md p-2">
                                                     <div className="grid grid-cols-2 gap-2">
-                                                        {existingAttachments.map((file, index) => (
-                                                            <div key={`existing-${index}`} className="flex items-center justify-between gap-2 p-1 bg-secondary rounded-md">
-                                                                <div className="flex items-center gap-2 overflow-hidden">
-                                                                     <Image src={getAttachmentUrl(file.ruta)} alt={file.file_name || 'attachment'} width={24} height={24} className="rounded object-cover aspect-square"/>
-                                                                    <span className="text-sm truncate flex-1">{file.file_name}</span>
-                                                                </div>
-                                                                <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeExistingAttachment(file.ruta)}>
-                                                                    <X className="h-3 w-3"/>
-                                                                </Button>
-                                                            </div>
-                                                        ))}
                                                         {attachments.map((file, index) => (
                                                             <div key={`new-${index}`} className="flex items-center justify-between gap-2 p-1 bg-blue-100 dark:bg-blue-900/50 rounded-md">
                                                             <div className="flex items-center gap-2 overflow-hidden">
                                                                 <Image src={URL.createObjectURL(file)} alt={file.name} width={24} height={24} className="rounded object-cover aspect-square"/>
                                                                 <span className="text-sm truncate flex-1">{file.name}</span>
                                                             </div>
-                                                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeNewAttachment(index)}>
+                                                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeAttachment(index)}>
                                                                 <X className="h-3 w-3"/>
                                                             </Button>
                                                             </div>
@@ -2230,6 +2227,7 @@ const DentalClinicalSystemPage = () => {
 }
     
 export default DentalClinicalSystemPage;
+
 
 
 
