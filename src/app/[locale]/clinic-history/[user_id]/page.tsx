@@ -57,9 +57,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 
 const getAttachmentUrl = (path: string) => {
     try {
+        // Check if the path is already a full URL
         new URL(path);
+        // If it's a Google Drive link, we might need a special handler, but for now, we pass it to the proxy
+        if (path.includes('drive.google.com')) {
+             return `/api/attachment-proxy?url=${encodeURIComponent(path)}`;
+        }
         return path;
     } catch (_) {
+        // If it's a relative path, construct the full URL
         return `https://n8n-project-n8n.7ig1i3.easypanel.host${path}`;
     }
 };
@@ -709,450 +715,167 @@ const AnamnesisDashboard = ({
     };
 
     return (
-        <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-6">
-                    <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center">
-                                <User className="w-5 h-5 text-primary mr-2" />
-                                <h3 className="text-lg font-bold text-card-foreground">{t('anamnesis.personalTitle')}</h3>
-                            </div>
-                            <Button variant="outline" size="icon" onClick={handleAddPersonalClick}>
-                                <Plus className="h-4 w-4" />
-                            </Button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
+                <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center">
+                            <User className="w-5 h-5 text-primary mr-2" />
+                            <h3 className="text-lg font-bold text-card-foreground">{t('anamnesis.personalTitle')}</h3>
                         </div>
-                        <div className="space-y-3">
-                            {isLoadingPersonalHistory ? (
-                                <p className="text-muted-foreground">{t('anamnesis.loading.personal')}</p>
-                            ) : personalHistory.length > 0 ? (
-                                personalHistory.map((item) => (
-                                    <div key={item.id} className="border-l-4 border-blue-300 dark:border-blue-700 pl-4 py-2 flex justify-between items-center">
-                                        <div>
-                                            <div className="font-semibold text-foreground">{item.nombre}</div>
-                                            <div className="text-sm text-muted-foreground">{item.comentarios}</div>
-                                        </div>
-                                        <div className="flex items-center space-x-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditPersonalClick(item)}>
-                                                <Edit3 className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'personal')}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-muted-foreground">{t('anamnesis.noData.personal')}</p>
-                            )}
-                        </div>
+                        <Button variant="outline" size="icon" onClick={handleAddPersonalClick}>
+                            <Plus className="h-4 w-4" />
+                        </Button>
                     </div>
-
-                    <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center">
-                                <Heart className="w-5 h-5 text-red-500 mr-2" />
-                                <h3 className="text-lg font-bold text-card-foreground">{t('anamnesis.familyTitle')}</h3>
-                            </div>
-                             <Button variant="outline" size="icon" onClick={handleAddFamilyClick}>
-                                <Plus className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        <div className="space-y-3">
-                            {isLoadingFamilyHistory ? (
-                                <p className="text-muted-foreground">{t('anamnesis.loading.family')}</p>
-                            ) : familyHistory.length > 0 ? (
-                                familyHistory.map((item, index) => (
-                                    <div key={index} className="border-l-4 border-red-300 dark:border-red-700 pl-4 py-2 flex justify-between items-center">
-                                        <div>
-                                            <div className="font-semibold text-foreground">{item.nombre}</div>
-                                            <div className="text-sm text-muted-foreground">{t('anamnesis.relative')}: {item.parentesco}</div>
-                                            <div className="text-sm text-muted-foreground">{item.comentarios}</div>
-                                        </div>
-                                        <div className="flex items-center space-x-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditFamilyClick(item)}>
-                                                <Edit3 className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'family')}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
+                    <div className="space-y-3">
+                        {isLoadingPersonalHistory ? (
+                            <p className="text-muted-foreground">{t('anamnesis.loading.personal')}</p>
+                        ) : personalHistory.length > 0 ? (
+                            personalHistory.map((item) => (
+                                <div key={item.id} className="border-l-4 border-blue-300 dark:border-blue-700 pl-4 py-2 flex justify-between items-center">
+                                    <div>
+                                        <div className="font-semibold text-foreground">{item.nombre}</div>
+                                        <div className="text-sm text-muted-foreground">{item.comentarios}</div>
                                     </div>
-                                ))
-                            ) : (
-                            <p className="text-muted-foreground">{t('anamnesis.noData.family')}</p>
-                            )}
-                        </div>
-                    </div>
-                    <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center">
-                                <Pill className="w-5 h-5 text-green-500 mr-2" />
-                                <h3 className="text-lg font-bold text-card-foreground">{t('anamnesis.medicationsTitle')}</h3>
-                            </div>
-                            <Button variant="outline" size="icon" onClick={handleAddMedicationClick}>
-                                <Plus className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        <div className="space-y-3">
-                            {isLoadingMedications ? (
-                                <p className="text-muted-foreground">{t('anamnesis.loading.medications')}</p>
-                            ) : medications.length > 0 ? (
-                                medications.map((item, index) => (
-                                    <div key={index} className="border-l-4 border-green-300 dark:border-green-700 pl-4 py-2 flex justify-between items-center">
-                                        <div className="grid grid-cols-3 gap-4 items-start flex-1">
-                                            <div className="col-span-2">
-                                                <div className="font-semibold text-foreground">{item.medicamento_nombre}</div>
-                                                <div className="text-sm text-muted-foreground mt-1">
-                                                    {formatDate(item.fecha_inicio)} - {item.fecha_fin ? formatDate(item.fecha_fin) : t('anamnesis.present')}
-                                                </div>
-                                                <div className="text-sm text-muted-foreground mt-1">{item.motivo}</div>
-                                            </div>
-                                            <div className="text-right text-xs text-muted-foreground">
-                                                <div>{item.dosis}</div>
-                                                <div>{item.frecuencia}</div>
-                                            </div>
-                                        </div>
-                                         <div className="flex items-center space-x-1 pl-4">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditMedicationClick(item)}>
-                                                <Edit3 className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'medication')}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
+                                    <div className="flex items-center space-x-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditPersonalClick(item)}>
+                                            <Edit3 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'personal')}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
                                     </div>
-                                ))
-                            ) : (
-                            <p className="text-muted-foreground">{t('anamnesis.noData.medications')}</p>
-                            )}
-                        </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-muted-foreground">{t('anamnesis.noData.personal')}</p>
+                        )}
                     </div>
                 </div>
 
-                <div className="space-y-6">
-                    <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center">
-                                <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
-                                <h3 className="text-lg font-bold text-card-foreground">{t('anamnesis.allergiesTitle')}</h3>
-                            </div>
-                           <Button variant="outline" size="icon" onClick={handleAddAllergyClick}>
-                                <Plus className="h-4 w-4" />
-                            </Button>
+                <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center">
+                            <Heart className="w-5 h-5 text-red-500 mr-2" />
+                            <h3 className="text-lg font-bold text-card-foreground">{t('anamnesis.familyTitle')}</h3>
                         </div>
-                        <div className="space-y-3">
-                            {isLoadingAllergies ? (
-                                <p className="text-muted-foreground">{t('anamnesis.loading.allergies')}</p>
-                            ) : allergies.length > 0 ? (
-                                allergies.map((item, index) => (
-                                    <div key={index} className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex justify-between items-center">
-                                        <div>
-                                            <div className="flex justify-between items-center">
-                                                <div className="font-semibold text-destructive">{item.alergeno}</div>
+                            <Button variant="outline" size="icon" onClick={handleAddFamilyClick}>
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <div className="space-y-3">
+                        {isLoadingFamilyHistory ? (
+                            <p className="text-muted-foreground">{t('anamnesis.loading.family')}</p>
+                        ) : familyHistory.length > 0 ? (
+                            familyHistory.map((item, index) => (
+                                <div key={index} className="border-l-4 border-red-300 dark:border-red-700 pl-4 py-2 flex justify-between items-center">
+                                    <div>
+                                        <div className="font-semibold text-foreground">{item.nombre}</div>
+                                        <div className="text-sm text-muted-foreground">{t('anamnesis.relative')}: {item.parentesco}</div>
+                                        <div className="text-sm text-muted-foreground">{item.comentarios}</div>
+                                    </div>
+                                    <div className="flex items-center space-x-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditFamilyClick(item)}>
+                                            <Edit3 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'family')}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                        <p className="text-muted-foreground">{t('anamnesis.noData.family')}</p>
+                        )}
+                    </div>
+                </div>
+                <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center">
+                            <Pill className="w-5 h-5 text-green-500 mr-2" />
+                            <h3 className="text-lg font-bold text-card-foreground">{t('anamnesis.medicationsTitle')}</h3>
+                        </div>
+                        <Button variant="outline" size="icon" onClick={handleAddMedicationClick}>
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <div className="space-y-3">
+                        {isLoadingMedications ? (
+                            <p className="text-muted-foreground">{t('anamnesis.loading.medications')}</p>
+                        ) : medications.length > 0 ? (
+                            medications.map((item, index) => (
+                                <div key={index} className="border-l-4 border-green-300 dark:border-green-700 pl-4 py-2 flex justify-between items-center">
+                                    <div className="grid grid-cols-3 gap-4 items-start flex-1">
+                                        <div className="col-span-2">
+                                            <div className="font-semibold text-foreground">{item.medicamento_nombre}</div>
+                                            <div className="text-sm text-muted-foreground mt-1">
+                                                {formatDate(item.fecha_inicio)} - {item.fecha_fin ? formatDate(item.fecha_fin) : t('anamnesis.present')}
                                             </div>
-                                            {item.reaccion_descrita && <div className="text-sm text-destructive/80">{item.reaccion_descrita}</div>}
+                                            <div className="text-sm text-muted-foreground mt-1">{item.motivo}</div>
                                         </div>
-                                        <div className="flex items-center space-x-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAllergyClick(item)}>
-                                                <Edit3 className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'allergy')}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                        <div className="text-right text-xs text-muted-foreground">
+                                            <div>{item.dosis}</div>
+                                            <div>{item.frecuencia}</div>
                                         </div>
                                     </div>
-                                ))
-                            ) : (
-                                <p className="text-muted-foreground">{t('anamnesis.noData.allergies')}</p>
-                            )}
-                        </div>
+                                        <div className="flex items-center space-x-1 pl-4">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditMedicationClick(item)}>
+                                            <Edit3 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'medication')}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                        <p className="text-muted-foreground">{t('anamnesis.noData.medications')}</p>
+                        )}
                     </div>
-                    <HabitCard userId={userId} fetchPatientHabits={fetchPatientHabits} habits={patientHabits} isLoading={isLoadingPatientHabits} />
                 </div>
             </div>
-            <Dialog open={isPersonalHistoryDialogOpen} onOpenChange={setIsPersonalHistoryDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editingPersonalHistory ? t('anamnesis.dialogs.personal.editTitle') : t('anamnesis.dialogs.personal.addTitle')}</DialogTitle>
-                        <DialogDescription>
-                            {editingPersonalHistory ? t('anamnesis.dialogs.personal.editDescription') : t('anamnesis.dialogs.personal.addDescription')}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmitPersonalHistory}>
-                        <div className="grid gap-4 py-4">
-                            {personalSubmissionError && (
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>{t('anamnesis.toast.error')}</AlertTitle>
-                                    <AlertDescription>{personalSubmissionError}</AlertDescription>
-                                </Alert>
-                            )}
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="padecimiento" className="text-right">{t('anamnesis.dialogs.ailment')}</Label>
-                                <Popover open={isPersonalHistoryComboboxOpen} onOpenChange={setIsPersonalHistoryComboboxOpen}>
-                                    <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        aria-expanded={isPersonalHistoryComboboxOpen}
-                                        className="w-[300px] justify-between col-span-3"
-                                        type="button"
-                                    >
-                                        {selectedPersonalAilmentName
-                                        ? selectedPersonalAilmentName
-                                        : t('anamnesis.dialogs.selectAilment')}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[300px] p-0">
-                                    <Command>
-                                        <CommandInput placeholder={t('anamnesis.dialogs.searchAilment')} />
-                                        <CommandList>
-                                        <CommandEmpty>{t('anamnesis.dialogs.noAilmentFound')}</CommandEmpty>
-                                        <CommandGroup>
-                                        {ailmentsCatalog.map((ailment) => (
-                                            <CommandItem
-                                            key={ailment.nombre}
-                                            value={ailment.nombre}
-                                            onSelect={(currentValue) => {
-                                                setSelectedPersonalAilmentName(currentValue === selectedPersonalAilmentName ? "" : currentValue)
-                                                setIsPersonalHistoryComboboxOpen(false)
-                                            }}
-                                            >
-                                            <Check
-                                                className={cn(
-                                                "mr-2 h-4 w-4",
-                                                selectedPersonalAilmentName === ailment.nombre ? "opacity-100" : "opacity-0"
-                                                )}
-                                            />
-                                            {ailment.nombre}
-                                            </CommandItem>
-                                        ))}
-                                        </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                            <div className="grid grid-cols-4 items-start gap-4">
-                                <Label htmlFor="comentarios" className="text-right pt-2">{t('anamnesis.dialogs.comments')}</Label>
-                                <Textarea 
-                                    id="comentarios" 
-                                    placeholder={t('anamnesis.dialogs.commentsPlaceholder')} 
-                                    className="col-span-3" 
-                                    value={personalComentarios} 
-                                    onChange={(e) => setPersonalComentarios(e.target.value)} 
-                                />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" type="button" onClick={() => setIsPersonalHistoryDialogOpen(false)}>{t('anamnesis.dialogs.cancel')}</Button>
-                            <Button type="submit" disabled={isSubmittingPersonal}>
-                                {isSubmittingPersonal ? t('anamnesis.dialogs.saving') : t('anamnesis.dialogs.save')}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
 
-            <Dialog open={isFamilyHistoryDialogOpen} onOpenChange={setIsFamilyHistoryDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editingFamilyHistory ? t('anamnesis.dialogs.family.editTitle') : t('anamnesis.dialogs.family.addTitle')}</DialogTitle>
-                        <DialogDescription>
-                             {editingFamilyHistory ? t('anamnesis.dialogs.family.editDescription') : t('anamnesis.dialogs.family.addDescription')}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmitFamilyHistory}>
-                        <div className="grid gap-4 py-4">
-                            {familySubmissionError && (
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>{t('anamnesis.toast.error')}</AlertTitle>
-                                    <AlertDescription>{familySubmissionError}</AlertDescription>
-                                </Alert>
-                            )}
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="family-padecimiento" className="text-right">{t('anamnesis.dialogs.ailment')}</Label>
-                                <Popover open={isFamilyHistoryComboboxOpen} onOpenChange={setIsFamilyHistoryComboboxOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" role="combobox" aria-expanded={isFamilyHistoryComboboxOpen} className="w-[300px] justify-between col-span-3" type="button">
-                                            {selectedFamilyAilmentName || t('anamnesis.dialogs.selectAilment')}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <div className="space-y-6">
+                <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center">
+                            <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
+                            <h3 className="text-lg font-bold text-card-foreground">{t('anamnesis.allergiesTitle')}</h3>
+                        </div>
+                        <Button variant="outline" size="icon" onClick={handleAddAllergyClick}>
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <div className="space-y-3">
+                        {isLoadingAllergies ? (
+                            <p className="text-muted-foreground">{t('anamnesis.loading.allergies')}</p>
+                        ) : allergies.length > 0 ? (
+                            allergies.map((item, index) => (
+                                <div key={index} className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex justify-between items-center">
+                                    <div>
+                                        <div className="flex justify-between items-center">
+                                            <div className="font-semibold text-destructive">{item.alergeno}</div>
+                                        </div>
+                                        {item.reaccion_descrita && <div className="text-sm text-destructive/80">{item.reaccion_descrita}</div>}
+                                    </div>
+                                    <div className="flex items-center space-x-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAllergyClick(item)}>
+                                            <Edit3 className="h-4 w-4" />
                                         </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[300px] p-0">
-                                        <Command>
-                                            <CommandInput placeholder={t('anamnesis.dialogs.searchAilment')} />
-                                            <CommandList>
-                                            <CommandEmpty>{t('anamnesis.dialogs.noAilmentFound')}</CommandEmpty>
-                                            <CommandGroup>
-                                                {ailmentsCatalog.map((ailment) => (
-                                                    <CommandItem
-                                                        key={ailment.nombre}
-                                                        value={ailment.nombre}
-                                                        onSelect={(currentValue) => {
-                                                            setSelectedFamilyAilmentName(currentValue === selectedFamilyAilmentName ? "" : currentValue);
-                                                            setIsFamilyHistoryComboboxOpen(false);
-                                                        }}>
-                                                        <Check className={cn("mr-2 h-4 w-4", selectedFamilyAilmentName === ailment.nombre ? "opacity-100" : "opacity-0")} />
-                                                        {ailment.nombre}
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="parentesco" className="text-right">{t('anamnesis.dialogs.family.relationship')}</Label>
-                                <Select onValueChange={setFamilyParentesco} value={familyParentesco}>
-                                    <SelectTrigger className="col-span-3">
-                                        <SelectValue placeholder={t('anamnesis.dialogs.family.selectRelationship')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Padre">{t('anamnesis.dialogs.family.father')}</SelectItem>
-                                        <SelectItem value="Madre">{t('anamnesis.dialogs.family.mother')}</SelectItem>
-                                        <SelectItem value="Abuelo Materno">{t('anamnesis.dialogs.family.maternalGrandfather')}</SelectItem>
-                                        <SelectItem value="Abuela Paterna">{t('anamnesis.dialogs.family.paternalGrandmother')}</SelectItem>
-                                        <SelectItem value="Abuelo Paterno">{t('anamnesis.dialogs.family.paternalGrandfather')}</SelectItem>
-                                        <SelectItem value="Abuela Materna">{t('anamnesis.dialogs.family.maternalGrandmother')}</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="grid grid-cols-4 items-start gap-4">
-                                <Label htmlFor="family-comentarios" className="text-right pt-2">{t('anamnesis.dialogs.comments')}</Label>
-                                <Textarea 
-                                    id="family-comentarios" 
-                                    placeholder={t('anamnesis.dialogs.family.commentsPlaceholder')} 
-                                    className="col-span-3" 
-                                    value={familyComentarios} 
-                                    onChange={(e) => setFamilyComentarios(e.target.value)} 
-                                />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" type="button" onClick={() => setIsFamilyHistoryDialogOpen(false)}>{t('anamnesis.dialogs.cancel')}</Button>
-                            <Button type="submit" disabled={isSubmittingFamily}>
-                                {isSubmittingFamily ? t('anamnesis.dialogs.saving') : t('anamnesis.dialogs.save')}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={isAllergyDialogOpen} onOpenChange={setIsAllergyDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editingAllergy ? t('anamnesis.dialogs.allergy.editTitle') : t('anamnesis.dialogs.allergy.addTitle')}</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmitAllergy}>
-                        <div className="grid gap-4 py-4">
-                            {allergySubmissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>{t('anamnesis.toast.error')}</AlertTitle><AlertDescription>{allergySubmissionError}</AlertDescription></Alert>}
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="alergeno" className="text-right">{t('anamnesis.dialogs.allergy.allergen')}</Label>
-                                <Input id="alergeno" value={allergyData.alergeno} onChange={(e) => setAllergyData({ ...allergyData, alergeno: e.target.value })} className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="reaccion_descrita" className="text-right">{t('anamnesis.dialogs.allergy.reaction')}</Label>
-                                <Input id="reaccion_descrita" value={allergyData.reaccion_descrita} onChange={(e) => setAllergyData({ ...allergyData, reaccion_descrita: e.target.value })} className="col-span-3" />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" type="button" onClick={() => setIsAllergyDialogOpen(false)}>{t('anamnesis.dialogs.cancel')}</Button>
-                            <Button type="submit" disabled={isSubmittingAllergy}>{isSubmittingAllergy ? t('anamnesis.dialogs.saving') : t('anamnesis.dialogs.save')}</Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={isMedicationDialogOpen} onOpenChange={setIsMedicationDialogOpen}>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle>{editingMedication ? t('anamnesis.dialogs.medication.editTitle') : t('anamnesis.dialogs.medication.addTitle')}</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmitMedication}>
-                        <div className="grid gap-4 py-4">
-                            {medicationSubmissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>{t('anamnesis.toast.error')}</AlertTitle><AlertDescription>{medicationSubmissionError}</AlertDescription></Alert>}
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="med-name" className="text-right">{t('anamnesis.dialogs.medication.name')}</Label>
-                                 <Popover open={isMedicationComboboxOpen} onOpenChange={setIsMedicationComboboxOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" role="combobox" aria-expanded={isMedicationComboboxOpen} className="w-[300px] justify-between col-span-3" type="button">
-                                            {selectedMedication?.name || t('anamnesis.dialogs.medication.selectMedication')}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(item, 'allergy')}>
+                                            <Trash2 className="h-4 w-4" />
                                         </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[300px] p-0">
-                                        <Command>
-                                            <CommandInput placeholder={t('anamnesis.dialogs.medication.searchMedication')} />
-                                            <CommandList>
-                                            <CommandEmpty>{t('anamnesis.dialogs.medication.noMedicationFound')}</CommandEmpty>
-                                            <CommandGroup>
-                                                {medicationsCatalog.map((med) => (
-                                                    <CommandItem
-                                                        key={med.id}
-                                                        value={med.nombre_generico}
-                                                        onSelect={() => {
-                                                            setSelectedMedication({ id: med.id, name: med.nombre_generico });
-                                                            setIsMedicationComboboxOpen(false);
-                                                        }}>
-                                                        <Check className={cn("mr-2 h-4 w-4", selectedMedication?.id === med.id ? "opacity-100" : "opacity-0")} />
-                                                        {med.nombre_generico}
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="med-dose" className="text-right">{t('anamnesis.dialogs.medication.dose')}</Label>
-                                <Input id="med-dose" value={medicationData.dosis} onChange={e => setMedicationData({ ...medicationData, dosis: e.target.value })} className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="med-frequency" className="text-right">{t('anamnesis.dialogs.medication.frequency')}</Label>
-                                <Input id="med-frequency" value={medicationData.frecuencia} onChange={e => setMedicationData({ ...medicationData, frecuencia: e.target.value })} className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="med-since" className="text-right">{t('anamnesis.dialogs.medication.startDate')}</Label>
-                                <Input id="med-since" type="date" value={medicationData.fecha_inicio || ''} onChange={e => setMedicationData({ ...medicationData, fecha_inicio: e.target.value })} className="col-span-3" />
-                            </div>
-                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="med-endDate" className="text-right">{t('anamnesis.dialogs.medication.endDate')}</Label>
-                                <Input id="med-endDate" type="date" value={medicationData.fecha_fin || ''} onChange={e => setMedicationData({ ...medicationData, fecha_fin: e.target.value })} className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="med-reason" className="text-right">{t('anamnesis.dialogs.medication.reason')}</Label>
-                                <Input id="med-reason" value={medicationData.motivo} onChange={e => setMedicationData({ ...medicationData, motivo: e.target.value })} className="col-span-3" />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" type="button" onClick={() => setIsMedicationDialogOpen(false)}>{t('anamnesis.dialogs.cancel')}</Button>
-                            <Button type="submit" disabled={isSubmittingMedication}>{isSubmittingMedication ? t('anamnesis.dialogs.saving') : t('anamnesis.dialogs.save')}</Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t('anamnesis.deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                           {t('anamnesis.deleteDialog.description')}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setDeletingItem(null)}>{t('anamnesis.deleteDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleConfirmDelete}>{t('anamnesis.deleteDialog.confirm')}</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-muted-foreground">{t('anamnesis.noData.allergies')}</p>
+                        )}
+                    </div>
+                </div>
+                <HabitCard userId={userId} fetchPatientHabits={fetchPatientHabits} habits={patientHabits} isLoading={isLoadingPatientHabits} />
+            </div>
+        </div>
     );
 };
 
@@ -2495,6 +2218,7 @@ const DentalClinicalSystemPage = () => {
 }
     
 export default DentalClinicalSystemPage;
+
 
 
 
