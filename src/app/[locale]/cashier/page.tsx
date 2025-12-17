@@ -100,9 +100,10 @@ export default function CashierPage() {
     
             const mappedCashPoints: CashPointStatus[] = cashPointsData.map(cp => {
                 const openingDetails = cp.opening_details || {};
+                const openingAmounts = cp.opening_amounts || [];
                 
-                const uyuOpening = openingDetails.uyu?.total || 0;
-                const usdOpening = openingDetails.usd?.total || 0;
+                const uyuOpening = openingAmounts.find((oa: any) => oa.currency === 'UYU')?.opening_amount || 0;
+                const usdOpening = openingAmounts.find((oa: any) => oa.currency === 'USD')?.opening_amount || 0;
                 
                 return {
                     id: String(cp.cash_point_id),
@@ -119,7 +120,7 @@ export default function CashierPage() {
                         cash_point_name: cp.cash_point_name,
                         estado: 'ABIERTA',
                         fechaApertura: openingDetails.opened_at || new Date().toISOString(),
-                        montoApertura: uyuOpening + usdOpening, // This might not be ideal if currencies differ
+                        montoApertura: uyuOpening + usdOpening,
                         opening_details: {
                             ...openingDetails,
                             uyu: { ...openingDetails.uyu, total: uyuOpening },
@@ -147,7 +148,7 @@ export default function CashierPage() {
             
             let movementsData = [];
             if (Array.isArray(data)) {
-                 movementsData = data.filter(item => Object.keys(item).length > 0);
+                 movementsData = data.filter(item => item && Object.keys(item).length > 0);
             } else if (data && data.data) {
                 movementsData = data.data;
             }
@@ -507,8 +508,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                         </CardHeader>
                         <CardContent>
                            <div className="text-2xl font-bold">
-                                {cashOnHand.UYU > 0 && <div>UYU {cashOnHand.UYU.toFixed(2)}</div>}
-                                {cashOnHand.USD > 0 && <div>USD {cashOnHand.USD.toFixed(2)}</div>}
+                                {cashOnHand.UYU !== 0 && <div>UYU {cashOnHand.UYU.toFixed(2)}</div>}
+                                {cashOnHand.USD !== 0 && <div>USD {cashOnHand.USD.toFixed(2)}</div>}
                                 {(cashOnHand.UYU === 0 && cashOnHand.USD === 0) && <div>$0.00</div>}
                             </div>
                         </CardContent>
@@ -1447,5 +1448,7 @@ const handleConfirmAndOpen = async () => {
     
 
       
+
+    
 
     
