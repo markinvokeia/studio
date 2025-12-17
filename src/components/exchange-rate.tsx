@@ -4,6 +4,12 @@
 import * as React from 'react';
 import Image from 'next/image';
 import { Skeleton } from './ui/skeleton';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface ExchangeRateData {
   buy: number;
@@ -65,11 +71,20 @@ export function ExchangeRate({ onRateChange }: ExchangeRateProps) {
   }
 
   return (
-    <div className="flex h-10 w-auto items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium">
-      <Image src="https://www.brou.com.uy/brou-tmf-portlet/images/USD.png" width={20} height={20} alt="USD Flag" />
-      <div className="flex items-baseline">
-        <span className="font-semibold">{averageRate.toFixed(2)}</span>
-      </div>
-    </div>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex h-10 w-auto items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium">
+            <Image src="https://www.brou.com.uy/brou-tmf-portlet/images/USD.png" width={20} height={20} alt="USD Flag" />
+            <div className="flex items-baseline">
+              <span className="font-semibold">{averageRate.toFixed(2)}</span>
+            </div>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Average USD to UYU exchange rate</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
