@@ -496,6 +496,19 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Cash on Hand</CardTitle>
+                            <Banknote className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                           <div className="text-2xl font-bold">
+                                {cashOnHand.UYU > 0 && <div>UYU {cashOnHand.UYU.toFixed(2)}</div>}
+                                {cashOnHand.USD > 0 && <div>USD {cashOnHand.USD.toFixed(2)}</div>}
+                                {(cashOnHand.UYU === 0 && cashOnHand.USD === 0) && <div>$0.00</div>}
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">{t('activeSession.totalIncome')}</CardTitle>
                             <TrendingUp className="h-4 w-4 text-green-500" />
                         </CardHeader>
@@ -517,19 +530,6 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                                 {totalOutcome.UYU > 0 && <div>UYU {totalOutcome.UYU.toFixed(2)}</div>}
                                 {totalOutcome.USD > 0 && <div>USD {totalOutcome.USD.toFixed(2)}</div>}
                                 {(totalOutcome.UYU === 0 && totalOutcome.USD === 0) && <div>$0.00</div>}
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Cash on Hand</CardTitle>
-                            <Banknote className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                           <div className="text-2xl font-bold">
-                                {cashOnHand.UYU > 0 && <div>UYU {cashOnHand.UYU.toFixed(2)}</div>}
-                                {cashOnHand.USD > 0 && <div>USD {cashOnHand.USD.toFixed(2)}</div>}
-                                {(cashOnHand.UYU === 0 && cashOnHand.USD === 0) && <div>$0.00</div>}
                             </div>
                         </CardContent>
                     </Card>
