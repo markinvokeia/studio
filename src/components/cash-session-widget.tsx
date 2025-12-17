@@ -42,14 +42,16 @@ export const OpenCashSessionWidget = () => {
                 <Tooltip>
                     <TooltipTrigger asChild>
                          <Link href={`/${locale}/cashier`} passHref>
-                            <div className="flex items-center gap-4 cursor-pointer">
-                                <div className="flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium">
-                                    <span>UYU</span>
-                                    <span className="font-semibold">{uyuAmount.toFixed(2)}</span>
-                                </div>
-                                <div className="flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium">
-                                     <span>USD</span>
-                                    <span className="font-semibold">{usdAmount.toFixed(2)}</span>
+                            <div className="flex items-center gap-4 cursor-pointer rounded-md border border-input bg-background px-3 py-1.5 h-auto text-sm font-medium">
+                                <div className="flex flex-col items-end">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-semibold">{uyuAmount.toFixed(2)}</span>
+                                        <span className='text-muted-foreground'>UYU</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-semibold">{usdAmount.toFixed(2)}</span>
+                                        <span className='text-muted-foreground'>USD</span>
+                                    </div>
                                 </div>
                             </div>
                         </Link>
