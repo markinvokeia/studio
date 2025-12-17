@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 });
                 const data = await response.json();
                 if (response.ok && data.code === 200) {
-                    setActiveCashSession(data.data);
+                    setActiveCashSession(data);
                 } else {
                     setActiveCashSession(null);
                 }
