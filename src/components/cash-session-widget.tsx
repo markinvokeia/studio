@@ -21,9 +21,10 @@ export const OpenCashSessionWidget = () => {
         return <Skeleton className="h-10 w-64" />;
     }
     
-    if (activeCashSession) {
-        const uyuAmount = activeCashSession.amounts?.find((a: any) => a.currency === 'UYU')?.cash_on_hand || 0;
-        const usdAmount = activeCashSession.amounts?.find((a: any) => a.currency === 'USD')?.cash_on_hand || 0;
+    if (activeCashSession && activeCashSession.data) {
+        const balances = activeCashSession.data.current_balances || [];
+        const uyuAmount = balances.find((a: any) => a.currency === 'UYU')?.cash_on_hand || 0;
+        const usdAmount = balances.find((a: any) => a.currency === 'USD')?.cash_on_hand || 0;
 
         return (
             <Alert variant="success" className={cn("flex items-center justify-between p-2 h-auto max-w-md", activeCashSession ? "w-80" : "w-auto")}>
