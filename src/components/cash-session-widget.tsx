@@ -1,14 +1,11 @@
-
 'use client';
 
 import * as React from 'react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useAuth } from '@/context/AuthContext';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Box, AlertTriangle, ArrowRight, Banknote } from 'lucide-react';
-import type { CajaSesion } from '@/lib/types';
+import { Box, ArrowRight, Banknote } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
 import {
@@ -21,7 +18,7 @@ import {
 export const OpenCashSessionWidget = () => {
     const t = useTranslations('OpenCashSessionWidget');
     const locale = useLocale();
-    const { user, activeCashSession, isLoading: isAuthLoading } = useAuth();
+    const { activeCashSession, isLoading: isAuthLoading } = useAuth();
     
     if (isAuthLoading) {
         return (
@@ -31,7 +28,7 @@ export const OpenCashSessionWidget = () => {
             </div>
         );
     }
-    
+
     if (activeCashSession && activeCashSession.data?.current_balances) {
         const balances = activeCashSession.data.current_balances || [];
         const uyuAmount = balances.find((a: any) => a.currency === 'UYU')?.cash_on_hand || 0;
@@ -42,18 +39,35 @@ export const OpenCashSessionWidget = () => {
                 <Tooltip>
                     <TooltipTrigger asChild>
                          <Link href={`/${locale}/cashier`} passHref>
-                            <div className="flex items-center gap-4 cursor-pointer rounded-md border border-input bg-background px-3 py-1.5 h-auto text-sm font-medium">
-                                <div className="flex flex-col items-end">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-semibold">{uyuAmount.toFixed(2)}</span>
-                                        <span className='text-muted-foreground'>UYU</span>
+                            <Button 
+                                variant="outline" 
+                                className={cn(
+                                    "h-auto py-1.5 px-3 flex items-center gap-3",
+                                    "border-green-500/50 bg-green-50/50 text-green-700",
+                                    "hover:bg-green-100 hover:border-green-600 hover:text-green-800",
+                                    "dark:bg-green-900/10 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-900/30"
+                                )}
+                            >
+                                {/* Icono de dinero para contexto */}
+                                <Banknote className="h-4 w-4 opacity-70" />
+                                
+                                {/* Información de Balances */}
+                                <div className="flex flex-col items-end text-xs">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="font-bold">{uyuAmount.toFixed(2)}</span>
+                                        <span className='opacity-80 text-[10px]'>UYU</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-semibold">{usdAmount.toFixed(2)}</span>
-                                        <span className='text-muted-foreground'>USD</span>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="font-bold">{usdAmount.toFixed(2)}</span>
+                                        <span className='opacity-80 text-[10px]'>USD</span>
                                     </div>
                                 </div>
-                            </div>
+
+                                {/* Icono de flecha para indicar acción de "Ir a" */}
+                                <div className="pl-1 border-l border-green-600/20">
+                                    <ArrowRight className="h-4 w-4" />
+                                </div>
+                            </Button>
                         </Link>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -69,7 +83,16 @@ export const OpenCashSessionWidget = () => {
             <Tooltip>
                 <TooltipTrigger asChild>
                     <Link href={`/${locale}/cashier`} passHref>
-                        <Button variant="outline" size="sm" className="h-9 border-dashed border-yellow-500/50 text-yellow-600 hover:border-yellow-500 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300">
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className={cn(
+                                "h-9 border-dashed",
+                                "border-yellow-500/60 text-yellow-600 bg-yellow-50/30",
+                                "hover:border-yellow-500 hover:bg-yellow-50 hover:text-yellow-700",
+                                "dark:text-yellow-400 dark:hover:text-yellow-300 dark:bg-transparent"
+                            )}
+                        >
                             <Box className="mr-2 h-4 w-4" />
                             {t('button')}
                         </Button>
