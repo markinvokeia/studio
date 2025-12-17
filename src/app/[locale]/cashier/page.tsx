@@ -138,8 +138,15 @@ export default function CashierPage() {
             const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/movements?cash_session_id=${sessionId}`);
             if (!response.ok) throw new Error('Failed to fetch session movements');
             const data = await response.json();
-            let movementsData = Array.isArray(data) ? data : (data.data || []);
             
+            let movementsData = [];
+            if (Array.isArray(data)) {
+                // Filter out empty objects which can be returned for no movements
+                movementsData = data.filter(item => Object.keys(item).length > 0);
+            } else if (data && data.data) {
+                movementsData = data.data;
+            }
+
             setSessionMovements(movementsData.map((mov: any): CajaMovimiento => ({
                 id: String(mov.movement_id),
                 cajaSesionId: sessionId,
