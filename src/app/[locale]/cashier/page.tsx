@@ -100,8 +100,10 @@ export default function CashierPage() {
     
             const mappedCashPoints: CashPointStatus[] = cashPointsData.map(cp => {
                 const openingDetails = cp.opening_details || {};
-                const openingAmount = (cp.opening_amounts || []).reduce((sum: number, current: any) => sum + Number(current.opening_amount), 0);
-    
+                
+                const uyuOpening = openingDetails.uyu?.total || 0;
+                const usdOpening = openingDetails.usd?.total || 0;
+                
                 return {
                     id: String(cp.cash_point_id),
                     name: cp.cash_point_name,
@@ -117,8 +119,12 @@ export default function CashierPage() {
                         cash_point_name: cp.cash_point_name,
                         estado: 'ABIERTA',
                         fechaApertura: openingDetails.opened_at || new Date().toISOString(),
-                        montoApertura: openingAmount,
-                        opening_details: openingDetails,
+                        montoApertura: uyuOpening + usdOpening, // This might not be ideal if currencies differ
+                        opening_details: {
+                            ...openingDetails,
+                            uyu: { ...openingDetails.uyu, total: uyuOpening },
+                            usd: { ...openingDetails.usd, total: usdOpening }
+                        },
                         currency: openingDetails.currency,
                         date_rate: openingDetails.date_rate,
                     } : undefined,
@@ -140,8 +146,8 @@ export default function CashierPage() {
             const data = await response.json();
             
             let movementsData = [];
-            if (Array.isArray(data) && data.length > 0 && Object.keys(data[0]).length > 0) {
-                movementsData = data;
+            if (Array.isArray(data)) {
+                 movementsData = data.filter(item => Object.keys(item).length > 0);
             } else if (data && data.data) {
                 movementsData = data.data;
             }
@@ -1441,3 +1447,5 @@ const handleConfirmAndOpen = async () => {
     
 
       
+
+    
