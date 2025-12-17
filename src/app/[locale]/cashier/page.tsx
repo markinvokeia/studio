@@ -481,9 +481,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                {openingDetails.totalUYU > 0 && <div>UYU {openingDetails.totalUYU.toFixed(2)}</div>}
-                                {openingDetails.totalUSD > 0 && <div>USD {openingDetails.totalUSD.toFixed(2)}</div>}
-                                {(openingDetails.totalUYU === 0 && openingDetails.totalUSD === 0) && <div>$0.00</div>}
+                                <div>UYU {openingDetails.totalUYU.toFixed(2)}</div>
+                                <div>USD {openingDetails.totalUSD.toFixed(2)}</div>
                             </div>
                             <p className="text-xs text-muted-foreground">{new Date(session.fechaApertura).toLocaleString()}</p>
                         </CardContent>
@@ -495,9 +494,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                {cashOnHand.UYU !== 0 && <div>UYU {cashOnHand.UYU.toFixed(2)}</div>}
-                                {cashOnHand.USD !== 0 && <div>USD {cashOnHand.USD.toFixed(2)}</div>}
-                                {(cashOnHand.UYU === 0 && cashOnHand.USD === 0) && <div>$0.00</div>}
+                                <div>UYU {cashOnHand.UYU.toFixed(2)}</div>
+                                <div>USD {cashOnHand.USD.toFixed(2)}</div>
                             </div>
                         </CardContent>
                     </Card>
@@ -508,9 +506,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                {totalIncome.UYU > 0 && <div>UYU {totalIncome.UYU.toFixed(2)}</div>}
-                                {totalIncome.USD > 0 && <div>USD {totalIncome.USD.toFixed(2)}</div>}
-                                {(totalIncome.UYU === 0 && totalIncome.USD === 0) && <div>$0.00</div>}
+                                <div>UYU {totalIncome.UYU.toFixed(2)}</div>
+                                <div>USD {totalIncome.USD.toFixed(2)}</div>
                             </div>
                         </CardContent>
                     </Card>
@@ -521,9 +518,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold text-red-500">
-                                {totalOutcome.UYU > 0 && <div>UYU {totalOutcome.UYU.toFixed(2)}</div>}
-                                {totalOutcome.USD > 0 && <div>USD {totalOutcome.USD.toFixed(2)}</div>}
-                                {(totalOutcome.UYU === 0 && totalOutcome.USD === 0) && <div>$0.00</div>}
+                                <div>UYU {totalOutcome.UYU.toFixed(2)}</div>
+                                <div>USD {totalOutcome.USD.toFixed(2)}</div>
                             </div>
                         </CardContent>
                     </Card>
