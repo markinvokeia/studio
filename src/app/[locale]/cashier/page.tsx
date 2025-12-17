@@ -1200,6 +1200,11 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 currency: sessionInfo.opening_details.currency,
                 date_rate: sessionInfo.opening_details.date_rate,
                 usuarioId: user?.id,
+                amounts: Object.entries(totalOpeningAmount).map(([currency, opening_amount]) => ({
+                    currency,
+                    opening_amount: opening_amount as number,
+                    cash_on_hand: opening_amount as number,
+                })),
             };
 
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
