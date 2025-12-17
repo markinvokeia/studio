@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import * as React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -79,7 +79,7 @@ export function Header() {
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { logout, user } = useAuth();
+  const { logout, user, activeCashSession } = useAuth();
   const { toast } = useToast();
 
   const [isLogoutAlertOpen, setIsLogoutAlertOpen] = React.useState(false);
@@ -188,7 +188,7 @@ export function Header() {
         <OpenCashSessionWidget />
         
         <div className="flex items-center justify-end gap-2">
-            <ExchangeRate />
+            {activeCashSession && <ExchangeRate />}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="icon">
