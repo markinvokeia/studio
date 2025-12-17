@@ -11,6 +11,12 @@ import { Box, AlertTriangle, ArrowRight, Banknote } from 'lucide-react';
 import type { CajaSesion } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export const OpenCashSessionWidget = () => {
     const t = useTranslations('OpenCashSessionWidget');
@@ -18,49 +24,59 @@ export const OpenCashSessionWidget = () => {
     const { user, activeCashSession, isLoading: isAuthLoading } = useAuth();
     
     if (isAuthLoading) {
-        return <Skeleton className="h-10 w-64" />;
+        return (
+            <div className="flex items-center gap-2">
+                <Skeleton className="h-9 w-24" />
+                <Skeleton className="h-9 w-24" />
+            </div>
+        );
     }
     
-    if (activeCashSession && activeCashSession.data) {
+    if (activeCashSession && activeCashSession.data?.current_balances) {
         const balances = activeCashSession.data.current_balances || [];
         const uyuAmount = balances.find((a: any) => a.currency === 'UYU')?.cash_on_hand || 0;
         const usdAmount = balances.find((a: any) => a.currency === 'USD')?.cash_on_hand || 0;
 
         return (
-            <Alert variant="success" className={cn("flex items-center justify-between p-2 h-auto max-w-md", activeCashSession ? "w-80" : "w-auto")}>
-                <div className="flex items-center gap-4">
-                    <Banknote className="h-5 w-5" />
-                    <div>
-                        <AlertTitle className="font-bold text-sm">{t('activeSession.title')}</AlertTitle>
-                        <AlertDescription className="text-xs">
-                            <div className="font-semibold">UYU: {uyuAmount.toFixed(2)}</div>
-                            <div className="font-semibold">USD: {usdAmount.toFixed(2)}</div>
-                        </AlertDescription>
-                    </div>
-                </div>
-                <Link href={`/${locale}/cashier`} passHref>
-                    <Button variant="ghost" size="sm" className="self-start">
-                        <ArrowRight className="h-4 w-4" />
-                    </Button>
-                </Link>
-            </Alert>
+             <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                         <Link href={`/${locale}/cashier`} passHref>
+                            <div className="flex items-center gap-4 cursor-pointer">
+                                <div className="flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium">
+                                    <span>UYU</span>
+                                    <span className="font-semibold">{uyuAmount.toFixed(2)}</span>
+                                </div>
+                                <div className="flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium">
+                                     <span>USD</span>
+                                    <span className="font-semibold">{usdAmount.toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{t('activeSession.tooltip')}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
         );
     }
 
     return (
-        <Alert variant="warning" className="flex items-center justify-between p-2 h-10 max-w-md">
-            <div className="flex items-center">
-                <AlertTriangle className="h-4 w-4" />
-                <div className="ml-2">
-                    <AlertTitle className="font-bold text-sm">{t('title')}</AlertTitle>
-                </div>
-            </div>
-            <Link href={`/${locale}/cashier`} passHref>
-                <Button variant="outline" size="sm" className="text-yellow-900 hover:text-yellow-900 dark:text-yellow-200">
-                    {t('button')}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-            </Link>
-        </Alert>
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Link href={`/${locale}/cashier`} passHref>
+                        <Button variant="outline" size="sm" className="h-9 border-dashed border-yellow-500/50 text-yellow-600 hover:border-yellow-500 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300">
+                            <Box className="mr-2 h-4 w-4" />
+                            {t('button')}
+                        </Button>
+                    </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>{t('tooltip')}</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
     );
 };

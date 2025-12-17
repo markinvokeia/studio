@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Panel de Control",
@@ -98,11 +99,13 @@
     "activeSession": {
       "title": "Sesión de Caja Activa",
       "description": "La sesión para {user} en {cashPoint} está actualmente abierta.",
-      "button": "Ir a Caja"
+      "button": "Ir a Caja",
+      "tooltip": "Ver tu sesión de caja activa"
     },
     "title": "No Hay Sesión de Caja Activa",
     "description": "No tienes una sesión de caja activa. Por favor, abre una para comenzar a registrar transacciones.",
-    "button": "Abrir Sesión de Caja"
+    "button": "Abrir Sesión de Caja",
+    "tooltip": "No hay sesión activa. Haz clic para abrir una."
   },
   "DataTableToolbar": {
     "toggleColumns": "Alternar columnas"
@@ -1448,7 +1451,7 @@
   "DoctorsPage": {
     "title": "Doctores",
     "description": "Todos los doctores para la clínica",
-    "filterPlaceholder": "Filtrar aquí...",
+    "filterPlaceholder": "Filtrar here...",
     "DoctorColumns": {
       "name": "Nombre",
       "email": "Correo Electrónico",

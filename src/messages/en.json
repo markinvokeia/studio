@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -98,11 +99,13 @@
     "activeSession": {
       "title": "Active Cash Session",
       "description": "Session for {user} at {cashPoint} is currently open.",
-      "button": "Go to Cashier"
+      "button": "Go to Cashier",
+      "tooltip": "View your active cash session"
     },
     "title": "No Active Cash Session",
     "description": "You do not have an active cash session. Please open one to start recording transactions.",
-    "button": "Open Cash Session"
+    "button": "Open Cash Session",
+    "tooltip": "No active session. Click to open one."
   },
   "DataTableToolbar": {
     "toggleColumns": "Toggle columns"
@@ -2075,18 +2078,18 @@
     "copyId": "Copy user ID"
   },
   "Calendar": {
-    "all": "All",
-    "title": "Calendar",
-    "today": "Today",
+    "all": "Todos",
+    "title": "Calendario",
+    "today": "Hoy",
     "views": {
-      "2day": "2 Day",
-      "3day": "3 Day",
-      "day": "Day",
-      "month": "Month",
-      "schedule": "Schedule",
-      "week": "Week",
-      "year": "Year"
+      "2day": "2 Días",
+      "3day": "3 Días",
+      "day": "Día",
+      "month": "Mes",
+      "schedule": "Agenda",
+      "week": "Semana",
+      "year": "Año"
     },
-    "weekShort": "Wk"
+    "weekShort": "Sem"
   }
 }
