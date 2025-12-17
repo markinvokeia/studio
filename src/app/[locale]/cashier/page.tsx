@@ -140,9 +140,8 @@ export default function CashierPage() {
             const data = await response.json();
             
             let movementsData = [];
-            if (Array.isArray(data)) {
-                // Filter out empty objects which can be returned for no movements
-                movementsData = data.filter(item => Object.keys(item).length > 0);
+            if (Array.isArray(data) && data.length > 0 && Object.keys(data[0]).length > 0) {
+                movementsData = data;
             } else if (data && data.data) {
                 movementsData = data.data;
             }
@@ -419,6 +418,27 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         return outcome;
     }, [movements]);
 
+    const cashOnHand = React.useMemo(() => {
+        const cash: { UYU: number; USD: number } = {
+            UYU: openingDetails.totalUYU || 0,
+            USD: openingDetails.totalUSD || 0,
+        };
+
+        movements.forEach(mov => {
+            if (mov.metodoPago === 'EFECTIVO') {
+                const currency = mov.currency as ('UYU' | 'USD');
+                if (cash[currency] !== undefined) {
+                    if (mov.tipo === 'INGRESO') {
+                        cash[currency] += mov.monto;
+                    } else if (mov.tipo === 'EGRESO') {
+                        cash[currency] -= mov.monto;
+                    }
+                }
+            }
+        });
+        return cash;
+    }, [movements, openingDetails]);
+
     const allMovements = React.useMemo(() => movements, [movements]);
 
     const tColumns = useTranslations('CashierPage.activeSession.columns');
@@ -459,7 +479,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">{t('openSession.openingAmount')}</CardTitle>
@@ -497,6 +517,19 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                                 {totalOutcome.UYU > 0 && <div>UYU {totalOutcome.UYU.toFixed(2)}</div>}
                                 {totalOutcome.USD > 0 && <div>USD {totalOutcome.USD.toFixed(2)}</div>}
                                 {(totalOutcome.UYU === 0 && totalOutcome.USD === 0) && <div>$0.00</div>}
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Cash on Hand</CardTitle>
+                            <Banknote className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                           <div className="text-2xl font-bold">
+                                {cashOnHand.UYU > 0 && <div>UYU {cashOnHand.UYU.toFixed(2)}</div>}
+                                {cashOnHand.USD > 0 && <div>USD {cashOnHand.USD.toFixed(2)}</div>}
+                                {(cashOnHand.UYU === 0 && cashOnHand.USD === 0) && <div>$0.00</div>}
                             </div>
                         </CardContent>
                     </Card>
