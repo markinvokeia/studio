@@ -363,7 +363,7 @@ export default function MiscellaneousTransactionsPage() {
     
     const loadTransactions = React.useCallback(async () => {
         setIsRefreshing(true);
-        const searchQuery = (columnFilters.find(f => f.id === 'description')?.value as string) || '';
+        const searchQuery = (columnFilters.find(f => f.id === 'beneficiary_name')?.value as string) || '';
         const { transactions, total } = await getMiscellaneousTransactions(pagination, searchQuery);
         setTransactions(transactions);
         setTransactionCount(total);
@@ -465,7 +465,7 @@ export default function MiscellaneousTransactionsPage() {
                     columnVisibility={visibility}
                     onColumnVisibilityChange={setVisibility}
                     manualPagination={true}
-                    filterColumnId="description"
+                    filterColumnId="beneficiary_name"
                     filterPlaceholder={t('filterPlaceholder')}
                     onCreate={handleCreate}
                     onRefresh={loadTransactions}
