@@ -384,7 +384,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         const income: { UYU: number; USD: number } = { UYU: openingDetails.totalUYU, USD: openingDetails.totalUSD };
         movements.forEach(mov => {
             const currency = mov.currency as ('UYU' | 'USD');
-            if (mov.metodoPago.toUpperCase() === 'EFECTIVO' && income[currency] !== undefined) {
+            if ((mov.metodoPago === 'EFECTIVO' || mov.metodoPago === 'CASH') && income[currency] !== undefined) {
                 if (mov.tipo === 'INGRESO') {
                     income[currency] += mov.monto;
                 } else {
