@@ -443,26 +443,26 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     ];
 
     const renderAmount = (amount: number, currency: 'UYU' | 'USD') => {
-    const formattedAmount = `${currency} ${amount.toFixed(2)}`;
-    const convertedAmount =
-      session.currency !== currency
-        ? `(≈ ${session.currency} ${(currency === 'USD'
-            ? amount * (session.date_rate || 1)
-            : amount / (session.date_rate || 1)
-          ).toFixed(2)})`
-        : null;
+        const formattedAmount = `${currency} ${amount.toFixed(2)}`;
+        const convertedAmount =
+            session.currency !== currency
+                ? `(≈ ${session.currency} ${(currency === 'USD'
+                    ? amount * (session.date_rate || 1)
+                    : amount / (session.date_rate || 1)
+                ).toFixed(2)})`
+                : null;
 
-    return (
-      <div className="text-2xl font-bold">
-        <div>{formattedAmount}</div>
-        {convertedAmount && (
-          <div className="text-sm font-normal text-muted-foreground">
-            {convertedAmount}
-          </div>
-        )}
-      </div>
-    );
-};
+        return (
+            <div className="text-2xl font-bold">
+                <div>{formattedAmount}</div>
+                {convertedAmount && (
+                    <div className="text-sm font-normal text-muted-foreground">
+                        {convertedAmount}
+                    </div>
+                )}
+            </div>
+        );
+    };
 
 
     return (
@@ -491,8 +491,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                             {renderAmount(openingDetails.totalUYU, 'UYU')}
-                             {renderAmount(openingDetails.totalUSD, 'USD')}
+                            {renderAmount(openingDetails.totalUYU, 'UYU')}
+                            {renderAmount(openingDetails.totalUSD, 'USD')}
                             <p className="text-xs text-muted-foreground">{new Date(session.fechaApertura).toLocaleString()}</p>
                         </CardContent>
                     </Card>
@@ -530,7 +530,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 <Tabs defaultValue="transactions">
                     <TabsList>
                         <TabsTrigger value="transactions">Transactions</TabsTrigger>
-                         <TabsTrigger value="opening_details">{t('activeSession.openingDetails')}</TabsTrigger>
+                        <TabsTrigger value="opening_details">{t('activeSession.openingDetails')}</TabsTrigger>
                     </TabsList>
                     <TabsContent value="transactions">
                         <DataTable columns={movementColumns} data={allMovements} />
@@ -789,6 +789,9 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
     const loadLastClosing = () => {
         if (lastClosingDetails) {
             onQuantitiesChange(lastClosingDetails);
+        } else {
+            // Handle case where no data is available
+            alert('No last closing data available to prefill.');
         }
     }
 
@@ -801,7 +804,7 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
             </div>
             <div className="flex gap-2">
                 <Button type="button" variant="outline" size="sm" onClick={() => setAllTo(0)}>Prefill with 0</Button>
-                {lastClosingDetails && <Button type="button" variant="secondary" size="sm" onClick={loadLastClosing}>Prefill with Last Closing Cashup</Button>}
+                <Button type="button" variant="secondary" size="sm" onClick={loadLastClosing} disabled={!lastClosingDetails}>Prefill with Last Closing Cashup</Button>
             </div>
             <ScrollArea className="h-96">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 p-1">
@@ -1177,8 +1180,9 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/prefill');
             if (response.ok) {
                 const data = await response.json();
-                if (data && data.difference_details) {
-                    setLastClosingDetails(data.difference_details);
+                const closingData = Array.isArray(data) ? data[0] : data;
+                if (closingData && closingData.difference_details) {
+                    setLastClosingDetails(closingData.difference_details);
                 }
             }
         } catch (error) {
@@ -1469,4 +1473,3 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         </Card>
     );
 }
-  
