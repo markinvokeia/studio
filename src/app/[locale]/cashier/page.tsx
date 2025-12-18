@@ -381,14 +381,19 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     }, [(session as any).amounts, session.opening_details]);
 
     const cashOnHand = useMemo(() => {
-        const amounts = (session as any).amounts || [];
-        const uyuData = amounts.find((a: any) => a.currency === 'UYU');
-        const usdData = amounts.find((a: any) => a.currency === 'USD');
-        return {
-            UYU: uyuData?.cash_on_hand || 0,
-            USD: usdData?.cash_on_hand || 0,
-        };
-    }, [(session as any).amounts]);
+        const income: { UYU: number; USD: number } = { UYU: openingDetails.totalUYU, USD: openingDetails.totalUSD };
+        movements.forEach(mov => {
+            const currency = mov.currency as ('UYU' | 'USD');
+            if (mov.metodoPago.toUpperCase() === 'EFECTIVO' && income[currency] !== undefined) {
+                if (mov.tipo === 'INGRESO') {
+                    income[currency] += mov.monto;
+                } else {
+                    income[currency] -= mov.monto;
+                }
+            }
+        });
+        return income;
+    }, [movements, openingDetails]);
 
     const totalIncome = useMemo(() => {
         const income: { UYU: number; USD: number } = { UYU: 0, USD: 0 };
@@ -437,16 +442,28 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         { accessorKey: 'fecha', header: tColumns('date'), cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
     ];
 
-    const renderAmount = (amount: number, currency: 'UYU' | 'USD') => (
-        <div className="text-2xl font-bold">
-            <div>{currency} {amount.toFixed(2)}</div>
-            {sessionCurrency !== currency && (
-                <div className="text-sm font-normal text-muted-foreground">
-                    (≈ {sessionCurrency} {(currency === 'USD' ? amount * (session.date_rate || 1) : amount / (session.date_rate || 1)).toFixed(2)})
-                </div>
-            )}
-        </div>
+    const renderAmount = (amount: number, currency: 'UYU' | 'USD') => {
+    const formattedAmount = `${currency} ${amount.toFixed(2)}`;
+    const convertedAmount =
+      session.currency !== currency
+        ? `(≈ ${session.currency} ${(currency === 'USD'
+            ? amount * (session.date_rate || 1)
+            : amount / (session.date_rate || 1)
+          ).toFixed(2)})`
+        : null;
+
+    return (
+      <div className="text-2xl font-bold">
+        <div>{formattedAmount}</div>
+        {convertedAmount && (
+          <div className="text-sm font-normal text-muted-foreground">
+            {convertedAmount}
+          </div>
+        )}
+      </div>
     );
+};
+
 
     return (
         <Card>
@@ -505,10 +522,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                             <TrendingDown className="h-4 w-4 text-red-500" />
                         </CardHeader>
                         <CardContent>
-                             <div className="text-2xl font-bold text-red-500">
-                                {renderAmount(totalOutcome.UYU, 'UYU')}
-                                {renderAmount(totalOutcome.USD, 'USD')}
-                             </div>
+                            {renderAmount(totalOutcome.UYU, 'UYU')}
+                            {renderAmount(totalOutcome.USD, 'USD')}
                         </CardContent>
                     </Card>
                 </div>
