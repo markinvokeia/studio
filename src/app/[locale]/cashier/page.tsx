@@ -685,6 +685,7 @@ function CloseSessionWizard({
                                         quantities={bankDepositUyuDenominations}
                                         onQuantitiesChange={setBankDepositUyuDenominations}
                                         imageMap={UYU_IMAGES}
+                                        availableDenominations={uyuDenominations}
                                     />
                                     <DenominationCounter
                                         title="USD Bank Deposit"
@@ -694,6 +695,7 @@ function CloseSessionWizard({
                                         quantities={bankDepositUsdDenominations}
                                         onQuantitiesChange={setBankDepositUsdDenominations}
                                         imageMap={USD_IMAGES}
+                                        availableDenominations={usdDenominations}
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -759,7 +761,7 @@ function CloseSessionWizard({
     );
 }
 
-const DenominationCounter = ({ title, denominations, coins, currency, quantities, onQuantitiesChange, lastClosingDetails, imageMap }: {
+const DenominationCounter = ({ title, denominations, coins, currency, quantities, onQuantitiesChange, lastClosingDetails, imageMap, availableDenominations }: {
     title: string,
     denominations: number[],
     coins: number[],
@@ -767,14 +769,20 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
     quantities: Record<string, number>,
     onQuantitiesChange: (details: Record<string, number>) => void,
     lastClosingDetails?: Record<string, number> | null,
-    imageMap: Record<number, string>
+    imageMap: Record<number, string>,
+    availableDenominations?: Record<string, number>
 }) => {
     const total = React.useMemo(() => {
         return [...denominations, ...coins].reduce((sum, den) => sum + (Number(den) || 0) * (quantities[den] || 0), 0)
     }, [quantities, denominations, coins]);
 
     const handleQuantityChange = (denomination: number, quantity: string) => {
-        const newQuantities = { ...quantities, [denomination]: parseInt(quantity, 10) || 0 };
+        let qty = parseInt(quantity, 10) || 0;
+        if (availableDenominations) {
+            const maxQty = availableDenominations[denomination] || 0;
+            qty = Math.min(qty, maxQty);
+        }
+        const newQuantities = { ...quantities, [denomination]: qty };
         onQuantitiesChange(newQuantities);
     };
 
@@ -808,56 +816,66 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
             </div>
             <ScrollArea className="h-96">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 p-1">
-                    {denominations.map(den => (
-                        <div key={den} className="grid grid-cols-[80px_1fr] items-center gap-4">
-                            <div className="w-[80px] h-[40px] relative">
-                                {imageMap[den] ? (
-                                    <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-md object-contain" />
-                                ) : (
-                                    <div className="w-full h-full bg-muted rounded-md flex items-center justify-center text-xs text-muted-foreground">No Image</div>
-                                )}
-                            </div>
-                            <div className="flex items-center">
-                                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
-                                <Input
-                                    id={`den-${den}`}
-                                    type="number"
-                                    min="0"
-                                    value={quantities[den] || ''}
-                                    onChange={(e) => handleQuantityChange(den, e.target.value)}
-                                    className="w-16 text-center mx-1 h-8 text-base"
-                                />
-                                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                {coins.length > 0 && <div className="mt-6 border-t pt-4">
-                    <h4 className="font-medium text-md mb-2 flex items-center gap-2"><Coins /> Monedas</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 p-1">
-                        {coins.map(den => (
+                    {denominations.map(den => {
+                        const isDisabled = availableDenominations ? (availableDenominations[den] || 0) <= 0 : false;
+                        return (
                             <div key={den} className="grid grid-cols-[80px_1fr] items-center gap-4">
-                                <div className="w-[40px] h-[40px] relative">
+                                <div className="w-[80px] h-[40px] relative">
                                     {imageMap[den] ? (
-                                        <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-full object-contain" />
+                                        <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-md object-contain" />
                                     ) : (
-                                        <div className="w-full h-full bg-muted rounded-full flex items-center justify-center text-xs text-muted-foreground">No Img</div>
+                                        <div className="w-full h-full bg-muted rounded-md flex items-center justify-center text-xs text-muted-foreground">No Image</div>
                                     )}
                                 </div>
                                 <div className="flex items-center">
-                                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
+                                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" disabled={isDisabled} onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
                                     <Input
                                         id={`den-${den}`}
                                         type="number"
                                         min="0"
+                                        max={availableDenominations ? availableDenominations[den] || 0 : undefined}
                                         value={quantities[den] || ''}
                                         onChange={(e) => handleQuantityChange(den, e.target.value)}
                                         className="w-16 text-center mx-1 h-8 text-base"
+                                        disabled={isDisabled}
                                     />
-                                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
+                                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" disabled={isDisabled} onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
                                 </div>
                             </div>
-                        ))}
+                        );
+                    })}
+                </div>
+                {coins.length > 0 && <div className="mt-6 border-t pt-4">
+                    <h4 className="font-medium text-md mb-2 flex items-center gap-2"><Coins /> Monedas</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 p-1">
+                        {coins.map(den => {
+                            const isDisabled = availableDenominations ? (availableDenominations[den] || 0) <= 0 : false;
+                            return (
+                                <div key={den} className="grid grid-cols-[80px_1fr] items-center gap-4">
+                                    <div className="w-[40px] h-[40px] relative">
+                                        {imageMap[den] ? (
+                                            <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-full object-contain" />
+                                        ) : (
+                                            <div className="w-full h-full bg-muted rounded-full flex items-center justify-center text-xs text-muted-foreground">No Img</div>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center">
+                                        <Button type="button" variant="outline" size="icon" className="h-8 w-8" disabled={isDisabled} onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
+                                        <Input
+                                            id={`den-${den}`}
+                                            type="number"
+                                            min="0"
+                                            max={availableDenominations ? availableDenominations[den] || 0 : undefined}
+                                            value={quantities[den] || ''}
+                                            onChange={(e) => handleQuantityChange(den, e.target.value)}
+                                            className="w-16 text-center mx-1 h-8 text-base"
+                                            disabled={isDisabled}
+                                        />
+                                        <Button type="button" variant="outline" size="icon" className="h-8 w-8" disabled={isDisabled} onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>}
             </ScrollArea>
