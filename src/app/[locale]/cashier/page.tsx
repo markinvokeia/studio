@@ -95,7 +95,7 @@ export default function CashierPage() {
 
             const mappedCashPoints: CashPointStatus[] = cashPointsData.map(cp => {
                 const openingDetails = cp.opening_details || {};
-                const openingAmounts = cp.opening_amounts || [];
+                const openingAmounts = cp.opening_amounts || cp.amounts || [];
 
                 const uyuOpening = openingAmounts.find((oa: any) => oa.currency === 'UYU')?.opening_amount || 0;
                 const usdOpening = openingAmounts.find((oa: any) => oa.currency === 'USD')?.opening_amount || 0;
@@ -123,7 +123,7 @@ export default function CashierPage() {
                         },
                         currency: openingDetails.currency,
                         date_rate: openingDetails.date_rate,
-                        amounts: cp.amounts,
+                        amounts: cp.opening_amounts || cp.amounts,
                     } : undefined,
                 };
             });
@@ -367,39 +367,30 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
 
 function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOpen = false, onViewAllCashPoints }: { session: CajaSesion, movements: CajaMovimiento[], onCloseSession: () => void, isWizardOpen?: boolean, onViewAllCashPoints: () => void; }) {
     const t = useTranslations('CashierPage');
+    const sessionCurrency = session.currency || 'UYU';
 
-    const openingDetails = React.useMemo(() => {
-        if (!session.opening_details) return { uyu: [], usd: [], totalUYU: 0, totalUSD: 0, currency: 'UYU', date_rate: 0 };
-        try {
-            const details = typeof session.opening_details === 'string'
-                ? JSON.parse(session.opening_details)
-                : session.opening_details;
+    const openingDetails = useMemo(() => {
+        const amounts = (session as any).amounts || [];
+        const uyuData = amounts.find((a: any) => a.currency === 'UYU');
+        const usdData = amounts.find((a: any) => a.currency === 'USD');
+        return {
+            totalUYU: uyuData?.opening_amount || 0,
+            totalUSD: usdData?.opening_amount || 0,
+            denominations: session.opening_details || {}
+        };
+    }, [(session as any).amounts, session.opening_details]);
 
-            const parseDenominations = (denoDetails: any) =>
-                Object.entries(denoDetails || {})
-                    .filter(([key, qty]) => !isNaN(Number(key)) && Number(qty) > 0)
-                    .map(([key, qty]) => ({ den: Number(key), qty: Number(qty) }));
+    const cashOnHand = useMemo(() => {
+        const amounts = (session as any).amounts || [];
+        const uyuData = amounts.find((a: any) => a.currency === 'UYU');
+        const usdData = amounts.find((a: any) => a.currency === 'USD');
+        return {
+            UYU: uyuData?.cash_on_hand || 0,
+            USD: usdData?.cash_on_hand || 0,
+        };
+    }, [(session as any).amounts]);
 
-            const amounts = (session as any).amounts || [];
-            const uyuOpening = amounts.find((a: any) => a.currency === 'UYU')?.opening_amount || 0;
-            const usdOpening = amounts.find((a: any) => a.currency === 'USD')?.opening_amount || 0;
-
-            return {
-                uyu: parseDenominations(details.uyu),
-                usd: parseDenominations(details.usd),
-                totalUYU: uyuOpening,
-                totalUSD: usdOpening,
-                currency: details.currency,
-                date_rate: details.date_rate,
-            };
-
-        } catch (e) {
-            console.error("Failed to parse opening_details", e);
-            return { uyu: [], usd: [], totalUYU: 0, totalUSD: 0, currency: 'UYU', date_rate: 0 };
-        }
-    }, [session.opening_details, (session as any).amounts]);
-
-    const totalIncome = React.useMemo(() => {
+    const totalIncome = useMemo(() => {
         const income: { UYU: number; USD: number } = { UYU: 0, USD: 0 };
         movements
             .filter(m => m.tipo === 'INGRESO')
@@ -412,7 +403,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         return income;
     }, [movements]);
 
-    const totalOutcome = React.useMemo(() => {
+    const totalOutcome = useMemo(() => {
         const outcome: { UYU: number; USD: number } = { UYU: 0, USD: 0 };
         movements
             .filter(m => m.tipo === 'EGRESO')
@@ -424,14 +415,6 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
             });
         return outcome;
     }, [movements]);
-
-    const cashOnHand = React.useMemo(() => {
-        const amounts = (session as any).amounts || [];
-        return {
-            UYU: amounts.find((a: any) => a.currency === 'UYU')?.cash_on_hand || 0,
-            USD: amounts.find((a: any) => a.currency === 'USD')?.cash_on_hand || 0,
-        };
-    }, [(session as any).amounts]);
 
     const allMovements = React.useMemo(() => movements, [movements]);
 
@@ -453,6 +436,17 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         { accessorKey: 'metodoPago', header: tColumns('method') },
         { accessorKey: 'fecha', header: tColumns('date'), cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
     ];
+
+    const renderAmount = (amount: number, currency: 'UYU' | 'USD') => (
+        <div className="text-2xl font-bold">
+            <div>{currency} {amount.toFixed(2)}</div>
+            {sessionCurrency !== currency && (
+                <div className="text-sm font-normal text-muted-foreground">
+                    (≈ {sessionCurrency} {(currency === 'USD' ? amount * (session.date_rate || 1) : amount / (session.date_rate || 1)).toFixed(2)})
+                </div>
+            )}
+        </div>
+    );
 
     return (
         <Card>
@@ -480,10 +474,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">
-                                <div>UYU {openingDetails.totalUYU.toFixed(2)}</div>
-                                <div>USD {openingDetails.totalUSD.toFixed(2)}</div>
-                            </div>
+                             {renderAmount(openingDetails.totalUYU, 'UYU')}
+                             {renderAmount(openingDetails.totalUSD, 'USD')}
                             <p className="text-xs text-muted-foreground">{new Date(session.fechaApertura).toLocaleString()}</p>
                         </CardContent>
                     </Card>
@@ -493,10 +485,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                             <Banknote className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">
-                                <div>UYU {cashOnHand.UYU.toFixed(2)}</div>
-                                <div>USD {cashOnHand.USD.toFixed(2)}</div>
-                            </div>
+                            {renderAmount(cashOnHand.UYU, 'UYU')}
+                            {renderAmount(cashOnHand.USD, 'USD')}
                         </CardContent>
                     </Card>
                     <Card>
@@ -505,10 +495,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                             <TrendingUp className="h-4 w-4 text-green-500" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">
-                                <div>UYU {totalIncome.UYU.toFixed(2)}</div>
-                                <div>USD {totalIncome.USD.toFixed(2)}</div>
-                            </div>
+                            {renderAmount(totalIncome.UYU, 'UYU')}
+                            {renderAmount(totalIncome.USD, 'USD')}
                         </CardContent>
                     </Card>
                     <Card>
@@ -517,54 +505,48 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                             <TrendingDown className="h-4 w-4 text-red-500" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-red-500">
-                                <div>UYU {totalOutcome.UYU.toFixed(2)}</div>
-                                <div>USD {totalOutcome.USD.toFixed(2)}</div>
-                            </div>
+                             <div className="text-2xl font-bold text-red-500">
+                                {renderAmount(totalOutcome.UYU, 'UYU')}
+                                {renderAmount(totalOutcome.USD, 'USD')}
+                             </div>
                         </CardContent>
                     </Card>
                 </div>
                 <Tabs defaultValue="transactions">
                     <TabsList>
                         <TabsTrigger value="transactions">Transactions</TabsTrigger>
-                        {(openingDetails.uyu.length > 0 || openingDetails.usd.length > 0) && (
-                            <TabsTrigger value="opening_details">{t('activeSession.openingDetails')}</TabsTrigger>
-                        )}
+                         <TabsTrigger value="opening_details">{t('activeSession.openingDetails')}</TabsTrigger>
                     </TabsList>
                     <TabsContent value="transactions">
                         <DataTable columns={movementColumns} data={allMovements} />
                     </TabsContent>
                     <TabsContent value="opening_details">
-                        {(openingDetails.uyu.length > 0 || openingDetails.usd.length > 0) ? (
+                        {openingDetails.denominations ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {openingDetails.uyu.length > 0 && (
-                                    <Table>
-                                        <TableHeader><TableRow><TableHead colSpan={3}>UYU</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                            {openingDetails.uyu.map(({ den, qty }) => (
-                                                <TableRow key={`uyu-${den}`}>
-                                                    <TableCell>$ {den}</TableCell>
-                                                    <TableCell className="text-right">{Number(qty)}</TableCell>
-                                                    <TableCell className="text-right">$ {(Number(den) * Number(qty)).toFixed(2)}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                )}
-                                {openingDetails.usd.length > 0 && (
-                                    <Table>
-                                        <TableHeader><TableRow><TableHead colSpan={3}>USD</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                            {openingDetails.usd.map(({ den, qty }) => (
-                                                <TableRow key={`usd-${den}`}>
-                                                    <TableCell>$ {den}</TableCell>
-                                                    <TableCell className="text-right">{Number(qty)}</TableCell>
-                                                    <TableCell className="text-right">$ {(Number(den) * Number(qty)).toFixed(2)}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                )}
+                                <Table>
+                                    <TableHeader><TableRow><TableHead colSpan={3}>UYU</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {openingDetails.denominations.uyu && Object.entries(openingDetails.denominations.uyu).map(([den, qty]) => (
+                                            den !== 'total' && <TableRow key={`uyu-${den}`}>
+                                                <TableCell>$ {den}</TableCell>
+                                                <TableCell className="text-right">{Number(qty)}</TableCell>
+                                                <TableCell className="text-right">$ {(Number(den) * Number(qty)).toFixed(2)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                                <Table>
+                                    <TableHeader><TableRow><TableHead colSpan={3}>USD</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {openingDetails.denominations.usd && Object.entries(openingDetails.denominations.usd).map(([den, qty]) => (
+                                            den !== 'total' && <TableRow key={`usd-${den}`}>
+                                                <TableCell>$ {den}</TableCell>
+                                                <TableCell className="text-right">{Number(qty)}</TableCell>
+                                                <TableCell className="text-right">$ {(Number(den) * Number(qty)).toFixed(2)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
                             </div>
                         ) : <p className="text-muted-foreground p-4 text-center">No denomination details available for this session.</p>}
                     </TabsContent>
@@ -609,17 +591,22 @@ function CloseSessionWizard({
     const t = useTranslations('CashierPage.wizard');
     const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
     const usdTotal = useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
+    const [bankDepositUyuDenominations, setBankDepositUyuDenominations] = React.useState<Record<string, number>>({});
+    const [bankDepositUsdDenominations, setBankDepositUsdDenominations] = React.useState<Record<string, number>>({});
+    const [bankDepositFiles, setBankDepositFiles] = React.useState<File[]>([]);
 
     const handleNextStep = () => {
         if (currentStep === 'REVIEW') setCurrentStep('COUNT_UYU');
         else if (currentStep === 'COUNT_UYU') setCurrentStep('COUNT_USD');
-        else if (currentStep === 'COUNT_USD') setCurrentStep('DECLARE');
+        else if (currentStep === 'COUNT_USD') setCurrentStep('BANK_DEPOSIT');
+        else if (currentStep === 'BANK_DEPOSIT') setCurrentStep('DECLARE');
     };
 
     const handlePreviousStep = () => {
         if (currentStep === 'COUNT_UYU') setCurrentStep('REVIEW');
         else if (currentStep === 'COUNT_USD') setCurrentStep('COUNT_UYU');
-        else if (currentStep === 'DECLARE') setCurrentStep('COUNT_USD');
+        else if (currentStep === 'BANK_DEPOSIT') setCurrentStep('COUNT_USD');
+        else if (currentStep === 'DECLARE') setCurrentStep('BANK_DEPOSIT');
     };
 
 
@@ -630,10 +617,11 @@ function CloseSessionWizard({
             </CardHeader>
             <CardContent>
                 <Tabs value={currentStep} className="w-full">
-                    <TabsList className="grid w-full grid-cols-5">
+                    <TabsList className="grid w-full grid-cols-6">
                         <TabsTrigger value="REVIEW">{t('steps.review')}</TabsTrigger>
                         <TabsTrigger value="COUNT_UYU" disabled={currentStep === 'REVIEW'}>Count UYU</TabsTrigger>
-                        <TabsTrigger value="COUNT_USD" disabled={!['COUNT_USD', 'DECLARE', 'REPORT'].includes(currentStep)}>Count USD</TabsTrigger>
+                        <TabsTrigger value="COUNT_USD" disabled={!['COUNT_USD', 'BANK_DEPOSIT', 'DECLARE', 'REPORT'].includes(currentStep)}>Count USD</TabsTrigger>
+                        <TabsTrigger value="BANK_DEPOSIT" disabled={!['BANK_DEPOSIT', 'DECLARE', 'REPORT'].includes(currentStep)}>Bank Deposit</TabsTrigger>
                         <TabsTrigger value="DECLARE" disabled={!['DECLARE', 'REPORT'].includes(currentStep)}>{t('steps.declare')}</TabsTrigger>
                         <TabsTrigger value="REPORT" disabled={currentStep !== 'REPORT'}>{t('steps.report')}</TabsTrigger>
                     </TabsList>
@@ -666,6 +654,63 @@ function CloseSessionWizard({
                             imageMap={USD_IMAGES}
                         />
                     </TabsContent>
+                    <TabsContent value="BANK_DEPOSIT" className="mt-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Bank Deposit Declaration</CardTitle>
+                                <CardDescription>Declare the physical cash denominations to be taken out for banking. This step is optional.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <DenominationCounter
+                                        title="UYU Bank Deposit"
+                                        denominations={denominationsUYU}
+                                        coins={coinsUYU}
+                                        currency="UYU"
+                                        quantities={bankDepositUyuDenominations}
+                                        onQuantitiesChange={setBankDepositUyuDenominations}
+                                        imageMap={UYU_IMAGES}
+                                    />
+                                    <DenominationCounter
+                                        title="USD Bank Deposit"
+                                        denominations={denominationsUSD}
+                                        coins={coinsUSD}
+                                        currency="USD"
+                                        quantities={bankDepositUsdDenominations}
+                                        onQuantitiesChange={setBankDepositUsdDenominations}
+                                        imageMap={USD_IMAGES}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="files">Attach Files</Label>
+                                    <Input id="files" type="file" multiple onChange={(e) => setBankDepositFiles(prev => [...prev, ...Array.from(e.target.files || [])])} />
+                                    {bankDepositFiles.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mt-4">
+                                            {bankDepositFiles.map((file, index) => (
+                                                <div key={index} className="relative w-16 h-16">
+                                                    {file.type.startsWith('image/') ? (
+                                                        <img src={URL.createObjectURL(file)} alt={file.name} className="w-full h-full object-cover rounded" />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
+                                                            {file.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                        </div>
+                                                    )}
+                                                    <Button
+                                                        variant="destructive"
+                                                        size="sm"
+                                                        className="absolute -top-2 -right-2 w-5 h-5 rounded-full p-0"
+                                                        onClick={() => setBankDepositFiles(bankDepositFiles.filter((_, i) => i !== index))}
+                                                    >
+                                                        ×
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
                     <TabsContent value="DECLARE">
                         <DeclareCashup
                             activeSession={activeSession}
@@ -673,6 +718,9 @@ function CloseSessionWizard({
                             declaredUsd={usdTotal}
                             uyuDenominations={uyuDenominations}
                             usdDenominations={usdDenominations}
+                            bankDepositUyu={bankDepositUyuDenominations}
+                            bankDepositUsd={bankDepositUsdDenominations}
+                            bankDepositFiles={bankDepositFiles}
                             onSessionClosed={(reportData) => {
                                 setClosedSessionReport(reportData);
                                 setCurrentStep('REPORT');
@@ -830,12 +878,15 @@ const CashCounter = ({ currency, denominations, coins, quantities, onQuantitiesC
 
 
 
-const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominations, usdDenominations, onSessionClosed, onBack }: {
+const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominations, usdDenominations, bankDepositUyu, bankDepositUsd, bankDepositFiles, onSessionClosed, onBack }: {
     activeSession: CajaSesion;
     declaredUyu: number;
     declaredUsd: number;
     uyuDenominations: Record<string, number>;
     usdDenominations: Record<string, number>;
+    bankDepositUyu: Record<string, number>;
+    bankDepositUsd: Record<string, number>;
+    bankDepositFiles: File[];
     onSessionClosed: (reportData: any) => void;
     onBack: () => void;
 }) => {
@@ -871,22 +922,27 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
     }, [activeSession.id, toast]);
 
     const handleCloseSession = async () => {
-        const payload = {
-            cash_session_id: activeSession.id,
-            declared_cash_uyu: declaredUyu,
-            declared_cash_usd: declaredUsd,
-            notes: notes,
-            closing_denominations: JSON.stringify({
-                uyu: { ...uyuDenominations, total: declaredUyu },
-                usd: { ...usdDenominations, total: declaredUsd }
-            })
-        };
+        const formData = new FormData();
+        formData.append('cash_session_id', activeSession.id);
+        formData.append('declared_cash_uyu', declaredUyu.toString());
+        formData.append('declared_cash_usd', declaredUsd.toString());
+        formData.append('notes', notes);
+        formData.append('closing_denominations', JSON.stringify({
+            uyu: { ...uyuDenominations, total: declaredUyu },
+            usd: { ...usdDenominations, total: declaredUsd }
+        }));
+        formData.append('bank_deposit_denominations', JSON.stringify({
+            uyu: bankDepositUyu,
+            usd: bankDepositUsd
+        }));
+        bankDepositFiles.forEach((file, index) => {
+            formData.append('files', file);
+        });
 
         try {
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                body: formData,
             });
 
             const responseData = await response.json();
@@ -973,6 +1029,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
         </Card>
     );
 };
+
 
 const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: () => void }) => {
     const reportDetails = Array.isArray(reportData) && reportData.length > 0 ? reportData[0] : reportData;
@@ -1105,9 +1162,8 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/prefill');
             if (response.ok) {
                 const data = await response.json();
-                if (data && data.length > 0 && data[0].closing_details) {
-                    const details = typeof data[0].closing_details === 'string' ? JSON.parse(data[0].closing_details) : data[0].closing_details;
-                    setLastClosingDetails(details);
+                if (data && data.difference_details) {
+                    setLastClosingDetails(data.difference_details);
                 }
             }
         } catch (error) {
@@ -1398,3 +1454,4 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         </Card>
     );
 }
+  
