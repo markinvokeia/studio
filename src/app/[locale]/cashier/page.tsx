@@ -1093,7 +1093,7 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
         const currencyMovement = movements.find((m: any) => m.currency === currency);
         if (!currencyMovement) return null;
 
-        const openingAmount = currencyMovement.opening_amount_ref || 0;
+        const openingAmount = session.opening_details?.[currency.toLowerCase()]?.total || 0;
         const declaredCash = currencyMovement.declared_cash || 0;
         const systemCash = currencyMovement.calculated_cash || 0;
         const cashVariance = currencyMovement.cash_variance || 0;
