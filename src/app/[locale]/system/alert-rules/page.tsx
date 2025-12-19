@@ -52,9 +52,9 @@ type RuleFormValues = z.infer<typeof ruleFormSchema>;
 // MOCK DATA - Replace with API calls
 async function getRules(): Promise<AlertRule[]> {
     return [
-        { id: '1', category_id: '1', code: 'APPT_REMINDER_24H', name: '24h Appointment Reminder', priority: 'HIGH', source_table: 'appointments', query_template: 'SELECT * FROM appointments WHERE appointment_date = CURRENT_DATE + 1', is_active: true },
-        { id: '2', category_id: '2', code: 'INV_OVERDUE', name: 'Invoice Overdue', priority: 'CRITICAL', source_table: 'invoices', query_template: 'SELECT * FROM invoices WHERE due_date < CURRENT_DATE AND status = \'unpaid\'', is_active: true },
-        { id: '3', category_id: '3', code: 'PATIENT_BIRTHDAY', name: 'Patient Birthday', priority: 'LOW', source_table: 'patients', query_template: 'SELECT * FROM patients WHERE EXTRACT(MONTH FROM dob) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(DAY FROM dob) = EXTRACT(DAY FROM CURRENT_DATE)', is_active: false },
+        { id: '1', category_id: '1', code: 'APPT_REMINDER_24H', name: '24h Appointment Reminder', priority: 'HIGH', source_table: 'appointments', query_template: 'SELECT * FROM appointments WHERE appointment_date = CURRENT_DATE + 1', is_active: true, auto_send_email: true, auto_send_sms: false },
+        { id: '2', category_id: '2', code: 'INV_OVERDUE', name: 'Invoice Overdue', priority: 'CRITICAL', source_table: 'invoices', query_template: 'SELECT * FROM invoices WHERE due_date < CURRENT_DATE AND status = \'unpaid\'', is_active: true, auto_send_email: true, auto_send_sms: false },
+        { id: '3', category_id: '1', code: 'PATIENT_BIRTHDAY', name: 'Patient Birthday', priority: 'LOW', source_table: 'patients', query_template: 'SELECT * FROM patients WHERE EXTRACT(MONTH FROM dob) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(DAY FROM dob) = EXTRACT(DAY FROM CURRENT_DATE)', is_active: false, auto_send_email: false, auto_send_sms: false },
     ];
 }
 
