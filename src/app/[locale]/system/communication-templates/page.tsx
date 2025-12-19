@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -25,7 +26,7 @@ import { AlertTriangle, MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -65,7 +66,6 @@ async function getCategories(): Promise<AlertCategory[]> {
 
 export default function CommunicationTemplatesPage() {
     const t = useTranslations('CommunicationTemplatesPage');
-    const tValidation = useTranslations('CommunicationTemplatesPage.validation');
     const { toast } = useToast();
     const [templates, setTemplates] = React.useState<CommunicationTemplate[]>([]);
     const [categories, setCategories] = React.useState<AlertCategory[]>([]);
@@ -80,7 +80,7 @@ export default function CommunicationTemplatesPage() {
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
     const form = useForm<TemplateFormValues>({
-        resolver: zodResolver(templateFormSchema(tValidation)),
+        resolver: zodResolver(templateFormSchema(t)),
     });
 
     const watchedBodyHtml = form.watch('body_html');
