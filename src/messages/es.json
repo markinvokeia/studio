@@ -2127,58 +2127,58 @@
     "description": "Gestiona las categorías para agrupar las alertas.",
     "filterPlaceholder": "Filtrar por nombre de categoría...",
     "columns": {
-        "icon": "Icono",
-        "name": "Nombre",
-        "code": "Código",
-        "rulesCount": "Reglas",
-        "isActive": "Activa",
-        "yes": "Sí",
-        "no": "No",
-        "actions": "Acciones",
-        "edit": "Editar",
-        "delete": "Eliminar"
+      "icon": "Icono",
+      "name": "Nombre",
+      "code": "Código",
+      "rulesCount": "Reglas",
+      "isActive": "Activa",
+      "yes": "Sí",
+      "no": "No",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
     },
     "dialog": {
-        "createTitle": "Crear Categoría de Alerta",
-        "editTitle": "Editar Categoría de Alerta",
-        "name": "Nombre",
-        "namePlaceholder": "Ej: Facturación",
-        "code": "Código",
-        "codePlaceholder": "Ej: BILLING",
-        "description": "Descripción",
-        "descriptionPlaceholder": "Alertas relacionadas con facturas y pagos",
-        "icon": "Icono",
-        "iconPlaceholder": "Introduce un nombre de icono de Lucide (ej: DollarSign)",
-        "color": "Color",
-        "sortOrder": "Orden de Clasificación",
-        "isActive": "Está Activa",
-        "cancel": "Cancelar",
-        "create": "Crear Categoría",
-        "save": "Guardar Cambios"
+      "createTitle": "Crear Categoría de Alerta",
+      "editTitle": "Editar Categoría de Alerta",
+      "name": "Nombre",
+      "namePlaceholder": "Ej: Facturación",
+      "code": "Código",
+      "codePlaceholder": "Ej: BILLING",
+      "description": "Descripción",
+      "descriptionPlaceholder": "Alertas relacionadas con facturas y pagos",
+      "icon": "Icono",
+      "iconPlaceholder": "Introduce un nombre de icono de Lucide (ej: DollarSign)",
+      "color": "Color",
+      "sortOrder": "Orden de Clasificación",
+      "isActive": "Está Activa",
+      "cancel": "Cancelar",
+      "create": "Crear Categoría",
+      "save": "Guardar Cambios"
     },
     "deleteDialog": {
-        "title": "Eliminar Categoría",
-        "description": "¿Estás seguro de que quieres eliminar la categoría \"{name}\"?",
-        "cancel": "Cancelar",
-        "confirm": "Eliminar"
+      "title": "Eliminar Categoría",
+      "description": "¿Estás seguro de que quieres eliminar la categoría \"{name}\"?",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
     },
     "toast": {
-        "errorTitle": "Error",
-        "createSuccessTitle": "Categoría Creada",
-        "editSuccessTitle": "Categoría Actualizada",
-        "successDescription": "La categoría \"{name}\" ha sido guardada exitosamente.",
-        "deleteSuccessTitle": "Categoría Eliminada",
-        "deleteSuccessDescription": "La categoría \"{name}\" ha sido eliminada.",
-        "deleteErrorHasRules": "No se puede eliminar una categoría que tiene reglas asociadas.",
-        "deleteErrorTitle": "Fallo al Eliminar"
+      "errorTitle": "Error",
+      "createSuccessTitle": "Categoría Creada",
+      "editSuccessTitle": "Categoría Actualizada",
+      "successDescription": "La categoría \"{name}\" ha sido guardada exitosamente.",
+      "deleteSuccessTitle": "Categoría Eliminada",
+      "deleteSuccessDescription": "La categoría \"{name}\" ha sido eliminada.",
+      "deleteErrorHasRules": "No se puede eliminar una categoría que tiene reglas asociadas.",
+      "deleteErrorTitle": "Fallo al Eliminar"
     },
     "validation": {
-        "codeRequired": "El código es obligatorio.",
-        "codeFormat": "El código debe estar en mayúsculas y sin espacios.",
-        "nameRequired": "El nombre es obligatorio.",
-        "nameMaxLength": "El nombre no puede exceder los 100 caracteres.",
-        "descriptionMaxLength": "La descripción no puede exceder los 500 caracteres.",
-        "colorInvalid": "Debe ser un color hexadecimal válido (ej: #FF5733)."
+      "codeRequired": "El código es obligatorio.",
+      "codeFormat": "El código debe estar en mayúsculas y sin espacios.",
+      "nameRequired": "El nombre es obligatorio.",
+      "nameMaxLength": "El nombre no puede exceder los 100 caracteres.",
+      "descriptionMaxLength": "La descripción no puede exceder los 500 caracteres.",
+      "colorInvalid": "Debe ser un color hexadecimal válido (ej: #FF5733)."
     }
   },
   "AlertsCenterPage": {
@@ -2206,5 +2206,152 @@
       "in_progress": "En Progreso",
       "completed": "Completada"
     }
+  },
+  "AlertRulesPage": {
+    "title": "Reglas de Alerta",
+    "description": "Configura las reglas que generan alertas automáticamente.",
+    "filterPlaceholder": "Filtrar por nombre de regla...",
+    "columns": {
+      "name": "Nombre",
+      "category": "Categoría",
+      "priority": "Prioridad",
+      "autoEmail": "Email Automático",
+      "autoSms": "SMS Automático",
+      "isActive": "Activa",
+      "yes": "Sí",
+      "no": "No",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "duplicate": "Duplicar",
+      "test": "Probar Regla",
+      "delete": "Eliminar"
+    },
+    "dialog": {
+      "createTitle": "Crear Regla de Alerta",
+      "editTitle": "Editar Regla de Alerta",
+      "name": "Nombre",
+      "code": "Código",
+      "category": "Categoría",
+      "selectCategory": "Seleccionar una categoría",
+      "description": "Descripción",
+      "priority": "Prioridad",
+      "selectPriority": "Seleccionar una prioridad",
+      "sourceTable": "Tabla de Origen",
+      "queryTemplate": "Plantilla de Consulta",
+      "daysBefore": "Días Antes del Evento",
+      "daysAfter": "Días Después del Evento",
+      "autoSendEmail": "Enviar Email Automáticamente",
+      "autoSendSms": "Enviar SMS Automáticamente",
+      "isActive": "Está Activa",
+      "cancel": "Cancelar",
+      "create": "Crear Regla",
+      "save": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "Eliminar Regla",
+      "description": "¿Estás seguro de que quieres eliminar la regla \"{name}\"?",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createSuccessTitle": "Regla Creada",
+      "editSuccessTitle": "Regla Actualizada",
+      "successDescription": "La regla \"{name}\" se ha guardado exitosamente.",
+      "deleteSuccessTitle": "Regla Eliminada",
+      "deleteSuccessDescription": "La regla \"{name}\" ha sido eliminada."
+    },
+    "validation": {
+      "categoryRequired": "La categoría es obligatoria.",
+      "codeRequired": "El código es obligatorio.",
+      "nameRequired": "El nombre es obligatorio.",
+      "priorityRequired": "La prioridad es obligatoria.",
+      "sourceTableRequired": "La tabla de origen es obligatoria.",
+      "queryTemplateRequired": "La plantilla de consulta es obligatoria."
+    },
+    "priorities": {
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta",
+      "critical": "Crítica"
+    }
+  },
+  "CommunicationTemplatesPage": {
+    "title": "Plantillas de Comunicación",
+    "description": "Gestiona las plantillas para correos electrónicos, SMS y otras comunicaciones.",
+    "filterPlaceholder": "Filtrar por nombre de plantilla...",
+    "columns": {
+      "name": "Nombre",
+      "type": "Tipo",
+      "category": "Categoría",
+      "isActive": "Activa",
+      "yes": "Sí",
+      "no": "No",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+    "dialog": {
+      "createTitle": "Crear Plantilla",
+      "editTitle": "Editar Plantilla",
+      "name": "Nombre",
+      "code": "Código",
+      "type": "Tipo",
+      "selectType": "Seleccionar un tipo",
+      "category": "Categoría",
+      "selectCategory": "Seleccionar una categoría",
+      "subject": "Asunto",
+      "body": "Contenido del Cuerpo",
+      "isActive": "Está Activa",
+      "cancel": "Cancelar",
+      "create": "Crear Plantilla",
+      "save": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "Eliminar Plantilla",
+      "description": "¿Estás seguro de que quieres eliminar la plantilla \"{name}\"?",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createSuccessTitle": "Plantilla Creada",
+      "editSuccessTitle": "Plantilla Actualizada",
+      "successDescription": "La plantilla \"{name}\" ha sido guardada exitosamente.",
+      "deleteSuccessTitle": "Plantilla Eliminada",
+      "deleteSuccessDescription": "La plantilla \"{name}\" ha sido eliminada."
+    },
+    "validation": {
+      "codeRequired": "El código es obligatorio.",
+      "nameRequired": "El nombre es obligatorio."
+    }
+  },
+  "CommunicationHistoryPage": {
+    "title": "Historial de Comunicaciones",
+    "description": "Ver un registro de todas las comunicaciones enviadas.",
+    "filterPlaceholder": "Filtrar por destinatario...",
+    "columns": {
+      "sentAt": "Enviado a las",
+      "channel": "Canal",
+      "recipient": "Destinatario",
+      "subject": "Asunto",
+      "status": "Estado",
+      "alertId": "ID de Alerta"
+    }
+  },
+  "ExecutionHistoryPage": {
+    "title": "Historial de Ejecuciones",
+    "description": "Monitorea las ejecuciones de los trabajos de generación de alertas.",
+    "filterPlaceholder": "Filtrar por estado...",
+    "columns": {
+      "runDate": "Fecha de Ejecución",
+      "status": "Estado",
+      "alertsCreated": "Alertas Creadas",
+      "emailsSent": "Emails Enviados",
+      "errorsCount": "Errores",
+      "duration": "Duración"
+    }
   }
 }
+
+    

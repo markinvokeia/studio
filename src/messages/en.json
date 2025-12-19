@@ -2180,5 +2180,178 @@
       "descriptionMaxLength": "Description cannot exceed 500 characters.",
       "colorInvalid": "Must be a valid hex color (e.g., #FF5733)."
     }
+  },
+  "AlertsCenterPage": {
+    "title": "Alerts Center",
+    "description": "View and manage all system-generated alerts.",
+    "summary": {
+      "total": "Total Pending",
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium"
+    },
+    "dailyAlerts": "Today's Alerts",
+    "filters": {
+      "title": "Filters"
+    },
+    "categories": {
+      "appointments": "Appointments",
+      "billing": "Billing",
+      "followup": "Follow-up",
+      "default": "Default",
+      "patients": "Patients"
+    },
+    "status": {
+      "pending": "Pending",
+      "in_progress": "In Progress",
+      "completed": "Completed"
+    }
+  },
+    "AlertRulesPage": {
+    "title": "Alert Rules",
+    "description": "Configure the rules that automatically generate alerts.",
+    "filterPlaceholder": "Filter by rule name...",
+    "columns": {
+      "name": "Name",
+      "category": "Category",
+      "priority": "Priority",
+      "autoEmail": "Auto Email",
+      "autoSms": "Auto SMS",
+      "isActive": "Active",
+      "yes": "Yes",
+      "no": "No",
+      "actions": "Actions",
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "test": "Test Rule",
+      "delete": "Delete"
+    },
+    "dialog": {
+      "createTitle": "Create Alert Rule",
+      "editTitle": "Edit Alert Rule",
+      "name": "Name",
+      "code": "Code",
+      "category": "Category",
+      "selectCategory": "Select a category",
+      "description": "Description",
+      "priority": "Priority",
+      "selectPriority": "Select a priority",
+      "sourceTable": "Source Table",
+      "queryTemplate": "Query Template",
+      "daysBefore": "Days Before Event",
+      "daysAfter": "Days After Event",
+      "autoSendEmail": "Auto-send Email",
+      "autoSendSms": "Auto-send SMS",
+      "isActive": "Is Active",
+      "cancel": "Cancel",
+      "create": "Create Rule",
+      "save": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Delete Rule",
+      "description": "Are you sure you want to delete the rule \"{name}\"?",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createSuccessTitle": "Rule Created",
+      "editSuccessTitle": "Rule Updated",
+      "successDescription": "Rule \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Rule Deleted",
+      "deleteSuccessDescription": "Rule \"{name}\" has been deleted."
+    },
+    "validation": {
+      "categoryRequired": "Category is required.",
+      "codeRequired": "Code is required.",
+      "nameRequired": "Name is required.",
+      "priorityRequired": "Priority is required.",
+      "sourceTableRequired": "Source table is required.",
+      "queryTemplateRequired": "Query template is required."
+    },
+    "priorities": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    }
+  },
+  "CommunicationTemplatesPage": {
+    "title": "Communication Templates",
+    "description": "Manage templates for emails, SMS, and other communications.",
+    "filterPlaceholder": "Filter by template name...",
+    "columns": {
+      "name": "Name",
+      "type": "Type",
+      "category": "Category",
+      "isActive": "Active",
+      "yes": "Yes",
+      "no": "No",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "dialog": {
+      "createTitle": "Create Template",
+      "editTitle": "Edit Template",
+      "name": "Name",
+      "code": "Code",
+      "type": "Type",
+      "selectType": "Select a type",
+      "category": "Category",
+      "selectCategory": "Select a category",
+      "subject": "Subject",
+      "body": "Body Content",
+      "isActive": "Is Active",
+      "cancel": "Cancel",
+      "create": "Create Template",
+      "save": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Delete Template",
+      "description": "Are you sure you want to delete the template \"{name}\"?",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createSuccessTitle": "Template Created",
+      "editSuccessTitle": "Template Updated",
+      "successDescription": "Template \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Template Deleted",
+      "deleteSuccessDescription": "Template \"{name}\" has been deleted."
+    },
+    "validation": {
+      "codeRequired": "Code is required.",
+      "nameRequired": "Name is required."
+    }
+  },
+  "CommunicationHistoryPage": {
+    "title": "Communication History",
+    "description": "View a log of all sent communications.",
+    "filterPlaceholder": "Filter by recipient...",
+    "columns": {
+      "sentAt": "Sent At",
+      "channel": "Channel",
+      "recipient": "Recipient",
+      "subject": "Subject",
+      "status": "Status",
+      "alertId": "Alert ID"
+    }
+  },
+  "ExecutionHistoryPage": {
+    "title": "Execution History",
+    "description": "Monitor the execution runs of the alert generation jobs.",
+    "filterPlaceholder": "Filter by status...",
+    "columns": {
+      "runDate": "Run Date",
+      "status": "Status",
+      "alertsCreated": "Alerts Created",
+      "emailsSent": "Emails Sent",
+      "errorsCount": "Errors",
+      "duration": "Duration"
+    }
   }
 }
+
+    

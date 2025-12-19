@@ -142,8 +142,20 @@ export default function AlertRulesPage() {
         { accessorKey: 'priority', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.priority')} />,
             cell: ({ row }) => <Badge variant={row.original.priority === 'CRITICAL' ? 'destructive' : 'secondary'}>{row.original.priority}</Badge>
         },
-        { accessorKey: 'is_active', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.isActive')} />,
-            cell: ({ row }) => row.original.is_active ? t('columns.yes') : t('columns.no')
+        { 
+            accessorKey: 'auto_send_email', 
+            header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.autoEmail')} />,
+            cell: ({ row }) => <Checkbox checked={row.original.auto_send_email} disabled />
+        },
+        { 
+            accessorKey: 'auto_send_sms', 
+            header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.autoSms')} />,
+            cell: ({ row }) => <Checkbox checked={row.original.auto_send_sms} disabled />
+        },
+        { 
+            accessorKey: 'is_active', 
+            header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.isActive')} />,
+            cell: ({ row }) => <Badge variant={row.original.is_active ? 'success' : 'outline'}>{row.original.is_active ? t('columns.yes') : t('columns.no')}</Badge>
         },
         {
             id: 'actions',
@@ -160,6 +172,8 @@ export default function AlertRulesPage() {
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
                     <DropdownMenuItem onClick={() => handleEdit(rule)}>{t('columns.edit')}</DropdownMenuItem>
+                    <DropdownMenuItem>{t('columns.duplicate')}</DropdownMenuItem>
+                    <DropdownMenuItem>{t('columns.test')}</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleDelete(rule)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>
                 </DropdownMenuContent>
                 </DropdownMenu>
@@ -205,7 +219,7 @@ export default function AlertRulesPage() {
                         <FormField control={form.control} name="code" render={({ field }) => (<FormItem><FormLabel>{t('dialog.code')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="category_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.category')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectCategory')} /></SelectTrigger></FormControl><SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>{t('dialog.description')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="priority" render={({ field }) => (<FormItem><FormLabel>{t('dialog.priority')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectPriority')} /></SelectTrigger></FormControl><SelectContent><SelectItem value="LOW">Low</SelectItem><SelectItem value="MEDIUM">Medium</SelectItem><SelectItem value="HIGH">High</SelectItem><SelectItem value="CRITICAL">Critical</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="priority" render={({ field }) => (<FormItem><FormLabel>{t('dialog.priority')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectPriority')} /></SelectTrigger></FormControl><SelectContent><SelectItem value="LOW">{t('priorities.low')}</SelectItem><SelectItem value="MEDIUM">{t('priorities.medium')}</SelectItem><SelectItem value="HIGH">{t('priorities.high')}</SelectItem><SelectItem value="CRITICAL">{t('priorities.critical')}</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="source_table" render={({ field }) => (<FormItem><FormLabel>{t('dialog.sourceTable')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="query_template" render={({ field }) => (<FormItem><FormLabel>{t('dialog.queryTemplate')}</FormLabel><FormControl><Textarea {...field} rows={5} /></FormControl><FormMessage /></FormItem>)} />
                         <div className="grid grid-cols-2 gap-4">
@@ -241,3 +255,5 @@ export default function AlertRulesPage() {
         </>
     );
 }
+
+    
