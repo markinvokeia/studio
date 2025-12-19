@@ -35,8 +35,8 @@ import { Separator } from '@/components/ui/separator';
 
 const templateFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  code: z.string().min(1, t('validation.codeRequired')),
-  name: z.string().min(1, t('validation.nameRequired')),
+  code: z.string().min(1, t('CommunicationTemplatesPage.validation.codeRequired')),
+  name: z.string().min(1, t('CommunicationTemplatesPage.validation.nameRequired')),
   type: z.enum(['EMAIL', 'SMS', 'DOCUMENT', 'WHATSAPP']),
   category_id: z.string().optional(),
   subject: z.string().optional(),
