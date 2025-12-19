@@ -2122,34 +2122,64 @@
     },
     "searching": "Buscando..."
   },
-  "UserQuotes": {
-    "filterPlaceholder": "Filtrar aquí..."
-  },
-  "SystemUserColumns": {
-    "name": "Nombre",
-    "email": "Correo Electrónico",
-    "phone": "Teléfono",
-    "identity_document": "Documento de Identidad",
-    "status": "Estado",
-    "actions": "Acciones",
-    "edit": "Editar",
-    "deactivate": "Desactivar",
-    "copyId": "Copiar ID de usuario"
-  },
-  "Calendar": {
-    "all": "Todos",
-    "title": "Calendario",
-    "today": "Hoy",
-    "views": {
-      "2day": "2 Días",
-      "3day": "3 Días",
-      "day": "Día",
-      "month": "Mes",
-      "schedule": "Agenda",
-      "week": "Semana",
-      "year": "Año"
+  "AlertCategoriesPage": {
+    "title": "Categorías de Alertas",
+    "description": "Gestiona las categorías para agrupar las alertas.",
+    "filterPlaceholder": "Filtrar por nombre de categoría...",
+    "columns": {
+        "icon": "Icono",
+        "name": "Nombre",
+        "code": "Código",
+        "rulesCount": "Reglas",
+        "isActive": "Activa",
+        "yes": "Sí",
+        "no": "No",
+        "actions": "Acciones",
+        "edit": "Editar",
+        "delete": "Eliminar"
     },
-    "weekShort": "Sem"
+    "dialog": {
+        "createTitle": "Crear Categoría de Alerta",
+        "editTitle": "Editar Categoría de Alerta",
+        "name": "Nombre",
+        "namePlaceholder": "Ej: Facturación",
+        "code": "Código",
+        "codePlaceholder": "Ej: BILLING",
+        "description": "Descripción",
+        "descriptionPlaceholder": "Alertas relacionadas con facturas y pagos",
+        "icon": "Icono",
+        "iconPlaceholder": "Introduce un nombre de icono de Lucide (ej: DollarSign)",
+        "color": "Color",
+        "sortOrder": "Orden de Clasificación",
+        "isActive": "Está Activa",
+        "cancel": "Cancelar",
+        "create": "Crear Categoría",
+        "save": "Guardar Cambios"
+    },
+    "deleteDialog": {
+        "title": "Eliminar Categoría",
+        "description": "¿Estás seguro de que quieres eliminar la categoría \"{name}\"?",
+        "cancel": "Cancelar",
+        "confirm": "Eliminar"
+    },
+    "toast": {
+        "errorTitle": "Error",
+        "createSuccessTitle": "Categoría Creada",
+        "editSuccessTitle": "Categoría Actualizada",
+        "successDescription": "La categoría \"{name}\" ha sido guardada exitosamente.",
+        "deleteSuccessTitle": "Categoría Eliminada",
+        "deleteSuccessDescription": "La categoría \"{name}\" ha sido eliminada.",
+        "deleteErrorHasRules": "No se puede eliminar una categoría que tiene reglas asociadas.",
+        "deleteErrorTitle": "Fallo al Eliminar"
+    },
+    "validation": {
+        "codeRequired": "El código es obligatorio.",
+        "codeFormat": "El código debe estar en mayúsculas y sin espacios.",
+        "nameRequired": "El nombre es obligatorio.",
+        "nameMaxLength": "El nombre no puede exceder los 100 caracteres.",
+        "descriptionMaxLength": "La descripción no puede exceder los 500 caracteres.",
+        "colorInvalid": "Debe ser un color hexadecimal válido (ej: #FF5733)."
+    }
   },
   "AlertsCenterPage": {
     "title": "Centro de Alertas",

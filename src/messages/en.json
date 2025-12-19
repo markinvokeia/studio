@@ -2122,59 +2122,63 @@
     },
     "searching": "Buscando..."
   },
-  "UserQuotes": {
-    "filterPlaceholder": "Filtrar aquí..."
-  },
-  "SystemUserColumns": {
-    "name": "Nombre",
-    "email": "Correo Electrónico",
-    "phone": "Teléfono",
-    "identity_document": "Documento de Identidad",
-    "status": "Estado",
-    "actions": "Acciones",
-    "edit": "Editar",
-    "deactivate": "Desactivar",
-    "copyId": "Copiar ID de usuario"
-  },
-  "Calendar": {
-    "all": "Todos",
-    "title": "Calendario",
-    "today": "Hoy",
-    "views": {
-      "2day": "2 Días",
-      "3day": "3 Días",
-      "day": "Día",
-      "month": "Mes",
-      "schedule": "Agenda",
-      "week": "Semana",
-      "year": "Año"
+  "AlertCategoriesPage": {
+    "title": "Alert Categories",
+    "description": "Manage the categories for grouping alerts.",
+    "filterPlaceholder": "Filter by category name...",
+    "columns": {
+      "icon": "Icon",
+      "name": "Name",
+      "code": "Code",
+      "rulesCount": "Rules",
+      "isActive": "Active",
+      "yes": "Yes",
+      "no": "No",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
     },
-    "weekShort": "Sem"
-  },
-  "AlertsCenterPage": {
-    "title": "Alerts Center",
-    "description": "View and manage all system-generated alerts.",
-    "summary": {
-      "total": "Total Pending",
-      "critical": "Critical",
-      "high": "High",
-      "medium": "Medium"
+    "dialog": {
+      "createTitle": "Create Alert Category",
+      "editTitle": "Edit Alert Category",
+      "name": "Name",
+      "namePlaceholder": "e.g., Billing",
+      "code": "Code",
+      "codePlaceholder": "e.g., BILLING",
+      "description": "Description",
+      "descriptionPlaceholder": "Alerts related to invoices and payments",
+      "icon": "Icon",
+      "iconPlaceholder": "Enter a Lucide icon name (e.g., DollarSign)",
+      "color": "Color",
+      "sortOrder": "Sort Order",
+      "isActive": "Is Active",
+      "cancel": "Cancel",
+      "create": "Create Category",
+      "save": "Save Changes"
     },
-    "dailyAlerts": "Today's Alerts",
-    "filters": {
-      "title": "Filters"
+    "deleteDialog": {
+      "title": "Delete Category",
+      "description": "Are you sure you want to delete the category \"{name}\"?",
+      "cancel": "Cancel",
+      "confirm": "Delete"
     },
-    "categories": {
-      "appointments": "Appointments",
-      "billing": "Billing",
-      "followup": "Follow-up",
-      "default": "Default",
-      "patients": "Patients"
+    "toast": {
+      "errorTitle": "Error",
+      "createSuccessTitle": "Category Created",
+      "editSuccessTitle": "Category Updated",
+      "successDescription": "Category \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Category Deleted",
+      "deleteSuccessDescription": "Category \"{name}\" has been deleted.",
+      "deleteErrorHasRules": "Cannot delete category with associated rules.",
+      "deleteErrorTitle": "Deletion Failed"
     },
-    "status": {
-      "pending": "Pending",
-      "in_progress": "In Progress",
-      "completed": "Completed"
+    "validation": {
+      "codeRequired": "Code is required.",
+      "codeFormat": "Code must be uppercase with no spaces.",
+      "nameRequired": "Name is required.",
+      "nameMaxLength": "Name cannot exceed 100 characters.",
+      "descriptionMaxLength": "Description cannot exceed 500 characters.",
+      "colorInvalid": "Must be a valid hex color (e.g., #FF5733)."
     }
   }
 }

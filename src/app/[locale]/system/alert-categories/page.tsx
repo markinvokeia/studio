@@ -29,14 +29,18 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import * as LucideIcons from 'lucide-react';
 
 const categoryFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  code: z.string().min(1, t('validation.codeRequired')),
-  name: z.string().min(1, t('validation.nameRequired')),
-  description: z.string().optional(),
+  code: z.string()
+    .min(1, t('validation.codeRequired'))
+    .regex(/^[A-Z_]+$/, t('validation.codeFormat')),
+  name: z.string().min(1, t('validation.nameRequired')).max(100, t('validation.nameMaxLength')),
+  description: z.string().max(500, t('validation.descriptionMaxLength')).optional(),
   icon: z.string().optional(),
-  color: z.string().optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, t('validation.colorInvalid')).optional(),
   sort_order: z.coerce.number().optional(),
   is_active: z.boolean().default(true),
 });
@@ -46,9 +50,9 @@ type CategoryFormValues = z.infer<ReturnType<typeof categoryFormSchema>>;
 // MOCK DATA - Replace with API calls
 async function getCategories(): Promise<AlertCategory[]> {
     return [
-        { id: '1', code: 'APPOINTMENTS', name: 'Appointments', description: 'Alerts related to patient appointments.', icon: 'calendar', color: '#3b82f6', is_active: true, sort_order: 1 },
-        { id: '2', code: 'BILLING', name: 'Billing', description: 'Alerts related to invoices and payments.', icon: 'dollar-sign', color: '#10b981', is_active: true, sort_order: 2 },
-        { id: '3', code: 'FOLLOWUP', name: 'Follow-up', description: 'Post-consultation follow-up alerts.', icon: 'stethoscope', color: '#f97316', is_active: true, sort_order: 3 },
+        { id: '1', code: 'APPOINTMENTS', name: 'Appointments', description: 'Alerts related to patient appointments.', icon: 'Calendar', color: '#3b82f6', is_active: true, sort_order: 1, rules_count: 5 },
+        { id: '2', code: 'BILLING', name: 'Billing', description: 'Alerts related to invoices and payments.', icon: 'DollarSign', color: '#10b981', is_active: true, sort_order: 2, rules_count: 3 },
+        { id: '3', code: 'FOLLOWUP', name: 'Follow-up', description: 'Post-consultation follow-up alerts.', icon: 'Stethoscope', color: '#f97316', is_active: false, sort_order: 3, rules_count: 2 },
     ];
 }
 // END MOCK DATA
@@ -85,19 +89,30 @@ export default function AlertCategoriesPage() {
 
     const handleCreate = () => {
         setEditingCategory(null);
-        form.reset({ code: '', name: '', description: '', icon: '', color: '', sort_order: 0, is_active: true });
+        form.reset({ code: '', name: '', description: '', icon: 'AlertCircle', color: '#888888', sort_order: 0, is_active: true });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
     
     const handleEdit = (category: AlertCategory) => {
         setEditingCategory(category);
-        form.reset(category);
+        form.reset({
+            ...category,
+            sort_order: category.sort_order || 0
+        });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
 
     const handleDelete = (category: AlertCategory) => {
+        if (category.rules_count && category.rules_count > 0) {
+            toast({
+                variant: 'destructive',
+                title: t('toast.deleteErrorTitle'),
+                description: t('toast.deleteErrorHasRules'),
+            });
+            return;
+        }
         setDeletingCategory(category);
         setIsDeleteDialogOpen(true);
     };
@@ -120,11 +135,25 @@ export default function AlertCategoriesPage() {
     };
     
     const columns: ColumnDef<AlertCategory>[] = [
-        { accessorKey: 'code', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.code')} /> },
+        { 
+            accessorKey: 'icon', 
+            header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.icon')} />,
+            cell: ({ row }) => {
+                const Icon = (LucideIcons as any)[row.original.icon || 'AlertCircle'];
+                return Icon ? <Icon className="h-5 w-5" style={{ color: row.original.color || '#888888' }} /> : null;
+            }
+        },
         { accessorKey: 'name', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.name')} /> },
-        { accessorKey: 'description', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.description')} /> },
-        { accessorKey: 'is_active', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.isActive')} />,
-            cell: ({ row }) => row.original.is_active ? t('columns.yes') : t('columns.no')
+        { accessorKey: 'code', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.code')} /> },
+        {
+            accessorKey: 'rules_count',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.rulesCount')} />,
+            cell: ({ row }) => <Badge variant="secondary">{row.original.rules_count || 0}</Badge>
+        },
+        { 
+          accessorKey: 'is_active', 
+          header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.isActive')} />,
+          cell: ({ row }) => <Badge variant={row.original.is_active ? 'success' : 'outline'}>{row.original.is_active ? t('columns.yes') : t('columns.no')}</Badge>
         },
         {
             id: 'actions',
@@ -169,12 +198,12 @@ export default function AlertCategoriesPage() {
             </CardContent>
         </Card>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>{editingCategory ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                 </DialogHeader>
                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -183,7 +212,7 @@ export default function AlertCategoriesPage() {
                             </Alert>
                         )}
                         <FormField control={form.control} name="code" render={({ field }) => (
-                            <FormItem><FormLabel>{t('dialog.code')}</FormLabel><FormControl><Input placeholder={t('dialog.codePlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>{t('dialog.code')}</FormLabel><FormControl><Input placeholder={t('dialog.codePlaceholder')} {...field} onInput={(e) => (e.currentTarget.value = e.currentTarget.value.toUpperCase().replace(/\s/g, ''))} /></FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={form.control} name="name" render={({ field }) => (
                             <FormItem><FormLabel>{t('dialog.name')}</FormLabel><FormControl><Input placeholder={t('dialog.namePlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
@@ -195,15 +224,24 @@ export default function AlertCategoriesPage() {
                             <FormItem><FormLabel>{t('dialog.icon')}</FormLabel><FormControl><Input placeholder={t('dialog.iconPlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={form.control} name="color" render={({ field }) => (
-                            <FormItem><FormLabel>{t('dialog.color')}</FormLabel><FormControl><Input type="color" {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem>
+                                <FormLabel>{t('dialog.color')}</FormLabel>
+                                <FormControl>
+                                    <div className="flex items-center gap-2">
+                                        <Input type="color" className="p-1 h-10 w-14" {...field} />
+                                        <Input placeholder="#RRGGBB" {...field} />
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
                         )} />
                         <FormField control={form.control} name="sort_order" render={({ field }) => (
                             <FormItem><FormLabel>{t('dialog.sortOrder')}</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={form.control} name="is_active" render={({ field }) => (
-                            <FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>{t('dialog.isActive')}</FormLabel></FormItem>
+                            <FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>{t('dialog.isActive')}</FormLabel></FormItem>
                         )} />
-                        <DialogFooter>
+                        <DialogFooter className="sticky bottom-0 bg-background pt-4">
                             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                             <Button type="submit">{editingCategory ? t('dialog.save') : t('dialog.create')}</Button>
                         </DialogFooter>
@@ -226,4 +264,3 @@ export default function AlertCategoriesPage() {
         </>
     );
 }
-
