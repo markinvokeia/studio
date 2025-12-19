@@ -319,11 +319,16 @@ export default function CashSessionsPage() {
                 method: 'GET',
                 mode: 'cors'
             });
-
+    
+            if (response.headers.get('Content-Type')?.includes('application/json')) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to generate PDF report');
+            }
+    
             if (!response.ok) {
                 throw new Error('Failed to generate PDF report');
             }
-
+    
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -336,7 +341,7 @@ export default function CashSessionsPage() {
             toast({ title: "Report Downloaded", description: "The cash session report has been downloaded." });
         } catch (error) {
             console.error("Failed to print session:", error);
-            toast({ variant: 'destructive', title: "Error", description: "Could not generate the report." });
+            toast({ variant: 'destructive', title: "Error", description: error instanceof Error ? error.message : "Could not generate the report." });
         } finally {
             setIsPrinting(false);
         }
@@ -390,3 +395,5 @@ export default function CashSessionsPage() {
         </>
     );
 }
+
+    
