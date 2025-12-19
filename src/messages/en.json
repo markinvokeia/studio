@@ -55,7 +55,28 @@
     "AlertRules": "Alert Rules",
     "CommunicationTemplates": "Templates",
     "CommunicationHistory": "Communication History",
-    "ExecutionHistory": "Execution History"
+    "ExecutionHistory": "Execution History",
+    "Marketing": "Marketing",
+    "Campaigns": "Campaigns",
+    "Audiences": "Audiences",
+    "Templates": "Templates",
+    "Finance": "Finance",
+    "FinancialSummary": "Financial Summary",
+    "CashFlow": "Cash Flow",
+    "BankAccounts": "Bank Accounts",
+    "Reports": "Reports",
+    "Accounting": "Accounting",
+    "ChartOfAccounts": "Chart of Accounts",
+    "JournalEntries": "Journal Entries",
+    "AccountingReports": "Accounting Reports",
+    "Inventory": "Inventory",
+    "Products": "Products",
+    "StockMovements": "Stock Movements",
+    "Suppliers": "Suppliers",
+    "InventoryReports": "Inventory Reports",
+    "BI": "Business Intelligence",
+    "Dashboards": "Dashboards",
+    "Analytics": "Analytics"
   },
   "Header": {
     "toggleLanguage": "Toggle language",
@@ -2190,5 +2211,31 @@
     "title": "Historial de Ejecuciones",
     "description": "Ver un registro de todas las ejecuciones del planificador y trabajos en segundo plano.",
     "content": "El registro del historial de ejecuciones se implementará aquí."
+  },
+  "AlertsCenterPage": {
+    "title": "Alerts Center",
+    "description": "View and manage all system-generated alerts.",
+    "summary": {
+      "total": "Total Pending",
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium"
+    },
+    "dailyAlerts": "Daily Alerts",
+    "filters": {
+      "title": "Filters"
+    },
+    "categories": {
+      "appointments": "Appointments",
+      "billing": "Billing",
+      "followup": "Follow-up",
+      "default": "Default",
+      "patients": "Patients"
+    },
+    "status": {
+      "pending": "Pending",
+      "in_progress": "In Progress",
+      "completed": "Completed"
+    }
   }
 }

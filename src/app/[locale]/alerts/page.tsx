@@ -101,7 +101,6 @@ export default function AlertsCenterPage() {
                     <div className="flex items-center justify-between">
                         <CardTitle>{t('dailyAlerts')}</CardTitle>
                         <div className="flex items-center gap-2">
-                           {/* Filter components will go here */}
                            <Button variant="outline" size="sm"><Filter className="mr-2 h-4 w-4"/> {t('filters.title')}</Button>
                         </div>
                     </div>
@@ -116,7 +115,7 @@ export default function AlertsCenterPage() {
                             <CollapsibleTrigger className="w-full">
                                 <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-3 text-left font-semibold">
                                     {categoryIcons[category as keyof typeof categoryIcons] || categoryIcons.DEFAULT}
-                                    <span>{category}</span>
+                                    <span>{t(`categories.${category.toLowerCase()}` as any)}</span>
                                     <Badge className="ml-auto">{categoryAlerts.length}</Badge>
                                     <ChevronDown className={`h-5 w-5 transition-transform ${openCategories.includes(category) ? 'rotate-180' : ''}`} />
                                 </div>
@@ -131,7 +130,7 @@ export default function AlertsCenterPage() {
                                             <p className="text-sm text-muted-foreground">{alert.summary}</p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Badge variant={alert.status === 'COMPLETED' ? 'default' : 'outline'}>{alert.status}</Badge>
+                                            <Badge variant={alert.status === 'COMPLETED' ? 'default' : 'outline'}>{t(`status.${alert.status.toLowerCase()}` as any)}</Badge>
                                             <User className="h-4 w-4 text-muted-foreground" />
                                             <span className="text-sm text-muted-foreground">{alert.patient_name}</span>
                                         </div>

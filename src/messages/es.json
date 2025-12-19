@@ -55,7 +55,28 @@
     "AlertRules": "Reglas de Alertas",
     "CommunicationTemplates": "Plantillas",
     "CommunicationHistory": "Historial de Comunicaciones",
-    "ExecutionHistory": "Historial de Ejecuciones"
+    "ExecutionHistory": "Historial de Ejecuciones",
+    "Marketing": "Marketing",
+    "Campaigns": "Campañas",
+    "Audiences": "Audiencias",
+    "Templates": "Plantillas",
+    "Finance": "Finanzas",
+    "FinancialSummary": "Resumen Financiero",
+    "CashFlow": "Flujo de Caja",
+    "BankAccounts": "Cuentas Bancarias",
+    "Reports": "Reportes",
+    "Accounting": "Contabilidad",
+    "ChartOfAccounts": "Plan de Cuentas",
+    "JournalEntries": "Asientos Contables",
+    "AccountingReports": "Reportes Contables",
+    "Inventory": "Inventario",
+    "Products": "Productos",
+    "StockMovements": "Movimientos de Stock",
+    "Suppliers": "Proveedores",
+    "InventoryReports": "Reportes de Inventario",
+    "BI": "Inteligencia de Negocio",
+    "Dashboards": "Paneles",
+    "Analytics": "Analíticas"
   },
   "Header": {
     "toggleLanguage": "Cambiar idioma",
@@ -2190,5 +2211,31 @@
     "title": "Historial de Ejecuciones",
     "description": "Ver un registro de todas las ejecuciones del planificador y trabajos en segundo plano.",
     "content": "El registro del historial de ejecuciones se implementará aquí."
+  },
+  "AlertsCenterPage": {
+    "title": "Centro de Alertas",
+    "description": "Ver y gestionar todas las alertas generadas por el sistema.",
+    "summary": {
+      "total": "Total Pendientes",
+      "critical": "Críticas",
+      "high": "Altas",
+      "medium": "Medias"
+    },
+    "dailyAlerts": "Alertas del Día",
+    "filters": {
+      "title": "Filtros"
+    },
+    "categories": {
+      "appointments": "Citas",
+      "billing": "Facturación",
+      "followup": "Seguimiento",
+      "default": "Por Defecto",
+      "patients": "Pacientes"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "in_progress": "En Progreso",
+      "completed": "Completada"
+    }
   }
 }
