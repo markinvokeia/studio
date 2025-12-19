@@ -965,7 +965,8 @@
       "openingAmount": "Opening Amount",
       "actions": "Actions",
       "viewDetails": "View details",
-      "closingAmount": "Closing Amount"
+      "closingAmount": "Closing Amount",
+      "print": "Print"
     },
     "detailsTitle": "Cash Session Details",
     "detailsDescription": "Cash Session Details",
@@ -2061,21 +2062,21 @@
       "xrays": "X-rays",
       "photos": "Photos"
     },
-    "searching": "Searching..."
+    "searching": "Buscando..."
   },
   "UserQuotes": {
-    "filterPlaceholder": "Filter here..."
+    "filterPlaceholder": "Filtrar aquí..."
   },
   "SystemUserColumns": {
-    "name": "Name",
-    "email": "Email",
-    "phone": "Phone",
-    "identity_document": "Identity Document",
-    "status": "Status",
-    "actions": "Actions",
-    "edit": "Edit",
-    "deactivate": "Deactivate",
-    "copyId": "Copy user ID"
+    "name": "Nombre",
+    "email": "Correo Electrónico",
+    "phone": "Teléfono",
+    "identity_document": "Documento de Identidad",
+    "status": "Estado",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "deactivate": "Desactivar",
+    "copyId": "Copiar ID de usuario"
   },
   "Calendar": {
     "all": "Todos",

@@ -280,6 +280,7 @@ export default function CashSessionsPage() {
     const [movements, setMovements] = React.useState<CajaMovimiento[]>([]);
     const [sessionCount, setSessionCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
+    const [isPrinting, setIsPrinting] = React.useState(false);
     
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -310,7 +311,38 @@ export default function CashSessionsPage() {
         setIsDetailsDialogOpen(true);
     };
 
-    const columns = CashSessionsColumnsWrapper({ onView: handleView });
+    const handlePrint = async (session: CajaSesion) => {
+        setIsPrinting(true);
+        toast({ title: "Generating Report...", description: "Your cash session report is being generated." });
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/print?cash_session_id=${session.id}`, {
+                method: 'GET',
+                mode: 'cors'
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to generate PDF report');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cash-session-report-${session.id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            toast({ title: "Report Downloaded", description: "The cash session report has been downloaded." });
+        } catch (error) {
+            console.error("Failed to print session:", error);
+            toast({ variant: 'destructive', title: "Error", description: "Could not generate the report." });
+        } finally {
+            setIsPrinting(false);
+        }
+    };
+
+    const columns = CashSessionsColumnsWrapper({ onView: handleView, onPrint: handlePrint });
 
     return (
        <>
@@ -332,7 +364,7 @@ export default function CashSessionsPage() {
                     filterColumnId="user_name" 
                     filterPlaceholder={t('filterPlaceholder')}
                     onRefresh={loadSessions}
-                    isRefreshing={isRefreshing}
+                    isRefreshing={isRefreshing || isPrinting}
                     columnVisibility={columnVisibility}
                     onColumnVisibilityChange={setColumnVisibility}
                     enableSingleRowSelection={false}

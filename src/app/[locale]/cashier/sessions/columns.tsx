@@ -19,6 +19,7 @@ import { format, parseISO } from 'date-fns';
 
 interface CashSessionsColumnsProps {
     onView: (session: CajaSesion) => void;
+    onPrint: (session: CajaSesion) => void;
 }
 
 const formatDate = (dateString?: string) => {
@@ -35,7 +36,7 @@ const formatCurrency = (value?: number) => {
     return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
-export const CashSessionsColumnsWrapper = ({ onView }: CashSessionsColumnsProps): ColumnDef<CajaSesion>[] => {
+export const CashSessionsColumnsWrapper = ({ onView, onPrint }: CashSessionsColumnsProps): ColumnDef<CajaSesion>[] => {
     const t = useTranslations('CashSessionsPage.columns');
     
     const columns: ColumnDef<CajaSesion>[] = [
@@ -81,6 +82,7 @@ export const CashSessionsColumnsWrapper = ({ onView }: CashSessionsColumnsProps)
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
                     <DropdownMenuItem onClick={() => onView(session)}>{t('viewDetails')}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onPrint(session)}>{t('print')}</DropdownMenuItem>
                 </DropdownMenuContent>
                 </DropdownMenu>
             );
