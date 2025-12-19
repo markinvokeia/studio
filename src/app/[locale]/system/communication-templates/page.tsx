@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -31,10 +32,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 
-const templateFormSchema = z.object({
+const templateFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  code: z.string().min(1, 'Code is required.'),
-  name: z.string().min(1, 'Name is required.'),
+  code: z.string().min(1, t('validation.codeRequired')),
+  name: z.string().min(1, t('validation.nameRequired')),
   type: z.enum(['EMAIL', 'SMS', 'DOCUMENT', 'WHATSAPP']),
   category_id: z.string().optional(),
   subject: z.string().optional(),
@@ -42,7 +43,7 @@ const templateFormSchema = z.object({
   is_active: z.boolean().default(true),
 });
 
-type TemplateFormValues = z.infer<typeof templateFormSchema>;
+type TemplateFormValues = z.infer<ReturnType<typeof templateFormSchema>>;
 
 // MOCK DATA
 async function getTemplates(): Promise<CommunicationTemplate[]> {
@@ -62,6 +63,7 @@ async function getCategories(): Promise<AlertCategory[]> {
 
 export default function CommunicationTemplatesPage() {
     const t = useTranslations('CommunicationTemplatesPage');
+    const tValidation = useTranslations('CommunicationTemplatesPage.validation');
     const { toast } = useToast();
     const [templates, setTemplates] = React.useState<CommunicationTemplate[]>([]);
     const [categories, setCategories] = React.useState<AlertCategory[]>([]);
@@ -76,7 +78,7 @@ export default function CommunicationTemplatesPage() {
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
     const form = useForm<TemplateFormValues>({
-        resolver: zodResolver(templateFormSchema),
+        resolver: zodResolver(templateFormSchema(tValidation)),
     });
 
     const loadData = React.useCallback(async () => {

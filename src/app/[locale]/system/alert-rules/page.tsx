@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -31,15 +32,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 
-const ruleFormSchema = z.object({
+const ruleFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  category_id: z.string().min(1, 'Category is required.'),
-  code: z.string().min(1, 'Code is required.'),
-  name: z.string().min(1, 'Name is required.'),
+  category_id: z.string().min(1, t('validation.categoryRequired')),
+  code: z.string().min(1, t('validation.codeRequired')),
+  name: z.string().min(1, t('validation.nameRequired')),
   description: z.string().optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
-  source_table: z.string().min(1, 'Source table is required.'),
-  query_template: z.string().min(1, 'Query template is required.'),
+  source_table: z.string().min(1, t('validation.sourceTableRequired')),
+  query_template: z.string().min(1, t('validation.queryTemplateRequired')),
   days_before: z.coerce.number().optional(),
   days_after: z.coerce.number().optional(),
   auto_send_email: z.boolean().default(false),
@@ -47,7 +48,7 @@ const ruleFormSchema = z.object({
   is_active: z.boolean().default(true),
 });
 
-type RuleFormValues = z.infer<typeof ruleFormSchema>;
+type RuleFormValues = z.infer<ReturnType<typeof ruleFormSchema>>;
 
 // MOCK DATA - Replace with API calls
 async function getRules(): Promise<AlertRule[]> {
@@ -60,15 +61,16 @@ async function getRules(): Promise<AlertRule[]> {
 
 async function getCategories(): Promise<AlertCategory[]> {
     return [
-        { id: '1', code: 'APPOINTMENTS', name: 'Appointments', description: 'Alerts related to patient appointments.', icon: 'calendar', color: '#3b82f6', is_active: true, sort_order: 1 },
-        { id: '2', code: 'BILLING', name: 'Billing', description: 'Alerts related to invoices and payments.', icon: 'dollar-sign', color: '#10b981', is_active: true, sort_order: 2 },
-        { id: '3', code: 'FOLLOWUP', name: 'Follow-up', description: 'Post-consultation follow-up alerts.', icon: 'stethoscope', color: '#f97316', is_active: true, sort_order: 3 },
+        { id: '1', code: 'APPOINTMENTS', name: 'Appointments', is_active: true },
+        { id: '2', code: 'BILLING', name: 'Billing', is_active: true },
+        { id: '3', code: 'FOLLOWUP', name: 'Follow-up', is_active: true },
     ];
 }
 // END MOCK DATA
 
 export default function AlertRulesPage() {
     const t = useTranslations('AlertRulesPage');
+    const tValidation = useTranslations('AlertRulesPage.validation');
     const { toast } = useToast();
     const [rules, setRules] = React.useState<AlertRule[]>([]);
     const [categories, setCategories] = React.useState<AlertCategory[]>([]);
@@ -83,7 +85,7 @@ export default function AlertRulesPage() {
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
     const form = useForm<RuleFormValues>({
-        resolver: zodResolver(ruleFormSchema),
+        resolver: zodResolver(ruleFormSchema(tValidation)),
     });
 
     const loadData = React.useCallback(async () => {

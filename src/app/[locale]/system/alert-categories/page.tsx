@@ -30,10 +30,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 
-const categoryFormSchema = z.object({
+const categoryFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  code: z.string().min(1, 'Code is required.'),
-  name: z.string().min(1, 'Name is required.'),
+  code: z.string().min(1, t('validation.codeRequired')),
+  name: z.string().min(1, t('validation.nameRequired')),
   description: z.string().optional(),
   icon: z.string().optional(),
   color: z.string().optional(),
@@ -41,8 +41,9 @@ const categoryFormSchema = z.object({
   is_active: z.boolean().default(true),
 });
 
-type CategoryFormValues = z.infer<typeof categoryFormSchema>;
+type CategoryFormValues = z.infer<ReturnType<typeof categoryFormSchema>>;
 
+// MOCK DATA - Replace with API calls
 async function getCategories(): Promise<AlertCategory[]> {
     return [
         { id: '1', code: 'APPOINTMENTS', name: 'Appointments', description: 'Alerts related to patient appointments.', icon: 'calendar', color: '#3b82f6', is_active: true, sort_order: 1 },
@@ -50,9 +51,11 @@ async function getCategories(): Promise<AlertCategory[]> {
         { id: '3', code: 'FOLLOWUP', name: 'Follow-up', description: 'Post-consultation follow-up alerts.', icon: 'stethoscope', color: '#f97316', is_active: true, sort_order: 3 },
     ];
 }
+// END MOCK DATA
 
 export default function AlertCategoriesPage() {
     const t = useTranslations('AlertCategoriesPage');
+    const tValidation = useTranslations('AlertCategoriesPage.validation');
     const { toast } = useToast();
     const [categories, setCategories] = React.useState<AlertCategory[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -66,7 +69,7 @@ export default function AlertCategoriesPage() {
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
     const form = useForm<CategoryFormValues>({
-        resolver: zodResolver(categoryFormSchema),
+        resolver: zodResolver(categoryFormSchema(tValidation)),
     });
 
     const loadCategories = React.useCallback(async () => {
@@ -223,3 +226,4 @@ export default function AlertCategoriesPage() {
         </>
     );
 }
+
