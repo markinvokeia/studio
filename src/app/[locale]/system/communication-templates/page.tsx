@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -31,6 +30,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 const templateFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -40,7 +40,9 @@ const templateFormSchema = (t: (key: string) => string) => z.object({
   category_id: z.string().optional(),
   subject: z.string().optional(),
   body_html: z.string().optional(),
+  body_text: z.string().optional(),
   is_active: z.boolean().default(true),
+  version: z.coerce.number().optional(),
 });
 
 type TemplateFormValues = z.infer<ReturnType<typeof templateFormSchema>>;
@@ -81,6 +83,8 @@ export default function CommunicationTemplatesPage() {
         resolver: zodResolver(templateFormSchema(tValidation)),
     });
 
+    const watchedBodyHtml = form.watch('body_html');
+
     const loadData = React.useCallback(async () => {
         setIsRefreshing(true);
         const [fetchedTemplates, fetchedCategories] = await Promise.all([getTemplates(), getCategories()]);
@@ -95,7 +99,7 @@ export default function CommunicationTemplatesPage() {
 
     const handleCreate = () => {
         setEditingTemplate(null);
-        form.reset({ code: '', name: '', type: 'EMAIL', is_active: true });
+        form.reset({ code: '', name: '', type: 'EMAIL', is_active: true, subject: '', body_html: '' });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -136,7 +140,7 @@ export default function CommunicationTemplatesPage() {
             cell: ({ row }) => categories.find(c => c.id === row.original.category_id)?.name || 'N/A'
         },
         { accessorKey: 'is_active', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.isActive')} />,
-            cell: ({ row }) => row.original.is_active ? t('columns.yes') : t('columns.no')
+            cell: ({ row }) => <Badge variant={row.original.is_active ? 'success' : 'outline'}>{row.original.is_active ? t('columns.yes') : t('columns.no')}</Badge>
         },
         {
             id: 'actions',
@@ -153,6 +157,10 @@ export default function CommunicationTemplatesPage() {
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleEdit(template)}>{t('columns.edit')}</DropdownMenuItem>
+                        <DropdownMenuItem>{t('columns.duplicate')}</DropdownMenuItem>
+                        <DropdownMenuItem>{t('columns.preview')}</DropdownMenuItem>
+                        <DropdownMenuItem>{t('columns.history')}</DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleDelete(template)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>
                     </DropdownMenuContent>
                     </DropdownMenu>
@@ -181,12 +189,12 @@ export default function CommunicationTemplatesPage() {
             </CardContent>
         </Card>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent className="max-w-5xl">
                 <DialogHeader>
                     <DialogTitle>{editingTemplate ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                 </DialogHeader>
                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -194,19 +202,37 @@ export default function CommunicationTemplatesPage() {
                                 <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>{t('dialog.name')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="code" render={({ field }) => (<FormItem><FormLabel>{t('dialog.code')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>{t('dialog.name')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="code" render={({ field }) => (<FormItem><FormLabel>{t('dialog.code')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="type" render={({ field }) => (<FormItem><FormLabel>{t('dialog.type')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectType')} /></SelectTrigger></FormControl><SelectContent><SelectItem value="EMAIL">Email</SelectItem><SelectItem value="SMS">SMS</SelectItem><SelectItem value="DOCUMENT">Document</SelectItem><SelectItem value="WHATSAPP">WhatsApp</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="category_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.category')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectCategory')} /></SelectTrigger></FormControl><SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="subject" render={({ field }) => (<FormItem><FormLabel>{t('dialog.subject')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="body_html" render={({ field }) => (<FormItem><FormLabel>{t('dialog.body')}</FormLabel><FormControl><Textarea {...field} rows={12} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="is_active" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>{t('dialog.isActive')}</FormLabel></FormItem>)} />
+                            </div>
+                            <div className="space-y-4">
+                                <Card>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-base">{t('dialog.preview.title')}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="h-96 rounded-md border bg-muted p-4 overflow-y-auto" dangerouslySetInnerHTML={{ __html: watchedBodyHtml || '' }} />
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                     <CardHeader className="pb-2">
+                                        <CardTitle className="text-base">{t('dialog.variables.title')}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-sm text-muted-foreground">{t('dialog.variables.description')}</p>
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="type" render={({ field }) => (<FormItem><FormLabel>{t('dialog.type')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectType')} /></SelectTrigger></FormControl><SelectContent><SelectItem value="EMAIL">Email</SelectItem><SelectItem value="SMS">SMS</SelectItem><SelectItem value="DOCUMENT">Document</SelectItem><SelectItem value="WHATSAPP">WhatsApp</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="category_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.category')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectCategory')} /></SelectTrigger></FormControl><SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                        </div>
-                        <FormField control={form.control} name="subject" render={({ field }) => (<FormItem><FormLabel>{t('dialog.subject')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="body_html" render={({ field }) => (<FormItem><FormLabel>{t('dialog.body')}</FormLabel><FormControl><Textarea {...field} rows={8} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="is_active" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>{t('dialog.isActive')}</FormLabel></FormItem>)} />
 
-                        <DialogFooter className="sticky bottom-0 bg-background pt-4">
+                        <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                             <Button type="submit">{editingTemplate ? t('dialog.save') : t('dialog.create')}</Button>
                         </DialogFooter>

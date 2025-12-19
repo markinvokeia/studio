@@ -2207,7 +2207,7 @@
       "completed": "Completada"
     }
   },
-  "AlertRulesPage": {
+    "AlertRulesPage": {
     "title": "Reglas de Alerta",
     "description": "Configura las reglas que generan alertas automáticamente.",
     "filterPlaceholder": "Filtrar por nombre de regla...",
@@ -2289,6 +2289,9 @@
       "no": "No",
       "actions": "Acciones",
       "edit": "Editar",
+      "duplicate": "Duplicar",
+      "preview": "Previsualizar",
+      "history": "Historial",
       "delete": "Eliminar"
     },
     "dialog": {
@@ -2305,7 +2308,14 @@
       "isActive": "Está Activa",
       "cancel": "Cancelar",
       "create": "Crear Plantilla",
-      "save": "Guardar Cambios"
+      "save": "Guardar Cambios",
+      "preview": {
+        "title": "Vista Previa"
+      },
+      "variables": {
+        "title": "Variables Disponibles",
+        "description": "Haz clic en una variable para insertarla en tu plantilla."
+      }
     },
     "deleteDialog": {
       "title": "Eliminar Plantilla",
@@ -2353,5 +2363,3 @@
     }
   }
 }
-
-    
