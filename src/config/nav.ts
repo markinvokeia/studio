@@ -39,6 +39,10 @@ import {
   ShoppingBasket,
   Coins,
   Tags,
+  BellRing,
+  Mails,
+  FileClock,
+  BookCopy,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -55,6 +59,11 @@ export const navItems: NavItem[] = [
     title: 'Dashboard',
     href: '/',
     icon: Home,
+  },
+  {
+    title: 'AlertsCenter',
+    href: '/alerts',
+    icon: BellRing,
   },
   {
     title: 'Cashier',
@@ -144,6 +153,11 @@ export const navItems: NavItem[] = [
       { title: 'SystemUsers', href: '/system/users', icon: Users, isChidren: true },
       { title: 'Roles', href: '/roles', icon: KeyRound, isChidren: true },
       { title: 'Permissions', href: '/permissions', icon: Shield, isChidren: true },
+      { title: 'AlertCategories', href: '/system/alert-categories', icon: Layers, isChidren: true },
+      { title: 'AlertRules', href: '/system/alert-rules', icon: BotMessageSquare, isChidren: true },
+      { title: 'CommunicationTemplates', href: '/system/communication-templates', icon: BookCopy, isChidren: true },
+      { title: 'CommunicationHistory', href: '/system/communication-history', icon: Mails, isChidren: true },
+      { title: 'ExecutionHistory', href: '/system/execution-history', icon: FileClock, isChidren: true },
       { title: 'Configurations', href: '/system/config', icon: Settings, isChidren: true },
       { title: 'AuditLog', href: '/system/audit', icon: BarChart, isChidren: true },
       { title: 'AccessLog', href: '/system/access', icon: UserCheck, isChidren: true },

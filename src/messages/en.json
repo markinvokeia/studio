@@ -49,7 +49,13 @@
     "Configurations": "Configurations",
     "AuditLog": "Audit Log",
     "AccessLog": "Access Log",
-    "ErrorLog": "Error Log"
+    "ErrorLog": "Error Log",
+    "AlertsCenter": "Alerts Center",
+    "AlertCategories": "Alert Categories",
+    "AlertRules": "Alert Rules",
+    "CommunicationTemplates": "Templates",
+    "CommunicationHistory": "Communication History",
+    "ExecutionHistory": "Execution History"
   },
   "Header": {
     "toggleLanguage": "Toggle language",
@@ -883,325 +889,326 @@
   },
   "CashierPage": {
     "openSession": {
-      "closed": "Closed",
-      "openButton": "Open",
-      "wizardTitle": "Open Session",
+      "closed": "Cerrado",
+      "openButton": "Abrir",
+      "wizardTitle": "Abrir Sesión",
       "terminal": "Terminal",
-      "user": "User",
-      "openingDate": "Opening Date",
-      "exchangeRateTooltip": "Exchange Rate",
-      "exchangeRate": "Exchange Rate",
-      "currency": "Currency",
-      "openBy": "Open By",
-      "openingAmount": "Opening Amount",
-      "viewLog": "View Log"
+      "user": "Usuario",
+      "openingDate": "Fecha de Apertura",
+      "exchangeRateTooltip": "Tipo de Cambio",
+      "exchangeRate": "Tipo de Cambio",
+      "currency": "Moneda",
+      "openBy": "Abierto Por",
+      "openingAmount": "Monto de Apertura",
+      "viewLog": "Ver Registro"
     },
     "wizard": {
-      "back": "Back",
-      "next": "Next",
-      "startClosing": "Start Closing",
+      "back": "Atrás",
+      "next": "Siguiente",
+      "startClosing": "Iniciar Cierre",
       "steps": {
-        "review": "Review",
-        "declare": "Declare",
-        "report": "Report"
+        "review": "Revisar",
+        "declare": "Declarar",
+        "report": "Informe"
       },
-      "title": "Close Session"
+      "title": "Cerrar Sesión"
     },
     "confirmation": {
-      "sessionInfo": "Session Info",
-      "cashSummary": "Cash Summary",
+      "sessionInfo": "Información de la Sesión",
+      "cashSummary": "Resumen de Caja",
       "totalUYU": "Total UYU",
       "totalUSD": "Total USD",
-      "totalOpening": "Total Opening",
-      "confirmButton": "Confirm"
+      "totalOpening": "Apertura Total",
+      "confirmButton": "Confirmar"
     },
     "activeSession": {
       "columns": {
-        "description": "Description",
-        "amount": "Amount",
-        "method": "Method",
-        "date": "Date"
+        "description": "Descripción",
+        "amount": "Monto",
+        "method": "Método",
+        "date": "Fecha"
       },
-      "title": "Active Session",
-      "description": "Active Session",
-      "totalIncome": "Total Income",
-      "dailyPayments": "Daily Payments",
-      "openingDetails": "Opening Details",
-      "denomination": "Denomination",
-      "quantity": "Quantity",
+      "title": "Sesión Activa",
+      "description": "Sesión Activa",
+      "totalIncome": "Ingreso Total",
+      "dailyPayments": "Pagos Diarios",
+      "openingDetails": "Detalles de Apertura",
+      "denomination": "Denominación",
+      "quantity": "Cantidad",
       "subtotal": "Subtotal"
     },
     "toast": {
-      "openSuccessTitle": "Session Opened",
-      "openSuccessDescription": "Session opened successfully."
+      "openSuccessTitle": "Sesión Abierta",
+      "openSuccessDescription": "Sesión abierta exitosamente."
     },
-    "viewAllCashPoints": "View All Cash Points",
+    "viewAllCashPoints": "Ver Todas las Cajas",
     "declareCashup": {
-      "title": "Declare Cashup",
-      "description": "Declare Cashup",
+      "title": "Declarar Arqueo",
+      "description": "Declarar Arqueo",
       "methods": {
-        "cash": "Cash",
-        "card": "Card",
-        "transfer": "Transfer",
-        "other": "Other"
+        "cash": "Efectivo",
+        "card": "Tarjeta",
+        "transfer": "Transferencia",
+        "other": "Otro"
       },
-      "systemTotal": "System Total",
-      "notes": "Notes",
-      "notesPlaceholder": "Enter notes here...",
-      "closeSessionButton": "Close Session",
-      "difference": "Difference"
+      "systemTotal": "Total del Sistema",
+      "notes": "Notas",
+      "notesPlaceholder": "Ingresar notas aquí...",
+      "closeSessionButton": "Cerrar Sesión",
+      "difference": "Diferencia"
     }
   },
   "CashSessionsPage": {
-    "title": "Cash Session",
-    "description": "All cash sessions here",
-    "filterPlaceholder": "Filter here...",
+    "title": "Sesión de Caja",
+    "description": "Todas las sesiones de caja aquí",
+    "filterPlaceholder": "Filtrar aquí...",
     "columns": {
-      "user": "User",
-      "cashPoint": "Cash Point",
-      "status": "Status",
-      "openDate": "Open Date",
-      "closeDate": "Close Date",
-      "openingAmount": "Opening Amount",
-      "actions": "Actions",
-      "viewDetails": "View details",
-      "closingAmount": "Closing Amount",
-      "print": "Print"
+      "id": "ID",
+      "user": "Usuario",
+      "cashPoint": "Caja",
+      "status": "Estado",
+      "openDate": "Fecha de Apertura",
+      "closeDate": "Fecha de Cierre",
+      "openingAmount": "Monto de Apertura",
+      "actions": "Acciones",
+      "viewDetails": "Ver detalles",
+      "closingAmount": "Monto de Cierre",
+      "print": "Imprimir"
     },
-    "detailsTitle": "Cash Session Details",
-    "detailsDescription": "Cash Session Details",
-    "sessionInfo": "Session Info",
+    "detailsTitle": "Detalles de la Sesión de Caja",
+    "detailsDescription": "Detalles de la Sesión de Caja",
+    "sessionInfo": "Información de la Sesión",
     "denominationDetails": {
-      "title": "Denomination Details",
-      "denomination": "Denomination",
+      "title": "Detalles de Denominación",
+      "denomination": "Denominación",
       "total": "Total",
-      "quantity": "Quantity",
+      "quantity": "Cantidad",
       "subtotal": "Subtotal"
     },
-    "openingDenominations": "Opening Denominations",
-    "closingDenominations": "Closing Denominations",
-    "noDetails": "No details available",
-    "movements": "Movements",
-    "reconciliationSummary": "Reconciliation Summary",
+    "openingDenominations": "Denominaciones de Apertura",
+    "closingDenominations": "Denominaciones de Cierre",
+    "noDetails": "No hay detalles disponibles",
+    "movements": "Movimientos",
+    "reconciliationSummary": "Resumen de Reconciliación",
     "reconciliation": {
-      "paymentMethod": "Payment Method",
-      "system": "System",
-      "declared": "Declared",
-      "difference": "Difference",
-      "cash": "Cash",
-      "transfer": "Transfer",
-      "other": "Other",
-      "card": "Card"
+      "paymentMethod": "Método de Pago",
+      "system": "Sistema",
+      "declared": "Declarado",
+      "difference": "Diferencia",
+      "cash": "Efectivo",
+      "transfer": "Transferencia",
+      "other": "Otro",
+      "card": "Tarjeta"
     }
   },
   "MiscellaneousTransactionsPage": {
     "dashboard": {
-      "totalIncome": "Total Income",
-      "totalExpense": "Total Expense",
+      "totalIncome": "Ingreso Total",
+      "totalExpense": "Gasto Total",
       "balance": "Balance"
     },
-    "title": "Miscellaneous Transactions",
-    "description": "Some miscellaneous transactions",
+    "title": "Transacciones Varias",
+    "description": "Algunas transacciones varias",
     "filters": {
-      "dateRange": "Date Range",
-      "pending": "Pending",
-      "completedToday": "Completed Today",
-      "incomeMonth": "Income Month",
-      "expenseMonth": "Expense Month",
-      "salaries": "Salaries",
-      "services": "Services",
-      "taxes": "Taxes"
+      "dateRange": "Rango de Fechas",
+      "pending": "Pendiente",
+      "completedToday": "Completado Hoy",
+      "incomeMonth": "Ingreso del Mes",
+      "expenseMonth": "Gasto del Mes",
+      "salaries": "Salarios",
+      "services": "Servicios",
+      "taxes": "Impuestos"
     },
-    "filterPlaceholder": "Filter here...",
+    "filterPlaceholder": "Filtrar aquí...",
     "columns": {
-      "transactionNumber": "Transaction Number",
-      "date": "Date",
-      "category": "Category",
-      "beneficiary": "Beneficiary",
-      "amount": "Amount",
-      "status": "Status"
+      "transactionNumber": "Número de Transacción",
+      "date": "Fecha",
+      "category": "Categoría",
+      "beneficiary": "Beneficiario",
+      "amount": "Monto",
+      "status": "Estado"
     },
     "validation": {
-      "categoryRequired": "Category is required.",
-      "dateRequired": "Date is required.",
-      "amountPositive": "Amount must be a positive number.",
-      "descriptionRequired": "Description is required."
+      "categoryRequired": "La categoría es obligatoria.",
+      "dateRequired": "La fecha es obligatoria.",
+      "amountPositive": "El monto debe ser un número positivo.",
+      "descriptionRequired": "La descripción es obligatoria."
     }
   },
   "PhysicalCashRegistersPage": {
-    "title": "Physical Cash Registers",
-    "description": "A list of Physical Cash Registers",
-    "filterPlaceholder": "Filter here...",
+    "title": "Cajas Registradoras Físicas",
+    "description": "Una lista de Cajas Registradoras Físicas",
+    "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
-      "name": "Name",
-      "isActive": "Is Active",
-      "createdAt": "Created At",
-      "updatedAt": "Updated At",
-      "yes": "Yes",
+      "name": "Nombre",
+      "isActive": "¿Está Activa?",
+      "createdAt": "Fecha de Creación",
+      "updatedAt": "Fecha de Actualización",
+      "yes": "Sí",
       "no": "No",
-      "actions": "Actions",
-      "edit": "Edit",
-      "delete": "Delete"
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
     },
     "dialog": {
-      "createTitle": "Create Cash Register",
-      "name": "Name",
-      "namePlaceholder": "Name here...",
-      "isActive": "Is Active",
-      "cancel": "Cancel",
-      "create": "Create",
-      "editTitle": "Edit Cash Register",
-      "save": "Save Changes"
+      "createTitle": "Crear Caja Registradora",
+      "name": "Nombre",
+      "namePlaceholder": "Nombre aquí...",
+      "isActive": "¿Está Activa?",
+      "cancel": "Cancelar",
+      "create": "Crear",
+      "editTitle": "Editar Caja Registradora",
+      "save": "Guardar Cambios"
     },
     "validation": {
-      "nameRequired": "Name is required"
+      "nameRequired": "El nombre es obligatorio"
     },
     "deleteDialog": {
-      "title": "Delete Cash Register",
-      "description": "Are you sure you want to delete this cash register?",
-      "cancel": "Cancel",
-      "confirm": "Confirm"
+      "title": "Eliminar Caja Registradora",
+      "description": "¿Estás seguro de que quieres eliminar esta caja registradora?",
+      "cancel": "Cancelar",
+      "confirm": "Confirmar"
     }
   },
   "OrdersPage": {
     "status": {
-      "completed": "Completed",
-      "processing": "Processing",
-      "pending": "Pending",
-      "label": "Status",
-      "cancelled": "Cancelled"
+      "completed": "Completado",
+      "processing": "Procesando",
+      "pending": "Pendiente",
+      "label": "Estado",
+      "cancelled": "Cancelado"
     },
-    "filterPlaceholder": "Filter here...",
-    "title": "Orders",
-    "description": "An overview of the orders.",
-    "createTitle": "Create Order",
-    "createDescription": "Create a new order",
-    "selectUser": "Select User",
-    "selectQuote": "Select Quote",
-    "cancel": "Cancel",
-    "create": "Create",
+    "filterPlaceholder": "Filtrar aquí...",
+    "title": "Pedidos",
+    "description": "Una visión general de los pedidos.",
+    "createTitle": "Crear Pedido",
+    "createDescription": "Crear un nuevo pedido",
+    "selectUser": "Seleccionar Usuario",
+    "selectQuote": "Seleccionar Cotización",
+    "cancel": "Cancelar",
+    "create": "Crear",
     "invoiceDialog": {
-      "title": "Create Invoice",
-      "description": "Create an invoice for the order",
-      "confirm": "Confirm"
+      "title": "Crear Factura",
+      "description": "Crear una factura para el pedido",
+      "confirm": "Confirmar"
     },
-    "detailsFor": "Details for {name}",
-    "orderId": "Order ID"
+    "detailsFor": "Detalles para {name}",
+    "orderId": "ID de Pedido"
   },
   "PaymentsPage": {
-    "title": "Payments",
-    "description": "An overview of payments.",
-    "filterPlaceholder": "Filter here...",
+    "title": "Pagos",
+    "description": "Una visión general de los pagos.",
+    "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
-      "invoiceId": "Invoice ID",
-      "amount": "Amount",
-      "currency": "Currency",
-      "method": "Method",
-      "status": "Status",
-      "createdAt": "Created At",
-      "quoteId": "Quote ID",
-      "orderId": "Order ID",
-      "user": "User",
-      "date": "Date",
-      "amount_applied": "Amount Applied",
-      "source_amount": "Source Amount",
-      "source_currency": "Source Currency",
-      "exchange_rate": "Exchange Rate",
-      "transaction_type": "Transaction Type",
-      "reference_doc_id": "Reference Document ID"
+      "invoiceId": "ID de Factura",
+      "amount": "Monto",
+      "currency": "Moneda",
+      "method": "Método",
+      "status": "Estado",
+      "createdAt": "Fecha de Creación",
+      "quoteId": "ID de Cotización",
+      "orderId": "ID de Pedido",
+      "user": "Usuario",
+      "date": "Fecha",
+      "amount_applied": "Monto Aplicado",
+      "source_amount": "Monto Fuente",
+      "source_currency": "Moneda Fuente",
+      "exchange_rate": "Tipo de Cambio",
+      "transaction_type": "Tipo de Transacción",
+      "reference_doc_id": "ID de Documento de Referencia"
     },
     "transactionType": {
-      "payment_allocation": "Payment Allocation",
-      "direct_payment": "Direct Payment"
+      "payment_allocation": "Asignación de Pago",
+      "direct_payment": "Pago Directo"
     },
-    "createPrepaid": "Create Prepaid",
+    "createPrepaid": "Crear Prepago",
     "prepaidDialog": {
-      "amount": "Amount",
-      "cancel": "Cancel",
-      "client": "Client",
-      "confirm": "Confirm",
-      "confirmDescription": "Are you sure you want to proceed?",
-      "confirmTitle": "Confirm Action",
-      "currency": "Currency",
-      "noClient": "No client selected",
-      "paymentDate": "Payment Date",
-      "paymentMethod": "Payment Method",
-      "pickDate": "Pick a date",
-      "save": "Save",
-      "searchClient": "Search client",
-      "selectClient": "Select client",
-      "selectMethod": "Select method",
-      "title": "Prepaid Payment",
+      "amount": "Monto",
+      "cancel": "Cancelar",
+      "client": "Cliente",
+      "confirm": "Confirmar",
+      "confirmDescription": "¿Estás seguro de que quieres proceder?",
+      "confirmTitle": "Confirmar Acción",
+      "currency": "Moneda",
+      "noClient": "Ningún cliente seleccionado",
+      "paymentDate": "Fecha de Pago",
+      "paymentMethod": "Método de Pago",
+      "pickDate": "Seleccionar una fecha",
+      "save": "Guardar",
+      "searchClient": "Buscar cliente",
+      "selectClient": "Seleccionar cliente",
+      "selectMethod": "Seleccionar método",
+      "title": "Pago Prepago",
       "toasts": {
-        "errorDescription": "An error occurred.",
+        "errorDescription": "Ocurrió un error.",
         "errorTitle": "Error",
-        "successDescription": "Operation completed successfully.",
-        "successTitle": "Success"
+        "successDescription": "Operación completada exitosamente.",
+        "successTitle": "Éxito"
       }
     }
   },
   "PaymentMethodsPage": {
-    "title": "Payments Methods",
-    "description": "An overview of payments methods.",
-    "filterPlaceholder": "Filter here...",
+    "title": "Métodos de Pago",
+    "description": "Una visión general de los métodos de pago.",
+    "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
-      "name": "Name",
-      "code": "Code",
-      "isCashEquivalent": "Is Cash Equivalent?",
-      "isActive": "Is Active?",
-      "yes": "Yes",
+      "name": "Nombre",
+      "code": "Código",
+      "isCashEquivalent": "¿Es Equivalente a Efectivo?",
+      "isActive": "¿Está Activo?",
+      "yes": "Sí",
       "no": "No",
-      "actions": "Actions",
-      "edit": "Edit",
-      "delete": "Delete"
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
     },
     "dialog": {
-      "createTitle": "Create Payment Method",
-      "name": "Name",
-      "namePlaceholder": "e.g., Credit Card",
-      "code": "Code",
+      "createTitle": "Crear Método de Pago",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Tarjeta de Crédito",
+      "code": "Código",
       "codePlaceholder": "ASD123",
-      "isCashEquivalent": "Is Cash Equivalent?",
-      "isActive": "Is Active?",
-      "cancel": "Cancel",
-      "create": "Create",
-      "save": "Save Changes"
+      "isCashEquivalent": "¿Es Equivalente a Efectivo?",
+      "isActive": "¿Está Activo?",
+      "cancel": "Cancelar",
+      "create": "Crear",
+      "save": "Guardar Cambios"
     },
-    "validation": "Validation",
+    "validation": "Validación",
     "deleteDialog": {
-      "title": "Delete Payment Method",
-      "description": "Delete a payment method",
-      "cancel": "Cancel",
-      "confirm": "Confirm"
+      "title": "Eliminar Método de Pago",
+      "description": "Eliminar un método de pago",
+      "cancel": "Cancelar",
+      "confirm": "Confirmar"
     }
   },
   "ServicesPage": {
-    "title": "Services",
-    "description": "An overview of services.",
-    "filterPlaceholder": "Filter here...",
+    "title": "Servicios",
+    "description": "Una visión general de los servicios.",
+    "filterPlaceholder": "Filtrar aquí...",
     "createDialog": {
-      "title": "Create Service",
-      "description": "Create a new service",
-      "name": "Name",
-      "namePlaceholder": "e.g., Fillings",
-      "category": "Category",
-      "categoryPlaceholder": "Select Category",
-      "price": "Price",
-      "currency": "Currency",
-      "duration": "Duration",
-      "descriptionLabel": "Description",
-      "descriptionPlaceholder": "e.g. A procedure to restore a tooth that has been damaged by decay.",
-      "indicationsLabel": "Indications",
-      "indicationsPlaceholder": "e.g. Should brush and floss thoroughly before the appointment.",
-      "cancel": "Cancel",
-      "save": "Save",
-      "editDescription": "Edit the service details.",
-      "editSave": "Save Changes",
-      "editTitle": "Edit Service",
-      "selectCurrency": "Select Currency"
+      "title": "Crear Servicio",
+      "description": "Crear un nuevo servicio",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Empastes",
+      "category": "Categoría",
+      "categoryPlaceholder": "Seleccionar Categoría",
+      "price": "Precio",
+      "currency": "Moneda",
+      "duration": "Duración",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "ej. Un procedimiento para restaurar un diente que ha sido dañado por caries.",
+      "indicationsLabel": "Indicaciones",
+      "indicationsPlaceholder": "ej. Debe cepillarse y usar hilo dental a fondo antes de la cita.",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "editDescription": "Editar los detalles del servicio.",
+      "editSave": "Guardar Cambios",
+      "editTitle": "Editar Servicio",
+      "selectCurrency": "Seleccionar Moneda"
     },
     "CalendarsPage": {
       "dialog": {
@@ -1209,97 +1216,97 @@
       }
     },
     "deleteDialog": {
-      "cancel": "Cancel",
-      "confirm": "Confirm",
-      "description": "Are you sure you want to delete this service?",
-      "title": "Delete Service"
+      "cancel": "Cancelar",
+      "confirm": "Confirmar",
+      "description": "¿Estás seguro de que quieres eliminar este servicio?",
+      "title": "Eliminar Servicio"
     },
     "toast": {
-      "createSuccessTitle": "Service Created",
-      "deleteErrorDescription": "Failed to delete the service.",
-      "deleteSuccessDescription": "Service deleted successfully.",
-      "deleteSuccessTitle": "Service Deleted",
-      "editSuccessTitle": "Service Updated",
+      "createSuccessTitle": "Servicio Creado",
+      "deleteErrorDescription": "Fallo al eliminar el servicio.",
+      "deleteSuccessDescription": "Servicio eliminado exitosamente.",
+      "deleteSuccessTitle": "Servicio Eliminado",
+      "editSuccessTitle": "Servicio Actualizado",
       "errorTitle": "Error",
-      "genericError": "An unexpected error occurred.",
-      "successDescription": "Operation completed successfully."
+      "genericError": "Ocurrió un error inesperado.",
+      "successDescription": "Operación completada exitosamente."
     },
     "validation": {
-      "categoryRequired": "Category is required.",
-      "colorInvalid": "Invalid color.",
-      "durationInteger": "Duration must be an integer.",
-      "nameRequired": "Name is required.",
-      "pricePositive": "Price must be positive."
+      "categoryRequired": "La categoría es obligatoria.",
+      "colorInvalid": "Color inválido.",
+      "durationInteger": "La duración debe ser un número entero.",
+      "nameRequired": "El nombre es obligatorio.",
+      "pricePositive": "El precio debe ser positivo."
     }
   },
   "ServicesColumns": {
     "id": "ID",
-    "name": "Name",
-    "category": "Category",
-    "price": "Price",
-    "currency": "Currency",
-    "duration": "Duration",
-    "actions": "Actions",
-    "edit": "Edit",
-    "delete": "Delete"
+    "name": "Nombre",
+    "category": "Categoría",
+    "price": "Precio",
+    "currency": "Moneda",
+    "duration": "Duración",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
   },
   "ProvidersPage": {
-    "title": "Providers",
-    "description": "A list of providers",
-    "filterPlaceholder": "Filter by role...",
+    "title": "Proveedores",
+    "description": "Una lista de proveedores",
+    "filterPlaceholder": "Filtrar por rol...",
     "createDialog": {
-      "title": "Create provider",
-      "description": "Create a new provider",
-      "name": "Name",
-      "namePlaceholder": "e.g. John Doe",
-      "email": "Email",
-      "emailPlaceholder": "e.g. john.doe@example.com",
-      "phone": "Phone",
+      "title": "Crear proveedor",
+      "description": "Crear un nuevo proveedor",
+      "name": "Nombre",
+      "namePlaceholder": "ej. Juan Pérez",
+      "email": "Correo Electrónico",
+      "emailPlaceholder": "ej. juan.perez@ejemplo.com",
+      "phone": "Teléfono",
       "phonePlaceholder": "123-456-7890",
-      "identity_document": "Identity Document",
-      "identity_document_placeholder": "e.g. 1234567890",
-      "isActive": "Is Active?",
-      "cancel": "Cancel",
-      "save": "Create"
+      "identity_document": "Documento de Identidad",
+      "identity_document_placeholder": "ej. 1234567890",
+      "isActive": "¿Está Activo?",
+      "cancel": "Cancelar",
+      "save": "Crear"
     },
-    "detailsFor": "Details for {name}",
+    "detailsFor": "Detalles para {name}",
     "tabs": {
       "roles": "Roles"
     },
-    "setInitialPassword": "Set Initial Password"
+    "setInitialPassword": "Establecer Contraseña Inicial"
   },
   "ProviderColumns": {
-    "name": "Name",
-    "email": "Email",
-    "identity_document": "Identity Document",
-    "phone": "Phone",
-    "status": "Status",
-    "actions": "Actions",
-    "copyId": "Copy user ID",
-    "edit": "Edit",
-    "deactivate": "Deactivate"
+    "name": "Nombre",
+    "email": "Correo Electrónico",
+    "identity_document": "Documento de Identidad",
+    "phone": "Teléfono",
+    "status": "Estado",
+    "actions": "Acciones",
+    "copyId": "Copiar ID de usuario",
+    "edit": "Editar",
+    "deactivate": "Desactivar"
   },
   "OrderItemsTable": {
-    "title": "Order Items",
-    "filterPlaceholder": "Filter here...",
+    "title": "Artículos de Pedido",
+    "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
-      "service": "Service",
-      "quantity": "Quantity",
-      "unitPrice": "Unit Price",
+      "service": "Servicio",
+      "quantity": "Cantidad",
+      "unitPrice": "Precio Unitario",
       "total": "Total",
-      "status": "Status",
-      "scheduled": "Scheduled At",
-      "completed": "Completed At",
-      "invoiced": "Invoiced At"
+      "status": "Estado",
+      "scheduled": "Programado Para",
+      "completed": "Completado En",
+      "invoiced": "Facturado En"
     },
     "status": {
-      "invoiced": "Invoiced"
+      "invoiced": "Facturado"
     },
     "actions": {
-      "title": "Actions",
-      "schedule": "Schedule",
-      "openMenu": "Open menu"
+      "title": "Acciones",
+      "schedule": "Programar",
+      "openMenu": "Abrir menú"
     }
   },
   "LoginPage": {
