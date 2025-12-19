@@ -2099,5 +2099,71 @@
       "year": "Año"
     },
     "weekShort": "Sem"
+  },
+  "AlertRulesPage": {
+    "title": "Alert Rules",
+    "description": "Manage the rules that trigger automatic alerts.",
+    "filterPlaceholder": "Filter rules by name...",
+    "columns": {
+      "name": "Name",
+      "category": "Category",
+      "priority": "Priority",
+      "isActive": "Active",
+      "yes": "Yes",
+      "no": "No",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "dialog": {
+      "createTitle": "Create New Alert Rule",
+      "editTitle": "Edit Alert Rule",
+      "name": "Name",
+      "code": "Code",
+      "category": "Category",
+      "selectCategory": "Select a category",
+      "description": "Description",
+      "priority": "Priority",
+      "selectPriority": "Select priority",
+      "sourceTable": "Source Table",
+      "queryTemplate": "Query Template",
+      "daysBefore": "Days Before",
+      "daysAfter": "Days After",
+      "autoSendEmail": "Auto-send Email",
+      "autoSendSms": "Auto-send SMS",
+      "isActive": "Active",
+      "cancel": "Cancel",
+      "create": "Create Rule",
+      "save": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the rule \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createSuccessTitle": "Rule Created",
+      "editSuccessTitle": "Rule Updated",
+      "successDescription": "Rule \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Rule Deleted",
+      "deleteSuccessDescription": "Rule \"{name}\" has been deleted."
+    }
+  },
+  "CommunicationTemplatesPage": {
+    "title": "Communication Templates",
+    "description": "Manage templates for emails, SMS, and other communications.",
+    "content": "Template editor will be implemented here."
+  },
+  "CommunicationHistoryPage": {
+    "title": "Communication History",
+    "description": "View a log of all sent communications.",
+    "content": "Communication history log will be implemented here."
+  },
+  "ExecutionHistoryPage": {
+    "title": "Execution History",
+    "description": "View a log of all scheduler runs and background jobs.",
+    "content": "Execution history log will be implemented here."
   }
 }

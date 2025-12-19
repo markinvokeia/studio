@@ -1,17 +1,19 @@
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useTranslations } from 'next-intl';
 
 export default function CommunicationHistoryPage() {
+  const t = useTranslations('CommunicationHistoryPage');
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Communication History</CardTitle>
-        <CardDescription>View log of all sent communications.</CardDescription>
+        <CardTitle>{t('title')}</CardTitle>
+        <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <p>Communication history log will be implemented here.</p>
+        <p>{t('content')}</p>
       </CardContent>
     </Card>
   );

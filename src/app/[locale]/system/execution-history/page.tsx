@@ -1,17 +1,18 @@
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useTranslations } from 'next-intl';
 
 export default function ExecutionHistoryPage() {
+  const t = useTranslations('ExecutionHistoryPage');
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Execution History</CardTitle>
-        <CardDescription>View log of scheduler runs.</CardDescription>
+        <CardTitle>{t('title')}</CardTitle>
+        <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <p>Execution history log will be implemented here.</p>
+        <p>{t('content')}</p>
       </CardContent>
     </Card>
   );

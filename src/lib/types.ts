@@ -599,3 +599,53 @@ export type AlertInstance = {
     assigned_to?: string;
     assigned_to_name?: string;
 };
+
+export type CommunicationTemplate = {
+  id: string;
+  code: string;
+  name: string;
+  type: 'EMAIL' | 'SMS' | 'DOCUMENT' | 'WHATSAPP';
+  category_id?: string;
+  subject?: string;
+  body_html?: string;
+  body_text?: string;
+  is_active: boolean;
+  version: number;
+};
+
+export type AlertAction = {
+    id: string;
+    alert_instance_id: string;
+    action_type: string;
+    result_status: 'SUCCESS' | 'FAILED' | 'PENDING';
+    result_message?: string;
+    performed_by: string;
+    performed_at: string;
+};
+
+export type CommunicationLog = {
+    id: string;
+    alert_instance_id?: string;
+    template_id?: string;
+    channel: 'EMAIL' | 'SMS' | 'WHATSAPP' | 'PRINT';
+    recipient_address: string;
+    status: 'QUEUED' | 'SENT' | 'DELIVERED' | 'FAILED' | 'BOUNCED';
+    sent_at?: string;
+};
+
+export type AlertScheduleRun = {
+    id: string;
+    run_date: string;
+    status: 'RUNNING' | 'COMPLETED' | 'FAILED';
+    alerts_created: number;
+    errors_count: number;
+};
+
+export type UserAlertPreference = {
+    id: string;
+    user_id: string;
+    category_id?: string;
+    rule_id?: string;
+    show_in_dashboard: boolean;
+    email_notification: boolean;
+};
