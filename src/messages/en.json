@@ -544,7 +544,7 @@
       "phonePlaceholder": "123-456-7890",
       "identity_document": "Identity Document",
       "identity_document_placeholder": "e.g., 12345678",
-      "isActive": "Is Active",
+      "isActive": "Is Active?",
       "cancel": "Cancel",
       "save": "Create User",
       "editSave": "Save Changes",
@@ -1788,8 +1788,8 @@
   },
   "ConfigurationsPage": {
     "title": "Configurations",
-    "description": "Manage configurations for the clinic",
-    "filterPlaceholder": "Filter here...",
+    "description": "Manage system-wide configurations and settings.",
+    "filterPlaceholder": "Filter by key...",
     "columns": {
       "id": "ID",
       "key": "Key",
@@ -1805,43 +1805,44 @@
       "delete": "Delete"
     },
     "dialog": {
-      "createTitle": "Create a new configuration",
-      "createDescription": "Create a new configuration for the clinic",
-      "key": "Key",
-      "keyPlaceholder": "e.g. MAX_USERS",
-      "value": "Value",
-      "valuePlaceholder": "e.g. 100",
-      "description": "Description",
-      "descriptionPlaceholder": "e.g. Maximum number of users allowed",
-      "dataType": "Data Type",
-      "isPublic": "Is Public?",
-      "isPublicDescription": "If checked, the configuration will be publicly accessible",
-      "create": "Create",
-      "cancel": "Cancel",
+      "createTitle": "Create New Configuration",
+      "createDescription": "Add a new key-value pair to the system configuration.",
       "editTitle": "Edit Configuration",
-      "editDescription": "Edit the configuration for the clinic",
+      "editDescription": "Update the details for this configuration key.",
+      "key": "Key",
+      "keyPlaceholder": "e.g., API_URL",
+      "value": "Value",
+      "valuePlaceholder": "e.g., https://api.example.com",
+      "description": "Description",
+      "descriptionPlaceholder": "e.g., The main endpoint for the external API.",
+      "dataType": "Data Type",
+      "selectDataType": "Select a data type",
+      "isPublic": "Is Public",
+      "isPublicDescription": "If checked, this configuration can be accessed by client-side code.",
+      "cancel": "Cancel",
+      "create": "Create",
       "save": "Save Changes"
     },
-    "validation": {
-      "keyRequired": "Key is required",
-      "valueRequired": "Value is required",
-      "dataTypeRequired": "Data type is required"
-    },
-    "toast": {
-      "deleteTitle": "Configuration Deleted",
-      "deleteDescription": "Configuration '{key}' has been deleted.",
-      "errorTitle": "Error",
-      "deleteError": "Could not delete the configuration.",
-      "editTitle": "Configuration Updated",
-      "createTitle": "Configuration Created",
-      "successDescription": "Configuration '{key}' has been saved successfully.",
-      "genericError": "An unexpected error occurred."
-    },
     "deleteDialog": {
-      "title": "Delete Configuration",
-      "description": "Are you sure you want to delete the configuration '{key}'? This action cannot be undone.",
+      "title": "Are you sure?",
+      "description": "This will permanently delete the configuration key \"{key}\". This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createTitle": "Configuration Created",
+      "editTitle": "Configuration Updated",
+      "successDescription": "Configuration \"{key}\" has been saved successfully.",
+      "deleteTitle": "Configuration Deleted",
+      "deleteDescription": "Configuration \"{key}\" has been deleted.",
+      "deleteError": "Could not delete the configuration."
+    },
+    "validation": {
+      "keyRequired": "Key is required.",
+      "valueRequired": "Value is required.",
+      "dataTypeRequired": "Data type is required."
     }
   },
   "AuditLog": {

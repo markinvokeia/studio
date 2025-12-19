@@ -1787,115 +1787,116 @@
     }
   },
   "ConfigurationsPage": {
-    "title": "Configurations",
-    "description": "Manage configurations for the clinic",
-    "filterPlaceholder": "Filter here...",
+    "title": "Configuraciones",
+    "description": "Administra las configuraciones y ajustes de todo el sistema.",
+    "filterPlaceholder": "Filtrar por clave...",
     "columns": {
       "id": "ID",
-      "key": "Key",
-      "value": "Value",
-      "description": "Description",
-      "type": "Type",
-      "isPublic": "Is Public?",
-      "yes": "Yes",
+      "key": "Clave",
+      "value": "Valor",
+      "description": "Descripción",
+      "type": "Tipo",
+      "isPublic": "¿Es Público?",
+      "yes": "Sí",
       "no": "No",
-      "updatedBy": "Updated By",
-      "actions": "Actions",
-      "edit": "Edit",
-      "delete": "Delete"
+      "updatedBy": "Actualizado Por",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
     },
     "dialog": {
-      "createTitle": "Create a new configuration",
-      "createDescription": "Create a new configuration for the clinic",
-      "key": "Key",
-      "keyPlaceholder": "e.g. MAX_USERS",
-      "value": "Value",
-      "valuePlaceholder": "e.g. 100",
-      "description": "Description",
-      "descriptionPlaceholder": "e.g. Maximum number of users allowed",
-      "dataType": "Data Type",
-      "isPublic": "Is Public?",
-      "isPublicDescription": "If checked, the configuration will be publicly accessible",
-      "create": "Create",
-      "cancel": "Cancel",
-      "editTitle": "Edit Configuration",
-      "editDescription": "Edit the configuration for the clinic",
-      "save": "Save Changes"
-    },
-    "validation": {
-      "keyRequired": "Key is required",
-      "valueRequired": "Value is required",
-      "dataTypeRequired": "Data type is required"
-    },
-    "toast": {
-      "deleteTitle": "Configuration Deleted",
-      "deleteDescription": "Configuration '{key}' has been deleted.",
-      "errorTitle": "Error",
-      "deleteError": "Could not delete the configuration.",
-      "editTitle": "Configuration Updated",
-      "createTitle": "Configuration Created",
-      "successDescription": "Configuration '{key}' has been saved successfully.",
-      "genericError": "An unexpected error occurred."
+      "createTitle": "Crear Nueva Configuración",
+      "createDescription": "Añade un nuevo par clave-valor a la configuración del sistema.",
+      "editTitle": "Editar Configuración",
+      "editDescription": "Actualiza los detalles de esta clave de configuración.",
+      "key": "Clave",
+      "keyPlaceholder": "ej., API_URL",
+      "value": "Valor",
+      "valuePlaceholder": "ej., https://api.example.com",
+      "description": "Descripción",
+      "descriptionPlaceholder": "ej., El endpoint principal para la API externa.",
+      "dataType": "Tipo de Dato",
+      "selectDataType": "Selecciona un tipo de dato",
+      "isPublic": "¿Es Público?",
+      "isPublicDescription": "Si está marcado, esta configuración podrá ser accedida por el código del lado del cliente.",
+      "cancel": "Cancelar",
+      "create": "Crear",
+      "save": "Guardar Cambios"
     },
     "deleteDialog": {
-      "title": "Delete Configuration",
-      "description": "Are you sure you want to delete the configuration '{key}'? This action cannot be undone.",
-      "cancel": "Cancel",
-      "confirm": "Delete"
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente la clave de configuración \"{key}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createTitle": "Configuración Creada",
+      "editTitle": "Configuración Actualizada",
+      "successDescription": "La configuración \"{key}\" ha sido guardada exitosamente.",
+      "deleteTitle": "Configuración Eliminada",
+      "deleteDescription": "La configuración \"{key}\" ha sido eliminada.",
+      "deleteError": "No se pudo eliminar la configuración."
+    },
+    "validation": {
+      "keyRequired": "La clave es obligatoria.",
+      "valueRequired": "El valor es obligatorio.",
+      "dataTypeRequired": "El tipo de dato es obligatorio."
     }
   },
   "AuditLog": {
-    "title": "Audit Log",
-    "description": "View the audit log for the clinic",
-    "filterPlaceholder": "Filter here...",
+    "title": "Registro de Auditoría",
+    "description": "Ver el registro de auditoría de la clínica",
+    "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
-      "changedAt": "Changed At",
-      "table": "Table",
-      "recordId": "Record ID",
-      "operation": "Operation",
-      "oldValue": "Old Value",
-      "newValue": "New Value",
-      "changedBy": "Changed By",
-      "actions": "Actions",
-      "viewDetails": "View details",
-      "openMenu": "Open Menu"
+      "changedAt": "Cambiado En",
+      "table": "Tabla",
+      "recordId": "ID de Registro",
+      "operation": "Operación",
+      "oldValue": "Valor Antiguo",
+      "newValue": "Valor Nuevo",
+      "changedBy": "Cambiado Por",
+      "actions": "Acciones",
+      "viewDetails": "Ver detalles",
+      "openMenu": "Abrir Menú"
     }
   },
   "AccessLogPage": {
-    "title": "Access Log",
-    "description": "View the access log for the clinic",
-    "filterPlaceholder": "Filter here...",
+    "title": "Registro de Acceso",
+    "description": "Ver el registro de acceso de la clínica",
+    "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
-      "userId": "User ID",
-      "timestamp": "Timestamp",
-      "action": "Action",
-      "success": "Success",
-      "ipAddress": "IP Address",
-      "channel": "Channel",
-      "details": "Details",
-      "actions": "Actions",
-      "viewUser": "View User",
-      "openMenu": "Open Menu",
-      "yes": "Yes",
+      "userId": "ID de Usuario",
+      "timestamp": "Marca de Tiempo",
+      "action": "Acción",
+      "success": "Éxito",
+      "ipAddress": "Dirección IP",
+      "channel": "Canal",
+      "details": "Detalles",
+      "actions": "Acciones",
+      "viewUser": "Ver Usuario",
+      "openMenu": "Abrir Menú",
+      "yes": "Sí",
       "no": "No"
     }
   },
   "ErrorLogPage": {
-    "title": "Error Log",
-    "description": "View the error log for the clinic",
-    "filterPlaceholder": "Filter here...",
+    "title": "Registro de Errores",
+    "description": "Ver el registro de errores de la clínica",
+    "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
-      "createdAt": "Created At",
-      "severity": "Severity",
-      "message": "Message",
-      "channel": "Channel",
-      "userId": "User ID",
-      "actions": "Actions",
-      "viewDetails": "View details",
-      "openMenu": "Open Menu"
+      "createdAt": "Creado En",
+      "severity": "Severidad",
+      "message": "Mensaje",
+      "channel": "Canal",
+      "userId": "ID de Usuario",
+      "actions": "Acciones",
+      "viewDetails": "Ver detalles",
+      "openMenu": "Abrir Menú"
     }
   },
   "ClinicHistoryPage": {
@@ -2124,291 +2125,291 @@
     "searching": "Buscando..."
   },
   "AlertCategoriesPage": {
-    "title": "Alert Categories",
-    "description": "Manage the categories for grouping alerts.",
-    "filterPlaceholder": "Filter by category name...",
+    "title": "Categorías de Alertas",
+    "description": "Administrar las categorías para agrupar alertas.",
+    "filterPlaceholder": "Filtrar por nombre de categoría...",
     "columns": {
-      "icon": "Icon",
-      "name": "Name",
-      "code": "Code",
-      "rulesCount": "Rules",
-      "isActive": "Active",
-      "yes": "Yes",
+      "icon": "Ícono",
+      "name": "Nombre",
+      "code": "Código",
+      "rulesCount": "Reglas",
+      "isActive": "Activo",
+      "yes": "Sí",
       "no": "No",
-      "actions": "Actions",
-      "edit": "Edit",
-      "delete": "Delete"
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
     },
     "dialog": {
-      "createTitle": "Create Alert Category",
-      "editTitle": "Edit Alert Category",
-      "name": "Name",
-      "namePlaceholder": "e.g., Billing",
-      "code": "Code",
-      "codePlaceholder": "e.g., BILLING",
-      "description": "Description",
-      "descriptionPlaceholder": "Alerts related to invoices and payments",
-      "icon": "Icon",
-      "iconPlaceholder": "Enter a Lucide icon name (e.g., DollarSign)",
+      "createTitle": "Crear Categoría de Alerta",
+      "editTitle": "Editar Categoría de Alerta",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Facturación",
+      "code": "Código",
+      "codePlaceholder": "ej., BILLING",
+      "description": "Descripción",
+      "descriptionPlaceholder": "Alertas relacionadas con facturas y pagos",
+      "icon": "Ícono",
+      "iconPlaceholder": "Introduce un nombre de ícono de Lucide (ej., DollarSign)",
       "color": "Color",
-      "sortOrder": "Sort Order",
-      "isActive": "Is Active",
-      "cancel": "Cancel",
-      "create": "Create Category",
-      "save": "Save Changes"
+      "sortOrder": "Orden de Clasificación",
+      "isActive": "Está Activo",
+      "cancel": "Cancelar",
+      "create": "Crear Categoría",
+      "save": "Guardar Cambios"
     },
     "deleteDialog": {
-      "title": "Delete Category",
-      "description": "Are you sure you want to delete the category \"{name}\"?",
-      "cancel": "Cancel",
-      "confirm": "Delete"
+      "title": "Eliminar Categoría",
+      "description": "¿Estás seguro de que quieres eliminar la categoría \"{name}\"?",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
     },
     "toast": {
       "errorTitle": "Error",
-      "createSuccessTitle": "Category Created",
-      "editSuccessTitle": "Category Updated",
-      "successDescription": "Category \"{name}\" has been saved successfully.",
-      "deleteSuccessTitle": "Category Deleted",
-      "deleteSuccessDescription": "Category \"{name}\" has been deleted.",
-      "deleteErrorHasRules": "Cannot delete a category that has associated rules.",
-      "deleteErrorTitle": "Delete Failed"
+      "createSuccessTitle": "Categoría Creada",
+      "editSuccessTitle": "Categoría Actualizada",
+      "successDescription": "La categoría \"{name}\" se ha guardado exitosamente.",
+      "deleteSuccessTitle": "Categoría Eliminada",
+      "deleteSuccessDescription": "La categoría \"{name}\" ha sido eliminada.",
+      "deleteErrorHasRules": "No se puede eliminar una categoría que tiene reglas asociadas.",
+      "deleteErrorTitle": "Fallo al Eliminar"
     },
     "validation": {
-      "codeRequired": "Code is required.",
-      "codeFormat": "Code must be uppercase and contain no spaces.",
-      "nameRequired": "Name is required.",
-      "nameMaxLength": "Name cannot exceed 100 characters.",
-      "descriptionMaxLength": "Description cannot exceed 500 characters.",
-      "colorInvalid": "Must be a valid hex color (e.g., #FF5733)."
+      "codeRequired": "El código es obligatorio.",
+      "codeFormat": "El código debe estar en mayúsculas y no contener espacios.",
+      "nameRequired": "El nombre es obligatorio.",
+      "nameMaxLength": "El nombre no puede exceder los 100 caracteres.",
+      "descriptionMaxLength": "La descripción no puede exceder los 500 caracteres.",
+      "colorInvalid": "Debe ser un color hexadecimal válido (ej., #FF5733)."
     }
   },
   "AlertsCenterPage": {
-    "title": "Alerts Center",
-    "description": "View and manage all system-generated alerts.",
+    "title": "Centro de Alertas",
+    "description": "Ver y gestionar todas las alertas generadas por el sistema.",
     "summary": {
-      "total": "Total Pending",
-      "critical": "Critical",
-      "high": "High",
-      "medium": "Medium"
+      "total": "Total Pendientes",
+      "critical": "Críticas",
+      "high": "Altas",
+      "medium": "Medias"
     },
-    "dailyAlerts": "Daily Alerts",
+    "dailyAlerts": "Alertas del Día",
     "filters": {
-      "title": "Filters"
+      "title": "Filtros"
     },
     "categories": {
-      "appointments": "Appointments",
-      "billing": "Billing",
-      "followup": "Follow-up",
-      "default": "Default",
-      "patients": "Patients"
+      "appointments": "Citas",
+      "billing": "Facturación",
+      "followup": "Seguimiento",
+      "default": "Por Defecto",
+      "patients": "Pacientes"
     },
     "status": {
-      "pending": "Pending",
-      "in_progress": "In Progress",
-      "completed": "Completed"
+      "pending": "Pendiente",
+      "in_progress": "En Progreso",
+      "completed": "Completada"
     }
   },
   "AlertRulesPage": {
-    "title": "Alert Rules",
-    "description": "Configure the rules that automatically generate alerts.",
-    "filterPlaceholder": "Filter by rule name...",
+    "title": "Reglas de Alertas",
+    "description": "Configurar las reglas que generan alertas automáticamente.",
+    "filterPlaceholder": "Filtrar por nombre de regla...",
     "columns": {
-      "name": "Name",
-      "category": "Category",
-      "priority": "Priority",
-      "autoEmail": "Auto Email",
-      "autoSms": "Auto SMS",
-      "isActive": "Active",
-      "yes": "Yes",
+      "name": "Nombre",
+      "category": "Categoría",
+      "priority": "Prioridad",
+      "autoEmail": "Email Automático",
+      "autoSms": "SMS Automático",
+      "isActive": "Activo",
+      "yes": "Sí",
       "no": "No",
-      "actions": "Actions",
-      "edit": "Edit",
-      "duplicate": "Duplicate",
-      "test": "Test Rule",
-      "delete": "Delete"
+      "actions": "Acciones",
+      "edit": "Editar",
+      "duplicate": "Duplicar",
+      "test": "Probar Regla",
+      "delete": "Eliminar"
     },
     "dialog": {
-      "createTitle": "Create Alert Rule",
-      "editTitle": "Edit Alert Rule",
-      "name": "Name",
-      "code": "Code",
-      "category": "Category",
-      "selectCategory": "Select a category",
-      "description": "Description",
-      "priority": "Priority",
-      "selectPriority": "Select a priority",
-      "sourceTable": "Source Table",
-      "queryTemplate": "Query Template",
-      "daysBefore": "Days Before Event",
-      "daysAfter": "Days After Event",
-      "autoSendEmail": "Send Email Automatically",
-      "autoSendSms": "Send SMS Automatically",
-      "isActive": "Is Active",
-      "cancel": "Cancel",
-      "create": "Create Rule",
-      "save": "Save Changes"
+      "createTitle": "Crear Regla de Alerta",
+      "editTitle": "Editar Regla de Alerta",
+      "name": "Nombre",
+      "code": "Código",
+      "category": "Categoría",
+      "selectCategory": "Seleccionar una categoría",
+      "description": "Descripción",
+      "priority": "Prioridad",
+      "selectPriority": "Seleccionar una prioridad",
+      "sourceTable": "Tabla de Origen",
+      "queryTemplate": "Plantilla de Consulta",
+      "daysBefore": "Días Antes del Evento",
+      "daysAfter": "Días Después del Evento",
+      "autoSendEmail": "Enviar Email Automáticamente",
+      "autoSendSms": "Enviar SMS Automáticamente",
+      "isActive": "Está Activo",
+      "cancel": "Cancelar",
+      "create": "Crear Regla",
+      "save": "Guardar Cambios"
     },
     "deleteDialog": {
-      "title": "Delete Rule",
-      "description": "Are you sure you want to delete the rule \"{name}\"?",
-      "cancel": "Cancel",
-      "confirm": "Delete"
+      "title": "Eliminar Regla",
+      "description": "¿Estás seguro de que quieres eliminar la regla \"{name}\"?",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
     },
     "toast": {
       "errorTitle": "Error",
-      "createSuccessTitle": "Rule Created",
-      "editSuccessTitle": "Rule Updated",
-      "successDescription": "Rule \"{name}\" has been saved successfully.",
-      "deleteSuccessTitle": "Rule Deleted",
-      "deleteSuccessDescription": "Rule \"{name}\" has been deleted."
+      "createSuccessTitle": "Regla Creada",
+      "editSuccessTitle": "Regla Actualizada",
+      "successDescription": "La regla \"{name}\" se ha guardado exitosamente.",
+      "deleteSuccessTitle": "Regla Eliminada",
+      "deleteSuccessDescription": "La regla \"{name}\" ha sido eliminada."
     },
     "validation": {
-      "categoryRequired": "Category is required.",
-      "codeRequired": "Code is required.",
-      "nameRequired": "Name is required.",
-      "priorityRequired": "Priority is required.",
-      "sourceTableRequired": "Source table is required.",
-      "queryTemplateRequired": "Query template is required."
+      "categoryRequired": "La categoría es obligatoria.",
+      "codeRequired": "El código es obligatorio.",
+      "nameRequired": "El nombre es obligatorio.",
+      "priorityRequired": "La prioridad es obligatoria.",
+      "sourceTableRequired": "La tabla de origen es obligatoria.",
+      "queryTemplateRequired": "La plantilla de consulta es obligatoria."
     },
     "priorities": {
-      "low": "Low",
-      "medium": "Medium",
-      "high": "High",
-      "critical": "Critical"
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta",
+      "critical": "Crítica"
     }
   },
   "CommunicationTemplatesPage": {
-    "title": "Communication Templates",
-    "description": "Manage templates for emails, SMS, and other communications.",
-    "filterPlaceholder": "Filter by template name...",
+    "title": "Plantillas de Comunicación",
+    "description": "Administrar plantillas para correos electrónicos, SMS y otras comunicaciones.",
+    "filterPlaceholder": "Filtrar por nombre de plantilla...",
     "columns": {
-      "name": "Name",
-      "type": "Type",
-      "category": "Category",
-      "isActive": "Active",
-      "yes": "Yes",
+      "name": "Nombre",
+      "type": "Tipo",
+      "category": "Categoría",
+      "isActive": "Activo",
+      "yes": "Sí",
       "no": "No",
-      "actions": "Actions",
-      "edit": "Edit",
-      "duplicate": "Duplicate",
-      "preview": "Preview",
-      "history": "History",
-      "delete": "Delete"
+      "actions": "Acciones",
+      "edit": "Editar",
+      "duplicate": "Duplicar",
+      "preview": "Previsualizar",
+      "history": "Historial",
+      "delete": "Eliminar"
     },
     "dialog": {
-      "createTitle": "Create Template",
-      "editTitle": "Edit Template",
-      "name": "Name",
-      "code": "Code",
-      "type": "Type",
-      "selectType": "Select a type",
-      "category": "Category",
-      "selectCategory": "Select a category",
-      "subject": "Subject",
-      "body": "Body Content",
-      "isActive": "Is Active",
-      "cancel": "Cancel",
-      "create": "Create Template",
-      "save": "Save Changes",
+      "createTitle": "Crear Plantilla",
+      "editTitle": "Editar Plantilla",
+      "name": "Nombre",
+      "code": "Código",
+      "type": "Tipo",
+      "selectType": "Seleccionar un tipo",
+      "category": "Categoría",
+      "selectCategory": "Seleccionar una categoría",
+      "subject": "Asunto",
+      "body": "Contenido del Cuerpo",
+      "isActive": "Está Activo",
+      "cancel": "Cancelar",
+      "create": "Crear Plantilla",
+      "save": "Guardar Cambios",
       "preview": {
-        "title": "Preview"
+        "title": "Previsualizar"
       },
       "variables": {
         "title": "Variables",
-        "description": "Click a variable to insert it into your template."
+        "description": "Haz clic en una variable para insertarla en tu plantilla."
       }
     },
     "deleteDialog": {
-      "title": "Delete Template",
-      "description": "Are you sure you want to delete the template \"{name}\"?",
-      "cancel": "Cancel",
-      "confirm": "Delete"
+      "title": "Eliminar Plantilla",
+      "description": "¿Estás seguro de que quieres eliminar la plantilla \"{name}\"?",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
     },
     "toast": {
       "errorTitle": "Error",
-      "createSuccessTitle": "Template Created",
-      "editSuccessTitle": "Template Updated",
-      "successDescription": "Template \"{name}\" has been saved successfully.",
-      "deleteSuccessTitle": "Template Deleted",
-      "deleteSuccessDescription": "Template \"{name}\" has been deleted."
+      "createSuccessTitle": "Plantilla Creada",
+      "editSuccessTitle": "Plantilla Actualizada",
+      "successDescription": "La plantilla \"{name}\" se ha guardado exitosamente.",
+      "deleteSuccessTitle": "Plantilla Eliminada",
+      "deleteSuccessDescription": "La plantilla \"{name}\" ha sido eliminada."
     },
     "validation": {
-      "codeRequired": "Code is required.",
-      "nameRequired": "Name is required."
+      "codeRequired": "El código es obligatorio.",
+      "nameRequired": "El nombre es obligatorio."
     }
   },
   "CommunicationHistoryPage": {
-    "title": "Communication History",
-    "description": "View a log of all sent communications.",
-    "filterPlaceholder": "Filter by recipient...",
+    "title": "Historial de Comunicaciones",
+    "description": "Ver un registro de todas las comunicaciones enviadas.",
+    "filterPlaceholder": "Filtrar por destinatario...",
     "columns": {
-      "sentAt": "Sent At",
-      "channel": "Channel",
-      "recipient": "Recipient",
-      "subject": "Subject",
-      "status": "Status",
-      "alertId": "Alert ID"
+      "sentAt": "Enviado a las",
+      "channel": "Canal",
+      "recipient": "Destinatario",
+      "subject": "Asunto",
+      "status": "Estado",
+      "alertId": "ID de Alerta"
     }
   },
   "ExecutionHistoryPage": {
-    "title": "Execution History",
-    "description": "Monitor the executions of the alert generation jobs.",
-    "filterPlaceholder": "Filter by status...",
+    "title": "Historial de Ejecuciones",
+    "description": "Monitorear las ejecuciones de los trabajos de generación de alertas.",
+    "filterPlaceholder": "Filtrar por estado...",
     "columns": {
-      "runDate": "Run Date",
-      "status": "Status",
-      "alertsCreated": "Alerts Created",
-      "emailsSent": "Emails Sent",
-      "errorsCount": "Errors",
-      "duration": "Duration"
+      "runDate": "Fecha de Ejecución",
+      "status": "Estado",
+      "alertsCreated": "Alertas Creadas",
+      "emailsSent": "Emails Enviados",
+      "errorsCount": "Errores",
+      "duration": "Duración"
     }
   },
   "AlertsConfigPage": {
-    "title": "Alerts System Configuration",
-    "description": "Configure global settings for the alert and communication system.",
-    "saveChanges": "Save Changes",
+    "title": "Configuración del Sistema de Alertas",
+    "description": "Configurar los ajustes globales para el sistema de alertas y comunicaciones.",
+    "saveChanges": "Guardar Cambios",
     "scheduler": {
-      "title": "Alert Scheduler",
-      "description": "Configure when the system checks for and generates new alerts.",
-      "enable": "Enable Nightly Job",
-      "enableDescription": "Runs daily to generate alerts based on active rules.",
-      "executionTime": "Execution Time",
-      "timezone": "Timezone",
-      "runNow": "Run Now"
+      "title": "Programador de Alertas",
+      "description": "Configurar cuándo el sistema verifica y genera nuevas alertas.",
+      "enable": "Habilitar Tarea Nocturna",
+      "enableDescription": "Se ejecuta diariamente para generar alertas basadas en las reglas activas.",
+      "executionTime": "Hora de Ejecución",
+      "timezone": "Zona Horaria",
+      "runNow": "Ejecutar Ahora"
     },
     "email": {
-      "title": "Email Configuration",
-      "description": "Set up the SMTP provider for sending emails.",
-      "provider": "Provider",
-      "server": "SMTP Server",
-      "port": "Port",
-      "username": "Username",
-      "password": "Password",
-      "defaultSenderEmail": "Default Sender Email",
-      "defaultSenderName": "Default Sender Name",
-      "sendTest": "Send Test Email"
+      "title": "Configuración de Email",
+      "description": "Configurar el proveedor SMTP para el envío de correos electrónicos.",
+      "provider": "Proveedor",
+      "server": "Servidor SMTP",
+      "port": "Puerto",
+      "username": "Nombre de Usuario",
+      "password": "Contraseña",
+      "defaultSenderEmail": "Email Remitente por Defecto",
+      "defaultSenderName": "Nombre Remitente por Defecto",
+      "sendTest": "Enviar Email de Prueba"
     },
     "sms": {
-      "title": "SMS Configuration",
-      "description": "Set up the provider for sending SMS messages.",
-      "enable": "Enable SMS Notifications",
-      "provider": "Provider",
-      "apiKey": "API Key / Account SID",
-      "apiSecret": "API Secret / Auth Token",
-      "senderNumber": "Sender Number",
-      "sendTest": "Send Test SMS"
+      "title": "Configuración de SMS",
+      "description": "Configurar el proveedor para el envío de mensajes SMS.",
+      "enable": "Habilitar Notificaciones por SMS",
+      "provider": "Proveedor",
+      "apiKey": "Clave API / SID de Cuenta",
+      "apiSecret": "Secreto API / Token de Autenticación",
+      "senderNumber": "Número Remitente",
+      "sendTest": "Enviar SMS de Prueba"
     },
     "retention": {
-      "title": "Data Retention",
-      "description": "Configure how long to keep historical data.",
-      "alerts": "Completed/Ignored Alerts",
-      "communicationLogs": "Communication Logs",
-      "executionLogs": "Execution Logs",
-      "days": "days"
+      "title": "Retención de Datos",
+      "description": "Configurar por cuánto tiempo se conservan los datos históricos.",
+      "alerts": "Alertas Completadas/Ignoradas",
+      "communicationLogs": "Registros de Comunicación",
+      "executionLogs": "Registros de Ejecución",
+      "days": "días"
     },
     "toast": {
-      "saveSuccessTitle": "Settings Saved",
-      "saveSuccessDescription": "Your configuration changes have been saved."
+      "saveSuccessTitle": "Ajustes Guardados",
+      "saveSuccessDescription": "Tus cambios de configuración han sido guardados."
     }
   }
 }

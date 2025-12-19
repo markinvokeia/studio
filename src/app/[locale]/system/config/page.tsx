@@ -109,7 +109,7 @@ async function deleteConfig(id: string) {
 
 export default function SystemConfigPage() {
     const t = useTranslations('ConfigurationsPage');
-    const tValidation = useTranslations('ConfigurationsPage.validation');
+    const tValidation = useTranslations('ConfigurationsPage');
     const { toast } = useToast();
     const [configs, setConfigs] = React.useState<SystemConfiguration[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
