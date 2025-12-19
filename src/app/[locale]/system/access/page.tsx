@@ -92,7 +92,7 @@ export default function AccessLogPage() {
         { accessorKey: 'user_id', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.userId')} /> },
         { accessorKey: 'timestamp', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.timestamp')} /> },
         { accessorKey: 'action', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.action')} /> },
-        { accessorKey: 'success', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.success')} />, cell: ({row}) => row.original.success ? "Yes" : "No" },
+        { accessorKey: 'success', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.success')} />, cell: ({row}) => row.original.success ? t('columns.yes') : t('columns.no') },
         { accessorKey: 'ip_address', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.ipAddress')} /> },
         { accessorKey: 'channel', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.channel')} /> },
         { 
@@ -108,7 +108,7 @@ export default function AccessLogPage() {
                 <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Open menu</span>
+                    <span className="sr-only">{t('columns.openMenu')}</span>
                     <MoreHorizontal className="h-4 w-4" />
                     </Button>
                 </DropdownMenuTrigger>

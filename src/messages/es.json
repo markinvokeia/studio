@@ -1857,7 +1857,8 @@
       "newValue": "New Value",
       "changedBy": "Changed By",
       "actions": "Actions",
-      "viewDetails": "View details"
+      "viewDetails": "View details",
+      "openMenu": "Open Menu"
     }
   },
   "AccessLogPage": {
@@ -1874,7 +1875,10 @@
       "channel": "Channel",
       "details": "Details",
       "actions": "Actions",
-      "viewUser": "View User"
+      "viewUser": "View User",
+      "openMenu": "Open Menu",
+      "yes": "Yes",
+      "no": "No"
     }
   },
   "ErrorLogPage": {
@@ -1889,7 +1893,8 @@
       "channel": "Channel",
       "userId": "User ID",
       "actions": "Actions",
-      "viewDetails": "View details"
+      "viewDetails": "View details",
+      "openMenu": "Open Menu"
     }
   },
   "ClinicHistoryPage": {

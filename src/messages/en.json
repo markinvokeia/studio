@@ -1857,7 +1857,8 @@
       "newValue": "New Value",
       "changedBy": "Changed By",
       "actions": "Actions",
-      "viewDetails": "View details"
+      "viewDetails": "View details",
+      "openMenu": "Open Menu"
     }
   },
   "AccessLogPage": {
@@ -1874,7 +1875,10 @@
       "channel": "Channel",
       "details": "Details",
       "actions": "Actions",
-      "viewUser": "View User"
+      "viewUser": "View User",
+      "openMenu": "Open Menu",
+      "yes": "Yes",
+      "no": "No"
     }
   },
   "ErrorLogPage": {
@@ -1889,7 +1893,8 @@
       "channel": "Channel",
       "userId": "User ID",
       "actions": "Actions",
-      "viewDetails": "View details"
+      "viewDetails": "View details",
+      "openMenu": "Open Menu"
     }
   },
   "ClinicHistoryPage": {
@@ -2213,29 +2218,29 @@
     "content": "El registro del historial de ejecuciones se implementará aquí."
   },
   "AlertsCenterPage": {
-    "title": "Alerts Center",
-    "description": "View and manage all system-generated alerts.",
+    "title": "Centro de Alertas",
+    "description": "Ver y gestionar todas las alertas generadas por el sistema.",
     "summary": {
-      "total": "Total Pending",
-      "critical": "Critical",
-      "high": "High",
-      "medium": "Medium"
+      "total": "Total Pendientes",
+      "critical": "Críticas",
+      "high": "Altas",
+      "medium": "Medias"
     },
-    "dailyAlerts": "Daily Alerts",
+    "dailyAlerts": "Alertas del Día",
     "filters": {
-      "title": "Filters"
+      "title": "Filtros"
     },
     "categories": {
-      "appointments": "Appointments",
-      "billing": "Billing",
-      "followup": "Follow-up",
-      "default": "Default",
-      "patients": "Patients"
+      "appointments": "Citas",
+      "billing": "Facturación",
+      "followup": "Seguimiento",
+      "default": "Por Defecto",
+      "patients": "Pacientes"
     },
     "status": {
-      "pending": "Pending",
-      "in_progress": "In Progress",
-      "completed": "Completed"
+      "pending": "Pendiente",
+      "in_progress": "En Progreso",
+      "completed": "Completada"
     }
   }
 }

@@ -37,11 +37,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 const configFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  key: z.string().min(1, t('keyRequired')),
-  value: z.string().min(1, t('valueRequired')),
+  key: z.string().min(1, t('validation.keyRequired')),
+  value: z.string().min(1, t('validation.valueRequired')),
   description: z.string().optional(),
   data_type: z.enum(['string', 'number', 'boolean', 'json'], {
-    required_error: t('dataTypeRequired'),
+    required_error: t('validation.dataTypeRequired'),
   }),
   is_public: z.boolean().default(false),
 });
