@@ -696,7 +696,7 @@
       "paymentStatus": "Payment Status",
       "unpaid": "Unpaid",
       "billingStatus": "Billing Status",
-      "notInvoiced": "Not invoiced",
+      "notInvoiced": "Not Invoiced",
       "save": "Save",
       "noUserFound": "No user found",
       "selectCurrency": "Select Currency",
@@ -2151,96 +2151,30 @@
     },
     "weekShort": "Sem"
   },
-  "AlertRulesPage": {
-    "title": "Reglas de Alerta",
-    "description": "Gestiona las reglas que disparan alertas automáticas.",
-    "filterPlaceholder": "Filtrar reglas por nombre...",
-    "columns": {
-      "name": "Nombre",
-      "category": "Categoría",
-      "priority": "Prioridad",
-      "isActive": "Activa",
-      "yes": "Sí",
-      "no": "No",
-      "actions": "Acciones",
-      "edit": "Editar",
-      "delete": "Eliminar"
-    },
-    "dialog": {
-      "createTitle": "Crear Nueva Regla de Alerta",
-      "editTitle": "Editar Regla de Alerta",
-      "name": "Nombre",
-      "code": "Código",
-      "category": "Categoría",
-      "selectCategory": "Selecciona una categoría",
-      "description": "Descripción",
-      "priority": "Prioridad",
-      "selectPriority": "Selecciona prioridad",
-      "sourceTable": "Tabla de Origen",
-      "queryTemplate": "Plantilla de Consulta",
-      "daysBefore": "Días Antes",
-      "daysAfter": "Días Después",
-      "autoSendEmail": "Auto-enviar Email",
-      "autoSendSms": "Auto-enviar SMS",
-      "isActive": "Activa",
-      "cancel": "Cancelar",
-      "create": "Crear Regla",
-      "save": "Guardar Cambios"
-    },
-    "deleteDialog": {
-      "title": "¿Estás seguro?",
-      "description": "Esto eliminará permanentemente la regla \"{name}\". Esta acción no se puede deshacer.",
-      "cancel": "Cancelar",
-      "confirm": "Eliminar"
-    },
-    "toast": {
-      "errorTitle": "Error",
-      "createSuccessTitle": "Regla Creada",
-      "editSuccessTitle": "Regla Actualizada",
-      "successDescription": "La regla \"{name}\" ha sido guardada exitosamente.",
-      "deleteSuccessTitle": "Regla Eliminada",
-      "deleteSuccessDescription": "La regla \"{name}\" ha sido eliminada."
-    }
-  },
-  "CommunicationTemplatesPage": {
-    "title": "Plantillas de Comunicación",
-    "description": "Gestiona las plantillas para emails, SMS y otras comunicaciones.",
-    "content": "El editor de plantillas se implementará aquí."
-  },
-  "CommunicationHistoryPage": {
-    "title": "Historial de Comunicaciones",
-    "description": "Ver un registro de todas las comunicaciones enviadas.",
-    "content": "El registro del historial de comunicaciones se implementará aquí."
-  },
-  "ExecutionHistoryPage": {
-    "title": "Historial de Ejecuciones",
-    "description": "Ver un registro de todas las ejecuciones del planificador y trabajos en segundo plano.",
-    "content": "El registro del historial de ejecuciones se implementará aquí."
-  },
   "AlertsCenterPage": {
-    "title": "Centro de Alertas",
-    "description": "Ver y gestionar todas las alertas generadas por el sistema.",
+    "title": "Alerts Center",
+    "description": "View and manage all system-generated alerts.",
     "summary": {
-      "total": "Total Pendientes",
-      "critical": "Críticas",
-      "high": "Altas",
-      "medium": "Medias"
+      "total": "Total Pending",
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium"
     },
-    "dailyAlerts": "Alertas del Día",
+    "dailyAlerts": "Today's Alerts",
     "filters": {
-      "title": "Filtros"
+      "title": "Filters"
     },
     "categories": {
-      "appointments": "Citas",
-      "billing": "Facturación",
-      "followup": "Seguimiento",
-      "default": "Por Defecto",
-      "patients": "Pacientes"
+      "appointments": "Appointments",
+      "billing": "Billing",
+      "followup": "Follow-up",
+      "default": "Default",
+      "patients": "Patients"
     },
     "status": {
-      "pending": "Pendiente",
-      "in_progress": "En Progreso",
-      "completed": "Completada"
+      "pending": "Pending",
+      "in_progress": "In Progress",
+      "completed": "Completed"
     }
   }
 }

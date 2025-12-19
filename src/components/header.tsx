@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   KeyRound,
   Search,
+  Bell,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -70,7 +71,7 @@ const passwordFormSchema = (t: (key: string) => string) => z.object({
     path: ['confirm_password'],
 });
 
-type PasswordFormValues = z.infer<ReturnType<typeof passwordFormSchema>>;
+type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
 export function Header() {
   const pathname = usePathname();
@@ -86,6 +87,18 @@ export function Header() {
   const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
   const [passwordChangeError, setPasswordChangeError] = React.useState<string | null>(null);
   
+  // Mock data for alert indicator
+  const pendingAlertsCount = 5; // Replace with actual data fetch
+  const highestPriority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' = 'CRITICAL'; 
+  
+  const alertBadgeColor = {
+    CRITICAL: 'bg-red-500',
+    HIGH: 'bg-orange-500',
+    MEDIUM: 'bg-blue-500',
+    LOW: 'bg-gray-500'
+  }[highestPriority];
+
+
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordFormSchema(t)),
   });
@@ -188,6 +201,17 @@ export function Header() {
         <OpenCashSessionWidget />
         
         <div className="flex items-center justify-end gap-2">
+            <Link href={`/${locale}/alerts`} passHref>
+                <Button variant="outline" size="icon" className="relative">
+                    <Bell className="h-[1.2rem] w-[1.2rem]" />
+                    {pendingAlertsCount > 0 && (
+                        <span className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-xs text-white ${alertBadgeColor}`}>
+                            {pendingAlertsCount}
+                        </span>
+                    )}
+                    <span className="sr-only">Alerts</span>
+                </Button>
+            </Link>
             {activeCashSession && <ExchangeRate />}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>

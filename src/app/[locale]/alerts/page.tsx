@@ -6,9 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { AlertInstance } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, DollarSign, Stethoscope, AlertTriangle, ChevronDown, Filter, User } from 'lucide-react';
+import { 
+    Calendar, DollarSign, Stethoscope, AlertTriangle, ChevronDown, Filter, User,
+    MoreHorizontal, Mail, MessageSquare, Phone, Printer, Clock, UserPlus, FileText, XCircle, CheckCircle 
+} from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useTranslations } from 'next-intl';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 
 const mockAlerts: AlertInstance[] = [
     { id: '1', rule_id: '1', reference_table: 'appointments', reference_id: '101', alert_date: '2024-07-30', title: 'Cita de Mañana - Juan Pérez', summary: 'Recordatorio 24h para consulta general.', status: 'PENDING', priority: 'HIGH', rule_name: 'APPT_REMINDER_24H', patient_name: 'Juan Pérez' },
@@ -52,6 +59,28 @@ export default function AlertsCenterPage() {
     const t = useTranslations('AlertsCenterPage');
     const [alerts, setAlerts] = React.useState<AlertInstance[]>(mockAlerts);
     const [openCategories, setOpenCategories] = React.useState<string[]>([]);
+    const [selectedAlerts, setSelectedAlerts] = React.useState<string[]>([]);
+    
+    const markAsCompleted = (alertIds: string[]) => {
+        setAlerts(prev => prev.map(a => alertIds.includes(a.id) ? { ...a, status: 'COMPLETED' } : a));
+        setSelectedAlerts([]);
+        toast({ title: "Alerts Updated", description: `${alertIds.length} alert(s) marked as completed.` });
+    };
+
+    const handleSelectAlert = (alertId: string, checked: boolean) => {
+        setSelectedAlerts(prev => 
+            checked ? [...prev, alertId] : prev.filter(id => id !== alertId)
+        );
+    };
+    
+    const handleSelectCategory = (categoryAlerts: AlertInstance[], checked: boolean) => {
+        const alertIds = categoryAlerts.map(a => a.id);
+        if (checked) {
+            setSelectedAlerts(prev => [...new Set([...prev, ...alertIds])]);
+        } else {
+            setSelectedAlerts(prev => prev.filter(id => !alertIds.includes(id)));
+        }
+    };
 
     const groupedAlerts = React.useMemo(() => {
         return alerts.reduce((acc, alert) => {
@@ -82,7 +111,7 @@ export default function AlertsCenterPage() {
     };
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 pb-20">
             <Card>
                 <CardHeader>
                     <CardTitle>{t('title')}</CardTitle>
@@ -106,42 +135,84 @@ export default function AlertsCenterPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {Object.entries(groupedAlerts).map(([category, categoryAlerts]) => (
-                        <Collapsible 
-                            key={category}
-                            open={openCategories.includes(category)}
-                            onOpenChange={() => toggleCategory(category)}
-                        >
-                            <CollapsibleTrigger className="w-full">
+                    {Object.entries(groupedAlerts).map(([category, categoryAlerts]) => {
+                        const allInCategorySelected = categoryAlerts.every(a => selectedAlerts.includes(a.id));
+                        const someInCategorySelected = categoryAlerts.some(a => selectedAlerts.includes(a.id));
+
+                        return (
+                            <Collapsible 
+                                key={category}
+                                open={openCategories.includes(category)}
+                                onOpenChange={() => toggleCategory(category)}
+                            >
                                 <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-3 text-left font-semibold">
-                                    {categoryIcons[category as keyof typeof categoryIcons] || categoryIcons.DEFAULT}
-                                    <span>{t(`categories.${category.toLowerCase()}` as any)}</span>
-                                    <Badge className="ml-auto">{categoryAlerts.length}</Badge>
-                                    <ChevronDown className={`h-5 w-5 transition-transform ${openCategories.includes(category) ? 'rotate-180' : ''}`} />
+                                    <Checkbox 
+                                        checked={allInCategorySelected ? true : (someInCategorySelected ? "indeterminate" : false)}
+                                        onCheckedChange={(checked) => handleSelectCategory(categoryAlerts, !!checked)}
+                                    />
+                                    <CollapsibleTrigger className="flex items-center gap-3 flex-1">
+                                        {categoryIcons[category as keyof typeof categoryIcons] || categoryIcons.DEFAULT}
+                                        <span>{t(`categories.${category.toLowerCase()}` as any)}</span>
+                                        <Badge className="ml-auto">{categoryAlerts.length}</Badge>
+                                        <ChevronDown className={`h-5 w-5 transition-transform ${openCategories.includes(category) ? 'rotate-180' : ''}`} />
+                                    </CollapsibleTrigger>
                                 </div>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>
-                                <div className="divide-y divide-border">
-                                {categoryAlerts.map(alert => (
-                                    <div key={alert.id} className="flex items-center gap-4 p-4 hover:bg-muted/50">
-                                        <div className={`w-1.5 h-10 rounded-full ${priorityConfig[alert.priority as keyof typeof priorityConfig].color}`}></div>
-                                        <div className="flex-1">
-                                            <p className="font-semibold">{alert.title}</p>
-                                            <p className="text-sm text-muted-foreground">{alert.summary}</p>
+                                <CollapsibleContent>
+                                    <div className="divide-y divide-border">
+                                    {categoryAlerts.map(alert => (
+                                        <div key={alert.id} className="flex items-center gap-4 p-4 hover:bg-muted/50">
+                                            <Checkbox 
+                                                checked={selectedAlerts.includes(alert.id)}
+                                                onCheckedChange={(checked) => handleSelectAlert(alert.id, !!checked)}
+                                            />
+                                            <div className={`w-1.5 h-10 rounded-full ${priorityConfig[alert.priority as keyof typeof priorityConfig].color}`}></div>
+                                            <div className="flex-1">
+                                                <p className="font-semibold">{alert.title}</p>
+                                                <p className="text-sm text-muted-foreground">{alert.summary}</p>
+                                            </div>
+                                            <div className="flex items-center gap-4 text-muted-foreground">
+                                                <Badge variant={alert.status === 'COMPLETED' ? 'default' : 'outline'}>{t(`status.${alert.status.toLowerCase()}` as any)}</Badge>
+                                                <User className="h-4 w-4" />
+                                                <span className="text-sm">{alert.patient_name}</span>
+                                                <div className="flex items-center gap-1">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8"><Mail className="h-4 w-4"/></Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => markAsCompleted([alert.id])}><CheckCircle className="h-4 w-4"/></Button>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4"/></Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent>
+                                                            <DropdownMenuItem><MessageSquare className="mr-2 h-4 w-4" />Send SMS</DropdownMenuItem>
+                                                            <DropdownMenuItem><Phone className="mr-2 h-4 w-4" />Register Call</DropdownMenuItem>
+                                                            <DropdownMenuItem><Printer className="mr-2 h-4 w-4" />Print</DropdownMenuItem>
+                                                            <DropdownMenuItem><Clock className="mr-2 h-4 w-4" />Snooze</DropdownMenuItem>
+                                                            <DropdownMenuItem><UserPlus className="mr-2 h-4 w-4" />Assign</DropdownMenuItem>
+                                                            <DropdownMenuItem><FileText className="mr-2 h-4 w-4" />Add Note</DropdownMenuItem>
+                                                            <DropdownMenuItem><XCircle className="mr-2 h-4 w-4" />Ignore</DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant={alert.status === 'COMPLETED' ? 'default' : 'outline'}>{t(`status.${alert.status.toLowerCase()}` as any)}</Badge>
-                                            <User className="h-4 w-4 text-muted-foreground" />
-                                            <span className="text-sm text-muted-foreground">{alert.patient_name}</span>
-                                        </div>
+                                    ))}
                                     </div>
-                                ))}
-                                </div>
-                            </CollapsibleContent>
-                        </Collapsible>
-                    ))}
+                                </CollapsibleContent>
+                            </Collapsible>
+                        )
+                    })}
                 </CardContent>
             </Card>
+
+            {selectedAlerts.length > 0 && (
+                <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+                    <Card className="flex items-center gap-4 p-3 shadow-2xl">
+                        <p className="text-sm font-medium">{selectedAlerts.length} alert(s) selected</p>
+                        <Button size="sm" onClick={() => markAsCompleted(selectedAlerts)}>Mark all as Completed</Button>
+                        <Button size="sm" variant="secondary">Send Email to all</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setSelectedAlerts([])}>Deselect all</Button>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }
