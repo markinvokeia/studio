@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -35,11 +36,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
+import { Check } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 
 const templateFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
-  code: z.string().min(1, t('CommunicationTemplatesPage.validation.codeRequired')),
-  name: z.string().min(1, t('CommunicationTemplatesPage.validation.nameRequired')),
+  code: z.string().min(1, t('validation.codeRequired')),
+  name: z.string().min(1, t('validation.nameRequired')),
   type: z.enum(['EMAIL', 'SMS', 'DOCUMENT', 'WHATSAPP']),
   category_id: z.string().optional(),
   subject: z.string().optional(),
@@ -110,7 +113,6 @@ export default function CommunicationTemplatesPage() {
         
         form.setValue('body_html', newText, { shouldValidate: true });
         
-        // This timeout is needed to allow React to re-render before we set the selection
         setTimeout(() => {
             textarea.selectionStart = textarea.selectionEnd = start + text.length;
             textarea.focus();
@@ -190,7 +192,9 @@ export default function CommunicationTemplatesPage() {
         { accessorKey: 'category_id', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.category')} />,
             cell: ({ row }) => categories.find(c => c.id === row.original.category_id)?.name || 'N/A'
         },
-        { accessorKey: 'is_active', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.isActive')} />,
+        { 
+            accessorKey: 'is_active', 
+            header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.isActive')} />,
             cell: ({ row }) => <Badge variant={row.original.is_active ? 'success' : 'outline'}>{row.original.is_active ? t('columns.yes') : t('columns.no')}</Badge>
         },
         {
@@ -245,7 +249,7 @@ export default function CommunicationTemplatesPage() {
                     <DialogTitle>{editingTemplate ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                 </DialogHeader>
                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
