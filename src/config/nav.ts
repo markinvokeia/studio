@@ -153,6 +153,7 @@ export const navItems: NavItem[] = [
       { title: 'SystemUsers', href: '/system/users', icon: Users, isChidren: true },
       { title: 'Roles', href: '/roles', icon: KeyRound, isChidren: true },
       { title: 'Permissions', href: '/permissions', icon: Shield, isChidren: true },
+      { title: 'AlertsConfig', href: '/system/alerts-config', icon: Settings, isChidren: true },
       { title: 'AlertCategories', href: '/system/alert-categories', icon: Layers, isChidren: true },
       { title: 'AlertRules', href: '/system/alert-rules', icon: BotMessageSquare, isChidren: true },
       { title: 'CommunicationTemplates', href: '/system/communication-templates', icon: BookCopy, isChidren: true },
