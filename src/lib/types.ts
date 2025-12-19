@@ -408,12 +408,14 @@ export type TreatmentDetail = {
 };
 
 export type AttachedFile = {
+  id?: string;
   diente_asociado: number | null;
   ruta: string;
   tipo: string;
   file_name?: string;
   mime_type?: string;
   base64?: string;
+  thumbnail_url?: string;
 };
 
 export type PatientSession = {
@@ -550,3 +552,50 @@ export type Credit = {
   type: 'credit_note' | 'prepaid';
 };
 
+export type AlertCategory = {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  sort_order?: number;
+  is_active: boolean;
+};
+
+export type AlertRule = {
+    id: string;
+    category_id: string;
+    code: string;
+    name: string;
+    description?: string;
+    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    source_table: string;
+    query_template: string;
+    days_before?: number;
+    days_after?: number;
+    recurrence_type?: 'ONCE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
+    auto_send_email: boolean;
+    auto_send_sms: boolean;
+    email_template_id?: string;
+    sms_template_id?: string;
+    is_active: boolean;
+};
+
+export type AlertInstance = {
+    id: string;
+    rule_id: string;
+    rule_name?: string;
+    reference_table: string;
+    reference_id: string;
+    patient_id?: string;
+    patient_name?: string;
+    alert_date: string;
+    event_date?: string;
+    title: string;
+    summary?: string;
+    status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'IGNORED';
+    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    assigned_to?: string;
+    assigned_to_name?: string;
+};
