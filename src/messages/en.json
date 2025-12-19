@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -2207,7 +2208,7 @@
       "completed": "Completed"
     }
   },
-    "AlertRulesPage": {
+  "AlertRulesPage": {
     "title": "Alert Rules",
     "description": "Configure the rules that automatically generate alerts.",
     "filterPlaceholder": "Filter by rule name...",
