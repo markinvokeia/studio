@@ -1799,6 +1799,27 @@
       "editTitle": "Edit Configuration",
       "editDescription": "Edit the configuration for the clinic",
       "save": "Save Changes"
+    },
+    "validation": {
+      "keyRequired": "Key is required",
+      "valueRequired": "Value is required",
+      "dataTypeRequired": "Data type is required"
+    },
+    "toast": {
+      "deleteTitle": "Configuration Deleted",
+      "deleteDescription": "Configuration '{key}' has been deleted.",
+      "errorTitle": "Error",
+      "deleteError": "Could not delete the configuration.",
+      "editTitle": "Configuration Updated",
+      "createTitle": "Configuration Created",
+      "successDescription": "Configuration '{key}' has been saved successfully.",
+      "genericError": "An unexpected error occurred."
+    },
+    "deleteDialog": {
+      "title": "Delete Configuration",
+      "description": "Are you sure you want to delete the configuration '{key}'? This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
     }
   },
   "AuditLog": {
@@ -1806,6 +1827,7 @@
     "description": "View the audit log for the clinic",
     "filterPlaceholder": "Filter here...",
     "columns": {
+      "id": "ID",
       "changedAt": "Changed At",
       "table": "Table",
       "recordId": "Record ID",
@@ -1822,10 +1844,12 @@
     "description": "View the access log for the clinic",
     "filterPlaceholder": "Filter here...",
     "columns": {
+      "id": "ID",
       "userId": "User ID",
       "timestamp": "Timestamp",
       "action": "Action",
       "success": "Success",
+      "ipAddress": "IP Address",
       "channel": "Channel",
       "details": "Details",
       "actions": "Actions",
@@ -1837,6 +1861,7 @@
     "description": "View the error log for the clinic",
     "filterPlaceholder": "Filter here...",
     "columns": {
+      "id": "ID",
       "createdAt": "Created At",
       "severity": "Severity",
       "message": "Message",
@@ -2101,69 +2126,69 @@
     "weekShort": "Sem"
   },
   "AlertRulesPage": {
-    "title": "Alert Rules",
-    "description": "Manage the rules that trigger automatic alerts.",
-    "filterPlaceholder": "Filter rules by name...",
+    "title": "Reglas de Alerta",
+    "description": "Gestiona las reglas que disparan alertas automáticas.",
+    "filterPlaceholder": "Filtrar reglas por nombre...",
     "columns": {
-      "name": "Name",
-      "category": "Category",
-      "priority": "Priority",
-      "isActive": "Active",
-      "yes": "Yes",
+      "name": "Nombre",
+      "category": "Categoría",
+      "priority": "Prioridad",
+      "isActive": "Activa",
+      "yes": "Sí",
       "no": "No",
-      "actions": "Actions",
-      "edit": "Edit",
-      "delete": "Delete"
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
     },
     "dialog": {
-      "createTitle": "Create New Alert Rule",
-      "editTitle": "Edit Alert Rule",
-      "name": "Name",
-      "code": "Code",
-      "category": "Category",
-      "selectCategory": "Select a category",
-      "description": "Description",
-      "priority": "Priority",
-      "selectPriority": "Select priority",
-      "sourceTable": "Source Table",
-      "queryTemplate": "Query Template",
-      "daysBefore": "Days Before",
-      "daysAfter": "Days After",
-      "autoSendEmail": "Auto-send Email",
-      "autoSendSms": "Auto-send SMS",
-      "isActive": "Active",
-      "cancel": "Cancel",
-      "create": "Create Rule",
-      "save": "Save Changes"
+      "createTitle": "Crear Nueva Regla de Alerta",
+      "editTitle": "Editar Regla de Alerta",
+      "name": "Nombre",
+      "code": "Código",
+      "category": "Categoría",
+      "selectCategory": "Selecciona una categoría",
+      "description": "Descripción",
+      "priority": "Prioridad",
+      "selectPriority": "Selecciona prioridad",
+      "sourceTable": "Tabla de Origen",
+      "queryTemplate": "Plantilla de Consulta",
+      "daysBefore": "Días Antes",
+      "daysAfter": "Días Después",
+      "autoSendEmail": "Auto-enviar Email",
+      "autoSendSms": "Auto-enviar SMS",
+      "isActive": "Activa",
+      "cancel": "Cancelar",
+      "create": "Crear Regla",
+      "save": "Guardar Cambios"
     },
     "deleteDialog": {
-      "title": "Are you sure?",
-      "description": "This will permanently delete the rule \"{name}\". This action cannot be undone.",
-      "cancel": "Cancel",
-      "confirm": "Delete"
+      "title": "¿Estás seguro?",
+      "description": "Esto eliminará permanentemente la regla \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
     },
     "toast": {
       "errorTitle": "Error",
-      "createSuccessTitle": "Rule Created",
-      "editSuccessTitle": "Rule Updated",
-      "successDescription": "Rule \"{name}\" has been saved successfully.",
-      "deleteSuccessTitle": "Rule Deleted",
-      "deleteSuccessDescription": "Rule \"{name}\" has been deleted."
+      "createSuccessTitle": "Regla Creada",
+      "editSuccessTitle": "Regla Actualizada",
+      "successDescription": "La regla \"{name}\" ha sido guardada exitosamente.",
+      "deleteSuccessTitle": "Regla Eliminada",
+      "deleteSuccessDescription": "La regla \"{name}\" ha sido eliminada."
     }
   },
   "CommunicationTemplatesPage": {
-    "title": "Communication Templates",
-    "description": "Manage templates for emails, SMS, and other communications.",
-    "content": "Template editor will be implemented here."
+    "title": "Plantillas de Comunicación",
+    "description": "Gestiona las plantillas para emails, SMS y otras comunicaciones.",
+    "content": "El editor de plantillas se implementará aquí."
   },
   "CommunicationHistoryPage": {
-    "title": "Communication History",
-    "description": "View a log of all sent communications.",
-    "content": "Communication history log will be implemented here."
+    "title": "Historial de Comunicaciones",
+    "description": "Ver un registro de todas las comunicaciones enviadas.",
+    "content": "El registro del historial de comunicaciones se implementará aquí."
   },
   "ExecutionHistoryPage": {
-    "title": "Execution History",
-    "description": "View a log of all scheduler runs and background jobs.",
-    "content": "Execution history log will be implemented here."
+    "title": "Historial de Ejecuciones",
+    "description": "Ver un registro de todas las ejecuciones del planificador y trabajos en segundo plano.",
+    "content": "El registro del historial de ejecuciones se implementará aquí."
   }
 }

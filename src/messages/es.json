@@ -1799,6 +1799,27 @@
       "editTitle": "Edit Configuration",
       "editDescription": "Edit the configuration for the clinic",
       "save": "Save Changes"
+    },
+    "validation": {
+      "keyRequired": "Key is required",
+      "valueRequired": "Value is required",
+      "dataTypeRequired": "Data type is required"
+    },
+    "toast": {
+      "deleteTitle": "Configuration Deleted",
+      "deleteDescription": "Configuration '{key}' has been deleted.",
+      "errorTitle": "Error",
+      "deleteError": "Could not delete the configuration.",
+      "editTitle": "Configuration Updated",
+      "createTitle": "Configuration Created",
+      "successDescription": "Configuration '{key}' has been saved successfully.",
+      "genericError": "An unexpected error occurred."
+    },
+    "deleteDialog": {
+      "title": "Delete Configuration",
+      "description": "Are you sure you want to delete the configuration '{key}'? This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
     }
   },
   "AuditLog": {
@@ -1806,6 +1827,7 @@
     "description": "View the audit log for the clinic",
     "filterPlaceholder": "Filter here...",
     "columns": {
+      "id": "ID",
       "changedAt": "Changed At",
       "table": "Table",
       "recordId": "Record ID",
@@ -1822,10 +1844,12 @@
     "description": "View the access log for the clinic",
     "filterPlaceholder": "Filter here...",
     "columns": {
+      "id": "ID",
       "userId": "User ID",
       "timestamp": "Timestamp",
       "action": "Action",
       "success": "Success",
+      "ipAddress": "IP Address",
       "channel": "Channel",
       "details": "Details",
       "actions": "Actions",
@@ -1837,6 +1861,7 @@
     "description": "View the error log for the clinic",
     "filterPlaceholder": "Filter here...",
     "columns": {
+      "id": "ID",
       "createdAt": "Created At",
       "severity": "Severity",
       "message": "Message",
