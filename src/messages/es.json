@@ -1,4 +1,3 @@
-
 {
   "Navigation": {
     "Dashboard": "Panel de Control",
@@ -51,6 +50,7 @@
     "AccessLog": "Registro de Acceso",
     "ErrorLog": "Registro de Errores",
     "AlertsCenter": "Centro de Alertas",
+    "AlertsConfig": "Configuración de Alertas",
     "AlertCategories": "Categorías de Alertas",
     "AlertRules": "Reglas de Alertas",
     "CommunicationTemplates": "Plantillas",
@@ -2313,7 +2313,7 @@
         "title": "Vista Previa"
       },
       "variables": {
-        "title": "Variables Disponibles",
+        "title": "Variables",
         "description": "Haz clic en una variable para insertarla en tu plantilla."
       }
     },
@@ -2360,6 +2360,54 @@
       "emailsSent": "Emails Enviados",
       "errorsCount": "Errores",
       "duration": "Duración"
+    }
+  },
+  "AlertsConfigPage": {
+    "title": "Alerts System Configuration",
+    "description": "Configure global settings for the alert and communication system.",
+    "saveChanges": "Save Changes",
+    "scheduler": {
+      "title": "Alert Scheduler",
+      "description": "Configure when the system checks for and generates new alerts.",
+      "enable": "Enable Nightly Job",
+      "enableDescription": "Runs daily to generate alerts based on active rules.",
+      "executionTime": "Execution Time",
+      "timezone": "Timezone",
+      "runNow": "Run Now"
+    },
+    "email": {
+      "title": "Email Configuration",
+      "description": "Set up the SMTP provider for sending emails.",
+      "provider": "Provider",
+      "server": "SMTP Server",
+      "port": "Port",
+      "username": "Username",
+      "password": "Password",
+      "defaultSenderEmail": "Default Sender Email",
+      "defaultSenderName": "Default Sender Name",
+      "sendTest": "Send Test Email"
+    },
+    "sms": {
+      "title": "SMS Configuration",
+      "description": "Set up the provider for sending SMS messages.",
+      "enable": "Enable SMS Notifications",
+      "provider": "Provider",
+      "apiKey": "API Key / Account SID",
+      "apiSecret": "API Secret / Auth Token",
+      "senderNumber": "Sender Number",
+      "sendTest": "Send Test SMS"
+    },
+    "retention": {
+      "title": "Data Retention",
+      "description": "Configure how long to keep historical data.",
+      "alerts": "Completed/Ignored Alerts",
+      "communicationLogs": "Communication Logs",
+      "executionLogs": "Execution Logs",
+      "days": "days"
+    },
+    "toast": {
+      "saveSuccessTitle": "Settings Saved",
+      "saveSuccessDescription": "Your configuration changes have been saved."
     }
   }
 }

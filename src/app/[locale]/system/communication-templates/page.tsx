@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -22,16 +21,20 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, MoreHorizontal } from 'lucide-react';
+import { AlertTriangle, MoreHorizontal, Code, Bold, Italic, List, ListOrdered, Link, Image as ImageIcon, Eye, Code2, ChevronsUpDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import * as LucideIcons from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
 
 const templateFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -64,6 +67,15 @@ async function getCategories(): Promise<AlertCategory[]> {
 }
 // END MOCK DATA
 
+const availableVariables = {
+  'patient': ['full_name', 'first_name', 'last_name', 'email', 'phone', 'document_id'],
+  'appointment': ['date', 'time', 'doctor_name', 'specialty', 'location'],
+  'invoice': ['number', 'total', 'due_date', 'balance'],
+  'payment': ['amount'],
+  'clinic': ['name', 'phone', 'address', 'email'],
+  'system': ['current_date'],
+};
+
 export default function CommunicationTemplatesPage() {
     const t = useTranslations('CommunicationTemplatesPage');
     const { toast } = useToast();
@@ -78,12 +90,51 @@ export default function CommunicationTemplatesPage() {
     const [deletingTemplate, setDeletingTemplate] = React.useState<CommunicationTemplate | null>(null);
 
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+    const [showPreview, setShowPreview] = React.useState(false);
 
     const form = useForm<TemplateFormValues>({
         resolver: zodResolver(templateFormSchema(t)),
     });
 
     const watchedBodyHtml = form.watch('body_html');
+    const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+    const insertText = (text: string) => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const currentText = textarea.value;
+        const newText = currentText.substring(0, start) + text + currentText.substring(end);
+        
+        form.setValue('body_html', newText, { shouldValidate: true });
+        
+        // This timeout is needed to allow React to re-render before we set the selection
+        setTimeout(() => {
+            textarea.selectionStart = textarea.selectionEnd = start + text.length;
+            textarea.focus();
+        }, 0);
+    };
+
+    const wrapText = (wrapper: [string, string]) => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+        const newText = `${textarea.value.substring(0, start)}${wrapper[0]}${selectedText}${wrapper[1]}${textarea.value.substring(end)}`;
+        
+        form.setValue('body_html', newText, { shouldValidate: true });
+        
+        setTimeout(() => {
+            textarea.selectionStart = start + wrapper[0].length;
+            textarea.selectionEnd = end + wrapper[0].length;
+            textarea.focus();
+        }, 0);
+    };
+
 
     const loadData = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -189,7 +240,7 @@ export default function CommunicationTemplatesPage() {
             </CardContent>
         </Card>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="max-w-5xl">
+            <DialogContent className="max-w-4xl">
                 <DialogHeader>
                     <DialogTitle>{editingTemplate ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                 </DialogHeader>
@@ -202,37 +253,71 @@ export default function CommunicationTemplatesPage() {
                                 <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-4">
-                                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>{t('dialog.name')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="code" render={({ field }) => (<FormItem><FormLabel>{t('dialog.code')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="type" render={({ field }) => (<FormItem><FormLabel>{t('dialog.type')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectType')} /></SelectTrigger></FormControl><SelectContent><SelectItem value="EMAIL">Email</SelectItem><SelectItem value="SMS">SMS</SelectItem><SelectItem value="DOCUMENT">Document</SelectItem><SelectItem value="WHATSAPP">WhatsApp</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="category_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.category')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectCategory')} /></SelectTrigger></FormControl><SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="subject" render={({ field }) => (<FormItem><FormLabel>{t('dialog.subject')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="body_html" render={({ field }) => (<FormItem><FormLabel>{t('dialog.body')}</FormLabel><FormControl><Textarea {...field} rows={12} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="is_active" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>{t('dialog.isActive')}</FormLabel></FormItem>)} />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>{t('dialog.name')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="code" render={({ field }) => (<FormItem><FormLabel>{t('dialog.code')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField control={form.control} name="type" render={({ field }) => (<FormItem><FormLabel>{t('dialog.type')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectType')} /></SelectTrigger></FormControl><SelectContent><SelectItem value="EMAIL">Email</SelectItem><SelectItem value="SMS">SMS</SelectItem><SelectItem value="DOCUMENT">Document</SelectItem><SelectItem value="WHATSAPP">WhatsApp</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="category_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.category')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectCategory')} /></SelectTrigger></FormControl><SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                        </div>
+                        <FormField control={form.control} name="subject" render={({ field }) => (<FormItem><FormLabel>{t('dialog.subject')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        
+                        <div className="space-y-2">
+                             <div className="flex items-center justify-between">
+                                <FormLabel>{t('dialog.body')}</FormLabel>
+                                <div className="flex items-center gap-2">
+                                     <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="outline" size="sm"><Code2 className="mr-2 h-4 w-4"/> {t('dialog.variables.title')}</Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                            {Object.entries(availableVariables).map(([group, vars]) => (
+                                                <React.Fragment key={group}>
+                                                    <DropdownMenuLabel className="capitalize">{group}</DropdownMenuLabel>
+                                                    {vars.map(variable => (
+                                                        <DropdownMenuItem key={variable} onSelect={() => insertText(`{{${group}.${variable}}}`)}>
+                                                            {`{{${group}.${variable}}}`}
+                                                        </DropdownMenuItem>
+                                                    ))}
+                                                    <DropdownMenuSeparator />
+                                                </React.Fragment>
+                                            ))}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                    <div className="flex items-center space-x-1 border rounded-md p-1">
+                                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['<strong>', '</strong>'])}><Bold className="h-4 w-4" /></Button>
+                                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['<em>', '</em>'])}><Italic className="h-4 w-4" /></Button>
+                                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => insertText('<ul>\n  <li>Item 1</li>\n</ul>')}><List className="h-4 w-4" /></Button>
+                                    </div>
+                                   <div className="flex items-center space-x-2">
+                                        <Switch id="preview-mode" checked={showPreview} onCheckedChange={setShowPreview} />
+                                        <Label htmlFor="preview-mode">{t('dialog.preview.title')}</Label>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="space-y-4">
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-base">{t('dialog.preview.title')}</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="h-96 rounded-md border bg-muted p-4 overflow-y-auto" dangerouslySetInnerHTML={{ __html: watchedBodyHtml || '' }} />
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                     <CardHeader className="pb-2">
-                                        <CardTitle className="text-base">{t('dialog.variables.title')}</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <p className="text-sm text-muted-foreground">{t('dialog.variables.description')}</p>
-                                    </CardContent>
-                                </Card>
-                            </div>
+                            {showPreview ? (
+                                <div className="h-64 rounded-md border bg-muted p-4 overflow-y-auto" dangerouslySetInnerHTML={{ __html: watchedBodyHtml?.replace(/{{(.*?)}}/g, (match, p1) => `<span class="bg-primary/20 text-primary-foreground rounded px-1">${p1.trim()}</span>`) || '' }} />
+                            ) : (
+                                <FormField control={form.control} name="body_html" render={({ field }) => (
+                                    <FormItem>
+                                        <FormControl>
+                                            <Textarea
+                                                {...field}
+                                                ref={textareaRef}
+                                                rows={12}
+                                                className="font-mono"
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            )}
                         </div>
 
-                        <DialogFooter>
+                        <FormField control={form.control} name="is_active" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>{t('dialog.isActive')}</FormLabel></FormItem>)} />
+                        
+                        <DialogFooter className="sticky bottom-0 bg-background pt-4">
                             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                             <Button type="submit">{editingTemplate ? t('dialog.save') : t('dialog.create')}</Button>
                         </DialogFooter>
