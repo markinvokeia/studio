@@ -584,7 +584,8 @@
         "thisMonth": "Este Mes",
         "customRange": "Rango Personalizado",
         "allTime": "Todo el Tiempo"
-      }
+      },
+      "showOnlyDebtors": "Mostrar solo deudores"
     }
   },
   "UserColumns": {
@@ -802,8 +803,7 @@
       "creditsApplied": "Créditos Aplicados",
       "manualPayment": "Pago Manual",
       "totalPayment": "Pago Total",
-      "noPayment": "Ningún pago seleccionado",
-      "overpayment": "El pago total excede el monto restante de la factura."
+      "noPayment": "Ningún pago seleccionado"
     },
     "status": {
       "paid": "Pagada",
@@ -832,7 +832,8 @@
       "methodRequired": "El método de pago es obligatorio.",
       "dateRequired": "La fecha de pago es obligatoria.",
       "userRequired": "Se requiere un usuario",
-      "noPaymentAmount": "Por favor, introduce un monto o selecciona créditos para pagar."
+      "noPaymentAmount": "Por favor, introduce un monto o selecciona créditos para pagar.",
+      "overpayment": "El pago total excede el monto restante de la factura."
     },
     "toast": {
       "error": "Error",

@@ -100,8 +100,8 @@ const getColumns = (
       accessorKey: 'exchange_rate',
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('exchange_rate')} />,
       cell: ({ row }) => {
-        const rate = row.getValue('exchange_rate');
-        return <div className="text-right pr-4">{typeof rate === 'number' ? rate.toFixed(4) : 'N/A'}</div>;
+        const rate = parseFloat(String(row.getValue('exchange_rate')));
+        return <div className="text-right pr-4">{!isNaN(rate) ? rate.toFixed(4) : 'N/A'}</div>;
       }
     },
     {

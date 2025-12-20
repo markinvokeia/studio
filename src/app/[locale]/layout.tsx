@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import '../globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import {NextIntlClientProvider} from 'next-intl';
+import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { locales } from '@/i18n';
 import { AuthProvider } from '@/context/AuthContext';
@@ -17,13 +17,14 @@ export const metadata: Metadata = {
 
 export default async function LocaleLayout({
   children,
-  params: { locale },
+  params,
 }: Readonly<{
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }>) {
+  const { locale } = await params;
   if (!locales.includes(locale)) notFound();
- 
+
   const messages = await getMessages();
 
   return (

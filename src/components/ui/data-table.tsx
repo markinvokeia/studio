@@ -60,6 +60,7 @@ interface DataTableProps<TData, TValue> {
   filterOptions?: { label: string; value: string }[];
   onFilterChange?: (value: string) => void;
   filterValue?: string;
+  createButtonIconOnly?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -90,6 +91,7 @@ export function DataTable<TData, TValue>({
   filterOptions,
   onFilterChange,
   filterValue,
+  createButtonIconOnly,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
@@ -159,6 +161,7 @@ export function DataTable<TData, TValue>({
           filterOptions={filterOptions}
           onFilterChange={onFilterChange}
           filterValue={filterValue}
+          createButtonIconOnly={createButtonIconOnly}
         />
       )}
       <div className="rounded-md border overflow-auto max-h-[calc(100vh-220px)] relative">

@@ -584,7 +584,8 @@
         "thisMonth": "This Month",
         "customRange": "Custom Range",
         "allTime": "All Time"
-      }
+      },
+      "showOnlyDebtors": "Show only debtors"
     }
   },
   "UserColumns": {
@@ -802,8 +803,7 @@
       "creditsApplied": "Credits Applied",
       "manualPayment": "Manual Payment",
       "totalPayment": "Total Payment",
-      "noPayment": "No payment selected",
-      "overpayment": "The total payment exceeds the remaining amount of the invoice."
+      "noPayment": "No payment selected"
     },
     "status": {
       "paid": "Paid",
@@ -832,7 +832,8 @@
       "methodRequired": "Payment method is required.",
       "dateRequired": "Payment date is required.",
       "userRequired": "An user is required",
-      "noPaymentAmount": "Please enter an amount or select credits to pay."
+      "noPaymentAmount": "Please enter an amount or select credits to pay.",
+      "overpayment": "The total payment exceeds the remaining amount of the invoice."
     },
     "toast": {
       "error": "Error",

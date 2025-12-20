@@ -68,50 +68,50 @@ type GetUsersResponse = {
 };
 
 const UserStats = ({ user }: { user: User }) => {
-    const formatCurrency = (value: any, currency: 'USD' | 'UYU') => {
-        const symbol = currency === 'USD' ? 'U$S' : '$U';
-        const numericValue = Number(value) || 0;
-        const formattedValue = new Intl.NumberFormat('es-UY', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(numericValue);
-        return `${symbol} ${formattedValue}`;
-    };
+  const formatCurrency = (value: any, currency: 'USD' | 'UYU') => {
+    const symbol = currency === 'USD' ? 'U$S' : '$U';
+    const numericValue = Number(value) || 0;
+    const formattedValue = new Intl.NumberFormat('es-UY', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(numericValue);
+    return `${symbol} ${formattedValue}`;
+  };
 
-    const renderStatValue = (value: any) => {
-        const usdValue = value?.USD ?? 0;
-        const uyuValue = value?.UYU ?? 0;
-
-        return (
-            <div className="text-lg font-bold">
-                <div>{formatCurrency(usdValue, 'USD')}</div>
-                <div>{formatCurrency(uyuValue, 'UYU')}</div>
-            </div>
-        );
-    };
-
-    const stats = [
-        { title: 'Total Invoiced', value: user.total_invoiced, icon: Receipt, color: 'text-blue-500' },
-        { title: 'Total Paid', value: user.total_paid, icon: DollarSign, color: 'text-green-500' },
-        { title: 'Current Debt', value: user.current_debt, icon: CreditCard, color: 'text-red-500' },
-        { title: 'Available Balance', value: user.available_balance, icon: Banknote, color: 'text-indigo-500' },
-    ];
+  const renderStatValue = (value: any) => {
+    const usdValue = value?.USD ?? 0;
+    const uyuValue = value?.UYU ?? 0;
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            {stats.map(stat => (
-                <Card key={stat.title}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                        <stat.icon className={cn("h-4 w-4 text-muted-foreground", stat.color)} />
-                    </CardHeader>
-                    <CardContent>
-                        {renderStatValue(stat.value)}
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
+      <div className="text-lg font-bold">
+        <div>{formatCurrency(usdValue, 'USD')}</div>
+        <div>{formatCurrency(uyuValue, 'UYU')}</div>
+      </div>
     );
+  };
+
+  const stats = [
+    { title: 'Total Invoiced', value: user.total_invoiced, icon: Receipt, color: 'text-blue-500' },
+    { title: 'Total Paid', value: user.total_paid, icon: DollarSign, color: 'text-green-500' },
+    { title: 'Current Debt', value: user.current_debt, icon: CreditCard, color: 'text-red-500' },
+    { title: 'Available Balance', value: user.available_balance, icon: Banknote, color: 'text-indigo-500' },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      {stats.map(stat => (
+        <Card key={stat.title}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+            <stat.icon className={cn("h-4 w-4 text-muted-foreground", stat.color)} />
+          </CardHeader>
+          <CardContent>
+            {renderStatValue(stat.value)}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 };
 
 
@@ -124,19 +124,19 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
       filter_type: "PACIENTE",
       only_debtors: String(onlyDebtors)
     });
-    
+
     if (dateRange?.from) {
       const dateFrom = new Date(dateRange.from);
       dateFrom.setHours(0, 0, 0, 0);
       params.append('date_from', dateFrom.toISOString());
     }
-    
+
     if (dateRange?.to) {
       const dateTo = new Date(dateRange.to);
       dateTo.setHours(23, 59, 59, 999);
       params.append('date_to', dateTo.toISOString());
     }
-    
+
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?${params.toString()}`, {
       method: 'GET',
       mode: 'cors',
@@ -149,24 +149,24 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
     if (!response.ok) {
       throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
     }
-    
+
     const responseData = await response.json();
-    
+
     let usersData = [];
     let total = 0;
 
     if (Array.isArray(responseData) && responseData.length > 0) {
-        const firstElement = responseData[0];
-        if (firstElement.json && typeof firstElement.json === 'object') {
-            usersData = firstElement.json.data || [];
-            total = Number(firstElement.json.total) || usersData.length;
-        } else if (firstElement.data) {
-            usersData = firstElement.data;
-            total = Number(firstElement.total) || usersData.length;
-        }
+      const firstElement = responseData[0];
+      if (firstElement.json && typeof firstElement.json === 'object') {
+        usersData = firstElement.json.data || [];
+        total = Number(firstElement.json.total) || usersData.length;
+      } else if (firstElement.data) {
+        usersData = firstElement.data;
+        total = Number(firstElement.total) || usersData.length;
+      }
     } else if (typeof responseData === 'object' && responseData !== null && responseData.data) {
-        usersData = responseData.data;
-        total = Number(responseData.total) || usersData.length;
+      usersData = responseData.data;
+      total = Number(responseData.total) || usersData.length;
     }
 
     const mappedUsers = usersData.map((apiUser: any) => ({
@@ -192,23 +192,23 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
 }
 
 async function upsertUser(userData: UserFormValues) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/upsert', {
-        method: 'POST',
-        mode: 'cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...userData, filter_type: 'PACIENTE', is_sales: true }),
-    });
-    
-    const responseData = await response.json();
+  const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/upsert', {
+    method: 'POST',
+    mode: 'cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...userData, filter_type: 'PACIENTE', is_sales: true }),
+  });
 
-    if (responseData.error && (responseData.error.error || responseData.code > 200)) {
-        const error = new Error('API Error') as any;
-        error.status = responseData.code || response.status;
-        error.data = responseData;
-        throw error;
-    }
-    
-    return responseData;
+  const responseData = await response.json();
+
+  if (responseData.error && (responseData.error.error || responseData.code > 200)) {
+    const error = new Error('API Error') as any;
+    error.status = responseData.code || response.status;
+    error.data = responseData;
+    throw error;
+  }
+
+  return responseData;
 }
 
 async function getRolesForUser(userId: string): Promise<UserRole[]> {
@@ -227,7 +227,7 @@ async function getRolesForUser(userId: string): Promise<UserRole[]> {
     }
 
     const data = await response.json();
-    const userRolesData = Array.isArray(data) ? (Object.keys(data[0]).length === 0? [] : data) : (data.user_roles || data.data || data.result || []);
+    const userRolesData = Array.isArray(data) ? (Object.keys(data[0]).length === 0 ? [] : data) : (data.user_roles || data.data || data.result || []);
     return userRolesData.map((apiRole: any) => ({
       user_role_id: apiRole.user_role_id,
       role_id: apiRole.role_id,
@@ -242,7 +242,7 @@ async function getRolesForUser(userId: string): Promise<UserRole[]> {
 
 export default function UsersPage() {
   const t = useTranslations();
-  
+
   const { toast } = useToast();
   const [users, setUsers] = React.useState<any[]>([]);
   const [userCount, setUserCount] = React.useState(0);
@@ -295,40 +295,40 @@ export default function UsersPage() {
 
   React.useEffect(() => {
     const debounce = setTimeout(() => {
-        loadUsers();
+      loadUsers();
     }, 500);
     return () => clearTimeout(debounce);
   }, [loadUsers]);
 
   const handleToggleActivate = async (user: User) => {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/activate', {
-            method: 'PUT',
-            mode: 'cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                user_id: user.id,
-                is_active: !user.is_active,
-            }),
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to update patient status');
-        }
+      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/activate', {
+        method: 'PUT',
+        mode: 'cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          is_active: !user.is_active,
+        }),
+      });
 
-        toast({
-            title: 'Success',
-            description: `Patient ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
-        });
+      if (!response.ok) {
+        throw new Error('Failed to update patient status');
+      }
 
-        loadUsers();
+      toast({
+        title: 'Success',
+        description: `Patient ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
+      });
+
+      loadUsers();
     } catch (error) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Could not update patient status.',
-        });
-        console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not update patient status.',
+      });
+      console.error(error);
     }
   };
 
@@ -344,7 +344,7 @@ export default function UsersPage() {
     setSubmissionError(null);
     setIsDialogOpen(true);
   };
-  
+
   const handleEdit = (user: User) => {
     setEditingUser(user);
     form.reset({
@@ -358,10 +358,10 @@ export default function UsersPage() {
     setSubmissionError(null);
     setIsDialogOpen(true);
   };
-  
+
   const userColumns = UserColumnsWrapper({ onToggleActivate: handleToggleActivate, onEdit: handleEdit });
 
-  const debtorColumns: ColumnDef<any>[] = [
+  const debtorColumns: ColumnDef<User>[] = [
     {
       id: 'select',
       header: () => null,
@@ -371,7 +371,7 @@ export default function UsersPage() {
           <RadioGroup
             value={isSelected ? row.original.id : ''}
             onValueChange={() => {
-              if(handleRowSelectionChange) {
+              if (handleRowSelectionChange) {
                 table.toggleAllPageRowsSelected(false);
                 row.toggleSelected(true);
                 handleRowSelectionChange([row.original]);
@@ -386,32 +386,32 @@ export default function UsersPage() {
       enableHiding: false,
     },
     {
-        accessorKey: 'name',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.name')} />,
+      accessorKey: 'name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.name')} />,
     },
     {
-        accessorKey: 'email',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.email')} />,
+      accessorKey: 'email',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.email')} />,
     },
     {
-        accessorKey: 'identity_document',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.identity_document')} />,
+      accessorKey: 'identity_document',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.identity_document')} />,
     },
     {
-        id: 'debt_uyu',
-        header: 'Debt (UYU)',
-        cell: ({ row }) => {
-            const debt = row.original.current_debt?.UYU;
-            return debt ? `$${Number(debt).toFixed(2)}` : '-';
-        },
+      id: 'debt_uyu',
+      header: 'Debt (UYU)',
+      cell: ({ row }) => {
+        const debt = row.original.current_debt?.UYU;
+        return debt ? `$${Number(debt).toFixed(2)}` : '-';
+      },
     },
     {
-        id: 'debt_usd',
-        header: 'Debt (USD)',
-        cell: ({ row }) => {
-            const debt = row.original.current_debt?.USD;
-            return debt ? `$${Number(debt).toFixed(2)}` : '-';
-        },
+      id: 'debt_usd',
+      header: 'Debt (USD)',
+      cell: ({ row }) => {
+        const debt = row.original.current_debt?.USD;
+        return debt ? `$${Number(debt).toFixed(2)}` : '-';
+      },
     },
   ];
 
@@ -420,30 +420,30 @@ export default function UsersPage() {
     setSelectedUser(user);
   };
 
-    React.useEffect(() => {
+  React.useEffect(() => {
     const checkFirstPasswordRequirements = async () => {
-        if (!selectedUser) {
-            setCanSetFirstPassword(false);
-            return;
-        }
+      if (!selectedUser) {
+        setCanSetFirstPassword(false);
+        return;
+      }
 
-        const token = localStorage.getItem('token');
-        if (!token) {
-            setCanSetFirstPassword(false);
-            return;
-        }
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setCanSetFirstPassword(false);
+        return;
+      }
 
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/check-requirements-first-password?user_id=${selectedUser.id}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            setCanSetFirstPassword(response.ok);
-        } catch (error) {
-            console.error("Failed to check first password requirements:", error);
-            setCanSetFirstPassword(false);
-        }
+      try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/check-requirements-first-password?user_id=${selectedUser.id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        setCanSetFirstPassword(response.ok);
+      } catch (error) {
+        console.error("Failed to check first password requirements:", error);
+        setCanSetFirstPassword(false);
+      }
     };
 
     if (selectedUser) {
@@ -465,41 +465,41 @@ export default function UsersPage() {
     form.clearErrors();
 
     try {
-        await upsertUser(data);
-        const isEditing = !!editingUser;
+      await upsertUser(data);
+      const isEditing = !!editingUser;
 
-        toast({
-            title: isEditing ? t('UsersPage.createDialog.editSuccessTitle') : t('UsersPage.createDialog.createSuccessTitle'),
-            description: isEditing ? t('UsersPage.createDialog.editSuccessDescription') : t('UsersPage.createDialog.createSuccessDescription'),
-        });
-        setIsDialogOpen(false);
-        loadUsers();
+      toast({
+        title: isEditing ? t('UsersPage.createDialog.editSuccessTitle') : t('UsersPage.createDialog.createSuccessTitle'),
+        description: isEditing ? t('UsersPage.createDialog.editSuccessDescription') : t('UsersPage.createDialog.createSuccessDescription'),
+      });
+      setIsDialogOpen(false);
+      loadUsers();
 
     } catch (error: any) {
-        const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-        if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
-            const fields = errorData.conflictedFields.map((f:string) => t(`UsersPage.createDialog.validation.fields.${f}`)).join(', ');
-            setSubmissionError(t('UsersPage.createDialog.validation.uniqueConflict', { fields }));
-        } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
-            const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
-            if (errors.length > 0) {
-                errors.forEach((err: { field: any; message: string }) => {
-                    if (err.field) {
-                        form.setError(err.field as keyof UserFormValues, {
-                            type: 'manual',
-                            message: err.message,
-                        });
-                    }
-                });
-            } else {
-                 setSubmissionError(errorData?.message || t('UsersPage.createDialog.validation.genericError'));
+      const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
+      if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
+        const fields = errorData.conflictedFields.map((f: string) => t(`UsersPage.createDialog.validation.fields.${f}`)).join(', ');
+        setSubmissionError(t('UsersPage.createDialog.validation.uniqueConflict', { fields }));
+      } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
+        const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
+        if (errors.length > 0) {
+          errors.forEach((err: { field: any; message: string }) => {
+            if (err.field) {
+              form.setError(err.field as keyof UserFormValues, {
+                type: 'manual',
+                message: err.message,
+              });
             }
-        } else if (error.status >= 500) {
-            setSubmissionError(t('UsersPage.createDialog.validation.serverError'));
+          });
         } else {
-             const errorMessage = typeof error.data === 'string' ? error.data : errorData?.message || (error instanceof Error ? error.message : t('UsersPage.createDialog.validation.genericError'));
-             setSubmissionError(errorMessage);
+          setSubmissionError(errorData?.message || t('UsersPage.createDialog.validation.genericError'));
         }
+      } else if (error.status >= 500) {
+        setSubmissionError(t('UsersPage.createDialog.validation.serverError'));
+      } else {
+        const errorMessage = typeof error.data === 'string' ? error.data : errorData?.message || (error instanceof Error ? error.message : t('UsersPage.createDialog.validation.genericError'));
+        setSubmissionError(errorMessage);
+      }
     }
   };
 
@@ -507,28 +507,28 @@ export default function UsersPage() {
     if (!selectedUser) return;
     const token = localStorage.getItem('token');
     if (!token) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Authentication token not found.' });
-        return;
+      toast({ variant: 'destructive', title: 'Error', description: 'Authentication token not found.' });
+      return;
     }
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/first-time-password-token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ user_id: selectedUser.id }),
-        });
-        const responseData = await response.json();
-        if (!response.ok) {
-            throw new Error(responseData.message || 'Failed to send password email.');
-        }
-        toast({ title: 'Email Sent', description: responseData.message });
+      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/first-time-password-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ user_id: selectedUser.id }),
+      });
+      const responseData = await response.json();
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Failed to send password email.');
+      }
+      toast({ title: 'Email Sent', description: responseData.message });
     } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'An unexpected error occurred.' });
+      toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'An unexpected error occurred.' });
     }
   };
-  
+
   const handleDatePreset = (preset: 'today' | 'week' | 'month' | 'allTime') => {
     setDatePreset(preset);
     if (preset === 'today') {
@@ -544,141 +544,142 @@ export default function UsersPage() {
 
   const handleDateChange = (newDate: DateRange | undefined) => {
     if (newDate?.from && newDate?.to) {
-        setDate({ from: startOfDay(newDate.from), to: endOfDay(newDate.to) });
+      setDate({ from: startOfDay(newDate.from), to: endOfDay(newDate.to) });
     } else {
-        setDate(newDate);
+      setDate(newDate);
     }
     setDatePreset(null); // Custom range
-};
+  };
 
   const extraToolbarButtons = (
     <div className="flex items-center gap-2">
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9">
-                    <Filter className="mr-2 h-4 w-4" />
-                    {datePreset ? t(`UsersPage.filters.date.${datePreset}`) : 
-                     date?.from ? (
-                        date.to ? `${format(date.from, 'LLL dd, y')} - ${format(date.to, 'LLL dd, y')}`
-                                : format(date.from, 'LLL dd, y')
-                     ) : (
-                        <span>{t('UsersPage.filters.date.allTime')}</span>
-                    )}
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{t('UsersPage.filters.date.label')}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleDatePreset('today')}>
-                    <Check className={cn("mr-2 h-4 w-4", datePreset === 'today' ? 'opacity-100' : 'opacity-0')} />
-                    {t('UsersPage.filters.date.today')}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleDatePreset('week')}>
-                    <Check className={cn("mr-2 h-4 w-4", datePreset === 'thisWeek' ? 'opacity-100' : 'opacity-0')} />
-                    {t('UsersPage.filters.date.thisWeek')}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleDatePreset('month')}>
-                    <Check className={cn("mr-2 h-4 w-4", datePreset === 'thisMonth' ? 'opacity-100' : 'opacity-0')} />
-                    {t('UsersPage.filters.date.thisMonth')}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                 <Popover>
-                    <PopoverTrigger asChild>
-                        <Button variant="ghost" className="w-full justify-start font-normal px-2">
-                             <Check className={cn("mr-2 h-4 w-4", !datePreset ? 'opacity-100' : 'opacity-0')} />
-                            {t('UsersPage.filters.date.customRange')}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            initialFocus
-                            mode="range"
-                            defaultMonth={date?.from}
-                            selected={date}
-                            onSelect={handleDateChange}
-                            numberOfMonths={2}
-                        />
-                    </PopoverContent>
-                </Popover>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleDatePreset('allTime')}>
-                    <Check className={cn("mr-2 h-4 w-4", datePreset === 'allTime' ? 'opacity-100' : 'opacity-0')} />
-                    {t('UsersPage.filters.date.allTime')}
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
-        <div className="flex items-center space-x-2">
-            <Switch
-                id="debtors-mode"
-                checked={showDebtors}
-                onCheckedChange={setShowDebtors}
-            />
-            <Label htmlFor="debtors-mode">Show only debtors</Label>
-        </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="h-9">
+            <Filter className="mr-2 h-4 w-4" />
+            {datePreset ? t(`UsersPage.filters.date.${datePreset}`) :
+              date?.from ? (
+                date.to ? `${format(date.from, 'LLL dd, y')} - ${format(date.to, 'LLL dd, y')}`
+                  : format(date.from, 'LLL dd, y')
+              ) : (
+                <span>{t('UsersPage.filters.date.allTime')}</span>
+              )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>{t('UsersPage.filters.date.label')}</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => handleDatePreset('today')}>
+            <Check className={cn("mr-2 h-4 w-4", datePreset === 'today' ? 'opacity-100' : 'opacity-0')} />
+            {t('UsersPage.filters.date.today')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleDatePreset('week')}>
+            <Check className={cn("mr-2 h-4 w-4", datePreset === 'thisWeek' ? 'opacity-100' : 'opacity-0')} />
+            {t('UsersPage.filters.date.thisWeek')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleDatePreset('month')}>
+            <Check className={cn("mr-2 h-4 w-4", datePreset === 'thisMonth' ? 'opacity-100' : 'opacity-0')} />
+            {t('UsersPage.filters.date.thisMonth')}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" className="w-full justify-start font-normal px-2">
+                <Check className={cn("mr-2 h-4 w-4", !datePreset ? 'opacity-100' : 'opacity-0')} />
+                {t('UsersPage.filters.date.customRange')}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={date?.from}
+                selected={date}
+                onSelect={handleDateChange}
+                numberOfMonths={2}
+              />
+            </PopoverContent>
+          </Popover>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => handleDatePreset('allTime')}>
+            <Check className={cn("mr-2 h-4 w-4", datePreset === 'allTime' ? 'opacity-100' : 'opacity-0')} />
+            {t('UsersPage.filters.date.allTime')}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="debtors-mode"
+          checked={showDebtors}
+          onCheckedChange={setShowDebtors}
+        />
+        <Label htmlFor="debtors-mode">{t('UsersPage.filters.showOnlyDebtors')}</Label>
+      </div>
     </div>
   );
 
   return (
     <>
-    <div className={cn("grid grid-cols-1 gap-4", selectedUser ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
-      <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-2" : "lg:col-span-5")}>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('UsersPage.title')}</CardTitle>
-            <CardDescription>{t('UsersPage.description')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DataTable 
-              columns={showDebtors ? debtorColumns : userColumns}
-              data={users} 
-              filterColumnId="email" 
-              filterPlaceholder={t('UsersPage.filterPlaceholder')}
-              onRowSelectionChange={handleRowSelectionChange}
-              enableSingleRowSelection={true}
-              onCreate={handleCreate}
-              onRefresh={loadUsers}
-              isRefreshing={isRefreshing}
-              rowSelection={rowSelection}
-              setRowSelection={setRowSelection}
-              pageCount={Math.ceil(userCount / pagination.pageSize)}
-              pagination={pagination}
-              onPaginationChange={setPagination}
-              manualPagination={true}
-              columnFilters={columnFilters}
-              onColumnFiltersChange={setColumnFilters}
-              extraButtons={extraToolbarButtons}
-            />
-          </CardContent>
-        </Card>
-      </div>
-      
-      {selectedUser && (
-        <div className="lg:col-span-3">
-            <Card>
-               <CardHeader className="flex flex-row items-start justify-between">
-                <div>
-                    <CardTitle>{t('UsersPage.detailsFor', {name: selectedUser.name})}</CardTitle>
-                </div>
-                 <div className="flex items-center gap-2">
-                    {canSetFirstPassword && (
-                        <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
-                            <KeyRound className="mr-2 h-4 w-4" />
-                            {t('UsersPage.setInitialPassword')}
-                        </Button>
-                    )}
-                    <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
-                        <X className="h-5 w-5" />
-                        <span className="sr-only">{t('UsersPage.close')}</span>
-                    </Button>
-                </div>
+      <div className={cn("grid grid-cols-1 gap-4", selectedUser ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
+        <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-2" : "lg:col-span-5")}>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('UsersPage.title')}</CardTitle>
+              <CardDescription>{t('UsersPage.description')}</CardDescription>
             </CardHeader>
+            <CardContent>
+              <DataTable
+                columns={showDebtors ? debtorColumns : userColumns}
+                data={users}
+                filterColumnId="email"
+                filterPlaceholder={t('UsersPage.filterPlaceholder')}
+                onRowSelectionChange={handleRowSelectionChange}
+                enableSingleRowSelection={true}
+                onCreate={handleCreate}
+                onRefresh={loadUsers}
+                isRefreshing={isRefreshing}
+                rowSelection={rowSelection}
+                setRowSelection={setRowSelection}
+                pageCount={Math.ceil(userCount / pagination.pageSize)}
+                pagination={pagination}
+                onPaginationChange={setPagination}
+                manualPagination={true}
+                columnFilters={columnFilters}
+                onColumnFiltersChange={setColumnFilters}
+                extraButtons={extraToolbarButtons}
+                createButtonIconOnly={true}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {selectedUser && (
+          <div className="lg:col-span-3">
+            <Card>
+              <CardHeader className="flex flex-row items-start justify-between">
+                <div>
+                  <CardTitle>{t('UsersPage.detailsFor', { name: selectedUser.name })}</CardTitle>
+                </div>
+                <div className="flex items-center gap-2">
+                  {canSetFirstPassword && (
+                    <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
+                      <KeyRound className="mr-2 h-4 w-4" />
+                      {t('UsersPage.setInitialPassword')}
+                    </Button>
+                  )}
+                  <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
+                    <X className="h-5 w-5" />
+                    <span className="sr-only">{t('UsersPage.close')}</span>
+                  </Button>
+                </div>
+              </CardHeader>
               <CardContent>
                 <UserStats user={selectedUser} />
                 <Tabs defaultValue="history" className="w-full">
-                   <TabsList className="h-auto items-center justify-start flex-wrap">
+                  <TabsList className="h-auto items-center justify-start flex-wrap">
                     <TabsTrigger value="history">{t('UsersPage.tabs.history')}</TabsTrigger>
                     {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                        <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
+                      <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
                     )}
                     <TabsTrigger value="quotes">{t('UsersPage.tabs.quotes')}</TabsTrigger>
                     <TabsTrigger value="orders">{t('UsersPage.tabs.orders')}</TabsTrigger>
@@ -700,13 +701,13 @@ export default function UsersPage() {
                   <TabsContent value="quotes">
                     <UserQuotes userId={selectedUser.id} />
                   </TabsContent>
-                   <TabsContent value="orders">
+                  <TabsContent value="orders">
                     <UserOrders userId={selectedUser.id} />
                   </TabsContent>
-                   <TabsContent value="invoices">
+                  <TabsContent value="invoices">
                     <UserInvoices userId={selectedUser.id} />
                   </TabsContent>
-                   <TabsContent value="payments">
+                  <TabsContent value="payments">
                     <UserPayments userId={selectedUser.id} />
                   </TabsContent>
                   <TabsContent value="appointments">
@@ -720,116 +721,116 @@ export default function UsersPage() {
                   </TabsContent>
                   <TabsContent value="roles">
                     <UserRoles
-                        userId={selectedUser.id}
-                        initialUserRoles={selectedUserRoles}
-                        isLoading={isRolesLoading}
-                        onRolesChange={() => loadUserRoles(selectedUser.id)}
+                      userId={selectedUser.id}
+                      initialUserRoles={selectedUserRoles}
+                      isLoading={isRolesLoading}
+                      onRolesChange={() => loadUserRoles(selectedUser.id)}
                     />
                   </TabsContent>
                 </Tabs>
               </CardContent>
             </Card>
-        </div>
-      )}
-    </div>
+          </div>
+        )}
+      </div>
 
-    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{editingUser ? t('UsersPage.createDialog.editTitle') : t('UsersPage.createDialog.title')}</DialogTitle>
-          <DialogDescription>{editingUser ? t('UsersPage.createDialog.editDescription') : t('UsersPage.createDialog.description')}</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingUser ? t('UsersPage.createDialog.editTitle') : t('UsersPage.createDialog.title')}</DialogTitle>
+            <DialogDescription>{editingUser ? t('UsersPage.createDialog.editDescription') : t('UsersPage.createDialog.description')}</DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                {submissionError && (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>{t('UsersPage.createDialog.validation.errorTitle')}</AlertTitle>
-                    <AlertDescription>{submissionError}</AlertDescription>
-                  </Alert>
+              {submissionError && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{t('UsersPage.createDialog.validation.errorTitle')}</AlertTitle>
+                  <AlertDescription>{submissionError}</AlertDescription>
+                </Alert>
+              )}
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('UsersPage.createDialog.name')}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={t('UsersPage.createDialog.namePlaceholder')} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-                <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>{t('UsersPage.createDialog.name')}</FormLabel>
-                            <FormControl>
-                                <Input placeholder={t('UsersPage.createDialog.namePlaceholder')} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>{t('UsersPage.createDialog.email')}</FormLabel>
-                            <FormControl>
-                                <Input type="email" placeholder={t('UsersPage.createDialog.emailPlaceholder')} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>{t('UsersPage.createDialog.phone')}</FormLabel>
-                            <FormControl>
-                               <PhoneInput
-                                    {...field}
-                                    defaultCountry="UY"
-                                    placeholder={t('UsersPage.createDialog.phonePlaceholder')}
-                                    onChange={field.onChange}
-                                    value={field.value}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="identity_document"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
-                            <FormControl>
-                                <Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="is_active"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                            <FormControl>
-                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                            </FormControl>
-                            <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
-                        </FormItem>
-                    )}
-                />
-                 <div className="flex justify-end space-x-2 pt-4">
-                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('UsersPage.createDialog.cancel')}</Button>
-                    <Button type="submit">{editingUser ? t('UsersPage.createDialog.editSave') : t('UsersPage.createDialog.save')}</Button>
-                </div>
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('UsersPage.createDialog.email')}</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder={t('UsersPage.createDialog.emailPlaceholder')} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('UsersPage.createDialog.phone')}</FormLabel>
+                    <FormControl>
+                      <PhoneInput
+                        {...field}
+                        defaultCountry="UY"
+                        placeholder={t('UsersPage.createDialog.phonePlaceholder')}
+                        onChange={field.onChange}
+                        value={field.value}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="identity_document"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="is_active"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('UsersPage.createDialog.cancel')}</Button>
+                <Button type="submit">{editingUser ? t('UsersPage.createDialog.editSave') : t('UsersPage.createDialog.save')}</Button>
+              </div>
             </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
-    
 
-    
+
+

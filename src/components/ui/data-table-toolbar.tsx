@@ -31,6 +31,7 @@ interface DataTableToolbarProps<TData> {
   filterOptions?: { label: string; value: string }[];
   onFilterChange?: (value: string) => void;
   filterValue?: string;
+  createButtonIconOnly?: boolean;
 }
 
 export function DataTableToolbar<TData>({
@@ -46,6 +47,7 @@ export function DataTableToolbar<TData>({
   filterOptions,
   onFilterChange,
   filterValue,
+  createButtonIconOnly,
 }: DataTableToolbarProps<TData>) {
   const t = useTranslations('DataTableToolbar');
   return (
@@ -87,9 +89,9 @@ export function DataTableToolbar<TData>({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9" onClick={onCreate}>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  {createButtonLabel || 'Create'}
+                <Button variant="outline" size={createButtonIconOnly ? "icon" : "sm"} className={createButtonIconOnly ? "h-9 w-9" : "h-9"} onClick={onCreate}>
+                  <PlusCircle className={createButtonIconOnly ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+                  {createButtonIconOnly ? <span className="sr-only">{createButtonLabel || 'Create'}</span> : (createButtonLabel || 'Create')}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>

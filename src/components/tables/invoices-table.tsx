@@ -546,30 +546,17 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     const totalAttemptedPayment = paymentAmountInInvoiceCurrency + creditsTotalInInvoiceCurrency;
     const remainingBalance = invoiceTotal - paidAmount;
 
-    // Calculate total available credit in invoice currency to decide if we should validate
-    const totalAvailableCreditInInvoiceCurrency = userCredits.reduce((sum, credit) => {
-      let amount = Number(credit.available_balance) || 0;
-      let converted = amount;
-      if (credit.currency !== invoiceCurrency) {
-        if (invoiceCurrency === 'USD' && credit.currency === 'UYU') {
-          converted = amount / sessionExchangeRate;
-        }
-        else if (invoiceCurrency === 'UYU' && credit.currency === 'USD') {
-          converted = amount * sessionExchangeRate;
-        }
-      }
-      return sum + converted;
-    }, 0);
+    // 1. Validate that the credit portion does not exceed the remaining balance
+    if (creditsTotalInInvoiceCurrency > remainingBalance + 0.01) {
+      setPaymentSubmissionError(t('validation.overpayment'));
+      return;
+    }
 
-    // Only validate overpayment if the user has enough credit to pay the full debt
-    // This allows overpayment (e.g. for change) when credit is insufficient,
-    // but prevents wasting credit or gross errors when credit IS sufficient.
-    if (totalAvailableCreditInInvoiceCurrency >= remainingBalance - 0.01) {
-      // Allow a small epsilon for floating point issues, but generally strict
-      if (totalAttemptedPayment > remainingBalance + 0.01) {
-        setPaymentSubmissionError(t('validation.overpayment'));
-        return;
-      }
+    // 2. Validate that credit-only payments do not exceed the balance
+    // (If values.amount is 0 or less, totalAttemptedPayment must be <= remaining balance)
+    if (values.amount <= 0 && totalAttemptedPayment > remainingBalance + 0.01) {
+      setPaymentSubmissionError(t('validation.overpayment'));
+      return;
     }
 
     setPaymentSubmissionError(null);
@@ -589,12 +576,14 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         client_user: { id: selectedInvoiceForPayment.user_id, name: selectedInvoiceForPayment.user_name, email: selectedInvoiceForPayment.userEmail },
         credit_payment: Array.from(appliedCredits.entries()).map(([id, amount]) => {
           const credit = userCredits.find(c => c.source_id === id);
+          const invoiceCurrency = selectedInvoiceForPayment?.currency || 'USD';
+          const exchangeRate = credit?.currency === invoiceCurrency ? 1 : sessionExchangeRate;
           return {
             source_id: id,
             amount: amount,
             type: credit?.type,
             currency: credit?.currency,
-            exchange_rate: sessionExchangeRate, // Send the session rate
+            exchange_rate: exchangeRate,
           };
         }),
         query: JSON.stringify({

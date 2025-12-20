@@ -142,7 +142,7 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
             amount_applied: apiPayment.amount_applied,
             source_amount: apiPayment.source_amount,
             source_currency: apiPayment.source_currency,
-            exchange_rate: apiPayment.exchange_rate,
+            exchange_rate: apiPayment.exchange_rate ? parseFloat(String(apiPayment.exchange_rate)) : 1,
             payment_method: apiPayment.payment_method,
             transaction_type: apiPayment.transaction_type,
             transaction_id: apiPayment.transaction_id,

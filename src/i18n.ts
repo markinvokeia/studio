@@ -1,11 +1,9 @@
-
-import {getRequestConfig} from 'next-intl/server';
-import {notFound} from 'next/navigation';
+import { getRequestConfig } from 'next-intl/server';
 
 export const locales = ['en', 'es'];
 
-export default getRequestConfig(async ({locale}) => {
-  if (!locales.includes(locale as any)) notFound();
+export default getRequestConfig(async () => {
+  const locale = 'es'; // Fallback or dynamic logic if needed, but next-intl usually handles this
 
   return {
     locale,
