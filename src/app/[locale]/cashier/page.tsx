@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Printer } from 'lucide-react';
 import { AlertTriangle, Box, DollarSign, TrendingDown, TrendingUp, ArrowRight, BookOpenCheck, Minus, Plus, RefreshCw, Info, Banknote, Coins, CreditCard } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -367,7 +368,9 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
 
 function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOpen = false, onViewAllCashPoints }: { session: CajaSesion, movements: CajaMovimiento[], onCloseSession: () => void, isWizardOpen?: boolean, onViewAllCashPoints: () => void; }) {
     const t = useTranslations('CashierPage');
+    const { toast } = useToast();
     const sessionCurrency = session.currency || 'UYU';
+    const [isPrinting, setIsPrinting] = React.useState(false);
 
     const openingDetails = useMemo(() => {
         const amounts = (session as any).amounts || [];
@@ -422,6 +425,28 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     }, [movements]);
 
     const allMovements = React.useMemo(() => movements, [movements]);
+
+    const handlePrintOpening = async () => {
+        setIsPrinting(true);
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/open/print?cash_session_id=${session.id}`);
+            if (!response.ok) throw new Error('Failed to fetch PDF');
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `opening-${session.id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            toast({ title: 'PDF Downloaded', description: 'The opening PDF has been downloaded.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to download PDF.' });
+        } finally {
+            setIsPrinting(false);
+        }
+    };
 
     const tColumns = useTranslations('CashierPage.activeSession.columns');
     const movementColumns: ColumnDef<CajaMovimiento>[] = [
@@ -569,10 +594,16 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
             </CardContent>
             <CardFooter className="justify-between">
                 <Button variant="outline" onClick={onViewAllCashPoints}>{t('viewAllCashPoints')}</Button>
-                <Button className="w-full md:w-auto ml-auto" onClick={onCloseSession}>
-                    {isWizardOpen ? t('wizard.next') : t('wizard.startClosing')}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={handlePrintOpening} disabled={isPrinting}>
+                        {isPrinting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                        Print Opening
+                    </Button>
+                    <Button className="w-full md:w-auto" onClick={onCloseSession}>
+                        {isWizardOpen ? t('wizard.next') : t('wizard.startClosing')}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                </div>
             </CardFooter>
         </Card>
     );
