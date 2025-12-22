@@ -11,18 +11,18 @@ import { useTranslations } from 'next-intl';
 import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState, RowSelectionState } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { X, ChevronDown } from 'lucide-react';
+import { X, ChevronDown, Printer, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, parseISO } from 'date-fns';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 
 
 type GetCashSessionsResponse = {
-  sessions: CajaSesion[];
-  total: number;
+    sessions: CajaSesion[];
+    total: number;
 };
 
 async function getCashSessions(pagination: PaginationState, searchQuery: string): Promise<GetCashSessionsResponse> {
@@ -39,7 +39,7 @@ async function getCashSessions(pagination: PaginationState, searchQuery: string)
             cache: 'no-store',
         });
         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        
+
         const responseData = await response.json();
         const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
 
@@ -48,23 +48,23 @@ async function getCashSessions(pagination: PaginationState, searchQuery: string)
 
         return {
             sessions: sessionsData.map((s: any) => {
-              const openingDetails = typeof s.opening_details === 'string' ? JSON.parse(s.opening_details) : s.opening_details;
-              const closingDetails = typeof s.closing_details === 'string' ? JSON.parse(s.closing_details) : s.closing_details;
-              const openingAmount = (s.currencies_data || []).reduce((sum: number, curr: any) => sum + (Number(curr.opening_amount) || 0), 0);
-              
-              return { 
-                id: String(s.id),
-                user_name: s.user_name,
-                cash_point_name: s.cash_point_name,
-                estado: s.status,
-                fechaApertura: s.opened_at,
-                fechaCierre: s.closed_at,
-                montoApertura: openingAmount,
-                opening_details: openingDetails,
-                closing_details: closingDetails,
-                notasCierre: s.notes,
-                currencies_data: s.currencies_data,
-             }
+                const openingDetails = typeof s.opening_details === 'string' ? JSON.parse(s.opening_details) : s.opening_details;
+                const closingDetails = typeof s.closing_details === 'string' ? JSON.parse(s.closing_details) : s.closing_details;
+                const openingAmount = (s.currencies_data || []).reduce((sum: number, curr: any) => sum + (Number(curr.opening_amount) || 0), 0);
+
+                return {
+                    id: String(s.id),
+                    user_name: s.user_name,
+                    cash_point_name: s.cash_point_name,
+                    estado: s.status,
+                    fechaApertura: s.opened_at,
+                    fechaCierre: s.closed_at,
+                    montoApertura: openingAmount,
+                    opening_details: openingDetails,
+                    closing_details: closingDetails,
+                    notasCierre: s.notes,
+                    currencies_data: s.currencies_data,
+                }
             }),
             total
         };
@@ -75,31 +75,31 @@ async function getCashSessions(pagination: PaginationState, searchQuery: string)
 }
 
 async function getSessionMovements(sessionId: string): Promise<CajaMovimiento[]> {
-  try {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/movements?cash_session_id=${sessionId}`);
-    if (!response.ok) throw new Error('Failed to fetch session movements');
-    const data = await response.json();
-    let movementsData = [];
-    if (Array.isArray(data)) {
-        movementsData = data.filter(item => Object.keys(item).length > 0);
-    } else if (data && data.data) {
-        movementsData = data.data;
+    try {
+        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/movements?cash_session_id=${sessionId}`);
+        if (!response.ok) throw new Error('Failed to fetch session movements');
+        const data = await response.json();
+        let movementsData = [];
+        if (Array.isArray(data)) {
+            movementsData = data.filter(item => Object.keys(item).length > 0);
+        } else if (data && data.data) {
+            movementsData = data.data;
+        }
+        return movementsData.map((mov: any): CajaMovimiento => ({
+            id: String(mov.movement_id),
+            cajaSesionId: sessionId,
+            tipo: mov.type === 'INFLOW' ? 'INGRESO' : 'EGRESO',
+            monto: parseFloat(mov.amount),
+            descripcion: mov.description,
+            fecha: mov.created_at,
+            usuarioId: mov.registered_by_user,
+            metodoPago: (mov.payment_method_name || 'otro').toUpperCase() as any,
+            currency: mov.currency,
+        }));
+    } catch (error) {
+        console.error("Failed to fetch session movements:", error);
+        return [];
     }
-    return movementsData.map((mov: any): CajaMovimiento => ({
-        id: String(mov.movement_id),
-        cajaSesionId: sessionId,
-        tipo: mov.type === 'INFLOW' ? 'INGRESO' : 'EGRESO',
-        monto: parseFloat(mov.amount),
-        descripcion: mov.description,
-        fecha: mov.created_at,
-        usuarioId: mov.registered_by_user,
-        metodoPago: (mov.payment_method_name || 'otro').toUpperCase() as any,
-        currency: mov.currency,
-    }));
-  } catch(error) {
-    console.error("Failed to fetch session movements:", error);
-    return [];
-  }
 }
 
 const SessionDetails = ({ session, movements }: { session: CajaSesion, movements: CajaMovimiento[] }) => {
@@ -139,7 +139,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
 
                     return (
                         <div key={currency} className="space-y-2">
-                             <h5 className="font-medium text-md">{currency}</h5>
+                            <h5 className="font-medium text-md">{currency}</h5>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -186,31 +186,31 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
     );
 
     const movementColumns: ColumnDef<CajaMovimiento>[] = [
-      { accessorKey: 'descripcion', header: ({column}) => <DataTableColumnHeader column={column} title={tMovementColumns('description')} /> },
-      { accessorKey: 'monto', header: ({column}) => <DataTableColumnHeader column={column} title={tMovementColumns('amount')} />, cell: ({ row }) => `${row.original.currency} ${row.original.monto.toFixed(2)}` },
-      { accessorKey: 'metodoPago', header: ({column}) => <DataTableColumnHeader column={column} title={tMovementColumns('method')} /> },
-      { accessorKey: 'fecha', header: ({column}) => <DataTableColumnHeader column={column} title={tMovementColumns('date')} />, cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
+        { accessorKey: 'descripcion', header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('description')} /> },
+        { accessorKey: 'monto', header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('amount')} />, cell: ({ row }) => `${row.original.currency} ${row.original.monto.toFixed(2)}` },
+        { accessorKey: 'metodoPago', header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('method')} /> },
+        { accessorKey: 'fecha', header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('date')} />, cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
     ];
 
     return (
         <div className="space-y-6">
             <div className="space-y-4 rounded-lg border bg-card p-4 shadow-sm">
                 <h3 className="font-semibold text-lg">{t('sessionInfo')}</h3>
-                 <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-4 text-sm">
                     <div><span className="font-semibold">{t('columns.user')}:</span> {session.user_name}</div>
                     <div><span className="font-semibold">{t('columns.cashPoint')}:</span> {session.cash_point_name}</div>
                     <div><span className="font-semibold">{t('columns.openDate')}:</span> {format(parseISO(session.fechaApertura), 'Pp')}</div>
                     <div><span className="font-semibold">{t('columns.closeDate')}:</span> {session.fechaCierre ? format(parseISO(session.fechaCierre), 'Pp') : 'N/A'}</div>
                 </div>
             </div>
-            
+
             <Collapsible className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
                 <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold">
                     {t('denominationDetails.title')}
                     <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pt-4">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <DenominationTable title={t('openingDenominations')} details={session.opening_details} />
                         <DenominationTable title={t('closingDenominations')} details={session.closing_details} />
                     </div>
@@ -228,15 +228,15 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
             </Collapsible>
 
             {session.estado === 'CLOSE' && (
-                 <Collapsible defaultOpen className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
+                <Collapsible defaultOpen className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
                     <CollapsibleTrigger className="flex w-full items-center justify-between text-lg font-semibold">
                         {t('reconciliationSummary')}
                         <ChevronDown className="h-4 w-4" />
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pt-4 space-y-6">
                         {(session.currencies_data || []).map(currencyData => (
-                           <div key={currencyData.currency}>
-                               <h4 className="font-semibold text-lg mb-2">{currencyData.currency}</h4>
+                            <div key={currencyData.currency}>
+                                <h4 className="font-semibold text-lg mb-2">{currencyData.currency}</h4>
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -247,7 +247,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        <DifferenceRow label={t('reconciliation.cash')} calculated={currencyData.calculated_cash} declared={currencyData.declared_cash} difference={currencyData.cash_variance} currency={currencyData.currency}/>
+                                        <DifferenceRow label={t('reconciliation.cash')} calculated={currencyData.calculated_cash} declared={currencyData.declared_cash} difference={currencyData.cash_variance} currency={currencyData.currency} />
                                         <TableRow>
                                             <TableCell className="font-medium">{t('reconciliation.card')}</TableCell>
                                             <TableCell className="text-right" colSpan={3}>{formatCurrency(currencyData.calculated_card, currencyData.currency)}</TableCell>
@@ -256,13 +256,13 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                                             <TableCell className="font-medium">{t('reconciliation.transfer')}</TableCell>
                                             <TableCell className="text-right" colSpan={3}>{formatCurrency(currencyData.calculated_transfer, currencyData.currency)}</TableCell>
                                         </TableRow>
-                                         <TableRow>
+                                        <TableRow>
                                             <TableCell className="font-medium">{t('reconciliation.other')}</TableCell>
                                             <TableCell className="text-right" colSpan={3}>{formatCurrency(currencyData.calculated_other, currencyData.currency)}</TableCell>
                                         </TableRow>
                                     </TableBody>
                                 </Table>
-                           </div>
+                            </div>
                         ))}
                         {session.notasCierre && <p className="mt-4 text-sm"><span className="font-semibold">{t('reconciliation.notes')}:</span> {session.notasCierre}</p>}
                     </CollapsibleContent>
@@ -281,13 +281,14 @@ export default function CashSessionsPage() {
     const [sessionCount, setSessionCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [isPrinting, setIsPrinting] = React.useState(false);
-    
+    const [isPrintingClose, setIsPrintingClose] = React.useState(false);
+
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
         id: false,
     });
-    
+
     const [selectedSession, setSelectedSession] = React.useState<CajaSesion | null>(null);
     const [isDetailsDialogOpen, setIsDetailsDialogOpen] = React.useState(false);
 
@@ -319,16 +320,16 @@ export default function CashSessionsPage() {
                 method: 'GET',
                 mode: 'cors'
             });
-    
+
             if (response.headers.get('Content-Type')?.includes('application/json')) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Failed to generate PDF report');
             }
-    
+
             if (!response.ok) {
                 throw new Error('Failed to generate PDF report');
             }
-    
+
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -347,53 +348,96 @@ export default function CashSessionsPage() {
         }
     };
 
+    const handlePrintClose = async (session: CajaSesion) => {
+        setIsPrintingClose(true);
+        toast({ title: "Generating Closing Report...", description: "Your cash session closing report is being generated." });
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close/print?cash_session_id=${session.id}`, {
+                method: 'GET',
+                mode: 'cors'
+            });
+
+            if (response.headers.get('Content-Type')?.includes('application/json')) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to generate PDF report');
+            }
+
+            if (!response.ok) {
+                throw new Error('Failed to generate PDF report');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `closing-${session.id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            toast({ title: "Closing Report Downloaded", description: "The cash session closing report has been downloaded." });
+        } catch (error) {
+            console.error("Failed to print closing session:", error);
+            toast({ variant: 'destructive', title: "Error", description: error instanceof Error ? error.message : "Could not generate the closing report." });
+        } finally {
+            setIsPrintingClose(false);
+        }
+    };
+
     const columns = CashSessionsColumnsWrapper({ onView: handleView, onPrint: handlePrint });
 
     return (
-       <>
-        <Card>
-            <CardHeader>
-                <CardTitle>{t('title')}</CardTitle>
-                <CardDescription>{t('description')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <DataTable 
-                    columns={columns} 
-                    data={sessions} 
-                    pageCount={Math.ceil(sessionCount / pagination.pageSize)}
-                    pagination={pagination}
-                    onPaginationChange={setPagination}
-                    columnFilters={columnFilters}
-                    onColumnFiltersChange={setColumnFilters}
-                    manualPagination={true}
-                    filterColumnId="user_name" 
-                    filterPlaceholder={t('filterPlaceholder')}
-                    onRefresh={loadSessions}
-                    isRefreshing={isRefreshing || isPrinting}
-                    columnVisibility={columnVisibility}
-                    onColumnVisibilityChange={setColumnVisibility}
-                    enableSingleRowSelection={false}
-                />
-            </CardContent>
-        </Card>
-        
-        <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
-            <DialogContent className="max-w-4xl">
-                 {selectedSession && (
-                    <>
-                    <DialogHeader>
-                        <DialogTitle>{t('detailsTitle')}</DialogTitle>
-                        <DialogDescription>{t('detailsDescription', {id: selectedSession.id})}</DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4 max-h-[70vh] overflow-y-auto">
-                        <SessionDetails session={selectedSession} movements={movements} />
-                    </div>
-                    </>
-                 )}
-            </DialogContent>
-        </Dialog>
+        <>
+            <Card>
+                <CardHeader>
+                    <CardTitle>{t('title')}</CardTitle>
+                    <CardDescription>{t('description')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <DataTable
+                        columns={columns}
+                        data={sessions}
+                        pageCount={Math.ceil(sessionCount / pagination.pageSize)}
+                        pagination={pagination}
+                        onPaginationChange={setPagination}
+                        columnFilters={columnFilters}
+                        onColumnFiltersChange={setColumnFilters}
+                        manualPagination={true}
+                        filterColumnId="user_name"
+                        filterPlaceholder={t('filterPlaceholder')}
+                        onRefresh={loadSessions}
+                        isRefreshing={isRefreshing || isPrinting}
+                        columnVisibility={columnVisibility}
+                        onColumnVisibilityChange={setColumnVisibility}
+                        enableSingleRowSelection={false}
+                    />
+                </CardContent>
+            </Card>
+
+            <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+                <DialogContent className="max-w-4xl">
+                    {selectedSession && (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle>{t('detailsTitle')}</DialogTitle>
+                                <DialogDescription>{t('detailsDescription', { id: selectedSession.id })}</DialogDescription>
+                            </DialogHeader>
+                            <div className="py-4 max-h-[70vh] overflow-y-auto">
+                                <SessionDetails session={selectedSession} movements={movements} />
+                            </div>
+                            {selectedSession?.estado === 'CLOSE' && (
+                                <DialogFooter>
+                                    <Button onClick={() => handlePrintClose(selectedSession)} disabled={isPrintingClose}>
+                                        {isPrintingClose ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                                        Print Closing Report
+                                    </Button>
+                                </DialogFooter>
+                            )}
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
 
-    

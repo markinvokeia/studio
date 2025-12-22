@@ -1099,8 +1099,32 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
 
 
 const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: () => void }) => {
+    const { toast } = useToast();
+    const [isPrinting, setIsPrinting] = React.useState(false);
     const reportDetails = Array.isArray(reportData) && reportData.length > 0 ? reportData[0] : reportData;
     const { session, movements } = reportDetails?.details || { session: {}, movements: [] };
+
+    const handlePrintClose = async () => {
+        setIsPrinting(true);
+        try {
+            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close/print?cash_session_id=${session.id}`);
+            if (!response.ok) throw new Error('Failed to fetch PDF');
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `closing-${session.id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            toast({ title: 'PDF Downloaded', description: 'The closing PDF has been downloaded.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to download PDF.' });
+        } finally {
+            setIsPrinting(false);
+        }
+    };
 
     if (!reportDetails || !session || !movements) {
         return (
@@ -1164,7 +1188,11 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
                     {session.closing_notes && <p><strong>Notes:</strong> {session.closing_notes}</p>}
                 </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="justify-between">
+                <Button variant="outline" onClick={handlePrintClose} disabled={isPrinting}>
+                    {isPrinting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                    Print Closing
+                </Button>
                 <Button onClick={onFinish}>Finish and Return</Button>
             </CardFooter>
         </Card>
