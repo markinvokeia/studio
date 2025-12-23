@@ -1706,7 +1706,17 @@
         "identityInvalid": "Identity document must be a number.",
         "identityMaxLength": "Identity document must be 10 characters or less."
       }
-    }
+    },
+    "setInitialPassword": "Set Initial Password",
+    "tabs": {
+      "roles": "Roles",
+      "quotes": "Quotes",
+      "appointments": "Appointments",
+      "messages": "Messages",
+      "logs": "Logs",
+      "history": "Clinic History"
+    },
+    "detailsFor": "Details for {name}"
   },
   "RolesPage": {
     "title": "Roles",
@@ -2441,5 +2451,12 @@
       "saveSuccessTitle": "Settings Saved",
       "saveSuccessDescription": "Your configuration changes have been saved."
     }
+  },
+  "RoleColumns": {
+    "roleId": "ID",
+    "name": "Name",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
   }
 }
