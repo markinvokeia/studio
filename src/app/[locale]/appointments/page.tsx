@@ -41,6 +41,8 @@ import { cn } from '@/lib/utils';
 import { getAppointmentColumns } from './columns';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import api from '@/services/api';
+import { API_ROUTES } from '@/constants/routes';
 
 const CALENDAR_COLORS = [
     'hsl(210, 80%, 55%)',
@@ -93,18 +95,14 @@ async function getAppointments(
     }
 
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users_appointments?${params.toString()}`, {
-            method: 'GET',
-            mode: 'cors',
-            cache: 'no-store',
-        });
-
-        if (!response.ok) {
-            console.error(`HTTP error! status: ${response.status}`);
-            return [];
+        const query = {
+            startingDateAndTime: formatDateForAPI(startDate),
+            endingDateAndTime: formatDateForAPI(endDate),
+        };
+        if (calendarGoogleIds.length > 0) {
+            query.calendar_ids = calendarGoogleIds.join(',');
         }
-
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, query);
         let appointmentsData: any[] = [];
 
         if (Array.isArray(data) && data.length > 0 && 'json' in data[0]) {
@@ -162,13 +160,7 @@ async function getAppointments(
 
 async function getCalendars(): Promise<CalendarType[]> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/calendars', {
-            method: 'GET',
-            mode: 'cors',
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.CALENDARS);
         const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
         return calendarsData.map((apiCalendar: any, index: number) => ({
             id: apiCalendar.id || apiCalendar.google_calendar_id,
@@ -185,14 +177,7 @@ async function getCalendars(): Promise<CalendarType[]> {
 
 async function getServices(): Promise<Service[]> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=true', {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.SERVICES, { is_sales: 'true' });
         const servicesData = Array.isArray(data) ? data : (data.services || data.data || data.result || []);
         return servicesData.map((s: any) => ({ ...s, id: String(s.id) }));
     } catch (error) {
@@ -203,13 +188,7 @@ async function getServices(): Promise<Service[]> {
 
 async function getDoctors(): Promise<UserType[]> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=DOCTOR', {
-            method: 'GET',
-            mode: 'cors',
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.USERS, { filter_type: 'DOCTOR' });
         const responseData = (Array.isArray(data) && data.length > 0) ? data[0] : { data: [], total: 0 };
         const doctorsData = Array.isArray(responseData.data) ? responseData.data : [];
         return doctorsData.map((d: any) => ({ ...d, id: String(d.id) }));
@@ -221,9 +200,7 @@ async function getDoctors(): Promise<UserType[]> {
 
 async function getDoctorServices(doctorId: string): Promise<Service[]> {
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services/user_services?user_id=${doctorId}`);
-        if (!response.ok) return [];
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.USER_SERVICES, { user_id: doctorId });
         return Array.isArray(data) ? data : (data.user_services || []);
     } catch (error) {
         console.error(`Failed to fetch services for doctor ${doctorId}:`, error);
@@ -446,14 +423,7 @@ export default function AppointmentsPage() {
             };
             setIsSearchingUsers(true);
             try {
-                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?search=${userSearchQuery}&filter_type=PACIENTE`, {
-                    method: 'GET',
-                    mode: 'cors',
-                });
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const data = await response.json();
+                const data = await api.get(API_ROUTES.USERS, { search: userSearchQuery, filter_type: 'PACIENTE' });
                 const responseData = (Array.isArray(data) && data.length > 0) ? data[0] : { data: [], total: 0 };
                 const usersData = Array.isArray(responseData.data) ? responseData.data : [];
 
@@ -492,14 +462,7 @@ export default function AppointmentsPage() {
             }
             setIsSearchingServices(true);
             try {
-                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?search=${serviceSearchQuery}&is_sales=true`, {
-                    method: 'GET',
-                    mode: 'cors',
-                });
-                if (!response.ok) {
-                    throw new Error('Network response was not ok for services');
-                }
-                const data = await response.json();
+                const data = await api.get(API_ROUTES.SERVICES, { search: serviceSearchQuery, is_sales: 'true' });
                 const servicesData = Array.isArray(data) ? data : (data.services || data.data || data.result || []);
 
                 const mappedServices = servicesData.map((apiService: any): Service => ({
@@ -591,14 +554,7 @@ export default function AppointmentsPage() {
         }
 
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments_availability?${new URLSearchParams(params).toString()}`, {
-                method: 'GET',
-                mode: 'cors',
-            });
-            if (!response.ok) {
-                throw new Error('Failed to check availability');
-            }
-            const data = await response.json();
+            const data = await api.get(API_ROUTES.APPOINTMENTS_AVAILABILITY, params);
 
             let isAvailable = false;
             let suggestions = [];
@@ -738,13 +694,7 @@ export default function AppointmentsPage() {
 
 
         try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments/upsert', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            const responseData = await response.json();
+            const responseData = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload);
             const result = Array.isArray(responseData) ? responseData[0] : responseData;
 
             if (response.ok && (result.code === 200 || result.status === 'success')) {
@@ -802,14 +752,8 @@ export default function AppointmentsPage() {
         };
 
         try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments/update_color', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            const responseData = await response.json();
-            if (!response.ok || (responseData.error || (responseData.code && responseData.code >= 400))) {
+            const responseData = await api.post(API_ROUTES.APPOINTMENTS_UPDATE_COLOR, payload);
+            if (responseData.error || (responseData.code && responseData.code >= 400)) {
                 throw new Error(responseData.message || 'Failed to update color');
             }
 
@@ -832,16 +776,10 @@ export default function AppointmentsPage() {
     const confirmDeleteAppointment = async () => {
         if (!deletingAppointment) return;
         try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/appointments/delete', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ eventId: deletingAppointment.id, calendarId: deletingAppointment.calendar_id }),
-            });
-
-            const responseData = await response.json();
+            const responseData = await api.delete(API_ROUTES.APPOINTMENTS_DELETE, { eventId: deletingAppointment.id, calendarId: deletingAppointment.calendar_id });
             const result = Array.isArray(responseData) ? responseData[0] : responseData;
 
-            if (response.ok && (result.code === 200 || result.success)) {
+            if (result.code === 200 || result.success) {
                 toast({
                     title: tToasts('appointmentCancelled'),
                     description: result.message || tToasts('appointmentCancelledDesc'),
