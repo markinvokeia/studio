@@ -1,16 +1,11 @@
 
 'use client';
 
-import * as React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { ProviderColumnsWrapper } from './columns';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, UserRole } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -20,17 +15,24 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { UserRoles } from '@/components/users/user-roles';
-import { X, AlertTriangle, KeyRound } from 'lucide-react';
-import { RowSelectionState, PaginationState, ColumnFiltersState } from '@tanstack/react-table';
-import { useTranslations } from 'next-intl';
-import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { isValidPhoneNumber } from 'libphonenumber-js';
 import { PhoneInput } from '@/components/ui/phone-input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { UserRoles } from '@/components/users/user-roles';
 import { UserServices } from '@/components/users/user-services';
+import { API_ROUTES } from '@/constants/routes';
+import { useToast } from '@/hooks/use-toast';
+import { User, UserRole } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { api } from '@/services/api';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
+import { isValidPhoneNumber } from 'libphonenumber-js';
+import { AlertTriangle, KeyRound, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import * as React from 'react';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+import { ProviderColumnsWrapper } from './columns';
 
 const providerFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -52,42 +54,29 @@ type GetProvidersResponse = {
 
 async function getProviders(pagination: PaginationState, searchQuery: string): Promise<GetProvidersResponse> {
   try {
-    const params = new URLSearchParams({
+    const query = {
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
       search: searchQuery,
       filter_type: "PROVEEDOR"
-    });
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?${params.toString()}`, {
-      method: 'GET',
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json',
-      },
-      cache: 'no-store',
-    });
+    };
+    const responseData = await api.get(API_ROUTES.USERS, query);
 
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-    }
-    
-    const responseData = await response.json();
-    
     let usersData = [];
     let total = 0;
 
     if (Array.isArray(responseData) && responseData.length > 0) {
-        const firstElement = responseData[0];
-        if (firstElement.json && typeof firstElement.json === 'object') {
-            usersData = firstElement.json.data || [];
-            total = Number(firstElement.json.total) || usersData.length;
-        } else if (firstElement.data) {
-            usersData = firstElement.data;
-            total = Number(firstElement.total) || usersData.length;
-        }
+      const firstElement = responseData[0];
+      if (firstElement.json && typeof firstElement.json === 'object') {
+        usersData = firstElement.json.data || [];
+        total = Number(firstElement.json.total) || usersData.length;
+      } else if (firstElement.data) {
+        usersData = firstElement.data;
+        total = Number(firstElement.total) || usersData.length;
+      }
     } else if (typeof responseData === 'object' && responseData !== null && responseData.data) {
-        usersData = responseData.data;
-        total = Number(responseData.total) || usersData.length;
+      usersData = responseData.data;
+      total = Number(responseData.total) || usersData.length;
     }
 
     const mappedUsers = usersData.map((apiUser: any) => ({
@@ -109,42 +98,24 @@ async function getProviders(pagination: PaginationState, searchQuery: string): P
 }
 
 async function upsertProvider(providerData: ProviderFormValues) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/upsert', {
-        method: 'POST',
-        mode: 'cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({...providerData, filter_type: 'PROVEEDOR', is_sales: false}),
-    });
-    
-    const responseData = await response.json();
+  const data = { ...providerData, filter_type: 'PROVEEDOR', is_sales: false };
+  const responseData = await api.post(API_ROUTES.USERS_UPSERT, data);
 
-    if (responseData.error && (responseData.error.error || responseData.code > 200)) {
-        const error = new Error('API Error') as any;
-        error.status = responseData.code || response.status;
-        error.data = responseData;
-        throw error;
-    }
-    
-    return responseData;
+  if (responseData.error && (responseData.error.error || responseData.code > 200)) {
+    const error = new Error('API Error') as any;
+    error.status = responseData.code || 500;
+    error.data = responseData;
+    throw error;
+  }
+
+  return responseData;
 }
 
 async function getRolesForUser(userId: string): Promise<UserRole[]> {
   if (!userId) return [];
   try {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/roles/user_roles?user_id=${userId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const userRolesData = Array.isArray(data) ? (Object.keys(data[0]).length === 0? [] : data) : (data.user_roles || data.data || data.result || []);
+    const data = await api.get(API_ROUTES.ROLES_USER_ROLES, { user_id: userId });
+    const userRolesData = Array.isArray(data) ? (Object.keys(data[0]).length === 0 ? [] : data) : (data.user_roles || data.data || data.result || []);
     return userRolesData.map((apiRole: any) => ({
       user_role_id: apiRole.user_role_id,
       role_id: apiRole.role_id,
@@ -159,7 +130,7 @@ async function getRolesForUser(userId: string): Promise<UserRole[]> {
 
 export default function ProvidersPage() {
   const t = useTranslations();
-  
+
   const { toast } = useToast();
   const [providers, setProviders] = React.useState<User[]>([]);
   const [providerCount, setProviderCount] = React.useState(0);
@@ -209,40 +180,31 @@ export default function ProvidersPage() {
 
   React.useEffect(() => {
     const debounce = setTimeout(() => {
-        loadProviders();
+      loadProviders();
     }, 500);
     return () => clearTimeout(debounce);
   }, [loadProviders]);
 
   const handleToggleActivate = async (user: User) => {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/activate', {
-            method: 'PUT',
-            mode: 'cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                user_id: user.id,
-                is_active: !user.is_active,
-            }),
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to update provider status');
-        }
+      await api.put(API_ROUTES.USERS_ACTIVATE, {
+        user_id: user.id,
+        is_active: !user.is_active,
+      });
 
-        toast({
-            title: 'Success',
-            description: `Provider ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
-        });
+      toast({
+        title: 'Success',
+        description: `Provider ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
+      });
 
-        loadProviders();
+      loadProviders();
     } catch (error) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Could not update provider status.',
-        });
-        console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not update provider status.',
+      });
+      console.error(error);
     }
   };
 
@@ -258,7 +220,7 @@ export default function ProvidersPage() {
     setSubmissionError(null);
     setIsDialogOpen(true);
   };
-  
+
   const handleEdit = (provider: User) => {
     setEditingProvider(provider);
     form.reset({
@@ -272,7 +234,7 @@ export default function ProvidersPage() {
     setSubmissionError(null);
     setIsDialogOpen(true);
   };
-  
+
   const providerColumns = ProviderColumnsWrapper({ onToggleActivate: handleToggleActivate, onEdit: handleEdit });
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
@@ -280,30 +242,20 @@ export default function ProvidersPage() {
     setSelectedProvider(user);
   };
 
-    React.useEffect(() => {
+  React.useEffect(() => {
     const checkFirstPasswordRequirements = async () => {
-        if (!selectedProvider) {
-            setCanSetFirstPassword(false);
-            return;
-        }
+      if (!selectedProvider) {
+        setCanSetFirstPassword(false);
+        return;
+      }
 
-        const token = localStorage.getItem('token');
-        if (!token) {
-            setCanSetFirstPassword(false);
-            return;
-        }
-
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/check-requirements-first-password?user_id=${selectedProvider.id}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            setCanSetFirstPassword(response.ok);
-        } catch (error) {
-            console.error("Failed to check first password requirements:", error);
-            setCanSetFirstPassword(false);
-        }
+      try {
+        await api.get(API_ROUTES.SYSTEM.API_AUTH_CHECK_FIRST_PASSWORD, { user_id: selectedProvider.id });
+        setCanSetFirstPassword(true);
+      } catch (error) {
+        console.error("Failed to check first password requirements:", error);
+        setCanSetFirstPassword(false);
+      }
     };
 
     if (selectedProvider) {
@@ -325,240 +277,224 @@ export default function ProvidersPage() {
     form.clearErrors();
 
     try {
-        await upsertProvider(data);
-        const isEditing = !!editingProvider;
+      await upsertProvider(data);
+      const isEditing = !!editingProvider;
 
-        toast({
-            title: isEditing ? t('ProvidersPage.createDialog.editSuccessTitle') : t('ProvidersPage.createDialog.createSuccessTitle'),
-            description: isEditing ? t('ProvidersPage.createDialog.editSuccessDescription') : t('ProvidersPage.createDialog.createSuccessDescription'),
-        });
-        setIsDialogOpen(false);
-        loadProviders();
+      toast({
+        title: isEditing ? t('ProvidersPage.createDialog.editSuccessTitle') : t('ProvidersPage.createDialog.createSuccessTitle'),
+        description: isEditing ? t('ProvidersPage.createDialog.editSuccessDescription') : t('ProvidersPage.createDialog.createSuccessDescription'),
+      });
+      setIsDialogOpen(false);
+      loadProviders();
 
     } catch (error: any) {
-        const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-        if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
-            const fields = errorData.conflictedFields.map((f:string) => t(`ProvidersPage.createDialog.validation.fields.${f}`)).join(', ');
-            setSubmissionError(t('ProvidersPage.createDialog.validation.uniqueConflict', { fields }));
-        } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
-            const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
-            if (errors.length > 0) {
-                errors.forEach((err: { field: any; message: string }) => {
-                    if (err.field) {
-                        form.setError(err.field as keyof ProviderFormValues, {
-                            type: 'manual',
-                            message: err.message,
-                        });
-                    }
-                });
-            } else {
-                 setSubmissionError(errorData?.message || t('ProvidersPage.createDialog.validation.genericError'));
+      const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
+      if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
+        const fields = errorData.conflictedFields.map((f: string) => t(`ProvidersPage.createDialog.validation.fields.${f}`)).join(', ');
+        setSubmissionError(t('ProvidersPage.createDialog.validation.uniqueConflict', { fields }));
+      } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
+        const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
+        if (errors.length > 0) {
+          errors.forEach((err: { field: any; message: string }) => {
+            if (err.field) {
+              form.setError(err.field as keyof ProviderFormValues, {
+                type: 'manual',
+                message: err.message,
+              });
             }
-        } else if (error.status >= 500) {
-            setSubmissionError(t('ProvidersPage.createDialog.validation.serverError'));
+          });
         } else {
-             const errorMessage = typeof error.data === 'string' ? error.data : errorData?.message || (error instanceof Error ? error.message : t('ProvidersPage.createDialog.validation.genericError'));
-             setSubmissionError(errorMessage);
+          setSubmissionError(errorData?.message || t('ProvidersPage.createDialog.validation.genericError'));
         }
+      } else if (error.status >= 500) {
+        setSubmissionError(t('ProvidersPage.createDialog.validation.serverError'));
+      } else {
+        const errorMessage = typeof error.data === 'string' ? error.data : errorData?.message || (error instanceof Error ? error.message : t('ProvidersPage.createDialog.validation.genericError'));
+        setSubmissionError(errorMessage);
+      }
     }
   };
 
   const handleSendInitialPassword = async () => {
     if (!selectedProvider) return;
-    const token = localStorage.getItem('token');
-    if (!token) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Authentication token not found.' });
-        return;
-    }
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/first-time-password-token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ user_id: selectedProvider.id }),
-        });
-        const responseData = await response.json();
-        if (!response.ok) {
-            throw new Error(responseData.message || 'Failed to send password email.');
-        }
-        toast({ title: 'Email Sent', description: responseData.message });
+      const responseData = await api.post(API_ROUTES.SYSTEM.API_AUTH_FIRST_TIME_PASSWORD_TOKEN, { user_id: selectedProvider.id });
+      toast({ title: 'Email Sent', description: responseData.message });
     } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'An unexpected error occurred.' });
+      toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'An unexpected error occurred.' });
     }
   };
 
   return (
     <>
-    <div className={cn("grid grid-cols-1 gap-4", selectedProvider ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
-      <div className={cn("transition-all duration-300", selectedProvider ? "lg:col-span-2" : "lg:col-span-5")}>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('ProvidersPage.title')}</CardTitle>
-            <CardDescription>{t('ProvidersPage.description')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DataTable 
-              columns={providerColumns} 
-              data={providers} 
-              filterColumnId="email" 
-              filterPlaceholder={t('ProvidersPage.filterPlaceholder')}
-              onRowSelectionChange={handleRowSelectionChange}
-              enableSingleRowSelection={true}
-              onCreate={handleCreate}
-              onRefresh={loadProviders}
-              isRefreshing={isRefreshing}
-              rowSelection={rowSelection}
-              setRowSelection={setRowSelection}
-              pageCount={Math.ceil(providerCount / pagination.pageSize)}
-              pagination={pagination}
-              onPaginationChange={setPagination}
-              manualPagination={true}
-              columnFilters={columnFilters}
-              onColumnFiltersChange={setColumnFilters}
-            />
-          </CardContent>
-        </Card>
-      </div>
-      
-      {selectedProvider && (
-        <div className="lg:col-span-3">
-            <Card>
-               <CardHeader className="flex flex-row items-start justify-between">
-                <div>
-                    <CardTitle>{t('ProvidersPage.detailsFor', {name: selectedProvider.name})}</CardTitle>
-                </div>
-                 <div className="flex items-center gap-2">
-                    {canSetFirstPassword && (
-                        <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
-                            <KeyRound className="mr-2 h-4 w-4" />
-                            {t('ProvidersPage.setInitialPassword')}
-                        </Button>
-                    )}
-                    <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
-                        <X className="h-5 w-5" />
-                        <span className="sr-only">{t('ProvidersPage.close')}</span>
-                    </Button>
-                </div>
+      <div className={cn("grid grid-cols-1 gap-4", selectedProvider ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
+        <div className={cn("transition-all duration-300", selectedProvider ? "lg:col-span-2" : "lg:col-span-5")}>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('ProvidersPage.title')}</CardTitle>
+              <CardDescription>{t('ProvidersPage.description')}</CardDescription>
             </CardHeader>
+            <CardContent>
+              <DataTable
+                columns={providerColumns}
+                data={providers}
+                filterColumnId="email"
+                filterPlaceholder={t('ProvidersPage.filterPlaceholder')}
+                onRowSelectionChange={handleRowSelectionChange}
+                enableSingleRowSelection={true}
+                onCreate={handleCreate}
+                onRefresh={loadProviders}
+                isRefreshing={isRefreshing}
+                rowSelection={rowSelection}
+                setRowSelection={setRowSelection}
+                pageCount={Math.ceil(providerCount / pagination.pageSize)}
+                pagination={pagination}
+                onPaginationChange={setPagination}
+                manualPagination={true}
+                columnFilters={columnFilters}
+                onColumnFiltersChange={setColumnFilters}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {selectedProvider && (
+          <div className="lg:col-span-3">
+            <Card>
+              <CardHeader className="flex flex-row items-start justify-between">
+                <div>
+                  <CardTitle>{t('ProvidersPage.detailsFor', { name: selectedProvider.name })}</CardTitle>
+                </div>
+                <div className="flex items-center gap-2">
+                  {canSetFirstPassword && (
+                    <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
+                      <KeyRound className="mr-2 h-4 w-4" />
+                      {t('ProvidersPage.setInitialPassword')}
+                    </Button>
+                  )}
+                  <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
+                    <X className="h-5 w-5" />
+                    <span className="sr-only">{t('ProvidersPage.close')}</span>
+                  </Button>
+                </div>
+              </CardHeader>
               <CardContent>
                 <Tabs defaultValue="roles" className="w-full">
-                   <TabsList>
+                  <TabsList>
                     <TabsTrigger value="roles">{t('ProvidersPage.tabs.roles')}</TabsTrigger>
                     <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="roles">
                     <UserRoles
-                        userId={selectedProvider.id}
-                        initialUserRoles={selectedProviderRoles}
-                        isLoading={isRolesLoading}
-                        onRolesChange={() => loadProviderRoles(selectedProvider.id)}
+                      userId={selectedProvider.id}
+                      initialUserRoles={selectedProviderRoles}
+                      isLoading={isRolesLoading}
+                      onRolesChange={() => loadProviderRoles(selectedProvider.id)}
                     />
                   </TabsContent>
                   <TabsContent value="services">
-                      <UserServices userId={selectedProvider.id} isSalesUser={false} />
+                    <UserServices userId={selectedProvider.id} isSalesUser={false} />
                   </TabsContent>
                 </Tabs>
               </CardContent>
             </Card>
-        </div>
-      )}
-    </div>
+          </div>
+        )}
+      </div>
 
-    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{editingProvider ? t('ProvidersPage.createDialog.editTitle') : t('ProvidersPage.createDialog.title')}</DialogTitle>
-          <DialogDescription>{editingProvider ? t('ProvidersPage.createDialog.editDescription') : t('ProvidersPage.createDialog.description')}</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingProvider ? t('ProvidersPage.createDialog.editTitle') : t('ProvidersPage.createDialog.title')}</DialogTitle>
+            <DialogDescription>{editingProvider ? t('ProvidersPage.createDialog.editDescription') : t('ProvidersPage.createDialog.description')}</DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                {submissionError && (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>{t('ProvidersPage.createDialog.validation.errorTitle')}</AlertTitle>
-                    <AlertDescription>{submissionError}</AlertDescription>
-                  </Alert>
+              {submissionError && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{t('ProvidersPage.createDialog.validation.errorTitle')}</AlertTitle>
+                  <AlertDescription>{submissionError}</AlertDescription>
+                </Alert>
+              )}
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('ProvidersPage.createDialog.name')}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={t('ProvidersPage.createDialog.namePlaceholder')} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-                <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>{t('ProvidersPage.createDialog.name')}</FormLabel>
-                            <FormControl>
-                                <Input placeholder={t('ProvidersPage.createDialog.namePlaceholder')} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>{t('ProvidersPage.createDialog.email')}</FormLabel>
-                            <FormControl>
-                                <Input type="email" placeholder={t('ProvidersPage.createDialog.emailPlaceholder')} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>{t('ProvidersPage.createDialog.phone')}</FormLabel>
-                            <FormControl>
-                               <PhoneInput
-                                    {...field}
-                                    defaultCountry="UY"
-                                    placeholder={t('ProvidersPage.createDialog.phonePlaceholder')}
-                                    onChange={field.onChange}
-                                    value={field.value}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="identity_document"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>{t('ProvidersPage.createDialog.identity_document')}</FormLabel>
-                            <FormControl>
-                                <Input placeholder={t('ProvidersPage.createDialog.identity_document_placeholder')} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="is_active"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                            <FormControl>
-                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                            </FormControl>
-                            <FormLabel>{t('ProvidersPage.createDialog.isActive')}</FormLabel>
-                        </FormItem>
-                    )}
-                />
-                 <div className="flex justify-end space-x-2 pt-4">
-                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('ProvidersPage.createDialog.cancel')}</Button>
-                    <Button type="submit">{editingProvider ? t('ProvidersPage.createDialog.editSave') : t('ProvidersPage.createDialog.save')}</Button>
-                </div>
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('ProvidersPage.createDialog.email')}</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder={t('ProvidersPage.createDialog.emailPlaceholder')} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('ProvidersPage.createDialog.phone')}</FormLabel>
+                    <FormControl>
+                      <PhoneInput
+                        {...field}
+                        defaultCountry="UY"
+                        placeholder={t('ProvidersPage.createDialog.phonePlaceholder')}
+                        onChange={field.onChange}
+                        value={field.value}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="identity_document"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('ProvidersPage.createDialog.identity_document')}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={t('ProvidersPage.createDialog.identity_document_placeholder')} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="is_active"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <FormLabel>{t('ProvidersPage.createDialog.isActive')}</FormLabel>
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('ProvidersPage.createDialog.cancel')}</Button>
+                <Button type="submit">{editingProvider ? t('ProvidersPage.createDialog.editSave') : t('ProvidersPage.createDialog.save')}</Button>
+              </div>
             </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
