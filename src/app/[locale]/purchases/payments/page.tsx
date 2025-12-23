@@ -1,27 +1,22 @@
 
 'use client';
 
-import * as React from 'react';
-import { Payment } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { PaymentsTable } from '@/components/tables/payments-table';
-import { useTranslations } from 'next-intl';
-import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { API_ROUTES } from '@/constants/routes';
+import { useToast } from '@/hooks/use-toast';
+import { Payment } from '@/lib/types';
+import { api } from '@/services/api';
+import { useTranslations } from 'next-intl';
+import * as React from 'react';
 
 async function getPayments(): Promise<Payment[]> {
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_payments?is_sales=false`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.PURCHASES.PAYMENTS_ALL, { is_sales: 'false' });
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
             id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
@@ -74,22 +69,7 @@ export default function PaymentsPage() {
 
     const handlePrintPayment = async (payment: Payment) => {
         try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/payment/print', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paymentId: payment.id }),
-            });
-
-            if (response.status >= 400) {
-                const errorData = await response.json().catch(() => ({ message: 'Failed to generate PDF.' }));
-                throw new Error(errorData.message);
-            }
-
-            if (!response.ok) {
-                throw new Error('An unexpected error occurred while generating the PDF.');
-            }
-
-            const blob = await response.blob();
+            const blob = await api.getBlob(API_ROUTES.PURCHASES.API_PAYMENT_PRINT, {}, { paymentId: payment.id });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -98,10 +78,10 @@ export default function PaymentsPage() {
             a.click();
             window.URL.revokeObjectURL(url);
             a.remove();
-            
+
             toast({
-              title: "Download Started",
-              description: `Your PDF for Payment #${payment.id} is downloading.`,
+                title: "Download Started",
+                description: `Your PDF for Payment #${payment.id} is downloading.`,
             });
 
         } catch (error) {
@@ -112,7 +92,7 @@ export default function PaymentsPage() {
             });
         }
     };
-    
+
     const handleSendEmailClick = (payment: Payment) => {
         setSelectedPaymentForEmail(payment);
         setEmailRecipients(payment.userEmail || '');
@@ -141,19 +121,7 @@ export default function PaymentsPage() {
         }
 
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/payment/send', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ paymentId: selectedPaymentForEmail.id, emails }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to send email.');
-            }
+            await api.post(API_ROUTES.PURCHASES.API_PAYMENT_SEND, { paymentId: selectedPaymentForEmail.id, emails });
 
             toast({
                 title: 'Email Sent',
@@ -193,22 +161,22 @@ export default function PaymentsPage() {
             <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                    <DialogTitle>Send Payment Receipt by Email</DialogTitle>
-                    <DialogDescription>Enter the recipient emails for payment #{selectedPaymentForEmail?.id}.</DialogDescription>
+                        <DialogTitle>Send Payment Receipt by Email</DialogTitle>
+                        <DialogDescription>Enter the recipient emails for payment #{selectedPaymentForEmail?.id}.</DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
-                    <Label htmlFor="email-recipients">Recipients</Label>
-                    <Input
-                        id="email-recipients"
-                        value={emailRecipients}
-                        onChange={(e) => setEmailRecipients(e.target.value)}
-                        placeholder="email1@example.com, email2@example.com"
-                    />
-                    <p className="text-sm text-muted-foreground mt-1">Separate multiple emails with commas.</p>
+                        <Label htmlFor="email-recipients">Recipients</Label>
+                        <Input
+                            id="email-recipients"
+                            value={emailRecipients}
+                            onChange={(e) => setEmailRecipients(e.target.value)}
+                            placeholder="email1@example.com, email2@example.com"
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">Separate multiple emails with commas.</p>
                     </div>
                     <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleConfirmSendEmail}>Send Email</Button>
+                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={handleConfirmSendEmail}>Send Email</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

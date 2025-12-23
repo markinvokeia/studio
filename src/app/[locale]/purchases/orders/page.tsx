@@ -1,34 +1,26 @@
 
 'use client';
 
-import * as React from 'react';
-import { Order, OrderItem, Invoice, Payment, User, Quote, InvoiceItem } from '@/lib/types';
-import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { OrdersTable, CreateOrderDialog } from '@/components/tables/orders-table';
-import { InvoicesTable } from '@/components/tables/invoices-table';
-import { PaymentsTable } from '@/components/tables/payments-table';
-import { OrderItemsTable } from '@/components/tables/order-items-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
-import { RefreshCw, X } from 'lucide-react';
-import { RowSelectionState } from '@tanstack/react-table';
+import { InvoicesTable } from '@/components/tables/invoices-table';
+import { OrderItemsTable } from '@/components/tables/order-items-table';
+import { CreateOrderDialog, OrdersTable } from '@/components/tables/orders-table';
+import { PaymentsTable } from '@/components/tables/payments-table';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { API_ROUTES } from '@/constants/routes';
+import { Invoice, InvoiceItem, Order, OrderItem, Payment } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { api } from '@/services/api';
+import { RowSelectionState } from '@tanstack/react-table';
+import { RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import * as React from 'react';
 
 async function getOrders(): Promise<Order[]> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_orders?is_sales=false', {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) {
-            console.error(`HTTP error! status: ${response.status}`);
-            return [];
-        }
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.PURCHASES.ORDERS_ALL, { is_sales: 'false' });
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
         return ordersData.map((apiOrder: any) => ({
             id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
@@ -49,14 +41,7 @@ async function getOrders(): Promise<Order[]> {
 async function getOrderItems(orderId: string): Promise<OrderItem[]> {
     if (!orderId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_items?order_id=${orderId}&is_sales=false`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.PURCHASES.ORDER_ITEMS, { order_id: orderId, is_sales: 'false' });
         const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
         return itemsData.map((apiItem: any) => ({
             id: apiItem.order_item_id ? String(apiItem.order_item_id) : `oi_${Math.random().toString(36).substr(2, 9)}`,
@@ -79,14 +64,7 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
 async function getInvoicesForOrder(orderId: string): Promise<Invoice[]> {
     if (!orderId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_invoices?order_id=${orderId}&is_sales=false`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.PURCHASES.ORDER_INVOICES, { order_id: orderId, is_sales: 'false' });
         const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
         return invoicesData.map((apiInvoice: any) => ({
             id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
@@ -109,14 +87,7 @@ async function getInvoicesForOrder(orderId: string): Promise<Invoice[]> {
 async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
     if (!orderId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_payments?order_id=${orderId}&is_sales=false`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.PURCHASES.ORDER_PAYMENTS, { order_id: orderId, is_sales: 'false' });
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
             id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
@@ -140,14 +111,7 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
 async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}&is_sales=false`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.PURCHASES.INVOICE_ITEMS, { invoice_id: invoiceId, is_sales: 'false' });
         const itemsData = Array.isArray(data) ? data : (data.invoice_items || data.data || []);
         return itemsData.map((apiItem: any) => ({
             id: apiItem.id ? String(apiItem.id) : `ii_${Math.random().toString(36).substr(2, 9)}`,
