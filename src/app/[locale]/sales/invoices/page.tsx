@@ -1,28 +1,30 @@
 
 'use client';
 
-import * as React from 'react';
-import { Invoice, InvoiceItem, Payment, Service, Credit } from '@/lib/types';
-import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { InvoicesTable, CreateInvoiceDialog } from '@/components/tables/invoices-table';
-import { PaymentsTable } from '@/components/tables/payments-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
-import { RefreshCw, X, FileUp, File, Loader2, PlusCircle, CheckCircle, Trash2 } from 'lucide-react';
-import { RowSelectionState } from '@tanstack/react-table';
-import { useTranslations } from 'next-intl';
-import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CreateInvoiceDialog, InvoicesTable } from '@/components/tables/invoices-table';
+import { PaymentsTable } from '@/components/tables/payments-table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm } from 'react-hook-form';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { API_ROUTES } from '@/constants/routes';
+import { useToast } from '@/hooks/use-toast';
+import { Invoice, InvoiceItem, Payment, Service } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { RowSelectionState } from '@tanstack/react-table';
+import { CheckCircle, File, FileUp, Loader2, PlusCircle, RefreshCw, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import * as React from 'react';
+import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const invoiceItemSchema = z.object({
     id: z.string().optional(),
@@ -34,14 +36,7 @@ type InvoiceItemFormValues = z.infer<typeof invoiceItemSchema>;
 
 async function getServices(): Promise<Service[]> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=true', {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) return [];
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.SERVICES, { is_sales: 'true' });
         const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
         return servicesData.map((s: any) => ({ ...s, id: String(s.id) }));
     } catch (error) {
@@ -52,20 +47,11 @@ async function getServices(): Promise<Service[]> {
 
 async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
     try {
-        const params = new URLSearchParams({
-            is_sales: 'true',
-        });
+        const query: Record<string, string> = { is_sales: 'true' };
         if (type !== 'all') {
-            params.append('type', type);
+            query.type = type;
         }
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?${params.toString()}`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.SALES.INVOICES_ALL, query);
         const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
         return invoicesData.map((apiInvoice: any) => ({
             id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
@@ -92,14 +78,7 @@ async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
 async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}&is_sales=true`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.SALES.INVOICE_ITEMS, { invoice_id: invoiceId, is_sales: 'true' });
         const itemsData = Array.isArray(data) ? data : (data.invoice_items || data.data || []);
         return itemsData.map((apiItem: any) => ({
             id: apiItem.id ? String(apiItem.id) : `ii_${Math.random().toString(36).substr(2, 9)}`,
@@ -118,14 +97,7 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
 async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_payments?invoice_id=${invoiceId}&is_sales=true`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.SALES.INVOICE_PAYMENTS, { invoice_id: invoiceId, is_sales: 'true' });
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
             id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
@@ -250,22 +222,7 @@ export default function InvoicesPage() {
 
     const handlePrintInvoice = async (invoice: Invoice) => {
         try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/invoice/print', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ invoiceId: invoice.id }),
-            });
-
-            if (response.status >= 400) {
-                const errorData = await response.json().catch(() => ({ message: 'Failed to generate PDF.' }));
-                throw new Error(errorData.message);
-            }
-
-            if (!response.ok) {
-                throw new Error('An unexpected error occurred while generating the PDF.');
-            }
-
-            const blob = await response.blob();
+            const blob = await api.getBlob(API_ROUTES.SALES.API_INVOICE_PRINT, {}, { invoiceId: invoice.id });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -317,19 +274,7 @@ export default function InvoicesPage() {
         }
 
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/invoice/send', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ invoiceId: selectedInvoiceForEmail.id, emails }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to send email.');
-            }
+            await api.post(API_ROUTES.SALES.API_INVOICE_SEND, { invoiceId: selectedInvoiceForEmail.id, emails });
 
             toast({
                 title: 'Email Sent',
@@ -366,15 +311,7 @@ export default function InvoicesPage() {
         formData.append('is_sales', 'false');
 
         try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/invoice/import', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: 'Failed to import invoice.' }));
-                throw new Error(errorData.message || 'An error occurred during import.');
-            }
+            await api.post(API_ROUTES.SALES.API_INVOICE_IMPORT, formData);
 
             toast({ title: 'Import Successful', description: 'The invoice has been created from the imported file.' });
             loadInvoices();
@@ -431,16 +368,7 @@ export default function InvoicesPage() {
                 unit_price: Number(data.unit_price),
             };
 
-
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/upsert`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-            if (response.status !== 200) {
-                const responseData = await response.json();
-                throw new Error(responseData.message || `Failed to ${editingItem ? 'update' : 'create'} invoice item.`);
-            }
+            await api.post(API_ROUTES.SALES.INVOICES_ITEMS_UPSERT, payload);
             toast({ title: 'Success', description: `Invoice item ${editingItem ? 'updated' : 'created'} successfully.` });
             loadInvoiceItems();
             setIsEditItemDialogOpen(false);
@@ -453,16 +381,7 @@ export default function InvoicesPage() {
     const confirmDeleteItem = async () => {
         if (!deletingItem) return;
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/delete`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: parseInt(deletingItem.id, 10) }),
-            });
-            if (response.status >= 400) {
-                const responseData = await response.json();
-                throw new Error(responseData.message || 'Failed to delete invoice item.');
-            }
-            const responseData = await response.json();
+            const responseData = await api.post(API_ROUTES.SALES.INVOICES_ITEMS_DELETE, { id: parseInt(deletingItem.id, 10) });
             toast({ title: 'Success', description: responseData.message || 'Invoice item deleted successfully.' });
             loadInvoiceItems();
             setIsDeleteItemDialogOpen(false);
@@ -479,15 +398,7 @@ export default function InvoicesPage() {
     const handleConfirmInvoice = async () => {
         if (!confirmingInvoice) return;
         try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/confirm', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: parseInt(confirmingInvoice.id, 10) }),
-            });
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || 'Failed to confirm the invoice.');
-            }
+            await api.post(API_ROUTES.SALES.INVOICES_CONFIRM, { id: parseInt(confirmingInvoice.id, 10) });
             toast({
                 title: 'Invoice Confirmed',
                 description: `Invoice #${confirmingInvoice.id} has been confirmed.`,

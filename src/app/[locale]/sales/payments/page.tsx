@@ -1,32 +1,32 @@
 
 'use client';
 
-import * as React from 'react';
-import { Payment, User, PaymentMethod, Credit } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { PaymentsTable } from '@/components/tables/payments-table';
-import { useTranslations } from 'next-intl';
-import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { Check, ChevronsUpDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
-import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Payment, PaymentMethod, User } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import api from '@/services/api';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
+import { AlertTriangle, CalendarIcon, Check, ChevronsUpDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import * as React from 'react';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 
 const prepaidFormSchema = (t: (key: string) => string) => z.object({
     user_id: z.string().min(1, t('validation.userRequired')),
@@ -42,14 +42,7 @@ type PrepaidFormValues = z.infer<ReturnType<typeof prepaidFormSchema>>;
 
 async function getPayments(): Promise<Payment[]> {
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_payments?is_sales=true`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.SALES.PAYMENTS_ALL, { is_sales: 'true' });
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
             id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
@@ -82,11 +75,8 @@ async function getPayments(): Promise<Payment[]> {
 
 async function getUsers(): Promise<User[]> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=PACIENTE');
-        if (!response.ok) return [];
-        const responseData = await response.json();
-        const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
-        const usersData = Array.isArray(data.data) ? data.data : [];
+        const data = await api.get(API_ROUTES.USERS, { filter_type: 'PACIENTE' });
+        const usersData = Array.isArray(data) ? data : (data.data || []);
         return usersData.map((apiUser: any) => ({
             id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
             name: apiUser.name || 'No Name',
@@ -104,14 +94,7 @@ async function getUsers(): Promise<User[]> {
 
 async function getPaymentMethods(): Promise<PaymentMethod[]> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/metodospago/all', {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.CASHIER.PAYMENT_METHODS);
         const methodsData = Array.isArray(data) ? data : (data.payment_methods || data.data || []);
         return methodsData.map((m: any) => ({ ...m, id: String(m.id) }));
     } catch (error) {
@@ -162,22 +145,7 @@ export default function PaymentsPage() {
 
     const handlePrintPayment = async (payment: Payment) => {
         try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/payment/print', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paymentId: payment.id }),
-            });
-
-            if (response.status >= 400) {
-                const errorData = await response.json().catch(() => ({ message: 'Failed to generate PDF.' }));
-                throw new Error(errorData.message);
-            }
-
-            if (!response.ok) {
-                throw new Error('An unexpected error occurred while generating the PDF.');
-            }
-
-            const blob = await response.blob();
+            const blob = await api.getBlob(API_ROUTES.SALES.API_PAYMENT_PRINT, {}, { paymentId: payment.id });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -229,19 +197,7 @@ export default function PaymentsPage() {
         }
 
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/payment/send', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ paymentId: selectedPaymentForEmail.id, emails }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to send email.');
-            }
+            await api.post(API_ROUTES.SALES.API_PAYMENT_SEND, { paymentId: selectedPaymentForEmail.id, emails });
 
             toast({
                 title: 'Email Sent',
@@ -277,12 +233,8 @@ export default function PaymentsPage() {
         if (!prepaidData || !user) return;
 
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/active?user_id=${user.id}`, {
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            const sessionData = await response.json();
-            if (!response.ok || sessionData.code !== 200 || !sessionData.data?.id) {
+            const sessionData = await api.get(API_ROUTES.CASHIER.SESSIONS_ACTIVE, { user_id: user.id });
+            if (sessionData.code !== 200 || !sessionData.data?.id) {
                 throw new Error("No active cash session found. Please open a session first.");
             }
 
@@ -308,16 +260,7 @@ export default function PaymentsPage() {
                 }),
             };
 
-            const prepaidResponse = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice/payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            if (!prepaidResponse.ok) {
-                const errorData = await prepaidResponse.json().catch(() => ({}));
-                throw new Error(errorData.message || "Failed to create prepaid payment.");
-            }
+            await api.post(API_ROUTES.SALES.INVOICE_PAYMENT, payload);
 
             toast({ title: t('prepaidDialog.toasts.successTitle'), description: t('prepaidDialog.toasts.successDescription') });
             setIsPrepaidDialogOpen(false);

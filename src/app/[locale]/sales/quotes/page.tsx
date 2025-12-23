@@ -1,26 +1,28 @@
 'use client';
 
-import * as React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
-import { Quote, QuoteItem, Order, Invoice, Payment, OrderItem, InvoiceItem, User, Service } from '@/lib/types';
-import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
+import { InvoicesTable } from '@/components/tables/invoices-table';
+import { OrderItemsTable } from '@/components/tables/order-items-table';
+import { OrdersTable } from '@/components/tables/orders-table';
+import { PaymentsTable } from '@/components/tables/payments-table';
 import { QuoteItemsTable } from '@/components/tables/quote-items-table';
+import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import {
     Dialog,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogFooter,
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
     Select,
     SelectContent,
@@ -28,19 +30,19 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { OrdersTable } from '@/components/tables/orders-table';
-import { InvoicesTable } from '@/components/tables/invoices-table';
-import { PaymentsTable } from '@/components/tables/payments-table';
-import { OrderItemsTable } from '@/components/tables/order-items-table';
-import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
-import { RefreshCw, X, AlertTriangle, ChevronsUpDown, Check } from 'lucide-react';
-import { RowSelectionState } from '@tanstack/react-table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import api from '@/services/api';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { RowSelectionState } from '@tanstack/react-table';
+import { AlertTriangle, Check, ChevronsUpDown, RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import * as React from 'react';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 
 
 const quoteFormSchema = (t: (key: string) => string) => z.object({
@@ -70,20 +72,7 @@ type QuoteItemFormValues = z.infer<ReturnType<typeof quoteItemFormSchema>>;
 
 async function getQuotes(): Promise<Quote[]> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quotes?is_sales=true', {
-            method: 'GET',
-            mode: 'cors',
-            headers: {
-                'Accept': 'application/json',
-            },
-            cache: 'no-store',
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-        }
-
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.QUOTES, { is_sales: 'true' });
         const quotesData = Array.isArray(data) ? data : (data.quotes || data.data || data.result || []);
 
         return quotesData.map((apiQuote: any) => ({
@@ -107,20 +96,7 @@ async function getQuotes(): Promise<Quote[]> {
 async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
     if (!quoteId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_items?quote_id=${quoteId}&is_sales=true`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: {
-                'Accept': 'application/json',
-            },
-            cache: 'no-store',
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.SALES.QUOTES_ITEMS, { quote_id: quoteId, is_sales: 'true' });
         const itemsData = Array.isArray(data) ? data : (data.quote_items || data.data || data.result || []);
 
         return itemsData.map((apiItem: any) => ({
@@ -139,16 +115,7 @@ async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
 
 async function getServices(): Promise<Service[]> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=true', {
-            method: 'GET',
-            mode: 'cors',
-            headers: {
-                'Accept': 'application/json',
-            },
-            cache: 'no-store',
-        });
-        if (!response.ok) return [];
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.SERVICES, { is_sales: 'true' });
         const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
         return servicesData.map((s: any) => ({ ...s, id: String(s.id), currency: s.currency || 'USD' }));
     } catch (error) {
@@ -158,13 +125,8 @@ async function getServices(): Promise<Service[]> {
 }
 
 async function upsertQuoteItem(itemData: QuoteItemFormValues) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/lines/upsert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...itemData, is_sales: true }),
-    });
-    const responseData = await response.json();
-    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+    const responseData = await api.post(API_ROUTES.SALES.QUOTES_LINES_UPSERT, { ...itemData, is_sales: true });
+    if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to save quote item.';
         throw new Error(message);
     }
@@ -172,13 +134,8 @@ async function upsertQuoteItem(itemData: QuoteItemFormValues) {
 }
 
 async function deleteQuoteItem(id: string, quoteId: string) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/lines/delete', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, quote_id: quoteId, is_sales: true }),
-    });
-    const responseData = await response.json();
-    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+    const responseData = await api.delete(API_ROUTES.SALES.QUOTES_LINES_DELETE, { id, quote_id: quoteId, is_sales: true });
+    if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to delete quote item.';
         throw new Error(message);
     }
@@ -189,14 +146,7 @@ async function deleteQuoteItem(id: string, quoteId: string) {
 async function getOrders(quoteId: string): Promise<Order[]> {
     if (!quoteId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_orders?quote_id=${quoteId}&is_sales=true`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.SALES.QUOTES_ORDERS, { quote_id: quoteId, is_sales: 'true' });
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
         return ordersData.map((apiOrder: any) => ({
             id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
@@ -214,14 +164,7 @@ async function getOrders(quoteId: string): Promise<Order[]> {
 async function getOrderItems(orderId: string): Promise<OrderItem[]> {
     if (!orderId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order_items?order_id=${orderId}&is_sales=true`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.SALES.ORDER_ITEMS, { order_id: orderId, is_sales: 'true' });
         const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
         return itemsData.map((apiItem: any) => ({
             id: apiItem.order_item_id ? String(apiItem.order_item_id) : `oi_${Math.random().toString(36).substr(2, 9)}`,
@@ -244,14 +187,7 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
 async function getInvoices(quoteId: string): Promise<Invoice[]> {
     if (!quoteId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_invoices?quote_id=${quoteId}&is_sales=true`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.SALES.QUOTES_INVOICES, { quote_id: quoteId, is_sales: 'true' });
         const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
         return invoicesData.map((apiInvoice: any) => ({
             id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
@@ -274,14 +210,7 @@ async function getInvoices(quoteId: string): Promise<Invoice[]> {
 async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
     if (!invoiceId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice_items?invoice_id=${invoiceId}&is_sales=true`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.SALES.INVOICE_ITEMS, { invoice_id: invoiceId, is_sales: 'true' });
         const itemsData = Array.isArray(data) ? data : (data.invoice_items || data.data || []);
         return itemsData.map((apiItem: any) => ({
             id: apiItem.id ? String(apiItem.id) : `ii_${Math.random().toString(36).substr(2, 9)}`,
@@ -301,14 +230,7 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
 async function getPayments(quoteId: string): Promise<Payment[]> {
     if (!quoteId) return [];
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote_payments?quote_id=${quoteId}&is_sales=true`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.SALES.QUOTES_PAYMENTS, { quote_id: quoteId, is_sales: 'true' });
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
             id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
@@ -331,11 +253,8 @@ async function getPayments(quoteId: string): Promise<Payment[]> {
 
 async function getUsers(): Promise<User[]> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users');
-        if (!response.ok) return [];
-        const responseData = await response.json();
-        const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
-        const usersData = Array.isArray(data.data) ? data.data : [];
+        const data = await api.get(API_ROUTES.USERS);
+        const usersData = Array.isArray(data) ? data : (data.data || []);
         return usersData.map((apiUser: any) => ({
             id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
             name: apiUser.name || 'No Name',
@@ -352,13 +271,8 @@ async function getUsers(): Promise<User[]> {
 }
 
 async function upsertQuote(quoteData: QuoteFormValues) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quotes/upsert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...quoteData, is_sales: true }),
-    });
-    const responseData = await response.json();
-    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+    const responseData = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, { ...quoteData, is_sales: true });
+    if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to save quote';
         throw new Error(message);
     }
@@ -366,13 +280,8 @@ async function upsertQuote(quoteData: QuoteFormValues) {
 }
 
 async function deleteQuote(id: string) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/delete', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, is_sales: true }),
-    });
-    const responseData = await response.json();
-    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+    const responseData = await api.delete(API_ROUTES.SALES.QUOTE_DELETE, { id, is_sales: true });
+    if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to delete quote';
         throw new Error(message);
     }
@@ -681,10 +590,9 @@ export default function QuotesPage() {
     const handleQuoteAction = async (quote: Quote, action: 'confirm' | 'reject') => {
         try {
             const payload = { quote_number: quote.id, confirm_reject: action, is_sales: true };
-            const endpoint = `https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/${action}`;
-            const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            const responseData = await response.json();
-            if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
+            const endpoint = action === 'confirm' ? API_ROUTES.SALES.QUOTE_CONFIRM : API_ROUTES.SALES.QUOTE_REJECT;
+            const responseData = await api.post(endpoint, payload);
+            if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
                 const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : t('toast.quoteActionError', { action: action });
                 throw new Error(message);
             }
