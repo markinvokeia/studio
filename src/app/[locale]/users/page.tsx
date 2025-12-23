@@ -117,6 +117,14 @@ const UserStats = ({ user }: { user: User }) => {
 
 async function getUsers(pagination: PaginationState, searchQuery: string, onlyDebtors: boolean, dateRange?: DateRange): Promise<GetUsersResponse> {
   try {
+    const token = localStorage.getItem('token');
+    const headers: HeadersInit = {
+        'Accept': 'application/json',
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const params = new URLSearchParams({
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
@@ -140,9 +148,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
     const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?${params.toString()}`, {
       method: 'GET',
       mode: 'cors',
-      headers: {
-        'Accept': 'application/json',
-      },
+      headers,
       cache: 'no-store',
     });
 
@@ -156,17 +162,17 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
     let total = 0;
 
     if (Array.isArray(responseData) && responseData.length > 0) {
-      const firstElement = responseData[0];
-      if (firstElement.json && typeof firstElement.json === 'object') {
-        usersData = firstElement.json.data || [];
-        total = Number(firstElement.json.total) || usersData.length;
-      } else if (firstElement.data) {
-        usersData = firstElement.data;
-        total = Number(firstElement.total) || usersData.length;
-      }
+        const firstElement = responseData[0];
+        if (firstElement.json && typeof firstElement.json === 'object') {
+            usersData = firstElement.json.data || [];
+            total = Number(firstElement.json.total) || usersData.length;
+        } else if (firstElement.data) {
+            usersData = firstElement.data;
+            total = Number(firstElement.total) || usersData.length;
+        }
     } else if (typeof responseData === 'object' && responseData !== null && responseData.data) {
-      usersData = responseData.data;
-      total = Number(responseData.total) || usersData.length;
+        usersData = responseData.data;
+        total = Number(responseData.total) || usersData.length;
     }
 
     const mappedUsers = usersData.map((apiUser: any) => ({
@@ -295,40 +301,40 @@ export default function UsersPage() {
 
   React.useEffect(() => {
     const debounce = setTimeout(() => {
-      loadUsers();
+        loadUsers();
     }, 500);
     return () => clearTimeout(debounce);
   }, [loadUsers]);
 
   const handleToggleActivate = async (user: User) => {
     try {
-      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/activate', {
-        method: 'PUT',
-        mode: 'cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: user.id,
-          is_active: !user.is_active,
-        }),
-      });
+        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/activate', {
+            method: 'PUT',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: user.id,
+                is_active: !user.is_active,
+            }),
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to update patient status');
+        }
 
-      if (!response.ok) {
-        throw new Error('Failed to update patient status');
-      }
+        toast({
+            title: 'Success',
+            description: `Patient ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
+        });
 
-      toast({
-        title: 'Success',
-        description: `Patient ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
-      });
-
-      loadUsers();
+        loadUsers();
     } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not update patient status.',
-      });
-      console.error(error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Could not update patient status.',
+        });
+        console.error(error);
     }
   };
 
@@ -830,7 +836,3 @@ export default function UsersPage() {
     </>
   );
 }
-
-
-
-
