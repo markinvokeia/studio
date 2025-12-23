@@ -1,23 +1,24 @@
 
 'use client';
 
-import * as React from 'react';
-import { DataTable } from '@/components/ui/data-table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { CajaSesion, CajaMovimiento } from '@/lib/types';
-import { CashSessionsColumnsWrapper } from './columns';
-import { useToast } from '@/hooks/use-toast';
-import { useTranslations } from 'next-intl';
-import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState, RowSelectionState } from '@tanstack/react-table';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { X, ChevronDown, Printer, RefreshCw } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, parseISO } from 'date-fns';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { API_ROUTES } from '@/constants/routes';
+import { useToast } from '@/hooks/use-toast';
+import { CajaMovimiento, CajaSesion } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { api } from '@/services/api';
+import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState } from '@tanstack/react-table';
+import { format, parseISO } from 'date-fns';
+import { ChevronDown, Printer, RefreshCw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import * as React from 'react';
+import { CashSessionsColumnsWrapper } from './columns';
 
 
 type GetCashSessionsResponse = {
@@ -27,21 +28,13 @@ type GetCashSessionsResponse = {
 
 async function getCashSessions(pagination: PaginationState, searchQuery: string): Promise<GetCashSessionsResponse> {
     try {
-        const params = new URLSearchParams({
+        const response = await api.get(API_ROUTES.CASHIER.SESSIONS_SEARCH, {
             page: (pagination.pageIndex + 1).toString(),
             limit: pagination.pageSize.toString(),
             search: searchQuery,
         });
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/search?${params.toString()}`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
-        const responseData = await response.json();
-        const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
+        const data = Array.isArray(response) && response.length > 0 ? response[0] : response;
 
         const sessionsData = data.data || [];
         const total = Number(data.total) || 0;
@@ -76,9 +69,7 @@ async function getCashSessions(pagination: PaginationState, searchQuery: string)
 
 async function getSessionMovements(sessionId: string): Promise<CajaMovimiento[]> {
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/movements?cash_session_id=${sessionId}`);
-        if (!response.ok) throw new Error('Failed to fetch session movements');
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.CASHIER.SESSIONS_MOVEMENTS, { cash_session_id: sessionId });
         let movementsData = [];
         if (Array.isArray(data)) {
             movementsData = data.filter(item => Object.keys(item).length > 0);
@@ -316,21 +307,7 @@ export default function CashSessionsPage() {
         setIsPrinting(true);
         toast({ title: "Generating Report...", description: "Your cash session report is being generated." });
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/print?cash_session_id=${session.id}`, {
-                method: 'GET',
-                mode: 'cors'
-            });
-
-            if (response.headers.get('Content-Type')?.includes('application/json')) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to generate PDF report');
-            }
-
-            if (!response.ok) {
-                throw new Error('Failed to generate PDF report');
-            }
-
-            const blob = await response.blob();
+            const blob = await api.getBlob(API_ROUTES.CASHIER.SESSIONS_PRINT, { cash_session_id: session.id });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -352,21 +329,7 @@ export default function CashSessionsPage() {
         setIsPrintingClose(true);
         toast({ title: "Generating Closing Report...", description: "Your cash session closing report is being generated." });
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close/print?cash_session_id=${session.id}`, {
-                method: 'GET',
-                mode: 'cors'
-            });
-
-            if (response.headers.get('Content-Type')?.includes('application/json')) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to generate PDF report');
-            }
-
-            if (!response.ok) {
-                throw new Error('Failed to generate PDF report');
-            }
-
-            const blob = await response.blob();
+            const blob = await api.getBlob(API_ROUTES.CASHIER.SESSIONS_CLOSE_PRINT, { cash_session_id: session.id });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;

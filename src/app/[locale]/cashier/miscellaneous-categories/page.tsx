@@ -10,12 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { MiscellaneousCategory } from '@/lib/types';
 import { MiscellaneousCategoriesColumnsWrapper } from './columns';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,8 @@ import { useTranslations } from 'next-intl';
 import { ColumnFiltersState } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { api } from '@/services/api';
+import { API_ROUTES } from '@/constants/routes';
 
 const categoryFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
@@ -42,21 +44,14 @@ type CategoryFormValues = z.infer<ReturnType<typeof categoryFormSchema>>;
 
 async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_categories`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        
-        const data = await response.json();
-        const categoriesData = Array.isArray(data) ? data : (data.data || []);
+        const data = await api.get(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_GET);
+        if (!data) return [];
+        const categoriesData = data?.data || (Array.isArray(data) ? data : []);
 
-        return categoriesData.map((c: any) => ({ 
-            ...c, 
+        return categoriesData.map((c: any) => ({
+            ...c,
             id: String(c.id),
-            type: c.category_type 
+            type: c.category_type
         }));
     } catch (error) {
         console.error("Failed to fetch miscellaneous categories:", error);
@@ -65,31 +60,27 @@ async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
 }
 
 async function upsertMiscellaneousCategory(categoryData: CategoryFormValues) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_categories/upsert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(categoryData),
-    });
-    const responseData = await response.json();
-    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400) || responseData.error) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message) || 'Failed to save category';
+    const response = await api.post(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_UPSERT, categoryData);
+    if (Array.isArray(response) && response[0]?.code >= 400) {
+        const message = response[0]?.message || 'Failed to save category';
         throw new Error(message);
     }
-    return responseData;
+    if (response.error) {
+        throw new Error(response.message || 'Failed to save category');
+    }
+    return response;
 }
 
 async function deleteMiscellaneousCategory(id: string) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_categories/delete', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-    });
-    const responseData = await response.json();
-    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400) || responseData.error) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message) || 'Failed to delete category';
+    const response = await api.delete(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_DELETE, { id });
+    if (Array.isArray(response) && response[0]?.code >= 400) {
+        const message = response[0]?.message || 'Failed to delete category';
         throw new Error(message);
     }
-    return responseData;
+    if (response.error) {
+        throw new Error(response.message || 'Failed to delete category');
+    }
+    return response;
 }
 
 export default function MiscellaneousCategoriesPage() {
@@ -98,7 +89,7 @@ export default function MiscellaneousCategoriesPage() {
     const { toast } = useToast();
     const [categories, setCategories] = React.useState<MiscellaneousCategory[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
-    
+
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [editingCategory, setEditingCategory] = React.useState<MiscellaneousCategory | null>(null);
 
@@ -129,7 +120,7 @@ export default function MiscellaneousCategoriesPage() {
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
-    
+
     const handleEdit = (category: MiscellaneousCategory) => {
         setEditingCategory(category);
         form.reset({
@@ -148,7 +139,7 @@ export default function MiscellaneousCategoriesPage() {
         setDeletingCategory(category);
         setIsDeleteDialogOpen(true);
     };
-    
+
     const confirmDelete = async () => {
         if (!deletingCategory) return;
         try {
@@ -177,132 +168,132 @@ export default function MiscellaneousCategoriesPage() {
             setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
         }
     };
-    
+
     const columns = MiscellaneousCategoriesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
 
     return (
         <>
-        <Card>
-            <CardHeader>
-                <CardTitle>{t('title')}</CardTitle>
-                <CardDescription>{t('description')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <DataTable 
-                    columns={columns} 
-                    data={categories} 
-                    columnFilters={columnFilters}
-                    onColumnFiltersChange={setColumnFilters}
-                    filterColumnId="name" 
-                    filterPlaceholder={t('filterPlaceholder')}
-                    onCreate={handleCreate}
-                    onRefresh={loadCategories}
-                    isRefreshing={isRefreshing}
-                />
-            </CardContent>
-        </Card>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{editingCategory ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
-                </DialogHeader>
-                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                        {submissionError && (
-                            <Alert variant="destructive">
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
-                                <AlertDescription>{submissionError}</AlertDescription>
-                            </Alert>
-                        )}
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('dialog.name')}</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder={t('dialog.namePlaceholder')} {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
+            <Card>
+                <CardHeader>
+                    <CardTitle>{t('title')}</CardTitle>
+                    <CardDescription>{t('description')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <DataTable
+                        columns={columns}
+                        data={categories}
+                        columnFilters={columnFilters}
+                        onColumnFiltersChange={setColumnFilters}
+                        filterColumnId="name"
+                        filterPlaceholder={t('filterPlaceholder')}
+                        onCreate={handleCreate}
+                        onRefresh={loadCategories}
+                        isRefreshing={isRefreshing}
+                    />
+                </CardContent>
+            </Card>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingCategory ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                            {submissionError && (
+                                <Alert variant="destructive">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                                    <AlertDescription>{submissionError}</AlertDescription>
+                                </Alert>
                             )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="code"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('dialog.code')}</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder={t('dialog.codePlaceholder')} {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('dialog.description')}</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder={t('dialog.descriptionPlaceholder')} {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="type"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('dialog.type')}</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectType')} /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="income">{t('dialog.income')}</SelectItem>
-                                        <SelectItem value="expense">{t('dialog.expense')}</SelectItem>
-                                    </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="is_active"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                    <FormControl>
-                                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                    </FormControl>
-                                    <FormLabel>{t('dialog.isActive')}</FormLabel>
-                                </FormItem>
-                            )}
-                        />
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
-                            <Button type="submit">{editingCategory ? t('dialog.save') : t('dialog.create')}</Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
-         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                    <AlertDialogDescription>{t('deleteDialog.description', { name: deletingCategory?.name })}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                    <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.name')}</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder={t('dialog.namePlaceholder')} {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="code"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.code')}</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder={t('dialog.codePlaceholder')} {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="description"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.description')}</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder={t('dialog.descriptionPlaceholder')} {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="type"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.type')}</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectType')} /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="income">{t('dialog.income')}</SelectItem>
+                                                <SelectItem value="expense">{t('dialog.expense')}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="is_active"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                        <FormControl>
+                                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                        </FormControl>
+                                        <FormLabel>{t('dialog.isActive')}</FormLabel>
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                                <Button type="submit">{editingCategory ? t('dialog.save') : t('dialog.create')}</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
+                        <AlertDialogDescription>{t('deleteDialog.description', { name: deletingCategory?.name })}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }

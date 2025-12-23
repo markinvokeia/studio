@@ -1,20 +1,21 @@
 
 'use client';
 
-import * as React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DataTable } from '@/components/ui/data-table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { MiscellaneousTransaction, MiscellaneousCategory, User, CajaSesion, PaymentMethod } from '@/lib/types';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
 } from "@/components/ui/dialog";
 import {
     DropdownMenu,
@@ -25,24 +26,24 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, PlusCircle, ChevronsUpDown, Check, X, MoreHorizontal } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState } from '@tanstack/react-table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { MiscellaneousCategory, MiscellaneousTransaction, PaymentMethod, User } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { api } from '@/services/api';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState } from '@tanstack/react-table';
+import { format, parseISO } from 'date-fns';
+import { AlertTriangle, Check, ChevronsUpDown, MoreHorizontal } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import * as React from 'react';
 import { DateRange } from 'react-day-picker';
-import { Calendar } from '@/components/ui/calendar';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 
 const transactionFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
@@ -61,36 +62,30 @@ const transactionFormSchema = (t: (key: string) => string) => z.object({
 type TransactionFormValues = z.infer<ReturnType<typeof transactionFormSchema>>;
 
 const completeTransactionSchema = (t: (key: string) => string) => z.object({
-  cash_session_id: z.string().min(1, t('sessionRequired')),
-  payment_method_id: z.string().min(1, t('paymentMethodRequired')),
+    cash_session_id: z.string().min(1, t('sessionRequired')),
+    payment_method_id: z.string().min(1, t('paymentMethodRequired')),
 });
 
 type CompleteTransactionFormValues = z.infer<ReturnType<typeof completeTransactionSchema>>;
 
 type GetTransactionsResponse = {
-  transactions: MiscellaneousTransaction[];
-  total: number;
+    transactions: MiscellaneousTransaction[];
+    total: number;
 };
 
 async function getMiscellaneousTransactions(pagination: PaginationState, searchQuery: string): Promise<GetTransactionsResponse> {
     try {
-        const params = new URLSearchParams({
+        const data = await api.get(API_ROUTES.CASHIER.MISCELLANEOUS_TRANSACTIONS_GET, {
             page: (pagination.pageIndex + 1).toString(),
             limit: pagination.pageSize.toString(),
             search: searchQuery,
         });
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_transactions?${params.toString()}`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        
-        const data = await response.json();
 
-        const transactionsData = Array.isArray(data) ? data : (data.data || []);
-        const total = Number(data[0]?.total) || transactionsData.length;
+        if (!data) return { transactions: [], total: 0 };
+
+        const parsedData = Array.isArray(data) && data.length > 0 ? data[0] : data;
+        const transactionsData = parsedData?.data || (Array.isArray(parsedData) ? parsedData : []);
+        const total = Number(parsedData?.total) || transactionsData.length;
 
         return {
             transactions: transactionsData.map((t: any) => ({
@@ -131,14 +126,10 @@ async function getMiscellaneousTransactions(pagination: PaginationState, searchQ
 
 async function getBeneficiaries(searchQuery: string): Promise<User[]> {
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?search=${searchQuery}`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-        });
-        if (!response.ok) throw new Error('Failed to fetch beneficiaries');
-        const data = await response.json();
-        const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
+        const data = await api.get(API_ROUTES.USERS, { search: searchQuery });
+        if (!data) return [];
+        const parsedData = Array.isArray(data) && data.length > 0 ? data[0] : data;
+        const usersData = parsedData?.data || [];
         return usersData.map((user: any) => ({ ...user, id: String(user.id) }));
     } catch (error) {
         console.error("Failed to fetch beneficiaries:", error);
@@ -148,14 +139,10 @@ async function getBeneficiaries(searchQuery: string): Promise<User[]> {
 
 async function getCategories(): Promise<MiscellaneousCategory[]> {
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_categories`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-        });
-        if (!response.ok) throw new Error('Failed to fetch categories');
-        const data = await response.json();
-        return (data || []).map((cat: any) => ({ ...cat, id: String(cat.id), category_type: cat.type }));
+        const data = await api.get(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_GET);
+        if (!data) return [];
+        const categoriesData = data?.data || (Array.isArray(data) ? data : []);
+        return categoriesData.map((cat: any) => ({ ...cat, id: String(cat.id), category_type: cat.type }));
     } catch (error) {
         console.error("Failed to fetch categories:", error);
         return [];
@@ -164,15 +151,9 @@ async function getCategories(): Promise<MiscellaneousCategory[]> {
 
 async function getPaymentMethods(): Promise<PaymentMethod[]> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/metodospago/all', {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        const data = await response.json();
-        const methodsData = Array.isArray(data) ? data : (data.payment_methods || data.data || []);
+        const data = await api.get(API_ROUTES.CASHIER.PAYMENT_METHODS);
+        if (!data) return [];
+        const methodsData = data?.payment_methods || data?.data || (Array.isArray(data) ? data : []);
         return methodsData.map((m: any) => ({ ...m, id: String(m.id) }));
     } catch (error) {
         console.error("Failed to fetch payment methods:", error);
@@ -190,32 +171,28 @@ async function upsertMiscellaneousTransaction(transactionData: TransactionFormVa
         payment_method_id: transactionData.payment_method_id ? parseInt(transactionData.payment_method_id, 10) : null,
         category_id: parseInt(transactionData.category_id, 10),
     };
-    
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_transactions/upsert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-    });
-    const responseData = await response.json();
-    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400) || responseData.error) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message) || 'Failed to save transaction';
+
+    const response = await api.post(API_ROUTES.CASHIER.MISCELLANEOUS_TRANSACTIONS_UPSERT, payload);
+    if (Array.isArray(response) && response[0]?.code >= 400) {
+        const message = response[0]?.message || 'Failed to save transaction';
         throw new Error(message);
     }
-    return responseData;
+    if (response.error) {
+        throw new Error(response.message || 'Failed to save transaction');
+    }
+    return response;
 }
 
 async function deleteMiscellaneousTransaction(id: string) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_transactions/delete', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-    });
-    const responseData = await response.json();
-    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400) || responseData.error) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message) || 'Failed to delete transaction';
+    const response = await api.delete(API_ROUTES.CASHIER.MISCELLANEOUS_TRANSACTIONS_DELETE, { id });
+    if (Array.isArray(response) && response[0]?.code >= 400) {
+        const message = response[0]?.message || 'Failed to delete transaction';
         throw new Error(message);
     }
-    return responseData;
+    if (response.error) {
+        throw new Error(response.message || 'Failed to delete transaction');
+    }
+    return response;
 }
 
 
@@ -227,7 +204,7 @@ export default function MiscellaneousTransactionsPage() {
     const [transactions, setTransactions] = React.useState<MiscellaneousTransaction[]>([]);
     const [transactionCount, setTransactionCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
-    
+
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [editingTransaction, setEditingTransaction] = React.useState<MiscellaneousTransaction | null>(null);
 
@@ -242,7 +219,7 @@ export default function MiscellaneousTransactionsPage() {
     const [dateRange, setDateRange] = React.useState<DateRange | undefined>();
     const [totalIncome, setTotalIncome] = React.useState(0);
     const [totalExpense, setTotalExpense] = React.useState(0);
-    
+
     const [beneficiaries, setBeneficiaries] = React.useState<User[]>([]);
     const [categories, setCategories] = React.useState<MiscellaneousCategory[]>([]);
     const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
@@ -254,14 +231,14 @@ export default function MiscellaneousTransactionsPage() {
     const form = useForm<TransactionFormValues>({
         resolver: zodResolver(transactionFormSchema(tValidation)),
     });
-    
+
     React.useEffect(() => {
         if (isDialogOpen) {
             getCategories().then(setCategories);
             getPaymentMethods().then(setPaymentMethods);
         }
     }, [isDialogOpen]);
-    
+
     React.useEffect(() => {
         const handler = setTimeout(() => {
             getBeneficiaries(beneficiarySearch).then(setBeneficiaries);
@@ -292,7 +269,7 @@ export default function MiscellaneousTransactionsPage() {
         setDeletingTransaction(transaction);
         setIsDeleteDialogOpen(true);
     };
-    
+
     const confirmDelete = async () => {
         if (!deletingTransaction) return;
         try {
@@ -312,55 +289,58 @@ export default function MiscellaneousTransactionsPage() {
 
 
     const getColumns = (t: (key: string) => string): ColumnDef<MiscellaneousTransaction>[] => [
-        { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.id')} /> },
-        { accessorKey: 'transaction_number', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.transactionNumber')} /> },
-        { accessorKey: 'transaction_date', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.date')} />, cell: ({row}) => format(parseISO(row.original.transaction_date), 'yyyy-MM-dd') },
-        { accessorKey: 'category_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.category')} />,
-          cell: ({ row }) => {
-            const type = row.original.category_type;
-            return <Badge variant={type === 'income' ? 'success' : 'destructive'}>{row.original.category_name}</Badge>
-          }
+        { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} /> },
+        { accessorKey: 'transaction_number', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.transactionNumber')} /> },
+        { accessorKey: 'transaction_date', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.date')} />, cell: ({ row }) => format(parseISO(row.original.transaction_date), 'yyyy-MM-dd') },
+        {
+            accessorKey: 'category_name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.category')} />,
+            cell: ({ row }) => {
+                const type = row.original.category_type;
+                return <Badge variant={type === 'income' ? 'success' : 'destructive'}>{row.original.category_name}</Badge>
+            }
         },
-        { accessorKey: 'beneficiary_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.beneficiary')} /> },
-        { accessorKey: 'amount', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.amount')} />,
-          cell: ({ row }) => {
-            const type = row.original.category_type;
-            const amount = parseFloat(row.original.amount.toString());
-            const colorClass = type === 'income' ? 'text-green-600' : 'text-red-600';
-            return <div className={cn("font-medium text-right", colorClass)}>{new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency }).format(amount)}</div>;
-          }
+        { accessorKey: 'beneficiary_name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.beneficiary')} /> },
+        {
+            accessorKey: 'amount', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.amount')} />,
+            cell: ({ row }) => {
+                const type = row.original.category_type;
+                const amount = parseFloat(row.original.amount.toString());
+                const colorClass = type === 'income' ? 'text-green-600' : 'text-red-600';
+                return <div className={cn("font-medium text-right", colorClass)}>{new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency }).format(amount)}</div>;
+            }
         },
-        { accessorKey: 'status', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
-          cell: ({ row }) => {
-            const status = row.original.status;
-            const variant = status === 'completed' ? 'success' : status === 'pending' ? 'info' : 'destructive';
-            return <Badge variant={variant} className="capitalize">{status}</Badge>
-          }
+        {
+            accessorKey: 'status', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
+            cell: ({ row }) => {
+                const status = row.original.status;
+                const variant = status === 'completed' ? 'success' : status === 'pending' ? 'info' : 'destructive';
+                return <Badge variant={variant} className="capitalize">{status}</Badge>
+            }
         },
-         {
+        {
             id: 'actions',
             cell: ({ row }) => {
                 const transaction = row.original;
                 return (
                     <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEdit(transaction)}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(transaction)} className="text-destructive">Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEdit(transaction)}>Edit</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete(transaction)} className="text-destructive">Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
                     </DropdownMenu>
                 );
             },
         },
     ];
     const columns = getColumns(t);
-    
+
     const loadTransactions = React.useCallback(async () => {
         setIsRefreshing(true);
         const searchQuery = (columnFilters.find(f => f.id === 'beneficiary_name')?.value as string) || '';
@@ -411,148 +391,148 @@ export default function MiscellaneousTransactionsPage() {
         <Button variant={quickFilter === filter ? 'default' : 'outline'} size="sm" onClick={() => setQuickFilter(filter)}>{label}</Button>
     );
 
-  return (
-    <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    return (
+        <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t('dashboard.totalIncome')}</CardTitle></CardHeader>
+                    <CardContent><p className="text-2xl font-bold text-green-600">${totalIncome.toFixed(2)}</p></CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t('dashboard.totalExpense')}</CardTitle></CardHeader>
+                    <CardContent><p className="text-2xl font-bold text-red-600">${totalExpense.toFixed(2)}</p></CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t('dashboard.balance')}</CardTitle></CardHeader>
+                    <CardContent><p className="text-2xl font-bold text-blue-600">${(totalIncome - totalExpense).toFixed(2)}</p></CardContent>
+                </Card>
+            </div>
             <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t('dashboard.totalIncome')}</CardTitle></CardHeader>
-                <CardContent><p className="text-2xl font-bold text-green-600">${totalIncome.toFixed(2)}</p></CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t('dashboard.totalExpense')}</CardTitle></CardHeader>
-                <CardContent><p className="text-2xl font-bold text-red-600">${totalExpense.toFixed(2)}</p></CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t('dashboard.balance')}</CardTitle></CardHeader>
-                <CardContent><p className="text-2xl font-bold text-blue-600">${(totalIncome - totalExpense).toFixed(2)}</p></CardContent>
-            </Card>
-        </div>
-        <Card>
-            <CardHeader>
-                <CardTitle>{t('title')}</CardTitle>
-                <CardDescription>{t('description')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex flex-wrap items-center gap-2 mb-4">
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" size="sm">
-                                {dateRange?.from ? (dateRange.to ? `${format(dateRange.from, 'LLL dd, y')} - ${format(dateRange.to, 'LLL dd, y')}` : format(dateRange.from, 'LLL dd, y')) : t('filters.dateRange')}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="range" selected={dateRange} onSelect={setDateRange} initialFocus />
-                        </PopoverContent>
-                    </Popover>
-                    <div className="flex flex-wrap items-center gap-1">
-                        <QuickFilterButton filter="pending" label={t('filters.pending')} />
-                        <QuickFilterButton filter="completed_today" label={t('filters.completedToday')} />
-                        <QuickFilterButton filter="income_month" label={t('filters.incomeMonth')} />
-                        <QuickFilterButton filter="expense_month" label={t('filters.expenseMonth')} />
-                        <QuickFilterButton filter="salaries" label={t('filters.salaries')} />
-                        <QuickFilterButton filter="services" label={t('filters.services')} />
-                        <QuickFilterButton filter="taxes" label={t('filters.taxes')} />
+                <CardHeader>
+                    <CardTitle>{t('title')}</CardTitle>
+                    <CardDescription>{t('description')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                    {dateRange?.from ? (dateRange.to ? `${format(dateRange.from, 'LLL dd, y')} - ${format(dateRange.to, 'LLL dd, y')}` : format(dateRange.from, 'LLL dd, y')) : t('filters.dateRange')}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar mode="range" selected={dateRange} onSelect={setDateRange} initialFocus />
+                            </PopoverContent>
+                        </Popover>
+                        <div className="flex flex-wrap items-center gap-1">
+                            <QuickFilterButton filter="pending" label={t('filters.pending')} />
+                            <QuickFilterButton filter="completed_today" label={t('filters.completedToday')} />
+                            <QuickFilterButton filter="income_month" label={t('filters.incomeMonth')} />
+                            <QuickFilterButton filter="expense_month" label={t('filters.expenseMonth')} />
+                            <QuickFilterButton filter="salaries" label={t('filters.salaries')} />
+                            <QuickFilterButton filter="services" label={t('filters.services')} />
+                            <QuickFilterButton filter="taxes" label={t('filters.taxes')} />
+                        </div>
                     </div>
-                </div>
-                <DataTable
-                    columns={columns}
-                    data={transactions}
-                    pageCount={Math.ceil(transactionCount / pagination.pageSize)}
-                    pagination={pagination}
-                    onPaginationChange={setPagination}
-                    columnFilters={columnFilters}
-                    onColumnFiltersChange={setColumnFilters}
-                    columnVisibility={visibility}
-                    onColumnVisibilityChange={setVisibility}
-                    manualPagination={true}
-                    filterColumnId="beneficiary_name"
-                    filterPlaceholder={t('filterPlaceholder')}
-                    onCreate={handleCreate}
-                    onRefresh={loadTransactions}
-                    isRefreshing={isRefreshing}
-                />
-            </CardContent>
-        </Card>
-         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="sm:max-w-xl">
-                <DialogHeader>
-                    <DialogTitle>{editingTransaction ? 'Edit Transaction' : 'Create Transaction'}</DialogTitle>
-                </DialogHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                         {submissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{submissionError}</AlertDescription></Alert>}
-                         <FormField control={form.control} name="category_id" render={({ field }) => (
-                            <FormItem><FormLabel>Category</FormLabel>
-                                <Popover open={isCategoryOpen} onOpenChange={setIsCategoryOpen}><PopoverTrigger asChild><FormControl>
-                                <Button variant="outline" role="combobox" className="w-full justify-between">{field.value ? categories.find(c => c.id === field.value)?.name : "Select category"}<ChevronsUpDown /></Button>
-                                </FormControl></PopoverTrigger>
-                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput /><CommandList><CommandEmpty>No category found.</CommandEmpty><CommandGroup>
-                                    {categories.map(c => <CommandItem value={c.name} key={c.id} onSelect={() => {form.setValue("category_id", c.id); setIsCategoryOpen(false);}}><Check className={cn("mr-2", c.id === field.value ? "opacity-100" : "opacity-0")}/>{c.name}</CommandItem>)}
-                                </CommandGroup></CommandList></Command></PopoverContent>
-                                </Popover><FormMessage />
-                            </FormItem>
-                         )} />
-                         <FormField control={form.control} name="beneficiary_id" render={({ field }) => (
-                            <FormItem><FormLabel>Beneficiary</FormLabel>
-                                <Popover open={isBeneficiaryOpen} onOpenChange={setIsBeneficiaryOpen}><PopoverTrigger asChild><FormControl>
-                                <Button variant="outline" role="combobox" className="w-full justify-between">{field.value ? beneficiaries.find(b => b.id === field.value)?.name : "Select beneficiary"}<ChevronsUpDown /></Button>
-                                </FormControl></PopoverTrigger>
-                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput onValueChange={setBeneficiarySearch} /><CommandList><CommandEmpty>No beneficiary found.</CommandEmpty><CommandGroup>
-                                    {beneficiaries.map(b => <CommandItem value={b.name} key={b.id} onSelect={() => {form.setValue("beneficiary_id", b.id); setIsBeneficiaryOpen(false);}}><Check className={cn("mr-2", b.id === field.value ? "opacity-100" : "opacity-0")}/>{b.name}</CommandItem>)}
-                                </CommandGroup></CommandList></Command></PopoverContent>
-                                </Popover><FormMessage />
-                            </FormItem>
-                         )} />
-                         <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="transaction_date" render={({ field }) => (<FormItem><FormLabel>Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                             <FormField
-                                control={form.control}
-                                name="payment_method_id"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Payment Method</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder="Select method"/></SelectTrigger></FormControl>
-                                        <SelectContent>
-                                            {paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>)}
-                                        </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                         </div>
-                         <div className="grid grid-cols-3 gap-4">
-                            <FormField control={form.control} name="amount" render={({ field }) => (<FormItem className="col-span-2"><FormLabel>Amount</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>Currency</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                         </div>
-                         <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
-                         <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="external_reference" render={({ field }) => (<FormItem><FormLabel>Reference</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>Tags</FormLabel><FormControl><Input placeholder="tag1, tag2, tag3" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                         </div>
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                            <Button type="submit">{editingTransaction ? 'Save Changes' : 'Create'}</Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
-         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This will permanently delete transaction #{deletingTransaction?.transaction_number}.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-    </div>
-  );
+                    <DataTable
+                        columns={columns}
+                        data={transactions}
+                        pageCount={Math.ceil(transactionCount / pagination.pageSize)}
+                        pagination={pagination}
+                        onPaginationChange={setPagination}
+                        columnFilters={columnFilters}
+                        onColumnFiltersChange={setColumnFilters}
+                        columnVisibility={visibility}
+                        onColumnVisibilityChange={setVisibility}
+                        manualPagination={true}
+                        filterColumnId="beneficiary_name"
+                        filterPlaceholder={t('filterPlaceholder')}
+                        onCreate={handleCreate}
+                        onRefresh={loadTransactions}
+                        isRefreshing={isRefreshing}
+                    />
+                </CardContent>
+            </Card>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent className="sm:max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle>{editingTransaction ? 'Edit Transaction' : 'Create Transaction'}</DialogTitle>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                            {submissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{submissionError}</AlertDescription></Alert>}
+                            <FormField control={form.control} name="category_id" render={({ field }) => (
+                                <FormItem><FormLabel>Category</FormLabel>
+                                    <Popover open={isCategoryOpen} onOpenChange={setIsCategoryOpen}><PopoverTrigger asChild><FormControl>
+                                        <Button variant="outline" role="combobox" className="w-full justify-between">{field.value ? categories.find(c => c.id === field.value)?.name : "Select category"}<ChevronsUpDown /></Button>
+                                    </FormControl></PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput /><CommandList><CommandEmpty>No category found.</CommandEmpty><CommandGroup>
+                                            {categories.map(c => <CommandItem value={c.name} key={c.id} onSelect={() => { form.setValue("category_id", c.id); setIsCategoryOpen(false); }}><Check className={cn("mr-2", c.id === field.value ? "opacity-100" : "opacity-0")} />{c.name}</CommandItem>)}
+                                        </CommandGroup></CommandList></Command></PopoverContent>
+                                    </Popover><FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="beneficiary_id" render={({ field }) => (
+                                <FormItem><FormLabel>Beneficiary</FormLabel>
+                                    <Popover open={isBeneficiaryOpen} onOpenChange={setIsBeneficiaryOpen}><PopoverTrigger asChild><FormControl>
+                                        <Button variant="outline" role="combobox" className="w-full justify-between">{field.value ? beneficiaries.find(b => b.id === field.value)?.name : "Select beneficiary"}<ChevronsUpDown /></Button>
+                                    </FormControl></PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput onValueChange={setBeneficiarySearch} /><CommandList><CommandEmpty>No beneficiary found.</CommandEmpty><CommandGroup>
+                                            {beneficiaries.map(b => <CommandItem value={b.name} key={b.id} onSelect={() => { form.setValue("beneficiary_id", b.id); setIsBeneficiaryOpen(false); }}><Check className={cn("mr-2", b.id === field.value ? "opacity-100" : "opacity-0")} />{b.name}</CommandItem>)}
+                                        </CommandGroup></CommandList></Command></PopoverContent>
+                                    </Popover><FormMessage />
+                                </FormItem>
+                            )} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={form.control} name="transaction_date" render={({ field }) => (<FormItem><FormLabel>Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField
+                                    control={form.control}
+                                    name="payment_method_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Payment Method</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    {paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                                <FormField control={form.control} name="amount" render={({ field }) => (<FormItem className="col-span-2"><FormLabel>Amount</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>Currency</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                            </div>
+                            <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={form.control} name="external_reference" render={({ field }) => (<FormItem><FormLabel>Reference</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>Tags</FormLabel><FormControl><Input placeholder="tag1, tag2, tag3" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            </div>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                                <Button type="submit">{editingTransaction ? 'Save Changes' : 'Create'}</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete transaction #{deletingTransaction?.transaction_number}.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
+    );
 }
