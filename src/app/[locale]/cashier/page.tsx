@@ -26,6 +26,8 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
+import { api } from '@/services/api';
+import { API_ROUTES } from '@/constants/routes';
 
 const denominationsUYU = [2000, 1000, 500, 200, 100, 50, 20];
 const coinsUYU = [10, 5, 2, 1];
@@ -89,9 +91,7 @@ export default function CashierPage() {
         setIsLoading(true);
         setServerError(null);
         try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash_points/status');
-            if (!response.ok) throw new Error('Failed to fetch cash points status');
-            const data = await response.json();
+            const data = await api.get(API_ROUTES.CASHIER.CASH_POINTS_STATUS);
             const cashPointsData = (Array.isArray(data) ? data : (data.data || [])) as any[];
 
             const mappedCashPoints: CashPointStatus[] = cashPointsData.map(cp => {
@@ -135,13 +135,11 @@ export default function CashierPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [user]);
+    }, []);
 
     const fetchSessionMovements = React.useCallback(async (sessionId: string) => {
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/movements?cash_session_id=${sessionId}`);
-            if (!response.ok) throw new Error('Failed to fetch session movements');
-            const data = await response.json();
+            const data = await api.get(API_ROUTES.CASHIER.SESSIONS_MOVEMENTS, { cash_session_id: sessionId });
 
             let movementsData = [];
             if (Array.isArray(data)) {
@@ -281,14 +279,8 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
         const checkSession = async () => {
             if (user) {
                 try {
-                    const token = localStorage.getItem('token');
-                    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/active?user_id=${user.id}`, {
-                        method: 'GET',
-                        mode: 'cors',
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    const data = await response.json();
-                    setUserHasActiveSession(response.ok && data.code === 200);
+                    const data = await api.get(API_ROUTES.CASHIER.SESSIONS_ACTIVE, { user_id: user.id });
+                    setUserHasActiveSession(data.code === 200);
                 } catch (error) {
                     console.error("Error checking for active session:", error);
                     setUserHasActiveSession(false);
@@ -429,9 +421,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     const handlePrintOpening = async () => {
         setIsPrinting(true);
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/open/print?cash_session_id=${session.id}`);
-            if (!response.ok) throw new Error('Failed to fetch PDF');
-            const blob = await response.blob();
+            const blob = await api.getBlob(API_ROUTES.CASHIER.SESSIONS_OPEN_PRINT, { cash_session_id: session.id });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -968,11 +958,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
             if (!activeSession.id) return;
             setIsLoading(true);
             try {
-                const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/declare?cash_session_id=${activeSession.id}`);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch declaration data.');
-                }
-                const data = await response.json();
+                const data = await api.get(API_ROUTES.CASHIER.SESSIONS_DECLARE, { cash_session_id: activeSession.id });
                 setSystemTotals(Array.isArray(data) ? data : []);
             } catch (error) {
                 console.error("Error fetching declare data:", error);
@@ -1007,14 +993,9 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
         });
 
         try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close', {
-                method: 'POST',
-                body: formData,
-            });
+            const responseData = await api.post(API_ROUTES.CASHIER.SESSIONS_CLOSE, formData);
 
-            const responseData = await response.json();
-
-            if (!response.ok || (Array.isArray(responseData) && responseData[0]?.error) || responseData.error) {
+            if ((Array.isArray(responseData) && responseData[0]?.error) || responseData.error) {
                 const errorInfo = Array.isArray(responseData) ? responseData[0] : responseData;
                 throw new Error(errorInfo.message || 'Failed to close session.');
             }
@@ -1107,9 +1088,7 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
     const handlePrintClose = async () => {
         setIsPrinting(true);
         try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close/print?cash_session_id=${session.id}`);
-            if (!response.ok) throw new Error('Failed to fetch PDF');
-            const blob = await response.blob();
+            const blob = await api.getBlob(API_ROUTES.CASHIER.SESSIONS_CLOSE_PRINT, { cash_session_id: session.id });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -1229,9 +1208,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     const fetchRates = React.useCallback(async () => {
         setExchangeRateStatus('loading');
         try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cotizaciones');
-            if (!response.ok) throw new Error('Failed to fetch exchange rates');
-            const data = await response.json();
+            const data = await api.get(API_ROUTES.CASHIER.COTIZACIONES);
 
             const compra = parseFloat(data.compra);
             const venta = parseFloat(data.venta);
@@ -1254,13 +1231,10 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
     const fetchLastClosing = async () => {
         try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/prefill');
-            if (response.ok) {
-                const data = await response.json();
-                const closingData = Array.isArray(data) ? data[0] : data;
-                if (closingData && closingData.difference_details) {
-                    setLastClosingDetails(closingData.difference_details);
-                }
+            const data = await api.get(API_ROUTES.CASHIER.SESSIONS_PREFILL);
+            const closingData = Array.isArray(data) ? data[0] : data;
+            if (closingData && closingData.difference_details) {
+                setLastClosingDetails(closingData.difference_details);
             }
         } catch (error) {
             console.error("Failed to fetch last closing details:", error);
@@ -1318,24 +1292,18 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         };
 
         try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/open', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    cash_point_id: sessionData.puntoDeCajaId,
-                    currency: sessionData.currency,
-                    date_rate: sessionData.date_rate,
-                    user_id: user?.id,
-                    status: 'OPEN',
-                    opening_amount: totalOpeningAmount,
-                    opening_details: JSON.stringify(openingDetails),
-                })
+            const responseData = await api.post(API_ROUTES.CASHIER.SESSIONS_OPEN, {
+                cash_point_id: sessionData.puntoDeCajaId,
+                currency: sessionData.currency,
+                date_rate: sessionData.date_rate,
+                user_id: user?.id,
+                status: 'OPEN',
+                opening_amount: totalOpeningAmount,
+                opening_details: JSON.stringify(openingDetails),
             });
-
-            const responseData = await response.json();
             const responsePayload = Array.isArray(responseData) ? responseData[0] : responseData;
 
-            if (!response.ok || responsePayload.code >= 400 || !responsePayload.session) {
+            if (responsePayload.code >= 400 || !responsePayload.session) {
                 throw new Error(responsePayload.message || 'Failed to finalize session opening.');
             }
 

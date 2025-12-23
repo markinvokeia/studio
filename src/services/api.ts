@@ -27,13 +27,13 @@ const apiRequest = async (
     endpoint: string,
     data?: any,
     params?: Record<string, string>,
-    query?: Record<string, string>
+    query?: Record<string, string>,
+    responseType: 'json' | 'blob' = 'json'
 ): Promise<any> => {
     const token = getToken();
     const url = buildUrl(endpoint, params, query);
 
     const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
         'Accept': 'application/json',
     };
 
@@ -49,13 +49,21 @@ const apiRequest = async (
     };
 
     if (data && (method === 'POST' || method === 'PUT' || method === 'DELETE')) {
-        config.body = JSON.stringify(data);
+        if (data instanceof FormData) {
+            config.body = data;
+        } else {
+            headers['Content-Type'] = 'application/json';
+            config.body = JSON.stringify(data);
+        }
     }
 
     try {
         const response = await fetch(url, config);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        if (responseType === 'blob') {
+            return await response.blob();
         }
         return await response.json();
     } catch (error) {
@@ -67,6 +75,9 @@ const apiRequest = async (
 export const api = {
     get: (endpoint: string, query?: Record<string, string>, params?: Record<string, string>) =>
         apiRequest('GET', endpoint, undefined, params, query),
+
+    getBlob: (endpoint: string, query?: Record<string, string>, params?: Record<string, string>) =>
+        apiRequest('GET', endpoint, undefined, params, query, 'blob'),
 
     post: (endpoint: string, data: any, params?: Record<string, string>) =>
         apiRequest('POST', endpoint, data, params),
