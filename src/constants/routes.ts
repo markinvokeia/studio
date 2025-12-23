@@ -222,6 +222,7 @@ export const API_ROUTES = {
         API_AUTH_CHECK_FIRST_PASSWORD: '/api/auth/check-requirements-first-password',
         API_AUTH_FIRST_TIME_PASSWORD_TOKEN: '/api/auth/first-time-password-token',
         RECOVER_EMAIL: '/api/auth/recover/email',
+        RESET_PASSWORD_CHANGE: '/api/auth/recover/change',
         SET_FIRST_PASSWORD_API: '/api/auth/set-first-password',
     },
     USERS_UPSERT: '/users/upsert',

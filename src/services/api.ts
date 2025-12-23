@@ -79,14 +79,14 @@ export const api = {
     getBlob: (endpoint: string, query?: Record<string, string>, params?: Record<string, string>) =>
         apiRequest('GET', endpoint, undefined, params, query, 'blob'),
 
-    post: (endpoint: string, data: any, params?: Record<string, string>) =>
-        apiRequest('POST', endpoint, data, params),
+    post: (endpoint: string, data: any, params?: Record<string, string>, query?: Record<string, string>) =>
+        apiRequest('POST', endpoint, data, params, query),
 
-    put: (endpoint: string, data: any, params?: Record<string, string>) =>
-        apiRequest('PUT', endpoint, data, params),
+    put: (endpoint: string, data: any, params?: Record<string, string>, query?: Record<string, string>) =>
+        apiRequest('PUT', endpoint, data, params, query),
 
-    delete: (endpoint: string, data?: any, params?: Record<string, string>) =>
-        apiRequest('DELETE', endpoint, data, params),
+    delete: (endpoint: string, data?: any, params?: Record<string, string>, query?: Record<string, string>) =>
+        apiRequest('DELETE', endpoint, data, params, query),
 };
 
 export default api;
