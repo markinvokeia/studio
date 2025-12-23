@@ -1,52 +1,39 @@
 
 'use client';
 
-import * as React from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ColumnDef, PaginationState, VisibilityState } from '@tanstack/react-table';
-import { AccessLog } from '@/lib/types';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
+import { AccessLog } from '@/lib/types';
+import { ColumnDef, PaginationState, VisibilityState } from '@tanstack/react-table';
 import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import * as React from 'react';
 
+import { API_ROUTES } from '@/constants/routes';
+import api from '@/services/api';
 
 type GetAccessLogsResponse = {
-  accessLogs: AccessLog[];
-  total: number;
+    accessLogs: AccessLog[];
+    total: number;
 };
 
 async function getAccessLogs(pagination: PaginationState): Promise<GetAccessLogsResponse> {
     try {
-        const params = new URLSearchParams({
+        const responseData = await api.get(API_ROUTES.SYSTEM.ACCESS_LOGS, {
             page: (pagination.pageIndex + 1).toString(),
             limit: pagination.pageSize.toString(),
         });
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/access_logs?${params.toString()}`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: {
-                'Accept': 'application/json',
-            },
-            cache: 'no-store',
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-        }
-
-        const responseData = await response.json();
         const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
-        
+
         const logsData = Array.isArray(data.data) ? data.data : (data.access_logs || data.data || data.result || []);
         const total = data.total || (Array.isArray(data) ? data.length : 0);
 
@@ -60,7 +47,7 @@ async function getAccessLogs(pagination: PaginationState): Promise<GetAccessLogs
             channel: apiLog.channel,
             details: apiLog.details,
         }));
-        
+
         return { accessLogs: mappedLogs, total };
     } catch (error) {
         console.error("Failed to fetch access logs:", error);
@@ -78,46 +65,46 @@ export default function AccessLogPage() {
         pageIndex: 0,
         pageSize: 10,
     });
-     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
+    const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
         id: false,
         ip_address: false,
     });
-    
+
     const columns: ColumnDef<AccessLog>[] = [
-        { 
-            accessorKey: 'id', 
-            header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
+        {
+            accessorKey: 'id',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
             enableHiding: true,
         },
-        { accessorKey: 'user_id', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.userId')} /> },
-        { accessorKey: 'timestamp', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.timestamp')} /> },
-        { accessorKey: 'action', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.action')} /> },
-        { accessorKey: 'success', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.success')} />, cell: ({row}) => row.original.success ? t('columns.yes') : t('columns.no') },
-        { accessorKey: 'ip_address', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.ipAddress')} /> },
-        { accessorKey: 'channel', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.channel')} /> },
-        { 
-            accessorKey: 'details', 
-            header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.details')} />,
+        { accessorKey: 'user_id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.userId')} /> },
+        { accessorKey: 'timestamp', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.timestamp')} /> },
+        { accessorKey: 'action', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.action')} /> },
+        { accessorKey: 'success', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.success')} />, cell: ({ row }) => row.original.success ? t('columns.yes') : t('columns.no') },
+        { accessorKey: 'ip_address', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.ipAddress')} /> },
+        { accessorKey: 'channel', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.channel')} /> },
+        {
+            accessorKey: 'details',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.details')} />,
             cell: ({ row }) => <div className="max-w-xs whitespace-pre-wrap break-all">{row.original.details}</div>
         },
         {
             id: 'actions',
             cell: ({ row }) => {
-            const log = row.original;
-            return (
-                <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">{t('columns.openMenu')}</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                    <DropdownMenuItem>{t('columns.viewUser')}</DropdownMenuItem>
-                </DropdownMenuContent>
-                </DropdownMenu>
-            );
+                const log = row.original;
+                return (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">{t('columns.openMenu')}</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
+                            <DropdownMenuItem>{t('columns.viewUser')}</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                );
             },
         },
     ];
@@ -141,10 +128,10 @@ export default function AccessLogPage() {
                 <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent>
-                <DataTable 
-                    columns={columns} 
-                    data={data} 
-                    filterColumnId="user_id" 
+                <DataTable
+                    columns={columns}
+                    data={data}
+                    filterColumnId="user_id"
                     filterPlaceholder={t('filterPlaceholder')}
                     onRefresh={loadLogs}
                     isRefreshing={isRefreshing}

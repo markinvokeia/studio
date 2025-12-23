@@ -1,51 +1,39 @@
 
 'use client';
 
-import * as React from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ColumnDef, PaginationState, VisibilityState } from '@tanstack/react-table';
-import { AuditLog } from '@/lib/types';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
+import { API_ROUTES } from '@/constants/routes';
+import { AuditLog } from '@/lib/types';
+import api from '@/services/api';
+import { ColumnDef, PaginationState, VisibilityState } from '@tanstack/react-table';
 import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import * as React from 'react';
 
 type GetAuditLogsResponse = {
-  auditLogs: AuditLog[];
-  total: number;
+    auditLogs: AuditLog[];
+    total: number;
 };
 
 
 async function getAuditLogs(pagination: PaginationState): Promise<GetAuditLogsResponse> {
     try {
-        const params = new URLSearchParams({
+        const responseData = await api.get(API_ROUTES.SYSTEM.AUDIT_LOGS, {
             page: (pagination.pageIndex + 1).toString(),
             limit: pagination.pageSize.toString(),
         });
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/audit_logs?${params.toString()}`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: {
-                'Accept': 'application/json',
-            },
-            cache: 'no-store',
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-        }
-
-        const responseData = await response.json();
         const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
-        
+
         const logsData = Array.isArray(data.data) ? data.data : (data.audit_logs || data.data || data.result || []);
         const total = data.total || (Array.isArray(data) ? data.length : 0);
 
@@ -59,7 +47,7 @@ async function getAuditLogs(pagination: PaginationState): Promise<GetAuditLogsRe
             old_value: apiLog.old_value,
             new_value: apiLog.new_value,
         }));
-        
+
         return { auditLogs: mappedLogs, total };
     } catch (error) {
         console.error("Failed to fetch audit logs:", error);
@@ -82,18 +70,18 @@ export default function AuditLogPage() {
     });
 
     const columns: ColumnDef<AuditLog>[] = React.useMemo(() => [
-        { 
-            accessorKey: 'id', 
-            header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
+        {
+            accessorKey: 'id',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
             enableHiding: true,
         },
-        { accessorKey: 'changed_at', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.changedAt')} /> },
-        { accessorKey: 'table_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.table')} /> },
-        { accessorKey: 'record_id', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.recordId')} /> },
-        { accessorKey: 'operation', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.operation')} /> },
-        { 
-            accessorKey: 'old_value', 
-            header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.oldValue')} />,
+        { accessorKey: 'changed_at', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.changedAt')} /> },
+        { accessorKey: 'table_name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.table')} /> },
+        { accessorKey: 'record_id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.recordId')} /> },
+        { accessorKey: 'operation', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.operation')} /> },
+        {
+            accessorKey: 'old_value',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.oldValue')} />,
             cell: ({ row }) => {
                 const value = row.original.old_value;
                 let displayValue = '';
@@ -105,11 +93,11 @@ export default function AuditLogPage() {
                 return <pre className="text-xs whitespace-pre-wrap max-w-xs break-all">{displayValue}</pre>
             }
         },
-        { 
-            accessorKey: 'new_value', 
-            header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.newValue')} />,
+        {
+            accessorKey: 'new_value',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.newValue')} />,
             cell: ({ row }) => {
-                 const value = row.original.new_value;
+                const value = row.original.new_value;
                 let displayValue = '';
                 if (typeof value === 'object' && value !== null) {
                     displayValue = JSON.stringify(value, null, 2);
@@ -119,25 +107,25 @@ export default function AuditLogPage() {
                 return <pre className="text-xs whitespace-pre-wrap max-w-xs break-all">{displayValue}</pre>
             }
         },
-        { accessorKey: 'changed_by', header: ({column}) => <DataTableColumnHeader column={column} title={t('columns.changedBy')} /> },
+        { accessorKey: 'changed_by', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.changedBy')} /> },
         {
             id: 'actions',
             cell: ({ row }) => {
-            const log = row.original;
-            return (
-                <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">{t('columns.openMenu')}</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                    <DropdownMenuItem>{t('columns.viewDetails')}</DropdownMenuItem>
-                </DropdownMenuContent>
-                </DropdownMenu>
-            );
+                const log = row.original;
+                return (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">{t('columns.openMenu')}</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
+                            <DropdownMenuItem>{t('columns.viewDetails')}</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                );
             },
         },
     ], [t]);
@@ -161,11 +149,11 @@ export default function AuditLogPage() {
                 <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
             <CardContent>
-                <DataTable 
-                    columns={columns} 
-                    data={data} 
-                    filterColumnId="table_name" 
-                    filterPlaceholder={t('filterPlaceholder')} 
+                <DataTable
+                    columns={columns}
+                    data={data}
+                    filterColumnId="table_name"
+                    filterPlaceholder={t('filterPlaceholder')}
                     onRefresh={loadLogs}
                     isRefreshing={isRefreshing}
                     pageCount={Math.ceil(logCount / pagination.pageSize)}
