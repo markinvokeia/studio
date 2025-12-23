@@ -1,16 +1,13 @@
 
 'use client';
 
-import * as React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { UserColumnsWrapper } from './columns';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, UserRole, Debtor } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   Dialog,
   DialogContent,
@@ -18,36 +15,41 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { PhoneInput } from '@/components/ui/phone-input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MedicalHistory } from '@/components/users/medical-history';
+import { UserAppointments } from '@/components/users/user-appointments';
+import { UserInvoices } from '@/components/users/user-invoices';
+import { UserLogs } from '@/components/users/user-logs';
+import { UserMessages } from '@/components/users/user-messages';
+import { UserOrders } from '@/components/users/user-orders';
+import { UserPayments } from '@/components/users/user-payments';
+import { UserQuotes } from '@/components/users/user-quotes';
 import { UserRoles } from '@/components/users/user-roles';
 import { UserServices } from '@/components/users/user-services';
-import { UserQuotes } from '@/components/users/user-quotes';
-import { UserMessages } from '@/components/users/user-messages';
-import { UserAppointments } from '@/components/users/user-appointments';
-import { UserLogs } from '@/components/users/user-logs';
-import { X, AlertTriangle, KeyRound, DollarSign, Receipt, CreditCard, Banknote, CalendarIcon, Search, Filter, SlidersHorizontal, RefreshCw, Check, ChevronsUpDown, MoreHorizontal } from 'lucide-react';
-import { RowSelectionState, PaginationState, ColumnFiltersState, ColumnDef } from '@tanstack/react-table';
-import { useTranslations } from 'next-intl';
+import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { User, UserRole } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { api } from '@/services/api';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
+import { endOfDay, endOfMonth, endOfWeek, format, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { PhoneInput } from '@/components/ui/phone-input';
-import { UserOrders } from '@/components/users/user-orders';
-import { UserInvoices } from '@/components/users/user-invoices';
-import { UserPayments } from '@/components/users/user-payments';
+import { AlertTriangle, Banknote, Check, CreditCard, DollarSign, Filter, KeyRound, Receipt, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import * as React from 'react';
 import { DateRange } from 'react-day-picker';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, endOfDay, sub } from 'date-fns';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+import { UserColumnsWrapper } from './columns';
 
 const userFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -117,62 +119,43 @@ const UserStats = ({ user }: { user: User }) => {
 
 async function getUsers(pagination: PaginationState, searchQuery: string, onlyDebtors: boolean, dateRange?: DateRange): Promise<GetUsersResponse> {
   try {
-    const token = localStorage.getItem('token');
-    const headers: HeadersInit = {
-        'Accept': 'application/json',
-    };
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const params = new URLSearchParams({
+    const query: Record<string, string> = {
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
       search: searchQuery,
       filter_type: "PACIENTE",
       only_debtors: String(onlyDebtors)
-    });
+    };
 
     if (dateRange?.from) {
       const dateFrom = new Date(dateRange.from);
       dateFrom.setHours(0, 0, 0, 0);
-      params.append('date_from', dateFrom.toISOString());
+      query.date_from = dateFrom.toISOString();
     }
 
     if (dateRange?.to) {
       const dateTo = new Date(dateRange.to);
       dateTo.setHours(23, 59, 59, 999);
-      params.append('date_to', dateTo.toISOString());
+      query.date_to = dateTo.toISOString();
     }
 
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?${params.toString()}`, {
-      method: 'GET',
-      mode: 'cors',
-      headers,
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-    }
-
-    const responseData = await response.json();
+    const responseData = await api.get(API_ROUTES.USERS, query);
 
     let usersData = [];
     let total = 0;
 
     if (Array.isArray(responseData) && responseData.length > 0) {
-        const firstElement = responseData[0];
-        if (firstElement.json && typeof firstElement.json === 'object') {
-            usersData = firstElement.json.data || [];
-            total = Number(firstElement.json.total) || usersData.length;
-        } else if (firstElement.data) {
-            usersData = firstElement.data;
-            total = Number(firstElement.total) || usersData.length;
-        }
+      const firstElement = responseData[0];
+      if (firstElement.json && typeof firstElement.json === 'object') {
+        usersData = firstElement.json.data || [];
+        total = Number(firstElement.json.total) || usersData.length;
+      } else if (firstElement.data) {
+        usersData = firstElement.data;
+        total = Number(firstElement.total) || usersData.length;
+      }
     } else if (typeof responseData === 'object' && responseData !== null && responseData.data) {
-        usersData = responseData.data;
-        total = Number(responseData.total) || usersData.length;
+      usersData = responseData.data;
+      total = Number(responseData.total) || usersData.length;
     }
 
     const mappedUsers = usersData.map((apiUser: any) => ({
@@ -198,18 +181,11 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
 }
 
 async function upsertUser(userData: UserFormValues) {
-  const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/upsert', {
-    method: 'POST',
-    mode: 'cors',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...userData, filter_type: 'PACIENTE', is_sales: true }),
-  });
-
-  const responseData = await response.json();
+  const responseData = await api.post(API_ROUTES.USERS_UPSERT, { ...userData, filter_type: 'PACIENTE', is_sales: true });
 
   if (responseData.error && (responseData.error.error || responseData.code > 200)) {
     const error = new Error('API Error') as any;
-    error.status = responseData.code || response.status;
+    error.status = responseData.code || 500;
     error.data = responseData;
     throw error;
   }
@@ -220,19 +196,7 @@ async function upsertUser(userData: UserFormValues) {
 async function getRolesForUser(userId: string): Promise<UserRole[]> {
   if (!userId) return [];
   try {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/roles/user_roles?user_id=${userId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    const data = await api.get(API_ROUTES.ROLES_USER_ROLES, { user_id: userId });
     const userRolesData = Array.isArray(data) ? (Object.keys(data[0]).length === 0 ? [] : data) : (data.user_roles || data.data || data.result || []);
     return userRolesData.map((apiRole: any) => ({
       user_role_id: apiRole.user_role_id,
@@ -301,40 +265,31 @@ export default function UsersPage() {
 
   React.useEffect(() => {
     const debounce = setTimeout(() => {
-        loadUsers();
+      loadUsers();
     }, 500);
     return () => clearTimeout(debounce);
   }, [loadUsers]);
 
   const handleToggleActivate = async (user: User) => {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/activate', {
-            method: 'PUT',
-            mode: 'cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                user_id: user.id,
-                is_active: !user.is_active,
-            }),
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to update patient status');
-        }
+      await api.put(API_ROUTES.USERS_ACTIVATE, {
+        user_id: user.id,
+        is_active: !user.is_active,
+      });
 
-        toast({
-            title: 'Success',
-            description: `Patient ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
-        });
+      toast({
+        title: 'Success',
+        description: `Patient ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
+      });
 
-        loadUsers();
+      loadUsers();
     } catch (error) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Could not update patient status.',
-        });
-        console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not update patient status.',
+      });
+      console.error(error);
     }
   };
 
@@ -440,12 +395,8 @@ export default function UsersPage() {
       }
 
       try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/check-requirements-first-password?user_id=${selectedUser.id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        setCanSetFirstPassword(response.ok);
+        await api.get(API_ROUTES.SYSTEM.API_AUTH_CHECK_FIRST_PASSWORD, { user_id: selectedUser.id });
+        setCanSetFirstPassword(true);
       } catch (error) {
         console.error("Failed to check first password requirements:", error);
         setCanSetFirstPassword(false);
@@ -511,24 +462,8 @@ export default function UsersPage() {
 
   const handleSendInitialPassword = async () => {
     if (!selectedUser) return;
-    const token = localStorage.getItem('token');
-    if (!token) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Authentication token not found.' });
-      return;
-    }
     try {
-      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/first-time-password-token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ user_id: selectedUser.id }),
-      });
-      const responseData = await response.json();
-      if (!response.ok) {
-        throw new Error(responseData.message || 'Failed to send password email.');
-      }
+      const responseData = await api.post(API_ROUTES.SYSTEM.API_AUTH_FIRST_TIME_PASSWORD_TOKEN, { user_id: selectedUser.id });
       toast({ title: 'Email Sent', description: responseData.message });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'An unexpected error occurred.' });

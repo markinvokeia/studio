@@ -114,6 +114,8 @@ export const API_ROUTES = {
     LOGIN: '/login',
     ORDERS: '/orders',
     PERMISSIONS: '/permissions',
+    PERMISSIONS_UPSERT: '/permisos/upsert',
+    PERMISSIONS_DELETE: '/permisos/delete',
     PROVIDERS: '/providers',
     PURCHASES: {
         INVOICES: '/purchases/invoices',
@@ -157,6 +159,8 @@ export const API_ROUTES = {
     QUOTES: '/quotes',
     RESET_PASSWORD: '/reset-password',
     ROLES: '/roles',
+    ROLES_UPSERT: '/roles/upsert',
+    ROLES_DELETE: '/roles/delete',
     SALES: {
         INVOICES: '/sales/invoices',
         INVOICES_ALL: '/all_invoices',
@@ -217,6 +221,8 @@ export const API_ROUTES = {
         USERS: '/system/users',
         API_AUTH_CHECK_FIRST_PASSWORD: '/api/auth/check-requirements-first-password',
         API_AUTH_FIRST_TIME_PASSWORD_TOKEN: '/api/auth/first-time-password-token',
+        RECOVER_EMAIL: '/api/auth/recover/email',
+        SET_FIRST_PASSWORD_API: '/api/auth/set-first-password',
     },
     USERS_UPSERT: '/users/upsert',
     USERS_ACTIVATE: '/users/activate',

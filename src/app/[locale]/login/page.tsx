@@ -1,28 +1,29 @@
-
 'use client';
 
-import * as React from 'react';
-import { useState, useEffect, FormEvent } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { UsFlagIcon } from '@/components/icons/us-flag-icon';
+import { UyFlagIcon } from '@/components/icons/uy-flag-icon';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Loader2, Globe, Check, Moon, Sun, ArrowLeft } from 'lucide-react';
-import Image from 'next/image';
-import { useLocale, useTranslations } from 'next-intl';
-import { useTheme } from 'next-themes';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { UsFlagIcon } from '@/components/icons/us-flag-icon';
-import { UyFlagIcon } from '@/components/icons/uy-flag-icon';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/services/api';
+import { AlertTriangle, ArrowLeft, Check, Globe, Loader2, Moon, Sun } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
+import Image from 'next/image';
+import { usePathname, useRouter } from 'next/navigation';
+import * as React from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 
 type View = 'login' | 'forgotPassword';
 
@@ -84,15 +85,7 @@ export default function LoginPage() {
     setError('');
     setIsLoading(true);
     try {
-      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/recover/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!response.ok) {
-        throw new Error(tLogin('errors.recoverError'));
-      }
+      await api.post(API_ROUTES.SYSTEM.RECOVER_EMAIL, { email });
 
       toast({
         title: tLogin('recoverSuccessTitle'),
@@ -118,9 +111,8 @@ export default function LoginPage() {
         onEnded={handleVideoEnd}
       />
       <div
-        className={`absolute top-0 left-0 w-full h-full bg-black transition-opacity duration-1000 ${
-          showForm ? 'opacity-50' : 'opacity-0'
-        }`}
+        className={`absolute top-0 left-0 w-full h-full bg-black transition-opacity duration-1000 ${showForm ? 'opacity-50' : 'opacity-0'
+          }`}
       />
       <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
         <DropdownMenu>
@@ -167,9 +159,8 @@ export default function LoginPage() {
         </DropdownMenu>
       </div>
       <div
-        className={`absolute inset-0 flex items-center justify-center transition-opacity duration-1000 ${
-          showForm ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+        className={`absolute inset-0 flex items-center justify-center transition-opacity duration-1000 ${showForm ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
       >
         <Card className="w-full max-w-sm">
           <CardHeader className="text-center">
@@ -243,9 +234,9 @@ export default function LoginPage() {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : tLogin('recoverPasswordButton')}
                 </Button>
-                 <Button variant="link" type="button" onClick={() => setView('login')} className="w-full p-0 h-auto">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    {tLogin('backToLogin')}
+                <Button variant="link" type="button" onClick={() => setView('login')} className="w-full p-0 h-auto">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  {tLogin('backToLogin')}
                 </Button>
               </form>
             )}
