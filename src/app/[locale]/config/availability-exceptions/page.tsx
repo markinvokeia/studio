@@ -1,36 +1,37 @@
 
 'use client';
 
-import * as React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DataTable } from '@/components/ui/data-table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { AvailabilityException, User } from '@/lib/types';
-import { ExceptionsColumnsWrapper } from './columns';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AvailabilityException, User } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { api } from '@/services/api';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
+import { format, parseISO } from 'date-fns';
 import { AlertTriangle, Check, ChevronsUpDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
-import { Checkbox } from '@/components/ui/checkbox';
+import * as React from 'react';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+import { ExceptionsColumnsWrapper } from './columns';
 
 const exceptionFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
@@ -44,36 +45,27 @@ const exceptionFormSchema = (t: (key: string) => string) => z.object({
 type ExceptionFormValues = z.infer<ReturnType<typeof exceptionFormSchema>>;
 
 type GetExceptionsResponse = {
-  exceptions: AvailabilityException[];
-  total: number;
+    exceptions: AvailabilityException[];
+    total: number;
 };
 
 async function getAvailabilityExceptions(pagination: PaginationState, searchQuery: string): Promise<GetExceptionsResponse> {
     try {
-        const params = new URLSearchParams({
+        const responseData = await api.get(API_ROUTES.AVAILABILITY_EXCEPTIONS_SEARCH, {
             page: (pagination.pageIndex + 1).toString(),
             limit: pagination.pageSize.toString(),
             search: searchQuery,
         });
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/availability_exceptions/search?${params.toString()}`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        
-        const responseData = await response.json();
         const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
 
         const exceptionsData = data.data || [];
         const total = Number(data.total) || 0;
 
         return {
-            exceptions: exceptionsData.map((ex: any) => ({ 
-              ...ex, 
-              id: String(ex.id), 
-              exception_date: format(parseISO(ex.exception_date), 'yyyy-MM-dd')
+            exceptions: exceptionsData.map((ex: any) => ({
+                ...ex,
+                id: String(ex.id),
+                exception_date: format(parseISO(ex.exception_date), 'yyyy-MM-dd')
             })),
             total
         };
@@ -85,14 +77,7 @@ async function getAvailabilityExceptions(pagination: PaginationState, searchQuer
 
 async function getDoctors(): Promise<User[]> {
     try {
-        const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/doctors`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
-        });
-        if (!response.ok) throw new Error('Failed to fetch doctors');
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.USERS_DOCTORS);
         const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || []);
         return doctorsData.map((doc: any) => ({ ...doc, id: String(doc.id) }));
     } catch (error) {
@@ -102,13 +87,8 @@ async function getDoctors(): Promise<User[]> {
 }
 
 async function upsertAvailabilityException(exceptionData: ExceptionFormValues) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/availability_exceptions/upsert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(exceptionData),
-    });
-    const responseData = await response.json();
-    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400) || responseData.error) {
+    const responseData = await api.post(API_ROUTES.AVAILABILITY_EXCEPTIONS_UPSERT, exceptionData);
+    if (Array.isArray(responseData) && responseData[0]?.code >= 400 || responseData.error) {
         const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message) || 'Failed to save exception';
         throw new Error(message);
     }
@@ -116,13 +96,8 @@ async function upsertAvailabilityException(exceptionData: ExceptionFormValues) {
 }
 
 async function deleteAvailabilityException(id: string) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/availability_exceptions/delete', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-    });
-    const responseData = await response.json();
-    if (!response.ok || (Array.isArray(responseData) && responseData[0]?.code >= 400) || responseData.error) {
+    const responseData = await api.delete(API_ROUTES.AVAILABILITY_EXCEPTIONS_DELETE, { id });
+    if (Array.isArray(responseData) && responseData[0]?.code >= 400 || responseData.error) {
         const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message) || 'Failed to delete exception';
         throw new Error(message);
     }
@@ -137,7 +112,7 @@ export default function AvailabilityExceptionsPage() {
     const [doctors, setDoctors] = React.useState<User[]>([]);
     const [exceptionCount, setExceptionCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
-    
+
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [editingException, setEditingException] = React.useState<AvailabilityException | null>(null);
 
@@ -169,7 +144,7 @@ export default function AvailabilityExceptionsPage() {
     }, [loadExceptions]);
 
     React.useEffect(() => {
-        if(isDialogOpen) {
+        if (isDialogOpen) {
             getDoctors().then(setDoctors);
         }
     }, [isDialogOpen]);
@@ -186,7 +161,7 @@ export default function AvailabilityExceptionsPage() {
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
-    
+
     const handleEdit = (exception: AvailabilityException) => {
         setEditingException(exception);
         form.reset({
@@ -205,7 +180,7 @@ export default function AvailabilityExceptionsPage() {
         setDeletingException(exception);
         setIsDeleteDialogOpen(true);
     };
-    
+
     const confirmDelete = async () => {
         if (!deletingException) return;
         try {
@@ -234,128 +209,128 @@ export default function AvailabilityExceptionsPage() {
             setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
         }
     };
-    
+
     const exceptionsColumns = ExceptionsColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
 
     return (
         <>
-        <Card>
-            <CardHeader>
-                <CardTitle>{t('title')}</CardTitle>
-                <CardDescription>{t('description')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <DataTable 
-                    columns={exceptionsColumns} 
-                    data={exceptions} 
-                    pageCount={Math.ceil(exceptionCount / pagination.pageSize)}
-                    pagination={pagination}
-                    onPaginationChange={setPagination}
-                    columnFilters={columnFilters}
-                    onColumnFiltersChange={setColumnFilters}
-                    manualPagination={true}
-                    filterColumnId="user_name" 
-                    filterPlaceholder={t('filterPlaceholder')}
-                    onCreate={handleCreate}
-                    onRefresh={loadExceptions}
-                    isRefreshing={isRefreshing}
-                />
-            </CardContent>
-        </Card>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{editingException ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
-                </DialogHeader>
-                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                        {submissionError && (
-                            <Alert variant="destructive">
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
-                                <AlertDescription>{submissionError}</AlertDescription>
-                            </Alert>
-                        )}
-                        <FormField
-                            control={form.control}
-                            name="user_id"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('dialog.doctor')}</FormLabel>
-                                    <Popover open={isDoctorComboboxOpen} onOpenChange={setIsDoctorComboboxOpen}>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                            <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                {field.value ? doctors.find(doc => doc.id === field.value)?.name : t('dialog.selectDoctor')}
-                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                            <Command>
-                                            <CommandInput placeholder={t('dialog.searchDoctor')} />
-                                            <CommandList>
-                                                <CommandEmpty>{t('dialog.noDoctorFound')}</CommandEmpty>
-                                                <CommandGroup>
-                                                {doctors.map((doctor) => (
-                                                    <CommandItem
-                                                        value={doctor.name}
-                                                        key={doctor.id}
-                                                        onSelect={() => {
-                                                            form.setValue("user_id", doctor.id);
-                                                            setIsDoctorComboboxOpen(false);
-                                                        }}
-                                                    >
-                                                    <Check className={cn("mr-2 h-4 w-4", doctor.id === field.value ? "opacity-100" : "opacity-0")}/>
-                                                    {doctor.name}
-                                                    </CommandItem>
-                                                ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                </FormItem>
+            <Card>
+                <CardHeader>
+                    <CardTitle>{t('title')}</CardTitle>
+                    <CardDescription>{t('description')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <DataTable
+                        columns={exceptionsColumns}
+                        data={exceptions}
+                        pageCount={Math.ceil(exceptionCount / pagination.pageSize)}
+                        pagination={pagination}
+                        onPaginationChange={setPagination}
+                        columnFilters={columnFilters}
+                        onColumnFiltersChange={setColumnFilters}
+                        manualPagination={true}
+                        filterColumnId="user_name"
+                        filterPlaceholder={t('filterPlaceholder')}
+                        onCreate={handleCreate}
+                        onRefresh={loadExceptions}
+                        isRefreshing={isRefreshing}
+                    />
+                </CardContent>
+            </Card>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingException ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                            {submissionError && (
+                                <Alert variant="destructive">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                                    <AlertDescription>{submissionError}</AlertDescription>
+                                </Alert>
                             )}
-                        />
-                         <FormField control={form.control} name="exception_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.date')}</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField
-                            control={form.control}
-                            name="is_available"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                    <FormControl>
-                                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                    </FormControl>
-                                    <FormLabel>{t('dialog.isAvailable')}</FormLabel>
-                                </FormItem>
-                            )}
-                        />
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="start_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="end_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        </div>
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
-                            <Button type="submit">{editingException ? t('dialog.save') : t('dialog.create')}</Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
-         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                    <AlertDialogDescription>{t('deleteDialog.description')}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                    <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+                            <FormField
+                                control={form.control}
+                                name="user_id"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.doctor')}</FormLabel>
+                                        <Popover open={isDoctorComboboxOpen} onOpenChange={setIsDoctorComboboxOpen}>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                                                        {field.value ? doctors.find(doc => doc.id === field.value)?.name : t('dialog.selectDoctor')}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                <Command>
+                                                    <CommandInput placeholder={t('dialog.searchDoctor')} />
+                                                    <CommandList>
+                                                        <CommandEmpty>{t('dialog.noDoctorFound')}</CommandEmpty>
+                                                        <CommandGroup>
+                                                            {doctors.map((doctor) => (
+                                                                <CommandItem
+                                                                    value={doctor.name}
+                                                                    key={doctor.id}
+                                                                    onSelect={() => {
+                                                                        form.setValue("user_id", doctor.id);
+                                                                        setIsDoctorComboboxOpen(false);
+                                                                    }}
+                                                                >
+                                                                    <Check className={cn("mr-2 h-4 w-4", doctor.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                                    {doctor.name}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField control={form.control} name="exception_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.date')}</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField
+                                control={form.control}
+                                name="is_available"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                        <FormControl>
+                                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                        </FormControl>
+                                        <FormLabel>{t('dialog.isAvailable')}</FormLabel>
+                                    </FormItem>
+                                )}
+                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={form.control} name="start_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="end_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            </div>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                                <Button type="submit">{editingException ? t('dialog.save') : t('dialog.create')}</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
+                        <AlertDialogDescription>{t('deleteDialog.description')}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }

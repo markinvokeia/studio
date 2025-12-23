@@ -1,43 +1,32 @@
 
 'use client';
 
-import * as React from 'react';
-import Image from 'next/image';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Clinic } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { Clinic } from '@/lib/types';
+import { api } from '@/services/api';
 import { RefreshCw, UploadCloud } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Image from 'next/image';
+import * as React from 'react';
 
 async function getClinic(): Promise<Clinic | null> {
     try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/clinic', {
-            method: 'GET',
-            mode: 'cors',
-            headers: {
-                'Accept': 'application/json',
-            },
-            cache: 'no-store',
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-        }
-
-        const data = await response.json();
+        const data = await api.get(API_ROUTES.CLINIC);
         const clinicsData = Array.isArray(data) ? data : (data.clinics || data.data || data.result || []);
 
         if (clinicsData.length === 0) {
             return null;
         }
-        
+
         const apiClinic = clinicsData[0];
-        
+
         return {
             id: apiClinic.id ? String(apiClinic.id) : `cli_${Math.random().toString(36).substr(2, 9)}`,
             name: apiClinic.name || 'No Name',
@@ -76,7 +65,7 @@ export default function ClinicsPage() {
     React.useEffect(() => {
         loadClinic();
     }, [loadClinic]);
-    
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!clinic) return;
         const { id, value } = e.target;
@@ -111,7 +100,7 @@ export default function ClinicsPage() {
     const handleSaveChanges = async () => {
         if (!clinic) return;
         setIsSaving(true);
-        
+
         const formData = new FormData();
         formData.append('id', clinic.id);
         formData.append('name', clinic.name);
@@ -127,26 +116,20 @@ export default function ClinicsPage() {
         }
 
         try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/clinic/update', {
-                method: 'POST',
-                mode: 'cors',
-                body: formData,
-            });
+            const responseData = await api.post(API_ROUTES.CLINIC_UPDATE, formData);
 
-            const responseData = await response.json();
-
-            if (response.ok && (responseData.code === 200 || responseData[0]?.code === 200)) {
+            if (responseData.code === 200 || responseData[0]?.code === 200) {
                 toast({
                     title: t('toast.successTitle'),
                     description: t('toast.successDesc'),
                 });
                 loadClinic();
             } else {
-                 const errorMessage = responseData.message || (responseData[0]?.message) || t('toast.errorUnknown');
+                const errorMessage = responseData.message || (responseData[0]?.message) || t('toast.errorUnknown');
                 throw new Error(errorMessage);
             }
         } catch (error) {
-             toast({
+            toast({
                 variant: 'destructive',
                 title: t('toast.errorTitle'),
                 description: error instanceof Error ? error.message : t('toast.errorUnknown'),
@@ -159,7 +142,7 @@ export default function ClinicsPage() {
 
     if (isLoading) {
         return (
-             <Card>
+            <Card>
                 <CardHeader>
                     <Skeleton className="h-8 w-1/2" />
                     <Skeleton className="h-4 w-3/4" />
@@ -167,7 +150,7 @@ export default function ClinicsPage() {
                 <CardContent className="space-y-6">
                     <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
                         <div className="space-y-6">
-                             <div className="space-y-2">
+                            <div className="space-y-2">
                                 <Skeleton className="h-4 w-24" />
                                 <Skeleton className="h-10 w-full" />
                             </div>
@@ -222,12 +205,12 @@ export default function ClinicsPage() {
                     <div className="space-y-6">
                         <div className="space-y-2">
                             <Label htmlFor="logo">{t('logoLabel')}</Label>
-                             <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4">
                                 <div className="relative h-24 w-24 rounded-md border-2 border-dashed border-muted-foreground/50 flex items-center justify-center">
                                     {logoPreview ? (
-                                    <Image src={logoPreview} alt="Logo Preview" layout="fill" className="object-contain rounded-md" />
+                                        <Image src={logoPreview} alt="Logo Preview" layout="fill" className="object-contain rounded-md" />
                                     ) : (
-                                    <UploadCloud className="h-8 w-8 text-muted-foreground" />
+                                        <UploadCloud className="h-8 w-8 text-muted-foreground" />
                                     )}
                                 </div>
                                 <Input id="logo" type="file" onChange={handleLogoChange} accept="image/*" className="max-w-xs" />
