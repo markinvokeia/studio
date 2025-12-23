@@ -82,6 +82,9 @@ export const api = {
     post: (endpoint: string, data: any, params?: Record<string, string>, query?: Record<string, string>) =>
         apiRequest('POST', endpoint, data, params, query),
 
+    postBlob: (endpoint: string, data: any, params?: Record<string, string>, query?: Record<string, string>) =>
+        apiRequest('POST', endpoint, data, params, query, 'blob'),
+
     put: (endpoint: string, data: any, params?: Record<string, string>, query?: Record<string, string>) =>
         apiRequest('PUT', endpoint, data, params, query),
 

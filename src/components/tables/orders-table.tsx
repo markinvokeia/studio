@@ -1,16 +1,11 @@
 
 'use client';
 
-import * as React from 'react';
-import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Order, User, Quote } from '@/lib/types';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '../ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { MoreHorizontal, AlertTriangle, ChevronsUpDown, Check } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,23 +13,27 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Calendar } from '../ui/calendar';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '../ui/command';
+import { Order, Quote, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { api } from '@/services/api';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { AlertTriangle, Check, ChevronsUpDown, MoreHorizontal } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import * as React from 'react';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Calendar } from '../ui/calendar';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { useTranslations } from 'next-intl';
-import { ArrowRight, Box } from 'lucide-react';
-import Link from 'next/link';
-import { useLocale } from 'next-intl';
+import { Skeleton } from '../ui/skeleton';
 
 const orderFormSchema = (t: (key: string) => string) => z.object({
   user_id: z.string().min(1, 'User is required'),
@@ -58,167 +57,162 @@ interface OrdersTableProps {
 }
 
 export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, columnTranslations, columnsToHide = [] }: OrdersTableProps) {
-    const t = useTranslations();
-    const tOrderColumns = useTranslations('OrderColumns');
-    const tUserColumns = useTranslations('UserColumns');
-    const tQuoteColumns = useTranslations('QuoteColumns');
-    const tOrdersPage = useTranslations('OrdersPage');
-    const { toast } = useToast();
-    const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
-    const [selectedOrderForInvoice, setSelectedOrderForInvoice] = React.useState<Order | null>(null);
-    const [invoiceDate, setInvoiceDate] = React.useState<Date | undefined>(new Date());
-    const [invoiceSubmissionError, setInvoiceSubmissionError] = React.useState<string | null>(null);
-    const locale = useLocale();
+  const t = useTranslations();
+  const tOrderColumns = useTranslations('OrderColumns');
+  const tUserColumns = useTranslations('UserColumns');
+  const tQuoteColumns = useTranslations('QuoteColumns');
+  const tOrdersPage = useTranslations('OrdersPage');
+  const { toast } = useToast();
+  const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
+  const [selectedOrderForInvoice, setSelectedOrderForInvoice] = React.useState<Order | null>(null);
+  const [invoiceDate, setInvoiceDate] = React.useState<Date | undefined>(new Date());
+  const [invoiceSubmissionError, setInvoiceSubmissionError] = React.useState<string | null>(null);
+  const locale = useLocale();
 
-    const handleInvoiceClick = (order: Order) => {
-        setSelectedOrderForInvoice(order);
-        setInvoiceDate(new Date());
-        setInvoiceSubmissionError(null);
-        setIsInvoiceDialogOpen(true);
-    };
+  const handleInvoiceClick = (order: Order) => {
+    setSelectedOrderForInvoice(order);
+    setInvoiceDate(new Date());
+    setInvoiceSubmissionError(null);
+    setIsInvoiceDialogOpen(true);
+  };
 
-    const handleConfirmInvoice = async () => {
-        if (!selectedOrderForInvoice || !invoiceDate) return;
-        setInvoiceSubmissionError(null);
-        try {
-            const payload = {
-                order_id: selectedOrderForInvoice.id,
-                query: JSON.stringify({
-                    order_id: parseInt(selectedOrderForInvoice.id, 10),
-                    invoice_date: invoiceDate.toISOString(),
-                }),
-            };
+  const handleConfirmInvoice = async () => {
+    if (!selectedOrderForInvoice || !invoiceDate) return;
+    setInvoiceSubmissionError(null);
+    try {
+      const payload = {
+        order_id: selectedOrderForInvoice.id,
+        query: JSON.stringify({
+          order_id: parseInt(selectedOrderForInvoice.id, 10),
+          invoice_date: invoiceDate.toISOString(),
+        }),
+      };
 
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/order/invoice', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-            const responseData = await response.json();
-            if (!response.ok || responseData.error || (responseData.code && responseData.code >= 400)) {
-                if (responseData.message) {
-                     setInvoiceSubmissionError(responseData.message);
-                     return;
-                }
-                throw new Error(tOrdersPage('invoiceDialog.createError'));
-            }
-
-            toast({
-                title: tOrdersPage('invoiceDialog.invoiceSuccess'),
-                description: tOrdersPage('invoiceDialog.invoiceSuccessDesc', { orderId: selectedOrderForInvoice.id }),
-            });
-            
-            if (onRefresh) {
-                onRefresh();
-            }
-            setIsInvoiceDialogOpen(false);
-            setSelectedOrderForInvoice(null);
-
-        } catch (error) {
-            setInvoiceSubmissionError(error instanceof Error ? error.message : tOrdersPage('invoiceDialog.createError'));
+      const responseData = await api.post(API_ROUTES.ORDER_INVOICE, payload);
+      if (responseData.error || (responseData.code && responseData.code >= 400)) {
+        if (responseData.message) {
+          setInvoiceSubmissionError(responseData.message);
+          return;
         }
-    };
-    
-    const columns: ColumnDef<Order>[] = [
-      {
-        id: 'select',
-        header: () => null,
-        cell: ({ row, table }) => {
-          const isSelected = row.getIsSelected();
-          return (
-            <RadioGroup
-              value={isSelected ? row.id : ''}
-              onValueChange={() => {
-                if(onRowSelectionChange) {
-                    table.toggleAllPageRowsSelected(false);
-                    row.toggleSelected(true);
-                }
-              }}
-            >
-              <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
-            </RadioGroup>
-          );
-        },
-        enableSorting: false,
-        enableHiding: false,
-      },
-      {
-        accessorKey: 'id',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={tOrderColumns('orderId')} />
-        ),
-      },
-      {
-        accessorKey: 'user_name',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={tUserColumns('name')} />,
-      },
-      {
-        accessorKey: 'quote_id',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={tQuoteColumns('quoteId')} />,
-      },
-      {
-        accessorKey: 'currency',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('QuoteColumns.currency')} />
-        ),
-        cell: ({ row }) => row.original.currency || 'N/A',
-      },
-      {
-        accessorKey: 'status',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={tUserColumns('status')} />
-        ),
-        cell: ({ row }) => {
-          const status = (row.getValue('status') as string) || '';
-          let normalizedStatus = status.toLowerCase();
-          if (normalizedStatus === 'in progress') {
-            normalizedStatus = 'processing';
-          }
-          const variant = {
-            completed: 'success',
-            pending: 'info',
-            processing: 'default',
-            cancelled: 'destructive',
-          }[normalizedStatus] ?? ('default' as any);
-    
-          return (
-            <Badge variant={variant} className="capitalize">
-              {tOrdersPage(`status.${normalizedStatus}` as any)}
-            </Badge>
-          );
-        },
-      },
-      {
-        accessorKey: 'createdAt',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={tOrderColumns('createdAt')} />
-        ),
-      },
-      {
-        id: 'actions',
-        cell: ({ row }) => {
-            const order = row.original;
-            return (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>{tUserColumns('actions')}</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleInvoiceClick(order)}>
-                            {t('Navigation.Invoices')}
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            );
-        }
+        throw new Error(tOrdersPage('invoiceDialog.createError'));
       }
-    ];
 
-    if (isLoading) {
+      toast({
+        title: tOrdersPage('invoiceDialog.invoiceSuccess'),
+        description: tOrdersPage('invoiceDialog.invoiceSuccessDesc', { orderId: selectedOrderForInvoice.id }),
+      });
+
+      if (onRefresh) {
+        onRefresh();
+      }
+      setIsInvoiceDialogOpen(false);
+      setSelectedOrderForInvoice(null);
+
+    } catch (error) {
+      setInvoiceSubmissionError(error instanceof Error ? error.message : tOrdersPage('invoiceDialog.createError'));
+    }
+  };
+
+  const columns: ColumnDef<Order>[] = [
+    {
+      id: 'select',
+      header: () => null,
+      cell: ({ row, table }) => {
+        const isSelected = row.getIsSelected();
+        return (
+          <RadioGroup
+            value={isSelected ? row.id : ''}
+            onValueChange={() => {
+              if (onRowSelectionChange) {
+                table.toggleAllPageRowsSelected(false);
+                row.toggleSelected(true);
+              }
+            }}
+          >
+            <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
+          </RadioGroup>
+        );
+      },
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: 'id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={tOrderColumns('orderId')} />
+      ),
+    },
+    {
+      accessorKey: 'user_name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={tUserColumns('name')} />,
+    },
+    {
+      accessorKey: 'quote_id',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={tQuoteColumns('quoteId')} />,
+    },
+    {
+      accessorKey: 'currency',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('QuoteColumns.currency')} />
+      ),
+      cell: ({ row }) => row.original.currency || 'N/A',
+    },
+    {
+      accessorKey: 'status',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={tUserColumns('status')} />
+      ),
+      cell: ({ row }) => {
+        const status = (row.getValue('status') as string) || '';
+        let normalizedStatus = status.toLowerCase();
+        if (normalizedStatus === 'in progress') {
+          normalizedStatus = 'processing';
+        }
+        const variant = {
+          completed: 'success',
+          pending: 'info',
+          processing: 'default',
+          cancelled: 'destructive',
+        }[normalizedStatus] ?? ('default' as any);
+
+        return (
+          <Badge variant={variant} className="capitalize">
+            {tOrdersPage(`status.${normalizedStatus}` as any)}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: 'createdAt',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={tOrderColumns('createdAt')} />
+      ),
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => {
+        const order = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>{tUserColumns('actions')}</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => handleInvoiceClick(order)}>
+                {t('Navigation.Invoices')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      }
+    }
+  ];
+
+  if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
         <Skeleton className="h-8 w-full" />
@@ -231,54 +225,54 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
   const filteredColumns = columns.filter(col => !columnsToHide.includes(col.accessorKey as string));
   return (
     <>
-    <Card>
-      <CardContent className="p-4">
-        <DataTable
-          columns={filteredColumns}
-          data={orders}
-          filterColumnId="user_name"
-          filterPlaceholder={tOrdersPage('filterPlaceholder')}
-          onRowSelectionChange={onRowSelectionChange}
-          enableSingleRowSelection={onRowSelectionChange ? true : false}
-          onRefresh={onRefresh}
-          isRefreshing={isRefreshing}
-          onCreate={onCreate}
-          rowSelection={rowSelection}
-          setRowSelection={setRowSelection}
-          columnTranslations={columnTranslations}
-        />
-      </CardContent>
-    </Card>
+      <Card>
+        <CardContent className="p-4">
+          <DataTable
+            columns={filteredColumns}
+            data={orders}
+            filterColumnId="user_name"
+            filterPlaceholder={tOrdersPage('filterPlaceholder')}
+            onRowSelectionChange={onRowSelectionChange}
+            enableSingleRowSelection={onRowSelectionChange ? true : false}
+            onRefresh={onRefresh}
+            isRefreshing={isRefreshing}
+            onCreate={onCreate}
+            rowSelection={rowSelection}
+            setRowSelection={setRowSelection}
+            columnTranslations={columnTranslations}
+          />
+        </CardContent>
+      </Card>
 
-    <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
+      <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-                <DialogTitle>{tOrdersPage('invoiceDialog.title')}</DialogTitle>
-                <DialogDescription>
-                   {tOrdersPage('invoiceDialog.description', { orderId: selectedOrderForInvoice?.id })}
-                </DialogDescription>
-            </DialogHeader>
-            {invoiceSubmissionError && (
-              <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>{tOrdersPage('invoiceDialog.error')}</AlertTitle>
-                  <AlertDescription>{invoiceSubmissionError}</AlertDescription>
-              </Alert>
-            )}
-            <div className="flex justify-center py-4">
-                <Calendar
-                    mode="single"
-                    selected={invoiceDate}
-                    onSelect={setInvoiceDate}
-                    initialFocus
-                />
-            </div>
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setIsInvoiceDialogOpen(false)}>{tOrdersPage('cancel')}</Button>
-                <Button onClick={handleConfirmInvoice}>{tOrdersPage('invoiceDialog.confirm')}</Button>
-            </DialogFooter>
+          <DialogHeader>
+            <DialogTitle>{tOrdersPage('invoiceDialog.title')}</DialogTitle>
+            <DialogDescription>
+              {tOrdersPage('invoiceDialog.description', { orderId: selectedOrderForInvoice?.id })}
+            </DialogDescription>
+          </DialogHeader>
+          {invoiceSubmissionError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>{tOrdersPage('invoiceDialog.error')}</AlertTitle>
+              <AlertDescription>{invoiceSubmissionError}</AlertDescription>
+            </Alert>
+          )}
+          <div className="flex justify-center py-4">
+            <Calendar
+              mode="single"
+              selected={invoiceDate}
+              onSelect={setInvoiceDate}
+              initialFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsInvoiceDialogOpen(false)}>{tOrdersPage('cancel')}</Button>
+            <Button onClick={handleConfirmInvoice}>{tOrdersPage('invoiceDialog.confirm')}</Button>
+          </DialogFooter>
         </DialogContent>
-    </Dialog>
+      </Dialog>
     </>
   );
 }
@@ -309,12 +303,9 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated }: Crea
     if (isOpen) {
       const fetchUsers = async () => {
         try {
-          const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users');
-          if (response.ok) {
-            const data = await response.json();
-            const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
-            setUsers(usersData);
-          }
+          const data = await api.get(API_ROUTES.USERS);
+          const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
+          setUsers(usersData);
         } catch (error) {
           console.error('Failed to fetch users', error);
         }
@@ -327,13 +318,8 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated }: Crea
     if (selectedUserId) {
       const fetchQuotes = async () => {
         try {
-          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_quotes?user_id=${selectedUserId}`);
-          if (response.ok) {
-            const data = await response.json();
-            setQuotes(data || []);
-          } else {
-            setQuotes([]);
-          }
+          const data = await api.get(API_ROUTES.USER_QUOTES, { user_id: selectedUserId });
+          setQuotes(data || []);
         } catch (error) {
           console.error('Failed to fetch quotes', error);
           setQuotes([]);
@@ -347,14 +333,7 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated }: Crea
 
   const onSubmit = async (values: OrderFormValues) => {
     try {
-      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/orders/upsert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to create order');
-      }
+      await api.post(API_ROUTES.ORDERS_UPSERT, values);
       toast({ title: 'Order Created', description: 'The new order has been created successfully.' });
       onOrderCreated();
       onOpenChange(false);

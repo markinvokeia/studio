@@ -1,16 +1,12 @@
 
 'use client';
 
-import * as React from 'react';
-import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Invoice, PaymentMethod, User, Order, Quote, Service, InvoiceItem, Credit } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Skeleton } from '../ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { MoreHorizontal, AlertTriangle, ArrowRight, Box, Printer, Send, FileUp, PlusCircle, CheckCircle, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,30 +14,33 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useForm } from 'react-hook-form';
+import { Credit, Invoice, PaymentMethod, Service, User } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { format } from 'date-fns';
+import { AlertTriangle, ArrowRight, Box, CalendarIcon, FileUp, MoreHorizontal, Printer, Send, Trash2 } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import Link from 'next/link';
+import * as React from 'react';
+import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Calendar } from '../ui/calendar';
+import { Checkbox } from '../ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Calendar } from '../ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { CalendarIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { useAuth } from '@/context/AuthContext';
-import Link from 'next/link';
-import { useLocale, useTranslations } from 'next-intl';
-import { Check, ChevronsUpDown } from 'lucide-react';
-import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '../ui/command';
-import { ScrollArea } from '../ui/scroll-area';
-import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { ScrollArea } from '../ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Skeleton } from '../ui/skeleton';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
@@ -95,14 +94,7 @@ type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
 
 async function getServices(isSales: boolean): Promise<Service[]> {
   try {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=${isSales}`, {
-      method: 'GET',
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' },
-      cache: 'no-store',
-    });
-    if (!response.ok) return [];
-    const data = await response.json();
+    const data = await api.get(API_ROUTES.SERVICES, { is_sales: isSales });
     const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
     return servicesData.map((s: any) => ({ ...s, id: String(s.id) }));
   } catch (error) {
@@ -406,9 +398,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
   const fetchPaymentMethods = async () => {
     try {
-      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/metodospago/all');
-      if (!response.ok) throw new Error('Failed to fetch payment methods');
-      const data = await response.json();
+      const data = await api.get(API_ROUTES.PAYMENT_METHODS);
       const methodsData = Array.isArray(data) ? data : (data.payment_methods || data.data || []);
       setPaymentMethods(methodsData.map((m: any) => ({ ...m, id: String(m.id) })));
     } catch (error) {
@@ -427,13 +417,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       return;
     };
     try {
-      const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_credit?user_id=${userId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setUserCredits(data || []);
-      } else {
-        setUserCredits([]);
-      }
+      const data = await api.get(API_ROUTES.USER_CREDIT, { user_id: userId });
+      setUserCredits(data || []);
     } catch (error) {
       console.error("Failed to fetch user credits", error);
       setUserCredits([]);
@@ -444,31 +429,22 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     if (!user) return;
 
     try {
-      const [sessionResponse, clinicResponse] = await Promise.all([
-        fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash_points/status?user_id=${user.id}`, {
-          method: 'GET',
-          mode: 'cors',
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        }),
-        fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/clinic')
+      const [sessionData, clinicData] = await Promise.all([
+        api.get(API_ROUTES.CASHIER.CASH_POINTS_STATUS, { user_id: user.id }),
+        api.get(API_ROUTES.CLINIC)
       ]);
 
-      if (!sessionResponse.ok) throw new Error('Failed to fetch session status');
-
-      const rawSessionData = await sessionResponse.json();
-      const clinicData = await clinicResponse.json();
-
       // Handle potential array response from n8n
-      const sessionData = Array.isArray(rawSessionData) ? rawSessionData[0] : (rawSessionData || {});
+      const sessionDataNormalized = Array.isArray(sessionData) ? sessionData[0] : (sessionData || {});
 
-      console.log("Session Data:", sessionData); // Debug log
+      console.log("Session Data:", sessionDataNormalized); // Debug log
 
-      if (sessionData && sessionData.active_session_id) {
+      if (sessionDataNormalized && sessionDataNormalized.active_session_id) {
         setSelectedInvoiceForPayment(invoice);
-        setActiveCashSessionId(sessionData.active_session_id);
+        setActiveCashSessionId(sessionDataNormalized.active_session_id);
 
         // Set session exchange rate from opening_details if available, default to 1
-        const rate = sessionData.opening_details?.date_rate ? Number(sessionData.opening_details.date_rate) : 1;
+        const rate = sessionDataNormalized.opening_details?.date_rate ? Number(sessionDataNormalized.opening_details.date_rate) : 1;
         setSessionExchangeRate(rate);
 
         // Set company currency
@@ -603,13 +579,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         }),
       };
 
-      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice/payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const responseData = await response.json();
+      const responseData = await api.post(API_ROUTES.SALES.INVOICE_PAYMENT, payload);
 
       if (responseData.error || (responseData.code && responseData.code >= 400)) {
         const message = responseData.message || 'Failed to add payment.';
@@ -1036,27 +1006,20 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
       const fetchData = async () => {
         try {
           const filterType = isSales ? 'PACIENTE' : 'PROVEEDOR';
-          const [usersRes, servicesRes, invoicesRes] = await Promise.all([
-            fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users?filter_type=${filterType}`),
-            fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=${isSales}`),
-            fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/all_invoices?is_sales=${isSales}&status=booked&type=invoice`)
+          const [usersData, servicesData, invoicesData] = await Promise.all([
+            api.get(API_ROUTES.USERS, { filter_type: filterType }),
+            api.get(API_ROUTES.SERVICES, { is_sales: isSales }),
+            api.get(API_ROUTES.SALES.INVOICES_ALL, { is_sales: isSales, status: 'booked', type: 'invoice' })
           ]);
 
-          if (usersRes.ok) {
-            const data = await usersRes.json();
-            const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
-            setUsers(usersData.map((u: any) => ({ ...u, id: String(u.id) })));
-          }
-          if (servicesRes.ok) {
-            const data = await servicesRes.json();
-            const servicesData = Array.isArray(data) ? data : (data.services || []);
-            setServices(servicesData.map((s: any) => ({ ...s, id: String(s.id) })));
-          }
-          if (invoicesRes.ok) {
-            const data = await invoicesRes.json();
-            const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
-            setBookedInvoices(invoicesData);
-          }
+          const usersDataNormalized = (Array.isArray(usersData) && usersData.length > 0) ? usersData[0].data : (usersData.data || []);
+          setUsers(usersDataNormalized.map((u: any) => ({ ...u, id: String(u.id) })));
+
+          const servicesDataNormalized = Array.isArray(servicesData) ? servicesData : (servicesData.services || []);
+          setServices(servicesDataNormalized.map((s: any) => ({ ...s, id: String(s.id) })));
+
+          const invoicesDataNormalized = Array.isArray(invoicesData) ? invoicesData : (invoicesData.invoices || invoicesData.data || []);
+          setBookedInvoices(invoicesDataNormalized);
         } catch (error) {
           console.error('Failed to fetch initial data', error);
         }
@@ -1069,13 +1032,8 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
   const onSubmit = async (values: CreateInvoiceFormValues) => {
     setSubmissionError(null);
     try {
-      const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/upsert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...values, is_sales: isSales }),
-      });
-      const responseData = await response.json();
-      if (!response.ok || (responseData.error && responseData.code >= 400)) {
+      const responseData = await api.post(API_ROUTES.SALES.INVOICES_UPSERT, { ...values, is_sales: isSales });
+      if (responseData.error && responseData.code >= 400) {
         throw new Error(responseData.message || t('errors.generic'));
       }
       toast({ title: t('success.title'), description: t('success.description') });

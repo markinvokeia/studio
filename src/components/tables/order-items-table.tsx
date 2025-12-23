@@ -1,15 +1,13 @@
 
 'use client';
 
-import * as React from 'react';
-import { ColumnDef } from '@tanstack/react-table';
-import { DataTable } from '@/components/ui/data-table';
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { OrderItem } from '@/lib/types';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Card, CardContent } from '@/components/ui/card';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,29 +15,33 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Calendar } from '@/components/ui/calendar';
+import { Skeleton } from '@/components/ui/skeleton';
+import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { OrderItem } from '@/lib/types';
+import { api } from '@/services/api';
+import { ColumnDef } from '@tanstack/react-table';
+import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import * as React from 'react';
 
 type ActionType = 'schedule' | 'complete';
 
 const DateCell = ({ dateValue }: { dateValue: string | null }) => {
-    if (!dateValue || dateValue === 'N/A') {
-        return <Badge variant="destructive">N/A</Badge>;
-    }
+  if (!dateValue || dateValue === 'N/A') {
+    return <Badge variant="destructive">N/A</Badge>;
+  }
 
-    const date = new Date(dateValue);
-    const now = new Date();
-    
-    date.setHours(0, 0, 0, 0);
-    now.setHours(0, 0, 0, 0);
+  const date = new Date(dateValue);
+  const now = new Date();
 
-    if (date < now) {
-        return <Badge variant="success">{dateValue}</Badge>;
-    }
-    return <Badge variant="info">{dateValue}</Badge>;
+  date.setHours(0, 0, 0, 0);
+  now.setHours(0, 0, 0, 0);
+
+  if (date < now) {
+    return <Badge variant="success">{dateValue}</Badge>;
+  }
+  return <Badge variant="info">{dateValue}</Badge>;
 };
 
 interface OrderItemsTableProps {
@@ -68,43 +70,37 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
     if (!selectedItem || !actionType || !selectedDate || !quoteId) return;
 
     try {
-        const queryPayload = {
-            action: actionType,
-            order_item_id: selectedItem.id,
-            schedule_date_time: selectedDate.toISOString(),
-        };
+      const queryPayload = {
+        action: actionType,
+        order_item_id: selectedItem.id,
+        schedule_date_time: selectedDate.toISOString(),
+      };
 
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/quote/lines/schedule', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                query: JSON.stringify(queryPayload),
-                quote_number: quoteId,
-                schedule_complete: actionType,
-            }),
-        });
+      await api.post(API_ROUTES.QUOTES_LINES_SCHEDULE, {
+        query: JSON.stringify(queryPayload),
+        quote_number: quoteId,
+        schedule_complete: actionType,
+      });
 
-        if (!response.ok) throw new Error(t('toast.updateError'));
-        
-        toast({
-            title: t(actionType === 'schedule' ? 'toast.scheduledTitle' : 'toast.completedTitle'),
-            description: t('toast.updateSuccess'),
-        });
+      toast({
+        title: t(actionType === 'schedule' ? 'toast.scheduledTitle' : 'toast.completedTitle'),
+        description: t('toast.updateSuccess'),
+      });
 
-        if(onItemsUpdate) {
-            onItemsUpdate();
-        }
+      if (onItemsUpdate) {
+        onItemsUpdate();
+      }
 
     } catch (error) {
-        toast({
-            variant: 'destructive',
-            title: t('toast.error'),
-            description: error instanceof Error ? error.message : t('toast.updateError'),
-        });
+      toast({
+        variant: 'destructive',
+        title: t('toast.error'),
+        description: error instanceof Error ? error.message : t('toast.updateError'),
+      });
     } finally {
-        setIsDatePickerOpen(false);
-        setSelectedItem(null);
-        setActionType(null);
+      setIsDatePickerOpen(false);
+      setSelectedItem(null);
+      setActionType(null);
     }
   };
 
@@ -180,7 +176,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('columns.scheduled')} />
       ),
-       cell: ({ row }) => <DateCell dateValue={row.getValue('scheduled_date')} />,
+      cell: ({ row }) => <DateCell dateValue={row.getValue('scheduled_date')} />,
     },
     {
       accessorKey: 'completed_date',
@@ -197,29 +193,29 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
       cell: ({ row }) => <DateCell dateValue={row.getValue('invoiced_date')} />,
     },
     {
-        id: 'actions',
-        cell: ({ row }) => {
-            const item = row.original;
-            return (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">{t('actions.openMenu')}</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>{t('actions.title')}</DropdownMenuLabel>
-                        {!item.scheduled_date && <DropdownMenuItem onClick={() => handleActionClick(item, 'schedule')}>{t('actions.schedule')}</DropdownMenuItem>}
-                        {!item.completed_date && <DropdownMenuItem onClick={() => handleActionClick(item, 'complete')}>{t('actions.complete')}</DropdownMenuItem>}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            );
-        },
+      id: 'actions',
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">{t('actions.openMenu')}</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>{t('actions.title')}</DropdownMenuLabel>
+              {!item.scheduled_date && <DropdownMenuItem onClick={() => handleActionClick(item, 'schedule')}>{t('actions.schedule')}</DropdownMenuItem>}
+              {!item.completed_date && <DropdownMenuItem onClick={() => handleActionClick(item, 'complete')}>{t('actions.complete')}</DropdownMenuItem>}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
     }
   ];
 
-    if (isLoading) {
+  if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
         <Skeleton className="h-8 w-full" />
@@ -231,43 +227,43 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
   }
   return (
     <>
-    <Card>
-      <CardContent className="p-4">
-        <DataTable
-          columns={columns}
-          data={items}
-          filterColumnId="service_name"
-          filterPlaceholder={t('filterPlaceholder')}
-        />
-      </CardContent>
-    </Card>
+      <Card>
+        <CardContent className="p-4">
+          <DataTable
+            columns={columns}
+            data={items}
+            filterColumnId="service_name"
+            filterPlaceholder={t('filterPlaceholder')}
+          />
+        </CardContent>
+      </Card>
 
-    <Dialog open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+      <Dialog open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
         <DialogContent className="sm:max-w-[425px]">
-            {actionType && (
-                <>
-                    <DialogHeader>
-                        <DialogTitle className="capitalize">{t(`dateDialog.title.${actionType}`)}</DialogTitle>
-                        <DialogDescription>
-                            {t(`dateDialog.description.${actionType}`)}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex justify-center py-4">
-                        <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={setSelectedDate}
-                            initialFocus
-                        />
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDatePickerOpen(false)}>{t('dateDialog.cancel')}</Button>
-                        <Button onClick={handleDateSave}>{t('dateDialog.save')}</Button>
-                    </DialogFooter>
-                </>
-            )}
+          {actionType && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="capitalize">{t(`dateDialog.title.${actionType}`)}</DialogTitle>
+                <DialogDescription>
+                  {t(`dateDialog.description.${actionType}`)}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-center py-4">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  initialFocus
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDatePickerOpen(false)}>{t('dateDialog.cancel')}</Button>
+                <Button onClick={handleDateSave}>{t('dateDialog.save')}</Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
-    </Dialog>
+      </Dialog>
     </>
   );
 }
