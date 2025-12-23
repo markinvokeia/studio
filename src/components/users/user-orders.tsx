@@ -1,58 +1,56 @@
 
 'use client';
 
-import * as React from 'react';
-import { ColumnDef } from '@tanstack/react-table';
 import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { Skeleton } from '@/components/ui/skeleton';
+import { API_ROUTES } from '@/constants/routes';
 import { Order } from '@/lib/types';
-import { Badge } from '../ui/badge';
+import { api } from '@/services/api';
+import { ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
+import * as React from 'react';
+import { Badge } from '../ui/badge';
 
 const getColumns = (t: (key: string) => string): ColumnDef<Order>[] => [
-    {
-        accessorKey: 'id',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />,
-    },
-    {
-        accessorKey: 'quote_id',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.quoteId')} />,
-    },
-    {
-        accessorKey: 'createdAt',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={t('OrderColumns.createdAt')} />,
-    },
-    {
-        accessorKey: 'status',
-        header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.status')} />,
-        cell: ({ row }) => {
-            const status = row.getValue('status') as string;
-            const variant = {
-                completed: 'success',
-                pending: 'info',
-                processing: 'default',
-                cancelled: 'destructive',
-            }[status.toLowerCase()] ?? ('default' as any);
+  {
+    accessorKey: 'id',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />,
+  },
+  {
+    accessorKey: 'quote_id',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.quoteId')} />,
+  },
+  {
+    accessorKey: 'createdAt',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('OrderColumns.createdAt')} />,
+  },
+  {
+    accessorKey: 'status',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.status')} />,
+    cell: ({ row }) => {
+      const status = row.getValue('status') as string;
+      const variant = {
+        completed: 'success',
+        pending: 'info',
+        processing: 'default',
+        cancelled: 'destructive',
+      }[status.toLowerCase()] ?? ('default' as any);
 
-            return (
-                <Badge variant={variant} className="capitalize">
-                    {status}
-                </Badge>
-            );
-        }
-    },
+      return (
+        <Badge variant={variant} className="capitalize">
+          {status}
+        </Badge>
+      );
+    }
+  },
 ];
 
 async function getOrdersForUser(userId: string): Promise<Order[]> {
   if (!userId) return [];
   try {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/user_orders?user_id=${userId}`);
-    if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-    }
-    const data = await response.json();
+    const data = await api.get(API_ROUTES.USER_ORDERS, { user_id: userId });
     const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
     return ordersData.map((apiOrder: any) => ({
       id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,

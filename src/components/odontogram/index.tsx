@@ -1,81 +1,102 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { 
-  Calendar, AlertTriangle, FileText, Camera, Stethoscope, Heart, Pill, Search, 
-  Clock, User, ChevronRight, Eye, Download, Filter, Mic, MicOff, Play, Pause, 
-  ZoomIn, ZoomOut, RotateCcw, MessageSquare, Send, FileDown, Layers, TrendingUp, 
-  BarChart3, X, Plus, Edit3, Save, Shield, Award, Zap, Paperclip, SearchCheck, RefreshCw,
-  Wind, GlassWater
-} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import type { User as UserType, PatientSession, TreatmentDetail, AttachedFile } from '@/lib/types';
-import { useParams, useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { API_ROUTES } from '@/constants/routes';
+import type { PatientSession, User as UserType } from '@/lib/types';
+import { api } from '@/services/api';
 import { format, parseISO } from 'date-fns';
-import { Button } from '@/components/ui/button';
+import {
+  AlertTriangle,
+  Award,
+  BarChart3,
+  Camera,
+  Clock,
+  FileDown,
+  FileText,
+  Filter,
+  GlassWater,
+  Heart,
+  MessageSquare,
+  Mic,
+  Paperclip,
+  Pill,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  SearchCheck,
+  Send,
+  Shield,
+  TrendingUp,
+  User,
+  Wind,
+  X,
+  ZoomIn, ZoomOut
+} from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+import React, { useCallback, useEffect, useState } from 'react';
 
 
 const initialPatient = {
-    id: '1',
-    name: "María García López",
-    age: 34,
-    lastVisit: "2024-11-15",
-    alerts: [
-      { type: "allergy", text: "ALERGIA A PENICILINA", severity: "high", code: "294505008" },
-      { type: "condition", text: "HIPERTENSIÓN ARTERIAL", severity: "medium", code: "38341003" },
-      { type: "medication", text: "ANTICOAGULADO (Sintrom)", severity: "high", code: "182840001" }
+  id: '1',
+  name: "María García López",
+  age: 34,
+  lastVisit: "2024-11-15",
+  alerts: [
+    { type: "allergy", text: "ALERGIA A PENICILINA", severity: "high", code: "294505008" },
+    { type: "condition", text: "HIPERTENSIÓN ARTERIAL", severity: "medium", code: "38341003" },
+    { type: "medication", text: "ANTICOAGULADO (Sintrom)", severity: "high", code: "182840001" }
+  ],
+  medicalHistory: {
+    personalHistory: [
+      { nombre: "Hipertensión Arterial", categoria: "Cardiovascular", nivel_alerta: 2, comentarios: "Medicación diaria" },
+      { nombre: "Diabetes Tipo 2", categoria: "Endocrino", nivel_alerta: 2, comentarios: "Dieta y ejercicio" }
     ],
-    medicalHistory: {
-      personalHistory: [
-        { nombre: "Hipertensión Arterial", categoria: "Cardiovascular", nivel_alerta: 2, comentarios: "Medicación diaria" },
-        { nombre: "Diabetes Tipo 2", categoria: "Endocrino", nivel_alerta: 2, comentarios: "Dieta y ejercicio" }
-      ],
-      familyHistory: [
-        { condition: "Diabetes", relative: "Madre", comments: "Diagnosticada a los 45 años" },
-        { condition: "Cardiopatía", relative: "Padre", comments: "Infarto a los 60 años" }
-      ],
-      allergies: [
-        { allergen: "Penicilina", reaction: "Urticaria severa", snomed: "294505008" },
-        { allergen: "AINEs", reaction: "Irritación gástrica", snomed: "293586001" }
-      ],
-      medications: [
-        { name: "Enalapril", dose: "10mg", frequency: "1/día", since: "2019-03-15", code: "387467008" },
-        { name: "Metformina", dose: "850mg", frequency: "2/día", since: "2021-07-20", code: "109081006" },
-        { name: "Sintrom", dose: "4mg", frequency: "1/día", since: "2023-01-10", code: "387467008" }
-      ]
-    }
-  };
-  
+    familyHistory: [
+      { condition: "Diabetes", relative: "Madre", comments: "Diagnosticada a los 45 años" },
+      { condition: "Cardiopatía", relative: "Padre", comments: "Infarto a los 60 años" }
+    ],
+    allergies: [
+      { allergen: "Penicilina", reaction: "Urticaria severa", snomed: "294505008" },
+      { allergen: "AINEs", reaction: "Irritación gástrica", snomed: "293586001" }
+    ],
+    medications: [
+      { name: "Enalapril", dose: "10mg", frequency: "1/día", since: "2019-03-15", code: "387467008" },
+      { name: "Metformina", dose: "850mg", frequency: "2/día", since: "2021-07-20", code: "109081006" },
+      { name: "Sintrom", dose: "4mg", frequency: "1/día", since: "2023-01-10", code: "387467008" }
+    ]
+  }
+};
+
 type PersonalHistoryItem = {
-    nombre: string;
-    categoria: string;
-    nivel_alerta: number;
-    comentarios: string;
+  nombre: string;
+  categoria: string;
+  nivel_alerta: number;
+  comentarios: string;
 };
 
 type FamilyHistoryItem = {
-    condition: string;
-    relative: string;
-    comments: string;
+  condition: string;
+  relative: string;
+  comments: string;
 };
 
 type AllergyItem = {
-    allergen: string;
-    reaction: string;
-    snomed: string;
+  allergen: string;
+  reaction: string;
+  snomed: string;
 };
 
 type MedicationItem = {
-    name: string;
-    dose: string;
-    frequency: string;
-    since: string | null;
-    endDate: string | null;
-    reason: string;
-    code: string;
+  name: string;
+  dose: string;
+  frequency: string;
+  since: string | null;
+  endDate: string | null;
+  reason: string;
+  code: string;
 };
 
 type PatientHabits = {
@@ -122,279 +143,210 @@ const DentalClinicalSystem = () => {
   const [patientHabits, setPatientHabits] = useState<PatientHabits | null>(null);
   const [isLoadingPatientHabits, setIsLoadingPatientHabits] = useState(false);
 
-  
-    const fetchPersonalHistory = useCallback(async (currentUserId: string) => {
-        if (!currentUserId) return;
-        setIsLoadingPersonalHistory(true);
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_personales?user_id=${currentUserId}`, {
-                method: 'GET',
-                mode: 'cors',
-                headers: { 'Accept': 'application/json' },
-            });
-            if (!response.ok) {
-                throw new Error('Network response was not ok for personal history');
-            }
-            const data = await response.json();
-            const historyData = Array.isArray(data) ? data : (data.antecedentes_personales || data.data || []);
-            
-            const mappedHistory = historyData.map((item: any): PersonalHistoryItem => ({
-                nombre: item.nombre || 'N/A',
-                categoria: item.categoria || 'N/A',
-                nivel_alerta: Number(item.nivel_alerta) || 1,
-                comentarios: item.comentarios || '',
-            }));
-            setPersonalHistory(mappedHistory);
-        } catch (error) {
-            console.error("Failed to fetch personal history:", error);
-            setPersonalHistory([]);
-        } finally {
-            setIsLoadingPersonalHistory(false);
-        }
-    }, []);
-    
-    const fetchFamilyHistory = useCallback(async (currentUserId: string) => {
-        if (!currentUserId) return;
-        setIsLoadingFamilyHistory(true);
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_familiares?user_id=${currentUserId}`, {
-                method: 'GET',
-                mode: 'cors',
-                headers: { 'Accept': 'application/json' },
-            });
-            if (!response.ok) {
-                throw new Error('Network response was not ok for family history');
-            }
-            const data = await response.json();
-            const historyData = Array.isArray(data) ? data : (data.antecedentes_familiares || data.data || []);
-            
-            const mappedHistory = historyData.map((item: any): FamilyHistoryItem => ({
-                condition: item.nombre || 'N/A',
-                relative: item.parentesco || 'N/A',
-                comments: item.comentarios || '',
-            }));
-            setFamilyHistory(mappedHistory);
-        } catch (error) {
-            console.error("Failed to fetch family history:", error);
-            setFamilyHistory([]);
-        } finally {
-            setIsLoadingFamilyHistory(false);
-        }
-    }, []);
 
-    const fetchAllergies = useCallback(async (currentUserId: string) => {
-        if (!currentUserId) return;
-        setIsLoadingAllergies(true);
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_alergias?user_id=${currentUserId}`, {
-                method: 'GET',
-                mode: 'cors',
-                headers: { 'Accept': 'application/json' },
-            });
-            if (!response.ok) {
-                throw new Error('Network response was not ok for allergies');
-            }
-            const data = await response.json();
-            const allergyData = Array.isArray(data) ? data : (data.antecedentes_alergias || data.data || []);
-            
-            const mappedAllergies = allergyData.map((item: any): AllergyItem => ({
-                allergen: item.alergeno || 'N/A',
-                reaction: item.reaccion_descrita || '',
-                snomed: item.snomed_ct_id || '',
-            }));
-            setAllergies(mappedAllergies);
-        } catch (error) {
-            console.error("Failed to fetch allergies:", error);
-            setAllergies([]);
-        } finally {
-            setIsLoadingAllergies(false);
-        }
-    }, []);
+  const fetchPersonalHistory = useCallback(async (currentUserId: string) => {
+    if (!currentUserId) return;
+    setIsLoadingPersonalHistory(true);
+    try {
+      const data = await api.get(API_ROUTES.CLINIC_HISTORY.PERSONAL_HISTORY, { user_id: currentUserId });
+      const historyData = Array.isArray(data) ? data : (data.antecedentes_personales || data.data || []);
 
-    const fetchMedications = useCallback(async (currentUserId: string) => {
-        if (!currentUserId) return;
-        setIsLoadingMedications(true);
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/antecedentes_medicamentos?user_id=${currentUserId}`, {
-                method: 'GET',
-                mode: 'cors',
-                headers: { 'Accept': 'application/json' },
-            });
-            if (!response.ok) {
-                throw new Error('Network response was not ok for medications');
-            }
-            const data = await response.json();
-            const medicationData = Array.isArray(data) ? data : (data.antecedentes_medicamentos || data.data || []);
-            
-            const mappedMedications = medicationData.map((item: any): MedicationItem => ({
-                name: item.nombre_medicamento || 'N/A',
-                dose: item.dosis || 'N/A',
-                frequency: item.frecuencia || 'N/A',
-                since: item.fecha_inicio || null,
-                endDate: item.fecha_fin || null,
-                reason: item.motivo || '',
-                code: item.snomed_ct_id || '',
-            }));
-            setMedications(mappedMedications);
-        } catch (error) {
-            console.error("Failed to fetch medications:", error);
-            setMedications([]);
-        } finally {
-            setIsLoadingMedications(false);
-        }
-    }, []);
-    
-    const fetchPatientSessions = useCallback(async (currentUserId: string) => {
-        if (!currentUserId) return;
-        setIsLoadingPatientSessions(true);
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/patient_sessions?user_id=${currentUserId}`, {
-                method: 'GET',
-                mode: 'cors',
-                headers: { 'Accept': 'application/json' },
-            });
-            if (!response.ok) {
-                console.error('Network response was not ok for patient sessions');
-                setPatientSessions([]);
-                return;
-            }
-            const data = await response.json();
-            const sessionsData = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
-            setPatientSessions(sessionsData);
-        } catch (error) {
-            console.error("Failed to fetch patient sessions:", error);
-            setPatientSessions([]);
-        } finally {
-            setIsLoadingPatientSessions(false);
-        }
-    }, []);
+      const mappedHistory = historyData.map((item: any): PersonalHistoryItem => ({
+        nombre: item.nombre || 'N/A',
+        categoria: item.categoria || 'N/A',
+        nivel_alerta: Number(item.nivel_alerta) || 1,
+        comentarios: item.comentarios || '',
+      }));
+      setPersonalHistory(mappedHistory);
+    } catch (error) {
+      console.error("Failed to fetch personal history:", error);
+      setPersonalHistory([]);
+    } finally {
+      setIsLoadingPersonalHistory(false);
+    }
+  }, []);
 
-    const fetchPatientHabits = useCallback(async (currentUserId: string) => {
-        if (!currentUserId) return;
-        setIsLoadingPatientHabits(true);
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/habitos_paciente?user_id=${currentUserId}`, {
-                method: 'GET',
-                mode: 'cors',
-                headers: { 'Accept': 'application/json' },
-            });
-            if (!response.ok) {
-                throw new Error('Network response was not ok for patient habits');
-            }
-            const data = await response.json();
-            const habitsData = Array.isArray(data) && data.length > 0 ? data[0] : (data.patient_habits || data.data || null);
-            setPatientHabits(habitsData);
-        } catch (error) {
-            console.error("Failed to fetch patient habits:", error);
-            setPatientHabits(null);
-        } finally {
-            setIsLoadingPatientHabits(false);
-        }
-    }, []);
+  const fetchFamilyHistory = useCallback(async (currentUserId: string) => {
+    if (!currentUserId) return;
+    setIsLoadingFamilyHistory(true);
+    try {
+      const data = await api.get(API_ROUTES.CLINIC_HISTORY.FAMILY_HISTORY, { user_id: currentUserId });
+      const historyData = Array.isArray(data) ? data : (data.antecedentes_familiares || data.data || []);
 
-    const refreshAllData = useCallback(() => {
-        if (userId && userId !== '1') {
-            fetchPersonalHistory(userId);
-            fetchFamilyHistory(userId);
-            fetchAllergies(userId);
-            fetchMedications(userId);
-            fetchPatientSessions(userId);
-            fetchPatientHabits(userId);
-        }
-    }, [userId, fetchPersonalHistory, fetchFamilyHistory, fetchAllergies, fetchMedications, fetchPatientSessions, fetchPatientHabits]);
+      const mappedHistory = historyData.map((item: any): FamilyHistoryItem => ({
+        condition: item.nombre || 'N/A',
+        relative: item.parentesco || 'N/A',
+        comments: item.comentarios || '',
+      }));
+      setFamilyHistory(mappedHistory);
+    } catch (error) {
+      console.error("Failed to fetch family history:", error);
+      setFamilyHistory([]);
+    } finally {
+      setIsLoadingFamilyHistory(false);
+    }
+  }, []);
+
+  const fetchAllergies = useCallback(async (currentUserId: string) => {
+    if (!currentUserId) return;
+    setIsLoadingAllergies(true);
+    try {
+      const data = await api.get(API_ROUTES.CLINIC_HISTORY.ALLERGIES, { user_id: currentUserId });
+      const allergyData = Array.isArray(data) ? data : (data.antecedentes_alergias || data.data || []);
+
+      const mappedAllergies = allergyData.map((item: any): AllergyItem => ({
+        allergen: item.alergeno || 'N/A',
+        reaction: item.reaccion_descrita || '',
+        snomed: item.snomed_ct_id || '',
+      }));
+      setAllergies(mappedAllergies);
+    } catch (error) {
+      console.error("Failed to fetch allergies:", error);
+      setAllergies([]);
+    } finally {
+      setIsLoadingAllergies(false);
+    }
+  }, []);
+
+  const fetchMedications = useCallback(async (currentUserId: string) => {
+    if (!currentUserId) return;
+    setIsLoadingMedications(true);
+    try {
+      const data = await api.get(API_ROUTES.CLINIC_HISTORY.MEDICATIONS, { user_id: currentUserId });
+      const medicationData = Array.isArray(data) ? data : (data.antecedentes_medicamentos || data.data || []);
+
+      const mappedMedications = medicationData.map((item: any): MedicationItem => ({
+        name: item.nombre_medicamento || 'N/A',
+        dose: item.dosis || 'N/A',
+        frequency: item.frecuencia || 'N/A',
+        since: item.fecha_inicio || null,
+        endDate: item.fecha_fin || null,
+        reason: item.motivo || '',
+        code: item.snomed_ct_id || '',
+      }));
+      setMedications(mappedMedications);
+    } catch (error) {
+      console.error("Failed to fetch medications:", error);
+      setMedications([]);
+    } finally {
+      setIsLoadingMedications(false);
+    }
+  }, []);
+
+  const fetchPatientSessions = useCallback(async (currentUserId: string) => {
+    if (!currentUserId) return;
+    setIsLoadingPatientSessions(true);
+    try {
+      const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: currentUserId });
+      const sessionsData = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
+      setPatientSessions(sessionsData);
+    } catch (error) {
+      console.error("Failed to fetch patient sessions:", error);
+      setPatientSessions([]);
+    } finally {
+      setIsLoadingPatientSessions(false);
+    }
+  }, []);
+
+  const fetchPatientHabits = useCallback(async (currentUserId: string) => {
+    if (!currentUserId) return;
+    setIsLoadingPatientHabits(true);
+    try {
+      const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_HABITS, { user_id: currentUserId });
+      const habitsData = Array.isArray(data) && data.length > 0 ? data[0] : (data.patient_habits || data.data || null);
+      setPatientHabits(habitsData);
+    } catch (error) {
+      console.error("Failed to fetch patient habits:", error);
+      setPatientHabits(null);
+    } finally {
+      setIsLoadingPatientHabits(false);
+    }
+  }, []);
+
+  const refreshAllData = useCallback(() => {
+    if (userId && userId !== '1') {
+      fetchPersonalHistory(userId);
+      fetchFamilyHistory(userId);
+      fetchAllergies(userId);
+      fetchMedications(userId);
+      fetchPatientSessions(userId);
+      fetchPatientHabits(userId);
+    }
+  }, [userId, fetchPersonalHistory, fetchFamilyHistory, fetchAllergies, fetchMedications, fetchPatientSessions, fetchPatientHabits]);
 
   // Debounced search effect
   useEffect(() => {
     const handler = setTimeout(async () => {
-        if (searchQuery.length < 3) {
-            setSearchResults([]);
-            return;
-        };
-        setIsSearching(true);
-        try {
-          const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/filter_users?search=${searchQuery}`, {
-            method: 'GET',
-            mode: 'cors',
-            headers: {
-              'Accept': 'application/json',
-            },
-          });
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
-          }
-          const data = await response.json();
-          const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
-          
-          const mappedUsers = usersData.map((apiUser: any) => ({
-            id: apiUser.user_id ? String(apiUser.user_id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
-            name: apiUser.name || 'No Name',
-            email: apiUser.email || 'no-email@example.com',
-            phone_number: apiUser.phone_number || '000-000-0000',
-            is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
-            avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
-          }));
-          setSearchResults(mappedUsers);
-        } catch (error) {
-          console.error("Failed to fetch users:", error);
-          setSearchResults([]);
-        } finally {
-          setIsSearching(false);
-        }
+      if (searchQuery.length < 3) {
+        setSearchResults([]);
+        return;
+      };
+      setIsSearching(true);
+      try {
+        const data = await api.get(API_ROUTES.FILTER_USERS, { search: searchQuery });
+        const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
+
+        const mappedUsers = usersData.map((apiUser: any) => ({
+          id: apiUser.user_id ? String(apiUser.user_id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+          name: apiUser.name || 'No Name',
+          email: apiUser.email || 'no-email@example.com',
+          phone_number: apiUser.phone_number || '000-000-0000',
+          is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+          avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
+        }));
+        setSearchResults(mappedUsers);
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
     }, 500);
 
     return () => {
-        clearTimeout(handler);
+      clearTimeout(handler);
     };
   }, [searchQuery]);
-  
+
   const handleSelectPatient = (user: UserType) => {
     router.push(`/clinic-history/${user.id}`);
     setPatientSearchOpen(false);
   };
-  
+
   useEffect(() => {
     const fetchPatientData = async (currentUserId: string) => {
-        if (!currentUserId || currentUserId === '1') {
-            setSelectedPatient(null);
-            return;
-        };
-        
-        // Fetch patient details
-        try {
-            const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/filter_users?search=${currentUserId}`, {
-                method: 'GET',
-                mode: 'cors',
-                headers: { 'Accept': 'application/json' },
-            });
-            if (response.ok) {
-                const data = await response.json();
-                const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
-                if (usersData.length > 0) {
-                    const apiUser = usersData[0];
-                    setSelectedPatient({
-                        ...initialPatient, // keep other mocked data for now
-                        id: apiUser.user_id,
-                        name: apiUser.name || "Unknown Patient",
-                        age: 30 + Math.floor(Math.random() * 10), // Mocked age
-                    });
-                    setSearchQuery(apiUser.name || '');
-                } else {
-                    setSelectedPatient(null); // No user found
-                }
-            } else {
-                 throw new Error('Failed to fetch patient details');
-            }
-        } catch (error) {
-            console.error("Error fetching patient details:", error);
-            setSelectedPatient(null);
-        }
+      if (!currentUserId || currentUserId === '1') {
+        setSelectedPatient(null);
+        return;
+      };
 
-        // Fetch data for all tabs
-        refreshAllData();
+      // Fetch patient details
+      try {
+        const data = await api.get(API_ROUTES.FILTER_USERS, { search: currentUserId });
+        const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
+        if (usersData.length > 0) {
+          const apiUser = usersData[0];
+          setSelectedPatient({
+            ...initialPatient, // keep other mocked data for now
+            id: apiUser.user_id,
+            name: apiUser.name || "Unknown Patient",
+            age: 30 + Math.floor(Math.random() * 10), // Mocked age
+          });
+          setSearchQuery(apiUser.name || '');
+        } else {
+          setSelectedPatient(null); // No user found
+        }
+      } catch (error) {
+        console.error("Error fetching patient details:", error);
+        setSelectedPatient(null);
+      }
+
+      // Fetch data for all tabs
+      refreshAllData();
     };
 
     if (userId) {
-        fetchPatientData(userId);
+      fetchPatientData(userId);
     }
   }, [userId, refreshAllData]);
 
@@ -402,87 +354,87 @@ const DentalClinicalSystem = () => {
   // Nomenclatura FDI ISO 3950 completa
   const FDI_NOTATION = {
     permanent: {
-      upperRight: [18,17,16,15,14,13,12,11],
-      upperLeft: [21,22,23,24,25,26,27,28],
-      lowerLeft: [31,32,33,34,35,36,37,38],
-      lowerRight: [41,42,43,44,45,46,47,48]
+      upperRight: [18, 17, 16, 15, 14, 13, 12, 11],
+      upperLeft: [21, 22, 23, 24, 25, 26, 27, 28],
+      lowerLeft: [31, 32, 33, 34, 35, 36, 37, 38],
+      lowerRight: [41, 42, 43, 44, 45, 46, 47, 48]
     },
     deciduous: {
-      upperRight: [55,54,53,52,51],
-      upperLeft: [61,62,63,64,65],
-      lowerLeft: [71,72,73,74,75],
-      lowerRight: [81,82,83,84,85]
+      upperRight: [55, 54, 53, 52, 51],
+      upperLeft: [61, 62, 63, 64, 65],
+      lowerLeft: [71, 72, 73, 74, 75],
+      lowerRight: [81, 82, 83, 84, 85]
     }
   };
 
   // Estados ISO 1942 estándar internacional
   const ISO_1942_SYMBOLS = {
-    SOUND: { 
-      code: 'S', 
-      color: '#E8F5E8', 
+    SOUND: {
+      code: 'S',
+      color: '#E8F5E8',
       borderColor: '#4CAF50',
       name: 'Sano',
       description: 'Diente sano sin patología'
     },
-    CARIES: { 
-      code: 'C', 
-      color: '#FFEBEE', 
+    CARIES: {
+      code: 'C',
+      color: '#FFEBEE',
       borderColor: '#F44336',
       name: 'Caries',
       description: 'Lesión cariosa activa'
     },
-    FILLED: { 
-      code: 'F', 
-      color: '#E3F2FD', 
+    FILLED: {
+      code: 'F',
+      color: '#E3F2FD',
       borderColor: '#2196F3',
       name: 'Obturado',
       description: 'Restauración presente'
     },
-    MISSING: { 
-      code: 'M', 
-      color: '#F5F5F5', 
+    MISSING: {
+      code: 'M',
+      color: '#F5F5F5',
       borderColor: '#9E9E9E',
       name: 'Ausente',
       description: 'Diente ausente'
     },
-    CROWN: { 
-      code: 'CR', 
-      color: '#FFF8E1', 
+    CROWN: {
+      code: 'CR',
+      color: '#FFF8E1',
       borderColor: '#FFC107',
       name: 'Corona',
       description: 'Corona protésica'
     },
-    BRIDGE: { 
-      code: 'BR', 
-      color: '#F3E5F5', 
+    BRIDGE: {
+      code: 'BR',
+      color: '#F3E5F5',
       borderColor: '#9C27B0',
       name: 'Puente',
       description: 'Elemento de puente'
     },
-    IMPLANT: { 
-      code: 'I', 
-      color: '#E8EAF6', 
+    IMPLANT: {
+      code: 'I',
+      color: '#E8EAF6',
       borderColor: '#673AB7',
       name: 'Implante',
       description: 'Implante osteointegrado'
     },
-    ROOT_FILLED: { 
-      code: 'RF', 
-      color: '#FCE4EC', 
+    ROOT_FILLED: {
+      code: 'RF',
+      color: '#FCE4EC',
       borderColor: '#E91E63',
       name: 'Endodoncia',
       description: 'Tratamiento endodóntico'
     },
-    IMPACTED: { 
-      code: 'IMP', 
-      color: '#EFEBE9', 
+    IMPACTED: {
+      code: 'IMP',
+      color: '#EFEBE9',
       borderColor: '#795548',
       name: 'Impactado',
       description: 'Diente impactado'
     },
-    EXTRACTED: { 
-      code: 'EXT', 
-      color: '#FAFAFA', 
+    EXTRACTED: {
+      code: 'EXT',
+      color: '#FAFAFA',
       borderColor: '#616161',
       name: 'Extraído',
       description: 'Indicado para extracción'
@@ -683,12 +635,12 @@ const DentalClinicalSystem = () => {
 
     const toothData = data[tooth];
     const points = ['MB', 'B', 'DB', 'ML', 'L', 'DL'];
-    
+
     const getPointColor = (point: string) => {
       const depth = toothData.probing[point];
       const bleeding = toothData.bleeding[point];
       const suppuration = toothData.suppuration[point];
-      
+
       if (suppuration) return '#9C27B0';
       if (bleeding) return '#F44336';
       if (depth >= 5) return '#FF9800';
@@ -708,12 +660,12 @@ const DentalClinicalSystem = () => {
             <span className="text-sm text-gray-600">AAP/EFP 2017</span>
           </div>
         </div>
-        
+
         <div className="space-y-6">
           <div className="flex justify-center">
             <svg viewBox="0 0 300 200" className="w-80 h-56">
               <rect x="130" y="80" width="40" height="60" rx="8" fill="#f8f9fa" stroke="#dee2e6" strokeWidth="2" />
-              
+
               {points.map((point, index) => {
                 const positions: Record<string, { x: number, y: number }> = {
                   'MB': { x: 120, y: 70 },
@@ -723,9 +675,9 @@ const DentalClinicalSystem = () => {
                   'L': { x: 150, y: 180 },
                   'DL': { x: 180, y: 170 }
                 };
-                
+
                 const depth = toothData.probing[point];
-                
+
                 return (
                   <g key={point}>
                     <circle
@@ -740,7 +692,7 @@ const DentalClinicalSystem = () => {
                       onMouseEnter={() => onPointHover(`${tooth}-${point}`)}
                       onMouseLeave={() => onPointHover(null)}
                     />
-                    
+
                     <text
                       x={positions[point].x}
                       y={positions[point].y + 3}
@@ -749,7 +701,7 @@ const DentalClinicalSystem = () => {
                     >
                       {depth}
                     </text>
-                    
+
                     <text
                       x={positions[point].x}
                       y={positions[point].y - 20}
@@ -758,7 +710,7 @@ const DentalClinicalSystem = () => {
                     >
                       {point}
                     </text>
-                    
+
                     {toothData.bleeding[point] && (
                       <circle
                         cx={positions[point].x + 10}
@@ -767,7 +719,7 @@ const DentalClinicalSystem = () => {
                         fill="#F44336"
                       />
                     )}
-                    
+
                     {toothData.suppuration[point] && (
                       <circle
                         cx={positions[point].x - 10}
@@ -797,7 +749,7 @@ const DentalClinicalSystem = () => {
                 ))}
               </div>
             </div>
-            
+
             <div className="bg-blue-50 rounded-lg p-4">
               <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
                 <TrendingUp className="w-4 h-4 mr-2" />
@@ -822,7 +774,7 @@ const DentalClinicalSystem = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="bg-green-50 rounded-lg p-4">
               <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
                 <Award className="w-4 h-4 mr-2" />
@@ -831,22 +783,20 @@ const DentalClinicalSystem = () => {
               <div className="space-y-2 text-sm">
                 <div>
                   <span className="text-gray-600">Estadio:</span>
-                  <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
-                    toothData.stage === 'IV' ? 'bg-red-200 text-red-800' :
+                  <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${toothData.stage === 'IV' ? 'bg-red-200 text-red-800' :
                     toothData.stage === 'III' ? 'bg-orange-200 text-orange-800' :
-                    toothData.stage === 'II' ? 'bg-yellow-200 text-yellow-800' :
-                    'bg-green-200 text-green-800'
-                  }`}>
+                      toothData.stage === 'II' ? 'bg-yellow-200 text-yellow-800' :
+                        'bg-green-200 text-green-800'
+                    }`}>
                     {toothData.stage}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600">Grado:</span>
-                  <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
-                    toothData.grade === 'C' ? 'bg-red-200 text-red-800' :
+                  <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${toothData.grade === 'C' ? 'bg-red-200 text-red-800' :
                     toothData.grade === 'B' ? 'bg-yellow-200 text-yellow-800' :
-                    'bg-green-200 text-green-800'
-                  }`}>
+                      'bg-green-200 text-green-800'
+                    }`}>
                     {toothData.grade}
                   </span>
                 </div>
@@ -930,7 +880,7 @@ const DentalClinicalSystem = () => {
               </button>
             </div>
           </div>
-          
+
           <div className="flex-1 flex items-center justify-center overflow-hidden bg-gray-900">
             <img
               src={image.url}
@@ -984,11 +934,10 @@ const DentalClinicalSystem = () => {
                   <h4 className="font-semibold text-gray-800 text-sm">{image.name}</h4>
                   <p className="text-gray-600 text-xs">{image.date}</p>
                   <div className="flex items-center justify-between mt-2">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      image.type === 'radiografia' 
-                        ? 'bg-gray-200 text-gray-800' 
-                        : 'bg-blue-200 text-blue-800'
-                    }`}>
+                    <span className={`px-2 py-1 rounded-full text-xs ${image.type === 'radiografia'
+                      ? 'bg-gray-200 text-gray-800'
+                      : 'bg-blue-200 text-blue-800'
+                      }`}>
                       {image.modality}
                     </span>
                     <span className="text-xs text-gray-500">{image.tooth}</span>
@@ -1050,25 +999,24 @@ const DentalClinicalSystem = () => {
               <p className="text-sm">Consulta sobre análisis HL7 FHIR, códigos SNOMED-CT, clasificación AAP 2017</p>
             </div>
           )}
-          
+
           {aiMessages.map((msg: any, index) => (
             <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800'
-              }`}>
+              <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800'
+                }`}>
                 <p className="text-sm">{msg.content}</p>
                 <p className="text-xs opacity-70 mt-1">{msg.timestamp.toLocaleTimeString()}</p>
               </div>
             </div>
           ))}
-          
+
           {isLoading && (
             <div className="flex justify-start">
               <div className="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg">
                 <div className="flex space-x-1">
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                 </div>
               </div>
             </div>
@@ -1155,9 +1103,8 @@ const DentalClinicalSystem = () => {
       </div>
       <div className="space-y-3">
         {alerts.map((alert, index) => (
-          <div key={index} className={`p-3 rounded-lg ${
-            alert.severity === 'high' ? 'bg-red-100 border border-red-300' : 'bg-yellow-100 border border-yellow-300'
-          }`}>
+          <div key={index} className={`p-3 rounded-lg ${alert.severity === 'high' ? 'bg-red-100 border border-red-300' : 'bg-yellow-100 border border-yellow-300'
+            }`}>
             <div className="flex justify-between items-center">
               <span className={`font-semibold ${alert.severity === 'high' ? 'text-red-800' : 'text-yellow-800'}`}>
                 🔴 {alert.text}
@@ -1172,97 +1119,97 @@ const DentalClinicalSystem = () => {
 
   const TreatmentTimeline = ({ sessions }: { sessions: PatientSession[] }) => {
     if (isLoadingPatientSessions) {
-        return (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-6">Historial de Tratamientos</h3>
-                <div className="space-y-4">
-                    <div className="flex gap-4">
-                        <div className="flex flex-col items-center">
-                           <div className="w-6 h-6 rounded-full bg-gray-200 animate-pulse"></div>
-                           <div className="w-0.5 h-20 bg-gray-200 animate-pulse mt-2"></div>
-                        </div>
-                        <div className="flex-1 space-y-2">
-                            <div className="h-5 w-3/4 bg-gray-200 rounded animate-pulse"></div>
-                            <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
-                        </div>
-                    </div>
-                     <div className="flex gap-4">
-                        <div className="flex flex-col items-center">
-                           <div className="w-6 h-6 rounded-full bg-gray-200 animate-pulse"></div>
-                        </div>
-                        <div className="flex-1 space-y-2">
-                            <div className="h-5 w-3/4 bg-gray-200 rounded animate-pulse"></div>
-                            <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-    
-    return (
+      return (
         <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-800">Historial de Tratamientos</h3>
-                <div className="flex items-center space-x-2">
-                    <Shield className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm text-gray-600">HL7 FHIR</span>
-                </div>
+          <h3 className="text-xl font-bold text-gray-800 mb-6">Historial de Tratamientos</h3>
+          <div className="space-y-4">
+            <div className="flex gap-4">
+              <div className="flex flex-col items-center">
+                <div className="w-6 h-6 rounded-full bg-gray-200 animate-pulse"></div>
+                <div className="w-0.5 h-20 bg-gray-200 animate-pulse mt-2"></div>
+              </div>
+              <div className="flex-1 space-y-2">
+                <div className="h-5 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+              </div>
             </div>
-            <div className="relative">
-                <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-400 to-blue-600"></div>
-                {sessions.map((session, index) => (
-                    <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
-                        <div className={`absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-4 border-white shadow-lg bg-blue-500`}></div>
-                        <div className="flex-1">
-                            <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
-                                <div className="flex justify-between items-start mb-2">
-                                    <h4 className="font-semibold text-gray-800">{session.procedimiento_realizado}</h4>
-                                    <span className="text-sm text-gray-500">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</span>
-                                </div>
-                                <div className="space-y-3 text-sm text-gray-700">
-                                    <p><strong className="text-gray-600">Diagnóstico:</strong> {session.diagnostico}</p>
-                                    <p><strong className="text-gray-600">Procedimiento:</strong> {session.procedimiento_realizado}</p>
-                                    <p><strong className="text-gray-600">Notas:</strong> {session.notas_clinicas}</p>
-                                    {session.tratamientos && (
-                                    <div>
-                                        <strong className="text-gray-600">Tratamientos:</strong>
-                                        <ul className="list-disc pl-5 mt-1">
-                                            {session.tratamientos.map((t, i) => (
-                                                <li key={i}>{t.descripcion} {t.numero_diente && `(Diente ${t.numero_diente})`}</li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                    )}
-                                    {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
-                                        <div>
-                                            <strong className="text-gray-600">Archivos Adjuntos:</strong>
-                                            <ul className="list-disc pl-5 mt-1">
-                                                {session.archivos_adjuntos.map((file, i) => (
-                                                    <li key={i}>
-                                                        <a 
-                                                            href={`https://n8n-project-n8n.7ig1i3.easypanel.host${file.ruta}`} 
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer" 
-                                                            className="text-blue-600 hover:underline flex items-center gap-1"
-                                                        >
-                                                            <Paperclip className="w-3 h-3" />
-                                                            {file.tipo} {file.diente_asociado && `(Diente ${file.diente_asociado})`}
-                                                        </a>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                ))}
+            <div className="flex gap-4">
+              <div className="flex flex-col items-center">
+                <div className="w-6 h-6 rounded-full bg-gray-200 animate-pulse"></div>
+              </div>
+              <div className="flex-1 space-y-2">
+                <div className="h-5 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+              </div>
             </div>
+          </div>
         </div>
+      );
+    }
+
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-bold text-gray-800">Historial de Tratamientos</h3>
+          <div className="flex items-center space-x-2">
+            <Shield className="w-4 h-4 text-blue-600" />
+            <span className="text-sm text-gray-600">HL7 FHIR</span>
+          </div>
+        </div>
+        <div className="relative">
+          <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-400 to-blue-600"></div>
+          {sessions.map((session, index) => (
+            <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
+              <div className={`absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-4 border-white shadow-lg bg-blue-500`}></div>
+              <div className="flex-1">
+                <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-semibold text-gray-800">{session.procedimiento_realizado}</h4>
+                    <span className="text-sm text-gray-500">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</span>
+                  </div>
+                  <div className="space-y-3 text-sm text-gray-700">
+                    <p><strong className="text-gray-600">Diagnóstico:</strong> {session.diagnostico}</p>
+                    <p><strong className="text-gray-600">Procedimiento:</strong> {session.procedimiento_realizado}</p>
+                    <p><strong className="text-gray-600">Notas:</strong> {session.notas_clinicas}</p>
+                    {session.tratamientos && (
+                      <div>
+                        <strong className="text-gray-600">Tratamientos:</strong>
+                        <ul className="list-disc pl-5 mt-1">
+                          {session.tratamientos.map((t, i) => (
+                            <li key={i}>{t.descripcion} {t.numero_diente && `(Diente ${t.numero_diente})`}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
+                      <div>
+                        <strong className="text-gray-600">Archivos Adjuntos:</strong>
+                        <ul className="list-disc pl-5 mt-1">
+                          {session.archivos_adjuntos.map((file, i) => (
+                            <li key={i}>
+                              <a
+                                href={`https://n8n-project-n8n.7ig1i3.easypanel.host${file.ruta}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline flex items-center gap-1"
+                              >
+                                <Paperclip className="w-3 h-3" />
+                                {file.tipo} {file.diente_asociado && `(Diente ${file.diente_asociado})`}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     );
-};
+  };
 
   const ToothDetails = ({ toothNumber, data }: { toothNumber: any, data: any }) => {
     if (!toothNumber || !data[toothNumber]) return null;
@@ -1311,22 +1258,22 @@ const DentalClinicalSystem = () => {
 
   const AnamnesisDashboard = () => {
     const getAlertBorderColor = (level: number) => {
-        switch (level) {
-            case 1: return 'border-blue-300';
-            case 2: return 'border-yellow-400';
-            case 3: return 'border-red-500';
-            default: return 'border-gray-200';
-        }
+      switch (level) {
+        case 1: return 'border-blue-300';
+        case 2: return 'border-yellow-400';
+        case 3: return 'border-red-500';
+        default: return 'border-gray-200';
+      }
     };
 
     const formatDate = (dateString: string | null) => {
-        if (!dateString) return '-';
-        try {
-            return format(parseISO(dateString), 'dd/MM/yyyy');
-        } catch (error) {
-            console.error("Invalid date format:", dateString);
-            return '-';
-        }
+      if (!dateString) return '-';
+      try {
+        return format(parseISO(dateString), 'dd/MM/yyyy');
+      } catch (error) {
+        console.error("Invalid date format:", dateString);
+        return '-';
+      }
     };
 
     const ToothIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -1379,113 +1326,113 @@ const DentalClinicalSystem = () => {
     );
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                    <div className="flex items-center mb-4">
-                        <User className="w-5 h-5 text-blue-600 mr-2" />
-                        <h3 className="text-lg font-bold text-gray-800">Antecedentes Personales</h3>
-                    </div>
-                    <div className="space-y-3">
-                        {isLoadingPersonalHistory ? (
-                            <p>Loading personal history...</p>
-                        ) : personalHistory.length > 0 ? (
-                            personalHistory.map((item, index) => (
-                                <div key={index} className={`border-l-4 ${getAlertBorderColor(item.nivel_alerta)} pl-4 py-2`}>
-                                    <div className="flex justify-between items-center">
-                                        <div className="font-semibold text-gray-800">{item.nombre}</div>
-                                        <div className="text-xs text-gray-500">{item.categoria}</div>
-                                    </div>
-                                    <div className="text-sm text-gray-700">{item.comentarios}</div>
-                                </div>
-                            ))
-                        ) : (
-                            <p>No personal history found.</p>
-                        )}
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                    <div className="flex items-center mb-4">
-                        <Heart className="w-5 h-5 text-red-600 mr-2" />
-                        <h3 className="text-lg font-bold text-gray-800">Antecedentes Familiares</h3>
-                    </div>
-                    <div className="space-y-3">
-                        {isLoadingFamilyHistory ? (
-                            <p>Loading family history...</p>
-                        ) : familyHistory.length > 0 ? (
-                            familyHistory.map((item, index) => (
-                                <div key={index} className="border-l-4 border-red-200 pl-4 py-2">
-                                    <div className="font-semibold text-gray-800">{item.condition}</div>
-                                    <div className="text-sm text-gray-600">Familiar: {item.relative}</div>
-                                    <div className="text-sm text-gray-700">{item.comments}</div>
-                                </div>
-                            ))
-                        ) : (
-                           <p>No family history found.</p>
-                        )}
-                    </div>
-                </div>
-                 <div className="bg-white rounded-xl shadow-lg p-6">
-                    <div className="flex items-center mb-4">
-                        <Pill className="w-5 h-5 text-green-600 mr-2" />
-                        <h3 className="text-lg font-bold text-gray-800">Medicamentos Actuales</h3>
-                    </div>
-                    <div className="space-y-3">
-                        {isLoadingMedications ? (
-                            <p>Loading medications...</p>
-                        ) : medications.length > 0 ? (
-                            medications.map((item, index) => (
-                                <div key={index} className="border-l-4 border-green-200 pl-4 py-2">
-                                    <div className="flex justify-between items-start">
-                                        <div className="font-semibold text-gray-800">{item.name}</div>
-                                        <div className="text-right text-xs text-gray-500">
-                                            <div>{item.dose}</div>
-                                            <div>{item.frequency}</div>
-                                        </div>
-                                    </div>
-                                    <div className="text-sm text-gray-600 mt-1">
-                                        {formatDate(item.since)} - {item.endDate ? formatDate(item.endDate) : 'Presente'}
-                                    </div>
-                                    <div className="text-sm text-gray-700 mt-1">{item.reason}</div>
-                                </div>
-                            ))
-                        ) : (
-                           <p>No medications found.</p>
-                        )}
-                    </div>
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center mb-4">
+              <User className="w-5 h-5 text-blue-600 mr-2" />
+              <h3 className="text-lg font-bold text-gray-800">Antecedentes Personales</h3>
             </div>
-
-            <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                    <div className="flex items-center mb-4">
-                        <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
-                        <h3 className="text-lg font-bold text-gray-800">Alergias</h3>
+            <div className="space-y-3">
+              {isLoadingPersonalHistory ? (
+                <p>Loading personal history...</p>
+              ) : personalHistory.length > 0 ? (
+                personalHistory.map((item, index) => (
+                  <div key={index} className={`border-l-4 ${getAlertBorderColor(item.nivel_alerta)} pl-4 py-2`}>
+                    <div className="flex justify-between items-center">
+                      <div className="font-semibold text-gray-800">{item.nombre}</div>
+                      <div className="text-xs text-gray-500">{item.categoria}</div>
                     </div>
-                    <div className="space-y-3">
-                        {isLoadingAllergies ? (
-                            <p>Loading allergies...</p>
-                        ) : allergies.length > 0 ? (
-                            allergies.map((item, index) => (
-                                <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-3">
-                                    <div className="flex justify-between items-center">
-                                        <div className="font-semibold text-red-800">{item.allergen}</div>
-                                        {item.snomed && <span className="text-xs font-mono text-gray-500">{item.snomed}</span>}
-                                    </div>
-                                    {item.reaction && <div className="text-sm text-red-700">{item.reaction}</div>}
-                                </div>
-                            ))
-                        ) : (
-                            <p>No allergies found.</p>
-                        )}
-                    </div>
-                </div>
-                <HabitCard habits={patientHabits} isLoading={isLoadingPatientHabits} />
+                    <div className="text-sm text-gray-700">{item.comentarios}</div>
+                  </div>
+                ))
+              ) : (
+                <p>No personal history found.</p>
+              )}
             </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center mb-4">
+              <Heart className="w-5 h-5 text-red-600 mr-2" />
+              <h3 className="text-lg font-bold text-gray-800">Antecedentes Familiares</h3>
+            </div>
+            <div className="space-y-3">
+              {isLoadingFamilyHistory ? (
+                <p>Loading family history...</p>
+              ) : familyHistory.length > 0 ? (
+                familyHistory.map((item, index) => (
+                  <div key={index} className="border-l-4 border-red-200 pl-4 py-2">
+                    <div className="font-semibold text-gray-800">{item.condition}</div>
+                    <div className="text-sm text-gray-600">Familiar: {item.relative}</div>
+                    <div className="text-sm text-gray-700">{item.comments}</div>
+                  </div>
+                ))
+              ) : (
+                <p>No family history found.</p>
+              )}
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center mb-4">
+              <Pill className="w-5 h-5 text-green-600 mr-2" />
+              <h3 className="text-lg font-bold text-gray-800">Medicamentos Actuales</h3>
+            </div>
+            <div className="space-y-3">
+              {isLoadingMedications ? (
+                <p>Loading medications...</p>
+              ) : medications.length > 0 ? (
+                medications.map((item, index) => (
+                  <div key={index} className="border-l-4 border-green-200 pl-4 py-2">
+                    <div className="flex justify-between items-start">
+                      <div className="font-semibold text-gray-800">{item.name}</div>
+                      <div className="text-right text-xs text-gray-500">
+                        <div>{item.dose}</div>
+                        <div>{item.frequency}</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      {formatDate(item.since)} - {item.endDate ? formatDate(item.endDate) : 'Presente'}
+                    </div>
+                    <div className="text-sm text-gray-700 mt-1">{item.reason}</div>
+                  </div>
+                ))
+              ) : (
+                <p>No medications found.</p>
+              )}
+            </div>
+          </div>
         </div>
+
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center mb-4">
+              <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
+              <h3 className="text-lg font-bold text-gray-800">Alergias</h3>
+            </div>
+            <div className="space-y-3">
+              {isLoadingAllergies ? (
+                <p>Loading allergies...</p>
+              ) : allergies.length > 0 ? (
+                allergies.map((item, index) => (
+                  <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <div className="flex justify-between items-center">
+                      <div className="font-semibold text-red-800">{item.allergen}</div>
+                      {item.snomed && <span className="text-xs font-mono text-gray-500">{item.snomed}</span>}
+                    </div>
+                    {item.reaction && <div className="text-sm text-red-700">{item.reaction}</div>}
+                  </div>
+                ))
+              ) : (
+                <p>No allergies found.</p>
+              )}
+            </div>
+          </div>
+          <HabitCard habits={patientHabits} isLoading={isLoadingPatientHabits} />
+        </div>
+      </div>
     );
-    };
+  };
 
   const Navigation = () => (
     <div className="bg-white shadow-sm border-b border-gray-200 mb-8">
@@ -1500,9 +1447,8 @@ const DentalClinicalSystem = () => {
           <button
             key={id}
             onClick={() => setActiveView(id)}
-            className={`flex items-center space-x-2 py-4 px-2 border-b-2 transition-colors duration-200 whitespace-nowrap ${
-              activeView === id ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            className={`flex items-center space-x-2 py-4 px-2 border-b-2 transition-colors duration-200 whitespace-nowrap ${activeView === id ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
           >
             <Icon className="w-4 h-4" />
             <span className="font-medium">{label}</span>
@@ -1519,52 +1465,52 @@ const DentalClinicalSystem = () => {
         <div className="flex justify-between items-center">
           <div>
             <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-bold text-gray-800">Historial Clinico Digital</h1>
-                {selectedPatient && (
-                    <div className="flex items-center gap-2">
-                        <p className="text-2xl font-bold text-gray-900">{selectedPatient.name}</p>
-                        <Button variant="ghost" size="icon" onClick={refreshAllData}>
-                            <RefreshCw className="h-5 w-5" />
-                        </Button>
-                    </div>
-                )}
+              <h1 className="text-2xl font-bold text-gray-800">Historial Clinico Digital</h1>
+              {selectedPatient && (
+                <div className="flex items-center gap-2">
+                  <p className="text-2xl font-bold text-gray-900">{selectedPatient.name}</p>
+                  <Button variant="ghost" size="icon" onClick={refreshAllData}>
+                    <RefreshCw className="h-5 w-5" />
+                  </Button>
+                </div>
+              )}
             </div>
-             <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
-                <PopoverTrigger asChild>
-                    <div className="relative mt-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                        <Input
-                            value={searchQuery}
-                            onChange={(e) => {
-                                setSearchQuery(e.target.value)
-                                if(!patientSearchOpen) setPatientSearchOpen(true)
-                            }}
-                            placeholder="Buscar paciente..."
-                            className="pl-9 w-96"
-                        />
-                    </div>
-                </PopoverTrigger>
-                <PopoverContent className="p-0 w-96" align="start">
-                    <Command>
-                        <CommandInput placeholder="Buscar por nombre o ID..." value={searchQuery} onValueChange={setSearchQuery}/>
-                        <CommandList>
-                            <CommandEmpty>
-                                {isSearching ? 'Buscando...' : 'No se encontraron pacientes.'}
-                            </CommandEmpty>
-                            <CommandGroup>
-                                {searchResults.map((user) => (
-                                    <CommandItem
-                                        key={user.id}
-                                        value={user.name}
-                                        onSelect={() => handleSelectPatient(user)}
-                                    >
-                                        {user.name}
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
-                        </CommandList>
-                    </Command>
-                </PopoverContent>
+            <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
+              <PopoverTrigger asChild>
+                <div className="relative mt-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value)
+                      if (!patientSearchOpen) setPatientSearchOpen(true)
+                    }}
+                    placeholder="Buscar paciente..."
+                    className="pl-9 w-96"
+                  />
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-96" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar por nombre o ID..." value={searchQuery} onValueChange={setSearchQuery} />
+                  <CommandList>
+                    <CommandEmpty>
+                      {isSearching ? 'Buscando...' : 'No se encontraron pacientes.'}
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {searchResults.map((user) => (
+                        <CommandItem
+                          key={user.id}
+                          value={user.name}
+                          onSelect={() => handleSelectPatient(user)}
+                        >
+                          {user.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
             </Popover>
           </div>
           <div className="flex items-center space-x-4">
@@ -1576,46 +1522,46 @@ const DentalClinicalSystem = () => {
               <span>Habla con el historial</span>
             </button>
             {selectedPatient && (
-                <div className="text-right">
+              <div className="text-right">
                 <div className="text-sm text-gray-500">Última visita</div>
                 <div className="font-semibold text-gray-800">{selectedPatient.lastVisit}</div>
-                </div>
+              </div>
             )}
           </div>
         </div>
       </div>
-    
+
       {selectedPatient ? (
         <>
-            <Navigation />
+          <Navigation />
 
-            <div className="px-6 pb-8">
-                <div className="space-y-6">
+          <div className="px-6 pb-8">
+            <div className="space-y-6">
 
-                    {activeView === 'anamnesis' && <AnamnesisDashboard />}
-                    {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} />}
-                    {activeView === 'images' && <ImageGallery />}
-                    {activeView === 'voice' && <VoiceCapture />}
-                    {activeView === 'reports' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <ReportExport />
-                        {showAIChat && <AIChat />}
-                    </div>
-                    )}
-                    
-                    {activeView !== 'reports' && showAIChat && (
-                    <div className="mt-6">
-                        <AIChat />
-                    </div>
-                    )}
+              {activeView === 'anamnesis' && <AnamnesisDashboard />}
+              {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} />}
+              {activeView === 'images' && <ImageGallery />}
+              {activeView === 'voice' && <VoiceCapture />}
+              {activeView === 'reports' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <ReportExport />
+                  {showAIChat && <AIChat />}
                 </div>
+              )}
+
+              {activeView !== 'reports' && showAIChat && (
+                <div className="mt-6">
+                  <AIChat />
+                </div>
+              )}
             </div>
+          </div>
         </>
       ) : (
         <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
-            <SearchCheck className="w-24 h-24 text-gray-300 mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-700">Seleccione un paciente</h2>
-            <p className="text-gray-500 mt-2">Utilice la barra de búsqueda de arriba para encontrar y cargar el historial clínico de un paciente.</p>
+          <SearchCheck className="w-24 h-24 text-gray-300 mb-4" />
+          <h2 className="text-2xl font-semibold text-gray-700">Seleccione un paciente</h2>
+          <p className="text-gray-500 mt-2">Utilice la barra de búsqueda de arriba para encontrar y cargar el historial clínico de un paciente.</p>
         </div>
       )}
     </div>

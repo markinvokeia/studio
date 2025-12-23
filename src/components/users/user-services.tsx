@@ -1,30 +1,32 @@
 
 'use client';
 
-import * as React from 'react';
-import { ColumnDef } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Service } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
+import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { Service } from '@/lib/types';
+import { api } from '@/services/api';
+import { ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
-import { Switch } from '../ui/switch';
+import * as React from 'react';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
+import { Switch } from '../ui/switch';
 
 type UserServiceAssignment = {
   service_id: string;
@@ -62,12 +64,12 @@ const getColumns = (t: (key: string) => string): ColumnDef<Service>[] => [
     accessorKey: 'is_active',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserRoles.columns.status')} />,
     cell: ({ row }) => {
-        const isActive = row.getValue('is_active');
-        return (
-            <Badge variant={isActive ? 'success' : 'outline'}>
-                {isActive ? t('UserRoles.status.active') : t('UserRoles.status.inactive')}
-            </Badge>
-        );
+      const isActive = row.getValue('is_active');
+      return (
+        <Badge variant={isActive ? 'success' : 'outline'}>
+          {isActive ? t('UserRoles.status.active') : t('UserRoles.status.inactive')}
+        </Badge>
+      );
     }
   },
 ];
@@ -75,23 +77,11 @@ const getColumns = (t: (key: string) => string): ColumnDef<Service>[] => [
 async function getServicesForUser(userId: string): Promise<Service[]> {
   if (!userId) return [];
   try {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services/user_services?user_id=${userId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    const data = await api.get(API_ROUTES.USER_SERVICES, { user_id: userId });
     const userServicesData = Array.isArray(data) ? data : (data.user_services || data.data || data.result || []);
 
     if (userServicesData.length === 0 || (userServicesData.length === 1 && Object.keys(userServicesData[0]).length === 0)) {
-        return [];
+      return [];
     }
 
     return userServicesData.map((apiService: any) => ({
@@ -110,15 +100,7 @@ async function getServicesForUser(userId: string): Promise<Service[]> {
 
 async function getAllServices(isSalesUser: boolean): Promise<Service[]> {
   try {
-    const url = `https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services?is_sales=${isSalesUser}`;
-    const response = await fetch(url, {
-      method: 'GET',
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' },
-      cache: 'no-store',
-    });
-    if (!response.ok) throw new Error('Failed to fetch services');
-    const data = await response.json();
+    const data = await api.get(API_ROUTES.SERVICES, { is_sales: isSalesUser });
     const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
     return servicesData.map((service: any) => ({ id: String(service.id), name: service.name, category: service.category, price: service.price, duration_minutes: service.duration_minutes, is_active: service.is_active }));
   } catch (error) {
@@ -128,19 +110,7 @@ async function getAllServices(isSalesUser: boolean): Promise<Service[]> {
 }
 
 async function assignServicesToUser(userId: string, services: UserServiceAssignment[]): Promise<any> {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/services/assign`, {
-        method: 'PATCH',
-        mode: 'cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, services: services }),
-    });
-
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to assign services' }));
-        throw new Error(errorData.message || `Error HTTP: ${response.status}`);
-    }
-    return response.json();
+  return await api.patch(API_ROUTES.USER_SERVICES_ASSIGN, { user_id: userId, services: services });
 }
 
 interface UserServicesProps {
@@ -174,55 +144,55 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
     const services = await getAllServices(isSalesUser);
     setAllServices(services);
     const assignedServices: UserServiceAssignment[] = userServices.map(service => ({
-        service_id: service.id,
-        is_active: service.is_active, 
-        duration_minutes: service.duration_minutes,
+      service_id: service.id,
+      is_active: service.is_active,
+      duration_minutes: service.duration_minutes,
     }));
     setSelectedServices(assignedServices);
     setIsDialogOpen(true);
   };
-  
+
   const handleAssignServices = async () => {
     try {
-        await assignServicesToUser(userId, selectedServices);
-        toast({
-            title: t('UserServices.toast.success'),
-            description: t('UserServices.toast.servicesAssigned'),
-        });
-        setIsDialogOpen(false);
-        loadUserServices();
+      await assignServicesToUser(userId, selectedServices);
+      toast({
+        title: t('UserServices.toast.success'),
+        description: t('UserServices.toast.servicesAssigned'),
+      });
+      setIsDialogOpen(false);
+      loadUserServices();
     } catch (error) {
-         toast({
-            variant: "destructive",
-            title: t('UserServices.toast.error'),
-            description: error instanceof Error ? error.message : t('UserServices.toast.servicesAssignFailed'),
-        });
+      toast({
+        variant: "destructive",
+        title: t('UserServices.toast.error'),
+        description: error instanceof Error ? error.message : t('UserServices.toast.servicesAssignFailed'),
+      });
     }
   };
 
   const handleServiceSelection = (serviceId: string, checked: boolean | 'indeterminate') => {
-      setSelectedServices(prev => {
-          if (checked) {
-              const service = allServices.find(s => s.id === serviceId);
-              return [...prev, { service_id: serviceId, is_active: true, duration_minutes: service?.duration_minutes }];
-          } else {
-              return prev.filter(s => s.service_id !== serviceId);
-          }
-      });
+    setSelectedServices(prev => {
+      if (checked) {
+        const service = allServices.find(s => s.id === serviceId);
+        return [...prev, { service_id: serviceId, is_active: true, duration_minutes: service?.duration_minutes }];
+      } else {
+        return prev.filter(s => s.service_id !== serviceId);
+      }
+    });
   };
-  
+
   const handleServiceActiveChange = (serviceId: string, active: boolean) => {
-    setSelectedServices(prev => prev.map(s => 
-        s.service_id === serviceId ? { ...s, is_active: active } : s
+    setSelectedServices(prev => prev.map(s =>
+      s.service_id === serviceId ? { ...s, is_active: active } : s
     ));
   };
-  
+
   const handleDurationChange = (serviceId: string, duration: string) => {
-    setSelectedServices(prev => prev.map(s => 
-        s.service_id === serviceId ? { ...s, duration_minutes: Number(duration) || 0 } : s
+    setSelectedServices(prev => prev.map(s =>
+      s.service_id === serviceId ? { ...s, duration_minutes: Number(duration) || 0 } : s
     ));
   };
-  
+
   const handleSelectAll = () => {
     const allServiceAssignments: UserServiceAssignment[] = allServices.map(service => ({
       service_id: service.id,
@@ -249,80 +219,80 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
 
   return (
     <>
-    <Card>
-      <CardContent className="p-4">
-        <DataTable
-          columns={columns}
-          data={userServices}
-          filterColumnId='name'
-          filterPlaceholder='Filter by service...'
-          onCreate={handleAddService}
-        />
-      </CardContent>
-    </Card>
-    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Card>
+        <CardContent className="p-4">
+          <DataTable
+            columns={columns}
+            data={userServices}
+            filterColumnId='name'
+            filterPlaceholder='Filter by service...'
+            onCreate={handleAddService}
+          />
+        </CardContent>
+      </Card>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl">
-            <DialogHeader>
-                <DialogTitle>{t('UserServices.dialog.title')}</DialogTitle>
-                <DialogDescription>{t('UserServices.dialog.description')}</DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-                <div className="flex justify-between items-center mb-4">
-                  <Label>{t('UserServices.dialog.availableServices')}</Label>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={handleSelectAll}>Select All</Button>
-                    <Button variant="outline" size="sm" onClick={handleDeselectAll}>Deselect All</Button>
-                  </div>
-                </div>
-                <ScrollArea className="h-72 mt-2 border rounded-md p-4">
-                   <div className="space-y-4">
-                        {allServices.map(service => {
-                            const isSelected = selectedServices.some(s => s.service_id === service.id);
-                            const serviceData = selectedServices.find(s => s.service_id === service.id);
-                            return (
-                                <div key={service.id} className="flex items-center justify-between space-x-2">
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox 
-                                            id={`service-${service.id}`}
-                                            onCheckedChange={(checked) => handleServiceSelection(service.id, checked)}
-                                            checked={isSelected}
-                                        />
-                                        <Label htmlFor={`service-${service.id}`}>{service.name}</Label>
-                                    </div>
-                                    {isSelected && (
-                                        <div className="flex items-center space-x-8">
-                                            <div className="flex items-center space-x-2 w-32">
-                                                <Label htmlFor={`duration-${service.id}`} className="text-sm whitespace-nowrap">Duration</Label>
-                                                <Input 
-                                                  id={`duration-${service.id}`}
-                                                  type="number"
-                                                  value={serviceData?.duration_minutes ?? ''}
-                                                  onChange={(e) => handleDurationChange(service.id, e.target.value)}
-                                                  className="h-8 w-20"
-                                                />
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <Label htmlFor={`active-switch-${service.id}`} className="text-sm">{t('UserServices.dialog.activeLabel')}</Label>
-                                                <Switch
-                                                    id={`active-switch-${service.id}`}
-                                                    checked={serviceData?.is_active}
-                                                    onCheckedChange={(checked) => handleServiceActiveChange(service.id, checked)}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </ScrollArea>
+          <DialogHeader>
+            <DialogTitle>{t('UserServices.dialog.title')}</DialogTitle>
+            <DialogDescription>{t('UserServices.dialog.description')}</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="flex justify-between items-center mb-4">
+              <Label>{t('UserServices.dialog.availableServices')}</Label>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleSelectAll}>Select All</Button>
+                <Button variant="outline" size="sm" onClick={handleDeselectAll}>Deselect All</Button>
+              </div>
             </div>
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{t('UserServices.dialog.cancel')}</Button>
-                <Button onClick={handleAssignServices}>{t('UserServices.dialog.assign')}</Button>
-            </DialogFooter>
+            <ScrollArea className="h-72 mt-2 border rounded-md p-4">
+              <div className="space-y-4">
+                {allServices.map(service => {
+                  const isSelected = selectedServices.some(s => s.service_id === service.id);
+                  const serviceData = selectedServices.find(s => s.service_id === service.id);
+                  return (
+                    <div key={service.id} className="flex items-center justify-between space-x-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`service-${service.id}`}
+                          onCheckedChange={(checked) => handleServiceSelection(service.id, checked)}
+                          checked={isSelected}
+                        />
+                        <Label htmlFor={`service-${service.id}`}>{service.name}</Label>
+                      </div>
+                      {isSelected && (
+                        <div className="flex items-center space-x-8">
+                          <div className="flex items-center space-x-2 w-32">
+                            <Label htmlFor={`duration-${service.id}`} className="text-sm whitespace-nowrap">Duration</Label>
+                            <Input
+                              id={`duration-${service.id}`}
+                              type="number"
+                              value={serviceData?.duration_minutes ?? ''}
+                              onChange={(e) => handleDurationChange(service.id, e.target.value)}
+                              className="h-8 w-20"
+                            />
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Label htmlFor={`active-switch-${service.id}`} className="text-sm">{t('UserServices.dialog.activeLabel')}</Label>
+                            <Switch
+                              id={`active-switch-${service.id}`}
+                              checked={serviceData?.is_active}
+                              onCheckedChange={(checked) => handleServiceActiveChange(service.id, checked)}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{t('UserServices.dialog.cancel')}</Button>
+            <Button onClick={handleAssignServices}>{t('UserServices.dialog.assign')}</Button>
+          </DialogFooter>
         </DialogContent>
-    </Dialog>
+      </Dialog>
     </>
   );
 }

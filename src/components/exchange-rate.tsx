@@ -1,15 +1,17 @@
 
 'use client';
 
-import * as React from 'react';
-import Image from 'next/image';
-import { Skeleton } from './ui/skeleton';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { API_ROUTES } from '@/constants/routes';
+import { api } from '@/services/api';
+import Image from 'next/image';
+import * as React from 'react';
+import { Skeleton } from './ui/skeleton';
 
 interface ExchangeRateData {
   buy: number;
@@ -26,27 +28,23 @@ export function ExchangeRate({ onRateChange }: ExchangeRateProps) {
 
   React.useEffect(() => {
     const fetchRates = async () => {
-        setIsLoading(true);
-        try {
-            const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cotizaciones?rendered=false');
-            if (!response.ok) {
-                throw new Error('Failed to fetch exchange rates');
-            }
-            const data = await response.json();
-            const rates = {
-                buy: data.compra,
-                sell: data.venta,
-            };
-            setRate(rates);
-            if (onRateChange) {
-                onRateChange(rates);
-            }
-        } catch (error) {
-            console.error("Failed to fetch exchange rates:", error);
-            setRate(null);
-        } finally {
-            setIsLoading(false);
+      setIsLoading(true);
+      try {
+        const data = await api.get(API_ROUTES.CASHIER.COTIZACIONES, { rendered: 'false' });
+        const rates = {
+          buy: data.compra,
+          sell: data.venta,
+        };
+        setRate(rates);
+        if (onRateChange) {
+          onRateChange(rates);
         }
+      } catch (error) {
+        console.error("Failed to fetch exchange rates:", error);
+        setRate(null);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchRates();

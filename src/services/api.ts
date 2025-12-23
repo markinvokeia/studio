@@ -23,7 +23,7 @@ const buildUrl = (endpoint: string, params?: Record<string, string>, query?: Rec
 };
 
 const apiRequest = async (
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
     endpoint: string,
     data?: any,
     params?: Record<string, string>,
@@ -84,6 +84,9 @@ export const api = {
 
     put: (endpoint: string, data: any, params?: Record<string, string>, query?: Record<string, string>) =>
         apiRequest('PUT', endpoint, data, params, query),
+
+    patch: (endpoint: string, data: any, params?: Record<string, string>, query?: Record<string, string>) =>
+        apiRequest('PATCH', endpoint, data, params, query),
 
     delete: (endpoint: string, data?: any, params?: Record<string, string>, query?: Record<string, string>) =>
         apiRequest('DELETE', endpoint, data, params, query),
