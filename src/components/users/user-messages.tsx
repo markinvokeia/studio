@@ -1,54 +1,43 @@
 
 'use client';
 
-import * as React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { API_ROUTES } from '@/constants/routes';
 import { Message } from '@/lib/types';
-import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { api } from '@/services/api';
 import { format } from 'date-fns';
+import * as React from 'react';
+import { ScrollArea } from '../ui/scroll-area';
 
 async function getMessagesForUser(userId: string): Promise<Message[]> {
   if (!userId) return [];
   try {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/messages_logs?user_id=${userId}`, {
-        method: 'GET',
-        headers: {
-            'Accept': 'application/json',
-        },
-        cache: 'no-store',
-    });
-
-    if (!response.ok) {
-        console.error(`HTTP error! status: ${response.status}`);
-        return [];
-    }
-
-    const data = await response.json();
+    const data = await api.get(API_ROUTES.MESSAGES_LOGS, { user_id: userId });
     const logsData = Array.isArray(data) ? (data[0]?.data || []) : (data.access_logs || data.data || data.result || []);
 
     const messages: Message[] = [];
     logsData.forEach((log: any) => {
-        if(log.details) {
-            messages.push({
-                id: `${log.id}-user`,
-                user_id: userId,
-                content: log.details,
-                timestamp: log.timestamp,
-                sender: 'user',
-                channel: log.channel,
-            });
-        }
-        if (log.response) {
-            messages.push({
-                id: `${log.id}-system`,
-                user_id: userId,
-                content: log.response,
-                timestamp: log.finished || log.timestamp, 
-                sender: 'system',
-            });
-        }
+      if (log.details) {
+        messages.push({
+          id: `${log.id}-user`,
+          user_id: userId,
+          content: log.details,
+          timestamp: log.timestamp,
+          sender: 'user',
+          channel: log.channel,
+        });
+      }
+      if (log.response) {
+        messages.push({
+          id: `${log.id}-system`,
+          user_id: userId,
+          content: log.response,
+          timestamp: log.finished || log.timestamp,
+          sender: 'system',
+        });
+      }
     });
 
     return messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -60,20 +49,20 @@ async function getMessagesForUser(userId: string): Promise<Message[]> {
 }
 
 function formatMessageContent(content: string) {
-    if (!content) return { __html: '' };
-    let html = content
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/`([^`]+)`/g, '<code class="bg-muted text-foreground p-1 rounded-sm text-xs">$1</code>')
-        .replace(/\n/g, '<br />')
-        .replace(/(\r\n|\n|\r)/gm,"<br>");
+  if (!content) return { __html: '' };
+  let html = content
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code class="bg-muted text-foreground p-1 rounded-sm text-xs">$1</code>')
+    .replace(/\n/g, '<br />')
+    .replace(/(\r\n|\n|\r)/gm, "<br>");
 
-    html = html.replace(/(<br\s*\/?>|^)([\*\-]\s.*(<br\s*\/?>)?)+/g, (match) => {
-        const items = match.trim().split(/<br\s*\/?>/);
-        const listItems = items.filter(item => item.trim().startsWith('* ') || item.trim().startsWith('- ')).map(item => `<li>${item.trim().substring(2)}</li>`).join('');
-        return `<ul>${listItems}</ul>`;
-    });
-    
-    return { __html: html };
+  html = html.replace(/(<br\s*\/?>|^)([\*\-]\s.*(<br\s*\/?>)?)+/g, (match) => {
+    const items = match.trim().split(/<br\s*\/?>/);
+    const listItems = items.filter(item => item.trim().startsWith('* ') || item.trim().startsWith('- ')).map(item => `<li>${item.trim().substring(2)}</li>`).join('');
+    return `<ul>${listItems}</ul>`;
+  });
+
+  return { __html: html };
 }
 
 interface UserMessagesProps {
@@ -97,7 +86,7 @@ export function UserMessages({ userId }: UserMessagesProps) {
 
   React.useEffect(() => {
     if (viewportRef.current) {
-        viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
+      viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
 
@@ -134,22 +123,22 @@ export function UserMessages({ userId }: UserMessagesProps) {
                   )}
                 >
                   <p className="font-semibold capitalize">
-                    {message.sender === 'user' 
-                      ? `User via ${message.channel || 'Website'}` 
+                    {message.sender === 'user'
+                      ? `User via ${message.channel || 'Website'}`
                       : 'System Response'}
                   </p>
-                   <div dangerouslySetInnerHTML={formatMessageContent(message.content)} />
+                  <div dangerouslySetInnerHTML={formatMessageContent(message.content)} />
                 </div>
                 <span className="text-xs text-muted-foreground">
                   {format(new Date(message.timestamp), 'PPpp')}
                 </span>
               </div>
             ))}
-             {messages.length === 0 && (
-                <div className="flex h-full items-center justify-center text-muted-foreground">
-                    No messages found for this user.
-                </div>
-             )}
+            {messages.length === 0 && (
+              <div className="flex h-full items-center justify-center text-muted-foreground">
+                No messages found for this user.
+              </div>
+            )}
           </div>
         </ScrollArea>
       </CardContent>
