@@ -4,6 +4,7 @@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Collapsible,
@@ -43,7 +44,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { format, parseISO } from 'date-fns';
 import {
     AlertTriangle,
-    Calendar,
     CalendarIcon,
     Check,
     ChevronDown, ChevronsUpDown,
@@ -1193,7 +1193,7 @@ const AnamnesisDashboard = ({
 };
 
 const sessionFormSchema = z.object({
-    doctor_id: z.string().optional(),
+    doctor_name: z.string().optional(),
     fecha_sesion: z.date({
         required_error: 'Date is required'
     }),
@@ -1254,16 +1254,16 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                 setDeletedAttachmentIds([]);
 
                 try {
-                    const data = await api.get(API_ROUTES.USERS, { filter_type: 'DOCTOR' });
-                    const doctorsData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
-                    setDoctors(doctorsData);
+                    const doctorsData = await api.get(API_ROUTES.USERS_DOCTORS);
+                    const doctorsList = doctorsData.map((doc: any) => ({ ...doc, id: String(doc.id) }));
+                    setDoctors(doctorsList);
                 } catch (error) {
                     console.error('Failed to fetch doctors', error);
                 }
 
                 if (session && session.sesion_id) {
                     form.reset({
-                        doctor_id: session.doctor_id || '',
+                        doctor_name: '',
                         fecha_sesion: session.fecha_sesion ? parseISO(session.fecha_sesion) : new Date(),
                         procedimiento_realizado: session.procedimiento_realizado || '',
                         diagnostico: session.diagnostico || '',
@@ -1278,7 +1278,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                     setExistingAttachments(session.archivos_adjuntos || []);
                 } else {
                     form.reset({
-                        doctor_id: '',
+                        doctor_name: '',
                         fecha_sesion: new Date(),
                         procedimiento_realizado: '',
                         diagnostico: '',
@@ -1293,6 +1293,17 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         fetchInitialData();
     }, [isOpen, session, form]);
 
+    useEffect(() => {
+        if (isOpen && session && session.sesion_id && doctors.length > 0) {
+            let doctorName = '';
+            if (session.doctor_id) {
+                const doctor = doctors.find(d => d.id === String(session.doctor_id)) || doctors.find(d => d.name === String(session.doctor_id));
+                doctorName = doctor ? doctor.name : '';
+            }
+            form.setValue('doctor_name', doctorName);
+        }
+    }, [isOpen, session, doctors, form]);
+
 
     const handleSave: SubmitHandler<SessionFormValues> = async (values) => {
         setIsSubmitting(true);
@@ -1300,7 +1311,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         formData.append('paciente_id', userId);
         if (session?.sesion_id) formData.append('sesion_id', String(session.sesion_id));
 
-        formData.append('doctor_id', values.doctor_id || '');
+        const selectedDoctor = doctors.find(d => d.name === values.doctor_name);
+        formData.append('doctor_id', selectedDoctor ? selectedDoctor.id : '');
         formData.append('fecha_sesion', values.fecha_sesion.toISOString());
         formData.append('procedimiento_realizado', values.procedimiento_realizado);
         formData.append('diagnostico', values.diagnostico || '');
@@ -1380,7 +1392,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                         <FormMessage />
                                     </FormItem>
                                 )} />
-                                <FormField control={form.control} name="doctor_id" render={({ field }) => (
+                                <FormField control={form.control} name="doctor_name" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('doctor')}</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value ?? ''}>
@@ -1390,7 +1402,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                {doctors.map(doc => <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>)}
+                                                {doctors.map(doc => <SelectItem key={doc.id} value={doc.name}>{doc.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </FormItem>
@@ -1959,6 +1971,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             setPatientSessions(sessionsData.map((session: any) => ({
                 ...session,
                 sesion_id: String(session.sesion_id),
+                doctor_id: session.doctor_id ? String(session.doctor_id) : '',
                 tratamientos: session.tratamientos || [],
                 archivos_adjuntos: (session.archivos_adjuntos || []).map((file: any) => ({
                     ...file,
@@ -2120,7 +2133,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         setIsViewerOpen(true);
         setDocumentContent(null);
         try {
-            const blob = await api.getBlob(API_ROUTES.CLINIC_HISTORY.SESSIONS_ATTACHMENT, { session_id: session.sesion_id, id: attachment.id });
+            const blob = await api.getBlob(API_ROUTES.CLINIC_HISTORY.SESSIONS_ATTACHMENT, { session_id: session.sesion_id, id: String(attachment.id) });
             const url = URL.createObjectURL(blob);
             setDocumentContent(url);
         } catch (error) {
