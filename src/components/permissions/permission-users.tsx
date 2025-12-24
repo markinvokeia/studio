@@ -1,33 +1,22 @@
 
 'use client';
 
-import * as React from 'react';
-import { ColumnDef } from '@tanstack/react-table';
-import Image from 'next/image';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { Skeleton } from '@/components/ui/skeleton';
+import { API_ROUTES } from '@/constants/routes';
 import { User } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
+import { api } from '@/services/api';
+import { ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
+import * as React from 'react';
 
 async function getUsersForPermission(permissionId: string): Promise<User[]> {
   if (!permissionId) return [];
   try {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/permission_users?permission_id=${permissionId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    const data = await api.get(API_ROUTES.PERMISSION_USERS, { permission_id: permissionId });
     const usersData = Array.isArray(data) ? data : (data.permission_users || data.data || data.result || []);
 
     return usersData.map((apiUser: any) => ({

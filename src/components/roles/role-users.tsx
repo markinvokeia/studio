@@ -1,28 +1,30 @@
 
 'use client';
 
-import * as React from 'react';
-import { ColumnDef } from '@tanstack/react-table';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { DataTable } from '@/components/ui/data-table';
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { User, UserRole } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Card, CardContent } from '@/components/ui/card';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Check, ChevronsUpDown, MoreHorizontal, AlertTriangle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { API_ROUTES } from '@/constants/routes';
+import { useToast } from '@/hooks/use-toast';
+import { User, UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { useForm } from 'react-hook-form';
+import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ColumnDef } from '@tanstack/react-table';
+import { AlertTriangle, Check, ChevronsUpDown, MoreHorizontal } from 'lucide-react';
+import * as React from 'react';
+import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 
 const userRoleFormSchema = z.object({
   user_id: z.string().min(1, 'User is required'),
@@ -33,19 +35,7 @@ type UserRoleFormValues = z.infer<typeof userRoleFormSchema>;
 async function getUsersForRole(roleId: string): Promise<UserRole[]> {
   if (!roleId) return [];
   try {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/role_users?role_id=${roleId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    const data = await api.get(API_ROUTES.ROLE_USERS, { role_id: roleId });
     const usersData = Array.isArray(data) ? data : (data.role_users || data.data || data.result || []);
 
     return usersData.map((apiUser: any) => ({
@@ -62,36 +52,22 @@ async function getUsersForRole(roleId: string): Promise<UserRole[]> {
 }
 
 async function getAllUsers(): Promise<User[]> {
-    try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users');
-        if (!response.ok) throw new Error('Failed to fetch users');
-        const data = await response.json();
-        const usersData = (Array.isArray(data) && data.length > 0 && data[0].data) ? data[0].data : (data.data || []);
-        return usersData.map((u: any) => ({ id: String(u.id), name: u.name, email: u.email, phone_number: u.phone_number, is_active: u.is_active, avatar: u.avatar }));
-    } catch (error) {
-        console.error("Failed to fetch all users:", error);
-        return [];
-    }
+  try {
+    const data = await api.get(API_ROUTES.USERS);
+    const usersData = (Array.isArray(data) && data.length > 0 && data[0].data) ? data[0].data : (data.data || []);
+    return usersData.map((u: any) => ({ id: String(u.id), name: u.name, email: u.email, phone_number: u.phone_number, is_active: u.is_active, avatar: u.avatar }));
+  } catch (error) {
+    console.error("Failed to fetch all users:", error);
+    return [];
+  }
 }
 
 async function assignUserToRole(roleId: string, userId: string) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/role_users/upsert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role_id: roleId, user_id: userId }),
-    });
-    if (!response.ok) throw new Error('Failed to assign user');
-    return response.json();
+  return await api.post(API_ROUTES.ROLE_USERS_UPSERT, { role_id: roleId, user_id: userId });
 }
 
 async function deleteUserFromRole(roleId: string, userId: string) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/role_users/delete', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role_id: roleId, user_id: userId }),
-    });
-    if (!response.ok) throw new Error('Failed to delete user from role');
-    return response.json();
+  return await api.delete(API_ROUTES.ROLE_USERS_DELETE, { role_id: roleId, user_id: userId });
 }
 
 interface RoleUsersProps {
@@ -131,7 +107,7 @@ export function RoleUsers({ roleId }: RoleUsersProps) {
     setSubmissionError(null);
     setIsDialogOpen(true);
   };
-  
+
   const handleDelete = (user: UserRole) => {
     setDeletingUser(user);
     setIsDeleteDialogOpen(true);
@@ -140,20 +116,20 @@ export function RoleUsers({ roleId }: RoleUsersProps) {
   const confirmDelete = async () => {
     if (!deletingUser) return;
     try {
-        await deleteUserFromRole(roleId, deletingUser.id);
-        toast({
-            title: "User Removed",
-            description: `User "${deletingUser.name}" has been removed from this role.`,
-        });
-        setIsDeleteDialogOpen(false);
-        setDeletingUser(null);
-        loadUsers();
+      await deleteUserFromRole(roleId, deletingUser.id);
+      toast({
+        title: "User Removed",
+        description: `User "${deletingUser.name}" has been removed from this role.`,
+      });
+      setIsDeleteDialogOpen(false);
+      setDeletingUser(null);
+      loadUsers();
     } catch (error) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: error instanceof Error ? error.message : "Could not remove user.",
-        });
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error instanceof Error ? error.message : "Could not remove user.",
+      });
     }
   };
 
@@ -168,10 +144,10 @@ export function RoleUsers({ roleId }: RoleUsersProps) {
       setIsDialogOpen(false);
       loadUsers();
     } catch (error) {
-        setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+      setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
     }
   };
-  
+
   const columns: ColumnDef<UserRole>[] = [
     {
       accessorKey: 'name',
@@ -195,7 +171,7 @@ export function RoleUsers({ roleId }: RoleUsersProps) {
         </Badge>
       ),
     },
-     {
+    {
       id: 'actions',
       cell: ({ row }) => {
         const user = row.original;
@@ -231,114 +207,114 @@ export function RoleUsers({ roleId }: RoleUsersProps) {
 
   return (
     <>
-    <Card>
-      <CardContent className="p-4">
-        <DataTable
-          columns={columns}
-          data={users}
-          filterColumnId='name'
-          filterPlaceholder='Filter by user...'
-          onCreate={handleCreate}
-          onRefresh={loadUsers}
-          isRefreshing={isLoading}
-        />
-      </CardContent>
-    </Card>
+      <Card>
+        <CardContent className="p-4">
+          <DataTable
+            columns={columns}
+            data={users}
+            filterColumnId='name'
+            filterPlaceholder='Filter by user...'
+            onCreate={handleCreate}
+            onRefresh={loadUsers}
+            isRefreshing={isLoading}
+          />
+        </CardContent>
+      </Card>
 
-    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Assign User to Role</DialogTitle>
-          <DialogDescription>Select a user to assign to this role.</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-            {submissionError && (
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign User to Role</DialogTitle>
+            <DialogDescription>Select a user to assign to this role.</DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+              {submissionError && (
                 <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>{submissionError}</AlertDescription>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{submissionError}</AlertDescription>
                 </Alert>
-            )}
-            <FormField
-              control={form.control}
-              name="user_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>User</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            "w-full justify-between",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value
-                            ? allUsers.find(u => u.id === field.value)?.name
-                            : "Select a user"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search user..." />
-                        <CommandEmpty>No user found.</CommandEmpty>
-                        <CommandList>
-                          <CommandGroup>
-                            {allUsers.map((user) => (
-                              <CommandItem
-                                value={user.name}
-                                key={user.id}
-                                onSelect={() => {
-                                  form.setValue("user_id", user.id)
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    user.id === field.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {user.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
               )}
-            />
-            <DialogFooter>
-              <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button type="submit">Assign User</Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+              <FormField
+                control={form.control}
+                name="user_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>User</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? allUsers.find(u => u.id === field.value)?.name
+                              : "Select a user"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search user..." />
+                          <CommandEmpty>No user found.</CommandEmpty>
+                          <CommandList>
+                            <CommandGroup>
+                              {allUsers.map((user) => (
+                                <CommandItem
+                                  value={user.name}
+                                  key={user.id}
+                                  onSelect={() => {
+                                    form.setValue("user_id", user.id)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      user.id === field.value ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {user.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                <Button type="submit">Assign User</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
-    <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-      <AlertDialogContent>
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
           <AlertDialogHeader>
-          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-          <AlertDialogDescription>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
               This will remove the user "{deletingUser?.name}" from the role. This action cannot be undone.
-          </AlertDialogDescription>
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
           </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

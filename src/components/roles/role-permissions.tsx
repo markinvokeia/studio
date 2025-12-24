@@ -1,35 +1,35 @@
 
 'use client';
 
-import * as React from 'react';
-import { ColumnDef } from '@tanstack/react-table';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { DataTable } from '@/components/ui/data-table';
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Permission } from '@/lib/types';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
+import { Card, CardContent } from '@/components/ui/card';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Check, ChevronsUpDown, MoreHorizontal } from 'lucide-react';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Skeleton } from '@/components/ui/skeleton';
+import { API_ROUTES } from '@/constants/routes';
+import { useToast } from '@/hooks/use-toast';
+import { Permission } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { useForm } from 'react-hook-form';
+import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ColumnDef } from '@tanstack/react-table';
+import { AlertTriangle, Check, ChevronsUpDown, MoreHorizontal } from 'lucide-react';
+import * as React from 'react';
+import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { AlertTriangle } from 'lucide-react';
 
 
 const rolePermissionFormSchema = z.object({
@@ -41,19 +41,7 @@ type RolePermissionFormValues = z.infer<typeof rolePermissionFormSchema>;
 async function getPermissionsForRole(roleId: string): Promise<Permission[]> {
   if (!roleId) return [];
   try {
-    const response = await fetch(`https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/role_permissions?role_id=${roleId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    const data = await api.get(API_ROUTES.ROLE_PERMISSIONS, { role_id: roleId });
     const permissionsData = Array.isArray(data) ? data : (data.role_permissions || data.data || data.result || []);
 
     return permissionsData.map((apiPerm: any) => ({
@@ -70,36 +58,22 @@ async function getPermissionsForRole(roleId: string): Promise<Permission[]> {
 }
 
 async function getAllPermissions(): Promise<Permission[]> {
-    try {
-        const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/permissions');
-        if (!response.ok) throw new Error('Failed to fetch permissions');
-        const data = await response.json();
-        const permissionsData = Array.isArray(data) ? data : (data.permissions || data.data || []);
-        return permissionsData.map((p: any) => ({ id: String(p.id), name: p.name, action: p.action, resource: p.resource, description: p.description }));
-    } catch (error) {
-        console.error("Failed to fetch all permissions:", error);
-        return [];
-    }
+  try {
+    const data = await api.get(API_ROUTES.PERMISSIONS);
+    const permissionsData = Array.isArray(data) ? data : (data.permissions || data.data || []);
+    return permissionsData.map((p: any) => ({ id: String(p.id), name: p.name, action: p.action, resource: p.resource, description: p.description }));
+  } catch (error) {
+    console.error("Failed to fetch all permissions:", error);
+    return [];
+  }
 }
 
 async function assignPermissionToRole(roleId: string, permissionId: string) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/role_permisos/upsert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role_id: roleId, permission_id: permissionId }),
-    });
-    if (!response.ok) throw new Error('Failed to assign permission');
-    return response.json();
+  return await api.post(API_ROUTES.ROLE_PERMISSIONS_UPSERT, { role_id: roleId, permission_id: permissionId });
 }
 
 async function deletePermissionFromRole(roleId: string, permissionId: string) {
-    const response = await fetch('https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/role_permisos/delete', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role_id: roleId, permission_id: permissionId }),
-    });
-    if (!response.ok) throw new Error('Failed to delete permission');
-    return response.json();
+  return await api.delete(API_ROUTES.ROLE_PERMISSIONS_DELETE, { role_id: roleId, permission_id: permissionId });
 }
 
 interface RolePermissionsProps {
@@ -115,7 +89,7 @@ export function RolePermissions({ roleId }: RolePermissionsProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const { toast } = useToast();
-  
+
   const form = useForm<RolePermissionFormValues>({
     resolver: zodResolver(rolePermissionFormSchema),
   });
@@ -131,7 +105,7 @@ export function RolePermissions({ roleId }: RolePermissionsProps) {
   React.useEffect(() => {
     loadPermissions();
   }, [loadPermissions]);
-  
+
   const handleCreate = async () => {
     const fetchedAllPermissions = await getAllPermissions();
     setAllPermissions(fetchedAllPermissions);
@@ -144,24 +118,24 @@ export function RolePermissions({ roleId }: RolePermissionsProps) {
     setDeletingPermission(permission);
     setIsDeleteDialogOpen(true);
   };
-  
+
   const confirmDelete = async () => {
     if (!deletingPermission) return;
     try {
-        await deletePermissionFromRole(roleId, deletingPermission.id);
-        toast({
-            title: "Permission Removed",
-            description: `Permission "${deletingPermission.name}" has been removed from this role.`,
-        });
-        setIsDeleteDialogOpen(false);
-        setDeletingPermission(null);
-        loadPermissions();
+      await deletePermissionFromRole(roleId, deletingPermission.id);
+      toast({
+        title: "Permission Removed",
+        description: `Permission "${deletingPermission.name}" has been removed from this role.`,
+      });
+      setIsDeleteDialogOpen(false);
+      setDeletingPermission(null);
+      loadPermissions();
     } catch (error) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: error instanceof Error ? error.message : "Could not remove permission.",
-        });
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error instanceof Error ? error.message : "Could not remove permission.",
+      });
     }
   };
 
@@ -176,7 +150,7 @@ export function RolePermissions({ roleId }: RolePermissionsProps) {
       setIsDialogOpen(false);
       loadPermissions();
     } catch (error) {
-        setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+      setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
     }
   };
 
@@ -247,7 +221,7 @@ export function RolePermissions({ roleId }: RolePermissionsProps) {
           />
         </CardContent>
       </Card>
-      
+
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -257,12 +231,12 @@ export function RolePermissions({ roleId }: RolePermissionsProps) {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
               {submissionError && (
-                    <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Error</AlertTitle>
-                        <AlertDescription>{submissionError}</AlertDescription>
-                    </Alert>
-                )}
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{submissionError}</AlertDescription>
+                </Alert>
+              )}
               <FormField
                 control={form.control}
                 name="permission_id"
@@ -329,21 +303,21 @@ export function RolePermissions({ roleId }: RolePermissionsProps) {
           </Form>
         </DialogContent>
       </Dialog>
-      
-       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    This will remove the permission "{deletingPermission?.name}" from the role. This action cannot be undone.
-                </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the permission "{deletingPermission?.name}" from the role. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
