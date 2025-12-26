@@ -697,7 +697,7 @@ export default function AppointmentsPage() {
             const responseData = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload);
             const result = Array.isArray(responseData) ? responseData[0] : responseData;
 
-            if (response.ok && (result.code === 200 || result.status === 'success')) {
+            if (result.code === 200 || result.status === 'success') {
                 const successTitle = isEditing ? tToasts('appointmentUpdated') : tToasts('appointmentCreated');
                 toast({
                     title: successTitle,
@@ -1210,7 +1210,7 @@ export default function AppointmentsPage() {
                                     <RadioGroup onValueChange={(value) => {
                                         const [date, time, doctorId, calendarId] = value.split('|');
                                         const doctor = assignees.find(d => d.id === doctorId);
-                                        const calendar = calendars.find(c => c.id === calendarId);
+                                        const calendar = calendars.find(c => c.id === calendarId || c.name === calendarId);
                                         setNewAppointment(prev => ({ ...prev, date, time, doctor: doctor || null, calendar: calendar || null }));
                                     }}>
                                         {suggestedTimes.map((suggestion, index) => (
