@@ -2196,7 +2196,10 @@
       "isActive": "Is Active",
       "cancel": "Cancel",
       "create": "Create Category",
-      "save": "Save Changes"
+      "save": "Save Changes",
+      "basicInfo": "Basic info",
+      "visualSettings": "Visual settings",
+      "otherSettings": "Other settings"
     },
     "deleteDialog": {
       "title": "Delete Category",
@@ -2212,7 +2215,8 @@
       "deleteSuccessTitle": "Category Deleted",
       "deleteSuccessDescription": "Category \"{name}\" has been deleted.",
       "deleteErrorHasRules": "Cannot delete a category that has associated rules.",
-      "deleteErrorTitle": "Delete Failed"
+      "deleteErrorTitle": "Delete Failed",
+      "loadErrorDescription": "Error loading alert categories"
     },
     "validation": {
       "codeRequired": "Code is required.",
@@ -2220,7 +2224,15 @@
       "nameRequired": "Name is required.",
       "nameMaxLength": "Name cannot exceed 100 characters.",
       "descriptionMaxLength": "Description cannot exceed 500 characters.",
-      "colorInvalid": "Must be a valid hex color (e.g., #FF5733)."
+      "colorInvalid": "Must be a valid hex color (e.g., #FF5733).",
+      "validation": {
+        "codeRequired": "Code is required.",
+        "codeFormat": "Code must be uppercase and contain no spaces.",
+        "nameRequired": "Name is required",
+        "nameMaxLength": "Name cannot exceed 100 characters.",
+        "descriptionMaxLength": "Description cannot exceed 500 characters.",
+        "colorInvalid": "Invalid color."
+      }
     }
   },
   "AlertsCenterPage": {
