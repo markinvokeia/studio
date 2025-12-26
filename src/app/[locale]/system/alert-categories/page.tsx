@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -69,9 +70,9 @@ async function getCategories(search?: string, is_active?: boolean, page: number 
     }
 }
 
-async function upsertCategory(category: Partial<AlertCategory>): Promise<AlertCategory> {
+async function upsertCategory(category: Partial<CategoryFormValues>): Promise<AlertCategory> {
     try {
-        const response = await api.post(API_ROUTES.SYSTEM.ALERT_CATEGORY, category);
+        const response = await api.post(API_ROUTES.SYSTEM.ALERT_CATEGORY_UPSERT, category);
         return response;
     } catch (error) {
         console.error('Failed to upsert alert category:', error);
