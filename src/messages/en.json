@@ -2218,7 +2218,8 @@
       "deleteErrorHasRules": "Cannot delete a category that has associated rules.",
       "deleteErrorTitle": "Delete Failed",
       "loadErrorDescription": "Error loading alert categories",
-      "submitErrorDescription": "Error submitting category"
+      "submitErrorDescription": "Error submitting alert category",
+      "deleteErrorDescription": "Error deleting alert category"
     },
     "validation": {
       "codeRequired": "Code is required.",

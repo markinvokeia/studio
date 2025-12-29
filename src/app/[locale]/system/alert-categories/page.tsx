@@ -34,7 +34,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
 const categoryFormSchema = (t: (key: string) => string) => z.object({
-    id: z.string().optional(),
+    id: z.union([z.string(), z.number()]).optional(),
     code: z.string()
         .min(1, t('validation.codeRequired'))
         .regex(/^[A-Z_]+$/, t('validation.codeFormat')),
