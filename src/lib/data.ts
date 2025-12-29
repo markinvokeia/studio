@@ -1,22 +1,23 @@
 
 import {
-  User,
-  Role,
-  Permission,
-  Service,
-  Clinic,
-  Quote,
-  Conversation,
-  CommunicationChannel,
-  SystemConfiguration,
-  AuditLog,
   AccessLog,
+  Appointment,
+  AuditLog,
+  Clinic,
+  CommunicationChannel,
+  CommunicationTemplate,
+  Conversation,
   ErrorLog,
   MedicalEvent,
   Message,
-  Appointment,
-  UserLog,
   PatientDemographics,
+  Permission,
+  Quote,
+  Role,
+  Service,
+  SystemConfiguration,
+  User,
+  UserLog,
 } from './types';
 
 export const statsData = [
@@ -62,11 +63,11 @@ export const revenueChartData = [
 ];
 
 export const salesByServiceData = [
-    { name: 'Service A', sales: 400, fill: "var(--color-chart-1)" },
-    { name: 'Service B', sales: 300, fill: "var(--color-chart-2)" },
-    { name: 'Service C', sales: 200, fill: "var(--color-chart-3)" },
-    { name: 'Service D', sales: 278, fill: "var(--color-chart-4)" },
-    { name: 'Service E', sales: 189, fill: "var(--color-chart-5)" },
+  { name: 'Service A', sales: 400, fill: "var(--color-chart-1)" },
+  { name: 'Service B', sales: 300, fill: "var(--color-chart-2)" },
+  { name: 'Service C', sales: 200, fill: "var(--color-chart-3)" },
+  { name: 'Service D', sales: 278, fill: "var(--color-chart-4)" },
+  { name: 'Service E', sales: 189, fill: "var(--color-chart-5)" },
 ];
 
 export const users: User[] = [
@@ -121,6 +122,12 @@ export const communicationChannels: CommunicationChannel[] = [
   { id: 'chan_1', name: 'Support Email', channel_type: 'email', is_active: true },
   { id: 'chan_2', name: 'Live Chat', channel_type: 'chat', is_active: true },
   { id: 'chan_3', name: 'SMS Alerts', channel_type: 'sms', is_active: false },
+];
+
+export const communicationTemplates: CommunicationTemplate[] = [
+  { id: '1', code: 'APPT_REMINDER_24H_EMAIL', name: 'Appointment Reminder 24h (Email)', type: 'EMAIL', category_id: 1, subject: 'Recordatorio de su cita en {{clinic.name}}', body_html: 'Estimado/a {{patient.first_name}}, le recordamos su cita para mañana a las {{appointment.time}}.', is_active: true, version: 1, default_sender: 'noreply@clinic.com', variables_schema: {}, attachments_config: {} },
+  { id: '2', code: 'INV_OVERDUE_SMS', name: 'Invoice Overdue (SMS)', type: 'SMS', category_id: 2, body_text: '{{clinic.name}}: Su factura #{{invoice.number}} ha vencido. Total: {{invoice.total}}.', is_active: true, version: 1, default_sender: 'noreply@clinic.com', variables_schema: {}, attachments_config: {} },
+  { id: '3', code: 'WELCOME_PATIENT', name: 'Welcome New Patient', type: 'EMAIL', category_id: 1, subject: 'Bienvenido/a a {{clinic.name}}', body_html: 'Gracias por elegirnos, {{patient.first_name}}!', is_active: false, version: 2, default_sender: 'welcome@clinic.com', variables_schema: {}, attachments_config: {} },
 ];
 
 export const systemConfigurations: SystemConfiguration[] = [
@@ -221,16 +228,16 @@ export const medicalHistory: MedicalEvent[] = [
 
 
 export const messages: Message[] = [
-    { id: 'msg_1', user_id: 'mock_user', sender: 'user', content: 'Hello, I have a question about my bill.', timestamp: '2024-05-15T10:30:00Z' },
-    { id: 'msg_2', user_id: 'mock_user', sender: 'system', content: 'Of course, I can help with that. What is your question?', timestamp: '2024-05-15T10:30:45Z' },
-    { id: 'msg_3', user_id: 'mock_user', sender: 'user', content: 'I see a charge from last week that I don\'t recognize.', timestamp: '2024-05-15T10:31:20Z' },
-    { id: 'msg_4', user_id: 'mock_user', sender: 'system', content: 'I can look into that for you. Can you provide the date and amount of the charge?', timestamp: '2024-05-15T10:32:00Z' },
-    { id: 'msg_5', user_id: 'mock_user', sender: 'user', content: 'It was for $45.50 on May 8th.', timestamp: '2024-05-15T10:33:10Z' },
-    { id: 'msg_6', user_id: 'mock_user', sender: 'system', content: 'Thank you. One moment while I pull up that transaction... I see it was for a co-payment for your visit with Dr. Smith. Does that sound correct?', timestamp: '2024-05-15T10:34:00Z' },
-    { id: 'msg_7', user_id: 'mock_user', sender: 'user', content: 'Oh, right! I completely forgot. Thanks for clarifying.', timestamp: '2024-05-15T10:34:50Z' },
-    { id: 'msg_8', user_id: 'mock_user', sender: 'system', content: 'You\'re welcome! Is there anything else I can help you with today?', timestamp: '2024-05-15T10:35:15Z' },
-    { id: 'msg_9', user_id: 'another_user', sender: 'user', content: 'I need to reschedule my appointment.', timestamp: '2024-05-16T11:00:00Z' },
-    { id: 'msg_10', user_id: 'another_user', sender: 'system', content: 'I can help with that. Which appointment would you like to reschedule?', timestamp: '2024-05-16T11:00:30Z' }
+  { id: 'msg_1', user_id: 'mock_user', sender: 'user', content: 'Hello, I have a question about my bill.', timestamp: '2024-05-15T10:30:00Z' },
+  { id: 'msg_2', user_id: 'mock_user', sender: 'system', content: 'Of course, I can help with that. What is your question?', timestamp: '2024-05-15T10:30:45Z' },
+  { id: 'msg_3', user_id: 'mock_user', sender: 'user', content: 'I see a charge from last week that I don\'t recognize.', timestamp: '2024-05-15T10:31:20Z' },
+  { id: 'msg_4', user_id: 'mock_user', sender: 'system', content: 'I can look into that for you. Can you provide the date and amount of the charge?', timestamp: '2024-05-15T10:32:00Z' },
+  { id: 'msg_5', user_id: 'mock_user', sender: 'user', content: 'It was for $45.50 on May 8th.', timestamp: '2024-05-15T10:33:10Z' },
+  { id: 'msg_6', user_id: 'mock_user', sender: 'system', content: 'Thank you. One moment while I pull up that transaction... I see it was for a co-payment for your visit with Dr. Smith. Does that sound correct?', timestamp: '2024-05-15T10:34:00Z' },
+  { id: 'msg_7', user_id: 'mock_user', sender: 'user', content: 'Oh, right! I completely forgot. Thanks for clarifying.', timestamp: '2024-05-15T10:34:50Z' },
+  { id: 'msg_8', user_id: 'mock_user', sender: 'system', content: 'You\'re welcome! Is there anything else I can help you with today?', timestamp: '2024-05-15T10:35:15Z' },
+  { id: 'msg_9', user_id: 'another_user', sender: 'user', content: 'I need to reschedule my appointment.', timestamp: '2024-05-16T11:00:00Z' },
+  { id: 'msg_10', user_id: 'another_user', sender: 'system', content: 'I can help with that. Which appointment would you like to reschedule?', timestamp: '2024-05-16T11:00:30Z' }
 ];
 
 
@@ -254,9 +261,9 @@ export const userLogs: UserLog[] = [
 ];
 
 export const patientDemographicsData: PatientDemographics = {
-    total: 215,
-    data: [
-        { type: 'New', count: 86, fill: 'hsl(var(--chart-1))' },
-        { type: 'Recurrent', count: 129, fill: 'hsl(var(--chart-2))' },
-    ]
+  total: 215,
+  data: [
+    { type: 'New', count: 86, fill: 'hsl(var(--chart-1))' },
+    { type: 'Recurrent', count: 129, fill: 'hsl(var(--chart-2))' },
+  ]
 };

@@ -564,88 +564,93 @@ export type AlertCategory = {
 };
 
 export type AlertRule = {
-    id: string;
-    category_id: string;
-    code: string;
-    name: string;
-    description?: string;
-    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-    source_table: string;
-    query_template: string;
-    days_before?: number;
-    days_after?: number;
-    recurrence_type?: 'ONCE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
-    auto_send_email: boolean;
-    auto_send_sms: boolean;
-    email_template_id?: string;
-    sms_template_id?: string;
-    is_active: boolean;
+  id: string;
+  category_id: string;
+  code: string;
+  name: string;
+  description?: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  source_table: string;
+  query_template: string;
+  days_before?: number;
+  days_after?: number;
+  recurrence_type?: 'ONCE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  auto_send_email: boolean;
+  auto_send_sms: boolean;
+  email_template_id?: string;
+  sms_template_id?: string;
+  is_active: boolean;
 };
 
 export type AlertInstance = {
-    id: string;
-    rule_id: string;
-    rule_name?: string;
-    reference_table: string;
-    reference_id: string;
-    patient_id?: string;
-    patient_name?: string;
-    alert_date: string;
-    event_date?: string;
-    title: string;
-    summary?: string;
-    status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'IGNORED';
-    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-    assigned_to?: string;
-    assigned_to_name?: string;
+  id: string;
+  rule_id: string;
+  rule_name?: string;
+  reference_table: string;
+  reference_id: string;
+  patient_id?: string;
+  patient_name?: string;
+  alert_date: string;
+  event_date?: string;
+  title: string;
+  summary?: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'IGNORED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  assigned_to?: string;
+  assigned_to_name?: string;
 };
 
 export type CommunicationTemplate = {
-  id: string;
+  id?: string;
   code: string;
   name: string;
   type: 'EMAIL' | 'SMS' | 'DOCUMENT' | 'WHATSAPP';
-  category_id?: string;
+  category_id?: number;
   subject?: string;
   body_html?: string;
   body_text?: string;
+  variables_schema?: any;
+  default_sender?: string;
+  attachments_config?: any;
   is_active: boolean;
-  version: number;
+  version?: number;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type AlertAction = {
-    id: string;
-    alert_instance_id: string;
-    action_type: string;
-    result_status: 'SUCCESS' | 'FAILED' | 'PENDING';
-    result_message?: string;
-    performed_by: string;
-    performed_at: string;
+  id: string;
+  alert_instance_id: string;
+  action_type: string;
+  result_status: 'SUCCESS' | 'FAILED' | 'PENDING';
+  result_message?: string;
+  performed_by: string;
+  performed_at: string;
 };
 
 export type CommunicationLog = {
-    id: string;
-    alert_instance_id?: string;
-    template_id?: string;
-    channel: 'EMAIL' | 'SMS' | 'WHATSAPP' | 'PRINT';
-    recipient_address: string;
-    status: 'QUEUED' | 'SENT' | 'DELIVERED' | 'FAILED' | 'BOUNCED';
-    sent_at?: string;
+  id: string;
+  alert_instance_id?: string;
+  template_id?: string;
+  channel: 'EMAIL' | 'SMS' | 'WHATSAPP' | 'PRINT';
+  recipient_address: string;
+  status: 'QUEUED' | 'SENT' | 'DELIVERED' | 'FAILED' | 'BOUNCED';
+  sent_at?: string;
 };
 
 export type AlertScheduleRun = {
-    id: string;
-    run_date: string;
-    status: 'RUNNING' | 'COMPLETED' | 'FAILED';
-    alerts_created: number;
-    errors_count: number;
+  id: string;
+  run_date: string;
+  status: 'RUNNING' | 'COMPLETED' | 'FAILED';
+  alerts_created: number;
+  errors_count: number;
 };
 
 export type UserAlertPreference = {
-    id: string;
-    user_id: string;
-    category_id?: string;
-    rule_id?: string;
-    show_in_dashboard: boolean;
-    email_notification: boolean;
+  id: string;
+  user_id: string;
+  category_id?: string;
+  rule_id?: string;
+  show_in_dashboard: boolean;
+  email_notification: boolean;
 };

@@ -2340,6 +2340,7 @@
     "columns": {
       "name": "Name",
       "type": "Type",
+      "version": "Version",
       "category": "Category",
       "isActive": "Active",
       "yes": "Yes",
@@ -2356,6 +2357,7 @@
       "editTitle": "Edit Template",
       "name": "Name",
       "code": "Code",
+      "version": "Version",
       "type": "Type",
       "selectType": "Select a type",
       "category": "Category",
@@ -2372,7 +2374,8 @@
       "variables": {
         "title": "Variables",
         "description": "Click a variable to insert it into your template."
-      }
+      },
+      "defaultSender": "Default Sender"
     },
     "deleteDialog": {
       "title": "Delete Template",
