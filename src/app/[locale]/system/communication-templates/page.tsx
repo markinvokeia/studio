@@ -74,6 +74,7 @@ const deleteTemplate = async (id: string) => {
     }
 };
 
+
 async function getTemplates(params: { search?: string; is_active?: boolean; page?: number; limit?: number } = {}): Promise<{ data: CommunicationTemplate[]; total: number; page: number; limit: number }> {
     try {
         const query: Record<string, string> = {};
@@ -245,6 +246,18 @@ export default function CommunicationTemplatesPage() {
         setIsDeleteDialogOpen(true);
     };
 
+    const handleDuplicate = (template: CommunicationTemplate) => {
+        setEditingTemplate(null);
+        form.reset({
+            ...template,
+            id: undefined,
+            version: 1,
+            name: template.name + ' (Copy)',
+        });
+        setSubmissionError(null);
+        setIsDialogOpen(true);
+    };
+
     const confirmDelete = async () => {
         if (!deletingTemplate?.id) return;
         try {
@@ -304,7 +317,7 @@ export default function CommunicationTemplatesPage() {
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => handleEdit(template)}>{t('columns.edit')}</DropdownMenuItem>
-                            <DropdownMenuItem>{t('columns.duplicate')}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDuplicate(template)}>{t('columns.duplicate')}</DropdownMenuItem>
                             <DropdownMenuItem>{t('columns.preview')}</DropdownMenuItem>
                             <DropdownMenuItem>{t('columns.history')}</DropdownMenuItem>
                             <DropdownMenuSeparator />
