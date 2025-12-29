@@ -48,10 +48,17 @@ const categoryFormSchema = (t: (key: string) => string) => z.object({
 
 type CategoryFormValues = z.infer<ReturnType<typeof categoryFormSchema>>;
 
+interface PaginatedResponse<T> {
+    data: T[];
+    total: number;
+    page: number;
+    limit: number;
+}
+
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 100;
 
-async function getCategories(search?: string, is_active?: boolean, page: number = DEFAULT_PAGE, limit: number = DEFAULT_LIMIT): Promise<AlertCategory[]> {
+async function getCategories(search?: string, is_active?: boolean, page: number = DEFAULT_PAGE, limit: number = DEFAULT_LIMIT): Promise<PaginatedResponse<AlertCategory>> {
     try {
         const query: Record<string, string> = {
             page: page.toString(),
@@ -62,8 +69,12 @@ async function getCategories(search?: string, is_active?: boolean, page: number 
         if (is_active !== undefined) query.is_active = is_active.toString();
 
         const response = await api.get(API_ROUTES.SYSTEM.ALERT_CATEGORIES, query);
-        const categories = response;
-        return categories.map((cat: any) => ({ ...cat, rules_count: cat.rules_count || 0 }));
+        return {
+            data: response.map((cat: any) => ({ ...cat, rules_count: cat.rules_count || 0 })),
+            total: response.length,
+            page: page,
+            limit: limit
+        };
     } catch (error) {
         console.error('Failed to fetch alert categories:', error);
         throw error;
@@ -101,7 +112,8 @@ export default function AlertCategoriesPage() {
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [currentPage, setCurrentPage] = React.useState(DEFAULT_PAGE);
-    const [itemsPerPage] = React.useState(DEFAULT_LIMIT);
+    const [pageSize, setPageSize] = React.useState(DEFAULT_LIMIT);
+    const [total, setTotal] = React.useState(0);
 
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [editingCategory, setEditingCategory] = React.useState<AlertCategory | null>(null);
@@ -116,7 +128,7 @@ export default function AlertCategoriesPage() {
         resolver: zodResolver(categoryFormSchema(tValidation)),
     });
 
-    const loadCategories = React.useCallback(async (filters: ColumnFiltersState, page: number = DEFAULT_PAGE) => {
+    const loadCategories = React.useCallback(async (filters: ColumnFiltersState, page: number = DEFAULT_PAGE, limit: number = DEFAULT_LIMIT) => {
         setIsRefreshing(true);
         try {
             const searchFilter = filters.find(f => f.id === 'name');
@@ -125,8 +137,11 @@ export default function AlertCategoriesPage() {
             const isActiveFilterObj = filters.find(f => f.id === 'is_active');
             const isActiveValue = isActiveFilterObj?.value as boolean | undefined;
 
-            const fetchedCategories = await getCategories(searchValue, isActiveValue, page, itemsPerPage);
-            setCategories(fetchedCategories);
+            const result = await getCategories(searchValue, isActiveValue, page, limit);
+            setCategories(result.data);
+            setTotal(result.total);
+            setCurrentPage(result.page);
+            setPageSize(result.limit);
         } catch (error) {
             console.error('Error loading categories:', error);
             toast({
@@ -137,11 +152,11 @@ export default function AlertCategoriesPage() {
         } finally {
             setIsRefreshing(false);
         }
-    }, [t, toast, itemsPerPage]);
+    }, [t, toast]);
 
     React.useEffect(() => {
-        loadCategories(columnFilters, currentPage);
-    }, [loadCategories, columnFilters, currentPage]);
+        loadCategories(columnFilters, currentPage, pageSize);
+    }, [loadCategories, columnFilters, currentPage, pageSize]);
 
     const handleColumnFiltersChange = React.useCallback((filters: ColumnFiltersState) => {
         setColumnFilters(filters);
@@ -188,7 +203,7 @@ export default function AlertCategoriesPage() {
             });
             setIsDeleteDialogOpen(false);
             setDeletingCategory(null);
-            loadCategories(columnFilters, currentPage);
+            loadCategories(columnFilters, currentPage, pageSize);
         } catch (error) {
             console.error('Error deleting category:', error);
             toast({
@@ -209,13 +224,24 @@ export default function AlertCategoriesPage() {
                 description: t('toast.successDescription', { name: values.name })
             });
             setIsDialogOpen(false);
-            loadCategories(columnFilters, currentPage);
+            loadCategories(columnFilters, currentPage, pageSize);
         } catch (error) {
             console.error('Error submitting category:', error);
             setSubmissionError(t('toast.submitErrorDescription'));
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const pagination = {
+        pageIndex: currentPage - 1,
+        pageSize,
+    };
+
+    const onPaginationChange = (updater: any) => {
+        const newPagination = typeof updater === 'function' ? updater(pagination) : updater;
+        setCurrentPage(newPagination.pageIndex + 1);
+        setPageSize(newPagination.pageSize);
     };
 
     const columns: ColumnDef<AlertCategory>[] = [
@@ -284,10 +310,14 @@ export default function AlertCategoriesPage() {
                         filterColumnId="name"
                         filterPlaceholder={t('filterPlaceholder')}
                         onCreate={handleCreate}
-                        onRefresh={() => loadCategories(columnFilters, currentPage)}
+                        onRefresh={() => loadCategories(columnFilters, currentPage, pageSize)}
                         isRefreshing={isRefreshing}
                         columnFilters={columnFilters}
                         onColumnFiltersChange={handleColumnFiltersChange}
+                        pagination={pagination}
+                        onPaginationChange={onPaginationChange}
+                        manualPagination={true}
+                        pageCount={Math.ceil(total / pageSize)}
                     />
                 </CardContent>
             </Card>
