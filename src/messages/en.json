@@ -2199,7 +2199,8 @@
       "save": "Save Changes",
       "basicInfo": "Basic info",
       "visualSettings": "Visual settings",
-      "otherSettings": "Other settings"
+      "otherSettings": "Other settings",
+      "saving": "Saving"
     },
     "deleteDialog": {
       "title": "Delete Category",
@@ -2216,7 +2217,8 @@
       "deleteSuccessDescription": "Category \"{name}\" has been deleted.",
       "deleteErrorHasRules": "Cannot delete a category that has associated rules.",
       "deleteErrorTitle": "Delete Failed",
-      "loadErrorDescription": "Error loading alert categories"
+      "loadErrorDescription": "Error loading alert categories",
+      "submitErrorDescription": "Error submitting category"
     },
     "validation": {
       "codeRequired": "Code is required.",

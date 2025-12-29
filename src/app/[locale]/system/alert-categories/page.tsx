@@ -72,7 +72,7 @@ async function getCategories(search?: string, is_active?: boolean, page: number 
 
 async function upsertCategory(category: Partial<CategoryFormValues>): Promise<AlertCategory> {
     try {
-        const response = await api.post(API_ROUTES.SYSTEM.ALERT_CATEGORY_UPSERT, category);
+        const response = await api.post(API_ROUTES.SYSTEM.ALERT_CATEGORY, category);
         if (response.error || (Array.isArray(response) && response[0]?.code >= 400)) {
             const message = response.message || (Array.isArray(response) && response[0]?.message) || 'Failed to save category';
             throw new Error(message);
