@@ -2302,13 +2302,23 @@
       "isActive": "Is Active",
       "cancel": "Cancel",
       "create": "Create Rule",
-      "save": "Save Changes"
+      "save": "Save Changes",
+      "conditions": "Conditions",
+      "selectSourceTable": "Select Source Table",
+      "recurrenceType": "Recurrence Type",
+      "selectRecurrenceType": "Select Recurrence Type",
+      "emailTemplate": "Email Template",
+      "selectEmailTemplate": "Select Email Template",
+      "smsTemplate": "SMS Template",
+      "selectSmsTemplate": "Select SMS Template",
+      "saving": "Saving"
     },
     "deleteDialog": {
       "title": "Delete Rule",
       "description": "Are you sure you want to delete the rule \"{name}\"?",
       "cancel": "Cancel",
-      "confirm": "Delete"
+      "confirm": "Delete",
+      "deleting": "Deleting"
     },
     "toast": {
       "errorTitle": "Error",

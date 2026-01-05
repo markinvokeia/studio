@@ -237,6 +237,7 @@ export const API_ROUTES = {
         ERRORS: '/system/errors',
         ERROR_LOGS: '/error_logs',
         EXECUTION_HISTORY: '/system/execution-history',
+        TABLES: '/system/tables',
         USERS: '/system/users',
         API_AUTH_CHECK_FIRST_PASSWORD: '/api/auth/check-requirements-first-password',
         API_AUTH_FIRST_TIME_PASSWORD_TOKEN: '/api/auth/first-time-password-token',
