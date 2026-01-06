@@ -56,7 +56,25 @@ const nextConfig: any = {
       },
     ],
   },
-  allowedDevOrigins: ['localhost:3000', '*.local', '192.168.*'],
+  allowedDevOrigins: ['localhost:3000', '192.168.1.*'],
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['localhost:3000', '192.168.1.*'],
+    },
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Referrer-Policy',
+            value: 'no-referrer-when-downgrade',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default withNextIntl(nextConfig);
