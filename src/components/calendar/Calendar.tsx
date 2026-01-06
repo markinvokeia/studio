@@ -185,7 +185,12 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
       <ContextMenuTrigger>
         <div
           className="event-in-day-view"
-          style={style}
+          style={{
+            ...style,
+            left: `${(event.column / event.totalColumns) * 100}%`,
+            width: `${(1 / event.totalColumns) * 100}%`,
+            paddingRight: '4px', // Add some gap between events
+          }}
           onClick={(e) => {
             e.stopPropagation(); // prevent triggering other click listeners
             onEventClick(event.data);
@@ -208,6 +213,78 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
       </ContextMenuContent>
     </ContextMenu>
   );
+
+  const getEventsWithLayout = useCallback((dayEvents: any[]) => {
+    if (dayEvents.length === 0) return [];
+
+    // Sort events by start time, then end time
+    const sortedEvents = [...dayEvents].sort((a, b) => {
+      const startA = new Date(a.start).getTime();
+      const startB = new Date(b.start).getTime();
+      if (startA !== startB) return startA - startB;
+      const endA = new Date(a.end).getTime();
+      const endB = new Date(b.end).getTime();
+      return endA - endB;
+    });
+
+    const clusters: any[][] = [];
+    let currentCluster: any[] = [];
+    let clusterEnd = 0;
+
+    sortedEvents.forEach((event: any) => {
+      const start = new Date(event.start).getTime();
+      const end = new Date(event.end).getTime();
+
+      if (start >= clusterEnd) {
+        if (currentCluster.length > 0) {
+          clusters.push(currentCluster);
+        }
+        currentCluster = [event];
+        clusterEnd = end;
+      } else {
+        currentCluster.push(event);
+        clusterEnd = Math.max(clusterEnd, end);
+      }
+    });
+    if (currentCluster.length > 0) {
+      clusters.push(currentCluster);
+    }
+
+    const positionedEvents: any[] = [];
+
+    clusters.forEach((cluster: any[]) => {
+      const columns: any[][] = []; // Array of arrays, each inner array is a column of events
+
+      cluster.forEach((event: any) => {
+        let placed = false;
+        const eventStart = new Date(event.start).getTime();
+
+        for (let i = 0; i < columns.length; i++) {
+          const lastEventInColumn = columns[i][columns[i].length - 1];
+          const lastEventEnd = new Date(lastEventInColumn.end).getTime();
+
+          if (eventStart >= lastEventEnd) {
+            columns[i].push(event);
+            event.column = i;
+            placed = true;
+            break;
+          }
+        }
+
+        if (!placed) {
+          event.column = columns.length;
+          columns.push([event]);
+        }
+      });
+
+      cluster.forEach((event: any) => {
+        event.totalColumns = columns.length;
+        positionedEvents.push(event);
+      });
+    });
+
+    return positionedEvents;
+  }, []);
 
   const renderDayOrWeekView = (numDays) => {
     const startDay = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
@@ -262,7 +339,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
             </div>
           )}
         </div>
-        <div className="day-view-body" style={{ '--num-days': days.length * (group ? columns.length : 1) }}>
+        <div className="day-view-body" style={{ '--num-days': days.length * (group ? columns.length : 1) } as any}>
           <div className="time-column">
             {timeSlots.map(time => {
               const hour24 = parseInt(time.split(':')[0], 10);
@@ -281,25 +358,24 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
             })}
           </div>
           {days.map((day, dayIndex) => (
-            group && columns.length > 0 ? columns.map(col => (
-              <div key={`${format(day, 'yyyy-MM-dd')}-${col.id}`} className="day-column">
-                {timeSlots.map(time => <div key={`${time}-${col.id}`} className="time-slot" />)}
-                {events
-                  .filter((e) => isSameDay(new Date(e.start), day) && e.assignee === col.email)
-                  .map((event) => (
+            group && columns.length > 0 ? columns.map(col => {
+              const dayColEvents = events.filter((e: any) => isSameDay(new Date(e.start), day) && e.assignee === col.email);
+              const eventsWithLayout = getEventsWithLayout(dayColEvents);
+
+              return (
+                <div key={`${format(day, 'yyyy-MM-dd')}-${col.id}`} className="day-column">
+                  {timeSlots.map(time => <div key={`${time}-${col.id}`} className="time-slot" />)}
+                  {eventsWithLayout.map((event) => (
                     <EventInDayViewComponent key={event.id} event={event} style={getEventStyle(event)} />
-                  ))
-                }
-              </div>
-            )) : (
+                  ))}
+                </div>
+              );
+            }) : (
               <div key={format(day, 'yyyy-MM-dd')} className="day-column">
                 {timeSlots.map(time => <div key={time} className="time-slot" />)}
-                {events
-                  .filter((e) => isSameDay(new Date(e.start), day))
-                  .map((event) => (
-                    <EventInDayViewComponent key={event.id} event={event} style={getEventStyle(event)} />
-                  ))
-                }
+                {getEventsWithLayout(events.filter((e: any) => isSameDay(new Date(e.start), day))).map((event: any) => (
+                  <EventInDayViewComponent key={event.id} event={event} style={getEventStyle(event)} />
+                ))}
               </div>
             )
           ))}

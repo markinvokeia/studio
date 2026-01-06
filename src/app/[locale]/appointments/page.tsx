@@ -949,7 +949,7 @@ export default function AppointmentsPage() {
                                             <CommandItem onSelect={() => setSelectedCalendarIds([])}>{t('deselectAll')}</CommandItem>
                                             <hr className="my-2" />
                                             {calendars.map((calendar) => (
-                                                <CommandItem key={calendar.id} onSelect={(e) => e.preventDefault()}>
+                                                <CommandItem key={calendar.id} onSelect={() => handleSelectCalendar(calendar.id, !selectedCalendarIds.includes(calendar.id))}>
                                                     <div className="flex items-center justify-between w-full">
                                                         <div className='flex items-center'>
                                                             <Checkbox checked={selectedCalendarIds.includes(calendar.id)} onCheckedChange={(checked) => handleSelectCalendar(calendar.id, !!checked)} />
@@ -977,7 +977,7 @@ export default function AppointmentsPage() {
                                         <Command>
                                             <CommandList>
                                                 <CommandGroup>
-                                                    <CommandItem onSelect={(e) => e.preventDefault()} className="flex items-center gap-2">
+                                                    <CommandItem onSelect={() => { if (selectedAssignees.length > 0) setGroup(!group) }} className="flex items-center gap-2">
                                                         <Checkbox id="group-by-assignee" checked={group} onCheckedChange={(checked) => setGroup(typeof checked === 'boolean' ? checked : false)} disabled={selectedAssignees.length === 0} />
                                                         <Label htmlFor="group-by-assignee" className={cn(selectedAssignees.length === 0 && 'text-muted-foreground')}>{t('groupByAssignee')}</Label>
                                                     </CommandItem>

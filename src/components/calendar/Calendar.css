@@ -184,8 +184,7 @@
 
 .event-in-day-view {
   position: absolute;
-  left: 4px;
-  right: 4px;
+  /* left and width are set dynamically via inline styles */
   background-color: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   border-radius: var(--radius);
@@ -194,6 +193,7 @@
   overflow: hidden;
   cursor: pointer;
   z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.2); /* Add subtle border for visibility */
 }
 
 .current-time-indicator {
