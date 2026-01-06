@@ -135,7 +135,12 @@
         "tooltip": "Sin sesión activa. Haga clic para abrir una."
     },
     "DataTableToolbar": {
-        "toggleColumns": "Alternar columnas"
+        "toggleColumns": "Alternar columnas",
+        "filter": "Filtrar",
+        "all": "Todos",
+        "refresh": "Refrescar",
+        "view": "Ver",
+        "create": "Crear"
     },
     "DataTablePagination": {
         "selected": "{count, plural, one {# seleccionado} other {# seleccionados}} de {total} fila(s).",
@@ -684,7 +689,9 @@
         "quoteDialog": {
             "cancel": "Cancelar",
             "createTitle": "Crear Presupuesto",
+            "editTitle": "Editar Presupuesto",
             "description": "Crear un nuevo presupuesto",
+            "editDescription": "Actualizar los detalles de este presupuesto",
             "user": "Usuario",
             "selectUser": "Seleccionar Usuario",
             "searchUser": "Buscar Usuario",
@@ -695,25 +702,37 @@
             "confirmed": "Confirmado",
             "rejected": "Rechazado",
             "paymentStatus": "Estado de Pago",
-            "unpaid": "No Pagado",
+            "unpaid": "Impago",
             "billingStatus": "Estado de Facturación",
-            "notInvoiced": "No Facturado",
             "save": "Guardar",
-            "noUserFound": "Usuario no encontrado",
             "selectCurrency": "Seleccionar Moneda",
             "selectStatus": "Seleccionar Estado",
             "selectPaymentStatus": "Seleccionar Estado de Pago",
-            "partially_paid": "Parcialmente Pagado",
-            "paid": "Pagado",
             "selectBillingStatus": "Seleccionar Estado de Facturación",
-            "partially_invoiced": "Parcialmente Facturado",
-            "invoiced": "Facturado",
-            "notinvoiced": "No Facturado",
-            "partiallyPaid": "Parcialmente Pagado",
-            "not invoiced": "No Facturado",
             "accepted": "Aceptado",
-            "fully_invoiced": "Totalmente Facturado",
-            "not_paid": "No Pagado"
+            "fully_invoiced": "Facturado Totalmente",
+            "not_paid": "Impago"
+        },
+        "toast": {
+            "quoteDeleted": "Presupuesto Eliminado",
+            "quoteDeleteSuccess": "El presupuesto #{id} ha sido eliminado correctamente.",
+            "quoteDeleteError": "Error al eliminar el presupuesto.",
+            "quoteUpdated": "Presupuesto Actualizado",
+            "quoteCreated": "Presupuesto Creado",
+            "quoteSaveSuccess": "El presupuesto ha sido guardado correctamente.",
+            "quoteError": "Error al guardar el presupuesto.",
+            "itemDeleted": "Artículo Eliminado",
+            "itemDeleteSuccess": "El artículo ha sido eliminado correctamente.",
+            "itemDeleteError": "Error al eliminar el artículo.",
+            "itemUpdated": "Artículo Actualizado",
+            "itemAdded": "Artículo Agregado",
+            "itemSaveSuccess": "El artículo ha sido guardado correctamente.",
+            "itemError": "Error al guardar el artículo.",
+            "quoteConfirmed": "Presupuesto Confirmado",
+            "quoteRejected": "Presupuesto Rechazado",
+            "quoteConfirmSuccess": "El presupuesto #{id} ha sido confirmado.",
+            "quoteRejectSuccess": "El presupuesto #{id} ha sido rechazado.",
+            "quoteActionError": "Error al {action} el presupuesto."
         },
         "sendEmail": "Enviar Correo",
         "print": "Imprimir",
@@ -733,12 +752,23 @@
             "unitPrice": "Precio Unitario",
             "total": "Total",
             "createTitle": "Crear Artículo de Presupuesto",
+            "editTitle": "Editar Artículo de Presupuesto",
             "description": "Crear un nuevo artículo de presupuesto",
             "cancel": "Cancelar",
             "save": "Guardar",
             "actions": "Acciones",
             "edit": "Editar",
             "delete": "Eliminar"
+        },
+        "errors": {
+            "cannotEdit": "No se puede editar el presupuesto",
+            "cannotEditDetail": "Solo puedes editar presupuestos que estén en estado \"Borrador\".",
+            "cannotDelete": "No se puede eliminar el presupuesto",
+            "cannotDeleteDetail": "Solo puedes eliminar presupuestos que estén en estado \"Borrador\".",
+            "failedToSave": "Error al guardar el presupuesto",
+            "failedToDelete": "Error al eliminar el presupuesto",
+            "failedToLoadServices": "No se pudieron cargar los servicios.",
+            "failedToLoadServiceData": "No se pudieron cargar los datos del servicio para editar."
         },
         "validation": {
             "userRequired": "Un usuario es obligatorio",
@@ -762,16 +792,16 @@
         "description": "Gestione todas sus facturas aquí.",
         "columns": {
             "invoiceId": "ID de Factura",
-            "provider": "Proveedor",
-            "user": "Usuario",
+            "userName": "Usuario",
             "orderId": "ID de Orden",
             "quoteId": "ID de Presupuesto",
             "total": "Total",
             "status": "Estado",
-            "payment": "Pago",
+            "paymentStatus": "Pago",
             "createdAt": "Creado En",
             "currency": "Moneda",
-            "type": "Tipo"
+            "type": "Tipo",
+            "paidAmount": "Monto Pagado"
         },
         "paymentDialog": {
             "add": "Agregar Pago",
@@ -844,11 +874,26 @@
             "description": "Debe tener una sesión de caja activa para registrar un pago.",
             "openCashSession": "Abrir Sesión de Caja"
         },
-        "detailsFor": "Detalles para",
         "invoiceId": "ID de Factura",
         "tabs": {
             "items": "Artículos",
             "payments": "Pagos"
+        },
+        "sendEmailDialog": {
+            "title": "Enviar Factura por Correo",
+            "description": "Ingrese los correos de los destinatarios para la factura #{id}.",
+            "recipients": "Destinatarios",
+            "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
+            "helperText": "Separe múltiples correos con comas."
+        },
+        "importDialog": {
+            "title": "Importar Factura",
+            "description": "Suba un archivo PDF o imagen para crear automáticamente una factura.",
+            "clickToUpload": "Haga clic para subir",
+            "dragAndDrop": "o arrastre y suelte",
+            "fileTypes": "PDF, PNG, JPG o GIF (MAX. 10MB)",
+            "processing": "Procesando...",
+            "createInvoice": "Crear Factura"
         },
         "filterPlaceholder": "Filtrar aquí...",
         "createDialog": {
@@ -880,27 +925,37 @@
             "type": "Tipo",
             "parentInvoice": "Factura Padre"
         },
-        "InvoiceItemsTable": {
-            "title": "Artículos de la Factura",
-            "columns": {
-                "id": "ID",
-                "service": "Servicio",
-                "quantity": "Cantidad",
-                "unitPrice": "Precio Unitario",
-                "total": "Total"
-            }
-        },
-        "confirmInvoice": "Confirmar Factura",
         "actions": {
             "openMenu": "Abrir menú",
             "title": "Acciones",
             "print": "Imprimir",
             "sendEmail": "Enviar Correo"
         },
-        "import": "Importar"
+        "confirmation": {
+            "confirm": "Confirmar",
+            "cancel": "Cancelar",
+            "title": "Confirmar",
+            "message": "¿Está seguro de que desea realizar esta acción?"
+        },
+        "detailsFor": "Detalles",
+        "close": "Cerrar detalles",
+        "confirmInvoice": "Confirmar Factura",
+        "deleteItemDialog": {
+            "title": "¿Está seguro?",
+            "description": "Esto eliminará permanentemente el artículo de la factura. Esta acción no se puede deshacer.",
+            "cancel": "Cancelar",
+            "confirm": "Eliminar"
+        },
+        "confirmInvoiceDialog": {
+            "title": "Confirmar Factura",
+            "description": "¿Está seguro de que desea confirmar la factura #{id}? Esta acción no se puede deshacer.",
+            "cancel": "Cancelar",
+            "confirm": "Confirmar"
+        }
     },
     "InvoiceItemsTable": {
         "title": "Artículos de la Factura",
+        "titleWithId": "Artículos de la Factura para {id}",
         "filterPlaceholder": "Filtrar aquí...",
         "columns": {
             "id": "ID",
@@ -908,6 +963,19 @@
             "quantity": "Cantidad",
             "unitPrice": "Precio Unitario",
             "total": "Total"
+        },
+        "createTitle": "Crear Artículo de Factura",
+        "editTitle": "Editar Artículo de Factura",
+        "actions": {
+            "title": "Acciones",
+            "edit": "Editar",
+            "delete": "Eliminar"
+        },
+        "form": {
+            "service": "Servicio",
+            "selectService": "Seleccione un servicio",
+            "quantity": "Cantidad",
+            "unitPrice": "Precio Unitario"
         }
     },
     "CashierPage": {
@@ -1117,7 +1185,8 @@
             "confirm": "Confirmar"
         },
         "detailsFor": "Detalles para {name}",
-        "orderId": "ID de Orden"
+        "orderId": "ID de Orden",
+        "close": "Cerrar detalles"
     },
     "PaymentsPage": {
         "title": "Pagos",
@@ -1144,7 +1213,17 @@
         },
         "transactionType": {
             "payment_allocation": "Asignación de Pago",
-            "direct_payment": "Pago Directo"
+            "direct_payment": "Pago Directo",
+            "payment": "Pago",
+            "credit_note": "Nota de Crédito",
+            "deposit_at_bank": "Depósito en Banco",
+            "cash_deposit": "Depósito en Efectivo"
+        },
+        "actions": {
+            "title": "Acciones",
+            "print": "Imprimir",
+            "sendEmail": "Enviar Correo",
+            "openMenu": "Abrir Menú"
         },
         "createPrepaid": "Crear Prepago",
         "prepaidDialog": {
@@ -1311,6 +1390,7 @@
     },
     "OrderItemsTable": {
         "title": "Artículos de la Orden",
+        "titleWithId": "Artículos de la Orden para {id}",
         "filterPlaceholder": "Filtrar aquí...",
         "columns": {
             "id": "ID",
@@ -1324,11 +1404,35 @@
             "invoiced": "Facturado En"
         },
         "status": {
-            "invoiced": "Facturado"
+            "invoiced": "Facturado",
+            "completed": "Completado",
+            "scheduled": "Programado",
+            "cancelled": "Cancelado",
+            "pending": "Pendiente"
+        },
+        "toast": {
+            "scheduledTitle": "Artículo Programado",
+            "completedTitle": "Artículo Completado",
+            "updateSuccess": "El artículo se ha actualizado correctamente.",
+            "updateError": "Error al actualizar el artículo.",
+            "error": "Error"
+        },
+        "dateDialog": {
+            "title": {
+                "schedule": "Programar Artículo",
+                "complete": "Completar Artículo"
+            },
+            "description": {
+                "schedule": "Seleccione una fecha para programar este artículo.",
+                "complete": "Seleccione la fecha de finalización para este artículo."
+            },
+            "cancel": "Cancelar",
+            "save": "Guardar"
         },
         "actions": {
             "title": "Acciones",
             "schedule": "Programar",
+            "complete": "Completar",
             "openMenu": "Abrir menú"
         }
     },
@@ -2153,6 +2257,7 @@
         "all": "Todos",
         "title": "Calendario",
         "today": "Hoy",
+        "timeZone": "GMT-03",
         "views": {
             "2day": "2 Días",
             "3day": "3 Días",

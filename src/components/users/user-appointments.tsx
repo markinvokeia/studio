@@ -152,6 +152,12 @@ export function UserAppointments({ user }: UserAppointmentsProps) {
           data={appointments}
           filterColumnId="service_name"
           filterPlaceholder={tAppointmentsPage('filterByService')}
+          columnTranslations={{
+            service_name: t('service'),
+            date: t('date'),
+            time: t('time'),
+            status: t('status'),
+          }}
         />
       </CardContent>
     </Card>

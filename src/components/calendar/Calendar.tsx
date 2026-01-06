@@ -316,7 +316,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
       <div className="day-view-container">
         <div className="day-view-header-wrapper">
           <div className='day-view-header-dates' style={{ gridTemplateColumns: `60px repeat(${days.length}, 1fr)` }}>
-            <div className="time-zone-label">GMT-03</div>
+            <div className="time-zone-label">{t('timeZone')}</div>
             {days.map(day => (
               <div key={`date-${format(day, 'yyyy-MM-dd')}`} className="day-view-date-cell">
                 <span className='day-name'>{format(day, 'EEE', { locale: dateLocale }).toUpperCase()}</span>

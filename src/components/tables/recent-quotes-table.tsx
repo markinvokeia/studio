@@ -241,8 +241,12 @@ const getColumns = (
                 {t('delete')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onQuoteAction(quote, 'confirm')} disabled={!isDraft && !isPending}>Confirm</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onQuoteAction(quote, 'reject')} className="text-destructive" disabled={!isDraft && !isPending}>Reject</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onQuoteAction(quote, 'confirm')} disabled={!isDraft && !isPending}>
+                {tQuotes('confirm')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onQuoteAction(quote, 'reject')} className="text-destructive" disabled={!isDraft && !isPending}>
+                {tQuotes('reject')}
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -369,6 +373,16 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
             isRefreshing={isRefreshing}
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
+            columnTranslations={{
+              id: t('QuoteColumns.quoteId'),
+              user_name: t('UserColumns.name'),
+              createdAt: t('QuoteColumns.createdAt'),
+              total: t('QuoteColumns.total'),
+              currency: t('QuoteColumns.currency'),
+              status: t('UserColumns.status'),
+              billing_status: t('QuoteColumns.billingStatus'),
+              payment_status: t('Navigation.Payments'),
+            }}
           />
         </CardContent>
       </Card>

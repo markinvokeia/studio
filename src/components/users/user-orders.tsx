@@ -106,6 +106,12 @@ export function UserOrders({ userId }: UserOrdersProps) {
           data={orders}
           filterColumnId='id'
           filterPlaceholder={t('OrdersPage.filterPlaceholder')}
+          columnTranslations={{
+            id: t('OrderColumns.orderId'),
+            quote_id: t('QuoteColumns.quoteId'),
+            createdAt: t('OrderColumns.createdAt'),
+            status: t('UserColumns.status'),
+          }}
         />
       </CardContent>
     </Card>

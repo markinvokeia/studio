@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef } from '@tanstack/react-table';
+import { useTranslations } from 'next-intl';
 import { AlertTriangle, Check, ChevronsUpDown, MoreHorizontal } from 'lucide-react';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -81,6 +82,7 @@ interface RolePermissionsProps {
 }
 
 export function RolePermissions({ roleId }: RolePermissionsProps) {
+  const t = useTranslations();
   const [permissions, setPermissions] = React.useState<Permission[]>([]);
   const [allPermissions, setAllPermissions] = React.useState<Permission[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -124,8 +126,8 @@ export function RolePermissions({ roleId }: RolePermissionsProps) {
     try {
       await deletePermissionFromRole(roleId, deletingPermission.id);
       toast({
-        title: "Permission Removed",
-        description: `Permission "${deletingPermission.name}" has been removed from this role.`,
+        title: t('PermissionsPage.toast.success'),
+        description: t('PermissionsPage.toast.deleteSuccess'),
       });
       setIsDeleteDialogOpen(false);
       setDeletingPermission(null);
@@ -133,8 +135,8 @@ export function RolePermissions({ roleId }: RolePermissionsProps) {
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error instanceof Error ? error.message : "Could not remove permission.",
+        title: t('PermissionsPage.toast.errorTitle'),
+        description: error instanceof Error ? error.message : t('PermissionsPage.toast.genericError'),
       });
     }
   };
@@ -144,33 +146,33 @@ export function RolePermissions({ roleId }: RolePermissionsProps) {
     try {
       await assignPermissionToRole(roleId, values.permission_id);
       toast({
-        title: "Permission Assigned",
-        description: "The permission has been successfully assigned to the role.",
+        title: t('PermissionsPage.toast.success'),
+        description: t('PermissionsPage.toast.createSuccessTitle'),
       });
       setIsDialogOpen(false);
       loadPermissions();
     } catch (error) {
-      setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+      setSubmissionError(error instanceof Error ? error.message : t('PermissionsPage.toast.genericError'));
     }
   };
 
   const columns: ColumnDef<Permission>[] = [
     {
       accessorKey: 'name',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Permission" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('PermissionsPage.columns.name')} />,
     },
     {
       accessorKey: 'description',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Description" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('PermissionsPage.columns.description')} />,
     },
     {
       accessorKey: 'action',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Action" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('PermissionsPage.columns.action')} />,
       cell: ({ row }) => <Badge variant="secondary" className="capitalize">{row.getValue('action')}</Badge>,
     },
     {
       accessorKey: 'resource',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Resource" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('PermissionsPage.columns.resource')} />,
       cell: ({ row }) => <Badge variant="outline" className="capitalize">{row.getValue('resource')}</Badge>,
     },
     {
@@ -214,10 +216,16 @@ export function RolePermissions({ roleId }: RolePermissionsProps) {
             columns={columns}
             data={permissions}
             filterColumnId='name'
-            filterPlaceholder='Filter by permission...'
+            filterPlaceholder={t('PermissionsPage.filterPlaceholder')}
             onCreate={handleCreate}
             onRefresh={loadPermissions}
             isRefreshing={isLoading}
+            columnTranslations={{
+              name: t('PermissionsPage.columns.name'),
+              description: t('PermissionsPage.columns.description'),
+              action: t('PermissionsPage.columns.action'),
+              resource: t('PermissionsPage.columns.resource'),
+            }}
           />
         </CardContent>
       </Card>
@@ -296,8 +304,8 @@ export function RolePermissions({ roleId }: RolePermissionsProps) {
                 )}
               />
               <DialogFooter>
-                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                <Button type="submit">Assign Permission</Button>
+                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('PermissionsPage.dialog.cancel')}</Button>
+                <Button type="submit">{t('PermissionsPage.dialog.create')}</Button>
               </DialogFooter>
             </form>
           </Form>
@@ -313,8 +321,8 @@ export function RolePermissions({ roleId }: RolePermissionsProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel>{t('PermissionsPage.deleteDialog.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('PermissionsPage.deleteDialog.confirm')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

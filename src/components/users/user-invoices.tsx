@@ -127,6 +127,13 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
           data={invoices}
           filterColumnId='id'
           filterPlaceholder={t('InvoicesPage.filterPlaceholder')}
+          columnTranslations={{
+            id: t('InvoicesPage.columns.invoiceId'),
+            total: t('InvoicesPage.columns.total'),
+            status: t('InvoicesPage.columns.status'),
+            payment_status: t('InvoicesPage.columns.payment'),
+            createdAt: t('InvoicesPage.columns.createdAt'),
+          }}
         />
       </CardContent>
     </Card>

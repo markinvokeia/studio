@@ -26,13 +26,13 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
-const invoiceItemSchema = z.object({
+const getInvoiceItemSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
-    service_id: z.string().min(1, 'Service name is required'),
-    quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
-    unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
+    service_id: z.string().min(1, t('validation.serviceRequired')),
+    quantity: z.coerce.number().min(1, t('validation.quantityMin')),
+    unit_price: z.coerce.number().min(0, t('validation.priceNonNegative')),
 });
-type InvoiceItemFormValues = z.infer<typeof invoiceItemSchema>;
+type InvoiceItemFormValues = z.infer<ReturnType<typeof getInvoiceItemSchema>>;
 
 async function getServices(): Promise<Service[]> {
     try {
@@ -158,6 +158,7 @@ export default function InvoicesPage() {
     const [confirmingInvoice, setConfirmingInvoice] = React.useState<Invoice | null>(null);
     const [invoiceType, setInvoiceType] = React.useState('all');
 
+    const invoiceItemSchema = React.useMemo(() => getInvoiceItemSchema(t), [t]);
     const itemForm = useForm<InvoiceItemFormValues>({
         resolver: zodResolver(invoiceItemSchema),
     });
@@ -233,8 +234,8 @@ export default function InvoicesPage() {
             a.remove();
 
             toast({
-                title: "Download Started",
-                description: `Your PDF for Invoice #${invoice.id} is downloading.`,
+                title: t('toast.downloadStarted'),
+                description: t('toast.downloadSuccess', { id: invoice.id }),
             });
 
         } catch (error) {
@@ -257,7 +258,7 @@ export default function InvoicesPage() {
 
         const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
         if (emails.length === 0) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please enter at least one recipient email.' });
+            toast({ variant: 'destructive', title: t('toast.error'), description: t('sendEmailDialog.errorNoEmail') });
             return;
         }
 
@@ -313,7 +314,7 @@ export default function InvoicesPage() {
         try {
             await api.post(API_ROUTES.SALES.API_INVOICE_IMPORT, formData);
 
-            toast({ title: 'Import Successful', description: 'The invoice has been created from the imported file.' });
+            toast({ title: t('importDialog.success'), description: t('importDialog.successDescription') });
             loadInvoices();
             setIsImportDialogOpen(false);
 
@@ -454,11 +455,11 @@ export default function InvoicesPage() {
                             name="service_id"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Service</FormLabel>
+                                    <FormLabel>{t('InvoiceItemsTable.form.service')}</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
                                             <SelectTrigger>
-                                                <SelectValue placeholder="Select a service" />
+                                                <SelectValue placeholder={t('InvoiceItemsTable.form.selectService')} />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
@@ -478,7 +479,7 @@ export default function InvoicesPage() {
                             name="quantity"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Quantity</FormLabel>
+                                    <FormLabel>{t('InvoiceItemsTable.form.quantity')}</FormLabel>
                                     <FormControl>
                                         <Input type="number" {...field} />
                                     </FormControl>
@@ -491,7 +492,7 @@ export default function InvoicesPage() {
                             name="unit_price"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Unit Price</FormLabel>
+                                    <FormLabel>{t('InvoiceItemsTable.form.unitPrice')}</FormLabel>
                                     <FormControl>
                                         <Input type="number" step="0.01" {...field} />
                                     </FormControl>
@@ -501,9 +502,9 @@ export default function InvoicesPage() {
                         />
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                                Cancel
+                                {t('createDialog.cancel')}
                             </Button>
-                            <Button type="submit">Save Changes</Button>
+                            <Button type="submit">{t('createDialog.save')}</Button>
                         </DialogFooter>
                     </form>
                 </Form>
@@ -567,12 +568,12 @@ export default function InvoicesPage() {
                                 {selectedInvoice.status.toLowerCase() === 'draft' && (
                                     <Button variant="outline" size="sm" onClick={() => handleConfirmInvoiceClick(selectedInvoice)}>
                                         <CheckCircle className="mr-2 h-4 w-4" />
-                                        Confirm Invoice
+                                        {t('confirmInvoice')}
                                     </Button>
                                 )}
                                 <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                                     <X className="h-5 w-5" />
-                                    <span className="sr-only">Close details</span>
+                                    <span className="sr-only">{t('close')}</span>
                                 </Button>
                             </div>
                         </CardHeader>
@@ -615,31 +616,31 @@ export default function InvoicesPage() {
             <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Send Invoice by Email</DialogTitle>
-                        <DialogDescription>Enter the recipient emails for invoice #{selectedInvoiceForEmail?.id}.</DialogDescription>
+                        <DialogTitle>{t('sendEmailDialog.title')}</DialogTitle>
+                        <DialogDescription>{t('sendEmailDialog.description', { id: selectedInvoiceForEmail?.id })}</DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
-                        <Label htmlFor="email-recipients">Recipients</Label>
+                        <Label htmlFor="email-recipients">{t('sendEmailDialog.recipients')}</Label>
                         <Input
                             id="email-recipients"
                             value={emailRecipients}
                             onChange={(e) => setEmailRecipients(e.target.value)}
-                            placeholder="email1@example.com, email2@example.com"
+                            placeholder={t('sendEmailDialog.placeholder')}
                         />
-                        <p className="text-sm text-muted-foreground mt-1">Separate multiple emails with commas.</p>
+                        <p className="text-sm text-muted-foreground mt-1">{t('sendEmailDialog.helperText')}</p>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>Cancel</Button>
-                        <Button onClick={handleConfirmSendEmail}>Send Email</Button>
+                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>{t('paymentDialog.cancel')}</Button>
+                        <Button onClick={handleConfirmSendEmail}>{t('sendEmailDialog.title')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
             <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Import Invoice</DialogTitle>
+                        <DialogTitle>{t('importDialog.title')}</DialogTitle>
                         <DialogDescription>
-                            Upload a PDF or image file to automatically create an invoice.
+                            {t('importDialog.description')}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4 space-y-4">
@@ -654,8 +655,8 @@ export default function InvoicesPage() {
                                 ) : (
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                         <FileUp className="w-8 h-8 mb-4 text-muted-foreground" />
-                                        <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                        <p className="text-xs text-muted-foreground">PDF, PNG, JPG or GIF (MAX. 10MB)</p>
+                                        <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">{t('importDialog.clickToUpload')}</span> {t('importDialog.dragAndDrop')}</p>
+                                        <p className="text-xs text-muted-foreground">{t('importDialog.fileTypes')}</p>
                                     </div>
                                 )}
                                 <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
@@ -663,15 +664,15 @@ export default function InvoicesPage() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isProcessingImport}>Cancel</Button>
+                        <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isProcessingImport}>{t('paymentDialog.cancel')}</Button>
                         <Button onClick={handleImportSubmit} disabled={!importFile || isProcessingImport}>
                             {isProcessingImport ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Processing...
+                                    {t('importDialog.processing')}
                                 </>
                             ) : (
-                                'Create Invoice'
+                                t('importDialog.createInvoice')
                             )}
                         </Button>
                     </DialogFooter>
@@ -687,40 +688,40 @@ export default function InvoicesPage() {
             <ItemFormDialog
                 isOpen={isCreateItemDialogOpen}
                 onOpenChange={setIsCreateItemDialogOpen}
-                title="Create Invoice Item"
+                title={t('InvoiceItemsTable.createTitle')}
                 onSubmit={onItemSubmit}
             />
 
             <ItemFormDialog
                 isOpen={isEditItemDialogOpen}
                 onOpenChange={setIsEditItemDialogOpen}
-                title="Edit Invoice Item"
+                title={t('InvoiceItemsTable.editTitle')}
                 onSubmit={onItemSubmit}
             />
 
             <AlertDialog open={isDeleteItemDialogOpen} onOpenChange={setIsDeleteItemDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>This will permanently delete the invoice item. This action cannot be undone.</AlertDialogDescription>
+                        <AlertDialogTitle>{t('deleteItemDialog.title')}</AlertDialogTitle>
+                        <AlertDialogDescription>{t('deleteItemDialog.description')}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
             <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Confirm Invoice</AlertDialogTitle>
+                        <AlertDialogTitle>{t('confirmInvoiceDialog.title')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to confirm invoice #{confirmingInvoice?.id}? This action cannot be undone.
+                            {t('confirmInvoiceDialog.description', { id: confirmingInvoice?.id })}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleConfirmInvoice}>Confirm</AlertDialogAction>
+                        <AlertDialogCancel>{t('confirmInvoiceDialog.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmInvoice}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

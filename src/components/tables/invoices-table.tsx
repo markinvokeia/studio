@@ -631,7 +631,19 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         onCreate={onCreate}
         rowSelection={rowSelection}
         setRowSelection={setRowSelection}
-        columnTranslations={columnTranslations}
+        columnTranslations={{
+          id: t('columns.invoiceId'),
+          user_name: t('columns.userName'),
+          order_id: t('columns.orderId'),
+          quote_id: t('columns.quoteId'),
+          total: t('columns.total'),
+          currency: t('columns.currency'),
+          status: t('columns.status'),
+          type: t('columns.type'),
+          payment_status: t('columns.paymentStatus'),
+          paid_amount: t('columns.paidAmount'),
+          createdAt: t('columns.createdAt'),
+        }}
         filterOptions={filterOptions}
         onFilterChange={onFilterChange}
         filterValue={filterValue}

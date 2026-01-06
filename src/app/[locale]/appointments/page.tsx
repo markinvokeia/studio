@@ -77,7 +77,8 @@ async function getAppointments(
     endDate: Date,
     calendars: CalendarType[],
     services: Service[],
-    doctors: UserType[]
+    doctors: UserType[],
+    t: (key: string) => string
 ): Promise<Appointment[]> {
     if (!isValid(startDate) || !isValid(endDate)) {
         console.error("Invalid start or end date provided to getAppointments");
@@ -95,7 +96,7 @@ async function getAppointments(
     }
 
     try {
-        const query = {
+        const query: any = {
             startingDateAndTime: formatDateForAPI(startDate),
             endingDateAndTime: formatDateForAPI(endDate),
         };
@@ -137,7 +138,7 @@ async function getAppointments(
                 patientName: apiAppt.patientName || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a: any) => a.email).join(', ') : 'N/A'),
                 patientEmail: apiAppt.patientEmail,
                 doctorEmail: apiAppt.doctorEmail,
-                service_name: apiAppt.summary || 'No Service Name',
+                service_name: apiAppt.summary || t('createDialog.none'),
                 description: apiAppt.description || '',
                 date: format(appointmentDateTime, 'yyyy-MM-dd'),
                 time: format(appointmentDateTime, 'HH:mm'),
@@ -150,7 +151,7 @@ async function getAppointments(
                 colorId: appointmentColorId,
                 start: apiAppt.start,
                 end: apiAppt.end,
-            };
+            } as Appointment;
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
         console.error("Failed to fetch appointments:", error);
@@ -354,7 +355,7 @@ export default function AppointmentsPage() {
             return cal?.google_calendar_id;
         }).filter((id): id is string => !!id);
 
-        const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors);
+        const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors, t);
         setAppointments(fetchedAppointments);
 
         setIsRefreshing(false);
@@ -711,7 +712,7 @@ export default function AppointmentsPage() {
                 forceRefresh();
             } else {
                 const errorDetails = result?.error || result;
-                const errorMessage = errorDetails?.description || errorDetails?.message || 'An unknown error occurred.';
+                const errorMessage = errorDetails?.description || errorDetails?.message || tToasts('unexpectedError');
                 if (errorMessage.includes("No existe disponibilidad")) {
                     toast({
                         variant: "destructive",

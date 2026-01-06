@@ -239,7 +239,14 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             onCreate={onCreate}
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
-            columnTranslations={columnTranslations}
+            columnTranslations={{
+              id: tOrderColumns('orderId'),
+              user_name: tUserColumns('name'),
+              quote_id: tQuoteColumns('quoteId'),
+              currency: t('QuoteColumns.currency'),
+              status: tUserColumns('status'),
+              createdAt: tOrderColumns('createdAt'),
+            }}
           />
         </CardContent>
       </Card>

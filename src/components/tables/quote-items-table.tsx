@@ -29,92 +29,92 @@ const getColumns = (
   onDelete: (item: QuoteItem) => void,
   canEdit: boolean
 ): ColumnDef<QuoteItem>[] => [
-  {
-    accessorKey: 'id',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('id')} />
-    ),
-  },
-  {
-    accessorKey: 'service_name',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('service')} />
-    ),
-  },
-  {
-    accessorKey: 'quantity',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('quantity')} />
-    ),
-  },
-  {
-    accessorKey: 'unit_price',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('unitPrice')} />
-    ),
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue('unit_price'));
-      const formatted = new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-      }).format(amount);
-      return <div className="font-medium">{formatted}</div>;
+    {
+      accessorKey: 'id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('id')} />
+      ),
     },
-  },
-  {
-    accessorKey: 'total',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('total')} />
-    ),
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue('total'));
-      const formatted = new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-      }).format(amount);
-      return <div className="font-medium">{formatted}</div>;
+    {
+      accessorKey: 'service_name',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('service')} />
+      ),
     },
-  },
-  {
-    id: 'actions',
-    cell: ({ row }) => {
-      const item = row.original;
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0" disabled={!canEdit}>
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => onEdit(item)}>{t('edit')}</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDelete(item)} className="text-destructive">{t('delete')}</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
+    {
+      accessorKey: 'quantity',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('quantity')} />
+      ),
     },
-  },
-];
+    {
+      accessorKey: 'unit_price',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('unitPrice')} />
+      ),
+      cell: ({ row }) => {
+        const amount = parseFloat(row.getValue('unit_price'));
+        const formatted = new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+        }).format(amount);
+        return <div className="font-medium">{formatted}</div>;
+      },
+    },
+    {
+      accessorKey: 'total',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('total')} />
+      ),
+      cell: ({ row }) => {
+        const amount = parseFloat(row.getValue('total'));
+        const formatted = new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+        }).format(amount);
+        return <div className="font-medium">{formatted}</div>;
+      },
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0" disabled={!canEdit}>
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => onEdit(item)}>{t('edit')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onDelete(item)} className="text-destructive">{t('delete')}</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ];
 
 export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete }: QuoteItemsTableProps) {
-    const t = useTranslations('QuotesPage.itemDialog');
-    const tShared = useTranslations('UserColumns');
-    const columns = getColumns(
-        (key) => {
-            try {
-                return t(key);
-            } catch (e) {
-                return tShared(key);
-            }
-        }, 
-        onEdit, 
-        onDelete, 
-        canEdit
-    );
+  const t = useTranslations('QuotesPage.itemDialog');
+  const tShared = useTranslations('UserColumns');
+  const columns = getColumns(
+    (key) => {
+      try {
+        return t(key);
+      } catch (e) {
+        return tShared(key);
+      }
+    },
+    onEdit,
+    onDelete,
+    canEdit
+  );
 
-    if (isLoading) {
+  if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
         <Skeleton className="h-8 w-full" />
@@ -135,6 +135,13 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
           onCreate={canEdit ? onCreate : undefined}
+          columnTranslations={{
+            id: t('id'),
+            service_name: t('service'),
+            quantity: t('quantity'),
+            unit_price: t('unitPrice'),
+            total: t('total'),
+          }}
         />
       </CardContent>
     </Card>

@@ -256,12 +256,12 @@ export default function OrdersPage() {
                         <Card className="h-full shadow-lg rounded-none">
                             <CardHeader className="flex flex-row items-start justify-between">
                                 <div>
-                                    <CardTitle>{t('detailsFor')}</CardTitle>
+                                    <CardTitle>{t('detailsFor', { name: selectedOrder.user_name })}</CardTitle>
                                     <CardDescription>{t('orderId')}: {selectedOrder.id}</CardDescription>
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                                     <X className="h-5 w-5" />
-                                    <span className="sr-only">Close details</span>
+                                    <span className="sr-only">{t('close')}</span>
                                 </Button>
                             </CardHeader>
                             <CardContent>

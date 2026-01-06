@@ -112,6 +112,12 @@ export function UserPayments({ userId }: UserPaymentsProps) {
           data={payments}
           filterColumnId='id'
           filterPlaceholder={t('PaymentsPage.filterPlaceholder')}
+          columnTranslations={{
+            id: t('PaymentsPage.columns.id'),
+            amount: t('PaymentsPage.columns.amount'),
+            method: t('PaymentsPage.columns.method'),
+            createdAt: t('PaymentsPage.columns.createdAt'),
+          }}
         />
       </CardContent>
     </Card>

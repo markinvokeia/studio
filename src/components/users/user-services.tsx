@@ -38,15 +38,15 @@ type UserServiceAssignment = {
 const getColumns = (t: (key: string) => string): ColumnDef<Service>[] => [
   {
     accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Service" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('ServicesColumns.name')} />,
   },
   {
     accessorKey: 'category',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Category" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('ServicesColumns.category')} />,
   },
   {
     accessorKey: 'price',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Price" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('ServicesColumns.price')} />,
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue('price'));
       const formatted = new Intl.NumberFormat('en-US', {
@@ -100,7 +100,7 @@ async function getServicesForUser(userId: string): Promise<Service[]> {
 
 async function getAllServices(isSalesUser: boolean): Promise<Service[]> {
   try {
-    const data = await api.get(API_ROUTES.SERVICES, { is_sales: isSalesUser });
+    const data = await api.get(API_ROUTES.SERVICES, { is_sales: String(isSalesUser) });
     const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
     return servicesData.map((service: any) => ({ id: String(service.id), name: service.name, category: service.category, price: service.price, duration_minutes: service.duration_minutes, is_active: service.is_active }));
   } catch (error) {
@@ -225,8 +225,15 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
             columns={columns}
             data={userServices}
             filterColumnId='name'
-            filterPlaceholder='Filter by service...'
+            filterPlaceholder={t('ServicesPage.filterPlaceholder')}
             onCreate={handleAddService}
+            columnTranslations={{
+              name: t('ServicesColumns.service'),
+              category: t('ServicesColumns.category'),
+              price: t('ServicesColumns.price'),
+              duration_minutes: t('ServicesColumns.duration'),
+              is_active: t('UserRoles.columns.status'),
+            }}
           />
         </CardContent>
       </Card>
