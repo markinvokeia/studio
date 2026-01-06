@@ -234,6 +234,17 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
             data={items}
             filterColumnId="service_name"
             filterPlaceholder={t('filterPlaceholder')}
+            columnTranslations={{
+              id: t('columns.id'),
+              service_name: t('columns.service'),
+              quantity: t('columns.quantity'),
+              unit_price: t('columns.unitPrice'),
+              total: t('columns.total'),
+              status: t('columns.status'),
+              scheduled_date: t('columns.scheduled'),
+              completed_date: t('columns.completed'),
+              invoiced_date: t('columns.invoiced'),
+            }}
           />
         </CardContent>
       </Card>

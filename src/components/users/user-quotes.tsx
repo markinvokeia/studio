@@ -150,6 +150,13 @@ export function UserQuotes({ userId }: UserQuotesProps) {
           data={userQuotes}
           filterColumnId='id'
           filterPlaceholder={t('UserQuotes.filterPlaceholder')}
+          columnTranslations={{
+            id: t('QuoteColumns.quoteId'),
+            total: t('QuoteColumns.total'),
+            status: t('UserColumns.status'),
+            payment_status: t('Navigation.Payments'),
+            billing_status: t('QuoteColumns.billingStatus'),
+          }}
         />
       </CardContent>
     </Card>

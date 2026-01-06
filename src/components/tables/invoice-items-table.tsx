@@ -71,29 +71,29 @@ export function InvoiceItemsTable({ items, isLoading = false, canEdit = false, o
       },
     },
     {
-        id: 'actions',
-        cell: ({ row }) => {
-            const item = row.original;
-            return (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0" disabled={!canEdit}>
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => onEdit && onEdit(item)} disabled={!canEdit}>
-                            Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onDelete && onDelete(item)} className="text-destructive" disabled={!canEdit}>
-                            Delete
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            );
-        },
+      id: 'actions',
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0" disabled={!canEdit}>
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>{t('actions.title')}</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => onEdit && onEdit(item)} disabled={!canEdit}>
+                {t('actions.edit')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onDelete && onDelete(item)} className="text-destructive" disabled={!canEdit}>
+                {t('actions.delete')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
     }
   ];
 
@@ -115,6 +115,13 @@ export function InvoiceItemsTable({ items, isLoading = false, canEdit = false, o
           data={items}
           filterColumnId="service_name"
           filterPlaceholder={t('filterPlaceholder')}
+          columnTranslations={{
+            id: t('columns.id'),
+            service_name: t('columns.service'),
+            quantity: t('columns.quantity'),
+            unit_price: t('columns.unitPrice'),
+            total: t('columns.total'),
+          }}
         />
       </CardContent>
     </Card>

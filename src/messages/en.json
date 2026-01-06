@@ -135,7 +135,12 @@
     "tooltip": "No active session. Click to open one."
   },
   "DataTableToolbar": {
-    "toggleColumns": "Toggle columns"
+    "toggleColumns": "Toggle columns",
+    "filter": "Filter",
+    "all": "All",
+    "refresh": "Refresh",
+    "view": "View",
+    "create": "Create"
   },
   "DataTablePagination": {
     "selected": "{count, plural, one {# selected} other {# selected}} of {total} row(s).",
@@ -684,7 +689,9 @@
     "quoteDialog": {
       "cancel": "Cancel",
       "createTitle": "Create Quote",
+      "editTitle": "Edit Quote",
       "description": "Create a new quote",
+      "editDescription": "Update the details for this quote",
       "user": "User",
       "selectUser": "Select User",
       "searchUser": "Search User",
@@ -697,23 +704,35 @@
       "paymentStatus": "Payment Status",
       "unpaid": "Unpaid",
       "billingStatus": "Billing Status",
-      "notInvoiced": "Not invoiced",
       "save": "Save",
-      "noUserFound": "No user found",
       "selectCurrency": "Select Currency",
       "selectStatus": "Select Status",
       "selectPaymentStatus": "Select Payment Status",
-      "partially_paid": "Partially Paid",
-      "paid": "Paid",
       "selectBillingStatus": "Select Billing Status",
-      "partially_invoiced": "Partially Invoiced",
-      "invoiced": "Invoiced",
-      "notinvoiced": "Not Invoiced",
-      "partiallyPaid": "Partially Paid",
-      "not invoiced": "Not Invoiced",
       "accepted": "Accepted",
       "fully_invoiced": "Fully Invoiced",
       "not_paid": "Not Paid"
+    },
+    "toast": {
+      "quoteDeleted": "Quote Deleted",
+      "quoteDeleteSuccess": "Quote #{id} has been deleted successfully.",
+      "quoteDeleteError": "Failed to delete quote.",
+      "quoteUpdated": "Quote Updated",
+      "quoteCreated": "Quote Created",
+      "quoteSaveSuccess": "Quote has been saved successfully.",
+      "quoteError": "Failed to save quote.",
+      "itemDeleted": "Item Deleted",
+      "itemDeleteSuccess": "The item has been deleted successfully.",
+      "itemDeleteError": "Failed to delete item.",
+      "itemUpdated": "Item Updated",
+      "itemAdded": "Item Added",
+      "itemSaveSuccess": "The item has been saved successfully.",
+      "itemError": "Failed to save item.",
+      "quoteConfirmed": "Quote Confirmed",
+      "quoteRejected": "Quote Rejected",
+      "quoteConfirmSuccess": "Quote #{id} has been confirmed.",
+      "quoteRejectSuccess": "Quote #{id} has been rejected.",
+      "quoteActionError": "Failed to {action} quote."
     },
     "sendEmail": "Send Email",
     "print": "Print",
@@ -730,15 +749,26 @@
       "id": "ID",
       "service": "Service",
       "quantity": "Quantity",
-      "unitPrice": "unitPrice",
+      "unitPrice": "Unit Price",
       "total": "Total",
       "createTitle": "Create Quote Item",
+      "editTitle": "Edit Quote Item",
       "description": "Create a new quote item",
       "cancel": "Cancel",
       "save": "Save",
       "actions": "Actions",
       "edit": "Edit",
       "delete": "Delete"
+    },
+    "errors": {
+      "cannotEdit": "Cannot Edit Quote",
+      "cannotEditDetail": "You can only edit quotes that are in \"Draft\" status.",
+      "cannotDelete": "Cannot Delete Quote",
+      "cannotDeleteDetail": "You can only delete quotes that are in \"Draft\" status.",
+      "failedToSave": "Failed to save quote",
+      "failedToDelete": "Failed to delete quote",
+      "failedToLoadServices": "Could not load services.",
+      "failedToLoadServiceData": "Could not load service data for editing."
     },
     "validation": {
       "userRequired": "An user is required",
@@ -762,16 +792,16 @@
     "description": "Manage all your invoices here.",
     "columns": {
       "invoiceId": "Invoice ID",
-      "provider": "Provider",
-      "user": "User",
+      "userName": "User",
       "orderId": "Order ID",
       "quoteId": "Quote ID",
       "total": "Total",
       "status": "Status",
-      "payment": "Payment",
+      "paymentStatus": "Payment",
       "createdAt": "Created At",
       "currency": "Currency",
-      "type": "Type"
+      "type": "Type",
+      "paidAmount": "Paid Amount"
     },
     "paymentDialog": {
       "add": "Add Payment",
@@ -844,11 +874,26 @@
       "description": "You must have an active cash session to register a payment.",
       "openCashSession": "Open Cash Session"
     },
-    "detailsFor": "Details for",
     "invoiceId": "Invoice ID",
     "tabs": {
       "items": "Items",
       "payments": "Payments"
+    },
+    "sendEmailDialog": {
+      "title": "Send Invoice by Email",
+      "description": "Enter the recipient emails for invoice #{id}.",
+      "recipients": "Recipients",
+      "placeholder": "email1@example.com, email2@example.com",
+      "helperText": "Separate multiple emails with commas."
+    },
+    "importDialog": {
+      "title": "Import Invoice",
+      "description": "Upload a PDF or image file to automatically create an invoice.",
+      "clickToUpload": "Click to upload",
+      "dragAndDrop": "or drag and drop",
+      "fileTypes": "PDF, PNG, JPG or GIF (MAX. 10MB)",
+      "processing": "Processing...",
+      "createInvoice": "Create Invoice"
     },
     "filterPlaceholder": "Filter here...",
     "createDialog": {
@@ -880,27 +925,37 @@
       "type": "Type",
       "parentInvoice": "Parent Invoice"
     },
-    "InvoiceItemsTable": {
-      "title": "Invoice Items",
-      "columns": {
-        "id": "ID",
-        "service": "Service",
-        "quantity": "Quantity",
-        "unitPrice": "Unit Price",
-        "total": "Total"
-      }
-    },
-    "confirmInvoice": "Confirm Invoice",
     "actions": {
       "openMenu": "Open menu",
       "title": "Actions",
       "print": "Print",
       "sendEmail": "Send Email"
     },
-    "import": "Import"
+    "confirmation": {
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "title": "Confirm",
+      "message": "Are you sure you want to perform this action?"
+    },
+    "detailsFor": "Details",
+    "close": "Close details",
+    "confirmInvoice": "Confirm Invoice",
+    "deleteItemDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the invoice item. This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "confirmInvoiceDialog": {
+      "title": "Confirm Invoice",
+      "description": "Are you sure you want to confirm invoice #{id}? This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Confirm"
+    }
   },
   "InvoiceItemsTable": {
     "title": "Invoice Items",
+    "titleWithId": "Invoice Items for {id}",
     "filterPlaceholder": "Filter here...",
     "columns": {
       "id": "ID",
@@ -908,6 +963,19 @@
       "quantity": "Quantity",
       "unitPrice": "Unit Price",
       "total": "Total"
+    },
+    "createTitle": "Create Invoice Item",
+    "editTitle": "Edit Invoice Item",
+    "actions": {
+      "title": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "form": {
+      "service": "Service",
+      "selectService": "Select a service",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price"
     }
   },
   "CashierPage": {
@@ -1117,7 +1185,8 @@
       "confirm": "Confirm"
     },
     "detailsFor": "Details for {name}",
-    "orderId": "Order ID"
+    "orderId": "Order ID",
+    "close": "Close details"
   },
   "PaymentsPage": {
     "title": "Payments",
@@ -1144,7 +1213,17 @@
     },
     "transactionType": {
       "payment_allocation": "Payment Allocation",
-      "direct_payment": "Direct Payment"
+      "direct_payment": "Direct Payment",
+      "payment": "Payment",
+      "credit_note": "Credit Note",
+      "deposit_at_bank": "Deposit at Bank",
+      "cash_deposit": "Cash Deposit"
+    },
+    "actions": {
+      "title": "Actions",
+      "print": "Print",
+      "sendEmail": "Send Email",
+      "openMenu": "Open Menu"
     },
     "createPrepaid": "Create Prepaid",
     "prepaidDialog": {
@@ -1311,6 +1390,7 @@
   },
   "OrderItemsTable": {
     "title": "Order Items",
+    "titleWithId": "Order Items for {id}",
     "filterPlaceholder": "Filter here...",
     "columns": {
       "id": "ID",
@@ -1324,11 +1404,35 @@
       "invoiced": "Invoiced At"
     },
     "status": {
-      "invoiced": "Invoiced"
+      "invoiced": "Invoiced",
+      "completed": "Completed",
+      "scheduled": "Scheduled",
+      "cancelled": "Cancelled",
+      "pending": "Pending"
+    },
+    "toast": {
+      "scheduledTitle": "Item Scheduled",
+      "completedTitle": "Item Completed",
+      "updateSuccess": "The item has been updated successfully.",
+      "updateError": "Failed to update item.",
+      "error": "Error"
+    },
+    "dateDialog": {
+      "title": {
+        "schedule": "Schedule Item",
+        "complete": "Complete Item"
+      },
+      "description": {
+        "schedule": "Select a date to schedule this item.",
+        "complete": "Select the completion date for this item."
+      },
+      "cancel": "Cancel",
+      "save": "Save"
     },
     "actions": {
       "title": "Actions",
       "schedule": "Schedule",
+      "complete": "Complete",
       "openMenu": "Open menu"
     }
   },
@@ -2140,29 +2244,30 @@
   },
   "SystemUserColumns": {
     "name": "Nombre",
-    "email": "Correo Electrónico",
-    "phone": "Teléfono",
-    "identity_document": "Documento de Identidad",
-    "status": "Estado",
-    "actions": "Acciones",
-    "edit": "Editar",
-    "deactivate": "Desactivar",
-    "copyId": "Copiar ID de usuario"
+    "email": "Email",
+    "phone": "Phone",
+    "identity_document": "Identity Document",
+    "status": "Status",
+    "actions": "Actions",
+    "edit": "Edit",
+    "deactivate": "Deactivate",
+    "copyId": "Copy user ID"
   },
   "Calendar": {
-    "all": "Todos",
-    "title": "Calendario",
-    "today": "Hoy",
+    "all": "All",
+    "title": "Calendar",
+    "today": "Today",
+    "timeZone": "GMT-03",
     "views": {
-      "2day": "2 Días",
-      "3day": "3 Días",
-      "day": "Día",
-      "month": "Mes",
-      "schedule": "Agenda",
-      "week": "Semana",
-      "year": "Año"
+      "2day": "2 Days",
+      "3day": "3 Days",
+      "day": "Day",
+      "month": "Month",
+      "schedule": "Schedule",
+      "week": "Week",
+      "year": "Year"
     },
-    "weekShort": "Sem"
+    "weekShort": "Wk"
   },
   "AlertCategoriesPage": {
     "title": "Alert Categories",

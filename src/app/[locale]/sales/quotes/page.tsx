@@ -270,19 +270,19 @@ async function getUsers(): Promise<User[]> {
     }
 }
 
-async function upsertQuote(quoteData: QuoteFormValues) {
+async function upsertQuote(quoteData: QuoteFormValues, t: (key: string) => string) {
     const responseData = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, { ...quoteData, is_sales: true });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
-        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to save quote';
+        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : t('errors.failedToSave');
         throw new Error(message);
     }
     return responseData;
 }
 
-async function deleteQuote(id: string) {
+async function deleteQuote(id: string, t: (key: string) => string) {
     const responseData = await api.delete(API_ROUTES.SALES.QUOTE_DELETE, { id, is_sales: true });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
-        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to delete quote';
+        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : t('errors.failedToDelete');
         throw new Error(message);
     }
     return responseData;
@@ -450,7 +450,7 @@ export default function QuotesPage() {
 
     const handleEditQuote = async (quote: Quote) => {
         if (quote.status.toLowerCase() !== 'draft') {
-            toast({ variant: 'destructive', title: 'Cannot Edit Quote', description: 'You can only edit quotes that are in "Draft" status.' });
+            toast({ variant: 'destructive', title: t('errors.cannotEdit'), description: t('errors.cannotEditDetail') });
             return;
         }
         setEditingQuote(quote);
@@ -462,7 +462,7 @@ export default function QuotesPage() {
 
     const handleDeleteQuote = (quote: Quote) => {
         if (quote.status.toLowerCase() !== 'draft') {
-            toast({ variant: 'destructive', title: 'Cannot Delete Quote', description: 'You can only delete quotes that are in "Draft" status.' });
+            toast({ variant: 'destructive', title: t('errors.cannotDelete'), description: t('errors.cannotDeleteDetail') });
             return;
         }
         setDeletingQuote(quote);
@@ -472,7 +472,7 @@ export default function QuotesPage() {
     const confirmDeleteQuote = async () => {
         if (!deletingQuote) return;
         try {
-            await deleteQuote(deletingQuote.id);
+            await deleteQuote(deletingQuote.id, t);
             toast({ title: t('toast.quoteDeleted'), description: t('toast.quoteDeleteSuccess', { id: deletingQuote.id }) });
             setIsDeleteQuoteDialogOpen(false);
             setDeletingQuote(null);
@@ -486,7 +486,7 @@ export default function QuotesPage() {
     const onQuoteSubmit = async (values: QuoteFormValues) => {
         setQuoteSubmissionError(null);
         try {
-            await upsertQuote(values);
+            await upsertQuote(values, t);
             toast({ title: editingQuote ? t('toast.quoteUpdated') : t('toast.quoteCreated'), description: t('toast.quoteSaveSuccess') });
             setIsQuoteDialogOpen(false);
             loadQuotes();
@@ -509,7 +509,7 @@ export default function QuotesPage() {
             quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
             setIsQuoteItemDialogOpen(true);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not load services.' });
+            toast({ variant: 'destructive', title: 'Error', description: t('errors.failedToLoadServices') });
         }
     };
 
@@ -550,7 +550,7 @@ export default function QuotesPage() {
 
             setIsQuoteItemDialogOpen(true);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not load service data for editing.' });
+            toast({ variant: 'destructive', title: 'Error', description: t('errors.failedToLoadServiceData') });
         }
     };
 
@@ -690,7 +690,7 @@ export default function QuotesPage() {
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                                     <X className="h-5 w-5" />
-                                    <span className="sr-only">Close details</span>
+                                    <span className="sr-only">{t('close')}</span>
                                 </Button>
                             </CardHeader>
                             <CardContent>
@@ -725,7 +725,7 @@ export default function QuotesPage() {
                                         {selectedOrder && (
                                             <div className="mt-4">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-md font-semibold">Order Items for {selectedOrder.id}</h4>
+                                                    <h4 className="text-md font-semibold">{t('OrderItemsTable.titleWithId', { id: selectedOrder.id })}</h4>
                                                     <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
                                                         <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                                     </Button>

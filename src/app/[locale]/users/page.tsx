@@ -69,7 +69,7 @@ type GetUsersResponse = {
   total: number;
 };
 
-const UserStats = ({ user }: { user: User }) => {
+const UserStats = ({ user, t }: { user: User, t: (key: string) => string }) => {
   const formatCurrency = (value: any, currency: 'USD' | 'UYU') => {
     const symbol = currency === 'USD' ? 'U$S' : '$U';
     const numericValue = Number(value) || 0;
@@ -93,10 +93,10 @@ const UserStats = ({ user }: { user: User }) => {
   };
 
   const stats = [
-    { title: 'Total Invoiced', value: user.total_invoiced, icon: Receipt, color: 'text-blue-500' },
-    { title: 'Total Paid', value: user.total_paid, icon: DollarSign, color: 'text-green-500' },
-    { title: 'Current Debt', value: user.current_debt, icon: CreditCard, color: 'text-red-500' },
-    { title: 'Available Balance', value: user.available_balance, icon: Banknote, color: 'text-indigo-500' },
+    { title: t('UsersPage.stats.totalInvoiced'), value: user.total_invoiced, icon: Receipt, color: 'text-blue-500' },
+    { title: t('UsersPage.stats.totalPaid'), value: user.total_paid, icon: DollarSign, color: 'text-green-500' },
+    { title: t('UsersPage.stats.currentDebt'), value: user.current_debt, icon: CreditCard, color: 'text-red-500' },
+    { title: t('UsersPage.stats.availableBalance'), value: user.available_balance, icon: Banknote, color: 'text-indigo-500' },
   ];
 
   return (
@@ -360,7 +360,7 @@ export default function UsersPage() {
     },
     {
       id: 'debt_uyu',
-      header: 'Debt (UYU)',
+      header: `${t('UserColumns.currentDebt')} (UYU)`,
       cell: ({ row }) => {
         const debt = row.original.current_debt?.UYU;
         return debt ? `$${Number(debt).toFixed(2)}` : '-';
@@ -368,7 +368,7 @@ export default function UsersPage() {
     },
     {
       id: 'debt_usd',
-      header: 'Debt (USD)',
+      header: `${t('UserColumns.currentDebt')} (USD)`,
       cell: ({ row }) => {
         const debt = row.original.current_debt?.USD;
         return debt ? `$${Number(debt).toFixed(2)}` : '-';
@@ -588,7 +588,15 @@ export default function UsersPage() {
                 columnFilters={columnFilters}
                 onColumnFiltersChange={setColumnFilters}
                 extraButtons={extraToolbarButtons}
-                createButtonIconOnly={true}
+                columnTranslations={{
+                  name: t('UserColumns.name'),
+                  email: t('UserColumns.email'),
+                  identity_document: t('UserColumns.identity_document'),
+                  phone_number: t('UserColumns.phone'),
+                  is_active: t('UserColumns.status'),
+                  debt_uyu: `${t('UserColumns.currentDebt')} (UYU)`,
+                  debt_usd: `${t('UserColumns.currentDebt')} (USD)`,
+                }}
               />
             </CardContent>
           </Card>
@@ -615,7 +623,7 @@ export default function UsersPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <UserStats user={selectedUser} />
+                <UserStats user={selectedUser} t={t} />
                 <Tabs defaultValue="history" className="w-full">
                   <TabsList className="h-auto items-center justify-start flex-wrap">
                     <TabsTrigger value="history">{t('UsersPage.tabs.history')}</TabsTrigger>

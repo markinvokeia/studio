@@ -95,7 +95,12 @@ export function PermissionUsers({ permissionId }: PermissionUsersProps) {
           columns={columns}
           data={users}
           filterColumnId='name'
-          filterPlaceholder='Filter by user...'
+          filterPlaceholder={t('filterByPatient') || 'Filter by patient...'}
+          columnTranslations={{
+            name: t('name'),
+            email: t('email'),
+            is_active: t('status'),
+          }}
         />
       </CardContent>
     </Card>

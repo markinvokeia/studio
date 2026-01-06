@@ -18,6 +18,7 @@ import { format, parseISO } from 'date-fns';
 const getColumns = (
   t: (key: string) => string,
   tTransactionType: (key: string) => string,
+  tActions: (key: string) => string,
   onPrint?: (payment: Payment) => void,
   onSendEmail?: (payment: Payment) => void
 ): ColumnDef<Payment>[] => {
@@ -139,22 +140,22 @@ const getColumns = (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
+                <span className="sr-only">{tActions('openMenu')}</span>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuLabel>{tActions('title')}</DropdownMenuLabel>
               {onPrint && (
                 <DropdownMenuItem onClick={() => onPrint(payment)}>
                   <Printer className="mr-2 h-4 w-4" />
-                  Print
+                  {tActions('print')}
                 </DropdownMenuItem>
               )}
               {onSendEmail && (
                 <DropdownMenuItem onClick={() => onSendEmail(payment)}>
                   <Send className="mr-2 h-4 w-4" />
-                  <span>Send Email</span>
+                  <span>{tActions('sendEmail')}</span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -182,7 +183,8 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
   const t = useTranslations('PaymentsPage.columns');
   const tPage = useTranslations('PaymentsPage');
   const tTransactionType = useTranslations('PaymentsPage.transactionType');
-  const columns = React.useMemo(() => getColumns(t, tTransactionType, onPrint, onSendEmail), [t, tTransactionType, onPrint, onSendEmail]);
+  const tActions = useTranslations('PaymentsPage.actions');
+  const columns = React.useMemo(() => getColumns(t, tTransactionType, tActions, onPrint, onSendEmail), [t, tTransactionType, tActions, onPrint, onSendEmail]);
 
   if (isLoading) {
     return (
@@ -208,6 +210,20 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           isRefreshing={isRefreshing}
           onCreate={onCreate ? () => onCreate() : undefined}
           createButtonLabel={tPage('createPrepaid')}
+          columnTranslations={{
+            id: t('id'),
+            user_name: t('user'),
+            order_id: t('orderId'),
+            quote_id: t('quoteId'),
+            payment_date: t('date'),
+            amount_applied: t('amount_applied'),
+            source_amount: t('source_amount'),
+            source_currency: t('source_currency'),
+            exchange_rate: t('exchange_rate'),
+            method: t('method'),
+            transaction_type: t('transaction_type'),
+            reference_doc_id: t('reference_doc_id'),
+          }}
         />
       </CardContent>
     </Card>

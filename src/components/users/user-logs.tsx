@@ -86,6 +86,11 @@ export function UserLogs({ userId }: UserLogsProps) {
           data={logs}
           filterColumnId="action"
           filterPlaceholder={t('filterPlaceholder')}
+          columnTranslations={{
+            timestamp: t('columns.timestamp'),
+            action: t('columns.action'),
+            details: t('columns.details'),
+          }}
         />
       </CardContent>
     </Card>

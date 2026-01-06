@@ -69,11 +69,11 @@ export function DataTableToolbar<TData>({
             <SelectTrigger className="h-9 w-[150px]">
               <div className="flex items-center">
                 <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Filter" />
+                <SelectValue placeholder={t('filter')} />
               </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="all">{t('all')}</SelectItem>
               {filterOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -91,11 +91,11 @@ export function DataTableToolbar<TData>({
               <TooltipTrigger asChild>
                 <Button variant="outline" size={createButtonIconOnly ? "icon" : "sm"} className={createButtonIconOnly ? "h-9 w-9" : "h-9"} onClick={onCreate}>
                   <PlusCircle className={createButtonIconOnly ? "h-4 w-4" : "mr-2 h-4 w-4"} />
-                  {createButtonIconOnly ? <span className="sr-only">{createButtonLabel || 'Create'}</span> : (createButtonLabel || 'Create')}
+                  {createButtonIconOnly ? <span className="sr-only">{createButtonLabel || t('create')}</span> : (createButtonLabel || t('create'))}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{createButtonLabel || 'Create'}</p>
+                <p>{createButtonLabel || t('create')}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -109,14 +109,14 @@ export function DataTableToolbar<TData>({
             disabled={isRefreshing}
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span className="sr-only">Refresh</span>
+            <span className="sr-only">{t('refresh')}</span>
           </Button>
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon" className="ml-auto h-9 w-9 lg:flex">
               <SlidersHorizontal className="h-4 w-4" />
-              <span className="sr-only">View</span>
+              <span className="sr-only">{t('view')}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
