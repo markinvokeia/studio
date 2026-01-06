@@ -1,8 +1,8 @@
 
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 const withNextIntl = require('next-intl/plugin')('./src/i18n.ts');
 
-const nextConfig: NextConfig = {
+const nextConfig: any = {
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
@@ -56,8 +56,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  allowedDevOrigins: ['localhost:3000', '*.local', '192.168.*'],
 };
 
 export default withNextIntl(nextConfig);
 
-    
