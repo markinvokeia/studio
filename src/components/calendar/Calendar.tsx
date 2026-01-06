@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import './Calendar.css';
 import { Skeleton } from '../ui/skeleton';
-import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDate, getDay, getDaysInMonth, getHours, getMinutes, isSameDay, startOfDay, startOfMonth, startOfWeek, startOfYear, getYear, set } from 'date-fns';
+import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDate, getDay, getDaysInMonth, getHours, getMinutes, isSameDay, startOfDay, startOfMonth, startOfWeek, startOfYear, getYear, set, parseISO } from 'date-fns';
 import { User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
@@ -46,7 +46,35 @@ const GOOGLE_CALENDAR_COLORS = [
 ];
 
 
-const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEventClick, onViewChange, assignees = [], selectedAssignees = [], onSelectedAssigneesChange, group = false, onGroupChange, onEventColorChange }) => {
+interface CalendarEvent {
+  id: string;
+  title: string;
+  start: Date | string;
+  end: Date | string;
+  color?: string;
+  colorId?: string;
+  assignee?: string;
+  totalColumns?: number;
+  column?: number;
+  data?: any;
+}
+
+interface CalendarProps {
+  events?: CalendarEvent[];
+  onDateChange?: (range: { start: Date; end: Date }) => void;
+  children?: React.ReactNode;
+  isLoading?: boolean;
+  onEventClick: (event: any) => void;
+  onViewChange?: (view: string) => void;
+  assignees?: { id: string; name: string; email: string }[];
+  selectedAssignees?: string[];
+  onSelectedAssigneesChange?: (assignees: string[]) => void;
+  group?: boolean;
+  onGroupChange?: (group: boolean) => void;
+  onEventColorChange: (event: any, colorId: string) => void;
+}
+
+const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children, isLoading = false, onEventClick, onViewChange, assignees = [], selectedAssignees = [], onSelectedAssigneesChange, group = false, onGroupChange, onEventColorChange }) => {
   const t = useTranslations('Calendar');
   const locale = useLocale();
   const dateLocale = locale === 'es' ? es : enUS;
@@ -219,11 +247,11 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
 
     // Sort events by start time, then end time
     const sortedEvents = [...dayEvents].sort((a, b) => {
-      const startA = new Date(a.start).getTime();
-      const startB = new Date(b.start).getTime();
+      const startA = (typeof a.start === 'string' ? parseISO(a.start) : a.start).getTime();
+      const startB = (typeof b.start === 'string' ? parseISO(b.start) : b.start).getTime();
       if (startA !== startB) return startA - startB;
-      const endA = new Date(a.end).getTime();
-      const endB = new Date(b.end).getTime();
+      const endA = (typeof a.end === 'string' ? parseISO(a.end) : a.end).getTime();
+      const endB = (typeof b.end === 'string' ? parseISO(b.end) : b.end).getTime();
       return endA - endB;
     });
 
@@ -232,8 +260,8 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
     let clusterEnd = 0;
 
     sortedEvents.forEach((event: any) => {
-      const start = new Date(event.start).getTime();
-      const end = new Date(event.end).getTime();
+      const start = (typeof event.start === 'string' ? parseISO(event.start) : event.start).getTime();
+      const end = (typeof event.end === 'string' ? parseISO(event.end) : event.end).getTime();
 
       if (start >= clusterEnd) {
         if (currentCluster.length > 0) {
@@ -257,11 +285,11 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
 
       cluster.forEach((event: any) => {
         let placed = false;
-        const eventStart = new Date(event.start).getTime();
+        const eventStart = (typeof event.start === 'string' ? parseISO(event.start) : event.start).getTime();
 
         for (let i = 0; i < columns.length; i++) {
           const lastEventInColumn = columns[i][columns[i].length - 1];
-          const lastEventEnd = new Date(lastEventInColumn.end).getTime();
+          const lastEventEnd = (typeof lastEventInColumn.end === 'string' ? parseISO(lastEventInColumn.end) : lastEventInColumn.end).getTime();
 
           if (eventStart >= lastEventEnd) {
             columns[i].push(event);
@@ -296,8 +324,8 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
     const numColumnsPerDay = group ? columns.length : 1;
 
     const getEventStyle = (event) => {
-      const start = new Date(event.start);
-      const end = new Date(event.end);
+      const start = typeof event.start === 'string' ? parseISO(event.start) : event.start;
+      const end = typeof event.end === 'string' ? parseISO(event.end) : event.end;
       const top = (getHours(start) + getMinutes(start) / 60) * 60;
       const duration = (end.getTime() - start.getTime()) / (1000 * 60);
       const height = duration;
@@ -359,7 +387,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
           </div>
           {days.map((day, dayIndex) => (
             group && columns.length > 0 ? columns.map(col => {
-              const dayColEvents = events.filter((e: any) => isSameDay(new Date(e.start), day) && e.assignee === col.email);
+              const dayColEvents = events.filter((e: any) => isSameDay(typeof e.start === 'string' ? parseISO(e.start) : e.start, day) && e.assignee === col.email);
               const eventsWithLayout = getEventsWithLayout(dayColEvents);
 
               return (
@@ -373,7 +401,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
             }) : (
               <div key={format(day, 'yyyy-MM-dd')} className="day-column">
                 {timeSlots.map(time => <div key={time} className="time-slot" />)}
-                {getEventsWithLayout(events.filter((e: any) => isSameDay(new Date(e.start), day))).map((event: any) => (
+                {getEventsWithLayout(events.filter((e: any) => isSameDay(typeof e.start === 'string' ? parseISO(e.start) : e.start, day))).map((event: any) => (
                   <EventInDayViewComponent key={event.id} event={event} style={getEventStyle(event)} />
                 ))}
               </div>
@@ -413,7 +441,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
         const dayEvents = events.filter((e) => {
           if (!e.start) return false;
           try {
-            return isSameDay(new Date(e.start), date);
+            return isSameDay(typeof e.start === 'string' ? parseISO(e.start) : e.start, date);
           } catch (error) {
             console.error("Invalid event start date:", e.start);
             return false;
@@ -487,7 +515,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
               {Array.from({ length: (getDay(month) + 6) % 7 }).map((_, i) => <div key={`empty-${i}`}></div>)}
               {Array.from({ length: getDaysInMonth(month) }).map((_, day) => {
                 const date = new Date(year, getMonth(month), day + 1);
-                const dayEvents = events.filter((e) => isSameDay(new Date(e.start), date));
+                const dayEvents = events.filter((e) => isSameDay(typeof e.start === 'string' ? parseISO(e.start) : e.start, date));
                 return (
                   <div key={day} className={cn("relative rounded-full aspect-square flex items-center justify-center", dayEvents.length > 0 && "bg-primary/20", isSameDay(date, new Date()) && "bg-primary text-primary-foreground")}>
                     {day + 1}
@@ -505,7 +533,7 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
     const groupedEvents = events.reduce((acc, event) => {
       if (!event.start) return acc;
       try {
-        const date = format(new Date(event.start), 'yyyy-MM-dd');
+        const date = format(typeof event.start === 'string' ? parseISO(event.start) : event.start, 'yyyy-MM-dd');
         if (!acc[date]) acc[date] = [];
         acc[date].push(event);
       } catch (e) {
@@ -520,13 +548,13 @@ const Calendar = ({ events = [], onDateChange, children, isLoading = false, onEv
       <div className="overflow-y-auto p-4">
         {sortedDates.map(date => (
           <div key={date} className="mb-4">
-            <h3 className="font-bold text-lg mb-2">{format(new Date(date), 'EEEE, MMMM d, yyyy', { locale: dateLocale })}</h3>
+            <h3 className="font-bold text-lg mb-2">{format(parseISO(date), 'EEEE, MMMM d, yyyy', { locale: dateLocale })}</h3>
             <div className="space-y-2">
               {groupedEvents[date].map(event => (
                 <div key={event.id} className="p-2 rounded-md flex items-center gap-4" style={{ backgroundColor: event.color ? `${event.color}20` : 'var(--muted)' }} onClick={() => onEventClick(event.data)}>
                   <div className="flex items-center gap-2 w-28 text-sm font-semibold">
                     <div className="h-2 w-2 rounded-full" style={{ backgroundColor: event.color || 'hsl(var(--primary))' }} />
-                    {format(new Date(event.start), 'p', { locale: dateLocale })}
+                    {format(typeof event.start === 'string' ? parseISO(event.start) : event.start, 'p', { locale: dateLocale })}
                   </div>
                   <div className="flex-1 text-sm">{event.title}</div>
                   {event.assignee && (
