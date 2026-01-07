@@ -160,6 +160,96 @@ export default function AlertRulesPage() {
     const [emailTemplates, setEmailTemplates] = React.useState<any[]>([]);
     const [smsTemplates, setSmsTemplates] = React.useState<any[]>([]);
     const [conditions, setConditions] = React.useState<Array<{ id: string, column: string, operator: string, value: string, logic: 'AND' | 'OR' }>>([]);
+
+    // Helper function to get column type
+    const getColumnType = (columnName: string): string | undefined => {
+        const tableCols = tablesAndColumns[selectedTable] || [];
+        const col = tableCols.find(c => c.name === columnName);
+        return col?.type;
+    };
+
+    // Get available operators based on column type
+    const getAvailableOperators = (columnName: string): string[] => {
+        const type = getColumnType(columnName);
+        if (!type) return ['=', '!=', 'IS NULL', 'IS NOT NULL'];
+
+        const lowerType = type.toLowerCase();
+        const baseOperators = ['=', '!=', 'IS NULL', 'IS NOT NULL'];
+
+        if (lowerType.includes('varchar') || lowerType.includes('text') || lowerType.includes('char')) {
+            return [...baseOperators, 'contains', 'LIKE', 'NOT LIKE', 'IN', 'NOT IN'];
+        } else if (lowerType.includes('int') || lowerType.includes('decimal') || lowerType.includes('numeric') || lowerType.includes('float') || lowerType.includes('double')) {
+            return [...baseOperators, '>', '<', '>=', '<=', 'IN', 'NOT IN', 'BETWEEN'];
+        } else if (lowerType.includes('date') || lowerType.includes('time')) {
+            return [...baseOperators, '>', '<', '>=', '<=', 'IN', 'NOT IN', 'BETWEEN'];
+        } else if (lowerType === 'boolean' || lowerType === 'bit') {
+            return baseOperators;
+        } else {
+            return baseOperators;
+        }
+    };
+
+    // Validate value based on column type and operator
+    const validateValue = (value: string, columnName: string, operator: string): boolean => {
+        const type = getColumnType(columnName);
+        const trimmedValue = value.trim();
+
+        // For IS NULL and IS NOT NULL, value should be empty
+        if (operator === 'IS NULL' || operator === 'IS NOT NULL') {
+            return trimmedValue === '';
+        }
+
+        // For other operators, value is required unless type is unknown
+        if (!type) return trimmedValue.length > 0;
+
+        const lowerType = type.toLowerCase();
+
+        // For IN and NOT IN, expect comma-separated values
+        if (operator === 'IN' || operator === 'NOT IN') {
+            if (!trimmedValue) return false;
+            const values = trimmedValue.split(',').map(v => v.trim());
+            return values.every(v => v.length > 0 && validateSingleValue(v, lowerType));
+        }
+
+        // For BETWEEN, expect "value1 AND value2"
+        if (operator === 'BETWEEN') {
+            if (!trimmedValue) return false;
+            const parts = trimmedValue.split(/\s+AND\s+/i);
+            if (parts.length !== 2) return false;
+            return validateSingleValue(parts[0].trim(), lowerType) && validateSingleValue(parts[1].trim(), lowerType);
+        }
+
+        // For LIKE and NOT LIKE, treat as string pattern
+        if (operator === 'LIKE' || operator === 'NOT LIKE') {
+            return trimmedValue.length > 0;
+        }
+
+        // For contains, same as LIKE with wildcards
+        if (operator === 'contains') {
+            return trimmedValue.length > 0;
+        }
+
+        // For standard operators, validate single value
+        return validateSingleValue(trimmedValue, lowerType);
+    };
+
+    // Helper to validate a single value based on type
+    const validateSingleValue = (value: string, lowerType: string): boolean => {
+        if (lowerType.includes('int') || lowerType.includes('bigint') || lowerType.includes('smallint')) {
+            return /^\d+$/.test(value);
+        } else if (lowerType.includes('decimal') || lowerType.includes('numeric') || lowerType.includes('float') || lowerType.includes('double')) {
+            return /^-?\d+(\.\d+)?$/.test(value);
+        } else if (lowerType.includes('date')) {
+            return /^\d{4}-\d{2}-\d{2}$/.test(value);
+        } else if (lowerType.includes('timestamp') || lowerType === 'datetime') {
+            return /^\d{4}-\d{2}-\d{2}(\s\d{2}:\d{2}(:\d{2})?)?$/.test(value);
+        } else if (lowerType === 'boolean' || lowerType === 'bit') {
+            return ['true', 'false', '1', '0'].includes(value.toLowerCase());
+        } else {
+            // For strings and other types, allow any non-empty
+            return value.length > 0;
+        }
+    };
     const [isRefreshing, setIsRefreshing] = React.useState(false);
 
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -206,7 +296,7 @@ export default function AlertRulesPage() {
         setEditingRule(null);
         setSelectedTable('');
         setConditions([]);
-        form.reset({ code: '', name: '', description: '', is_active: true, priority: 'MEDIUM', source_table: '', recurrence_type: '', email_template_id: undefined, sms_template_id: undefined, days_before: 0, days_after: 0 });
+        form.reset({ code: '', name: '', description: '', is_active: true, priority: 'MEDIUM', source_table: '', recurrence_type: undefined, email_template_id: undefined, sms_template_id: undefined, days_before: 0, days_after: 0 });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -221,8 +311,8 @@ export default function AlertRulesPage() {
             category_id: String(rule.category_id || ''),
             days_before: rule.days_before ?? 0,
             days_after: rule.days_after ?? 0,
-            email_template_id: rule.email_template_id ? rule.email_template_id : undefined,
-            sms_template_id: rule.sms_template_id ? rule.sms_template_id : undefined,
+            email_template_id: rule.email_template_id ? parseInt(rule.email_template_id) : undefined,
+            sms_template_id: rule.sms_template_id ? parseInt(rule.sms_template_id) : undefined,
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -416,13 +506,11 @@ export default function AlertRulesPage() {
                                                 <SelectValue placeholder="Operator" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="=">=</SelectItem>
-                                                <SelectItem value="!=">!=</SelectItem>
-                                                <SelectItem value=">">{'>'}</SelectItem>
-                                                <SelectItem value="<">{'<'}</SelectItem>
-                                                <SelectItem value=">=">{'>='}</SelectItem>
-                                                <SelectItem value="<=">{'<='}</SelectItem>
-                                                <SelectItem value="contains">contains</SelectItem>
+                                                {getAvailableOperators(cond.column).map(op => (
+                                                    <SelectItem key={op} value={op}>
+                                                        {op === 'contains' ? 'contains' : op}
+                                                    </SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                         <Input
