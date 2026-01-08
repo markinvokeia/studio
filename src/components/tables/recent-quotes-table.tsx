@@ -156,15 +156,19 @@ const getColumns = (
           'invoiced': 'invoiced',
           'partially invoiced': 'partiallyInvoiced',
           'not invoiced': 'notInvoiced',
+          'partially_invoiced': 'partially_invoiced',
+          'not_invoiced': 'not_invoiced',
         };
         const variantMap: { [key: string]: any } = {
           'invoiced': 'success',
           'partially invoiced': 'info',
           'not invoiced': 'outline',
+          'partially_invoiced': 'info',
+          'not_invoiced': 'outline',
         };
 
         const normalizedStatus = status.toLowerCase();
-        const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[normalizedStatus] || normalizedStatus}`;
+        const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[normalizedStatus] || normalizedStatus.replace(/\s+/g, '_')}`;
         const translatedStatus = t(translationKey as any);
 
         return (
@@ -185,17 +189,23 @@ const getColumns = (
           paid: 'success',
           partial: 'info',
           unpaid: 'outline',
-          partially_paid: 'info'
+          partially_paid: 'info',
+          'not invoiced': 'outline',
+          'not_invoiced': 'outline',
         }[status.toLowerCase()] ?? ('default' as any);
 
         const statusKeyMap: { [key: string]: string } = {
           'partially_paid': 'partiallyPaid',
           'unpaid': 'unpaid',
+          'not_paid': 'not_paid',
           'paid': 'paid',
           'partial': 'partial',
+          'not invoiced': 'notInvoiced',
+          'not_invoiced': 'not_invoiced',
         };
 
-        const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[status.toLowerCase()] || status.toLowerCase()}`;
+        const normalizedStatus = status.toLowerCase();
+        const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[normalizedStatus] || normalizedStatus.replace(/\s+/g, '_')}`;
         const translatedStatus = t(translationKey as any);
 
         return (
@@ -224,7 +234,7 @@ const getColumns = (
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
+              <DropdownMenuLabel>{tQuotes('itemDialog.actions')}</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => onPrint(quote)}>
                 <Printer className="mr-2 h-4 w-4" />
                 <span>{tQuotes('print')}</span>
@@ -235,10 +245,10 @@ const getColumns = (
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onEdit(quote)} disabled={!isDraft}>
-                {t('edit')}
+                {tQuotes('edit')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onDelete(quote)} className="text-destructive" disabled={!isDraft}>
-                {t('delete')}
+                {tQuotes('delete')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onQuoteAction(quote, 'confirm')} disabled={!isDraft && !isPending}>

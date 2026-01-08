@@ -703,7 +703,12 @@
       "rejected": "Rejected",
       "paymentStatus": "Payment Status",
       "unpaid": "Unpaid",
+      "partiallyPaid": "Partially Paid",
+      "paid": "Paid",
       "billingStatus": "Billing Status",
+      "notInvoiced": "Not Invoiced",
+      "partiallyInvoiced": "Partially Invoiced",
+      "invoiced": "Invoiced",
       "save": "Save",
       "selectCurrency": "Select Currency",
       "selectStatus": "Select Status",
@@ -711,7 +716,10 @@
       "selectBillingStatus": "Select Billing Status",
       "accepted": "Accepted",
       "fully_invoiced": "Fully Invoiced",
-      "not_paid": "Not Paid"
+      "not_paid": "Not Paid",
+      "partial": "Partial",
+      "partially_invoiced": "Partially Invoiced",
+      "not_invoiced": "Not Invoiced"
     },
     "toast": {
       "quoteDeleted": "Quote Deleted",
@@ -736,6 +744,10 @@
     },
     "sendEmail": "Send Email",
     "print": "Print",
+    "confirm": "Confirm",
+    "reject": "Reject",
+    "edit": "Edit",
+    "delete": "Delete",
     "detailsFor": "Details for {name}",
     "quoteId": "Quote ID",
     "tabs": {
@@ -746,9 +758,12 @@
     },
     "itemDialog": {
       "searchService": "Search Service",
+      "selectService": "Select Service",
       "id": "ID",
       "service": "Service",
       "quantity": "Quantity",
+      "originalPrice": "Original Price",
+      "exchangeRate": "Exchange Rate",
       "unitPrice": "Unit Price",
       "total": "Total",
       "createTitle": "Create Quote Item",

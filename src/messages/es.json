@@ -703,7 +703,12 @@
             "rejected": "Rechazado",
             "paymentStatus": "Estado de Pago",
             "unpaid": "Impago",
+            "partiallyPaid": "Pagado Parcialmente",
+            "paid": "Pagado",
             "billingStatus": "Estado de Facturación",
+            "notInvoiced": "Sin Facturar",
+            "partiallyInvoiced": "Facturado Parcialmente",
+            "invoiced": "Facturado",
             "save": "Guardar",
             "selectCurrency": "Seleccionar Moneda",
             "selectStatus": "Seleccionar Estado",
@@ -711,7 +716,10 @@
             "selectBillingStatus": "Seleccionar Estado de Facturación",
             "accepted": "Aceptado",
             "fully_invoiced": "Facturado Totalmente",
-            "not_paid": "Impago"
+            "not_paid": "Impago",
+            "partial": "Parcial",
+            "partially_invoiced": "Facturado Parcialmente",
+            "not_invoiced": "Sin Facturar"
         },
         "toast": {
             "quoteDeleted": "Presupuesto Eliminado",
@@ -736,6 +744,10 @@
         },
         "sendEmail": "Enviar Correo",
         "print": "Imprimir",
+        "confirm": "Confirmar",
+        "reject": "Rechazar",
+        "edit": "Editar",
+        "delete": "Eliminar",
         "detailsFor": "Detalles para {name}",
         "quoteId": "ID de Presupuesto",
         "tabs": {
@@ -746,9 +758,12 @@
         },
         "itemDialog": {
             "searchService": "Buscar Servicio",
+            "selectService": "Seleccionar Servicio",
             "id": "ID",
             "service": "Servicio",
             "quantity": "Cantidad",
+            "originalPrice": "Precio Original",
+            "exchangeRate": "Tasa de Cambio",
             "unitPrice": "Precio Unitario",
             "total": "Total",
             "createTitle": "Crear Artículo de Presupuesto",

@@ -253,8 +253,25 @@ async function getPayments(quoteId: string): Promise<Payment[]> {
 
 async function getUsers(): Promise<User[]> {
     try {
-        const data = await api.get(API_ROUTES.USERS);
-        const usersData = Array.isArray(data) ? data : (data.data || []);
+        const responseData = await api.get(API_ROUTES.USERS, { filter_type: 'PACIENTE' });
+
+        let usersData = [];
+
+        if (Array.isArray(responseData) && responseData.length > 0) {
+            const firstElement = responseData[0];
+            if (firstElement.json && typeof firstElement.json === 'object') {
+                usersData = firstElement.json.data || [];
+            } else if (firstElement.data) {
+                usersData = firstElement.data;
+            } else {
+                usersData = responseData; // Fallback if it's just an array of users
+            }
+        } else if (typeof responseData === 'object' && responseData !== null && responseData.data) {
+            usersData = responseData.data;
+        } else if (Array.isArray(responseData)) {
+            usersData = responseData;
+        }
+
         return usersData.map((apiUser: any) => ({
             id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
             name: apiUser.name || 'No Name',
@@ -291,6 +308,7 @@ async function deleteQuote(id: string, t: (key: string) => string) {
 
 export default function QuotesPage() {
     const t = useTranslations('QuotesPage');
+    const tGlobal = useTranslations();
     const tVal = useTranslations('QuotesPage');
     const { toast } = useToast();
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
@@ -334,7 +352,6 @@ export default function QuotesPage() {
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
-    const [exchangeRate, setExchangeRate] = React.useState<number>(1);
     const [showConversion, setShowConversion] = React.useState(false);
     const [originalServicePrice, setOriginalServicePrice] = React.useState<number | null>(null);
     const [originalServiceCurrency, setOriginalServiceCurrency] = React.useState('');
@@ -502,11 +519,10 @@ export default function QuotesPage() {
         setShowConversion(false);
         setOriginalServicePrice(null);
         setOriginalServiceCurrency('');
-        setExchangeRate(1);
         try {
             const fetchedServices = await getServices();
             setAllServices(fetchedServices);
-            quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
+            quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0, exchange_rate: 1 });
             setIsQuoteItemDialogOpen(true);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: t('errors.failedToLoadServices') });
@@ -533,22 +549,18 @@ export default function QuotesPage() {
                 const serviceCurrency = service.currency || 'USD';
                 const conversionNeeded = quoteCurrency !== serviceCurrency;
                 setShowConversion(conversionNeeded);
-                setExchangeRate(1);
-            } else {
-                setOriginalServicePrice(null);
-                setOriginalServiceCurrency('');
+                quoteItemForm.reset({
+                    id: item.id,
+                    quote_id: selectedQuote.id,
+                    service_id: String(item.service_id),
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    total: item.total,
+                    exchange_rate: 1
+                });
+
+                setIsQuoteItemDialogOpen(true);
             }
-
-            quoteItemForm.reset({
-                id: item.id,
-                quote_id: selectedQuote.id,
-                service_id: String(item.service_id),
-                quantity: item.quantity,
-                unit_price: item.unit_price,
-                total: item.total
-            });
-
-            setIsQuoteItemDialogOpen(true);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: t('errors.failedToLoadServiceData') });
         }
@@ -625,6 +637,7 @@ export default function QuotesPage() {
 
     const watchedServiceId = quoteItemForm.watch('service_id');
     const watchedQuantity = quoteItemForm.watch('quantity');
+    const watchedExchangeRate = quoteItemForm.watch('exchange_rate');
 
     React.useEffect(() => {
         const service = allServices.find(s => String(s.id) === watchedServiceId);
@@ -642,20 +655,19 @@ export default function QuotesPage() {
 
             let newUnitPrice = servicePrice;
             if (conversionNeeded) {
+                const rate = Number(watchedExchangeRate) || 1;
                 if (quoteCurrency === 'UYU' && serviceCurrency === 'USD') {
-                    newUnitPrice = servicePrice * exchangeRate;
+                    newUnitPrice = servicePrice * rate;
                 } else if (quoteCurrency === 'USD' && serviceCurrency === 'UYU') {
-                    newUnitPrice = exchangeRate > 0 ? servicePrice / exchangeRate : 0;
+                    newUnitPrice = rate > 0 ? servicePrice / rate : 0;
                 }
-            } else {
-                setExchangeRate(1);
             }
 
             const quantity = Number(watchedQuantity) || 0;
             quoteItemForm.setValue('unit_price', newUnitPrice);
             quoteItemForm.setValue('total', newUnitPrice * quantity);
         }
-    }, [watchedServiceId, watchedQuantity, allServices, selectedQuote, quoteItemForm, exchangeRate]);
+    }, [watchedServiceId, watchedQuantity, watchedExchangeRate, allServices, selectedQuote, quoteItemForm]);
 
     return (
         <>
@@ -685,7 +697,7 @@ export default function QuotesPage() {
                         <Card className="h-full shadow-lg rounded-none">
                             <CardHeader className="flex flex-row items-start justify-between">
                                 <div>
-                                    <CardTitle>{t('detailsFor')}</CardTitle>
+                                    <CardTitle>{t('detailsFor', { name: selectedQuote.user_name })}</CardTitle>
                                     <CardDescription>{t('quoteId')}: {selectedQuote.id}</CardDescription>
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
@@ -725,7 +737,7 @@ export default function QuotesPage() {
                                         {selectedOrder && (
                                             <div className="mt-4">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-md font-semibold">{t('OrderItemsTable.titleWithId', { id: selectedOrder.id })}</h4>
+                                                    <h4 className="text-md font-semibold">{tGlobal('OrderItemsTable.titleWithId', { id: selectedOrder.id })}</h4>
                                                     <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
                                                         <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                                     </Button>
@@ -745,7 +757,7 @@ export default function QuotesPage() {
                                         {selectedInvoice && (
                                             <div className="mt-4">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', { id: selectedInvoice.id })}</h4>
+                                                    <h4 className="text-md font-semibold">{tGlobal('InvoiceItemsTable.titleWithId', { id: selectedInvoice.id })}</h4>
                                                     <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
                                                         <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
                                                     </Button>
@@ -1003,11 +1015,13 @@ export default function QuotesPage() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>{t('itemDialog.exchangeRate')}</FormLabel>
-                                                <Input
-                                                    type="number"
-                                                    value={exchangeRate}
-                                                    onChange={(e) => setExchangeRate(Number(e.target.value) || 1)}
-                                                />
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="1.00"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
                                             </FormItem>
                                         )}
                                     />
@@ -1016,21 +1030,21 @@ export default function QuotesPage() {
                             <FormField control={quoteItemForm.control} name="quantity" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{t('itemDialog.quantity')}</FormLabel>
-                                    <FormControl><Input type="number" {...field} /></FormControl>
+                                    <FormControl><Input type="number" placeholder="1" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
                             <FormField control={quoteItemForm.control} name="unit_price" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{t('itemDialog.unitPrice')} ({selectedQuote?.currency})</FormLabel>
-                                    <FormControl><Input type="number" {...field} /></FormControl>
+                                    <FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
                             <FormField control={quoteItemForm.control} name="total" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{t('itemDialog.total')}</FormLabel>
-                                    <FormControl><Input type="number" readOnly disabled {...field} /></FormControl>
+                                    <FormControl><Input type="number" placeholder="0.00" readOnly disabled {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
