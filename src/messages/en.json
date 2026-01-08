@@ -807,12 +807,14 @@
     "description": "Manage all your invoices here.",
     "columns": {
       "invoiceId": "Invoice ID",
+      "provider": "Provider",
       "userName": "User",
       "orderId": "Order ID",
       "quoteId": "Quote ID",
       "total": "Total",
       "status": "Status",
       "paymentStatus": "Payment",
+      "payment": "Payment",
       "createdAt": "Created At",
       "currency": "Currency",
       "type": "Type",
@@ -840,7 +842,7 @@
       "remainingAmount": "Remaining Amount",
       "creditNote": "Credit Note",
       "paymentref": "Payment Ref",
-      "exchangeRage": "Exchange Rate",
+      "exchangeRate": "Exchange Rate",
       "equivalentAmount": "Equivalent Amount",
       "summary": "Payment Summary",
       "exchangeRateApplied": "Exchange Rate Applied",
@@ -878,11 +880,17 @@
       "dateRequired": "Payment date is required.",
       "userRequired": "An user is required",
       "noPaymentAmount": "Please enter an amount or select credits to pay.",
-      "overpayment": "The total payment exceeds the remaining amount of the invoice."
+      "overpayment": "The total payment exceeds the remaining amount of the invoice.",
+      "serviceRequired": "A service is required",
+      "quantityMin": "Quantity must be at least 1",
+      "priceNonNegative": "Unit price cannot be negative"
     },
     "toast": {
       "error": "Error",
-      "sessionCheckError": "Could not verify active cash session. Please try again."
+      "success": "Success",
+      "sessionCheckError": "Could not verify active cash session. Please try again.",
+      "downloadStarted": "Download Started",
+      "downloadSuccess": "Invoice #{id} has been downloaded successfully."
     },
     "noSessionDialog": {
       "title": "No Active Cash Session",
@@ -899,7 +907,8 @@
       "description": "Enter the recipient emails for invoice #{id}.",
       "recipients": "Recipients",
       "placeholder": "email1@example.com, email2@example.com",
-      "helperText": "Separate multiple emails with commas."
+      "helperText": "Separate multiple emails with commas.",
+      "errorNoEmail": "Please enter at least one recipient email."
     },
     "importDialog": {
       "title": "Import Invoice",
@@ -908,8 +917,11 @@
       "dragAndDrop": "or drag and drop",
       "fileTypes": "PDF, PNG, JPG or GIF (MAX. 10MB)",
       "processing": "Processing...",
-      "createInvoice": "Create Invoice"
+      "createInvoice": "Create Invoice",
+      "success": "Import Successful",
+      "successDescription": "The invoice has been created from the imported file."
     },
+    "import": "Import",
     "filterPlaceholder": "Filter here...",
     "createDialog": {
       "title": "Create Invoice",

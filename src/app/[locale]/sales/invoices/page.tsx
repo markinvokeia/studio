@@ -309,7 +309,7 @@ export default function InvoicesPage() {
 
         const formData = new FormData();
         formData.append('file', importFile);
-        formData.append('is_sales', 'false');
+        formData.append('is_sales', 'true');
 
         try {
             await api.post(API_ROUTES.SALES.API_INVOICE_IMPORT, formData);
@@ -427,6 +427,7 @@ export default function InvoicesPage() {
         status: t('columns.status'),
         payment_status: t('columns.payment'),
         type: t('columns.type'),
+        paid_amount: t('columns.paidAmount'),
         createdAt: t('columns.createdAt'),
     };
 

@@ -807,12 +807,14 @@
         "description": "Gestione todas sus facturas aquí.",
         "columns": {
             "invoiceId": "ID de Factura",
+            "provider": "Proveedor",
             "userName": "Usuario",
             "orderId": "ID de Orden",
             "quoteId": "ID de Presupuesto",
             "total": "Total",
             "status": "Estado",
             "paymentStatus": "Pago",
+            "payment": "Pago",
             "createdAt": "Creado En",
             "currency": "Moneda",
             "type": "Tipo",
@@ -840,7 +842,7 @@
             "remainingAmount": "Monto Restante",
             "creditNote": "Nota de Crédito",
             "paymentref": "Ref. de Pago",
-            "exchangeRage": "Tipo de Cambio",
+            "exchangeRate": "Tipo de Cambio",
             "equivalentAmount": "Monto Equivalente",
             "summary": "Resumen de Pago",
             "exchangeRateApplied": "Tipo de Cambio Aplicado",
@@ -878,11 +880,17 @@
             "dateRequired": "La fecha de pago es obligatoria.",
             "userRequired": "Un usuario es obligatorio",
             "noPaymentAmount": "Por favor ingrese un monto o seleccione créditos para pagar.",
-            "overpayment": "El pago total excede el monto restante de la factura."
+            "overpayment": "El pago total excede el monto restante de la factura.",
+            "serviceRequired": "Un servicio es obligatorio",
+            "quantityMin": "La cantidad debe ser al menos 1",
+            "priceNonNegative": "El precio unitario no puede ser negativo"
         },
         "toast": {
             "error": "Error",
-            "sessionCheckError": "No se pudo verificar la sesión de caja activa. Por favor, inténtelo de nuevo."
+            "success": "Éxito",
+            "sessionCheckError": "No se pudo verificar la sesión de caja activa. Por favor, inténtelo de nuevo.",
+            "downloadStarted": "Descarga Iniciada",
+            "downloadSuccess": "La factura #{id} se ha descargado correctamente."
         },
         "noSessionDialog": {
             "title": "Sin Sesión de Caja Activa",
@@ -899,7 +907,8 @@
             "description": "Ingrese los correos de los destinatarios para la factura #{id}.",
             "recipients": "Destinatarios",
             "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
-            "helperText": "Separe múltiples correos con comas."
+            "helperText": "Separe múltiples correos con comas.",
+            "errorNoEmail": "Por favor, ingrese al menos un correo electrónico."
         },
         "importDialog": {
             "title": "Importar Factura",
@@ -908,8 +917,11 @@
             "dragAndDrop": "o arrastre y suelte",
             "fileTypes": "PDF, PNG, JPG o GIF (MAX. 10MB)",
             "processing": "Procesando...",
-            "createInvoice": "Crear Factura"
+            "createInvoice": "Crear Factura",
+            "success": "Importación Exitosa",
+            "successDescription": "La factura ha sido creada a partir del archivo importado."
         },
+        "import": "Importar",
         "filterPlaceholder": "Filtrar aquí...",
         "createDialog": {
             "title": "Crear Factura",
