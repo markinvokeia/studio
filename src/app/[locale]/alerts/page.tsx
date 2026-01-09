@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { toast } from '@/hooks/use-toast';
-import { AlertInstance } from '@/lib/types';
+import { AlertInstance, AlertAction } from '@/lib/types';
 import { api } from '@/services/api';
 import {
     AlertTriangle,
@@ -60,6 +60,17 @@ const fetchAlerts = async (status?: string, priority?: string) => {
     }
 };
 
+const fetchAlertActions = async (): Promise<AlertAction[]> => {
+    try {
+        const response = await api.get(API_ROUTES.SYSTEM.ALERT_ACTIONS);
+        // Assuming response is array of alert actions
+        return response as AlertAction[];
+    } catch (error) {
+        console.error('Failed to fetch alert actions:', error);
+        return [];
+    }
+};
+
 const priorityConfig = {
     CRITICAL: { color: 'bg-red-500', text: 'text-red-500', label: 'Critical' },
     HIGH: { color: 'bg-orange-500', text: 'text-orange-500', label: 'High' },
@@ -93,7 +104,9 @@ const SummaryCard = ({ title, count, color }: { title: string, count: number, co
 export default function AlertsCenterPage() {
     const t = useTranslations('AlertsCenterPage');
     const [alerts, setAlerts] = React.useState<AlertInstance[]>([]);
+    const [alertActions, setAlertActions] = React.useState<AlertAction[]>([]);
     const [openCategories, setOpenCategories] = React.useState<string[]>([]);
+    const [openActionCollapsibles, setOpenActionCollapsibles] = React.useState<string[]>([]);
     const [selectedAlerts, setSelectedAlerts] = React.useState<string[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [statusFilter, setStatusFilter] = React.useState<string>('');
@@ -110,8 +123,12 @@ export default function AlertsCenterPage() {
     const loadAlerts = async () => {
         setLoading(true);
         try {
-            const alertsData = await fetchAlerts(statusFilter || undefined, priorityFilter || undefined);
+            const [alertsData, actionsData] = await Promise.all([
+                fetchAlerts(statusFilter || undefined, priorityFilter || undefined),
+                fetchAlertActions()
+            ]);
             setAlerts(alertsData);
+            setAlertActions(actionsData);
         } catch (error) {
             console.error('Failed to load alerts:', error);
         } finally {
@@ -333,6 +350,33 @@ export default function AlertsCenterPage() {
                                                 <div className="flex-1">
                                                     <p className="font-semibold">{alert.title}</p>
                                                     <p className="text-sm text-muted-foreground">{alert.summary}</p>
+                                                    {(() => {
+                                                        const actions = alertActions.filter(action => action.alert_instance_id === parseInt(alert.id));
+                                                        const isOpen = openActionCollapsibles.includes(alert.id);
+                                                        return actions.length > 0 ? (
+                                                            <Collapsible
+                                                                className="mt-2"
+                                                                open={isOpen}
+                                                                onOpenChange={(open) => setOpenActionCollapsibles(prev =>
+                                                                    open ? [...prev, alert.id] : prev.filter(id => id !== alert.id)
+                                                                )}
+                                                            >
+                                                                <CollapsibleTrigger className="text-xs text-muted-foreground hover:text-foreground">
+                                                                    Actions taken ({actions.length}) <ChevronDown className={`inline h-3 w-3 ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                                                                </CollapsibleTrigger>
+                                                                <CollapsibleContent>
+                                                                    <div className="mt-1 space-y-1">
+                                                                        {actions.map(action => (
+                                                                            <div key={action.id} className="text-xs bg-muted p-2 rounded">
+                                                                                <strong>{action.action_type}</strong> - {action.result_status} ({new Date(action.performed_at).toLocaleString()})
+                                                                                {action.result_message && <p>{action.result_message}</p>}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </CollapsibleContent>
+                                                            </Collapsible>
+                                                        ) : null;
+                                                    })()}
                                                 </div>
                                                 <div className="flex items-center gap-4 text-muted-foreground">
                                                     <Badge variant={alert.status === 'COMPLETED' ? 'default' : 'outline'}>{t(`status.${alert.status.toLowerCase()}` as any)}</Badge>

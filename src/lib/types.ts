@@ -594,7 +594,7 @@ export type AlertInstance = {
   event_date?: string;
   title: string;
   summary?: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'IGNORED';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'IGNORED' | 'SNOOZED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   assigned_to?: string;
   assigned_to_name?: string;
@@ -619,9 +619,24 @@ export type CommunicationTemplate = {
 };
 
 export type AlertAction = {
-  id: string;
-  alert_instance_id: string;
+  id: number;
+  alert_instance_id: number;
   action_type: string;
+  action_data?: {
+    data?: any;
+    clinic?: {
+      name: string;
+      email: string;
+      phone: string;
+      address: string;
+    };
+    patient?: {
+      email: string;
+      phone: string;
+      full_name: string;
+      document_id: string;
+    };
+  };
   result_status: 'SUCCESS' | 'FAILED' | 'PENDING';
   result_message?: string;
   performed_by: string;

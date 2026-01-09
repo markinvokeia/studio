@@ -222,6 +222,7 @@ export const API_ROUTES = {
     SYSTEM: {
         ACCESS: '/system/access',
         ACCESS_LOGS: '/access_logs',
+        ALERT_ACTIONS: '/system/alert-actions',
         ALERT_CATEGORIES: '/alert_categories',
         ALERT_CATEGORY: '/alert_category',
         ALERT_INSTANCES: '/system/alert-instances',
