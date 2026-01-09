@@ -2321,7 +2321,7 @@
         },
         "validation": {
             "codeRequired": "El código es obligatorio.",
-            "codeFormat": "El código debe estar en mayúsculas y no contener espacios.",
+            "codeFormat": "El código debe ser letras mayúsculas, números y guiones bajos únicamente, sin espacios.",
             "nameRequired": "El nombre es obligatorio.",
             "nameMaxLength": "El nombre no puede exceder los 100 caracteres.",
             "descriptionMaxLength": "La descripción no puede exceder los 500 caracteres.",

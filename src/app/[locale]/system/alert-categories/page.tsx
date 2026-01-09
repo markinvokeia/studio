@@ -37,7 +37,7 @@ const categoryFormSchema = (t: (key: string) => string) => z.object({
     id: z.union([z.string(), z.number()]).optional(),
     code: z.string()
         .min(1, t('validation.codeRequired'))
-        .regex(/^[A-Z_]+$/, t('validation.codeFormat')),
+        .regex(/^[A-Z0-9_]+$/, t('validation.codeFormat')),
     name: z.string().min(1, t('validation.nameRequired')).max(100, t('validation.nameMaxLength')),
     description: z.string().max(500, t('validation.descriptionMaxLength')).optional(),
     icon: z.string().optional(),

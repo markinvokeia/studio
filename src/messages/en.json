@@ -2328,14 +2328,14 @@
     },
     "validation": {
       "codeRequired": "Code is required.",
-      "codeFormat": "Code must be uppercase and contain no spaces.",
+      "codeFormat": "Code must be uppercase letters, numbers, and underscores only, with no spaces.",
       "nameRequired": "Name is required.",
       "nameMaxLength": "Name cannot exceed 100 characters.",
       "descriptionMaxLength": "Description cannot exceed 500 characters.",
       "colorInvalid": "Must be a valid hex color (e.g., #FF5733).",
       "validation": {
         "codeRequired": "Code is required.",
-        "codeFormat": "Code must be uppercase and contain no spaces.",
+        "codeFormat": "Code must be uppercase letters, numbers, and underscores only, with no spaces.",
         "nameRequired": "Name is required",
         "nameMaxLength": "Name cannot exceed 100 characters.",
         "descriptionMaxLength": "Description cannot exceed 500 characters.",
