@@ -1,29 +1,64 @@
 
 'use client';
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { AlertInstance } from '@/lib/types';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-    Calendar, DollarSign, Stethoscope, AlertTriangle, ChevronDown, Filter, User,
-    MoreHorizontal, Mail, MessageSquare, Phone, Printer, Clock, UserPlus, FileText, XCircle, CheckCircle 
-} from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useTranslations } from 'next-intl';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { cn } from '@/lib/utils';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { API_ROUTES } from '@/constants/routes';
 import { toast } from '@/hooks/use-toast';
+import { AlertInstance } from '@/lib/types';
+import { api } from '@/services/api';
+import {
+    AlertTriangle,
+    Calendar,
+    CheckCircle,
+    ChevronDown,
+    Clock,
+    DollarSign,
+    FileText,
+    Filter,
+    Mail, MessageSquare,
+    MoreHorizontal,
+    Phone, Printer,
+    RefreshCw,
+    Stethoscope,
+    User,
+    UserPlus,
+    XCircle
+} from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import React from 'react';
 
-const mockAlerts: AlertInstance[] = [
-    { id: '1', rule_id: '1', reference_table: 'appointments', reference_id: '101', alert_date: '2024-07-30', title: 'Cita de Mañana - Juan Pérez', summary: 'Recordatorio 24h para consulta general.', status: 'PENDING', priority: 'HIGH', rule_name: 'APPT_REMINDER_24H', patient_name: 'Juan Pérez' },
-    { id: '2', rule_id: '2', reference_table: 'invoices', reference_id: 'INV-002', alert_date: '2024-07-30', title: 'Factura Vencida - Ana Gómez', summary: 'Factura #INV-002 venció hace 5 días.', status: 'PENDING', priority: 'CRITICAL', rule_name: 'INV_OVERDUE', patient_name: 'Ana Gómez' },
-    { id: '3', rule_id: '3', reference_table: 'patients', reference_id: '303', alert_date: '2024-07-30', title: 'Cumpleaños de Carlos Ruiz', summary: 'Hoy es el cumpleaños de Carlos Ruiz.', status: 'PENDING', priority: 'LOW', rule_name: 'PATIENT_BIRTHDAY', patient_name: 'Carlos Ruiz' },
-    { id: '4', rule_id: '1', reference_table: 'appointments', reference_id: '102', alert_date: '2024-07-30', title: 'Cita de Mañana - Luisa Martin', summary: 'Recordatorio 24h para limpieza dental.', status: 'COMPLETED', priority: 'HIGH', rule_name: 'APPT_REMINDER_24H', patient_name: 'Luisa Martin' },
-    { id: '5', rule_id: '4', reference_table: 'appointments', reference_id: '103', alert_date: '2024-07-30', title: 'Seguimiento Post-Consulta - Juan Pérez', summary: 'Contactar 1 semana después de la extracción.', status: 'IN_PROGRESS', priority: 'MEDIUM', rule_name: 'APPT_FOLLOWUP', patient_name: 'Juan Pérez' },
-];
+const fetchAlerts = async (status?: string, priority?: string) => {
+    try {
+        const query: Record<string, string> = {};
+        if (status !== undefined) query.status = status;
+        if (priority !== undefined) query.priority = priority;
+        const response = await api.get(API_ROUTES.SYSTEM.ALERT_INSTANCES, query);
+        // Check if no data: array with one empty object
+        if (response.length === 1 && Object.keys(response[0]).length === 0) {
+            return [];
+        }
+        // Assuming response is array of alert instances
+        const alerts: AlertInstance[] = response.map((alert: any) => ({
+            ...alert,
+            rule_name: 'DEFAULT', // Since backend doesn't provide rule_name
+            patient_name: alert.details_json?.patient?.full_name || 'Unknown',
+        }));
+        return alerts;
+    } catch (error) {
+        console.error('Failed to fetch alerts:', error);
+        return [];
+    }
+};
 
 const priorityConfig = {
     CRITICAL: { color: 'bg-red-500', text: 'text-red-500', label: 'Critical' },
@@ -57,22 +92,89 @@ const SummaryCard = ({ title, count, color }: { title: string, count: number, co
 
 export default function AlertsCenterPage() {
     const t = useTranslations('AlertsCenterPage');
-    const [alerts, setAlerts] = React.useState<AlertInstance[]>(mockAlerts);
+    const [alerts, setAlerts] = React.useState<AlertInstance[]>([]);
     const [openCategories, setOpenCategories] = React.useState<string[]>([]);
     const [selectedAlerts, setSelectedAlerts] = React.useState<string[]>([]);
-    
-    const markAsCompleted = (alertIds: string[]) => {
-        setAlerts(prev => prev.map(a => alertIds.includes(a.id) ? { ...a, status: 'COMPLETED' } : a));
-        setSelectedAlerts([]);
-        toast({ title: "Alerts Updated", description: `${alertIds.length} alert(s) marked as completed.` });
+    const [loading, setLoading] = React.useState(true);
+    const [statusFilter, setStatusFilter] = React.useState<string>('');
+    const [priorityFilter, setPriorityFilter] = React.useState<string>('');
+    const [ignoreDialogOpen, setIgnoreDialogOpen] = React.useState(false);
+    const [ignoreReason, setIgnoreReason] = React.useState('');
+    const [alertsToIgnore, setAlertsToIgnore] = React.useState<string[]>([]);
+    const [snoozeDialogOpen, setSnoozeDialogOpen] = React.useState(false);
+    const [snoozeReason, setSnoozeReason] = React.useState('');
+    const [alertsToSnooze, setAlertsToSnooze] = React.useState<string[]>([]);
+    const [snoozeDate, setSnoozeDate] = React.useState<string>('');
+
+
+    const loadAlerts = async () => {
+        setLoading(true);
+        try {
+            const alertsData = await fetchAlerts(statusFilter || undefined, priorityFilter || undefined);
+            setAlerts(alertsData);
+        } catch (error) {
+            console.error('Failed to load alerts:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        loadAlerts();
+    }, [statusFilter, priorityFilter]);
+
+    const markAsCompleted = async (alertIds: string[]) => {
+        try {
+            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_COMPLETE, { ids: alertIds });
+            setAlerts(prev => prev.map(a => alertIds.includes(a.id) ? { ...a, status: 'COMPLETED' } : a));
+            setSelectedAlerts([]);
+            toast({ title: t('toast.alertsUpdated'), description: t('toast.alertsMarkedCompleted', { count: alertIds.length }) });
+        } catch (error) {
+            console.error('Failed to mark alerts as completed:', error);
+            toast({ title: t('toast.markCompletedFailed'), description: t('toast.markCompletedFailedDescription'), variant: 'destructive' });
+        }
+    };
+
+    const markAsIgnored = async (alertIds: string[], reason: string) => {
+        try {
+            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_IGNORE, { ids: alertIds, reason });
+            setAlerts(prev => prev.map(a => alertIds.includes(a.id) ? { ...a, status: 'IGNORED' } : a));
+            setSelectedAlerts([]);
+            toast({ title: t('toast.alertsUpdated'), description: t('toast.alertsMarkedIgnored', { count: alertIds.length }) });
+        } catch (error) {
+            console.error('Failed to mark alerts as ignored:', error);
+            toast({ title: t('toast.markIgnoredFailed'), description: t('toast.markIgnoredFailedDescription'), variant: 'destructive' });
+        }
+    };
+
+    const snoozeAlerts = async (alertIds: string[], snoozeUntil: string, reason: string) => {
+        try {
+            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SNOOZE, { ids: alertIds, snooze_until: snoozeUntil, reason });
+            setAlerts(prev => prev.map(a => alertIds.includes(a.id) ? { ...a, status: 'SNOOZED' } : a));
+            setSelectedAlerts([]);
+            toast({ title: t('toast.alertsUpdated'), description: t('toast.alertsSnoozed', { count: alertIds.length }) });
+        } catch (error) {
+            console.error('Failed to snooze alerts:', error);
+            toast({ title: t('toast.snoozeFailed'), description: t('toast.snoozeFailedDescription'), variant: 'destructive' });
+        }
+    };
+
+    const sendEmail = async (alertIds: string[]) => {
+        try {
+            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SEND_EMAIL, { ids: alertIds });
+            toast({ title: t('toast.emailSent'), description: t('toast.emailSentDescription', { count: alertIds.length }) });
+        } catch (error) {
+            console.error('Failed to send email:', error);
+            toast({ title: t('toast.emailSendFailed'), description: t('toast.emailSendFailedDescription'), variant: 'destructive' });
+        }
     };
 
     const handleSelectAlert = (alertId: string, checked: boolean) => {
-        setSelectedAlerts(prev => 
+        setSelectedAlerts(prev =>
             checked ? [...prev, alertId] : prev.filter(id => id !== alertId)
         );
     };
-    
+
     const handleSelectCategory = (categoryAlerts: AlertInstance[], checked: boolean) => {
         const alertIds = categoryAlerts.map(a => a.id);
         if (checked) {
@@ -98,7 +200,7 @@ export default function AlertsCenterPage() {
     }, [alerts]);
 
     const toggleCategory = (category: string) => {
-        setOpenCategories(prev => 
+        setOpenCategories(prev =>
             prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]
         );
     };
@@ -118,10 +220,10 @@ export default function AlertsCenterPage() {
                     <CardDescription>{t('description')}</CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                   <SummaryCard title={t('summary.total')} count={summaryCounts.total} color="border-primary" />
-                   <SummaryCard title={t('summary.critical')} count={summaryCounts.critical} color="border-red-500" />
-                   <SummaryCard title={t('summary.high')} count={summaryCounts.high} color="border-orange-500" />
-                   <SummaryCard title={t('summary.medium')} count={summaryCounts.medium} color="border-yellow-500" />
+                    <SummaryCard title={t('summary.total')} count={summaryCounts.total} color="border-primary" />
+                    <SummaryCard title={t('summary.critical')} count={summaryCounts.critical} color="border-red-500" />
+                    <SummaryCard title={t('summary.high')} count={summaryCounts.high} color="border-orange-500" />
+                    <SummaryCard title={t('summary.medium')} count={summaryCounts.medium} color="border-yellow-500" />
                 </CardContent>
             </Card>
 
@@ -130,7 +232,69 @@ export default function AlertsCenterPage() {
                     <div className="flex items-center justify-between">
                         <CardTitle>{t('dailyAlerts')}</CardTitle>
                         <div className="flex items-center gap-2">
-                           <Button variant="outline" size="sm"><Filter className="mr-2 h-4 w-4"/> {t('filters.title')}</Button>
+                            {selectedAlerts.length > 0 && (
+                                <>
+                                    <Button variant="ghost" size="sm" onClick={() => markAsCompleted(selectedAlerts)} title={t('bulkActions.markAllCompleted')}>
+                                        <CheckCircle className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => sendEmail(selectedAlerts)} title={t('bulkActions.sendEmailToAll')}>
+                                        <Mail className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => { setAlertsToIgnore(selectedAlerts); setIgnoreDialogOpen(true); }} title={t('bulkActions.ignoreAll')}>
+                                        <XCircle className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => { setAlertsToSnooze(selectedAlerts); setSnoozeDialogOpen(true); }} title={t('bulkActions.snoozeAll')}>
+                                        <Clock className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => setSelectedAlerts([])} title={t('bulkActions.deselectAll')}>
+                                        <XCircle className="h-4 w-4" />
+                                    </Button>
+                                    <div className="h-6 w-px bg-border" />
+                                </>
+                            )}
+                            <Button variant="outline" size="sm" onClick={() => loadAlerts()} disabled={loading}>
+                                <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                                {t('reload')}
+                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="sm"><Filter className="mr-2 h-4 w-4" /> {t('filters.title')}</Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-80">
+                                    <div className="space-y-4 p-4">
+                                        <div>
+                                            <Label htmlFor="status">{t('filters.status')}</Label>
+                                            <Select value={statusFilter || 'all'} onValueChange={(value) => setStatusFilter(value === 'all' ? '' : value)}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder={t('filters.all')} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">{t('filters.all')}</SelectItem>
+                                                    <SelectItem value="PENDING">{t('filters.statusOptions.pending')}</SelectItem>
+                                                    <SelectItem value="COMPLETED">{t('filters.statusOptions.completed')}</SelectItem>
+                                                    <SelectItem value="IN_PROGRESS">{t('filters.statusOptions.inProgress')}</SelectItem>
+                                                    <SelectItem value="IGNORED">{t('filters.statusOptions.ignored')}</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="priority">{t('filters.priority')}</Label>
+                                            <Select value={priorityFilter || 'all'} onValueChange={(value) => setPriorityFilter(value === 'all' ? '' : value)}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder={t('filters.all')} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">{t('filters.all')}</SelectItem>
+                                                    <SelectItem value="LOW">{t('filters.priorityOptions.low')}</SelectItem>
+                                                    <SelectItem value="MEDIUM">{t('filters.priorityOptions.medium')}</SelectItem>
+                                                    <SelectItem value="HIGH">{t('filters.priorityOptions.high')}</SelectItem>
+                                                    <SelectItem value="CRITICAL">{t('filters.priorityOptions.critical')}</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     </div>
                 </CardHeader>
@@ -140,13 +304,13 @@ export default function AlertsCenterPage() {
                         const someInCategorySelected = categoryAlerts.some(a => selectedAlerts.includes(a.id));
 
                         return (
-                            <Collapsible 
+                            <Collapsible
                                 key={category}
                                 open={openCategories.includes(category)}
                                 onOpenChange={() => toggleCategory(category)}
                             >
                                 <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-3 text-left font-semibold">
-                                    <Checkbox 
+                                    <Checkbox
                                         checked={allInCategorySelected ? true : (someInCategorySelected ? "indeterminate" : false)}
                                         onCheckedChange={(checked) => handleSelectCategory(categoryAlerts, !!checked)}
                                     />
@@ -159,42 +323,43 @@ export default function AlertsCenterPage() {
                                 </div>
                                 <CollapsibleContent>
                                     <div className="divide-y divide-border">
-                                    {categoryAlerts.map(alert => (
-                                        <div key={alert.id} className="flex items-center gap-4 p-4 hover:bg-muted/50">
-                                            <Checkbox 
-                                                checked={selectedAlerts.includes(alert.id)}
-                                                onCheckedChange={(checked) => handleSelectAlert(alert.id, !!checked)}
-                                            />
-                                            <div className={`w-1.5 h-10 rounded-full ${priorityConfig[alert.priority as keyof typeof priorityConfig].color}`}></div>
-                                            <div className="flex-1">
-                                                <p className="font-semibold">{alert.title}</p>
-                                                <p className="text-sm text-muted-foreground">{alert.summary}</p>
-                                            </div>
-                                            <div className="flex items-center gap-4 text-muted-foreground">
-                                                <Badge variant={alert.status === 'COMPLETED' ? 'default' : 'outline'}>{t(`status.${alert.status.toLowerCase()}` as any)}</Badge>
-                                                <User className="h-4 w-4" />
-                                                <span className="text-sm">{alert.patient_name}</span>
-                                                <div className="flex items-center gap-1">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8"><Mail className="h-4 w-4"/></Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => markAsCompleted([alert.id])}><CheckCircle className="h-4 w-4"/></Button>
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4"/></Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent>
-                                                            <DropdownMenuItem><MessageSquare className="mr-2 h-4 w-4" />Send SMS</DropdownMenuItem>
-                                                            <DropdownMenuItem><Phone className="mr-2 h-4 w-4" />Register Call</DropdownMenuItem>
-                                                            <DropdownMenuItem><Printer className="mr-2 h-4 w-4" />Print</DropdownMenuItem>
-                                                            <DropdownMenuItem><Clock className="mr-2 h-4 w-4" />Snooze</DropdownMenuItem>
-                                                            <DropdownMenuItem><UserPlus className="mr-2 h-4 w-4" />Assign</DropdownMenuItem>
-                                                            <DropdownMenuItem><FileText className="mr-2 h-4 w-4" />Add Note</DropdownMenuItem>
-                                                            <DropdownMenuItem><XCircle className="mr-2 h-4 w-4" />Ignore</DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
+                                        {categoryAlerts.map(alert => (
+                                            <div key={alert.id} className="flex items-center gap-4 p-4 hover:bg-muted/50">
+                                                <Checkbox
+                                                    checked={selectedAlerts.includes(alert.id)}
+                                                    onCheckedChange={(checked) => handleSelectAlert(alert.id, !!checked)}
+                                                />
+                                                <div className={`w-1.5 h-10 rounded-full ${priorityConfig[alert.priority as keyof typeof priorityConfig].color}`}></div>
+                                                <div className="flex-1">
+                                                    <p className="font-semibold">{alert.title}</p>
+                                                    <p className="text-sm text-muted-foreground">{alert.summary}</p>
+                                                </div>
+                                                <div className="flex items-center gap-4 text-muted-foreground">
+                                                    <Badge variant={alert.status === 'COMPLETED' ? 'default' : 'outline'}>{t(`status.${alert.status.toLowerCase()}` as any)}</Badge>
+                                                    <User className="h-4 w-4" />
+                                                    <span className="text-sm">{alert.patient_name}</span>
+                                                    <div className="flex items-center gap-1">
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => sendEmail([alert.id])}><Mail className="h-4 w-4" /></Button>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => markAsCompleted([alert.id])}><CheckCircle className="h-4 w-4" /></Button>
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent>
+                                                                <DropdownMenuItem><MessageSquare className="mr-2 h-4 w-4" />{t('actions.sendSms')}</DropdownMenuItem>
+                                                                <DropdownMenuItem><Phone className="mr-2 h-4 w-4" />{t('actions.registerCall')}</DropdownMenuItem>
+                                                                <DropdownMenuItem><Printer className="mr-2 h-4 w-4" />{t('actions.print')}</DropdownMenuItem>
+                                                                <DropdownMenuItem><Clock className="mr-2 h-4 w-4" />{t('actions.snooze')}</DropdownMenuItem>
+                                                                <DropdownMenuItem><UserPlus className="mr-2 h-4 w-4" />{t('actions.assign')}</DropdownMenuItem>
+                                                                <DropdownMenuItem><FileText className="mr-2 h-4 w-4" />{t('actions.addNote')}</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => { setAlertsToIgnore([alert.id]); setIgnoreDialogOpen(true); }}><XCircle className="mr-2 h-4 w-4" />{t('actions.ignore')}</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => { setAlertsToSnooze([alert.id]); setSnoozeDialogOpen(true); }}><Clock className="mr-2 h-4 w-4" />{t('actions.snooze')}</DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
                                     </div>
                                 </CollapsibleContent>
                             </Collapsible>
@@ -203,16 +368,85 @@ export default function AlertsCenterPage() {
                 </CardContent>
             </Card>
 
-            {selectedAlerts.length > 0 && (
-                <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-                    <Card className="flex items-center gap-4 p-3 shadow-2xl">
-                        <p className="text-sm font-medium">{selectedAlerts.length} alert(s) selected</p>
-                        <Button size="sm" onClick={() => markAsCompleted(selectedAlerts)}>Mark all as Completed</Button>
-                        <Button size="sm" variant="secondary">Send Email to all</Button>
-                        <Button size="sm" variant="ghost" onClick={() => setSelectedAlerts([])}>Deselect all</Button>
-                    </Card>
-                </div>
-            )}
+            <Dialog open={ignoreDialogOpen} onOpenChange={setIgnoreDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('ignoreAlert.title')}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <Label htmlFor="reason">{t('ignoreAlert.reason')}</Label>
+                        <Textarea
+                            id="reason"
+                            value={ignoreReason}
+                            onChange={(e) => setIgnoreReason(e.target.value)}
+                            placeholder={t('ignoreAlert.placeholder')}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            onClick={() => {
+                                markAsIgnored(alertsToIgnore, ignoreReason);
+                                setIgnoreDialogOpen(false);
+                                setIgnoreReason('');
+                                setAlertsToIgnore([]);
+                            }}
+                        >
+                            {t('ignoreAlert.submit')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={snoozeDialogOpen} onOpenChange={setSnoozeDialogOpen}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>{t('snoozeAlert.title')}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div>
+                            <Label htmlFor="snoozeDate">{t('snoozeAlert.date')}</Label>
+                            <Input
+                                type="datetime-local"
+                                id="snoozeDate"
+                                value={snoozeDate}
+                                onChange={(e) => setSnoozeDate(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <Label>{t('snoozeAlert.quickOptions')}</Label>
+                            <div className="flex gap-2">
+                                <Button variant="outline" size="sm" onClick={() => setSnoozeDate(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16))}>1 {t('snoozeAlert.day')}</Button>
+                                <Button variant="outline" size="sm" onClick={() => setSnoozeDate(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16))}>3 {t('snoozeAlert.days')}</Button>
+                                <Button variant="outline" size="sm" onClick={() => setSnoozeDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16))}>1 {t('snoozeAlert.week')}</Button>
+                            </div>
+                        </div>
+                        <div>
+                            <Label htmlFor="reason">{t('snoozeAlert.reason')}</Label>
+                            <Textarea
+                                id="reason"
+                                value={snoozeReason}
+                                onChange={(e) => setSnoozeReason(e.target.value)}
+                                placeholder={t('snoozeAlert.placeholder')}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            onClick={() => {
+                                snoozeAlerts(alertsToSnooze, snoozeDate, snoozeReason);
+                                setSnoozeDialogOpen(false);
+                                setSnoozeReason('');
+                                setSnoozeDate('');
+                                setAlertsToSnooze([]);
+                            }}
+                            disabled={!snoozeDate}
+                        >
+                            {t('snoozeAlert.submit')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }

@@ -2346,6 +2346,7 @@
   "AlertsCenterPage": {
     "title": "Alerts Center",
     "description": "View and manage all system-generated alerts.",
+    "reload": "Reload",
     "summary": {
       "total": "Total Pending",
       "critical": "Critical",
@@ -2354,7 +2355,22 @@
     },
     "dailyAlerts": "Daily Alerts",
     "filters": {
-      "title": "Filters"
+      "title": "Filters",
+      "status": "Status",
+      "all": "All",
+      "priority": "Priority",
+      "statusOptions": {
+        "pending": "Pending",
+        "completed": "Completed",
+        "inProgress": "In Progress",
+        "ignored": "Ignored"
+      },
+      "priorityOptions": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "critical": "Critical"
+      }
     },
     "categories": {
       "appointments": "Appointments",
@@ -2366,7 +2382,53 @@
     "status": {
       "pending": "Pending",
       "in_progress": "In Progress",
-      "completed": "Completed"
+      "completed": "Completed",
+      "ignored": "Ignored"
+    },
+    "actions": {
+      "sendSms": "Send SMS",
+      "registerCall": "Register Call",
+      "print": "Print",
+      "snooze": "Snooze",
+      "assign": "Assign",
+      "addNote": "Add Note",
+      "ignore": "Ignore"
+    },
+    "snoozeAlert": {
+      "title": "Snooze Alert",
+      "date": "Date",
+      "quickOptions": "Quick Options",
+      "day": "Day",
+      "days": "Days",
+      "week": "Week",
+      "reason": "Reason",
+      "placeholder": "Enter reason...",
+      "submit": "Snooze"
+    },
+    "bulkActions": {
+      "title": "Bulk Actions",
+      "alertsSelected": "alert(s) selected",
+      "markAllCompleted": "Mark all as Completed",
+      "sendEmailToAll": "Send Email to all",
+      "ignoreAll": "Ignore All",
+      "snoozeAll": "Snooze All",
+      "deselectAll": "Deselect all"
+    },
+    "toast": {
+      "alertsUpdated": "Alerts Updated",
+      "alertsMarkedCompleted": "{count} alert(s) marked as completed.",
+      "alertsMarkedIgnored": "{count} alert(s) marked as ignored.",
+      "alertsSnoozed": "{count} alert(s) snoozed.",
+      "markCompletedFailed": "Failed to mark alerts as completed",
+      "markCompletedFailedDescription": "An error occurred while marking the alerts as completed. Please try again.",
+      "markIgnoredFailed": "Failed to mark alerts as ignored",
+      "markIgnoredFailedDescription": "An error occurred while marking the alerts as ignored. Please try again.",
+      "snoozeFailed": "Failed to snooze alerts",
+      "snoozeFailedDescription": "Could not snooze the alerts.",
+      "emailSent": "Email Sent",
+      "emailSentDescription": "Email sent to {count} alert(s).",
+      "emailSendFailed": "Failed to send email",
+      "emailSendFailedDescription": "An error occurred while sending the email. Please try again."
     }
   },
   "AlertRulesPage": {
