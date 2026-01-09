@@ -68,7 +68,18 @@ async function getCategories(search?: string, is_active?: boolean, page: number 
         if (search) query.search = search;
         if (is_active !== undefined) query.is_active = is_active.toString();
 
-        const response = await api.get(API_ROUTES.SYSTEM.ALERT_CATEGORIES, query);
+const response = await api.get(API_ROUTES.SYSTEM.ALERT_CATEGORIES, query);
+        
+        // Check if no data: array with one empty object
+        if (response.length === 1 && Object.keys(response[0]).length === 0) {
+            return {
+                data: [],
+                total: 0,
+                page: page,
+                limit: limit
+            };
+        }
+        
         return {
             data: response.map((cat: any) => ({ ...cat, rules_count: cat.rules_count || 0 })),
             total: response.length,
