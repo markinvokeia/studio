@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PlusCircle, RefreshCw, SlidersHorizontal, Filter, Search } from 'lucide-react';
+import { PlusCircle, RefreshCw, SlidersHorizontal, Filter, Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
@@ -61,8 +61,18 @@ export function DataTableToolbar<TData>({
             onChange={(event) =>
               table.getColumn(filterColumnId)?.setFilterValue(event.target.value)
             }
-            className="h-9 w-[150px] lg:w-[250px] pl-9"
+            className="h-9 w-[150px] lg:w-[250px] pl-9 pr-9"
           />
+          {((table.getColumn(filterColumnId)?.getFilterValue() as string) ?? '').length > 0 && (
+            <Button
+              variant="ghost"
+              onClick={() => table.getColumn(filterColumnId)?.setFilterValue('')}
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-transparent text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Clear</span>
+            </Button>
+          )}
         </div>
         {filterOptions && onFilterChange && (
           <Select value={filterValue || 'all'} onValueChange={onFilterChange}>

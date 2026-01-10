@@ -137,6 +137,7 @@
     "DataTableToolbar": {
         "toggleColumns": "Alternar columnas",
         "filter": "Filtrar",
+        "clear": "Limpiar Filtros",
         "all": "Todos",
         "refresh": "Refrescar",
         "view": "Ver",
@@ -513,6 +514,12 @@
     },
     "UsersPage": {
         "title": "Pacientes",
+        "stats": {
+            "totalInvoiced": "Total Facturado",
+            "totalPaid": "Total Pagado",
+            "currentDebt": "Deuda Actual",
+            "availableBalance": "Saldo Disponible"
+        },
         "description": "Gestionar todos los pacientes en el sistema.",
         "filterPlaceholder": "Filtrar pacientes por correo...",
         "filterByPatient": "Filtrar por paciente...",
@@ -604,7 +611,8 @@
         "delete": "Eliminar usuario",
         "activate": "Activar",
         "deactivate": "Desactivar",
-        "identity_document": "Documento de Identidad"
+        "identity_document": "Documento de Identidad",
+        "currentDebt": "Deuda Actual"
     },
     "UserRoles": {
         "columns": {

@@ -31,16 +31,31 @@ const getColumns = (t: (key: string) => string): ColumnDef<Order>[] => [
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.status')} />,
     cell: ({ row }) => {
       const status = row.getValue('status') as string;
+      const statusLower = status.toLowerCase().trim();
+
       const variant = {
         completed: 'success',
         pending: 'info',
         processing: 'default',
         cancelled: 'destructive',
-      }[status.toLowerCase()] ?? ('default' as any);
+      }[statusLower] ?? ('default' as any);
+
+      // Map API status values to translation keys
+      const translationKeyMap: Record<string, string> = {
+        'completed': 'completed',
+        'pending': 'pending',
+        'processing': 'processing',
+        'in progress': 'processing',
+        'in_progress': 'processing',
+        'cancelled': 'cancelled',
+        'canceled': 'cancelled', // Handle both spellings
+      };
+
+      const translationKey = translationKeyMap[statusLower] || statusLower;
 
       return (
         <Badge variant={variant} className="capitalize">
-          {status}
+          {t(`OrdersPage.status.${translationKey}`)}
         </Badge>
       );
     }
