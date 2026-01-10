@@ -1,0 +1,17 @@
+<svg width="400" height="240" viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="400" height="240" rx="25" ry="25" fill="#2E7D32" />
+  
+  <rect x="12" y="12" width="376" height="216" rx="18" ry="18" fill="none" stroke="#81C784" stroke-width="2" opacity="0.6" />
+
+  <circle cx="55" cy="55" r="25" fill="none" stroke="#81C784" stroke-width="2" opacity="0.6" />
+
+  <circle cx="345" cy="185" r="25" fill="none" stroke="#81C784" stroke-width="2" opacity="0.6" />
+
+  <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="bold" font-size="70" fill="#FFFFFF">
+    $3.000
+  </text>
+
+  <text x="50%" y="78%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" fill="#E8F5E9" letter-spacing="1">
+    PESOS URUGUAYOS
+  </text>
+</svg>

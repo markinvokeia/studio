@@ -47,10 +47,10 @@ import * as z from 'zod';
 
 const transactionFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
-    category_id: z.string().min(1, t('categoryRequired')),
-    transaction_date: z.string().min(1, t('dateRequired')),
-    amount: z.coerce.number().positive(t('amountPositive')),
-    description: z.string().min(1, t('descriptionRequired')),
+    category_id: z.string().min(1, t('validation.categoryRequired')),
+    transaction_date: z.string().min(1, t('validation.dateRequired')),
+    amount: z.coerce.number().positive(t('validation.amountPositive')),
+    description: z.string().min(1, t('validation.descriptionRequired')),
     beneficiary_id: z.string().optional(),
     currency: z.enum(['UYU', 'USD', 'EUR']).default('UYU'),
     exchange_rate: z.coerce.number().optional().default(1),
@@ -62,8 +62,8 @@ const transactionFormSchema = (t: (key: string) => string) => z.object({
 type TransactionFormValues = z.infer<ReturnType<typeof transactionFormSchema>>;
 
 const completeTransactionSchema = (t: (key: string) => string) => z.object({
-    cash_session_id: z.string().min(1, t('sessionRequired')),
-    payment_method_id: z.string().min(1, t('paymentMethodRequired')),
+    cash_session_id: z.string().min(1, t('validation.sessionRequired')),
+    payment_method_id: z.string().min(1, t('validation.paymentMethodRequired')),
 });
 
 type CompleteTransactionFormValues = z.infer<ReturnType<typeof completeTransactionSchema>>;
@@ -198,7 +198,7 @@ async function deleteMiscellaneousTransaction(id: string) {
 
 export default function MiscellaneousTransactionsPage() {
     const t = useTranslations('MiscellaneousTransactionsPage');
-    const tValidation = useTranslations('MiscellaneousTransactionsPage.validation');
+    // const tValidation = useTranslations('MiscellaneousTransactionsPage.validation'); // No longer needed as separate namespace if accessing via full path or if t covers it
     const { toast } = useToast();
     const { user } = useAuth();
     const [transactions, setTransactions] = React.useState<MiscellaneousTransaction[]>([]);
@@ -229,7 +229,7 @@ export default function MiscellaneousTransactionsPage() {
 
 
     const form = useForm<TransactionFormValues>({
-        resolver: zodResolver(transactionFormSchema(tValidation)),
+        resolver: zodResolver(transactionFormSchema(t)),
     });
 
     React.useEffect(() => {
@@ -274,7 +274,7 @@ export default function MiscellaneousTransactionsPage() {
         if (!deletingTransaction) return;
         try {
             await deleteMiscellaneousTransaction(deletingTransaction.id);
-            toast({ title: "Transaction Deleted", description: `Transaction #${deletingTransaction.transaction_number} deleted.` });
+            toast({ title: t('toasts.deletedTitle'), description: t('toasts.deletedDesc', { number: deletingTransaction.transaction_number }) });
             setIsDeleteDialogOpen(false);
             setDeletingTransaction(null);
             loadTransactions();
@@ -282,7 +282,7 @@ export default function MiscellaneousTransactionsPage() {
             toast({
                 variant: 'destructive',
                 title: t('toast.errorTitle'),
-                description: error instanceof Error ? error.message : "Could not delete transaction.",
+                description: error instanceof Error ? error.message : t('toasts.deleteError'),
             });
         }
     };
@@ -325,14 +325,14 @@ export default function MiscellaneousTransactionsPage() {
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
+                                <span className="sr-only">{t('actions.openMenu')}</span>
                                 <MoreHorizontal className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEdit(transaction)}>Edit</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete(transaction)} className="text-destructive">Delete</DropdownMenuItem>
+                            <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEdit(transaction)}>{t('actions.edit')}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete(transaction)} className="text-destructive">{t('actions.delete')}</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 );
@@ -378,11 +378,11 @@ export default function MiscellaneousTransactionsPage() {
         setSubmissionError(null);
         try {
             await upsertMiscellaneousTransaction(values, user.id);
-            toast({ title: editingTransaction ? "Transaction Updated" : "Transaction Created", description: "Transaction saved successfully." });
+            toast({ title: editingTransaction ? t('toasts.updatedTitle') : t('toasts.createdTitle'), description: t('toasts.savedDesc') });
             setIsDialogOpen(false);
             loadTransactions();
         } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+            setSubmissionError(error instanceof Error ? error.message : t('toasts.genericError'));
         }
     };
 
@@ -450,21 +450,30 @@ export default function MiscellaneousTransactionsPage() {
                         onCreate={handleCreate}
                         onRefresh={loadTransactions}
                         isRefreshing={isRefreshing}
+                        columnTranslations={{
+                            id: t('columns.id'),
+                            transaction_number: t('columns.transactionNumber'),
+                            transaction_date: t('columns.date'),
+                            category_name: t('columns.category'),
+                            beneficiary_name: t('columns.beneficiary'),
+                            amount: t('columns.amount'),
+                            status: t('columns.status'),
+                        }}
                     />
                 </CardContent>
             </Card>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="sm:max-w-xl">
                     <DialogHeader>
-                        <DialogTitle>{editingTransaction ? 'Edit Transaction' : 'Create Transaction'}</DialogTitle>
+                        <DialogTitle>{editingTransaction ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                            {submissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{submissionError}</AlertDescription></Alert>}
+                            {submissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>{t('toasts.errorTitle')}</AlertTitle><AlertDescription>{submissionError}</AlertDescription></Alert>}
                             <FormField control={form.control} name="category_id" render={({ field }) => (
-                                <FormItem><FormLabel>Category</FormLabel>
+                                <FormItem><FormLabel>{t('dialog.category')}</FormLabel>
                                     <Popover open={isCategoryOpen} onOpenChange={setIsCategoryOpen}><PopoverTrigger asChild><FormControl>
-                                        <Button variant="outline" role="combobox" className="w-full justify-between">{field.value ? categories.find(c => c.id === field.value)?.name : "Select category"}<ChevronsUpDown /></Button>
+                                        <Button variant="outline" role="combobox" className="w-full justify-between">{field.value ? categories.find(c => c.id === field.value)?.name : t('dialog.selectCategory')}<ChevronsUpDown /></Button>
                                     </FormControl></PopoverTrigger>
                                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput /><CommandList><CommandEmpty>No category found.</CommandEmpty><CommandGroup>
                                             {categories.map(c => <CommandItem value={c.name} key={c.id} onSelect={() => { form.setValue("category_id", c.id); setIsCategoryOpen(false); }}><Check className={cn("mr-2", c.id === field.value ? "opacity-100" : "opacity-0")} />{c.name}</CommandItem>)}
@@ -473,9 +482,9 @@ export default function MiscellaneousTransactionsPage() {
                                 </FormItem>
                             )} />
                             <FormField control={form.control} name="beneficiary_id" render={({ field }) => (
-                                <FormItem><FormLabel>Beneficiary</FormLabel>
+                                <FormItem><FormLabel>{t('dialog.beneficiary')}</FormLabel>
                                     <Popover open={isBeneficiaryOpen} onOpenChange={setIsBeneficiaryOpen}><PopoverTrigger asChild><FormControl>
-                                        <Button variant="outline" role="combobox" className="w-full justify-between">{field.value ? beneficiaries.find(b => b.id === field.value)?.name : "Select beneficiary"}<ChevronsUpDown /></Button>
+                                        <Button variant="outline" role="combobox" className="w-full justify-between">{field.value ? beneficiaries.find(b => b.id === field.value)?.name : t('dialog.selectBeneficiary')}<ChevronsUpDown /></Button>
                                     </FormControl></PopoverTrigger>
                                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput onValueChange={setBeneficiarySearch} /><CommandList><CommandEmpty>No beneficiary found.</CommandEmpty><CommandGroup>
                                             {beneficiaries.map(b => <CommandItem value={b.name} key={b.id} onSelect={() => { form.setValue("beneficiary_id", b.id); setIsBeneficiaryOpen(false); }}><Check className={cn("mr-2", b.id === field.value ? "opacity-100" : "opacity-0")} />{b.name}</CommandItem>)}
@@ -484,15 +493,15 @@ export default function MiscellaneousTransactionsPage() {
                                 </FormItem>
                             )} />
                             <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="transaction_date" render={({ field }) => (<FormItem><FormLabel>Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="transaction_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.date')}</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                 <FormField
                                     control={form.control}
                                     name="payment_method_id"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Payment Method</FormLabel>
+                                            <FormLabel>{t('dialog.paymentMethod')}</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger></FormControl>
+                                                <FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectMethod')} /></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     {paymentMethods.map(pm => <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>)}
                                                 </SelectContent>
@@ -503,17 +512,17 @@ export default function MiscellaneousTransactionsPage() {
                                 />
                             </div>
                             <div className="grid grid-cols-3 gap-4">
-                                <FormField control={form.control} name="amount" render={({ field }) => (<FormItem className="col-span-2"><FormLabel>Amount</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>Currency</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="amount" render={({ field }) => (<FormItem className="col-span-2"><FormLabel>{t('dialog.amount')}</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>{t('dialog.currency')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                             </div>
-                            <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>{t('dialog.description')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="external_reference" render={({ field }) => (<FormItem><FormLabel>Reference</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>Tags</FormLabel><FormControl><Input placeholder="tag1, tag2, tag3" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="external_reference" render={({ field }) => (<FormItem><FormLabel>{t('dialog.reference')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>{t('dialog.tags')}</FormLabel><FormControl><Input placeholder="tag1, tag2, tag3" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             </div>
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                                <Button type="submit">{editingTransaction ? 'Save Changes' : 'Create'}</Button>
+                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                                <Button type="submit">{editingTransaction ? t('dialog.save') : t('dialog.create')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
@@ -522,14 +531,14 @@ export default function MiscellaneousTransactionsPage() {
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('dialog.areYouSure')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This will permanently delete transaction #{deletingTransaction?.transaction_number}.
+                            {t('dialog.deleteConfirmation', { number: deletingTransaction?.transaction_number })}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                        <AlertDialogCancel>{t('dialog.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('dialog.deleteAction')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

@@ -69,7 +69,7 @@ async function getCashPoints(pagination: PaginationState, searchQuery: string): 
 async function upsertCashPoint(cashPointData: CashPointFormValues) {
     const response = await api.post(API_ROUTES.CASHIER.CASH_POINTS_UPSERT, cashPointData);
     if (Array.isArray(response) && response[0]?.code >= 400) {
-        const message = response[0]?.message || 'Failed to save cash point';
+        const message = response[0]?.message || 'Failed to save cash point'; // This might come from backend, leaving as is or could be a generic error key
         throw new Error(message);
     }
     if (response.error) {
@@ -173,7 +173,7 @@ export default function CashPointsPage() {
             setIsDialogOpen(false);
             loadCashPoints();
         } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
+            setSubmissionError(error instanceof Error ? error.message : t('toast.saveError'));
         }
     };
 

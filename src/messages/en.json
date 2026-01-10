@@ -1024,12 +1024,29 @@
       "back": "Back",
       "next": "Next",
       "startClosing": "Start Closing",
+      "prefillZero": "Prefill with 0",
+      "prefillLast": "Prefill with Last Closing Cashup",
+      "cashCountTitle": "Cash Count ({currency})",
+      "cashCountDescription": "Enter the physical cash count for each denomination.",
       "steps": {
+        "config": "Configuration",
+        "countUYU": "Cash Count (UYU)",
+        "countUSD": "Cash Count (USD)",
+        "bankDeposit": "Bank Deposit",
         "review": "Review",
         "declare": "Declare",
-        "report": "Report"
+        "report": "Report",
+        "confirm": "Confirmation"
       },
       "title": "Close Session"
+    },
+    "bankDeposit": {
+      "title": "Bank Deposit Declaration",
+      "description": "Declare the physical cash denominations to be taken out for banking. This step is optional.",
+      "countUYU": "UYU Bank Deposit",
+      "countUSD": "USD Bank Deposit",
+      "attachFiles": "Attach Files",
+      "chooseFiles": "Choose Files"
     },
     "confirmation": {
       "sessionInfo": "Session Info",
@@ -1053,11 +1070,20 @@
       "openingDetails": "Opening Details",
       "denomination": "Denomination",
       "quantity": "Quantity",
-      "subtotal": "Subtotal"
+      "subtotal": "Subtotal",
+      "cashOnHand": "Cash on Hand",
+      "totalOutcome": "Total Outcome",
+      "transactions": "Transactions",
+      "printOpening": "Print Opening"
     },
     "toast": {
       "openSuccessTitle": "Session Opened",
-      "openSuccessDescription": "Session opened successfully."
+      "openSuccessDescription": "Session opened successfully.",
+      "closeSuccessTitle": "Session Closed",
+      "closeSuccessDescription": "The cash session has been successfully closed.",
+      "closeErrorTitle": "Error",
+      "closeErrorDescription": "Failed to close session.",
+      "unexpectedError": "An unexpected error occurred."
     },
     "viewAllCashPoints": "View All Cash Points",
     "declareCashup": {
@@ -1067,13 +1093,31 @@
         "cash": "Cash",
         "card": "Card",
         "transfer": "Transfer",
+        "bank_transfer": "Bank Transfer",
         "other": "Other"
       },
       "systemTotal": "System Total",
+      "declared": "Declared",
       "notes": "Notes",
       "notesPlaceholder": "Enter notes here...",
       "closeSessionButton": "Close Session",
       "difference": "Difference"
+    },
+    "report": {
+      "title": "{currency} Report",
+      "sessionClosedTitle": "Session #{id} Closed",
+      "sessionClosedDescription": "Summary of the session closed by {user} at {location}",
+      "openingAmount": "Opening Amount:",
+      "declaredCash": "Declared Cash:",
+      "systemCashTotal": "System Cash Total:",
+      "cashDiscrepancy": "Cash Discrepancy:",
+      "systemCardTotal": "System Card Total:",
+      "systemTransferTotal": "System Transfer Total:",
+      "systemOtherTotal": "System Other Payments:",
+      "closingTime": "Closing Time:",
+      "notes": "Notes:",
+      "printClosing": "Print Closing",
+      "finishReturn": "Finish and Return"
     }
   },
   "CashSessionsPage": {
@@ -1117,6 +1161,20 @@
       "transfer": "Transfer",
       "other": "Other",
       "card": "Card"
+    },
+    "printClosingReport": "Print Closing Report",
+    "toasts": {
+      "generatingReportTitle": "Generating Report...",
+      "generatingReportDesc": "Your cash session report is being generated.",
+      "reportDownloadedTitle": "Report Downloaded",
+      "reportDownloadedDesc": "The cash session report has been downloaded.",
+      "generatingClosingReportTitle": "Generating Closing Report...",
+      "generatingClosingReportDesc": "Your cash session closing report is being generated.",
+      "closingReportDownloadedTitle": "Closing Report Downloaded",
+      "closingReportDownloadedDesc": "The cash session closing report has been downloaded.",
+      "errorTitle": "Error",
+      "reportErrorDesc": "Could not generate the report.",
+      "closingReportErrorDesc": "Could not generate the closing report."
     }
   },
   "MiscellaneousTransactionsPage": {
@@ -1144,13 +1202,58 @@
       "category": "Category",
       "beneficiary": "Beneficiary",
       "amount": "Amount",
-      "status": "Status"
+      "status": "Status",
+      "id": "ID",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete",
+      "openMenu": "Open menu"
     },
     "validation": {
       "categoryRequired": "Category is required.",
       "dateRequired": "Date is required.",
       "amountPositive": "Amount must be a positive number.",
-      "descriptionRequired": "Description is required."
+      "descriptionRequired": "Description is required.",
+      "sessionRequired": "Session is required.",
+      "paymentMethodRequired": "Payment method is required."
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "openMenu": "Open menu"
+    },
+    "dialog": {
+      "editTitle": "Edit Transaction",
+      "createTitle": "Create Transaction",
+      "save": "Save Changes",
+      "create": "Create",
+      "cancel": "Cancel",
+      "category": "Category",
+      "selectCategory": "Select category",
+      "beneficiary": "Beneficiary",
+      "selectBeneficiary": "Select beneficiary",
+      "date": "Date",
+      "amount": "Amount",
+      "currency": "Currency",
+      "description": "Description",
+      "reference": "Reference",
+      "tags": "Tags",
+      "paymentMethod": "Payment Method",
+      "selectMethod": "Select method",
+      "areYouSure": "Are you sure?",
+      "deleteConfirmation": "This will permanently delete transaction #{number}.",
+      "deleteAction": "Delete"
+    },
+    "toasts": {
+      "createdTitle": "Transaction Created",
+      "updatedTitle": "Transaction Updated",
+      "savedDesc": "Transaction saved successfully.",
+      "deletedTitle": "Transaction Deleted",
+      "deletedDesc": "Transaction #{number} deleted.",
+      "fetchError": "Failed to fetch miscellaneous transactions",
+      "saveError": "Failed to save transaction",
+      "deleteError": "Failed to delete transaction",
+      "genericError": "An unexpected error occurred."
     }
   },
   "PhysicalCashRegistersPage": {
@@ -1167,7 +1270,8 @@
       "no": "No",
       "actions": "Actions",
       "edit": "Edit",
-      "delete": "Delete"
+      "delete": "Delete",
+      "openMenu": "Open menu"
     },
     "dialog": {
       "createTitle": "Create Cash Register",
@@ -1187,6 +1291,17 @@
       "description": "Are you sure you want to delete this cash register?",
       "cancel": "Cancel",
       "confirm": "Confirm"
+    },
+    "toast": {
+      "createTitle": "Cash Point Created",
+      "editTitle": "Cash Point Updated",
+      "deleteTitle": "Cash Point Deleted",
+      "deleteDescription": "Cash point {name} has been deleted.",
+      "successDescription": "Cash point {name} saved successfully.",
+      "errorTitle": "Error",
+      "deleteError": "Failed to delete cash point",
+      "saveError": "Failed to save cash point",
+      "genericError": "An error occurred"
     }
   },
   "OrdersPage": {
@@ -1780,6 +1895,27 @@
       "create": "Create",
       "cancel": "Cancel",
       "save": "Save Changes"
+    },
+    "toast": {
+      "createTitle": "Category Created",
+      "editTitle": "Category Updated",
+      "deleteTitle": "Category Deleted",
+      "deleteDescription": "Category {name} has been deleted.",
+      "successDescription": "Category {name} saved successfully.",
+      "errorTitle": "Error",
+      "deleteError": "Failed to delete category",
+      "saveError": "Failed to save category",
+      "genericError": "An error occurred"
+    },
+    "validation": {
+      "nameRequired": "Name is required",
+      "codeRequired": "Code is required"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This action cannot be undone. This will permanently delete the category \"{name}\".",
+      "cancel": "Cancel",
+      "confirm": "Delete"
     }
   },
   "MiscellaneousCategoriesPage": {
@@ -1796,7 +1932,8 @@
       "no": "No",
       "actions": "Actions",
       "edit": "Edit",
-      "delete": "Delete"
+      "delete": "Delete",
+      "openMenu": "Open menu"
     }
   },
   "SystemUsersPage": {

@@ -165,7 +165,7 @@ export default function MiscellaneousCategoriesPage() {
             setIsDialogOpen(false);
             loadCategories();
         } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
+            setSubmissionError(error instanceof Error ? error.message : t('toast.saveError'));
         }
     };
 
