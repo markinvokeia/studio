@@ -40,7 +40,7 @@ import { format, parseISO } from 'date-fns';
 import { MoreHorizontal, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { DocumentTextIcon } from '../icons/document-text-icon';
+import { DocumentTextIcon } from '../../icons/document-text-icon';
 
 const getColumns = (
   t: (key: string) => string,

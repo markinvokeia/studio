@@ -6,9 +6,9 @@ import { SalesSummaryChart } from '@/components/charts/sales-summary-chart';
 import { SalesByServiceChart } from '@/components/charts/sales-by-service-chart';
 import { InvoiceStatusChart } from '@/components/charts/invoice-status-chart';
 import { ReportFilters } from '@/components/dashboard/report-filters';
-import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
-import { RecentOrdersTable } from '@/components/tables/recent-orders-table';
-import { NewUsersTable } from '@/components/tables/new-users-table';
+import { RecentQuotesTable } from '@/components/test/tables/recent-quotes-table';
+import { RecentOrdersTable } from '@/components/test/tables/recent-orders-table';
+import { NewUsersTable } from '@/components/test/tables/new-users-table';
 import { Quote, Order, User, Stat, SalesChartData, SalesByServiceChartData, InvoiceStatusData, AverageBilling, AppointmentAttendanceRate, PatientDemographics, CajaSesion } from '@/lib/types';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
@@ -216,8 +216,8 @@ async function getPatientDemographicsData(dateRange: DateRange | undefined, t: (
         return {
             total: newPatients + recurringPatients,
             data: [
-                { type: t('new'), count: newPatients, fill: 'hsl(var(--chart-1))' },
-                { type: t('recurrent'), count: recurringPatients, fill: 'hsl(var(--chart-2))' },
+                { type: 'New', count: newPatients, fill: 'hsl(var(--chart-1))' },
+                { type: 'Recurrent', count: recurringPatients, fill: 'hsl(var(--chart-2))' },
             ]
         };
     } catch (error) {

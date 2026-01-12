@@ -572,6 +572,7 @@ export type AlertRule = {
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   source_table: string;
   query_template: string;
+  user_id_field?: string;
   days_before?: number;
   days_after?: number;
   recurrence_type?: 'ONCE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';

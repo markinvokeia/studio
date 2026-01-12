@@ -16,6 +16,7 @@ import {
     DialogTitle
 } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DynamicFieldInput } from '@/components/ui/dynamic-field-input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -40,6 +41,7 @@ const ruleFormSchema = (t: (key: string) => string) => z.object({
     description: z.string().optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
     source_table: z.string().min(1, t('sourceTableRequired')),
+    user_id_field: z.string().optional(),
     days_before: z.coerce.number().int().default(0),
     days_after: z.coerce.number().int().default(0),
     recurrence_type: z.enum(['ONCE', 'DAILY', 'WEEKLY', 'MONTHLY']).optional(),
@@ -79,12 +81,12 @@ async function getCategories(): Promise<{ data: AlertCategory[], total: number, 
         const response = await api.get(API_ROUTES.SYSTEM.ALERT_CATEGORIES, { search: '', page: '1', limit: '100', is_active: 'true' });
         let data, total, page, limit;
         if (Array.isArray(response)) {
-            data = response.filter(item => Object.keys(item).length > 0);
+            data = response.filter((item: any) => Object.keys(item).length > 0);
             total = data.length;
             page = 1;
             limit = 100;
         } else {
-            data = (response.data || []).filter(item => Object.keys(item).length > 0);
+            data = (response.data || []).filter((item: any) => Object.keys(item).length > 0);
             total = response.total || data.length;
             page = response.page || 1;
             limit = response.limit || 100;
@@ -122,9 +124,9 @@ async function getEmailTemplates(): Promise<any[]> {
         const response = await api.get(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES, { search: '', page: '1', limit: '1000', is_active: 'true', type: 'email' });
         let data;
         if (Array.isArray(response)) {
-            data = response.filter(item => Object.keys(item).length > 0);
+            data = response.filter((item: any) => Object.keys(item).length > 0);
         } else {
-            data = (response.data || []).filter(item => Object.keys(item).length > 0);
+            data = (response.data || []).filter((item: any) => Object.keys(item).length > 0);
         }
         return data;
     } catch (error) {
@@ -138,9 +140,9 @@ async function getSmsTemplates(): Promise<any[]> {
         const response = await api.get(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES, { search: '', page: '1', limit: '1000', is_active: 'true', type: 'sms' });
         let data;
         if (Array.isArray(response)) {
-            data = response.filter(item => Object.keys(item).length > 0);
+            data = response.filter((item: any) => Object.keys(item).length > 0);
         } else {
-            data = (response.data || []).filter(item => Object.keys(item).length > 0);
+            data = (response.data || []).filter((item: any) => Object.keys(item).length > 0);
         }
         return data;
     } catch (error) {
@@ -159,13 +161,75 @@ export default function AlertRulesPage() {
     const [selectedTable, setSelectedTable] = React.useState<string>('');
     const [emailTemplates, setEmailTemplates] = React.useState<any[]>([]);
     const [smsTemplates, setSmsTemplates] = React.useState<any[]>([]);
-    const [conditions, setConditions] = React.useState<Array<{ id: string, column: string, operator: string, value: string, logic: 'AND' | 'OR' }>>([]);
+    const [conditions, setConditions] = React.useState<Array<{ id: string, column: string, operator: string, value: string, logic?: 'AND' | 'OR' }>>([]);
 
     // Helper function to get column type
     const getColumnType = (columnName: string): string | undefined => {
         const tableCols = tablesAndColumns[selectedTable] || [];
         const col = tableCols.find(c => c.name === columnName);
         return col?.type;
+    };
+
+    // Helper function to validate if user_id_field exists in selected table
+    const validateUserIdField = (userIdField: string, tableName: string): boolean => {
+        const tableCols = tablesAndColumns[tableName] || [];
+        return tableCols.some(col => col.name === userIdField);
+    };
+
+    // Helper function to get potential user ID fields from table
+    const getPotentialUserIdFields = (tableName: string) => {
+        const tableCols = tablesAndColumns[tableName] || [];
+        return tableCols
+            .filter(col => {
+                const colName = col.name.toLowerCase();
+                const colType = col.type.toLowerCase();
+                
+                // Look for common user ID field patterns
+                return (
+                    colName.includes('user_id') ||
+                    colName.includes('userid') ||
+                    colName.includes('user') ||
+                    colName.includes('customer_id') ||
+                    colName.includes('client_id') ||
+                    colName.includes('patient_id') ||
+                    colName.includes('owner_id') ||
+                    colName.includes('created_by') ||
+                    colName.includes('id') && 
+                    (colType.includes('int') || colType.includes('bigint') || colType.includes('varchar'))
+                );
+            })
+            .map(col => ({
+                name: col.name,
+                type: col.type,
+                priority: calculateFieldPriority(col.name)
+            }))
+            .sort((a, b) => a.priority - b.priority);
+    };
+
+    // Helper to calculate priority for user ID field suggestions
+    const calculateFieldPriority = (fieldName: string): number => {
+        const name = fieldName.toLowerCase();
+        
+        // Highest priority: explicit user_id fields
+        if (name === 'user_id' || name === 'userid') return 1;
+        if (name.includes('user_id') || name.includes('userid')) return 2;
+        
+        // High priority: other user-related fields
+        if (name === 'customer_id' || name === 'client_id' || name === 'patient_id') return 3;
+        if (name.includes('customer_id') || name.includes('client_id') || name.includes('patient_id')) return 4;
+        
+        // Medium priority: created_by fields
+        if (name === 'created_by') return 5;
+        if (name.includes('created_by')) return 6;
+        
+        // Low priority: generic id fields
+        if (name === 'id') return 10;
+        if (name.includes('id')) return 15;
+        
+        // Lowest: other fields with user in name
+        if (name.includes('user')) return 20;
+        
+        return 100;
     };
 
     // Get available operators based on column type
@@ -276,7 +340,11 @@ export default function AlertRulesPage() {
                 getEmailTemplates(),
                 getSmsTemplates()
             ]);
-            setRules(fetchedRules.data);
+            const mappedRules = fetchedRules.data.map(rule => ({
+                ...rule,
+                user_id_field: (rule as any).condition_config?.user_id_field || null,
+            }));
+            setRules(mappedRules);
             setCategories(fetchedCategories.data);
             setTablesAndColumns(fetchedTables);
             setEmailTemplates(fetchedEmailTemplates);
@@ -292,11 +360,21 @@ export default function AlertRulesPage() {
         loadData();
     }, [loadData]);
 
+    // Clear user_id_field if it doesn't exist in the selected table
+    React.useEffect(() => {
+        if (selectedTable) {
+            const currentUserIdField = form.getValues('user_id_field');
+            if (currentUserIdField && !validateUserIdField(currentUserIdField, selectedTable)) {
+                form.setValue('user_id_field', '');
+            }
+        }
+    }, [selectedTable, form, tablesAndColumns]);
+
     const handleCreate = () => {
         setEditingRule(null);
         setSelectedTable('');
         setConditions([]);
-        form.reset({ code: '', name: '', description: '', is_active: true, priority: 'MEDIUM', source_table: '', recurrence_type: undefined, email_template_id: undefined, sms_template_id: undefined, days_before: 0, days_after: 0 });
+        form.reset({ code: '', name: '', description: '', is_active: true, priority: 'MEDIUM', source_table: '', user_id_field: '', recurrence_type: undefined, email_template_id: undefined, sms_template_id: undefined, days_before: 0, days_after: 0 });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -304,8 +382,8 @@ export default function AlertRulesPage() {
     const handleEdit = (rule: AlertRule) => {
         setEditingRule(rule);
         setSelectedTable(rule.source_table || '');
-        const conds = rule.condition_config?.conditions || [];
-        setConditions(conds.map((c: any, i: number) => ({ id: `cond-${i}`, logic: c.logic || 'AND', ...c })));
+        const conds = (rule as any).condition_config?.conditions || [];
+        setConditions(conds.map((c: any, i: number) => ({ id: `cond-${i}`, ...(i > 0 ? { logic: c.logic || 'AND' } : {}), ...c })));
         form.reset({
             ...rule,
             category_id: String(rule.category_id || ''),
@@ -313,6 +391,7 @@ export default function AlertRulesPage() {
             days_after: rule.days_after ?? 0,
             email_template_id: rule.email_template_id ? parseInt(rule.email_template_id) : undefined,
             sms_template_id: rule.sms_template_id ? parseInt(rule.sms_template_id) : undefined,
+            user_id_field: (rule as any).user_id_field || '',
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -358,7 +437,8 @@ export default function AlertRulesPage() {
             const data = {
                 ...values,
                 category_id: parseInt(values.category_id),
-                condition_config: { conditions: cleanedConditions },
+                user_id_field: values.user_id_field || null,
+                condition_config: { conditions: cleanedConditions, user_id_field: values.user_id_field || null },
                 created_by: 1, // TODO: get from current user
                 email_template_id: values.email_template_id ?? null,
                 sms_template_id: values.sms_template_id ?? null,
@@ -466,6 +546,39 @@ export default function AlertRulesPage() {
                             <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>{t('dialog.description')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="priority" render={({ field }) => (<FormItem><FormLabel>{t('dialog.priority')}</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectPriority')} /></SelectTrigger></FormControl><SelectContent><SelectItem value="LOW">{t('priorities.low')}</SelectItem><SelectItem value="MEDIUM">{t('priorities.medium')}</SelectItem><SelectItem value="HIGH">{t('priorities.high')}</SelectItem><SelectItem value="CRITICAL">{t('priorities.critical')}</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="source_table" render={({ field }) => (<FormItem><FormLabel>{t('dialog.sourceTable')}</FormLabel><Select onValueChange={(value) => { field.onChange(value); setSelectedTable(value); }} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectSourceTable')} /></SelectTrigger></FormControl><SelectContent>{Object.keys(tablesAndColumns).map(table => <SelectItem key={table} value={table}>{table}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="user_id_field" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('dialog.userIdField')}</FormLabel>
+                                    <Select onValueChange={(value) => field.onChange(value === 'none' ? '' : value)} value={field.value === undefined || field.value === '' ? 'none' : field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={t('dialog.selectUserIdField')} />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="none">{t('dialog.noUserIdField')}</SelectItem>
+                                            {selectedTable && getPotentialUserIdFields(selectedTable).map(col => (
+                                                <SelectItem key={col.name} value={col.name}>
+                                                    <div className="flex flex-col items-start">
+                                                        <div className="flex items-center gap-2">
+                                                            <span>{col.name}</span>
+                                                            <Badge variant="outline" className="text-xs">
+                                                                {col.type}
+                                                            </Badge>
+                                                        </div>
+                                                        {col.priority <= 5 && (
+                                                            <span className="text-xs text-green-600">
+                                                                {col.priority <= 2 ? 'Recommended' : 'Likely user ID field'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
                             <div className="space-y-4">
                                 <FormLabel>{t('dialog.conditions')}</FormLabel>
                                 {conditions.map((cond, index) => (
@@ -513,25 +626,27 @@ export default function AlertRulesPage() {
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <Input
+                                        <DynamicFieldInput
                                             value={cond.value}
-                                            onChange={(e) => {
+                                            onChange={(newValue) => {
                                                 const newConds = [...conditions];
-                                                newConds[index].value = e.target.value;
+                                                newConds[index].value = newValue;
                                                 setConditions(newConds);
                                             }}
+                                            fieldType={getColumnType(cond.column) || ''}
+                                            operator={cond.operator}
                                             placeholder="Value"
                                             className="w-1/4"
                                         />
                                         <Button type="button" variant="outline" size="sm" onClick={() => setConditions(conditions.filter((_, i) => i !== index))}>Remove</Button>
                                     </div>
                                 ))}
-                                <Button type="button" variant="outline" onClick={() => setConditions([...conditions, { id: `cond-${Date.now()}`, column: '', operator: '=', value: '', logic: 'AND' }])}>Add Condition</Button>
+                                <Button type="button" variant="outline" onClick={() => setConditions([...conditions, { id: `cond-${Date.now()}`, column: '', operator: '=', value: '', ...(conditions.length > 0 ? { logic: 'AND' } : {}) }])}>Add Condition</Button>
                             </div>
                             <FormField control={form.control} name="recurrence_type" render={({ field }) => (<FormItem><FormLabel>{t('dialog.recurrenceType')}</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectRecurrenceType')} /></SelectTrigger></FormControl><SelectContent><SelectItem value="ONCE">Once</SelectItem><SelectItem value="DAILY">Daily</SelectItem><SelectItem value="WEEKLY">Weekly</SelectItem><SelectItem value="MONTHLY">Monthly</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                             <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="email_template_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.emailTemplate')}</FormLabel><Select onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} value={field.value?.toString() || ""}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectEmailTemplate')} /></SelectTrigger></FormControl><SelectContent>{emailTemplates.filter(t => t.id).map(t => <SelectItem key={t.id.toString()} value={t.id.toString()}>{t.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="sms_template_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.smsTemplate')}</FormLabel><Select onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} value={field.value?.toString() || ""}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectSmsTemplate')} /></SelectTrigger></FormControl><SelectContent>{smsTemplates.filter(t => t.id).map(t => <SelectItem key={t.id.toString()} value={t.id.toString()}>{t.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="email_template_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.emailTemplate')}</FormLabel><Select onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} value={field.value?.toString()}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectEmailTemplate')} /></SelectTrigger></FormControl><SelectContent>{emailTemplates.filter(t => t.id).map(t => <SelectItem key={t.id.toString()} value={t.id.toString()}>{t.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="sms_template_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.smsTemplate')}</FormLabel><Select onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} value={field.value?.toString()}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectSmsTemplate')} /></SelectTrigger></FormControl><SelectContent>{smsTemplates.filter(t => t.id).map(t => <SelectItem key={t.id.toString()} value={t.id.toString()}>{t.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField control={form.control} name="days_before" render={({ field }) => (<FormItem><FormLabel>{t('dialog.daysBefore')}</FormLabel><FormControl><Input type="number" value={field.value ?? ''} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} /></FormControl><FormMessage /></FormItem>)} />

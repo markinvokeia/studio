@@ -68,7 +68,6 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 
 interface ComponentProps {
-  // Define props with TypeScript
   className?: string
   children?: React.ReactNode
 }
@@ -145,8 +144,6 @@ export const MyForm = () => {
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
   })
-
-  // Form implementation
 }
 ```
 
@@ -161,18 +158,6 @@ export const MyForm = () => {
 - Organize translation keys by feature: `users.title`, `users.actions.create`
 - Store translations in `src/messages/[locale].json`
 - Use locale-based routing with `[locale]` dynamic segments
-
-### State Management Patterns
-```typescript
-// Local state
-const [isLoading, setIsLoading] = useState(false)
-
-// Complex state with useReducer
-const [state, dispatch] = useReducer(reducer, initialState)
-
-// Context for global state
-const { user, setUser } = useAuthContext()
-```
 
 ### Error Handling
 - Implement error boundaries for component-level error handling
@@ -206,13 +191,6 @@ const { user, setUser } = useAuthContext()
 - [ ] Internationalization is considered
 - [ ] Accessibility follows Radix UI patterns
 - [ ] Code follows existing naming conventions
-
-## Testing Guidelines (When Implemented)
-- Unit tests for utility functions in `src/lib/`
-- Component tests for UI components
-- Integration tests for API services
-- E2E tests for critical user flows
-- Use descriptive test names and organize by feature
 
 ## Security Considerations
 - Never expose API keys or sensitive data
