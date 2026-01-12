@@ -2491,7 +2491,7 @@
             "sentAt": "Enviado En",
             "channel": "Canal",
             "recipient": "Destinatario",
-            "subject": "Asunto",
+            "title": "Título",
             "status": "Estado",
             "alertId": "ID de Alerta"
         }

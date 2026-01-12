@@ -390,7 +390,12 @@ export default function AlertsCenterPage() {
                                                                         {actions.map(action => (
                                                                             <div key={action.id} className="text-xs bg-muted p-2 rounded">
                                                                                 <strong>{action.action_type}</strong> - {action.result_status} ({new Date(action.performed_at).toLocaleString()})
-                                                                                {action.result_message && <p>{action.result_message}</p>}
+                                                                                {action.action_data?.data?.title && <p><strong>Title:</strong> {action.action_data.data.title}</p>}
+                                                                                {action.action_data?.data?.summary && <p><strong>Summary:</strong> {action.action_data.data.summary}</p>}
+                                                                                {(action.action_data?.patient?.email || action.action_data?.clinic?.email) && (
+                                                                                    <p><strong>Recipient:</strong> {action.action_data.patient?.email || action.action_data.clinic?.email}</p>
+                                                                                )}
+                                                                                {action.result_message && <p><strong>Message:</strong> {action.result_message}</p>}
                                                                             </div>
                                                                         ))}
                                                                     </div>

@@ -2581,7 +2581,7 @@
       "sentAt": "Sent At",
       "channel": "Channel",
       "recipient": "Recipient",
-      "subject": "Subject",
+      "title": "Title",
       "status": "Status",
       "alertId": "Alert ID"
     }

@@ -644,6 +644,8 @@ export type AlertAction = {
   result_message?: string;
   performed_by: string;
   performed_at: string;
+  title?: string;
+  summary?: string;
 };
 
 export type CommunicationLog = {
@@ -652,8 +654,11 @@ export type CommunicationLog = {
   template_id?: string;
   channel: 'EMAIL' | 'SMS' | 'WHATSAPP' | 'PRINT';
   recipient_address: string;
+  title?: string;
+  summary?: string;
   status: 'QUEUED' | 'SENT' | 'DELIVERED' | 'FAILED' | 'BOUNCED';
   sent_at?: string;
+  error_message?: string;
 };
 
 export type AlertScheduleRun = {
