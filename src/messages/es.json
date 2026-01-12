@@ -2797,7 +2797,11 @@
                 "enableDescription": "Se ejecuta diariamente para generar alertas basadas en reglas activas.",
                 "executionTime": "Hora de Ejecución",
                 "timezone": "Zona Horaria",
-                "runNow": "Ejecutar Ahora"
+                "runNow": "Ejecutar Ahora",
+                "runNowSuccessTitle": "Programador Ejecutado",
+                "runNowSuccessDescription": "El programador de alertas se ha ejecutado correctamente.",
+                "runNowErrorTitle": "Error al Ejecutar",
+                "runNowErrorDescription": "Ocurrió un error al ejecutar el programador. Por favor, inténtelo nuevamente."
             },
             "email": {
                 "title": "Configuración de Correo Electrónico",

@@ -2802,7 +2802,11 @@
       "enableDescription": "Runs daily to generate alerts based on active rules.",
       "executionTime": "Execution Time",
       "timezone": "Timezone",
-      "runNow": "Run Now"
+      "runNow": "Run Now",
+      "runNowSuccessTitle": "Scheduler Executed",
+      "runNowSuccessDescription": "The alert scheduler has been executed successfully.",
+      "runNowErrorTitle": "Execution Error",
+      "runNowErrorDescription": "An error occurred while executing the scheduler. Please try again."
     },
     "email": {
       "title": "Email Configuration",

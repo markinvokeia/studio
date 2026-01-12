@@ -69,6 +69,23 @@ export default function AlertsConfigPage() {
     loadConfig();
   }, []);
 
+  const handleRunSchedulerNow = async () => {
+    try {
+      await api.post('/system/alert-scheduler', {});
+      toast({
+        title: t('scheduler.runNowSuccessTitle'),
+        description: t('scheduler.runNowSuccessDescription'),
+      });
+    } catch (error) {
+      console.error('Error running scheduler:', error);
+      toast({
+        title: t('scheduler.runNowErrorTitle'),
+        description: t('scheduler.runNowErrorDescription'),
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleSaveChanges = async () => {
     try {
       const sanitizedConfig = {
@@ -157,7 +174,7 @@ export default function AlertsConfigPage() {
                      </Select>
                    </div>
                 </div>
-                <Button variant="outline">{t('scheduler.runNow')}</Button>
+                <Button variant="outline" onClick={handleRunSchedulerNow}>{t('scheduler.runNow')}</Button>
               </CardContent>
             </AccordionContent>
           </Card>
