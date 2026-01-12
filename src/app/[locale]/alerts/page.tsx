@@ -60,14 +60,17 @@ const fetchAlerts = async (status?: string, priority?: string) => {
     }
 };
 
-const fetchAlertActions = async (): Promise<AlertAction[]> => {
+const fetchAlertActions = async (page: number = 1, limit: number = 50): Promise<{ actions: AlertAction[], totalPages: number }> => {
     try {
-        const response = await api.get(API_ROUTES.SYSTEM.ALERT_ACTIONS);
-        // Handle null/empty responses
-        return response || [];
+        const query: Record<string, string> = {
+            page: page.toString(),
+            limit: limit.toString(),
+        };
+        const response = await api.get(API_ROUTES.SYSTEM.ALERT_ACTIONS, query);
+        return response || { actions: [], totalPages: 1 };
     } catch (error) {
         console.error('Failed to fetch alert actions:', error);
-        return [];
+        return { actions: [], totalPages: 1 };
     }
 };
 
@@ -131,18 +134,22 @@ export default function AlertsCenterPage() {
     const [snoozeReason, setSnoozeReason] = React.useState('');
     const [alertsToSnooze, setAlertsToSnooze] = React.useState<string[]>([]);
     const [snoozeDate, setSnoozeDate] = React.useState<string>('');
+    const [page, setPage] = React.useState<number>(1);
+    const [limit, setLimit] = React.useState<number>(50);
+    const [totalPages, setTotalPages] = React.useState<number>(1);
 
 
     const loadAlerts = async () => {
         setLoading(true);
         try {
-            const [alertsData, actionsData, categoriesData] = await Promise.all([
+            const [alertsData, { actions: actionsData, totalPages: actionsTotalPages }, categoriesData] = await Promise.all([
                 fetchAlerts(statusFilter || undefined, priorityFilter || undefined),
-                fetchAlertActions(),
+                fetchAlertActions(page, limit),
                 fetchAlertCategories()
             ]);
             setAlerts(alertsData);
             setAlertActions(actionsData);
+            setTotalPages(actionsTotalPages);
             setAlertCategories(categoriesData);
         } catch (error) {
             console.error('Failed to load alerts:', error);
@@ -154,6 +161,15 @@ export default function AlertsCenterPage() {
     React.useEffect(() => {
         loadAlerts();
     }, [statusFilter, priorityFilter]);
+
+    React.useEffect(() => {
+        const loadActions = async () => {
+            const { actions, totalPages: actionsTotalPages } = await fetchAlertActions(page, limit);
+            setAlertActions(actions);
+            setTotalPages(actionsTotalPages);
+        };
+        loadActions();
+    }, [page, limit]);
 
     const markAsCompleted = async (alertIds: string[]) => {
         try {
