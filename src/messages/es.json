@@ -2301,7 +2301,11 @@
             "isActive": "Está Activa",
             "cancel": "Cancelar",
             "create": "Crear Categoría",
-            "save": "Guardar Cambios"
+            "save": "Guardar Cambios",
+            "basicInfo": "Información básica",
+            "visualSettings": "Configuración visual",
+            "otherSettings": "Otras configuraciones",
+            "saving": "Guardando"
         },
         "deleteDialog": {
             "title": "Eliminar Categoría",
@@ -2317,7 +2321,10 @@
             "deleteSuccessTitle": "Categoría Eliminada",
             "deleteSuccessDescription": "La categoría \"{name}\" ha sido eliminada.",
             "deleteErrorHasRules": "No se puede eliminar una categoría que tiene reglas asociadas.",
-            "deleteErrorTitle": "Fallo al Eliminar"
+            "deleteErrorTitle": "Fallo al Eliminar",
+            "loadErrorDescription": "Error al cargar categorías de alerta",
+            "submitErrorDescription": "Error al enviar categoría de alerta",
+            "deleteErrorDescription": "Error al eliminar categoría de alerta"
         },
         "validation": {
             "codeRequired": "El código es obligatorio.",
@@ -2325,12 +2332,21 @@
             "nameRequired": "El nombre es obligatorio.",
             "nameMaxLength": "El nombre no puede exceder los 100 caracteres.",
             "descriptionMaxLength": "La descripción no puede exceder los 500 caracteres.",
-            "colorInvalid": "Debe ser un color hex válido (ej., #FF5733)."
+            "colorInvalid": "Debe ser un color hex válido (ej., #FF5733).",
+            "validation": {
+                "codeRequired": "El código es obligatorio.",
+                "codeFormat": "El código debe ser letras mayúsculas, números y guiones bajos únicamente, sin espacios.",
+                "nameRequired": "El nombre es obligatorio.",
+                "nameMaxLength": "El nombre no puede exceder los 100 caracteres.",
+                "descriptionMaxLength": "La descripción no puede exceder los 500 caracteres.",
+                "colorInvalid": "Color inválido."
+            }
         }
     },
     "AlertsCenterPage": {
         "title": "Centro de Alertas",
         "description": "Ver y gestionar todas las alertas generadas por el sistema.",
+        "reload": "Recargar",
         "summary": {
             "total": "Total Pendientes",
             "critical": "Críticas",
@@ -2339,7 +2355,22 @@
         },
         "dailyAlerts": "Alertas Diarias",
         "filters": {
-            "title": "Filtros"
+            "title": "Filtros",
+            "status": "Estado",
+            "all": "Todos",
+            "priority": "Prioridad",
+            "statusOptions": {
+                "pending": "Pendiente",
+                "completed": "Completada",
+                "inProgress": "En Progreso",
+                "ignored": "Ignorada"
+            },
+            "priorityOptions": {
+                "low": "Baja",
+                "medium": "Media",
+                "high": "Alta",
+                "critical": "Crítica"
+            }
         },
         "categories": {
             "appointments": "Citas",
@@ -2351,217 +2382,276 @@
         "status": {
             "pending": "Pendiente",
             "in_progress": "En Progreso",
-            "completed": "Completada"
-        }
-    },
-    "AlertRulesPage": {
-        "title": "Reglas de Alerta",
-        "description": "Configure las reglas que generan alertas automáticamente.",
-        "filterPlaceholder": "Filtrar por nombre de regla...",
-        "columns": {
-            "name": "Nombre",
-            "category": "Categoría",
-            "priority": "Prioridad",
-            "autoEmail": "Correo Automático",
-            "autoSms": "SMS Automático",
-            "isActive": "Activo",
-            "yes": "Sí",
-            "no": "No",
-            "actions": "Acciones",
-            "edit": "Editar",
-            "duplicate": "Duplicar",
-            "test": "Probar Regla",
-            "delete": "Eliminar"
+            "completed": "Completada",
+            "ignored": "Ignorada"
         },
-        "dialog": {
-            "createTitle": "Crear Regla de Alerta",
-            "editTitle": "Editar Regla de Alerta",
-            "name": "Nombre",
-            "code": "Código",
-            "category": "Categoría",
-            "selectCategory": "Seleccione una categoría",
-            "description": "Descripción",
-            "priority": "Prioridad",
-            "selectPriority": "Seleccione una prioridad",
-            "sourceTable": "Tabla de Origen",
-            "queryTemplate": "Plantilla de Consulta",
-            "daysBefore": "Días Antes del Evento",
-            "daysAfter": "Días Después del Evento",
-            "autoSendEmail": "Enviar Correo Automáticamente",
-            "autoSendSms": "Enviar SMS Automáticamente",
-            "isActive": "Está Activa",
-            "cancel": "Cancelar",
-            "create": "Crear Regla",
-            "save": "Guardar Cambios"
+        "actions": {
+            "sendSms": "Enviar SMS",
+            "registerCall": "Registrar Llamada",
+            "print": "Imprimir",
+            "snooze": "Pausar",
+            "assign": "Asignar",
+            "addNote": "Agregar Nota",
+            "ignore": "Ignorar"
         },
-        "deleteDialog": {
-            "title": "Eliminar Regla",
-            "description": "¿Está seguro de que desea eliminar la regla \"{name}\"?",
-            "cancel": "Cancelar",
-            "confirm": "Eliminar"
+        "snoozeAlert": {
+            "title": "Pausar Alerta",
+            "date": "Fecha",
+            "quickOptions": "Opciones Rápidas",
+            "day": "Día",
+            "days": "Días",
+            "week": "Semana",
+            "reason": "Razón",
+            "placeholder": "Ingrese razón...",
+            "submit": "Pausar"
+        },
+        "bulkActions": {
+            "title": "Acciones en Masa",
+            "alertsSelected": "alerta(s) seleccionada(s)",
+            "markAllCompleted": "Marcar todas como Completadas",
+            "sendEmailToAll": "Enviar Correo a todas",
+            "ignoreAll": "Ignorar Todas",
+            "snoozeAll": "Pausar Todas",
+            "deselectAll": "Deseleccionar todas"
         },
         "toast": {
-            "errorTitle": "Error",
-            "createSuccessTitle": "Regla Creada",
-            "editSuccessTitle": "Regla Actualizada",
-            "successDescription": "La regla \"{name}\" se ha guardado exitosamente.",
-            "deleteSuccessTitle": "Regla Eliminada",
-            "deleteSuccessDescription": "La regla \"{name}\" ha sido eliminada."
+            "alertsUpdated": "Alertas Actualizadas",
+            "alertsMarkedCompleted": "{count} alerta(s) marcada(s) como completada(s).",
+            "alertsMarkedIgnored": "{count} alerta(s) marcada(s) como ignorada(s).",
+            "alertsSnoozed": "{count} alerta(s) pausada(s).",
+            "markCompletedFailed": "Error al marcar alertas como completadas",
+            "markCompletedFailedDescription": "Ocurrió un error al marcar las alertas como completadas. Por favor, inténtelo de nuevo.",
+            "markIgnoredFailed": "Error al marcar alertas como ignoradas",
+            "markIgnoredFailedDescription": "Ocurrió un error al marcar las alertas como ignoradas. Por favor, inténtelo de nuevo.",
+            "snoozeFailed": "Error al pausar alertas",
+            "snoozeFailedDescription": "No se pudieron pausar las alertas.",
+            "emailSent": "Correo Enviado",
+            "emailSentDescription": "Correo enviado a {count} alerta(s).",
+            "emailSendFailed": "Error al enviar correo",
+            "emailSendFailedDescription": "Ocurrió un error al enviar el correo. Por favor, inténtelo de nuevo."
         },
-        "validation": {
-            "categoryRequired": "La categoría es obligatoria.",
-            "codeRequired": "El código es obligatorio.",
-            "nameRequired": "El nombre es obligatorio.",
-            "priorityRequired": "La prioridad es obligatoria.",
-            "sourceTableRequired": "La tabla de origen es obligatoria.",
-            "queryTemplateRequired": "La plantilla de consulta es obligatoria."
-        },
-        "priorities": {
-            "low": "Baja",
-            "medium": "Media",
-            "high": "Alta",
-            "critical": "Crítica"
-        }
-    },
-    "CommunicationTemplatesPage": {
-        "title": "Plantillas de Comunicación",
-        "description": "Gestionar plantillas para correos electrónicos, SMS y otras comunicaciones.",
-        "filterPlaceholder": "Filtrar por nombre de plantilla...",
-        "columns": {
-            "name": "Nombre",
-            "type": "Tipo",
-            "category": "Categoría",
-            "isActive": "Activo",
-            "yes": "Sí",
-            "no": "No",
-            "actions": "Acciones",
-            "edit": "Editar",
-            "duplicate": "Duplicar",
-            "preview": "Vista Previa",
-            "history": "Historial",
-            "delete": "Eliminar"
-        },
-        "dialog": {
-            "createTitle": "Crear Plantilla",
-            "editTitle": "Editar Plantilla",
-            "name": "Nombre",
-            "code": "Código",
-            "type": "Tipo",
-            "selectType": "Seleccione un tipo",
-            "category": "Categoría",
-            "selectCategory": "Seleccione una categoría",
-            "subject": "Asunto",
-            "body": "Contenido del Cuerpo",
-            "isActive": "Está Activa",
-            "cancel": "Cancelar",
-            "create": "Crear Plantilla",
-            "save": "Guardar Cambios",
-            "preview": {
-                "title": "Vista Previa"
+        "AlertRulesPage": {
+            "title": "Reglas de Alerta",
+            "description": "Configure las reglas que generan alertas automáticamente.",
+            "filterPlaceholder": "Filtrar por nombre de regla...",
+            "columns": {
+                "name": "Nombre",
+                "category": "Categoría",
+                "priority": "Prioridad",
+                "autoEmail": "Correo Automático",
+                "autoSms": "SMS Automático",
+                "isActive": "Activo",
+                "yes": "Sí",
+                "no": "No",
+                "actions": "Acciones",
+                "edit": "Editar",
+                "duplicate": "Duplicar",
+                "test": "Probar Regla",
+                "delete": "Eliminar"
             },
-            "variables": {
-                "title": "Variables",
-                "description": "Haga clic en una variable para insertarla en su plantilla."
+            "dialog": {
+                "createTitle": "Crear Regla de Alerta",
+                "editTitle": "Editar Regla de Alerta",
+                "name": "Nombre",
+                "code": "Código",
+                "category": "Categoría",
+                "selectCategory": "Seleccione una categoría",
+                "description": "Descripción",
+                "priority": "Prioridad",
+                "selectPriority": "Seleccione una prioridad",
+                "sourceTable": "Tabla de Origen",
+                "queryTemplate": "Plantilla de Consulta",
+                "daysBefore": "Días Antes del Evento",
+                "daysAfter": "Días Después del Evento",
+                "autoSendEmail": "Enviar Correo Automáticamente",
+                "autoSendSms": "Enviar SMS Automáticamente",
+                "isActive": "Está Activa",
+                "cancel": "Cancelar",
+                "create": "Crear Regla",
+                "save": "Guardar Cambios",
+                "conditions": "Condiciones",
+                "selectSourceTable": "Seleccionar Tabla de Origen",
+                "recurrenceType": "Tipo de Recurrencia",
+                "selectRecurrenceType": "Seleccionar Tipo de Recurrencia",
+                "emailTemplate": "Plantilla de Correo",
+                "selectEmailTemplate": "Seleccionar Plantilla de Correo",
+                "smsTemplate": "Plantilla de SMS",
+                "selectSmsTemplate": "Seleccionar Plantilla de SMS",
+                "saving": "Guardando",
+                "userIdField": "Campo de ID de usuario",
+                "selectUserIdField": "Seleccionar campo de ID de usuario",
+                "noUserIdField": "Sin campo de ID de usuario"
+            },
+            "deleteDialog": {
+                "title": "Eliminar Regla",
+                "description": "¿Está seguro de que desea eliminar la regla \"{name}\"?",
+                "cancel": "Cancelar",
+                "confirm": "Eliminar",
+                "deleting": "Eliminando"
+            },
+            "toast": {
+                "errorTitle": "Error",
+                "createSuccessTitle": "Regla Creada",
+                "editSuccessTitle": "Regla Actualizada",
+                "successDescription": "La regla \"{name}\" se ha guardado exitosamente.",
+                "deleteSuccessTitle": "Regla Eliminada",
+                "deleteSuccessDescription": "La regla \"{name}\" ha sido eliminada."
+            },
+            "validation": {
+                "categoryRequired": "La categoría es obligatoria.",
+                "codeRequired": "El código es obligatorio.",
+                "nameRequired": "El nombre es obligatorio.",
+                "priorityRequired": "La prioridad es obligatoria.",
+                "sourceTableRequired": "La tabla de origen es obligatoria.",
+                "queryTemplateRequired": "La plantilla de consulta es obligatoria."
+            },
+            "priorities": {
+                "low": "Baja",
+                "medium": "Media",
+                "high": "Alta",
+                "critical": "Crítica"
             }
         },
-        "deleteDialog": {
-            "title": "Eliminar Plantilla",
-            "description": "¿Está seguro de que desea eliminar la plantilla \"{name}\"?",
-            "cancel": "Cancelar",
-            "confirm": "Eliminar"
+        "CommunicationTemplatesPage": {
+            "title": "Plantillas de Comunicación",
+            "description": "Gestionar plantillas para correos electrónicos, SMS y otras comunicaciones.",
+            "filterPlaceholder": "Filtrar por nombre de plantilla...",
+            "columns": {
+                "name": "Nombre",
+                "type": "Tipo",
+                "category": "Categoría",
+                "isActive": "Activo",
+                "yes": "Sí",
+                "no": "No",
+                "actions": "Acciones",
+                "edit": "Editar",
+                "duplicate": "Duplicar",
+                "preview": "Vista Previa",
+                "history": "Historial",
+                "delete": "Eliminar"
+            },
+            "dialog": {
+                "createTitle": "Crear Plantilla",
+                "editTitle": "Editar Plantilla",
+                "name": "Nombre",
+                "code": "Código",
+                "type": "Tipo",
+                "selectType": "Seleccione un tipo",
+                "category": "Categoría",
+                "selectCategory": "Seleccione una categoría",
+                "subject": "Asunto",
+                "body": "Contenido del Cuerpo",
+                "isActive": "Está Activa",
+                "cancel": "Cancelar",
+                "create": "Crear Plantilla",
+                "save": "Guardar Cambios",
+                "preview": {
+                    "title": "Vista Previa"
+                },
+                "variables": {
+                    "title": "Variables",
+                    "description": "Haga clic en una variable para insertarla en su plantilla."
+                }
+            },
+            "deleteDialog": {
+                "title": "Eliminar Plantilla",
+                "description": "¿Está seguro de que desea eliminar la plantilla \"{name}\"?",
+                "cancel": "Cancelar",
+                "confirm": "Eliminar"
+            },
+            "toast": {
+                "errorTitle": "Error",
+                "createSuccessTitle": "Plantilla Creada",
+                "editSuccessTitle": "Plantilla Actualizada",
+                "successDescription": "La plantilla \"{name}\" se ha guardado exitosamente.",
+                "deleteSuccessTitle": "Plantilla Eliminada",
+                "deleteSuccessDescription": "La plantilla \"{name}\" ha sido eliminada."
+            },
+            "validation": {
+                "codeRequired": "El código es obligatorio.",
+                "nameRequired": "El nombre es obligatorio."
+            }
         },
-        "toast": {
-            "errorTitle": "Error",
-            "createSuccessTitle": "Plantilla Creada",
-            "editSuccessTitle": "Plantilla Actualizada",
-            "successDescription": "La plantilla \"{name}\" se ha guardado exitosamente.",
-            "deleteSuccessTitle": "Plantilla Eliminada",
-            "deleteSuccessDescription": "La plantilla \"{name}\" ha sido eliminada."
+        "CommunicationHistoryPage": {
+            "title": "Historial de Comunicaciones",
+            "description": "Ver un registro de todas las comunicaciones enviadas.",
+            "filterPlaceholder": "Filtrar por destinatario...",
+            "columns": {
+                "sentAt": "Enviado En",
+                "channel": "Canal",
+                "recipient": "Destinatario",
+                "title": "Título",
+                "status": "Estado",
+                "alertId": "ID de Alerta"
+            }
         },
-        "validation": {
-            "codeRequired": "El código es obligatorio.",
-            "nameRequired": "El nombre es obligatorio."
+        "ExecutionHistoryPage": {
+            "title": "Historial de Ejecución",
+            "description": "Monitorear las ejecuciones de los trabajos de generación de alertas.",
+            "filterPlaceholder": "Filtrar por estado...",
+            "columns": {
+                "runDate": "Fecha de Ejecución",
+                "status": "Estado",
+                "alertsCreated": "Alertas Creadas",
+                "emailsSent": "Correos Enviados",
+                "errorsCount": "Errores",
+                "duration": "Duración"
+            }
+        },
+        "AlertsConfigPage": {
+            "title": "Configuración del Sistema de Alertas",
+            "description": "Configure los ajustes globales para el sistema de alertas y comunicaciones.",
+            "saveChanges": "Guardar Cambios",
+            "scheduler": {
+                "title": "Programador de Alertas",
+                "description": "Configure cuándo el sistema busca y genera nuevas alertas.",
+                "enable": "Habilitar Trabajo Nocturno",
+                "enableDescription": "Se ejecuta diariamente para generar alertas basadas en reglas activas.",
+                "executionTime": "Hora de Ejecución",
+                "timezone": "Zona Horaria",
+                "runNow": "Ejecutar Ahora"
+            },
+            "email": {
+                "title": "Configuración de Correo Electrónico",
+                "description": "Configure el proveedor SMTP para enviar correos.",
+                "provider": "Proveedor",
+                "server": "Servidor SMTP",
+                "port": "Puerto",
+                "username": "Nombre de usuario",
+                "password": "Contraseña",
+                "defaultSenderEmail": "Correo de Remitente Predeterminado",
+                "defaultSenderName": "Nombre de Remitente Predeterminado",
+                "sendTest": "Enviar Correo de Prueba"
+            },
+            "sms": {
+                "title": "Configuración de SMS",
+                "description": "Configure el proveedor para enviar mensajes SMS.",
+                "enable": "Habilitar Notificaciones SMS",
+                "provider": "Proveedor",
+                "apiKey": "Clave API / SID de Cuenta",
+                "apiSecret": "Secreto API / Token de Autenticación",
+                "senderNumber": "Número de Remitente",
+                "sendTest": "Enviar SMS de Prueba"
+            },
+            "retention": {
+                "title": "Retención de Datos",
+                "description": "Configure cuánto tiempo conservar los datos históricos.",
+                "alerts": "Alertas Completadas/Ignoradas",
+                "communicationLogs": "Registros de Comunicación",
+                "executionLogs": "Registros de Ejecución",
+                "days": "días"
+            },
+            "toast": {
+                "saveSuccessTitle": "Ajustes Guardados",
+                "saveSuccessDescription": "Sus cambios de configuración se han guardado."
+            }
+        },
+        "RoleColumns": {
+            "roleId": "ID",
+            "name": "Nombre",
+            "actions": "Acciones",
+            "edit": "Editar",
+            "delete": "Eliminar"
         }
-    },
-    "CommunicationHistoryPage": {
-        "title": "Historial de Comunicaciones",
-        "description": "Ver un registro de todas las comunicaciones enviadas.",
-        "filterPlaceholder": "Filtrar por destinatario...",
-        "columns": {
-            "sentAt": "Enviado En",
-            "channel": "Canal",
-            "recipient": "Destinatario",
-            "title": "Título",
-            "status": "Estado",
-            "alertId": "ID de Alerta"
-        }
-    },
-    "ExecutionHistoryPage": {
-        "title": "Historial de Ejecución",
-        "description": "Monitorear las ejecuciones de los trabajos de generación de alertas.",
-        "filterPlaceholder": "Filtrar por estado...",
-        "columns": {
-            "runDate": "Fecha de Ejecución",
-            "status": "Estado",
-            "alertsCreated": "Alertas Creadas",
-            "emailsSent": "Correos Enviados",
-            "errorsCount": "Errores",
-            "duration": "Duración"
-        }
-    },
-    "AlertsConfigPage": {
-        "title": "Configuración del Sistema de Alertas",
-        "description": "Configure los ajustes globales para el sistema de alertas y comunicaciones.",
-        "saveChanges": "Guardar Cambios",
-        "scheduler": {
-            "title": "Programador de Alertas",
-            "description": "Configure cuándo el sistema busca y genera nuevas alertas.",
-            "enable": "Habilitar Trabajo Nocturno",
-            "enableDescription": "Se ejecuta diariamente para generar alertas basadas en reglas activas.",
-            "executionTime": "Hora de Ejecución",
-            "timezone": "Zona Horaria",
-            "runNow": "Ejecutar Ahora"
-        },
-        "email": {
-            "title": "Configuración de Correo Electrónico",
-            "description": "Configure el proveedor SMTP para enviar correos.",
-            "provider": "Proveedor",
-            "server": "Servidor SMTP",
-            "port": "Puerto",
-            "username": "Nombre de usuario",
-            "password": "Contraseña",
-            "defaultSenderEmail": "Correo de Remitente Predeterminado",
-            "defaultSenderName": "Nombre de Remitente Predeterminado",
-            "sendTest": "Enviar Correo de Prueba"
-        },
-        "sms": {
-            "title": "Configuración de SMS",
-            "description": "Configure el proveedor para enviar mensajes SMS.",
-            "enable": "Habilitar Notificaciones SMS",
-            "provider": "Proveedor",
-            "apiKey": "Clave API / SID de Cuenta",
-            "apiSecret": "Secreto API / Token de Autenticación",
-            "senderNumber": "Número de Remitente",
-            "sendTest": "Enviar SMS de Prueba"
-        },
-        "retention": {
-            "title": "Retención de Datos",
-            "description": "Configure cuánto tiempo conservar los datos históricos.",
-            "alerts": "Alertas Completadas/Ignoradas",
-            "communicationLogs": "Registros de Comunicación",
-            "executionLogs": "Registros de Ejecución",
-            "days": "días"
-        },
-        "toast": {
-            "saveSuccessTitle": "Ajustes Guardados",
-            "saveSuccessDescription": "Sus cambios de configuración se han guardado."
-        }
-    },
-    "RoleColumns": {
-        "roleId": "ID",
-        "name": "Nombre",
-        "actions": "Acciones",
-        "edit": "Editar",
-        "delete": "Eliminar"
     }
 }

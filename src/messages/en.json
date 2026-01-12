@@ -2478,7 +2478,10 @@
       "selectEmailTemplate": "Select Email Template",
       "smsTemplate": "SMS Template",
       "selectSmsTemplate": "Select SMS Template",
-      "saving": "Saving"
+      "saving": "Saving",
+      "userIdField": "User ID Field",
+      "selectUserIdField": "Select User ID Field",
+      "noUserIdField": "No User ID Field"
     },
     "deleteDialog": {
       "title": "Delete Rule",
