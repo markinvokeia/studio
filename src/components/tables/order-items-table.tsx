@@ -72,14 +72,16 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
     try {
       const queryPayload = {
         action: actionType,
-        order_item_id: selectedItem.id,
+        order_item_id: parseInt(selectedItem.id, 10),
         schedule_date_time: selectedDate.toISOString(),
       };
 
       await api.post(API_ROUTES.QUOTES_LINES_SCHEDULE, {
         query: JSON.stringify(queryPayload),
-        quote_number: quoteId,
+        quote_number: parseInt(quoteId, 10),
+        order_item_id: parseInt(selectedItem.id, 10),
         schedule_complete: actionType,
+        is_sales: true,
       });
 
       toast({

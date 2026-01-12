@@ -579,7 +579,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         }),
       };
 
-      const responseData = await api.post(API_ROUTES.SALES.INVOICE_PAYMENT, payload);
+      const endpoint = isSales ? API_ROUTES.SALES.INVOICE_PAYMENT : API_ROUTES.PURCHASES.INVOICE_PAYMENT;
+      const responseData = await api.post(endpoint, payload);
 
       if (responseData.error || (responseData.code && responseData.code >= 400)) {
         const message = responseData.message || 'Failed to add payment.';
@@ -1044,7 +1045,8 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
   const onSubmit = async (values: CreateInvoiceFormValues) => {
     setSubmissionError(null);
     try {
-      const responseData = await api.post(API_ROUTES.SALES.INVOICES_UPSERT, { ...values, is_sales: isSales });
+      const endpoint = isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT;
+      const responseData = await api.post(endpoint, { ...values, is_sales: isSales });
       if (responseData.error && responseData.code >= 400) {
         throw new Error(responseData.message || t('errors.generic'));
       }

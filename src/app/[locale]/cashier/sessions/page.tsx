@@ -305,7 +305,7 @@ export default function CashSessionsPage() {
 
     const handlePrint = async (session: CajaSesion) => {
         setIsPrinting(true);
-        toast({ title: "Generating Report...", description: "Your cash session report is being generated." });
+        toast({ title: t('toasts.generatingReportTitle'), description: t('toasts.generatingReportDesc') });
         try {
             const blob = await api.getBlob(API_ROUTES.CASHIER.SESSIONS_PRINT, { cash_session_id: session.id });
             const url = window.URL.createObjectURL(blob);
@@ -316,10 +316,10 @@ export default function CashSessionsPage() {
             a.click();
             a.remove();
             window.URL.revokeObjectURL(url);
-            toast({ title: "Report Downloaded", description: "The cash session report has been downloaded." });
+            toast({ title: t('toasts.reportDownloadedTitle'), description: t('toasts.reportDownloadedDesc') });
         } catch (error) {
             console.error("Failed to print session:", error);
-            toast({ variant: 'destructive', title: "Error", description: error instanceof Error ? error.message : "Could not generate the report." });
+            toast({ variant: 'destructive', title: t('toasts.errorTitle'), description: error instanceof Error ? error.message : t('toasts.reportErrorDesc') });
         } finally {
             setIsPrinting(false);
         }
@@ -327,7 +327,7 @@ export default function CashSessionsPage() {
 
     const handlePrintClose = async (session: CajaSesion) => {
         setIsPrintingClose(true);
-        toast({ title: "Generating Closing Report...", description: "Your cash session closing report is being generated." });
+        toast({ title: t('toasts.generatingClosingReportTitle'), description: t('toasts.generatingClosingReportDesc') });
         try {
             const blob = await api.getBlob(API_ROUTES.CASHIER.SESSIONS_CLOSE_PRINT, { cash_session_id: session.id });
             const url = window.URL.createObjectURL(blob);
@@ -338,10 +338,10 @@ export default function CashSessionsPage() {
             a.click();
             a.remove();
             window.URL.revokeObjectURL(url);
-            toast({ title: "Closing Report Downloaded", description: "The cash session closing report has been downloaded." });
+            toast({ title: t('toasts.closingReportDownloadedTitle'), description: t('toasts.closingReportDownloadedDesc') });
         } catch (error) {
             console.error("Failed to print closing session:", error);
-            toast({ variant: 'destructive', title: "Error", description: error instanceof Error ? error.message : "Could not generate the closing report." });
+            toast({ variant: 'destructive', title: t('toasts.errorTitle'), description: error instanceof Error ? error.message : t('toasts.closingReportErrorDesc') });
         } finally {
             setIsPrintingClose(false);
         }
@@ -392,7 +392,7 @@ export default function CashSessionsPage() {
                                 <DialogFooter>
                                     <Button onClick={() => handlePrintClose(selectedSession)} disabled={isPrintingClose}>
                                         {isPrintingClose ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-                                        Print Closing Report
+                                        {t('printClosingReport')}
                                     </Button>
                                 </DialogFooter>
                             )}

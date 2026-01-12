@@ -61,6 +61,7 @@ interface DataTableProps<TData, TValue> {
   onFilterChange?: (value: string) => void;
   filterValue?: string;
   createButtonIconOnly?: boolean;
+  customToolbar?: React.ReactNode | ((table: any) => React.ReactNode);
 }
 
 export function DataTable<TData, TValue>({
@@ -92,6 +93,7 @@ export function DataTable<TData, TValue>({
   onFilterChange,
   filterValue,
   createButtonIconOnly,
+  customToolbar,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
@@ -147,7 +149,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      {(filterColumnId && filterPlaceholder) && (
+      {typeof customToolbar === 'function' ? customToolbar(table) : customToolbar ? customToolbar : (filterColumnId && filterPlaceholder) && (
         <DataTableToolbar
           table={table}
           filterColumnId={filterColumnId}

@@ -137,6 +137,7 @@
     "DataTableToolbar": {
         "toggleColumns": "Alternar columnas",
         "filter": "Filtrar",
+        "clear": "Limpiar Filtros",
         "all": "Todos",
         "refresh": "Refrescar",
         "view": "Ver",
@@ -513,6 +514,12 @@
     },
     "UsersPage": {
         "title": "Pacientes",
+        "stats": {
+            "totalInvoiced": "Total Facturado",
+            "totalPaid": "Total Pagado",
+            "currentDebt": "Deuda Actual",
+            "availableBalance": "Saldo Disponible"
+        },
         "description": "Gestionar todos los pacientes en el sistema.",
         "filterPlaceholder": "Filtrar pacientes por correo...",
         "filterByPatient": "Filtrar por paciente...",
@@ -604,7 +611,8 @@
         "delete": "Eliminar usuario",
         "activate": "Activar",
         "deactivate": "Desactivar",
-        "identity_document": "Documento de Identidad"
+        "identity_document": "Documento de Identidad",
+        "currentDebt": "Deuda Actual"
     },
     "UserRoles": {
         "columns": {
@@ -703,7 +711,12 @@
             "rejected": "Rechazado",
             "paymentStatus": "Estado de Pago",
             "unpaid": "Impago",
+            "partiallyPaid": "Pagado Parcialmente",
+            "paid": "Pagado",
             "billingStatus": "Estado de Facturación",
+            "notInvoiced": "Sin Facturar",
+            "partiallyInvoiced": "Facturado Parcialmente",
+            "invoiced": "Facturado",
             "save": "Guardar",
             "selectCurrency": "Seleccionar Moneda",
             "selectStatus": "Seleccionar Estado",
@@ -711,7 +724,10 @@
             "selectBillingStatus": "Seleccionar Estado de Facturación",
             "accepted": "Aceptado",
             "fully_invoiced": "Facturado Totalmente",
-            "not_paid": "Impago"
+            "not_paid": "Impago",
+            "partial": "Parcial",
+            "partially_invoiced": "Facturado Parcialmente",
+            "not_invoiced": "Sin Facturar"
         },
         "toast": {
             "quoteDeleted": "Presupuesto Eliminado",
@@ -736,6 +752,10 @@
         },
         "sendEmail": "Enviar Correo",
         "print": "Imprimir",
+        "confirm": "Confirmar",
+        "reject": "Rechazar",
+        "edit": "Editar",
+        "delete": "Eliminar",
         "detailsFor": "Detalles para {name}",
         "quoteId": "ID de Presupuesto",
         "tabs": {
@@ -746,9 +766,12 @@
         },
         "itemDialog": {
             "searchService": "Buscar Servicio",
+            "selectService": "Seleccionar Servicio",
             "id": "ID",
             "service": "Servicio",
             "quantity": "Cantidad",
+            "originalPrice": "Precio Original",
+            "exchangeRate": "Tasa de Cambio",
             "unitPrice": "Precio Unitario",
             "total": "Total",
             "createTitle": "Crear Artículo de Presupuesto",
@@ -792,12 +815,14 @@
         "description": "Gestione todas sus facturas aquí.",
         "columns": {
             "invoiceId": "ID de Factura",
+            "provider": "Proveedor",
             "userName": "Usuario",
             "orderId": "ID de Orden",
             "quoteId": "ID de Presupuesto",
             "total": "Total",
             "status": "Estado",
             "paymentStatus": "Pago",
+            "payment": "Pago",
             "createdAt": "Creado En",
             "currency": "Moneda",
             "type": "Tipo",
@@ -825,7 +850,7 @@
             "remainingAmount": "Monto Restante",
             "creditNote": "Nota de Crédito",
             "paymentref": "Ref. de Pago",
-            "exchangeRage": "Tipo de Cambio",
+            "exchangeRate": "Tipo de Cambio",
             "equivalentAmount": "Monto Equivalente",
             "summary": "Resumen de Pago",
             "exchangeRateApplied": "Tipo de Cambio Aplicado",
@@ -863,11 +888,17 @@
             "dateRequired": "La fecha de pago es obligatoria.",
             "userRequired": "Un usuario es obligatorio",
             "noPaymentAmount": "Por favor ingrese un monto o seleccione créditos para pagar.",
-            "overpayment": "El pago total excede el monto restante de la factura."
+            "overpayment": "El pago total excede el monto restante de la factura.",
+            "serviceRequired": "Un servicio es obligatorio",
+            "quantityMin": "La cantidad debe ser al menos 1",
+            "priceNonNegative": "El precio unitario no puede ser negativo"
         },
         "toast": {
             "error": "Error",
-            "sessionCheckError": "No se pudo verificar la sesión de caja activa. Por favor, inténtelo de nuevo."
+            "success": "Éxito",
+            "sessionCheckError": "No se pudo verificar la sesión de caja activa. Por favor, inténtelo de nuevo.",
+            "downloadStarted": "Descarga Iniciada",
+            "downloadSuccess": "La factura #{id} se ha descargado correctamente."
         },
         "noSessionDialog": {
             "title": "Sin Sesión de Caja Activa",
@@ -884,7 +915,8 @@
             "description": "Ingrese los correos de los destinatarios para la factura #{id}.",
             "recipients": "Destinatarios",
             "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
-            "helperText": "Separe múltiples correos con comas."
+            "helperText": "Separe múltiples correos con comas.",
+            "errorNoEmail": "Por favor, ingrese al menos un correo electrónico."
         },
         "importDialog": {
             "title": "Importar Factura",
@@ -893,8 +925,11 @@
             "dragAndDrop": "o arrastre y suelte",
             "fileTypes": "PDF, PNG, JPG o GIF (MAX. 10MB)",
             "processing": "Procesando...",
-            "createInvoice": "Crear Factura"
+            "createInvoice": "Crear Factura",
+            "success": "Importación Exitosa",
+            "successDescription": "La factura ha sido creada a partir del archivo importado."
         },
+        "import": "Importar",
         "filterPlaceholder": "Filtrar aquí...",
         "createDialog": {
             "title": "Crear Factura",
@@ -997,12 +1032,29 @@
             "back": "Atrás",
             "next": "Siguiente",
             "startClosing": "Iniciar Cierre",
+            "prefillZero": "Rellenar con 0",
+            "prefillLast": "Rellenar con último cierre",
+            "cashCountTitle": "Conteo de Efectivo ({currency})",
+            "cashCountDescription": "Ingrese el conteo físico de efectivo para cada denominación.",
             "steps": {
+                "config": "Configuración",
+                "countUYU": "Conteo de Efectivo (UYU)",
+                "countUSD": "Conteo de Efectivo (USD)",
+                "bankDeposit": "Depósito Bancario",
                 "review": "Revisar",
                 "declare": "Declarar",
-                "report": "Reporte"
+                "report": "Reporte",
+                "confirm": "Confirmación"
             },
             "title": "Cerrar Sesión"
+        },
+        "bankDeposit": {
+            "title": "Declaración de Depósito Bancario",
+            "description": "Declare las denominaciones de efectivo físico que se retirarán para el banco. Este paso es opcional.",
+            "countUYU": "Depósito Bancario UYU",
+            "countUSD": "Depósito Bancario USD",
+            "attachFiles": "Adjuntar Archivos",
+            "chooseFiles": "Elegir Archivos"
         },
         "confirmation": {
             "sessionInfo": "Info de Sesión",
@@ -1026,11 +1078,20 @@
             "openingDetails": "Detalles de Apertura",
             "denomination": "Denominación",
             "quantity": "Cantidad",
-            "subtotal": "Subtotal"
+            "subtotal": "Subtotal",
+            "cashOnHand": "Efectivo en Mano",
+            "totalOutcome": "Egresos Totales",
+            "transactions": "Transacciones",
+            "printOpening": "Imprimir Apertura"
         },
         "toast": {
             "openSuccessTitle": "Sesión Abierta",
-            "openSuccessDescription": "Sesión abierta exitosamente."
+            "openSuccessDescription": "Sesión abierta exitosamente.",
+            "closeSuccessTitle": "Sesión Cerrada",
+            "closeSuccessDescription": "La sesión de caja se ha cerrado exitosamente.",
+            "closeErrorTitle": "Error",
+            "closeErrorDescription": "Error al cerrar la sesión.",
+            "unexpectedError": "Ocurrió un error inesperado."
         },
         "viewAllCashPoints": "Ver Todas las Cajas",
         "declareCashup": {
@@ -1040,13 +1101,31 @@
                 "cash": "Efectivo",
                 "card": "Tarjeta",
                 "transfer": "Transferencia",
+                "bank_transfer": "Transferencia Bancaria",
                 "other": "Otro"
             },
             "systemTotal": "Total Sistema",
+            "declared": "Declarado",
             "notes": "Notas",
             "notesPlaceholder": "Ingrese notas aquí...",
             "closeSessionButton": "Cerrar Sesión",
             "difference": "Diferencia"
+        },
+        "report": {
+            "title": "Reporte {currency}",
+            "sessionClosedTitle": "Sesión #{id} Cerrada",
+            "sessionClosedDescription": "Resumen de la sesión cerrada por {user} en {location}",
+            "openingAmount": "Monto Apertura:",
+            "declaredCash": "Efectivo Declarado:",
+            "systemCashTotal": "Total Sistema Efectivo:",
+            "cashDiscrepancy": "Diferencia Efectivo:",
+            "systemCardTotal": "Total Sistema Tarjeta:",
+            "systemTransferTotal": "Total Sistema Transferencia:",
+            "systemOtherTotal": "Total Sistema Otros:",
+            "closingTime": "Hora de Cierre:",
+            "notes": "Notas:",
+            "printClosing": "Imprimir Cierre",
+            "finishReturn": "Finalizar y Volver"
         }
     },
     "CashSessionsPage": {
@@ -1090,6 +1169,20 @@
             "transfer": "Transferencia",
             "other": "Otro",
             "card": "Tarjeta"
+        },
+        "printClosingReport": "Imprimir Reporte de Cierre",
+        "toasts": {
+            "generatingReportTitle": "Generando Reporte...",
+            "generatingReportDesc": "Su reporte de sesión de caja se está generando.",
+            "reportDownloadedTitle": "Reporte Descargado",
+            "reportDownloadedDesc": "El reporte de sesión de caja ha sido descargado.",
+            "generatingClosingReportTitle": "Generando Reporte de Cierre...",
+            "generatingClosingReportDesc": "Su reporte de cierre de sesión de caja se está generando.",
+            "closingReportDownloadedTitle": "Reporte de Cierre Descargado",
+            "closingReportDownloadedDesc": "El reporte de cierre de sesión de caja ha sido descargado.",
+            "errorTitle": "Error",
+            "reportErrorDesc": "No se pudo generar el reporte.",
+            "closingReportErrorDesc": "No se pudo generar el reporte de cierre."
         }
     },
     "MiscellaneousTransactionsPage": {
@@ -1117,13 +1210,58 @@
             "category": "Categoría",
             "beneficiary": "Beneficiario",
             "amount": "Monto",
-            "status": "Estado"
+            "status": "Estado",
+            "id": "ID",
+            "actions": "Acciones",
+            "edit": "Editar",
+            "delete": "Eliminar",
+            "openMenu": "Abrir menú"
         },
         "validation": {
             "categoryRequired": "La categoría es obligatoria.",
             "dateRequired": "La fecha es obligatoria.",
             "amountPositive": "El monto debe ser un número positivo.",
-            "descriptionRequired": "La descripción es obligatoria."
+            "descriptionRequired": "La descripción es obligatoria.",
+            "sessionRequired": "La sesión es obligatoria.",
+            "paymentMethodRequired": "El método de pago es obligatorio."
+        },
+        "actions": {
+            "edit": "Editar",
+            "delete": "Eliminar",
+            "openMenu": "Abrir menú"
+        },
+        "dialog": {
+            "editTitle": "Editar Transacción",
+            "createTitle": "Crear Transacción",
+            "save": "Guardar Cambios",
+            "create": "Crear",
+            "cancel": "Cancelar",
+            "category": "Categoría",
+            "selectCategory": "Seleccionar categoría",
+            "beneficiary": "Beneficiario",
+            "selectBeneficiary": "Seleccionar beneficiario",
+            "date": "Fecha",
+            "amount": "Monto",
+            "currency": "Moneda",
+            "description": "Descripción",
+            "reference": "Referencia",
+            "tags": "Etiquetas",
+            "paymentMethod": "Método de Pago",
+            "selectMethod": "Seleccionar método",
+            "areYouSure": "¿Está seguro?",
+            "deleteConfirmation": "Esto eliminará permanentemente la transacción N°{number}.",
+            "deleteAction": "Eliminar"
+        },
+        "toasts": {
+            "createdTitle": "Transacción Creada",
+            "updatedTitle": "Transacción Actualizada",
+            "savedDesc": "Transacción guardada con éxito.",
+            "deletedTitle": "Transacción Eliminada",
+            "deletedDesc": "Transacción N°{number} eliminada.",
+            "fetchError": "Error al obtener transacciones misceláneas",
+            "saveError": "Error al guardar transacción",
+            "deleteError": "Error al eliminar transacción",
+            "genericError": "Ocurrió un error inesperado."
         }
     },
     "PhysicalCashRegistersPage": {
@@ -1140,7 +1278,8 @@
             "no": "No",
             "actions": "Acciones",
             "edit": "Editar",
-            "delete": "Eliminar"
+            "delete": "Eliminar",
+            "openMenu": "Abrir menú"
         },
         "dialog": {
             "createTitle": "Crear Caja Registradora",
@@ -1160,6 +1299,17 @@
             "description": "¿Está seguro de que desea eliminar esta caja registradora?",
             "cancel": "Cancelar",
             "confirm": "Confirmar"
+        },
+        "toast": {
+            "createTitle": "Punto de Caja Creado",
+            "editTitle": "Punto de Caja Actualizado",
+            "deleteTitle": "Punto de Caja Eliminado",
+            "deleteDescription": "El punto de caja {name} ha sido eliminado.",
+            "successDescription": "El punto de caja {name} guardado con éxito.",
+            "errorTitle": "Error",
+            "deleteError": "Error al eliminar el punto de caja",
+            "saveError": "Error al guardar el punto de caja",
+            "genericError": "Ocurrió un error"
         }
     },
     "OrdersPage": {
@@ -1753,6 +1903,27 @@
             "create": "Crear",
             "cancel": "Cancelar",
             "save": "Guardar Cambios"
+        },
+        "toast": {
+            "createTitle": "Categoría Creada",
+            "editTitle": "Categoría Actualizada",
+            "deleteTitle": "Categoría Eliminada",
+            "deleteDescription": "La categoría {name} ha sido eliminada.",
+            "successDescription": "La categoría {name} guardada con éxito.",
+            "errorTitle": "Error",
+            "deleteError": "No se pudo eliminar la categoría",
+            "saveError": "No se pudo guardar la categoría",
+            "genericError": "Ocurrió un error"
+        },
+        "validation": {
+            "nameRequired": "El nombre es obligatorio",
+            "codeRequired": "El código es obligatorio"
+        },
+        "deleteDialog": {
+            "title": "¿Está seguro?",
+            "description": "Esta acción no se puede deshacer. Esto eliminará permanentemente la categoría \"{name}\".",
+            "cancel": "Cancelar",
+            "confirm": "Eliminar"
         }
     },
     "MiscellaneousCategoriesPage": {
@@ -1769,7 +1940,8 @@
             "no": "No",
             "actions": "Acciones",
             "edit": "Editar",
-            "delete": "Eliminar"
+            "delete": "Eliminar",
+            "openMenu": "Abrir menú"
         }
     },
     "SystemUsersPage": {

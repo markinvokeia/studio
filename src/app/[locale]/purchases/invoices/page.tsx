@@ -425,6 +425,7 @@ export default function InvoicesPage() {
         total: t('columns.total'),
         status: t('columns.status'),
         payment_status: t('columns.payment'),
+        paid_amount: t('columns.paidAmount'),
         createdAt: t('columns.createdAt'),
     };
 

@@ -56,15 +56,30 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('Navigation.Payments')} />,
     cell: ({ row }) => {
       const status = row.getValue('payment_status') as string;
+      const statusLower = status.toLowerCase().trim();
+
       const variant = {
         paid: 'success',
         partial: 'info',
+        'partially paid': 'info',
         unpaid: 'outline',
-      }[status.toLowerCase()] ?? ('default' as any);
+      }[statusLower] ?? ('default' as any);
+
+      // Map API status values to translation keys
+      const translationKeyMap: Record<string, string> = {
+        'paid': 'paid',
+        'partial': 'partial',
+        'partially paid': 'partiallyPaid',
+        'partially_paid': 'partiallyPaid',
+        'partiallypaid': 'partiallyPaid',
+        'unpaid': 'unpaid',
+      };
+
+      const translationKey = translationKeyMap[statusLower] || 'unpaid'; // Default fallback
 
       return (
         <Badge variant={variant} className="capitalize">
-          {t(`QuotesPage.quoteDialog.${status.toLowerCase()}`)}
+          {t(`QuotesPage.quoteDialog.${translationKey}`)}
         </Badge>
       );
     },
@@ -74,15 +89,30 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.billingStatus')} />,
     cell: ({ row }) => {
       const status = row.getValue('billing_status') as string;
+      const statusLower = status.toLowerCase().trim();
+
       const variant = {
         invoiced: 'success',
         'partially invoiced': 'info',
         'not invoiced': 'outline',
-      }[status.toLowerCase()] ?? ('default' as any);
+      }[statusLower] ?? ('default' as any);
+
+      // Map API status values to translation keys (camelCase format)
+      const translationKeyMap: Record<string, string> = {
+        'invoiced': 'invoiced',
+        'partially invoiced': 'partiallyInvoiced',
+        'partially_invoiced': 'partiallyInvoiced',
+        'partiallyinvoiced': 'partiallyInvoiced',
+        'not invoiced': 'notInvoiced',
+        'not_invoiced': 'notInvoiced',
+        'notinvoiced': 'notInvoiced',
+      };
+
+      const translationKey = translationKeyMap[statusLower] || 'notInvoiced'; // Default fallback
 
       return (
         <Badge variant={variant} className="capitalize">
-          {t(`QuotesPage.quoteDialog.${status.toLowerCase().replace(/ /g, '')}`)}
+          {t(`QuotesPage.quoteDialog.${translationKey}`)}
         </Badge>
       );
     },

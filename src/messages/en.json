@@ -137,6 +137,7 @@
   "DataTableToolbar": {
     "toggleColumns": "Toggle columns",
     "filter": "Filter",
+    "clear": "Clear Filters",
     "all": "All",
     "refresh": "Refresh",
     "view": "View",
@@ -513,6 +514,12 @@
   },
   "UsersPage": {
     "title": "Patients",
+    "stats": {
+      "totalInvoiced": "Total Invoiced",
+      "totalPaid": "Total Paid",
+      "currentDebt": "Current Debt",
+      "availableBalance": "Available Balance"
+    },
     "description": "Manage all patients in the system.",
     "filterPlaceholder": "Filter patients by email...",
     "filterByPatient": "Filter by patient...",
@@ -604,7 +611,8 @@
     "delete": "Delete user",
     "activate": "Activate",
     "deactivate": "Deactivate",
-    "identity_document": "Identity Document"
+    "identity_document": "Identity Document",
+    "currentDebt": "Current Debt"
   },
   "UserRoles": {
     "columns": {
@@ -703,7 +711,12 @@
       "rejected": "Rejected",
       "paymentStatus": "Payment Status",
       "unpaid": "Unpaid",
+      "partiallyPaid": "Partially Paid",
+      "paid": "Paid",
       "billingStatus": "Billing Status",
+      "notInvoiced": "Not Invoiced",
+      "partiallyInvoiced": "Partially Invoiced",
+      "invoiced": "Invoiced",
       "save": "Save",
       "selectCurrency": "Select Currency",
       "selectStatus": "Select Status",
@@ -711,7 +724,10 @@
       "selectBillingStatus": "Select Billing Status",
       "accepted": "Accepted",
       "fully_invoiced": "Fully Invoiced",
-      "not_paid": "Not Paid"
+      "not_paid": "Not Paid",
+      "partial": "Partial",
+      "partially_invoiced": "Partially Invoiced",
+      "not_invoiced": "Not Invoiced"
     },
     "toast": {
       "quoteDeleted": "Quote Deleted",
@@ -736,6 +752,10 @@
     },
     "sendEmail": "Send Email",
     "print": "Print",
+    "confirm": "Confirm",
+    "reject": "Reject",
+    "edit": "Edit",
+    "delete": "Delete",
     "detailsFor": "Details for {name}",
     "quoteId": "Quote ID",
     "tabs": {
@@ -746,9 +766,12 @@
     },
     "itemDialog": {
       "searchService": "Search Service",
+      "selectService": "Select Service",
       "id": "ID",
       "service": "Service",
       "quantity": "Quantity",
+      "originalPrice": "Original Price",
+      "exchangeRate": "Exchange Rate",
       "unitPrice": "Unit Price",
       "total": "Total",
       "createTitle": "Create Quote Item",
@@ -792,12 +815,14 @@
     "description": "Manage all your invoices here.",
     "columns": {
       "invoiceId": "Invoice ID",
+      "provider": "Provider",
       "userName": "User",
       "orderId": "Order ID",
       "quoteId": "Quote ID",
       "total": "Total",
       "status": "Status",
       "paymentStatus": "Payment",
+      "payment": "Payment",
       "createdAt": "Created At",
       "currency": "Currency",
       "type": "Type",
@@ -825,7 +850,7 @@
       "remainingAmount": "Remaining Amount",
       "creditNote": "Credit Note",
       "paymentref": "Payment Ref",
-      "exchangeRage": "Exchange Rate",
+      "exchangeRate": "Exchange Rate",
       "equivalentAmount": "Equivalent Amount",
       "summary": "Payment Summary",
       "exchangeRateApplied": "Exchange Rate Applied",
@@ -863,11 +888,17 @@
       "dateRequired": "Payment date is required.",
       "userRequired": "An user is required",
       "noPaymentAmount": "Please enter an amount or select credits to pay.",
-      "overpayment": "The total payment exceeds the remaining amount of the invoice."
+      "overpayment": "The total payment exceeds the remaining amount of the invoice.",
+      "serviceRequired": "A service is required",
+      "quantityMin": "Quantity must be at least 1",
+      "priceNonNegative": "Unit price cannot be negative"
     },
     "toast": {
       "error": "Error",
-      "sessionCheckError": "Could not verify active cash session. Please try again."
+      "success": "Success",
+      "sessionCheckError": "Could not verify active cash session. Please try again.",
+      "downloadStarted": "Download Started",
+      "downloadSuccess": "Invoice #{id} has been downloaded successfully."
     },
     "noSessionDialog": {
       "title": "No Active Cash Session",
@@ -884,7 +915,8 @@
       "description": "Enter the recipient emails for invoice #{id}.",
       "recipients": "Recipients",
       "placeholder": "email1@example.com, email2@example.com",
-      "helperText": "Separate multiple emails with commas."
+      "helperText": "Separate multiple emails with commas.",
+      "errorNoEmail": "Please enter at least one recipient email."
     },
     "importDialog": {
       "title": "Import Invoice",
@@ -893,8 +925,11 @@
       "dragAndDrop": "or drag and drop",
       "fileTypes": "PDF, PNG, JPG or GIF (MAX. 10MB)",
       "processing": "Processing...",
-      "createInvoice": "Create Invoice"
+      "createInvoice": "Create Invoice",
+      "success": "Import Successful",
+      "successDescription": "The invoice has been created from the imported file."
     },
+    "import": "Import",
     "filterPlaceholder": "Filter here...",
     "createDialog": {
       "title": "Create Invoice",
@@ -997,12 +1032,29 @@
       "back": "Back",
       "next": "Next",
       "startClosing": "Start Closing",
+      "prefillZero": "Prefill with 0",
+      "prefillLast": "Prefill with Last Closing Cashup",
+      "cashCountTitle": "Cash Count ({currency})",
+      "cashCountDescription": "Enter the physical cash count for each denomination.",
       "steps": {
+        "config": "Configuration",
+        "countUYU": "Cash Count (UYU)",
+        "countUSD": "Cash Count (USD)",
+        "bankDeposit": "Bank Deposit",
         "review": "Review",
         "declare": "Declare",
-        "report": "Report"
+        "report": "Report",
+        "confirm": "Confirmation"
       },
       "title": "Close Session"
+    },
+    "bankDeposit": {
+      "title": "Bank Deposit Declaration",
+      "description": "Declare the physical cash denominations to be taken out for banking. This step is optional.",
+      "countUYU": "UYU Bank Deposit",
+      "countUSD": "USD Bank Deposit",
+      "attachFiles": "Attach Files",
+      "chooseFiles": "Choose Files"
     },
     "confirmation": {
       "sessionInfo": "Session Info",
@@ -1026,11 +1078,20 @@
       "openingDetails": "Opening Details",
       "denomination": "Denomination",
       "quantity": "Quantity",
-      "subtotal": "Subtotal"
+      "subtotal": "Subtotal",
+      "cashOnHand": "Cash on Hand",
+      "totalOutcome": "Total Outcome",
+      "transactions": "Transactions",
+      "printOpening": "Print Opening"
     },
     "toast": {
       "openSuccessTitle": "Session Opened",
-      "openSuccessDescription": "Session opened successfully."
+      "openSuccessDescription": "Session opened successfully.",
+      "closeSuccessTitle": "Session Closed",
+      "closeSuccessDescription": "The cash session has been successfully closed.",
+      "closeErrorTitle": "Error",
+      "closeErrorDescription": "Failed to close session.",
+      "unexpectedError": "An unexpected error occurred."
     },
     "viewAllCashPoints": "View All Cash Points",
     "declareCashup": {
@@ -1040,13 +1101,31 @@
         "cash": "Cash",
         "card": "Card",
         "transfer": "Transfer",
+        "bank_transfer": "Bank Transfer",
         "other": "Other"
       },
       "systemTotal": "System Total",
+      "declared": "Declared",
       "notes": "Notes",
       "notesPlaceholder": "Enter notes here...",
       "closeSessionButton": "Close Session",
       "difference": "Difference"
+    },
+    "report": {
+      "title": "{currency} Report",
+      "sessionClosedTitle": "Session #{id} Closed",
+      "sessionClosedDescription": "Summary of the session closed by {user} at {location}",
+      "openingAmount": "Opening Amount:",
+      "declaredCash": "Declared Cash:",
+      "systemCashTotal": "System Cash Total:",
+      "cashDiscrepancy": "Cash Discrepancy:",
+      "systemCardTotal": "System Card Total:",
+      "systemTransferTotal": "System Transfer Total:",
+      "systemOtherTotal": "System Other Payments:",
+      "closingTime": "Closing Time:",
+      "notes": "Notes:",
+      "printClosing": "Print Closing",
+      "finishReturn": "Finish and Return"
     }
   },
   "CashSessionsPage": {
@@ -1090,6 +1169,20 @@
       "transfer": "Transfer",
       "other": "Other",
       "card": "Card"
+    },
+    "printClosingReport": "Print Closing Report",
+    "toasts": {
+      "generatingReportTitle": "Generating Report...",
+      "generatingReportDesc": "Your cash session report is being generated.",
+      "reportDownloadedTitle": "Report Downloaded",
+      "reportDownloadedDesc": "The cash session report has been downloaded.",
+      "generatingClosingReportTitle": "Generating Closing Report...",
+      "generatingClosingReportDesc": "Your cash session closing report is being generated.",
+      "closingReportDownloadedTitle": "Closing Report Downloaded",
+      "closingReportDownloadedDesc": "The cash session closing report has been downloaded.",
+      "errorTitle": "Error",
+      "reportErrorDesc": "Could not generate the report.",
+      "closingReportErrorDesc": "Could not generate the closing report."
     }
   },
   "MiscellaneousTransactionsPage": {
@@ -1117,13 +1210,58 @@
       "category": "Category",
       "beneficiary": "Beneficiary",
       "amount": "Amount",
-      "status": "Status"
+      "status": "Status",
+      "id": "ID",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete",
+      "openMenu": "Open menu"
     },
     "validation": {
       "categoryRequired": "Category is required.",
       "dateRequired": "Date is required.",
       "amountPositive": "Amount must be a positive number.",
-      "descriptionRequired": "Description is required."
+      "descriptionRequired": "Description is required.",
+      "sessionRequired": "Session is required.",
+      "paymentMethodRequired": "Payment method is required."
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "openMenu": "Open menu"
+    },
+    "dialog": {
+      "editTitle": "Edit Transaction",
+      "createTitle": "Create Transaction",
+      "save": "Save Changes",
+      "create": "Create",
+      "cancel": "Cancel",
+      "category": "Category",
+      "selectCategory": "Select category",
+      "beneficiary": "Beneficiary",
+      "selectBeneficiary": "Select beneficiary",
+      "date": "Date",
+      "amount": "Amount",
+      "currency": "Currency",
+      "description": "Description",
+      "reference": "Reference",
+      "tags": "Tags",
+      "paymentMethod": "Payment Method",
+      "selectMethod": "Select method",
+      "areYouSure": "Are you sure?",
+      "deleteConfirmation": "This will permanently delete transaction #{number}.",
+      "deleteAction": "Delete"
+    },
+    "toasts": {
+      "createdTitle": "Transaction Created",
+      "updatedTitle": "Transaction Updated",
+      "savedDesc": "Transaction saved successfully.",
+      "deletedTitle": "Transaction Deleted",
+      "deletedDesc": "Transaction #{number} deleted.",
+      "fetchError": "Failed to fetch miscellaneous transactions",
+      "saveError": "Failed to save transaction",
+      "deleteError": "Failed to delete transaction",
+      "genericError": "An unexpected error occurred."
     }
   },
   "PhysicalCashRegistersPage": {
@@ -1140,7 +1278,8 @@
       "no": "No",
       "actions": "Actions",
       "edit": "Edit",
-      "delete": "Delete"
+      "delete": "Delete",
+      "openMenu": "Open menu"
     },
     "dialog": {
       "createTitle": "Create Cash Register",
@@ -1160,6 +1299,17 @@
       "description": "Are you sure you want to delete this cash register?",
       "cancel": "Cancel",
       "confirm": "Confirm"
+    },
+    "toast": {
+      "createTitle": "Cash Point Created",
+      "editTitle": "Cash Point Updated",
+      "deleteTitle": "Cash Point Deleted",
+      "deleteDescription": "Cash point {name} has been deleted.",
+      "successDescription": "Cash point {name} saved successfully.",
+      "errorTitle": "Error",
+      "deleteError": "Failed to delete cash point",
+      "saveError": "Failed to save cash point",
+      "genericError": "An error occurred"
     }
   },
   "OrdersPage": {
@@ -1753,6 +1903,27 @@
       "create": "Create",
       "cancel": "Cancel",
       "save": "Save Changes"
+    },
+    "toast": {
+      "createTitle": "Category Created",
+      "editTitle": "Category Updated",
+      "deleteTitle": "Category Deleted",
+      "deleteDescription": "Category {name} has been deleted.",
+      "successDescription": "Category {name} saved successfully.",
+      "errorTitle": "Error",
+      "deleteError": "Failed to delete category",
+      "saveError": "Failed to save category",
+      "genericError": "An error occurred"
+    },
+    "validation": {
+      "nameRequired": "Name is required",
+      "codeRequired": "Code is required"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This action cannot be undone. This will permanently delete the category \"{name}\".",
+      "cancel": "Cancel",
+      "confirm": "Delete"
     }
   },
   "MiscellaneousCategoriesPage": {
@@ -1769,7 +1940,8 @@
       "no": "No",
       "actions": "Actions",
       "edit": "Edit",
-      "delete": "Delete"
+      "delete": "Delete",
+      "openMenu": "Open menu"
     }
   },
   "SystemUsersPage": {

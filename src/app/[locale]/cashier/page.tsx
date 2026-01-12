@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Printer } from 'lucide-react';
-import { AlertTriangle, Box, DollarSign, TrendingDown, TrendingUp, ArrowRight, BookOpenCheck, Minus, Plus, RefreshCw, Info, Banknote, Coins, CreditCard } from 'lucide-react';
+import { AlertTriangle, Box, DollarSign, TrendingDown, TrendingUp, ArrowRight, BookOpenCheck, Minus, Plus, RefreshCw, Info, Banknote, Coins, CreditCard, Upload } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
@@ -29,12 +29,13 @@ import { useCallback, useMemo } from 'react';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 
-const denominationsUYU = [2000, 1000, 500, 200, 100, 50, 20];
+const denominationsUYU = [3000, 2000, 1000, 500, 200, 100, 50, 20];
 const coinsUYU = [10, 5, 2, 1];
 const denominationsUSD = [100, 50, 20, 10, 5, 1];
 const coinsUSD: number[] = [];
 
 const UYU_IMAGES: Record<number, string> = {
+    3000: '/billetes/billete_3000.svg',
     2000: '/billetes/billete_2000.svg',
     1000: '/billetes/billete_1000.svg',
     500: '/billetes/billete_500.svg',
@@ -513,7 +514,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Cash on Hand</CardTitle>
+                            <CardTitle className="text-sm font-medium">{t('activeSession.cashOnHand')}</CardTitle>
                             <Banknote className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -533,7 +534,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Outcome</CardTitle>
+                            <CardTitle className="text-sm font-medium">{t('activeSession.totalOutcome')}</CardTitle>
                             <TrendingDown className="h-4 w-4 text-red-500" />
                         </CardHeader>
                         <CardContent>
@@ -544,7 +545,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 </div>
                 <Tabs defaultValue="transactions">
                     <TabsList>
-                        <TabsTrigger value="transactions">Transactions</TabsTrigger>
+                        <TabsTrigger value="transactions">{t('activeSession.transactions')}</TabsTrigger>
                         <TabsTrigger value="opening_details">{t('activeSession.openingDetails')}</TabsTrigger>
                     </TabsList>
                     <TabsContent value="transactions">
@@ -587,7 +588,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={handlePrintOpening} disabled={isPrinting}>
                         {isPrinting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-                        Print Opening
+                        {t('activeSession.printOpening')}
                     </Button>
                     <Button className="w-full md:w-auto" onClick={onCloseSession}>
                         {isWizardOpen ? t('wizard.next') : t('wizard.startClosing')}
@@ -624,7 +625,7 @@ function CloseSessionWizard({
     closedSessionReport: any | null;
     setClosedSessionReport: (report: any | null) => void;
 }) {
-    const t = useTranslations('CashierPage.wizard');
+    const t = useTranslations('CashierPage');
     const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
     const usdTotal = useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
     const [bankDepositUyuDenominations, setBankDepositUyuDenominations] = React.useState<Record<string, number>>({});
@@ -649,17 +650,17 @@ function CloseSessionWizard({
     return (
         <Card className="w-full">
             <CardHeader>
-                <CardTitle>{t('title')}</CardTitle>
+                <CardTitle>{t('wizard.title')}</CardTitle>
             </CardHeader>
             <CardContent>
                 <Tabs value={currentStep} className="w-full">
                     <TabsList className="grid w-full grid-cols-6">
-                        <TabsTrigger value="REVIEW">{t('steps.review')}</TabsTrigger>
-                        <TabsTrigger value="COUNT_UYU" disabled={currentStep === 'REVIEW'}>Count UYU</TabsTrigger>
-                        <TabsTrigger value="COUNT_USD" disabled={!['COUNT_USD', 'BANK_DEPOSIT', 'DECLARE', 'REPORT'].includes(currentStep)}>Count USD</TabsTrigger>
-                        <TabsTrigger value="BANK_DEPOSIT" disabled={!['BANK_DEPOSIT', 'DECLARE', 'REPORT'].includes(currentStep)}>Bank Deposit</TabsTrigger>
-                        <TabsTrigger value="DECLARE" disabled={!['DECLARE', 'REPORT'].includes(currentStep)}>{t('steps.declare')}</TabsTrigger>
-                        <TabsTrigger value="REPORT" disabled={currentStep !== 'REPORT'}>{t('steps.report')}</TabsTrigger>
+                        <TabsTrigger value="REVIEW">{t('wizard.steps.review')}</TabsTrigger>
+                        <TabsTrigger value="COUNT_UYU" disabled={currentStep === 'REVIEW'}>{t('wizard.steps.countUYU')}</TabsTrigger>
+                        <TabsTrigger value="COUNT_USD" disabled={!['COUNT_USD', 'BANK_DEPOSIT', 'DECLARE', 'REPORT'].includes(currentStep)}>{t('wizard.steps.countUSD')}</TabsTrigger>
+                        <TabsTrigger value="BANK_DEPOSIT" disabled={!['BANK_DEPOSIT', 'DECLARE', 'REPORT'].includes(currentStep)}>{t('wizard.steps.bankDeposit')}</TabsTrigger>
+                        <TabsTrigger value="DECLARE" disabled={!['DECLARE', 'REPORT'].includes(currentStep)}>{t('wizard.steps.declare')}</TabsTrigger>
+                        <TabsTrigger value="REPORT" disabled={currentStep !== 'REPORT'}>{t('wizard.steps.report')}</TabsTrigger>
                     </TabsList>
                     <TabsContent value="REVIEW" className="mt-4">
                         <ActiveSessionDashboard
@@ -693,13 +694,13 @@ function CloseSessionWizard({
                     <TabsContent value="BANK_DEPOSIT" className="mt-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Bank Deposit Declaration</CardTitle>
-                                <CardDescription>Declare the physical cash denominations to be taken out for banking. This step is optional.</CardDescription>
+                                <CardTitle>{t('bankDeposit.title')}</CardTitle>
+                                <CardDescription>{t('bankDeposit.description')}</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     <DenominationCounter
-                                        title="UYU Bank Deposit"
+                                        title={t('bankDeposit.countUYU')}
                                         denominations={denominationsUYU}
                                         coins={coinsUYU}
                                         currency="UYU"
@@ -709,7 +710,7 @@ function CloseSessionWizard({
                                         availableDenominations={uyuDenominations}
                                     />
                                     <DenominationCounter
-                                        title="USD Bank Deposit"
+                                        title={t('bankDeposit.countUSD')}
                                         denominations={denominationsUSD}
                                         coins={coinsUSD}
                                         currency="USD"
@@ -720,8 +721,16 @@ function CloseSessionWizard({
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="files">Attach Files</Label>
-                                    <Input id="files" type="file" multiple onChange={(e) => setBankDepositFiles(prev => [...prev, ...Array.from(e.target.files || [])])} />
+                                    <Label htmlFor="files">{t('bankDeposit.attachFiles')}</Label>
+                                    <Label htmlFor="files" className="cursor-pointer block mt-2">
+                                        <div className="flex items-center justify-center w-full h-24 border-2 border-dashed rounded-md bg-muted/10 hover:bg-muted/30 transition-colors">
+                                            <div className="flex flex-col items-center gap-2 text-muted-foreground text-sm">
+                                                <Upload className="h-6 w-6" />
+                                                <span>{t('bankDeposit.chooseFiles')}</span>
+                                            </div>
+                                        </div>
+                                        <Input id="files" type="file" multiple className="hidden" onChange={(e) => setBankDepositFiles(prev => [...prev, ...Array.from(e.target.files || [])])} />
+                                    </Label>
                                     {bankDepositFiles.length > 0 && (
                                         <div className="flex flex-wrap gap-2 mt-4">
                                             {bankDepositFiles.map((file, index) => (
@@ -773,8 +782,8 @@ function CloseSessionWizard({
 
                 {currentStep !== 'REVIEW' && currentStep !== 'DECLARE' && currentStep !== 'REPORT' && (
                     <CardFooter className='justify-between mt-4'>
-                        <Button variant="outline" onClick={handlePreviousStep}>Back</Button>
-                        <Button onClick={handleNextStep}>Next</Button>
+                        <Button variant="outline" onClick={handlePreviousStep}>{t('wizard.back')}</Button>
+                        <Button onClick={handleNextStep}>{t('wizard.next')}</Button>
                     </CardFooter>
                 )}
             </CardContent>
@@ -793,6 +802,7 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
     imageMap: Record<number, string>,
     availableDenominations?: Record<string, number>
 }) => {
+    const t = useTranslations('CashierPage');
     const total = React.useMemo(() => {
         return [...denominations, ...coins].reduce((sum, den) => sum + (Number(den) || 0) * (quantities[den] || 0), 0)
     }, [quantities, denominations, coins]);
@@ -832,8 +842,8 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
                 <div className="text-xl font-bold">{new Intl.NumberFormat('es-UY', { style: 'currency', currency }).format(total)}</div>
             </div>
             <div className="flex gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => setAllTo(0)}>Prefill with 0</Button>
-                <Button type="button" variant="secondary" size="sm" onClick={loadLastClosing} disabled={!lastClosingDetails}>Prefill with Last Closing Cashup</Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setAllTo(0)}>{t('wizard.prefillZero')}</Button>
+                <Button type="button" variant="secondary" size="sm" onClick={loadLastClosing} disabled={!lastClosingDetails}>{t('wizard.prefillLast')}</Button>
             </div>
             <ScrollArea className="h-96">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 p-1">
@@ -911,12 +921,14 @@ const CashCounter = ({ currency, denominations, coins, quantities, onQuantitiesC
     quantities: Record<string, number>;
     onQuantitiesChange: (quantities: Record<string, number>) => void;
     imageMap: Record<number, string>;
+
 }) => {
+    const t = useTranslations('CashierPage');
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Cash Count ({currency})</CardTitle>
-                <CardDescription>Enter the physical cash count for each denomination.</CardDescription>
+                <CardTitle>{t('wizard.cashCountTitle', { currency })}</CardTitle>
+                <CardDescription>{t('wizard.cashCountDescription')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <DenominationCounter
@@ -997,19 +1009,19 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
 
             if ((Array.isArray(responseData) && responseData[0]?.error) || responseData.error) {
                 const errorInfo = Array.isArray(responseData) ? responseData[0] : responseData;
-                throw new Error(errorInfo.message || 'Failed to close session.');
+                throw new Error(errorInfo.message || t('toast.closeErrorDescription'));
             }
 
             toast({
-                title: 'Session Closed',
-                description: 'The cash session has been successfully closed.',
+                title: t('toast.closeSuccessTitle'),
+                description: t('toast.closeSuccessDescription'),
             });
             onSessionClosed(responseData);
         } catch (error) {
             toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+                title: t('toast.closeErrorTitle'),
+                description: error instanceof Error ? error.message : t('toast.unexpectedError'),
             });
         }
     };
@@ -1028,7 +1040,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                     <Label className="flex items-center gap-2 font-semibold"><Banknote className="h-5 w-5 text-muted-foreground" />{t('methods.cash')}</Label>
                     <div className="text-center"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">${systemCash.toFixed(2)}</div></div>
-                    <div className="text-center"><div className="text-muted-foreground">Declared</div><div className="font-semibold">${declaredCash.toFixed(2)}</div></div>
+                    <div className="text-center"><div className="text-muted-foreground">{t('declared')}</div><div className="font-semibold">${declaredCash.toFixed(2)}</div></div>
                     <div className="text-center"><div className="text-muted-foreground">{t('difference')}</div><div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div></div>
                 </div>
 
@@ -1039,7 +1051,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                         <div key={detail.metodo} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                             <Label className="flex items-center gap-2 font-semibold">
                                 <CreditCard className="h-5 w-5 text-muted-foreground" />
-                                {detail.metodo}
+                                {t(`methods.${detail.metodo.toLowerCase().replace(/ /g, '_')}`, { defaultMessage: detail.metodo })}
                             </Label>
                             <div className="text-center md:col-span-3"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">${parseFloat(detail.monto).toFixed(2)}</div></div>
                         </div>
@@ -1080,6 +1092,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
 
 
 const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: () => void }) => {
+    const t = useTranslations('CashierPage.report');
     const { toast } = useToast();
     const [isPrinting, setIsPrinting] = React.useState(false);
     const reportDetails = Array.isArray(reportData) && reportData.length > 0 ? reportData[0] : reportData;
@@ -1130,21 +1143,25 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
         const openingAmount = session.opening_details?.[currency.toLowerCase()]?.total || 0;
         const declaredCash = currencyMovement.declared_cash || 0;
         const systemCash = currencyMovement.calculated_cash || 0;
-        const cashVariance = currencyMovement.cash_variance || 0;
         const systemCard = currencyMovement.calculated_card || 0;
         const systemTransfer = currencyMovement.calculated_transfer || 0;
         const systemOther = currencyMovement.calculated_other || 0;
 
+        // Ensure these are treated as numbers
+        const declaredCashNum = parseFloat(declaredCash);
+        const systemCashNum = parseFloat(systemCash);
+        const cashVariance = declaredCashNum - systemCashNum;
+
         return (
             <div className="space-y-4">
-                <h3 className="font-bold text-lg">{currency} Report</h3>
-                <p><strong>Opening Amount:</strong> {formatCurrency(openingAmount, currency)}</p>
-                <p><strong>Declared Cash:</strong> {formatCurrency(declaredCash, currency)}</p>
-                <p><strong>System Cash Total:</strong> {formatCurrency(systemCash, currency)}</p>
-                <p><strong>Cash Discrepancy:</strong> <span className={cn(cashVariance < 0 ? "text-red-500" : "text-green-500")}>{formatCurrency(cashVariance, currency)}</span></p>
-                <p><strong>System Card Total:</strong> {formatCurrency(systemCard, currency)}</p>
-                <p><strong>System Transfer Total:</strong> {formatCurrency(systemTransfer, currency)}</p>
-                <p><strong>System Other Payments:</strong> {formatCurrency(systemOther, currency)}</p>
+                <h3 className="font-bold text-lg">{t('title', { currency })}</h3>
+                <p><strong>{t('openingAmount')}</strong> {formatCurrency(openingAmount, currency)}</p>
+                <p><strong>{t('declaredCash')}</strong> {formatCurrency(declaredCash, currency)}</p>
+                <p><strong>{t('systemCashTotal')}</strong> {formatCurrency(systemCash, currency)}</p>
+                <p><strong>{t('cashDiscrepancy')}</strong> <span className={cn(cashVariance < 0 ? "text-red-500" : "text-green-500")}>{formatCurrency(cashVariance, currency)}</span></p>
+                <p><strong>{t('systemCardTotal')}</strong> {formatCurrency(systemCard, currency)}</p>
+                <p><strong>{t('systemTransferTotal')}</strong> {formatCurrency(systemTransfer, currency)}</p>
+                <p><strong>{t('systemOtherTotal')}</strong> {formatCurrency(systemOther, currency)}</p>
             </div>
         );
     };
@@ -1152,9 +1169,9 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Session #{session.id} Closed</CardTitle>
+                <CardTitle>{t('sessionClosedTitle', { id: session.id })}</CardTitle>
                 <CardDescription>
-                    Summary of the session closed by {session.user_name || 'N/A'} at {session.cash_point_name || 'N/A'}
+                    {t('sessionClosedDescription', { user: session.user_name || 'N/A', location: session.cash_point_name || 'N/A' })}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1163,16 +1180,16 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
                     {renderReportSection('USD')}
                 </div>
                 <div className="mt-4">
-                    <p><strong>Closing Time:</strong> {session.closed_at ? new Date(session.closed_at).toLocaleString() : 'N/A'}</p>
-                    {session.closing_notes && <p><strong>Notes:</strong> {session.closing_notes}</p>}
+                    <p><strong>{t('closingTime')}</strong> {session.closed_at ? new Date(session.closed_at).toLocaleString() : 'N/A'}</p>
+                    {session.closing_notes && <p><strong>{t('notes')}</strong> {session.closing_notes}</p>}
                 </div>
             </CardContent>
             <CardFooter className="justify-between">
                 <Button variant="outline" onClick={handlePrintClose} disabled={isPrinting}>
                     {isPrinting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-                    Print Closing
+                    {t('printClosing')}
                 </Button>
-                <Button onClick={onFinish}>Finish and Return</Button>
+                <Button onClick={onFinish}>{t('finishReturn')}</Button>
             </CardFooter>
         </Card>
     );
@@ -1416,10 +1433,10 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     }
 
     const stepTitles: Record<OpenSessionStep, string> = {
-        CONFIG: 'Configuration',
-        COUNT_UYU: 'Cash Count (UYU)',
-        COUNT_USD: 'Cash Count (USD)',
-        CONFIRM: 'Confirmation'
+        CONFIG: t('wizard.steps.config'),
+        COUNT_UYU: t('wizard.steps.countUYU'),
+        COUNT_USD: t('wizard.steps.countUSD'),
+        CONFIRM: t('wizard.steps.confirm')
     };
 
     const stepComponents: Record<OpenSessionStep, React.ReactNode> = {
