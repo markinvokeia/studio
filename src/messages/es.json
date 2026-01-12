@@ -2612,7 +2612,7 @@
             "emailSent": "Correo Enviado",
             "emailSentDescription": "Correo enviado a {count} alerta(s).",
             "emailSendFailed": "Error al enviar correo",
-             "emailSendFailedDescription": "Ocurrió un error al enviar el correo. Por favor, inténtelo de nuevo."
+            "emailSendFailedDescription": "Ocurrió un error al enviar el correo. Por favor, inténtelo de nuevo."
         },
         "noAlerts": "No hay alertas disponibles.",
         "AlertRulesPage": {
@@ -2783,69 +2783,88 @@
                 "alertsCreated": "Alertas Creadas",
                 "emailsSent": "Correos Enviados",
                 "errorsCount": "Errores",
-                "duration": "Duración"
+                "duration": "Duración",
+                "openMenu": "Abrir menú",
+                "viewDetails": "Ver Detalles"
+            },
+            "detailDialog": {
+                "title": "Detalles de Ejecución",
+                "runDate": "Fecha de Ejecución",
+                "startedAt": "Iniciado",
+                "completedAt": "Completado",
+                "triggeredBy": "Ejecutado Por",
+                "rulesProcessed": "Reglas Procesadas",
+                "alertsCreated": "Alertas Creadas",
+                "alertsSkipped": "Alertas Omitidas",
+                "emailsSent": "Correos Enviados",
+                "smsSent": "SMS Enviados",
+                "executionLog": "Registro de Ejecución",
+                "noExecutionLog": "No hay registro de ejecución disponible",
+                "errorDetails": "Detalles de Error",
+                "noErrors": "No hay detalles de error disponibles",
+                "status": "Estado"
             }
-        },
-        "AlertsConfigPage": {
-            "title": "Configuración del Sistema de Alertas",
-            "description": "Configure los ajustes globales para el sistema de alertas y comunicaciones.",
-            "saveChanges": "Guardar Cambios",
-            "scheduler": {
-                "title": "Programador de Alertas",
-                "description": "Configure cuándo el sistema busca y genera nuevas alertas.",
-                "enable": "Habilitar Trabajo Nocturno",
-                "enableDescription": "Se ejecuta diariamente para generar alertas basadas en reglas activas.",
-                "executionTime": "Hora de Ejecución",
-                "timezone": "Zona Horaria",
-                "runNow": "Ejecutar Ahora",
-                "runNowSuccessTitle": "Programador Ejecutado",
-                "runNowSuccessDescription": "El programador de alertas se ha ejecutado correctamente.",
-                "runNowErrorTitle": "Error al Ejecutar",
-                "runNowErrorDescription": "Ocurrió un error al ejecutar el programador. Por favor, inténtelo nuevamente."
-            },
-            "email": {
-                "title": "Configuración de Correo Electrónico",
-                "description": "Configure el proveedor SMTP para enviar correos.",
-                "provider": "Proveedor",
-                "server": "Servidor SMTP",
-                "port": "Puerto",
-                "username": "Nombre de usuario",
-                "password": "Contraseña",
-                "defaultSenderEmail": "Correo de Remitente Predeterminado",
-                "defaultSenderName": "Nombre de Remitente Predeterminado",
-                "sendTest": "Enviar Correo de Prueba"
-            },
-            "sms": {
-                "title": "Configuración de SMS",
-                "description": "Configure el proveedor para enviar mensajes SMS.",
-                "enable": "Habilitar Notificaciones SMS",
-                "provider": "Proveedor",
-                "apiKey": "Clave API / SID de Cuenta",
-                "apiSecret": "Secreto API / Token de Autenticación",
-                "senderNumber": "Número de Remitente",
-                "sendTest": "Enviar SMS de Prueba"
-            },
-            "retention": {
-                "title": "Retención de Datos",
-                "description": "Configure cuánto tiempo conservar los datos históricos.",
-                "alerts": "Alertas Completadas/Ignoradas",
-                "communicationLogs": "Registros de Comunicación",
-                "executionLogs": "Registros de Ejecución",
-                "days": "días"
-            },
-            "toast": {
-                "saveSuccessTitle": "Ajustes Guardados",
-                "saveSuccessDescription": "Sus cambios de configuración se han guardado.",
-                "saveErrorTitle": "Error al Guardar",
-                "saveErrorDescription": "Ocurrió un error al guardar los cambios. Por favor, inténtelo nuevamente."
-            }
-        },
-        "RoleColumns": {
-            "roleId": "ID",
-            "name": "Nombre",
-            "actions": "Acciones",
-            "edit": "Editar",
-            "delete": "Eliminar"
         }
+    },
+    "AlertsConfigPage": {
+        "title": "Configuración del Sistema de Alertas",
+        "description": "Configure los ajustes globales para el sistema de alertas y comunicaciones.",
+        "saveChanges": "Guardar Cambios",
+        "scheduler": {
+            "title": "Programador de Alertas",
+            "description": "Configure cuándo el sistema busca y genera nuevas alertas.",
+            "enable": "Habilitar Trabajo Nocturno",
+            "enableDescription": "Se ejecuta diariamente para generar alertas basadas en reglas activas.",
+            "executionTime": "Hora de Ejecución",
+            "timezone": "Zona Horaria",
+            "runNow": "Ejecutar Ahora",
+            "runNowSuccessTitle": "Programador Ejecutado",
+            "runNowSuccessDescription": "El programador de alertas se ha ejecutado correctamente.",
+            "runNowErrorTitle": "Error al Ejecutar",
+            "runNowErrorDescription": "Ocurrió un error al ejecutar el programador. Por favor, inténtelo nuevamente."
+        },
+        "email": {
+            "title": "Configuración de Correo Electrónico",
+            "description": "Configure el proveedor SMTP para enviar correos.",
+            "provider": "Proveedor",
+            "server": "Servidor SMTP",
+            "port": "Puerto",
+            "username": "Nombre de usuario",
+            "password": "Contraseña",
+            "defaultSenderEmail": "Correo de Remitente Predeterminado",
+            "defaultSenderName": "Nombre de Remitente Predeterminado",
+            "sendTest": "Enviar Correo de Prueba"
+        },
+        "sms": {
+            "title": "Configuración de SMS",
+            "description": "Configure el proveedor para enviar mensajes SMS.",
+            "enable": "Habilitar Notificaciones SMS",
+            "provider": "Proveedor",
+            "apiKey": "Clave API / SID de Cuenta",
+            "apiSecret": "Secreto API / Token de Autenticación",
+            "senderNumber": "Número de Remitente",
+            "sendTest": "Enviar SMS de Prueba"
+        },
+        "retention": {
+            "title": "Retención de Datos",
+            "description": "Configure cuánto tiempo conservar los datos históricos.",
+            "alerts": "Alertas Completadas/Ignoradas",
+            "communicationLogs": "Registros de Comunicación",
+            "executionLogs": "Registros de Ejecución",
+            "days": "días"
+        },
+        "toast": {
+            "saveSuccessTitle": "Ajustes Guardados",
+            "saveSuccessDescription": "Sus cambios de configuración se han guardado.",
+            "saveErrorTitle": "Error al Guardar",
+            "saveErrorDescription": "Ocurrió un error al guardar los cambios. Por favor, inténtelo nuevamente."
+        }
+    },
+    "RoleColumns": {
+        "roleId": "ID",
+        "name": "Nombre",
+        "actions": "Acciones",
+        "edit": "Editar",
+        "delete": "Eliminar"
     }
 }

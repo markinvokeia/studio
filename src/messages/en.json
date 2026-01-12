@@ -2613,7 +2613,7 @@
       "emailSent": "Email Sent",
       "emailSentDescription": "Email sent to {count} alert(s).",
       "emailSendFailed": "Failed to send email",
-       "emailSendFailedDescription": "An error occurred while sending the email. Please try again."
+      "emailSendFailedDescription": "An error occurred while sending the email. Please try again."
     },
     "noAlerts": "No alerts available."
   },
@@ -2665,11 +2665,11 @@
       "smsTemplate": "SMS Template",
       "selectSmsTemplate": "Select SMS Template",
       "saving": "Saving",
-                "userIdField": "User ID Field",
-                "selectUserIdField": "Select User ID Field",
-                "noUserIdField": "No User ID Field",
-                "tableIdField": "Table ID Field",
-                "selectTableIdField": "Select Table ID Field"
+      "userIdField": "User ID Field",
+      "selectUserIdField": "Select User ID Field",
+      "noUserIdField": "No User ID Field",
+      "tableIdField": "Table ID Field",
+      "selectTableIdField": "Select Table ID Field"
     },
     "deleteDialog": {
       "title": "Delete Rule",
@@ -2788,7 +2788,26 @@
       "alertsCreated": "Alerts Created",
       "emailsSent": "Emails Sent",
       "errorsCount": "Errors",
-      "duration": "Duration"
+      "duration": "Duration",
+      "openMenu": "Open menu",
+      "viewDetails": "View Details"
+    },
+    "detailDialog": {
+      "title": "Execution Details",
+      "runDate": "Run Date",
+      "startedAt": "Started At",
+      "completedAt": "Completed At",
+      "triggeredBy": "Triggered By",
+      "rulesProcessed": "Rules Processed",
+      "alertsCreated": "Alerts Created",
+      "alertsSkipped": "Alerts Skipped",
+      "emailsSent": "Emails Sent",
+      "smsSent": "SMS Sent",
+      "executionLog": "Execution Log",
+      "noExecutionLog": "No execution log available",
+      "errorDetails": "Error Details",
+      "noErrors": "No error details available",
+      "status": "Status"
     }
   },
   "AlertsConfigPage": {
