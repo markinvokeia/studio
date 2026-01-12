@@ -2405,6 +2405,12 @@
             "placeholder": "Ingrese razón...",
             "submit": "Pausar"
         },
+        "ignoreAlert": {
+            "title": "Ignorar Alerta",
+            "reason": "Razón",
+            "placeholder": "Ingrese razón...",
+            "submit": "Ignorar"
+        },
         "bulkActions": {
             "title": "Acciones en Masa",
             "alertsSelected": "alerta(s) seleccionada(s)",

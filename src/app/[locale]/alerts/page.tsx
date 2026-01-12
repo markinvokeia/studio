@@ -43,8 +43,8 @@ const fetchAlerts = async (status?: string, priority?: string) => {
         if (status !== undefined) query.status = status;
         if (priority !== undefined) query.priority = priority;
         const response = await api.get(API_ROUTES.SYSTEM.ALERT_INSTANCES, query);
-        // Check if no data: array with one empty object
-        if (response.length === 1 && Object.keys(response[0]).length === 0) {
+        // Handle null/empty responses
+        if (!response || (Array.isArray(response) && response.length === 1 && Object.keys(response[0]).length === 0)) {
             return [];
         }
         // Assuming response is array of alert instances
@@ -63,8 +63,8 @@ const fetchAlerts = async (status?: string, priority?: string) => {
 const fetchAlertActions = async (): Promise<AlertAction[]> => {
     try {
         const response = await api.get(API_ROUTES.SYSTEM.ALERT_ACTIONS);
-        // Assuming response is array of alert actions
-        return response as AlertAction[];
+        // Handle null/empty responses
+        return response || [];
     } catch (error) {
         console.error('Failed to fetch alert actions:', error);
         return [];
@@ -74,8 +74,8 @@ const fetchAlertActions = async (): Promise<AlertAction[]> => {
 const fetchAlertCategories = async (): Promise<AlertCategory[]> => {
     try {
         const response = await api.get(API_ROUTES.SYSTEM.ALERT_CATEGORIES);
-        // Assuming response is array of alert categories
-        return response as AlertCategory[];
+        // Handle null/empty responses
+        return response || [];
     } catch (error) {
         console.error('Failed to fetch alert categories:', error);
         return [];

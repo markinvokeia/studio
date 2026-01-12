@@ -2405,6 +2405,12 @@
       "placeholder": "Enter reason...",
       "submit": "Snooze"
     },
+    "ignoreAlert": {
+      "title": "Ignore Alert",
+      "reason": "Reason",
+      "placeholder": "Enter reason...",
+      "submit": "Ignore"
+    },
     "bulkActions": {
       "title": "Bulk Actions",
       "alertsSelected": "alert(s) selected",
