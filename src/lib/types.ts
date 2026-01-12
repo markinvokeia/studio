@@ -662,11 +662,21 @@ export type CommunicationLog = {
 };
 
 export type AlertScheduleRun = {
-  id: string;
+  id: number;
   run_date: string;
-  status: 'RUNNING' | 'COMPLETED' | 'FAILED';
+  started_at: string;
+  completed_at: string;
+  status: string;
+  rules_processed: number;
   alerts_created: number;
+  alerts_skipped: number;
+  emails_queued: number;
+  emails_sent: number;
+  sms_sent: number;
   errors_count: number;
+  error_details: any | null;
+  execution_log: any | null;
+  triggered_by: string;
 };
 
 export type UserAlertPreference = {

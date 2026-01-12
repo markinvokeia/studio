@@ -10,6 +10,7 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { api } from '@/services/api';
 
 const getColumns = (t: (key: string) => string): ColumnDef<AlertScheduleRun>[] => [
     {
@@ -49,25 +50,42 @@ const getColumns = (t: (key: string) => string): ColumnDef<AlertScheduleRun>[] =
     }
 ];
 
-const mockRuns: AlertScheduleRun[] = [
-    { id: '1', run_date: '2024-07-30T06:00:00Z', started_at: '2024-07-30T06:00:00Z', completed_at: '2024-07-30T06:02:15Z', status: 'COMPLETED', alerts_created: 5, emails_sent: 2, errors_count: 0 },
-    { id: '2', run_date: '2024-07-29T06:00:00Z', started_at: '2024-07-29T06:00:00Z', completed_at: '2024-07-29T06:05:30Z', status: 'FAILED', alerts_created: 2, emails_sent: 0, errors_count: 1, error_details: { 'rule_id': 'INV_OVERDUE', 'error': 'Connection timed out' } },
-    { id: '3', run_date: '2024-07-28T06:00:00Z', started_at: '2024-07-28T06:00:00Z', completed_at: '2024-07-28T06:01:45Z', status: 'COMPLETED', alerts_created: 8, emails_sent: 5, errors_count: 0 },
-];
-
 export default function ExecutionHistoryPage() {
   const t = useTranslations('ExecutionHistoryPage');
-  const [runs, setRuns] = React.useState<AlertScheduleRun[]>(mockRuns);
+  const [runs, setRuns] = React.useState<AlertScheduleRun[]>([]);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 });
   
+  const fetchRuns = async (page: number, limit: number) => {
+    try {
+      const response = await api.get('/system/alert-execution-history', { page: page.toString(), limit: limit.toString() });
+      setRuns(response);
+    } catch (error) {
+      console.error('Failed to fetch execution history:', error);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchRuns(1, 10);
+  }, []);
+
   const columns = React.useMemo(() => getColumns(t), [t]);
 
-  const onRefresh = () => {
+  const onPaginationChange: React.Dispatch<React.SetStateAction<typeof pagination>> = (updater) => {
+    const newPagination = typeof updater === 'function' ? updater(pagination) : updater;
+    setPagination(newPagination);
+    fetchRuns(newPagination.pageIndex + 1, newPagination.pageSize);
+  };
+
+  const onRefresh = async () => {
     setIsRefreshing(true);
-    setTimeout(() => {
-        setRuns([...mockRuns].sort(() => 0.5 - Math.random()));
-        setIsRefreshing(false);
-    }, 1000);
+    try {
+      await fetchRuns(pagination.pageIndex + 1, pagination.pageSize);
+    } catch (error) {
+      console.error('Failed to refresh execution history:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
   
   return (
@@ -84,6 +102,9 @@ export default function ExecutionHistoryPage() {
             filterPlaceholder={t('filterPlaceholder')}
             onRefresh={onRefresh}
             isRefreshing={isRefreshing}
+            pagination={pagination}
+            onPaginationChange={onPaginationChange}
+            manualPagination
         />
       </CardContent>
     </Card>
