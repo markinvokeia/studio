@@ -20,82 +20,78 @@ export const dateVariableProcessor: DateVariableProcessor = {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Set to start of day
 
-    // Handle TODAY with +/- days
-    const todayMatch = variable.match(/^TODAY([+-]\d+)?$/);
-    if (todayMatch) {
-      const daysOffset = todayMatch[1] ? parseInt(todayMatch[1]) : 0;
-      const result = new Date(today);
-      result.setDate(result.getDate() + daysOffset);
-      return result;
+    // Extract base variable and offset
+    const match = variable.match(/^((TODAY|YESTERDAY|TOMORROW|WEEK_START|WEEK_END|MONTH_START|MONTH_END|YEAR_START|YEAR_END))([+-]\d+)?$/);
+    if (!match) {
+      // If it's a regular date string, return as is
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (dateRegex.test(variable)) {
+        return new Date(variable);
+      }
+      throw new Error(`Invalid date variable: ${variable}`);
     }
 
-    // Handle YESTERDAY
-    if (variable === 'YESTERDAY' || variable === 'TODAY-1') {
-      const result = new Date(today);
-      result.setDate(result.getDate() - 1);
-      return result;
+    const base = match[1];
+    const offsetStr = match[3];
+    const offset = offsetStr ? parseInt(offsetStr) : 0;
+
+    let baseDate: Date;
+
+    switch (base) {
+      case 'TODAY':
+        baseDate = new Date(today);
+        break;
+      case 'YESTERDAY':
+      case 'TODAY-1':
+        baseDate = new Date(today);
+        baseDate.setDate(baseDate.getDate() - 1);
+        break;
+      case 'TOMORROW':
+      case 'TODAY+1':
+        baseDate = new Date(today);
+        baseDate.setDate(baseDate.getDate() + 1);
+        break;
+      case 'WEEK_START':
+        baseDate = new Date(today);
+        const day = baseDate.getDay();
+        const diff = baseDate.getDate() - day + (day === 0 ? -6 : 1); // Monday of current week
+        baseDate.setDate(diff);
+        break;
+      case 'WEEK_END':
+        baseDate = new Date(today);
+        const dayEnd = baseDate.getDay();
+        const diffEnd = baseDate.getDate() - dayEnd + (dayEnd === 0 ? 0 : 7); // Sunday of current week
+        baseDate.setDate(diffEnd);
+        break;
+      case 'MONTH_START':
+        baseDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        break;
+      case 'MONTH_END':
+        baseDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        break;
+      case 'YEAR_START':
+        baseDate = new Date(today.getFullYear(), 0, 1);
+        break;
+      case 'YEAR_END':
+        baseDate = new Date(today.getFullYear(), 11, 31);
+        break;
+      default:
+        throw new Error(`Invalid date variable: ${variable}`);
     }
 
-    // Handle TOMORROW
-    if (variable === 'TOMORROW' || variable === 'TODAY+1') {
-      const result = new Date(today);
-      result.setDate(result.getDate() + 1);
-      return result;
+    // Apply offset if any
+    if (offset !== 0) {
+      baseDate.setDate(baseDate.getDate() + offset);
     }
 
-    // Handle WEEK_START (Monday of current week)
-    if (variable === 'WEEK_START') {
-      const result = new Date(today);
-      const day = result.getDay();
-      const diff = result.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
-      result.setDate(diff);
-      return result;
-    }
-
-    // Handle WEEK_END (Sunday of current week)
-    if (variable === 'WEEK_END') {
-      const result = new Date(today);
-      const day = result.getDay();
-      const diff = result.getDate() - day + (day === 0 ? 0 : 7); // Adjust for Sunday
-      result.setDate(diff);
-      return result;
-    }
-
-    // Handle MONTH_START (first day of current month)
-    if (variable === 'MONTH_START') {
-      return new Date(today.getFullYear(), today.getMonth(), 1);
-    }
-
-    // Handle MONTH_END (last day of current month)
-    if (variable === 'MONTH_END') {
-      return new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    }
-
-    // Handle YEAR_START (January 1st of current year)
-    if (variable === 'YEAR_START') {
-      return new Date(today.getFullYear(), 0, 1);
-    }
-
-    // Handle YEAR_END (December 31st of current year)
-    if (variable === 'YEAR_END') {
-      return new Date(today.getFullYear(), 11, 31);
-    }
-
-    // If it's a regular date string, return as is
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (dateRegex.test(variable)) {
-      return new Date(variable);
-    }
-
-    // If variable is not recognized, throw error
-    throw new Error(`Invalid date variable: ${variable}`);
+    return baseDate;
   },
 
   /**
    * Checks if a value is a valid date variable
    */
   isValidDateVariable(value: string): boolean {
-    const dateVariableRegex = /^(TODAY([+-]\d+)?|YESTERDAY|TOMORROW|WEEK_START|WEEK_END|MONTH_START|MONTH_END|YEAR_START|YEAR_END|\d{4}-\d{2}-\d{2})$/;
+    const dateVariableRegex = /^((TODAY|YESTERDAY|TOMORROW|WEEK_START|WEEK_END|MONTH_START|MONTH_END|YEAR_START|YEAR_END)([+-]\d+)?|\d{4}-\d{2}-\d{2})$/;
     return dateVariableRegex.test(value);
   }
 };
@@ -104,7 +100,7 @@ export const dateVariableProcessor: DateVariableProcessor = {
  * Utility function to replace date variables in SQL conditions
  */
 export function replaceDateVariablesInCondition(condition: string): string {
-  const variableRegex = /\b(TODAY([+-]\d+)?|YESTERDAY|TOMORROW|WEEK_START|WEEK_END|MONTH_START|MONTH_END|YEAR_START|YEAR_END)\b/g;
+  const variableRegex = /\b((TODAY|YESTERDAY|TOMORROW|WEEK_START|WEEK_END|MONTH_START|MONTH_END|YEAR_START|YEAR_END)([+-]\d+)?)\b/g;
   
   return condition.replace(variableRegex, (match) => {
     try {

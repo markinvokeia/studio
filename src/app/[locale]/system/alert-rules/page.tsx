@@ -379,6 +379,27 @@ export default function AlertRulesPage() {
         setIsDialogOpen(true);
     };
 
+    const handleDuplicate = (rule: AlertRule) => {
+        setEditingRule(null); // Not editing, creating a new one
+        setSelectedTable(rule.source_table || '');
+        const conds = (rule as any).condition_config?.conditions || [];
+        setConditions(conds.map((c: any, i: number) => ({ id: `cond-${i}`, ...(i > 0 ? { logic: c.logic || 'AND' } : {}), ...c })));
+        form.reset({
+            ...rule,
+            id: undefined, // Clear ID for new record
+            name: `${rule.name} (Copy)`, // Append " (Copy)" to the name
+            code: `${rule.code}_copy`, // Append "_copy" to the code
+            category_id: String(rule.category_id || ''),
+            days_before: rule.days_before ?? 0,
+            days_after: rule.days_after ?? 0,
+            email_template_id: rule.email_template_id ? parseInt(rule.email_template_id) : undefined,
+            sms_template_id: rule.sms_template_id ? parseInt(rule.sms_template_id) : undefined,
+            user_id_field: (rule as any).user_id_field || '',
+        });
+        setSubmissionError(null);
+        setIsDialogOpen(true);
+    };
+
     const handleEdit = (rule: AlertRule) => {
         setEditingRule(rule);
         setSelectedTable(rule.source_table || '');
@@ -497,7 +518,7 @@ export default function AlertRulesPage() {
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => handleEdit(rule)}>{t('columns.edit')}</DropdownMenuItem>
-                            <DropdownMenuItem>{t('columns.duplicate')}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDuplicate(rule)}>{t('columns.duplicate')}</DropdownMenuItem>
                             <DropdownMenuItem>{t('columns.test')}</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDelete(rule)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>
                         </DropdownMenuContent>

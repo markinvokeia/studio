@@ -58,18 +58,28 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
   const getInitialTab = () => {
     if (!value) return 'date';
     if (isVariableValue(value)) {
-      if (value.match(/\{\{TODAY[+-]\d+\}\}/)) return 'custom';
       return 'variable';
     }
     return 'date';
   };
 
-  const [activeTab, setActiveTab] = React.useState<'date' | 'variable' | 'custom'>(getInitialTab);
+  const [activeTab, setActiveTab] = React.useState<'date' | 'variable'>(getInitialTab);
+  const getInitialCustom = () => {
+    if (value && value.match(/\{\{([A-Z_]+)([+-]\d+)?\}\}/)) {
+      const match = value.match(/\{\{([A-Z_]+)([+-]\d+)?\}\}/);
+      if (match) {
+        return {
+          base: match[1],
+          days: match[2] ? parseInt(match[2]) : 0
+        };
+      }
+    }
+    return { base: 'TODAY', days: 0 };
+  };
 
-  React.useEffect(() => {
-    setActiveTab(getInitialTab());
-  }, [value]);
-  const [customDays, setCustomDays] = React.useState(0);
+  const initialCustom = getInitialCustom();
+  const [customDays, setCustomDays] = React.useState(initialCustom.days);
+  const [selectedBase, setSelectedBase] = React.useState<string>(initialCustom.base);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(() => {
     if (value && !value.match(/\{\{.*\}\}/) &&
         !value.startsWith('{{TODAY') && !value.startsWith('{{WEEK_') &&
@@ -79,6 +89,13 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
     }
     return undefined;
   });
+
+  React.useEffect(() => {
+    setActiveTab(getInitialTab());
+    const custom = getInitialCustom();
+    setSelectedBase(custom.base);
+    setCustomDays(custom.days);
+  }, [value]);
 
   // Don't show input for IS NULL and IS NOT NULL operators
   if (operator === 'IS NULL' || operator === 'IS NOT NULL') {
@@ -120,12 +137,13 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
   }
 
   const handleVariableSelect = (variableValue: string) => {
-    onChange(variableValue);
-    if (variableValue.match(/\{\{TODAY[+-]\d+\}\}/)) {
-      setActiveTab('custom');
-    } else {
-      setActiveTab('variable');
+    const variable = DATE_VARIABLES.find(v => v.value === variableValue);
+    if (variable) {
+      setSelectedBase(variable.id);
+      setCustomDays(0); // Reset custom days when selecting predefined
     }
+    onChange(variableValue);
+    setActiveTab('variable');
     setSelectedDate(undefined);
   };
 
@@ -138,50 +156,55 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
     }
   };
 
-  const handleCustomRelative = () => {
-    if (customDays === 0) return;
-    const variableValue = customDays > 0 ? `{{TODAY+${customDays}}}` : `{{TODAY${customDays}}}`;
-    onChange(variableValue);
-    setActiveTab('custom');
-    setSelectedDate(undefined);
+   const handleCustomRelative = () => {
+     if (customDays === 0) return;
+     const variableValue = customDays > 0 ? `{{${selectedBase}+${customDays}}}` : `{{${selectedBase}${customDays}}}`;
+     onChange(variableValue);
+     setActiveTab('variable');
+     setSelectedDate(undefined);
    };
 
-   const getDisplayValue = () => {
+   const getBaseDisplay = (base: string) => {
+    switch (base) {
+      case 'TODAY': return 'Today';
+      case 'WEEK_START': return 'Week Start';
+      case 'WEEK_END': return 'Week End';
+      case 'MONTH_START': return 'Month Start';
+      case 'MONTH_END': return 'Month End';
+      case 'YEAR_START': return 'Year Start';
+      case 'YEAR_END': return 'Year End';
+      default: return base;
+    }
+  };
+
+  const getDisplayValue = () => {
     if (!value) return '';
 
     const variable = DATE_VARIABLES.find(v => v.value === value);
     if (variable) return variable.label;
 
-    // Handle {{TODAY+n}} format
-    const todayMatch = value.match(/\{\{TODAY([+-]\d+)?\}\}/);
-    if (todayMatch) {
-      const days = todayMatch[1] ? parseInt(todayMatch[1]) : 0;
-      if (days === 0) return 'Today';
-      if (days === 1) return 'Tomorrow';
-      if (days === -1) return 'Yesterday';
-      return `${days > 0 ? '+' : ''}${days} days from today`;
+    // Handle {{BASE+n}} format
+    const match = value.match(/\{\{([^+]+)([+-]\d+)?\}\}/);
+    if (match) {
+      const base = match[1];
+      const days = match[2] ? parseInt(match[2]) : 0;
+      const baseDisplay = getBaseDisplay(base);
+      if (days === 0) return baseDisplay;
+      return `${days > 0 ? '+' : ''}${days} days from ${baseDisplay.toLowerCase()}`;
     }
-
-    if (value === '{{WEEK_START}}') return 'Week Start';
-    if (value === '{{WEEK_END}}') return 'Week End';
-    if (value === '{{MONTH_START}}') return 'Month Start';
-    if (value === '{{MONTH_END}}') return 'Month End';
-    if (value === '{{YEAR_START}}') return 'Year Start';
-    if (value === '{{YEAR_END}}') return 'Year End';
 
     return value;
   };
 
   return (
     <div className="space-y-2">
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'date' | 'variable' | 'custom')} className="min-h-[120px]">
-        <TabsList className="grid w-full grid-cols-3 h-9">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'date' | 'variable')} className="min-h-[120px]">
+        <TabsList className="grid w-full grid-cols-2 h-9">
           <TabsTrigger value="date" className="flex items-center gap-1 text-xs">
             <CalendarIcon className="h-3 w-3" />
             Date
           </TabsTrigger>
           <TabsTrigger value="variable" className="text-xs">Variables</TabsTrigger>
-          <TabsTrigger value="custom" className="text-xs">Relative</TabsTrigger>
         </TabsList>
         <TabsContent value="date" className="mt-2">
           <div className="space-y-1">
@@ -212,11 +235,20 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
           </div>
         </TabsContent>
         <TabsContent value="variable" className="mt-2">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-700">Choose a date variable</label>
-            <Select value={isVariableValue(value) ? value : ''} onValueChange={handleVariableSelect}>
-              <SelectTrigger className="w-full h-9">
-                <SelectValue placeholder="Choose variable" className="text-sm">
+          <div className="space-y-2">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-700">Choose a date variable</label>
+              <Select value={(() => {
+              if (value && isVariableValue(value)) {
+                const match = value.match(/\{\{([^+]+)([+-]\d+)?\}\}/);
+                if (match) {
+                  return `{{${match[1]}}}`;
+                }
+              }
+              return '';
+            })()} onValueChange={handleVariableSelect}>
+                <SelectTrigger className="w-full h-9">
+                  <SelectValue placeholder="Choose variable" className="text-sm">
                   {value && isVariableValue(value) && (
                     <div className="flex items-center gap-1 min-w-0">
                       <span className="font-medium truncate text-sm">{getDisplayValue()}</span>
@@ -225,76 +257,75 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
                       </Badge>
                     </div>
                   )}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {DATE_VARIABLES.map(variable => (
-                  <SelectItem key={variable.id} value={variable.value} className="py-2">
-                    <div className="flex flex-col items-start gap-0.5">
-                      <div className="flex items-center gap-1">
-                        <span className="font-medium text-sm">{variable.label}</span>
-                        <Badge variant="outline" className="text-xs px-1 py-0">
-                          {variable.value}
-                        </Badge>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {DATE_VARIABLES.map(variable => (
+                    <SelectItem key={variable.id} value={variable.value} className="py-2">
+                      <div className="flex flex-col items-start gap-0.5">
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium text-sm">{variable.label}</span>
+                          <Badge variant="outline" className="text-xs px-1 py-0">
+                            {variable.value}
+                          </Badge>
+                        </div>
+                        {variable.description && (
+                          <span className="text-xs text-gray-500">{variable.description}</span>
+                        )}
                       </div>
-                      {variable.description && (
-                        <span className="text-xs text-gray-500">{variable.description}</span>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </TabsContent>
-        <TabsContent value="custom" className="mt-2">
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-700">Set relative date</label>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium">Today</span>
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCustomDays(Math.max(-365, customDays - 1))}
-                  className="h-7 w-7 p-0"
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <Input
-                  type="number"
-                  value={customDays}
-                  onChange={(e) => setCustomDays(parseInt(e.target.value) || 0)}
-                  className="w-12 text-center h-7 text-sm"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCustomDays(Math.min(365, customDays + 1))}
-                  className="h-7 w-7 p-0"
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
-              <span className="text-xs">days</span>
-              <Button
-                type="button"
-                variant="default"
-                size="sm"
-                onClick={handleCustomRelative}
-                disabled={customDays === 0}
-                className="h-7 text-xs px-2"
-              >
-                Apply
-              </Button>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            {value && value.startsWith('{{TODAY') && (
-              <div className="text-xs text-green-600 font-medium">
-                Current: {getDisplayValue()}
+            <div className="border-t pt-2">
+              <label className="text-xs font-medium text-gray-700">Or set relative date</label>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs font-medium">{getBaseDisplay(selectedBase)}</span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCustomDays(Math.max(-365, customDays - 1))}
+                    className="h-7 w-7 p-0"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <Input
+                    type="number"
+                    value={customDays}
+                    onChange={(e) => setCustomDays(parseInt(e.target.value) || 0)}
+                    className="w-12 text-center h-7 text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCustomDays(Math.min(365, customDays + 1))}
+                    className="h-7 w-7 p-0"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+                <span className="text-xs">days</span>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  onClick={handleCustomRelative}
+                  disabled={customDays === 0}
+                  className="h-7 text-xs px-2"
+                >
+                  Apply
+                </Button>
               </div>
-            )}
+              {value && value.startsWith(`{{${selectedBase}`) && value.match(new RegExp(`\\{\\{${selectedBase}[+-]\\d+\\}\\}`)) && (
+                <div className="text-xs text-green-600 font-medium mt-1">
+                  Current: {getDisplayValue()}
+                </div>
+              )}
+            </div>
           </div>
         </TabsContent>
       </Tabs>

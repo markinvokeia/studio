@@ -87,9 +87,8 @@ export function Header() {
     const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
     const [passwordChangeError, setPasswordChangeError] = React.useState<string | null>(null);
 
-    // Mock data for alert indicator
-    const pendingAlertsCount = 5; // Replace with actual data fetch
-    const highestPriority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' = 'CRITICAL';
+    const [pendingAlertsCount, setPendingAlertsCount] = React.useState(0);
+    const [highestPriority, setHighestPriority] = React.useState<'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'>('LOW');
 
     const alertBadgeColor = {
         CRITICAL: 'bg-red-500',
@@ -98,10 +97,43 @@ export function Header() {
         LOW: 'bg-gray-500'
     }[highestPriority];
 
+    const fetchPendingAlertsCount = async () => {
+        try {
+            const response = await api.get(API_ROUTES.SYSTEM.ALERT_INSTANCES, { status: 'PENDING' });
+            if (response.length === 1 && Object.keys(response[0]).length === 0) {
+                setPendingAlertsCount(0);
+                setHighestPriority('LOW');
+                return;
+            }
+            const alerts: any[] = response;
+            setPendingAlertsCount(alerts.length);
+            if (alerts.length > 0) {
+                const priorities = alerts.map(a => a.priority);
+                if (priorities.includes('CRITICAL')) setHighestPriority('CRITICAL');
+                else if (priorities.includes('HIGH')) setHighestPriority('HIGH');
+                else if (priorities.includes('MEDIUM')) setHighestPriority('MEDIUM');
+                else setHighestPriority('LOW');
+            } else {
+                setHighestPriority('LOW');
+            }
+        } catch (error) {
+            console.error('Failed to fetch pending alerts count:', error);
+            setPendingAlertsCount(0);
+            setHighestPriority('LOW');
+        }
+    };
+
 
     const form = useForm<PasswordFormValues>({
         resolver: zodResolver(passwordFormSchema(t)),
     });
+
+    React.useEffect(() => {
+        fetchPendingAlertsCount();
+        // Refresh every 30 seconds
+        const interval = setInterval(fetchPendingAlertsCount, 30000);
+        return () => clearInterval(interval);
+    }, []);
 
     React.useEffect(() => {
         if (isChangePasswordOpen) {

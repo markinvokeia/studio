@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { toast } from '@/hooks/use-toast';
-import { AlertInstance, AlertAction } from '@/lib/types';
+import { AlertInstance, AlertAction, AlertCategory } from '@/lib/types';
 import { api } from '@/services/api';
 import {
     AlertTriangle,
@@ -50,7 +50,7 @@ const fetchAlerts = async (status?: string, priority?: string) => {
         // Assuming response is array of alert instances
         const alerts: AlertInstance[] = response.map((alert: any) => ({
             ...alert,
-            rule_name: 'DEFAULT', // Since backend doesn't provide rule_name
+            rule_name: alert.rule_name || 'DEFAULT',
             patient_name: alert.details_json?.patient?.full_name || 'Unknown',
         }));
         return alerts;
@@ -71,6 +71,17 @@ const fetchAlertActions = async (): Promise<AlertAction[]> => {
     }
 };
 
+const fetchAlertCategories = async (): Promise<AlertCategory[]> => {
+    try {
+        const response = await api.get(API_ROUTES.SYSTEM.ALERT_CATEGORIES);
+        // Assuming response is array of alert categories
+        return response as AlertCategory[];
+    } catch (error) {
+        console.error('Failed to fetch alert categories:', error);
+        return [];
+    }
+};
+
 const priorityConfig = {
     CRITICAL: { color: 'bg-red-500', text: 'text-red-500', label: 'Critical' },
     HIGH: { color: 'bg-orange-500', text: 'text-orange-500', label: 'High' },
@@ -81,6 +92,7 @@ const priorityConfig = {
 const categoryIcons = {
     APPOINTMENTS: <Calendar className="h-5 w-5" />,
     BILLING: <DollarSign className="h-5 w-5" />,
+    PATIENTS: <User className="h-5 w-5" />,
     FOLLOWUP: <Stethoscope className="h-5 w-5" />,
     DEFAULT: <AlertTriangle className="h-5 w-5" />
 };
@@ -105,6 +117,7 @@ export default function AlertsCenterPage() {
     const t = useTranslations('AlertsCenterPage');
     const [alerts, setAlerts] = React.useState<AlertInstance[]>([]);
     const [alertActions, setAlertActions] = React.useState<AlertAction[]>([]);
+    const [alertCategories, setAlertCategories] = React.useState<AlertCategory[]>([]);
     const [openCategories, setOpenCategories] = React.useState<string[]>([]);
     const [openActionCollapsibles, setOpenActionCollapsibles] = React.useState<string[]>([]);
     const [selectedAlerts, setSelectedAlerts] = React.useState<string[]>([]);
@@ -123,12 +136,14 @@ export default function AlertsCenterPage() {
     const loadAlerts = async () => {
         setLoading(true);
         try {
-            const [alertsData, actionsData] = await Promise.all([
+            const [alertsData, actionsData, categoriesData] = await Promise.all([
                 fetchAlerts(statusFilter || undefined, priorityFilter || undefined),
-                fetchAlertActions()
+                fetchAlertActions(),
+                fetchAlertCategories()
             ]);
             setAlerts(alertsData);
             setAlertActions(actionsData);
+            setAlertCategories(categoriesData);
         } catch (error) {
             console.error('Failed to load alerts:', error);
         } finally {
@@ -201,16 +216,22 @@ export default function AlertsCenterPage() {
         }
     };
 
+    const getCategoryName = (categoryId: string | undefined): string => {
+        if (!categoryId) return 'DEFAULT';
+        const category = alertCategories.find(cat => cat.id === categoryId);
+        return category ? category.code : 'DEFAULT';
+    };
+
     const groupedAlerts = React.useMemo(() => {
         return alerts.reduce((acc, alert) => {
-            const category = getCategoryFromRule(alert.rule_name || '');
+            const category = getCategoryName(alert.category_id);
             if (!acc[category]) {
                 acc[category] = [];
             }
             acc[category].push(alert);
             return acc;
         }, {} as Record<string, AlertInstance[]>);
-    }, [alerts]);
+    }, [alerts, alertCategories]);
 
     React.useEffect(() => {
         setOpenCategories(Object.keys(groupedAlerts));

@@ -8,6 +8,7 @@ export type User = {
   is_active: boolean;
   avatar: string;
   identity_document?: string;
+  birth_date?: string;
   color?: string;
   is_sales?: boolean;
   total_invoiced?: any;
@@ -587,6 +588,7 @@ export type AlertInstance = {
   id: string;
   rule_id: string;
   rule_name?: string;
+  category_id?: string;
   reference_table: string;
   reference_id: string;
   patient_id?: string;
