@@ -576,7 +576,9 @@
           "phone": "Phone",
           "identity_document": "Identity Document"
         }
-      }
+      },
+      "birth_date": "Birth Date",
+      "birth_date_placeholder": "01/01/1999"
     },
     "filters": {
       "type": {
@@ -958,7 +960,8 @@
         "credit_note": "Credit Note"
       },
       "type": "Type",
-      "parentInvoice": "Parent Invoice"
+      "parentInvoice": "Parent Invoice",
+      "save": "Save"
     },
     "actions": {
       "openMenu": "Open menu",
@@ -986,6 +989,10 @@
       "description": "Are you sure you want to confirm invoice #{id}? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Confirm"
+    },
+    "InvoiceItemsTable": {
+      "createTitle": "Create Invoice Item",
+      "editTitle": "Edit Invoice Item"
     }
   },
   "InvoiceItemsTable": {

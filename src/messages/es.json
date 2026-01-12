@@ -576,7 +576,9 @@
                     "phone": "Teléfono",
                     "identity_document": "Documento de Identidad"
                 }
-            }
+            },
+            "birth_date": "Fecha de nacimiento",
+            "birth_date_placeholder": "01/01/1999"
         },
         "filters": {
             "type": {
@@ -986,6 +988,10 @@
             "description": "¿Está seguro de que desea confirmar la factura #{id}? Esta acción no se puede deshacer.",
             "cancel": "Cancelar",
             "confirm": "Confirmar"
+        },
+        "InvoiceItemsTable": {
+            "createTitle": "Crear Artículo de Factura",
+            "editTitle": "Editar Artículo de Factura"
         }
     },
     "InvoiceItemsTable": {
