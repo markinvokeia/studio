@@ -71,7 +71,13 @@ export default function AlertsConfigPage() {
 
   const handleSaveChanges = async () => {
     try {
-      await api.post(API_ROUTES.SYSTEM.ALERT_CONFIG_WEBHOOK, config);
+      const sanitizedConfig = {
+        scheduler: config.scheduler,
+        email: config.email,
+        sms: config.sms,
+        retention: config.retention,
+      };
+      await api.post(API_ROUTES.SYSTEM.ALERT_CONFIG_WEBHOOK, sanitizedConfig);
       toast({
         title: t('toast.saveSuccessTitle'),
         description: t('toast.saveSuccessDescription'),
