@@ -41,6 +41,7 @@ const ruleFormSchema = (t: (key: string) => string) => z.object({
     description: z.string().optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
     source_table: z.string().min(1, t('sourceTableRequired')),
+    table_id_field: z.string().min(1, t('tableIdFieldRequired')),
     user_id_field: z.string().optional(),
     days_before: z.coerce.number().int().default(0),
     days_after: z.coerce.number().int().default(0),
@@ -170,10 +171,40 @@ export default function AlertRulesPage() {
         return col?.type;
     };
 
+    // Helper function to validate if table_id_field exists in selected table
+    const validateTableIdField = (tableIdField: string, tableName: string): boolean => {
+        const tableCols = tablesAndColumns[tableName] || [];
+        return tableCols.some(col => col.name === tableIdField);
+    };
+
     // Helper function to validate if user_id_field exists in selected table
     const validateUserIdField = (userIdField: string, tableName: string): boolean => {
         const tableCols = tablesAndColumns[tableName] || [];
         return tableCols.some(col => col.name === userIdField);
+    };
+
+    // Helper function to get potential table ID fields from table
+    const getPotentialTableIdFields = (tableName: string) => {
+        const tableCols = tablesAndColumns[tableName] || [];
+        return tableCols
+            .filter(col => {
+                const colName = col.name.toLowerCase();
+                const colType = col.type.toLowerCase();
+
+                // Look for common ID field patterns (primary key candidates)
+                return (
+                    colName === 'id' ||
+                    colName.endsWith('_id') ||
+                    colName.includes('id') &&
+                    (colType.includes('int') || colType.includes('bigint') || colType.includes('uuid') || colType.includes('varchar'))
+                );
+            })
+            .map(col => ({
+                name: col.name,
+                type: col.type,
+                priority: calculateTableIdFieldPriority(col.name)
+            }))
+            .sort((a, b) => a.priority - b.priority);
     };
 
     // Helper function to get potential user ID fields from table
@@ -204,6 +235,22 @@ export default function AlertRulesPage() {
                 priority: calculateFieldPriority(col.name)
             }))
             .sort((a, b) => a.priority - b.priority);
+    };
+
+    // Helper to calculate priority for table ID field suggestions
+    const calculateTableIdFieldPriority = (fieldName: string): number => {
+        const name = fieldName.toLowerCase();
+
+        // Highest priority: generic 'id' field
+        if (name === 'id') return 1;
+
+        // High priority: fields ending with '_id'
+        if (name.endsWith('_id')) return 2;
+
+        // Medium priority: fields containing 'id'
+        if (name.includes('id')) return 5;
+
+        return 100;
     };
 
     // Helper to calculate priority for user ID field suggestions
@@ -342,6 +389,7 @@ export default function AlertRulesPage() {
             ]);
             const mappedRules = fetchedRules.data.map(rule => ({
                 ...rule,
+                table_id_field: (rule as any).condition_config?.table_id_field?.name || '',
                 user_id_field: (rule as any).condition_config?.user_id_field || null,
             }));
             setRules(mappedRules);
@@ -360,9 +408,13 @@ export default function AlertRulesPage() {
         loadData();
     }, [loadData]);
 
-    // Clear user_id_field if it doesn't exist in the selected table
+    // Clear table_id_field and user_id_field if they don't exist in the selected table
     React.useEffect(() => {
         if (selectedTable) {
+            const currentTableIdField = form.getValues('table_id_field');
+            if (currentTableIdField && !validateTableIdField(currentTableIdField, selectedTable)) {
+                form.setValue('table_id_field', '');
+            }
             const currentUserIdField = form.getValues('user_id_field');
             if (currentUserIdField && !validateUserIdField(currentUserIdField, selectedTable)) {
                 form.setValue('user_id_field', '');
@@ -374,7 +426,7 @@ export default function AlertRulesPage() {
         setEditingRule(null);
         setSelectedTable('');
         setConditions([]);
-        form.reset({ code: '', name: '', description: '', is_active: true, priority: 'MEDIUM', source_table: '', user_id_field: '', recurrence_type: undefined, email_template_id: undefined, sms_template_id: undefined, days_before: 0, days_after: 0 });
+        form.reset({ code: '', name: '', description: '', is_active: true, priority: 'MEDIUM', source_table: '', table_id_field: '', user_id_field: '', recurrence_type: undefined, email_template_id: undefined, sms_template_id: undefined, days_before: 0, days_after: 0 });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -390,6 +442,7 @@ export default function AlertRulesPage() {
             name: `${rule.name} (Copy)`, // Append " (Copy)" to the name
             code: `${rule.code}_copy`, // Append "_copy" to the code
             category_id: String(rule.category_id || ''),
+            table_id_field: (rule as any).table_id_field || '',
             days_before: rule.days_before ?? 0,
             days_after: rule.days_after ?? 0,
             email_template_id: rule.email_template_id ? parseInt(rule.email_template_id) : undefined,
@@ -408,6 +461,7 @@ export default function AlertRulesPage() {
         form.reset({
             ...rule,
             category_id: String(rule.category_id || ''),
+            table_id_field: (rule as any).table_id_field || '',
             days_before: rule.days_before ?? 0,
             days_after: rule.days_after ?? 0,
             email_template_id: rule.email_template_id ? parseInt(rule.email_template_id) : undefined,
@@ -458,8 +512,16 @@ export default function AlertRulesPage() {
             const data = {
                 ...values,
                 category_id: parseInt(values.category_id),
+                table_id_field: values.table_id_field,
                 user_id_field: values.user_id_field || null,
-                condition_config: { conditions: cleanedConditions, user_id_field: values.user_id_field || null },
+                condition_config: {
+                    conditions: cleanedConditions,
+                    table_id_field: {
+                        name: values.table_id_field,
+                        type: getColumnType(values.table_id_field) || ''
+                    },
+                    user_id_field: values.user_id_field || null
+                },
                 created_by: 1, // TODO: get from current user
                 email_template_id: values.email_template_id ?? null,
                 sms_template_id: values.sms_template_id ?? null,
@@ -566,8 +628,40 @@ export default function AlertRulesPage() {
                             <FormField control={form.control} name="category_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.category')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectCategory')} /></SelectTrigger></FormControl><SelectContent>{categories.map(c => <SelectItem key={String(c.id)} value={String(c.id)}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>{t('dialog.description')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="priority" render={({ field }) => (<FormItem><FormLabel>{t('dialog.priority')}</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectPriority')} /></SelectTrigger></FormControl><SelectContent><SelectItem value="LOW">{t('priorities.low')}</SelectItem><SelectItem value="MEDIUM">{t('priorities.medium')}</SelectItem><SelectItem value="HIGH">{t('priorities.high')}</SelectItem><SelectItem value="CRITICAL">{t('priorities.critical')}</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="source_table" render={({ field }) => (<FormItem><FormLabel>{t('dialog.sourceTable')}</FormLabel><Select onValueChange={(value) => { field.onChange(value); setSelectedTable(value); }} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectSourceTable')} /></SelectTrigger></FormControl><SelectContent>{Object.keys(tablesAndColumns).map(table => <SelectItem key={table} value={table}>{table}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="user_id_field" render={({ field }) => (
+                             <FormField control={form.control} name="source_table" render={({ field }) => (<FormItem><FormLabel>{t('dialog.sourceTable')}</FormLabel><Select onValueChange={(value) => { field.onChange(value); setSelectedTable(value); }} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectSourceTable')} /></SelectTrigger></FormControl><SelectContent>{Object.keys(tablesAndColumns).map(table => <SelectItem key={table} value={table}>{table}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                             <FormField control={form.control} name="table_id_field" render={({ field }) => (
+                                 <FormItem>
+                                     <FormLabel>{t('dialog.tableIdField')}</FormLabel>
+                                     <Select onValueChange={field.onChange} value={field.value}>
+                                         <FormControl>
+                                             <SelectTrigger>
+                                                 <SelectValue placeholder={t('dialog.selectTableIdField')} />
+                                             </SelectTrigger>
+                                         </FormControl>
+                                         <SelectContent>
+                                             {selectedTable && getPotentialTableIdFields(selectedTable).map(col => (
+                                                 <SelectItem key={col.name} value={col.name}>
+                                                     <div className="flex flex-col items-start">
+                                                         <div className="flex items-center gap-2">
+                                                             <span>{col.name}</span>
+                                                             <Badge variant="outline" className="text-xs">
+                                                                 {col.type}
+                                                             </Badge>
+                                                         </div>
+                                                         {col.priority <= 2 && (
+                                                             <span className="text-xs text-green-600">
+                                                                 {col.priority === 1 ? 'Recommended (primary key)' : 'Likely table ID'}
+                                                             </span>
+                                                         )}
+                                                     </div>
+                                                 </SelectItem>
+                                             ))}
+                                         </SelectContent>
+                                     </Select>
+                                     <FormMessage />
+                                 </FormItem>
+                             )} />
+                             <FormField control={form.control} name="user_id_field" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{t('dialog.userIdField')}</FormLabel>
                                     <Select onValueChange={(value) => field.onChange(value === 'none' ? '' : value)} value={field.value === undefined || field.value === '' ? 'none' : field.value}>
@@ -627,9 +721,14 @@ export default function AlertRulesPage() {
                                             <SelectTrigger className={index === 0 ? "w-1/3" : "w-1/4"}>
                                                 <SelectValue placeholder="Column" />
                                             </SelectTrigger>
-                                            <SelectContent>
-                                                {(tablesAndColumns[selectedTable] || []).map(col => <SelectItem key={col.name} value={col.name}>{col.name}</SelectItem>)}
-                                            </SelectContent>
+                                             <SelectContent>
+                                                 {(tablesAndColumns[selectedTable] || []).map(col => <SelectItem key={col.name} value={col.name}>
+                                                     <div className="flex items-center gap-2">
+                                                         <span>{col.name}</span>
+                                                         <Badge variant="outline" className="text-xs">{col.type}</Badge>
+                                                     </div>
+                                                 </SelectItem>)}
+                                             </SelectContent>
                                         </Select>
                                         <Select value={cond.operator} onValueChange={(value) => {
                                             const newConds = [...conditions];

@@ -2664,9 +2664,11 @@
       "smsTemplate": "SMS Template",
       "selectSmsTemplate": "Select SMS Template",
       "saving": "Saving",
-      "userIdField": "User ID Field",
-      "selectUserIdField": "Select User ID Field",
-      "noUserIdField": "No User ID Field"
+                "userIdField": "User ID Field",
+                "selectUserIdField": "Select User ID Field",
+                "noUserIdField": "No User ID Field",
+                "tableIdField": "Table ID Field",
+                "selectTableIdField": "Select Table ID Field"
     },
     "deleteDialog": {
       "title": "Delete Rule",
@@ -2689,6 +2691,7 @@
       "nameRequired": "Name is required.",
       "priorityRequired": "Priority is required.",
       "sourceTableRequired": "Source table is required.",
+      "tableIdFieldRequired": "Table ID field is required.",
       "queryTemplateRequired": "Query template is required."
     },
     "priorities": {

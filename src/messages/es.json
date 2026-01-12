@@ -2664,7 +2664,9 @@
                 "saving": "Guardando",
                 "userIdField": "Campo de ID de usuario",
                 "selectUserIdField": "Seleccionar campo de ID de usuario",
-                "noUserIdField": "Sin campo de ID de usuario"
+                "noUserIdField": "Sin campo de ID de usuario",
+                "tableIdField": "Campo de ID de tabla",
+                "selectTableIdField": "Seleccionar campo de ID de tabla"
             },
             "deleteDialog": {
                 "title": "Eliminar Regla",
@@ -2687,6 +2689,7 @@
                 "nameRequired": "El nombre es obligatorio.",
                 "priorityRequired": "La prioridad es obligatoria.",
                 "sourceTableRequired": "La tabla de origen es obligatoria.",
+                "tableIdFieldRequired": "El campo de ID de tabla es obligatorio.",
                 "queryTemplateRequired": "La plantilla de consulta es obligatoria."
             },
             "priorities": {
