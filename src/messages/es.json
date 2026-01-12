@@ -2827,7 +2827,9 @@
             },
             "toast": {
                 "saveSuccessTitle": "Ajustes Guardados",
-                "saveSuccessDescription": "Sus cambios de configuración se han guardado."
+                "saveSuccessDescription": "Sus cambios de configuración se han guardado.",
+                "saveErrorTitle": "Error al Guardar",
+                "saveErrorDescription": "Ocurrió un error al guardar los cambios. Por favor, inténtelo nuevamente."
             }
         },
         "RoleColumns": {

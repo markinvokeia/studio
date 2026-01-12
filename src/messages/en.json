@@ -2832,7 +2832,9 @@
     },
     "toast": {
       "saveSuccessTitle": "Settings Saved",
-      "saveSuccessDescription": "Your configuration changes have been saved."
+      "saveSuccessDescription": "Your configuration changes have been saved.",
+      "saveErrorTitle": "Save Error",
+      "saveErrorDescription": "An error occurred while saving changes. Please try again."
     }
   },
   "RoleColumns": {

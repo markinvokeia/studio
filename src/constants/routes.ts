@@ -230,6 +230,7 @@ export const API_ROUTES = {
         ALERT_ACTIONS: '/system/alert-actions',
         ALERT_CATEGORIES: '/alert_categories',
         ALERT_CATEGORY: '/alert_category',
+        ALERT_CONFIG_WEBHOOK: '/system/alert-config',
         ALERT_INSTANCES: '/system/alert-instances',
         ALERT_INSTANCES_COMPLETE: '/system/alert-instances/complete',
         ALERT_INSTANCES_IGNORE: '/system/alert-instances/ignore',
