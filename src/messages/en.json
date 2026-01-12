@@ -2613,8 +2613,9 @@
       "emailSent": "Email Sent",
       "emailSentDescription": "Email sent to {count} alert(s).",
       "emailSendFailed": "Failed to send email",
-      "emailSendFailedDescription": "An error occurred while sending the email. Please try again."
-    }
+       "emailSendFailedDescription": "An error occurred while sending the email. Please try again."
+    },
+    "noAlerts": "No alerts available."
   },
   "AlertRulesPage": {
     "title": "Alert Rules",

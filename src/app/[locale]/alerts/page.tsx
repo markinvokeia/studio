@@ -122,7 +122,7 @@ export default function AlertsCenterPage() {
     const [openActionCollapsibles, setOpenActionCollapsibles] = React.useState<string[]>([]);
     const [selectedAlerts, setSelectedAlerts] = React.useState<string[]>([]);
     const [loading, setLoading] = React.useState(true);
-    const [statusFilter, setStatusFilter] = React.useState<string>('');
+    const [statusFilter, setStatusFilter] = React.useState<string>('PENDING');
     const [priorityFilter, setPriorityFilter] = React.useState<string>('');
     const [ignoreDialogOpen, setIgnoreDialogOpen] = React.useState(false);
     const [ignoreReason, setIgnoreReason] = React.useState('');
@@ -434,9 +434,10 @@ export default function AlertsCenterPage() {
                                 </CollapsibleContent>
                             </Collapsible>
                         )
-                    })}
-                </CardContent>
-            </Card>
+                     })}
+                     {Object.keys(groupedAlerts).length === 0 && <p className="text-center text-muted-foreground py-8">{t('noAlerts')}</p>}
+                 </CardContent>
+             </Card>
 
             <Dialog open={ignoreDialogOpen} onOpenChange={setIgnoreDialogOpen}>
                 <DialogContent>

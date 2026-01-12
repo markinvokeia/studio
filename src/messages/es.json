@@ -2612,8 +2612,9 @@
             "emailSent": "Correo Enviado",
             "emailSentDescription": "Correo enviado a {count} alerta(s).",
             "emailSendFailed": "Error al enviar correo",
-            "emailSendFailedDescription": "Ocurrió un error al enviar el correo. Por favor, inténtelo de nuevo."
+             "emailSendFailedDescription": "Ocurrió un error al enviar el correo. Por favor, inténtelo de nuevo."
         },
+        "noAlerts": "No hay alertas disponibles.",
         "AlertRulesPage": {
             "title": "Reglas de Alerta",
             "description": "Configure las reglas que generan alertas automáticamente.",
