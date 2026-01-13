@@ -260,10 +260,10 @@ export default function AlertsCenterPage() {
     };
 
     const summaryCounts = {
-        total: alerts.filter(a => a.status === 'PENDING').length,
-        critical: alerts.filter(a => a.priority === 'CRITICAL' && a.status === 'PENDING').length,
-        high: alerts.filter(a => a.priority === 'HIGH' && a.status === 'PENDING').length,
-        medium: alerts.filter(a => a.priority === 'MEDIUM' && a.status === 'PENDING').length,
+        total: (alerts || []).filter(a => a.status === 'PENDING').length,
+        critical: (alerts || []).filter(a => a.priority === 'CRITICAL' && a.status === 'PENDING').length,
+        high: (alerts || []).filter(a => a.priority === 'HIGH' && a.status === 'PENDING').length,
+        medium: (alerts || []).filter(a => a.priority === 'MEDIUM' && a.status === 'PENDING').length,
     };
 
     return (
@@ -388,7 +388,7 @@ export default function AlertsCenterPage() {
                                                     <p className="font-semibold">{alert.title}</p>
                                                     <p className="text-sm text-muted-foreground">{alert.summary}</p>
                                                     {(() => {
-                                                        const actions = alertActions.filter(action => action.alert_instance_id === parseInt(alert.id));
+                                                         const actions = (alertActions || []).filter(action => action.alert_instance_id === parseInt(alert.id));
                                                         const isOpen = openActionCollapsibles.includes(alert.id);
                                                         return actions.length > 0 ? (
                                                             <Collapsible
