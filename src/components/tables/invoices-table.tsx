@@ -24,7 +24,7 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowRight, Box, CalendarIcon, FileUp, MoreHorizontal, Printer, Send, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Box, CalendarIcon, FileUp, Loader2, MoreHorizontal, Printer, RefreshCw, Send, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
@@ -94,7 +94,7 @@ type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
 
 async function getServices(isSales: boolean): Promise<Service[]> {
   try {
-    const data = await api.get(API_ROUTES.SERVICES, { is_sales: isSales });
+    const data = await api.get(API_ROUTES.SERVICES, { is_sales: isSales ? 'true' : 'false' });
     const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
     return servicesData.map((s: any) => ({ ...s, id: String(s.id) }));
   } catch (error) {
@@ -111,7 +111,8 @@ const getColumns = (
   onPrint?: (invoice: Invoice) => void,
   onSendEmail?: (invoice: Invoice) => void,
   onAddPayment?: (invoice: Invoice) => void,
-  onConfirm?: (invoice: Invoice) => void
+  onConfirm?: (invoice: Invoice) => void,
+  onEdit?: (invoice: Invoice) => void
 ): ColumnDef<Invoice>[] => {
   const isPaymentActionVisible = (invoice: Invoice) => {
     const status = invoice.status.toLowerCase();
@@ -258,6 +259,11 @@ const getColumns = (
                     {t('confirmInvoice')}
                   </DropdownMenuItem>
                 )}
+                {onEdit && invoice.status.toLowerCase() === 'draft' && (
+                  <DropdownMenuItem onClick={() => onEdit(invoice)}>
+                    {t('actions.edit') || 'Edit'}
+                  </DropdownMenuItem>
+                )}
                 {onPrint && (
                   <DropdownMenuItem onClick={() => onPrint(invoice)}>
                     <Printer className="mr-2 h-4 w-4" />
@@ -297,6 +303,7 @@ interface InvoicesTableProps {
   filterOptions?: { label: string; value: string }[];
   onFilterChange?: (value: string) => void;
   filterValue?: string;
+  onEdit?: (invoice: Invoice) => void;
   isSales?: boolean;
 }
 
@@ -308,6 +315,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const locale = useLocale();
 
   const { toast } = useToast();
+  const [isFormDialogOpen, setIsFormDialogOpen] = React.useState(false);
+  const [editingInvoice, setEditingInvoice] = React.useState<Invoice | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
   const [isNoSessionAlertOpen, setIsNoSessionAlertOpen] = React.useState(false);
   const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = React.useState<Invoice | null>(null);
@@ -605,7 +614,20 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   };
 
-  const columns = React.useMemo(() => getColumns(t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail, handleAddPaymentClick, onConfirm), [t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail, onConfirm]);
+  const columns = React.useMemo(() => getColumns(
+    t,
+    tStatus,
+    tMethods,
+    columnTranslations,
+    onPrint,
+    onSendEmail,
+    handleAddPaymentClick,
+    onConfirm,
+    (invoice) => {
+      setEditingInvoice(invoice);
+      setIsFormDialogOpen(true);
+    }
+  ), [t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail, onConfirm]);
 
   if (isLoading) {
     return (
@@ -620,6 +642,16 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
   return (
     <>
+      <InvoiceFormDialog
+        isOpen={isFormDialogOpen}
+        onOpenChange={(open) => {
+          setIsFormDialogOpen(open);
+          if (!open) setEditingInvoice(null);
+        }}
+        onInvoiceCreated={onRefresh || (() => { })}
+        isSales={isSales}
+        invoice={editingInvoice}
+      />
       <DataTable
         columns={columns}
         data={invoices}
@@ -629,7 +661,10 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         enableSingleRowSelection={!!onRowSelectionChange}
         onRefresh={onRefresh}
         isRefreshing={isRefreshing}
-        onCreate={onCreate}
+        onCreate={() => {
+          setEditingInvoice(null);
+          setIsFormDialogOpen(true);
+        }}
         rowSelection={rowSelection}
         setRowSelection={setRowSelection}
         columnTranslations={{
@@ -979,21 +1014,24 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   );
 }
 
-interface CreateInvoiceDialogProps {
+interface InvoiceFormDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onInvoiceCreated: () => void;
   isSales: boolean;
+  invoice?: Invoice | null;
 }
 
-export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, isSales }: CreateInvoiceDialogProps) {
+export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSales, invoice }: InvoiceFormDialogProps) {
   const t = useTranslations('InvoicesPage.createDialog');
+  const tRoot = useTranslations('InvoicesPage');
   const [users, setUsers] = React.useState<User[]>([]);
   const [services, setServices] = React.useState<Service[]>([]);
   const [bookedInvoices, setBookedInvoices] = React.useState<Invoice[]>([]);
   const { toast } = useToast();
 
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<CreateInvoiceFormValues>({
     resolver: zodResolver(createInvoiceFormSchema),
@@ -1005,6 +1043,8 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
       total: 0,
     },
   });
+
+  const isEditing = !!invoice;
 
   const items = form.watch('items');
   const invoiceType = form.watch('type');
@@ -1021,8 +1061,8 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
           const filterType = isSales ? 'PACIENTE' : 'PROVEEDOR';
           const [usersData, servicesData, invoicesData] = await Promise.all([
             api.get(API_ROUTES.USERS, { filter_type: filterType }),
-            api.get(API_ROUTES.SERVICES, { is_sales: isSales }),
-            api.get(API_ROUTES.SALES.INVOICES_ALL, { is_sales: isSales, status: 'booked', type: 'invoice' })
+            api.get(API_ROUTES.SERVICES, { is_sales: isSales ? 'true' : 'false' }),
+            api.get(isSales ? API_ROUTES.SALES.INVOICES_ALL : API_ROUTES.PURCHASES.INVOICES_ALL, { is_sales: isSales ? 'true' : 'false', status: 'booked', type: 'invoice' })
           ]);
 
           const usersDataNormalized = (Array.isArray(usersData) && usersData.length > 0) ? usersData[0].data : (usersData.data || []);
@@ -1033,29 +1073,76 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
 
           const invoicesDataNormalized = Array.isArray(invoicesData) ? invoicesData : (invoicesData.invoices || invoicesData.data || []);
           setBookedInvoices(invoicesDataNormalized);
+
+          if (invoice) {
+            // Load items for the invoice
+            const itemsEndpoint = isSales ? API_ROUTES.SALES.INVOICE_ITEMS : API_ROUTES.PURCHASES.INVOICE_ITEMS;
+            const itemsData = await api.get(itemsEndpoint, { invoice_id: invoice.id, is_sales: isSales ? 'true' : 'false' });
+            const itemsNormalized = Array.isArray(itemsData) ? itemsData : (itemsData.invoice_items || itemsData.data || itemsData.result || []);
+
+            form.reset({
+              type: (invoice.type?.toString().includes('credit') ? 'credit_note' : 'invoice') as any,
+              user_id: Array.isArray(invoice.user_id) ? String(invoice.user_id[0]) : String(invoice.user_id || ''),
+              currency: (invoice.currency?.toUpperCase() as any) || 'UYU',
+              total: Number(invoice.total || 0),
+              invoice_ref: '',
+              order_id: invoice.order_id ? String(invoice.order_id) : undefined,
+              quote_id: invoice.quote_id ? String(invoice.quote_id) : undefined,
+              items: itemsNormalized.map((item: any) => {
+                const rawServiceId = item.service_id || item.product_id;
+                const serviceId = Array.isArray(rawServiceId) ? String(rawServiceId[0]) : String(rawServiceId || '');
+                return {
+                  id: item.id ? String(item.id) : undefined,
+                  service_id: serviceId,
+                  quantity: Number(item.quantity || item.product_uom_qty || 1),
+                  unit_price: Number(item.unit_price || item.price_unit || 0),
+                  total: Number(item.total || item.price_total || 0),
+                };
+              }),
+            });
+          } else {
+            form.reset({
+              type: 'invoice',
+              user_id: '',
+              currency: 'UYU',
+              items: [],
+              total: 0,
+            });
+          }
         } catch (error) {
           console.error('Failed to fetch initial data', error);
         }
       };
       fetchData();
     }
-  }, [isOpen, isSales]);
+  }, [isOpen, isSales, invoice, form]);
 
 
   const onSubmit = async (values: CreateInvoiceFormValues) => {
     setSubmissionError(null);
+    setIsSubmitting(true);
     try {
       const endpoint = isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT;
-      const responseData = await api.post(endpoint, { ...values, is_sales: isSales });
+      const payload = isEditing && invoice
+        ? { ...values, id: invoice.id, is_sales: isSales }
+        : { ...values, is_sales: isSales };
+
+      const responseData = await api.post(endpoint, payload);
+
       if (responseData.error && responseData.code >= 400) {
         throw new Error(responseData.message || t('errors.generic'));
       }
-      toast({ title: t('success.title'), description: t('success.description') });
+
+      toast({ title: t('success.title'), description: isEditing ? (t('success.updateDescription') || 'Invoice updated successfully') : t('success.description') });
+
       onInvoiceCreated();
       onOpenChange(false);
       form.reset();
     } catch (error) {
+      console.error('Invoice submission failed:', error);
       setSubmissionError(error instanceof Error ? error.message : t('errors.generic'));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1070,13 +1157,16 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{t('title')}</DialogTitle>
-          <DialogDescription>{t('description')}</DialogDescription>
+          <DialogTitle>{isEditing ? tRoot('editDialog.title') || 'Edit Invoice' : t('title')}</DialogTitle>
+          <DialogDescription>{isEditing ? tRoot('editDialog.description') || 'Change invoice details and lines.' : t('description')}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+            console.error('Validation errors:', errors);
+            toast({ variant: 'destructive', title: t('validation.errorTitle') || 'Submission Error', description: t('validation.checkFields') || 'Please check the form for errors.' });
+          })} className="space-y-4 py-4">
             {submissionError && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
@@ -1091,7 +1181,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('type')}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                       <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="invoice">{t('types.invoice')}</SelectItem>
@@ -1149,7 +1239,7 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
               <FormField control={form.control} name="user_id" render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('user')}</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder={t('selectUser')} /></SelectTrigger></FormControl>
                     <SelectContent>{users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
                   </Select>
@@ -1229,8 +1319,11 @@ export function CreateInvoiceDialog({ isOpen, onOpenChange, onInvoiceCreated, is
             </Card>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
-              <Button type="submit">{t('create')}</Button>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>{t('cancel')}</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isEditing ? t('save') || 'Save Changes' : t('create')}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

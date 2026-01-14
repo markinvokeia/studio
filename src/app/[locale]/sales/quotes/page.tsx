@@ -742,7 +742,7 @@ export default function QuotesPage() {
                                                         <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                                     </Button>
                                                 </div>
-                                                <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedQuote.id} />
+                                                <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedQuote.id} userId={selectedOrder.user_id} />
                                             </div>
                                         )}
                                     </TabsContent>
@@ -757,7 +757,7 @@ export default function QuotesPage() {
                                         {selectedInvoice && (
                                             <div className="mt-4">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-md font-semibold">{tGlobal('InvoiceItemsTable.titleWithId', { id: selectedInvoice.id })}</h4>
+                                                    <h4 className="text-md font-semibold">{tGlobal('InvoicesPage.InvoiceItemsTable.titleWithId', { id: selectedInvoice.id })}</h4>
                                                     <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
                                                         <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
                                                     </Button>

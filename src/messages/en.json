@@ -933,6 +933,10 @@
     },
     "import": "Import",
     "filterPlaceholder": "Filter here...",
+    "editDialog": {
+      "title": "Edit Invoice",
+      "description": "Modify invoice details and line items."
+    },
     "createDialog": {
       "title": "Create Invoice",
       "description": "Create a new invoice",
@@ -944,8 +948,19 @@
       "currency": "Currency",
       "cancel": "Cancel",
       "create": "Create",
+      "save": "Save",
       "success": {
-        "description": "Invoice created successfully."
+        "title": "Success",
+        "description": "Invoice created successfully.",
+        "updateDescription": "Invoice updated successfully."
+      },
+      "validation": {
+        "errorTitle": "Submission Error",
+        "checkFields": "Please check the form for errors."
+      },
+      "errors": {
+        "title": "Error",
+        "generic": "An error occurred while processing the invoice."
       },
       "items": {
         "title": "Items",
@@ -966,6 +981,7 @@
     "actions": {
       "openMenu": "Open menu",
       "title": "Actions",
+      "edit": "Edit",
       "print": "Print",
       "sendEmail": "Send Email"
     },
@@ -991,33 +1007,29 @@
       "confirm": "Confirm"
     },
     "InvoiceItemsTable": {
+      "title": "Invoice Items",
+      "titleWithId": "Invoice Items for {id}",
+      "filterPlaceholder": "Filter here...",
+      "columns": {
+        "id": "ID",
+        "service": "Service",
+        "quantity": "Quantity",
+        "unitPrice": "Unit Price",
+        "total": "Total"
+      },
       "createTitle": "Create Invoice Item",
-      "editTitle": "Edit Invoice Item"
-    }
-  },
-  "InvoiceItemsTable": {
-    "title": "Invoice Items",
-    "titleWithId": "Invoice Items for {id}",
-    "filterPlaceholder": "Filter here...",
-    "columns": {
-      "id": "ID",
-      "service": "Service",
-      "quantity": "Quantity",
-      "unitPrice": "Unit Price",
-      "total": "Total"
-    },
-    "createTitle": "Create Invoice Item",
-    "editTitle": "Edit Invoice Item",
-    "actions": {
-      "title": "Actions",
-      "edit": "Edit",
-      "delete": "Delete"
-    },
-    "form": {
-      "service": "Service",
-      "selectService": "Select a service",
-      "quantity": "Quantity",
-      "unitPrice": "Unit Price"
+      "editTitle": "Edit Invoice Item",
+      "actions": {
+        "title": "Actions",
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "form": {
+        "service": "Service",
+        "selectService": "Select a service",
+        "quantity": "Quantity",
+        "unitPrice": "Unit Price"
+      }
     }
   },
   "CashierPage": {

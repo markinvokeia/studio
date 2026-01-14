@@ -131,7 +131,7 @@ export default function OrdersPage() {
     const t = useTranslations('OrdersPage');
     const tQuotes = useTranslations('QuotesPage');
     const tOrderItems = useTranslations('OrderItemsTable');
-    const tInvoiceItems = useTranslations('InvoiceItemsTable');
+    const tInvoiceItems = useTranslations('InvoicesPage.InvoiceItemsTable');
     const [orders, setOrders] = React.useState<Order[]>([]);
     const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -244,6 +244,7 @@ export default function OrdersPage() {
                                 onCreate={() => setIsCreateDialogOpen(true)}
                                 rowSelection={rowSelection}
                                 setRowSelection={setRowSelection}
+                                isSales={false}
                             />
                         </CardContent>
                     </Card>
@@ -279,7 +280,7 @@ export default function OrdersPage() {
                                                 <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                             </Button>
                                         </div>
-                                        <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedOrder.quote_id} />
+                                        <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedOrder.quote_id} isSales={false} userId={selectedOrder.user_id} />
                                     </TabsContent>
                                     <TabsContent value="invoices">
                                         <div className="space-y-4">
@@ -321,6 +322,7 @@ export default function OrdersPage() {
                 isOpen={isCreateDialogOpen}
                 onOpenChange={setIsCreateDialogOpen}
                 onOrderCreated={loadOrders}
+                isSales={false}
             />
         </>
     );

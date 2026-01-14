@@ -54,9 +54,10 @@ interface OrdersTableProps {
   setRowSelection?: (selection: RowSelectionState) => void;
   columnTranslations?: { [key: string]: string };
   columnsToHide?: string[];
+  isSales?: boolean;
 }
 
-export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, columnTranslations, columnsToHide = [] }: OrdersTableProps) {
+export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, columnTranslations, columnsToHide = [], isSales = true }: OrdersTableProps) {
   const t = useTranslations();
   const tOrderColumns = useTranslations('OrderColumns');
   const tUserColumns = useTranslations('UserColumns');
@@ -82,13 +83,17 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
     try {
       const payload = {
         order_id: selectedOrderForInvoice.id,
+        is_sales: isSales,
         query: JSON.stringify({
           order_id: parseInt(selectedOrderForInvoice.id, 10),
           invoice_date: invoiceDate.toISOString(),
+          is_sales: isSales,
+          user_id: selectedOrderForInvoice.user_id,
         }),
       };
 
-      const responseData = await api.post(API_ROUTES.ORDER_INVOICE, payload);
+      const apiRoute = isSales ? API_ROUTES.SALES.ORDER_INVOICE : API_ROUTES.PURCHASES.ORDER_INVOICE;
+      const responseData = await api.post(apiRoute, payload);
       if (responseData.error || (responseData.code && responseData.code >= 400)) {
         if (responseData.message) {
           setInvoiceSubmissionError(responseData.message);
@@ -222,7 +227,10 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
       </div>
     );
   }
-  const filteredColumns = columns.filter(col => !columnsToHide.includes(col.accessorKey as string));
+  const filteredColumns = columns.filter(col => {
+    const key = (col as any).accessorKey;
+    return !key || !columnsToHide.includes(key);
+  });
   return (
     <>
       <Card>
@@ -288,9 +296,10 @@ interface CreateOrderDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onOrderCreated: () => void;
+  isSales?: boolean;
 }
 
-export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated }: CreateOrderDialogProps) {
+export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated, isSales = true }: CreateOrderDialogProps) {
   const t = useTranslations('OrdersPage');
   const [users, setUsers] = React.useState<User[]>([]);
   const [quotes, setQuotes] = React.useState<Quote[]>([]);
@@ -340,7 +349,8 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated }: Crea
 
   const onSubmit = async (values: OrderFormValues) => {
     try {
-      await api.post(API_ROUTES.ORDERS_UPSERT, values);
+      const apiRoute = isSales ? API_ROUTES.SALES.ORDERS_UPSERT : API_ROUTES.PURCHASES.ORDERS_UPSERT;
+      await api.post(apiRoute, values);
       toast({ title: 'Order Created', description: 'The new order has been created successfully.' });
       onOrderCreated();
       onOpenChange(false);

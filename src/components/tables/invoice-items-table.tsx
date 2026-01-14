@@ -21,7 +21,7 @@ interface InvoiceItemsTableProps {
 }
 
 export function InvoiceItemsTable({ items, isLoading = false, canEdit = false, onEdit, onDelete }: InvoiceItemsTableProps) {
-  const t = useTranslations('InvoiceItemsTable');
+  const t = useTranslations('InvoicesPage.InvoiceItemsTable');
 
   const columns: ColumnDef<InvoiceItem>[] = [
     {

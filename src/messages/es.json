@@ -933,6 +933,10 @@
         },
         "import": "Importar",
         "filterPlaceholder": "Filtrar aquí...",
+        "editDialog": {
+            "title": "Editar Factura",
+            "description": "Modificar detalles de la factura y líneas de ítems."
+        },
         "createDialog": {
             "title": "Crear Factura",
             "description": "Crear una nueva factura",
@@ -944,8 +948,19 @@
             "currency": "Moneda",
             "cancel": "Cancelar",
             "create": "Crear",
+            "save": "Guardar",
             "success": {
-                "description": "Factura creada exitosamente."
+                "title": "Éxito",
+                "description": "Factura creada exitosamente.",
+                "updateDescription": "Factura actualizada exitosamente."
+            },
+            "validation": {
+                "errorTitle": "Error de Envío",
+                "checkFields": "Por favor, revise los campos marcados en rojo."
+            },
+            "errors": {
+                "title": "Error",
+                "generic": "Ocurrió un error al procesar la factura."
             },
             "items": {
                 "title": "Artículos",
@@ -965,6 +980,7 @@
         "actions": {
             "openMenu": "Abrir menú",
             "title": "Acciones",
+            "edit": "Editar",
             "print": "Imprimir",
             "sendEmail": "Enviar Correo"
         },
@@ -990,33 +1006,29 @@
             "confirm": "Confirmar"
         },
         "InvoiceItemsTable": {
+            "title": "Artículos de la Factura",
+            "titleWithId": "Artículos de la Factura para {id}",
+            "filterPlaceholder": "Filtrar aquí...",
+            "columns": {
+                "id": "ID",
+                "service": "Servicio",
+                "quantity": "Cantidad",
+                "unitPrice": "Precio Unitario",
+                "total": "Total"
+            },
             "createTitle": "Crear Artículo de Factura",
-            "editTitle": "Editar Artículo de Factura"
-        }
-    },
-    "InvoiceItemsTable": {
-        "title": "Artículos de la Factura",
-        "titleWithId": "Artículos de la Factura para {id}",
-        "filterPlaceholder": "Filtrar aquí...",
-        "columns": {
-            "id": "ID",
-            "service": "Servicio",
-            "quantity": "Cantidad",
-            "unitPrice": "Precio Unitario",
-            "total": "Total"
-        },
-        "createTitle": "Crear Artículo de Factura",
-        "editTitle": "Editar Artículo de Factura",
-        "actions": {
-            "title": "Acciones",
-            "edit": "Editar",
-            "delete": "Eliminar"
-        },
-        "form": {
-            "service": "Servicio",
-            "selectService": "Seleccione un servicio",
-            "quantity": "Cantidad",
-            "unitPrice": "Precio Unitario"
+            "editTitle": "Editar Artículo de Factura",
+            "actions": {
+                "title": "Acciones",
+                "edit": "Editar",
+                "delete": "Eliminar"
+            },
+            "form": {
+                "service": "Servicio",
+                "selectService": "Seleccione un servicio",
+                "quantity": "Cantidad",
+                "unitPrice": "Precio Unitario"
+            }
         }
     },
     "CashierPage": {
@@ -1337,8 +1349,12 @@
         "create": "Crear",
         "invoiceDialog": {
             "title": "Crear Factura",
-            "description": "Crear una factura para la orden",
-            "confirm": "Confirmar"
+            "description": "Crear una factura para la orden #{orderId}",
+            "confirm": "Confirmar",
+            "error": "Error de Facturación",
+            "createError": "Hubo un error al crear la factura.",
+            "invoiceSuccess": "Factura Creada",
+            "invoiceSuccessDesc": "La factura para la orden #{orderId} ha sido creada exitosamente."
         },
         "detailsFor": "Detalles para {name}",
         "orderId": "ID de Orden",

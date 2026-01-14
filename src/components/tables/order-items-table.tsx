@@ -49,9 +49,11 @@ interface OrderItemsTableProps {
   isLoading?: boolean;
   onItemsUpdate?: () => void;
   quoteId?: string;
+  isSales?: boolean;
+  userId?: string;
 }
 
-export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quoteId }: OrderItemsTableProps) {
+export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quoteId, isSales = true, userId }: OrderItemsTableProps) {
   const t = useTranslations('OrderItemsTable');
   const { toast } = useToast();
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
@@ -74,14 +76,19 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         action: actionType,
         order_item_id: parseInt(selectedItem.id, 10),
         schedule_date_time: selectedDate.toISOString(),
+        user_id: userId,
       };
 
-      await api.post(API_ROUTES.QUOTES_LINES_SCHEDULE, {
+      const apiRoute = isSales
+        ? API_ROUTES.SALES.QUOTES_LINES_SCHEDULE
+        : API_ROUTES.PURCHASES.QUOTES_LINES_SCHEDULE;
+
+      await api.post(apiRoute, {
         query: JSON.stringify(queryPayload),
         quote_number: parseInt(quoteId, 10),
         order_item_id: parseInt(selectedItem.id, 10),
         schedule_complete: actionType,
-        is_sales: true,
+        is_sales: isSales,
       });
 
       toast({
