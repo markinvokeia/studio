@@ -2,7 +2,7 @@
 'use client';
 
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
-import { CreateInvoiceDialog, InvoicesTable } from '@/components/tables/invoices-table';
+import { InvoicesTable } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -36,9 +36,16 @@ type InvoiceItemFormValues = z.infer<typeof invoiceItemSchema>;
 
 async function getServices(): Promise<Service[]> {
     try {
-        const data = await api.get(API_ROUTES.PURCHASES.SERVICES_ALL, { is_sales: 'false' });
-        const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
-        return servicesData.map((s: any) => ({ ...s, id: String(s.id) }));
+        const data = await api.get(API_ROUTES.SERVICES, { is_sales: 'false' });
+        const servicesData = Array.isArray(data) ? data : (data.services || data.data || data.result || []);
+        return servicesData.map((s: any) => {
+            const id = s.id || s.product_id;
+            return {
+                ...s,
+                id: String(Array.isArray(id) ? id[0] : id),
+                name: s.name || s.display_name || (Array.isArray(id) ? id[1] : 'N/A')
+            };
+        });
     } catch (error) {
         console.error("Failed to fetch services:", error);
         return [];
@@ -78,15 +85,20 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
     if (!invoiceId) return [];
     try {
         const data = await api.get(API_ROUTES.PURCHASES.INVOICE_ITEMS, { invoice_id: invoiceId, is_sales: 'false' });
-        const itemsData = Array.isArray(data) ? data : (data.invoice_items || data.data || []);
-        return itemsData.map((apiItem: any) => ({
-            id: apiItem.id ? String(apiItem.id) : `ii_${Math.random().toString(36).substr(2, 9)}`,
-            service_id: apiItem.service_id,
-            service_name: apiItem.service_name || 'N/A',
-            quantity: apiItem.quantity,
-            unit_price: apiItem.unit_price,
-            total: apiItem.total,
-        }));
+        const itemsData = Array.isArray(data) ? data : (data.invoice_items || data.data || data.result || []);
+        return itemsData.map((apiItem: any) => {
+            const rawServiceId = apiItem.service_id || apiItem.product_id;
+            const serviceId = Array.isArray(rawServiceId) ? String(rawServiceId[0]) : String(rawServiceId || '');
+
+            return {
+                id: apiItem.id ? String(apiItem.id) : `ii_${Math.random().toString(36).substr(2, 9)}`,
+                service_id: serviceId,
+                service_name: apiItem.service_name || apiItem.product_name || apiItem.name || apiItem.display_name || (Array.isArray(rawServiceId) ? rawServiceId[1] : 'N/A'),
+                quantity: apiItem.quantity || apiItem.product_uom_qty || 1,
+                unit_price: apiItem.unit_price || apiItem.price_unit || 0,
+                total: apiItem.total || apiItem.price_total || 0,
+            };
+        });
     } catch (error) {
         console.error("Failed to fetch invoice items:", error);
         return [];
@@ -136,7 +148,6 @@ export default function InvoicesPage() {
     const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = React.useState<Invoice | null>(null);
     const [emailRecipients, setEmailRecipients] = React.useState('');
     const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
-    const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
     const [importFile, setImportFile] = React.useState<File | null>(null);
     const [isProcessingImport, setIsProcessingImport] = React.useState(false);
 
@@ -148,8 +159,7 @@ export default function InvoicesPage() {
     const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
 
     const [editingItem, setEditingItem] = React.useState<InvoiceItem | null>(null);
-    const [isCreateItemDialogOpen, setIsCreateItemDialogOpen] = React.useState(false);
-    const [isEditItemDialogOpen, setIsEditItemDialogOpen] = React.useState(false);
+    const [isItemDialogOpen, setIsItemDialogOpen] = React.useState(false);
     const [deletingItem, setDeletingItem] = React.useState<InvoiceItem | null>(null);
     const [isDeleteItemDialogOpen, setIsDeleteItemDialogOpen] = React.useState(false);
     const [services, setServices] = React.useState<Service[]>([]);
@@ -183,6 +193,7 @@ export default function InvoicesPage() {
 
     React.useEffect(() => {
         loadInvoices();
+        getServices().then(setServices);
     }, [loadInvoices]);
 
     const loadInvoiceItems = React.useCallback(async () => {
@@ -328,25 +339,20 @@ export default function InvoicesPage() {
         }
     };
 
-    const handleCreateItem = async () => {
+    const handleCreateItem = () => {
         setEditingItem(null);
-        itemForm.reset({ service_id: '', quantity: 1, unit_price: 0 });
-        const fetchedServices = await getServices();
-        setServices(fetchedServices);
-        setIsCreateItemDialogOpen(true);
+        itemForm.reset({
+            id: undefined,
+            service_id: '',
+            quantity: 1,
+            unit_price: 0
+        });
+        setIsItemDialogOpen(true);
     };
 
-    const handleEditItem = async (item: InvoiceItem) => {
+    const handleEditItem = (item: InvoiceItem) => {
         setEditingItem(item);
-        itemForm.reset({
-            id: item.id,
-            service_id: item.service_id,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-        });
-        const fetchedServices = await getServices();
-        setServices(fetchedServices);
-        setIsEditItemDialogOpen(true);
+        setIsItemDialogOpen(true);
     };
 
     const handleDeleteItem = (item: InvoiceItem) => {
@@ -371,8 +377,7 @@ export default function InvoicesPage() {
             await api.post(API_ROUTES.PURCHASES.INVOICES_ITEMS_UPSERT, payload);
             toast({ title: 'Success', description: `Invoice item ${editingItem ? 'updated' : 'created'} successfully.` });
             loadInvoiceItems();
-            setIsEditItemDialogOpen(false);
-            setIsCreateItemDialogOpen(false);
+            setIsItemDialogOpen(false);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : `Failed to ${editingItem ? 'update' : 'create'} invoice item.` });
         }
@@ -431,85 +436,6 @@ export default function InvoicesPage() {
 
     const canEditItems = selectedInvoice?.status.toLowerCase() === 'draft';
 
-    const ItemFormDialog = ({
-        isOpen,
-        onOpenChange,
-        title,
-        onSubmit,
-    }: {
-        isOpen: boolean;
-        onOpenChange: (open: boolean) => void;
-        title: string;
-        onSubmit: (data: InvoiceItemFormValues) => void;
-    }) => (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{title}</DialogTitle>
-                </DialogHeader>
-                <Form {...itemForm}>
-                    <form onSubmit={itemForm.handleSubmit(onSubmit)} className="space-y-4">
-                        <FormField
-                            control={itemForm.control}
-                            name="service_id"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Service</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select a service" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {services.map((service) => (
-                                                <SelectItem key={service.id} value={service.id}>
-                                                    {service.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={itemForm.control}
-                            name="quantity"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Quantity</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={itemForm.control}
-                            name="unit_price"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Unit Price</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" step="0.01" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                                Cancel
-                            </Button>
-                            <Button type="submit">Save Changes</Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
-    );
 
     return (
         <div className="relative overflow-hidden">
@@ -527,7 +453,6 @@ export default function InvoicesPage() {
                             onRefresh={loadInvoices}
                             onPrint={handlePrintInvoice}
                             onSendEmail={handleSendEmailClick}
-                            onCreate={() => setIsCreateDialogOpen(true)}
                             onImport={() => {
                                 setImportFile(null);
                                 setIsProcessingImport(false);
@@ -544,6 +469,7 @@ export default function InvoicesPage() {
                                 { label: "Invoice", value: "invoice" },
                                 { label: "Credit Note", value: "credit_note" },
                             ]}
+                            isSales={false}
                         />
                     </CardContent>
                 </Card>
@@ -566,12 +492,12 @@ export default function InvoicesPage() {
                                 {selectedInvoice.status.toLowerCase() === 'draft' && (
                                     <Button variant="outline" size="sm" onClick={() => handleConfirmInvoiceClick(selectedInvoice)}>
                                         <CheckCircle className="mr-2 h-4 w-4" />
-                                        Confirm Invoice
+                                        {t('confirmInvoice')}
                                     </Button>
                                 )}
                                 <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                                     <X className="h-5 w-5" />
-                                    <span className="sr-only">Close details</span>
+                                    <span className="sr-only">{t('close')}</span>
                                 </Button>
                             </div>
                         </CardHeader>
@@ -676,53 +602,167 @@ export default function InvoicesPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-            <CreateInvoiceDialog
-                isOpen={isCreateDialogOpen}
-                onOpenChange={setIsCreateDialogOpen}
-                onInvoiceCreated={loadInvoices}
-                isSales={false}
-            />
-
             <ItemFormDialog
-                isOpen={isCreateItemDialogOpen}
-                onOpenChange={setIsCreateItemDialogOpen}
-                title="Create Invoice Item"
+                isOpen={isItemDialogOpen}
+                onOpenChange={setIsItemDialogOpen}
+                editingItem={editingItem}
                 onSubmit={onItemSubmit}
-            />
-
-            <ItemFormDialog
-                isOpen={isEditItemDialogOpen}
-                onOpenChange={setIsEditItemDialogOpen}
-                title="Edit Invoice Item"
-                onSubmit={onItemSubmit}
+                itemForm={itemForm}
+                services={services}
+                t={t}
             />
 
             <AlertDialog open={isDeleteItemDialogOpen} onOpenChange={setIsDeleteItemDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>This will permanently delete the invoice item. This action cannot be undone.</AlertDialogDescription>
+                        <AlertDialogTitle>{t('deleteItemDialog.title')}</AlertDialogTitle>
+                        <AlertDialogDescription>{t('deleteItemDialog.description')}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
             <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Confirm Invoice</AlertDialogTitle>
+                        <AlertDialogTitle>{t('confirmInvoiceDialog.title')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to confirm invoice #{confirmingInvoice?.id}? This action cannot be undone.
+                            {t('confirmInvoiceDialog.description', { id: confirmingInvoice?.id })}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleConfirmInvoice}>Confirm</AlertDialogAction>
+                        <AlertDialogCancel>{t('confirmInvoiceDialog.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmInvoice}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
         </div>
     );
 }
+
+const ItemFormDialog = ({
+    isOpen,
+    onOpenChange,
+    editingItem,
+    onSubmit,
+    itemForm,
+    services,
+    t
+}: {
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+    editingItem: InvoiceItem | null;
+    onSubmit: (data: InvoiceItemFormValues) => void;
+    itemForm: any;
+    services: Service[];
+    t: any;
+}) => {
+    const title = editingItem ? t('InvoiceItemsTable.editTitle') : t('InvoiceItemsTable.createTitle');
+    const isLoading = services.length === 0;
+
+    React.useEffect(() => {
+        if (isOpen) {
+            if (editingItem) {
+                itemForm.reset({
+                    id: String(editingItem.id),
+                    service_id: String(editingItem.service_id),
+                    quantity: editingItem.quantity,
+                    unit_price: editingItem.unit_price,
+                });
+            } else {
+                itemForm.reset({
+                    id: undefined,
+                    service_id: '',
+                    quantity: 1,
+                    unit_price: 0
+                });
+            }
+        }
+    }, [isOpen, editingItem, itemForm]);
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{title}</DialogTitle>
+                </DialogHeader>
+                {isLoading ? (
+                    <div className="flex items-center justify-center p-8">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                ) : (
+                    <Form {...itemForm}>
+                        <form onSubmit={itemForm.handleSubmit(onSubmit)} className="space-y-4">
+                            <FormField
+                                control={itemForm.control}
+                                name="service_id"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('InvoiceItemsTable.form.service')}</FormLabel>
+                                        <Select
+                                            onValueChange={field.onChange}
+                                            value={field.value || ""}
+                                        >
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder={t('InvoiceItemsTable.form.selectService')} />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {services.map((service) => (
+                                                    <SelectItem key={service.id} value={String(service.id)}>
+                                                        {service.name}
+                                                    </SelectItem>
+                                                ))}
+                                                {field.value && !services.find(s => String(s.id) === String(field.value)) && (
+                                                    <SelectItem value={String(field.value)}>
+                                                        [ID: {field.value}] - {t('InvoiceItemsTable.form.notInList') || 'No en la lista'}
+                                                    </SelectItem>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={itemForm.control}
+                                name="quantity"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('InvoiceItemsTable.form.quantity')}</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={itemForm.control}
+                                name="unit_price"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('InvoiceItemsTable.form.unitPrice')}</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.01" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                                    {t('createDialog.cancel')}
+                                </Button>
+                                <Button type="submit">{t('createDialog.save')}</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                )}
+            </DialogContent>
+        </Dialog>
+    );
+};
