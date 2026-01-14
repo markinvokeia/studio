@@ -576,7 +576,9 @@
           "phone": "Phone",
           "identity_document": "Identity Document"
         }
-      }
+      },
+      "birth_date": "Birth Date",
+      "birth_date_placeholder": "01/01/1999"
     },
     "filters": {
       "type": {
@@ -973,7 +975,8 @@
         "credit_note": "Credit Note"
       },
       "type": "Type",
-      "parentInvoice": "Parent Invoice"
+      "parentInvoice": "Parent Invoice",
+      "save": "Save"
     },
     "actions": {
       "openMenu": "Open menu",
@@ -2516,14 +2519,14 @@
     },
     "validation": {
       "codeRequired": "Code is required.",
-      "codeFormat": "Code must be uppercase and contain no spaces.",
+      "codeFormat": "Code must be uppercase letters, numbers, and underscores only, with no spaces.",
       "nameRequired": "Name is required.",
       "nameMaxLength": "Name cannot exceed 100 characters.",
       "descriptionMaxLength": "Description cannot exceed 500 characters.",
       "colorInvalid": "Must be a valid hex color (e.g., #FF5733).",
       "validation": {
         "codeRequired": "Code is required.",
-        "codeFormat": "Code must be uppercase and contain no spaces.",
+        "codeFormat": "Code must be uppercase letters, numbers, and underscores only, with no spaces.",
         "nameRequired": "Name is required",
         "nameMaxLength": "Name cannot exceed 100 characters.",
         "descriptionMaxLength": "Description cannot exceed 500 characters.",
@@ -2534,6 +2537,7 @@
   "AlertsCenterPage": {
     "title": "Alerts Center",
     "description": "View and manage all system-generated alerts.",
+    "reload": "Reload",
     "summary": {
       "total": "Total Pending",
       "critical": "Critical",
@@ -2542,7 +2546,22 @@
     },
     "dailyAlerts": "Daily Alerts",
     "filters": {
-      "title": "Filters"
+      "title": "Filters",
+      "status": "Status",
+      "all": "All",
+      "priority": "Priority",
+      "statusOptions": {
+        "pending": "Pending",
+        "completed": "Completed",
+        "inProgress": "In Progress",
+        "ignored": "Ignored"
+      },
+      "priorityOptions": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "critical": "Critical"
+      }
     },
     "categories": {
       "appointments": "Appointments",
@@ -2554,8 +2573,61 @@
     "status": {
       "pending": "Pending",
       "in_progress": "In Progress",
-      "completed": "Completed"
-    }
+      "completed": "Completed",
+      "ignored": "Ignored"
+    },
+    "actions": {
+      "sendSms": "Send SMS",
+      "registerCall": "Register Call",
+      "print": "Print",
+      "snooze": "Snooze",
+      "assign": "Assign",
+      "addNote": "Add Note",
+      "ignore": "Ignore"
+    },
+    "snoozeAlert": {
+      "title": "Snooze Alert",
+      "date": "Date",
+      "quickOptions": "Quick Options",
+      "day": "Day",
+      "days": "Days",
+      "week": "Week",
+      "reason": "Reason",
+      "placeholder": "Enter reason...",
+      "submit": "Snooze"
+    },
+    "ignoreAlert": {
+      "title": "Ignore Alert",
+      "reason": "Reason",
+      "placeholder": "Enter reason...",
+      "submit": "Ignore"
+    },
+    "bulkActions": {
+      "title": "Bulk Actions",
+      "alertsSelected": "alert(s) selected",
+      "markAllCompleted": "Mark all as Completed",
+      "sendEmailToAll": "Send Email to all",
+      "ignoreAll": "Ignore All",
+      "snoozeAll": "Snooze All",
+      "deselectAll": "Deselect all"
+    },
+    "toast": {
+      "alertsUpdated": "Alerts Updated",
+      "alertsMarkedCompleted": "{count} alert(s) marked as completed.",
+      "alertsMarkedIgnored": "{count} alert(s) marked as ignored.",
+      "alertsSnoozed": "{count} alert(s) snoozed.",
+      "markCompletedFailed": "Failed to mark alerts as completed",
+      "markCompletedFailedDescription": "An error occurred while marking the alerts as completed. Please try again.",
+      "markIgnoredFailed": "Failed to mark alerts as ignored",
+      "markIgnoredFailedDescription": "An error occurred while marking the alerts as ignored. Please try again.",
+      "snoozeFailed": "Failed to snooze alerts",
+      "snoozeFailedDescription": "Could not snooze the alerts.",
+      "emailSent": "Email Sent",
+      "emailSentDescription": "Email sent to {count} alert(s).",
+      "emailSendFailed": "Failed to send email",
+      "emailSendFailedDescription": "An error occurred while sending the email. Please try again."
+    },
+    "noAlerts": "No alerts available."
   },
   "AlertRulesPage": {
     "title": "Alert Rules",
@@ -2595,13 +2667,28 @@
       "isActive": "Is Active",
       "cancel": "Cancel",
       "create": "Create Rule",
-      "save": "Save Changes"
+      "save": "Save Changes",
+      "conditions": "Conditions",
+      "selectSourceTable": "Select Source Table",
+      "recurrenceType": "Recurrence Type",
+      "selectRecurrenceType": "Select Recurrence Type",
+      "emailTemplate": "Email Template",
+      "selectEmailTemplate": "Select Email Template",
+      "smsTemplate": "SMS Template",
+      "selectSmsTemplate": "Select SMS Template",
+      "saving": "Saving",
+      "userIdField": "User ID Field",
+      "selectUserIdField": "Select User ID Field",
+      "noUserIdField": "No User ID Field",
+      "tableIdField": "Table ID Field",
+      "selectTableIdField": "Select Table ID Field"
     },
     "deleteDialog": {
       "title": "Delete Rule",
       "description": "Are you sure you want to delete the rule \"{name}\"?",
       "cancel": "Cancel",
-      "confirm": "Delete"
+      "confirm": "Delete",
+      "deleting": "Deleting"
     },
     "toast": {
       "errorTitle": "Error",
@@ -2617,6 +2704,7 @@
       "nameRequired": "Name is required.",
       "priorityRequired": "Priority is required.",
       "sourceTableRequired": "Source table is required.",
+      "tableIdFieldRequired": "Table ID field is required.",
       "queryTemplateRequired": "Query template is required."
     },
     "priorities": {
@@ -2697,7 +2785,7 @@
       "sentAt": "Sent At",
       "channel": "Channel",
       "recipient": "Recipient",
-      "subject": "Subject",
+      "title": "Title",
       "status": "Status",
       "alertId": "Alert ID"
     }
@@ -2712,7 +2800,26 @@
       "alertsCreated": "Alerts Created",
       "emailsSent": "Emails Sent",
       "errorsCount": "Errors",
-      "duration": "Duration"
+      "duration": "Duration",
+      "openMenu": "Open menu",
+      "viewDetails": "View Details"
+    },
+    "detailDialog": {
+      "title": "Execution Details",
+      "runDate": "Run Date",
+      "startedAt": "Started At",
+      "completedAt": "Completed At",
+      "triggeredBy": "Triggered By",
+      "rulesProcessed": "Rules Processed",
+      "alertsCreated": "Alerts Created",
+      "alertsSkipped": "Alerts Skipped",
+      "emailsSent": "Emails Sent",
+      "smsSent": "SMS Sent",
+      "executionLog": "Execution Log",
+      "noExecutionLog": "No execution log available",
+      "errorDetails": "Error Details",
+      "noErrors": "No error details available",
+      "status": "Status"
     }
   },
   "AlertsConfigPage": {
@@ -2726,7 +2833,11 @@
       "enableDescription": "Runs daily to generate alerts based on active rules.",
       "executionTime": "Execution Time",
       "timezone": "Timezone",
-      "runNow": "Run Now"
+      "runNow": "Run Now",
+      "runNowSuccessTitle": "Scheduler Executed",
+      "runNowSuccessDescription": "The alert scheduler has been executed successfully.",
+      "runNowErrorTitle": "Execution Error",
+      "runNowErrorDescription": "An error occurred while executing the scheduler. Please try again."
     },
     "email": {
       "title": "Email Configuration",
@@ -2760,7 +2871,9 @@
     },
     "toast": {
       "saveSuccessTitle": "Settings Saved",
-      "saveSuccessDescription": "Your configuration changes have been saved."
+      "saveSuccessDescription": "Your configuration changes have been saved.",
+      "saveErrorTitle": "Save Error",
+      "saveErrorDescription": "An error occurred while saving changes. Please try again."
     }
   },
   "RoleColumns": {

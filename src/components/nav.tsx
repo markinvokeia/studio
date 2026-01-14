@@ -10,6 +10,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { Separator } from '@/components/ui/separator';
 import type { NavItem } from '@/config/nav';
 import { useLocale, useTranslations } from 'next-intl';
 import React, { useEffect, useState } from 'react';
@@ -55,7 +56,11 @@ export function Nav({ items }: NavProps) {
     }
   }, [pathname, locale, items, isClient]);
 
-  const renderLink = (item: NavItem, isSubItem = false) => {
+  const renderLink = (item: NavItem, index: number, isSubItem = false) => {
+    if (item.isSeparator) {
+      return <Separator key={`separator-${index}`} className="my-2" />;
+    }
+
     const title = t(item.title as any);
     const effectivePathname = getEffectivePathname(pathname, locale);
     
@@ -87,7 +92,7 @@ export function Nav({ items }: NavProps) {
     );
     
     return (
-        <Link key={item.href} href={linkHref} className={linkClasses}>
+        <Link key={`${item.href}-${index}`} href={linkHref} className={linkClasses}>
             {linkContent}
         </Link>
     );
@@ -122,7 +127,7 @@ export function Nav({ items }: NavProps) {
               </AccordionTrigger>
               <AccordionContent className="pl-4 pt-1">
                 <div className="grid gap-1">
-                  {item.items?.map((subItem) => renderLink(subItem, true))}
+                  {item.items?.map((subItem, subIndex) => renderLink(subItem, subIndex, true))}
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -143,7 +148,7 @@ export function Nav({ items }: NavProps) {
   return (
     <nav className="grid items-start gap-1 px-2 text-sm font-medium">
         {items.map((item, index) =>
-          item.items ? renderAccordion(item, index) : renderLink(item)
+          item.items ? renderAccordion(item, index) : renderLink(item, index)
         )}
       </nav>
   );

@@ -65,7 +65,17 @@ const apiRequest = async (
         if (responseType === 'blob') {
             return await response.blob();
         }
-        return await response.json();
+        // Check if response has content before parsing as JSON
+        const text = await response.text();
+        if (!text.trim()) {
+            return null; // Return null for empty responses
+        }
+        try {
+            return JSON.parse(text);
+        } catch (jsonError) {
+            console.error('Failed to parse JSON response:', jsonError, 'Response text:', text);
+            throw new Error('Invalid JSON response from server');
+        }
     } catch (error) {
         console.error('API request failed:', error);
         throw error;

@@ -8,6 +8,7 @@ export type User = {
   is_active: boolean;
   avatar: string;
   identity_document?: string;
+  birth_date?: string;
   color?: string;
   is_sales?: boolean;
   total_invoiced?: any;
@@ -572,6 +573,7 @@ export type AlertRule = {
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   source_table: string;
   query_template: string;
+  user_id_field?: string;
   days_before?: number;
   days_after?: number;
   recurrence_type?: 'ONCE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
@@ -586,6 +588,7 @@ export type AlertInstance = {
   id: string;
   rule_id: string;
   rule_name?: string;
+  category_id?: string;
   reference_table: string;
   reference_id: string;
   patient_id?: string;
@@ -594,7 +597,7 @@ export type AlertInstance = {
   event_date?: string;
   title: string;
   summary?: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'IGNORED';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'IGNORED' | 'SNOOZED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   assigned_to?: string;
   assigned_to_name?: string;
@@ -619,13 +622,30 @@ export type CommunicationTemplate = {
 };
 
 export type AlertAction = {
-  id: string;
-  alert_instance_id: string;
+  id: number;
+  alert_instance_id: number;
   action_type: string;
+  action_data?: {
+    data?: any;
+    clinic?: {
+      name: string;
+      email: string;
+      phone: string;
+      address: string;
+    };
+    patient?: {
+      email: string;
+      phone: string;
+      full_name: string;
+      document_id: string;
+    };
+  };
   result_status: 'SUCCESS' | 'FAILED' | 'PENDING';
   result_message?: string;
   performed_by: string;
   performed_at: string;
+  title?: string;
+  summary?: string;
 };
 
 export type CommunicationLog = {
@@ -634,16 +654,29 @@ export type CommunicationLog = {
   template_id?: string;
   channel: 'EMAIL' | 'SMS' | 'WHATSAPP' | 'PRINT';
   recipient_address: string;
+  title?: string;
+  summary?: string;
   status: 'QUEUED' | 'SENT' | 'DELIVERED' | 'FAILED' | 'BOUNCED';
   sent_at?: string;
+  error_message?: string;
 };
 
 export type AlertScheduleRun = {
-  id: string;
+  id: number;
   run_date: string;
-  status: 'RUNNING' | 'COMPLETED' | 'FAILED';
+  started_at: string;
+  completed_at: string;
+  status: string;
+  rules_processed: number;
   alerts_created: number;
+  alerts_skipped: number;
+  emails_queued: number;
+  emails_sent: number;
+  sms_sent: number;
   errors_count: number;
+  error_details: any | null;
+  execution_log: any | null;
+  triggered_by: string;
 };
 
 export type UserAlertPreference = {

@@ -59,6 +59,7 @@ const userFormSchema = (t: (key: string) => string) => z.object({
   identity_document: z.string()
     .regex(/^\d+$/, { message: t('UsersPage.createDialog.validation.identityInvalid') })
     .max(10, { message: t('UsersPage.createDialog.validation.identityMaxLength') }),
+  birth_date: z.string().optional(),
   is_active: z.boolean().default(false),
 });
 
@@ -117,6 +118,33 @@ const UserStats = ({ user, t }: { user: User, t: (key: string) => string }) => {
 };
 
 
+function formatBirthDate(dateStr: string | undefined): string {
+  if (!dateStr) return '';
+
+  // If already in YYYY-MM-DD format, return as is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+
+  // If in DD/MM/YYYY format, convert to YYYY-MM-DD
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
+    const [day, month, year] = dateStr.split('/');
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+
+  // If it's a timestamp or other format, try to parse
+  try {
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+  } catch {
+    // Ignore parsing errors
+  }
+
+  return dateStr; // Return as is if can't format
+}
+
 async function getUsers(pagination: PaginationState, searchQuery: string, onlyDebtors: boolean, dateRange?: DateRange): Promise<GetUsersResponse> {
   try {
     const query: Record<string, string> = {
@@ -165,6 +193,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
       phone_number: apiUser.phone_number || '000-000-0000',
       is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
       identity_document: apiUser.identity_document,
+      birth_date: formatBirthDate(apiUser.birth_date || apiUser.birthday),
       avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
       total_invoiced: apiUser.total_invoiced,
       total_paid: apiUser.total_paid,
@@ -172,8 +201,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
       available_balance: apiUser.available_balance,
     }));
 
-    return { users: mappedUsers, total: total };
-
+    return { users: mappedUsers, total };
   } catch (error) {
     console.error("Failed to fetch users:", error);
     return { users: [], total: 0 };
@@ -243,6 +271,7 @@ export default function UsersPage() {
       email: '',
       phone: '',
       identity_document: '',
+      birth_date: '',
       is_active: true,
     },
   });
@@ -300,6 +329,7 @@ export default function UsersPage() {
       email: '',
       phone: '',
       identity_document: '',
+      birth_date: '',
       is_active: true,
     });
     setSubmissionError(null);
@@ -314,6 +344,7 @@ export default function UsersPage() {
       email: user.email,
       phone: user.phone_number,
       identity_document: user.identity_document,
+      birth_date: user.birth_date || '',
       is_active: user.is_active,
     });
     setSubmissionError(null);
@@ -769,31 +800,50 @@ export default function UsersPage() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="identity_document"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="is_active"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                    <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
-                  </FormItem>
-                )}
-              />
+               <FormField
+                 control={form.control}
+                 name="identity_document"
+                 render={({ field }) => (
+                   <FormItem>
+                     <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
+                     <FormControl>
+                       <Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} />
+                     </FormControl>
+                     <FormMessage />
+                   </FormItem>
+                 )}
+               />
+               <FormField
+                 control={form.control}
+                 name="birth_date"
+                 render={({ field }) => (
+                   <FormItem>
+                     <FormLabel>{t('UsersPage.createDialog.birth_date')}</FormLabel>
+                     <FormControl>
+                       <Input
+                         type="date"
+                         placeholder={t('UsersPage.createDialog.birth_date_placeholder')}
+                         {...field}
+                         max={new Date().toISOString().split('T')[0]}
+                         min="1900-01-01"
+                       />
+                     </FormControl>
+                     <FormMessage />
+                   </FormItem>
+                 )}
+               />
+               <FormField
+                 control={form.control}
+                 name="is_active"
+                 render={({ field }) => (
+                   <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                     <FormControl>
+                       <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                     </FormControl>
+                     <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
+                   </FormItem>
+                 )}
+               />
               <div className="flex justify-end space-x-2 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('UsersPage.createDialog.cancel')}</Button>
                 <Button type="submit">{editingUser ? t('UsersPage.createDialog.editSave') : t('UsersPage.createDialog.save')}</Button>

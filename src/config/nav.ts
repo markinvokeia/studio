@@ -52,6 +52,7 @@ export interface NavItem {
   label?: string;
   items?: NavItem[];
   isChidren?: boolean;
+  isSeparator?: boolean;
 }
 
 export const navItems: NavItem[] = [
@@ -70,10 +71,10 @@ export const navItems: NavItem[] = [
     href: '/cashier',
     icon: Box,
     items: [
-        { title: 'Cashier', href: '/cashier', icon: Box, isChidren: true },
-        { title: 'MiscellaneousTransactions', href: '/cashier/miscellaneous-transactions', icon: Coins, isChidren: true },
-        { title: 'CashSessions', href: '/cashier/sessions', icon: History, isChidren: true },
-        { title: 'PhysicalCashRegisters', href: '/cashier/cash-points', icon: Archive, isChidren: true },
+      { title: 'Cashier', href: '/cashier', icon: Box, isChidren: true },
+      { title: 'MiscellaneousTransactions', href: '/cashier/miscellaneous-transactions', icon: Coins, isChidren: true },
+      { title: 'CashSessions', href: '/cashier/sessions', icon: History, isChidren: true },
+      { title: 'PhysicalCashRegisters', href: '/cashier/cash-points', icon: Archive, isChidren: true },
     ],
   },
   {
@@ -105,7 +106,7 @@ export const navItems: NavItem[] = [
       { title: 'Services', href: '/config/services', icon: Briefcase, isChidren: true },
     ],
   },
-   {
+  {
     title: 'Purchases',
     href: '/purchases/quotes',
     icon: ShoppingBasket,
@@ -118,7 +119,7 @@ export const navItems: NavItem[] = [
       { title: 'ProviderProducts', href: '/purchases/services', icon: Briefcase, isChidren: true },
     ],
   },
-   {
+  {
     title: 'ClinicCatalog',
     href: '/clinic-catalog/ailments',
     icon: BookHeart,
@@ -153,12 +154,14 @@ export const navItems: NavItem[] = [
       { title: 'SystemUsers', href: '/system/users', icon: Users, isChidren: true },
       { title: 'Roles', href: '/roles', icon: KeyRound, isChidren: true },
       { title: 'Permissions', href: '/permissions', icon: Shield, isChidren: true },
+      { title: '', href: '', icon: Shield, isChidren: false, isSeparator: true },
       { title: 'AlertsConfig', href: '/system/alerts-config', icon: Settings, isChidren: true },
       { title: 'AlertCategories', href: '/system/alert-categories', icon: Layers, isChidren: true },
       { title: 'AlertRules', href: '/system/alert-rules', icon: BotMessageSquare, isChidren: true },
       { title: 'AlertTemplates', href: '/system/communication-templates', icon: BookCopy, isChidren: true },
       { title: 'AlertHistory', href: '/system/communication-history', icon: Mails, isChidren: true },
       { title: 'AlertExecutions', href: '/system/execution-history', icon: FileClock, isChidren: true },
+      { title: '', href: '', icon: Shield, isChidren: false, isSeparator: true },
       { title: 'Configurations', href: '/system/config', icon: Settings, isChidren: true },
       { title: 'AuditLog', href: '/system/audit', icon: BarChart, isChidren: true },
       { title: 'AccessLog', href: '/system/access', icon: UserCheck, isChidren: true },

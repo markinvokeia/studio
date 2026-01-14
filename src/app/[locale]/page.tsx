@@ -216,8 +216,8 @@ async function getPatientDemographicsData(dateRange: DateRange | undefined, t: (
         return {
             total: newPatients + recurringPatients,
             data: [
-                { type: t('new'), count: newPatients, fill: 'hsl(var(--chart-1))' },
-                { type: t('recurrent'), count: recurringPatients, fill: 'hsl(var(--chart-2))' },
+                { type: 'New', count: newPatients, fill: 'hsl(var(--chart-1))' },
+                { type: 'Recurrent', count: recurringPatients, fill: 'hsl(var(--chart-2))' },
             ]
         };
     } catch (error) {
