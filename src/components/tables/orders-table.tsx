@@ -17,7 +17,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Order, Quote, User } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
@@ -192,6 +192,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={tOrderColumns('createdAt')} />
       ),
+      cell: ({ row }) => formatDateTime(row.original.createdAt),
     },
     {
       id: 'actions',
