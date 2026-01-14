@@ -141,7 +141,7 @@ export default function PaymentMethodsPage() {
         setSubmissionError(null);
         try {
             await upsertPaymentMethod(values);
-            toast({ title: editingMethod ? t('toast.editSuccess') : t('toast.createSuccess'), description: `Payment method "${values.name}" saved.` });
+            toast({ title: editingMethod ? t('toast.editSuccess') : t('toast.createSuccess'), description: t('toast.saveDescription', { name: values.name }) });
             setIsDialogOpen(false);
             loadMethods();
         } catch (error) {

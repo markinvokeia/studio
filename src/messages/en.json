@@ -1438,6 +1438,7 @@
     },
     "dialog": {
       "createTitle": "Create Payment Method",
+      "editTitle": "Edit Payment Method",
       "name": "Name",
       "namePlaceholder": "e.g., Credit Card",
       "code": "Code",
@@ -1448,7 +1449,20 @@
       "create": "Create",
       "save": "Save Changes"
     },
-    "validation": "Validation",
+    "toast": {
+      "createSuccess": "Payment Method Created",
+      "editSuccess": "Payment Method Updated",
+      "saveDescription": "Payment method \"{name}\" saved successfully.",
+      "deleteSuccess": "Payment Method Deleted",
+      "deleteDescription": "Payment method \"{name}\" has been deleted.",
+      "errorTitle": "Error",
+      "deleteError": "Failed to delete payment method.",
+      "genericError": "An unexpected error occurred."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "codeRequired": "Code is required."
+    },
     "deleteDialog": {
       "title": "Delete Payment Method",
       "description": "Delete a payment method",

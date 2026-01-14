@@ -1441,6 +1441,7 @@
         },
         "dialog": {
             "createTitle": "Crear Método de Pago",
+            "editTitle": "Editar Método de Pago",
             "name": "Nombre",
             "namePlaceholder": "ej., Tarjeta de Crédito",
             "code": "Código",
@@ -1451,7 +1452,20 @@
             "create": "Crear",
             "save": "Guardar Cambios"
         },
-        "validation": "Validación",
+        "toast": {
+            "createSuccess": "Método de Pago Creado",
+            "editSuccess": "Método de Pago Actualizado",
+            "saveDescription": "El método de pago \"{name}\" se ha guardado exitosamente.",
+            "deleteSuccess": "Método de Pago Eliminado",
+            "deleteDescription": "El método de pago \"{name}\" ha sido eliminado.",
+            "errorTitle": "Error",
+            "deleteError": "No se pudo eliminar el método de pago.",
+            "genericError": "Ocurrió un error inesperado."
+        },
+        "validation": {
+            "nameRequired": "El nombre es obligatorio.",
+            "codeRequired": "El código es obligatorio."
+        },
         "deleteDialog": {
             "title": "Eliminar Método de Pago",
             "description": "Eliminar un método de pago",
