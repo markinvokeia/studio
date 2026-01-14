@@ -218,11 +218,13 @@ export function Header() {
                     <OpenCashSessionWidget />
 
                     <div className="flex items-center justify-end gap-2">
-                        <Link href={`/${locale}/alerts`} passHref>
+<Link href={`/${locale}/alerts`} passHref>
                             <Button variant="outline" size="icon" className="relative">
-                                <Bell className="h-[1.2rem] w-[1.2rem]" />
+                                <div className={`h-[1.2rem] w-[1.2rem] flex items-center justify-center ${pendingAlertsCount > 0 ? 'animate-bell-ring' : ''}`}>
+                                    <Bell className="h-[1.2rem] w-[1.2rem]" />
+                                </div>
                                 {pendingAlertsCount > 0 && (
-                                    <span className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-xs text-white ${alertBadgeColor}`}>
+                                    <span className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-xs text-white bg-red-500`}>
                                         {pendingAlertsCount}
                                     </span>
                                 )}

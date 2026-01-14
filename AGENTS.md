@@ -30,56 +30,23 @@ This file contains guidelines and conventions for agentic coding agents working 
    - `npm run test:watch` - Run tests in watch mode
    - `npm run test:coverage` - Run tests with coverage report
 3. For running a single test file: `npm run test -- path/to/test.spec.ts`
-4. Test files should be named `*.test.ts` or `*.spec.ts` and placed next to the component they test
+4. For running a specific test pattern: `npm run test -- --testNamePattern="test name"`
+5. For running tests in a directory: `npm run test -- src/components/ui/`
+6. Test files should be named `*.test.ts`, `*.spec.ts`, or `*.test.tsx` and placed next to the component they test
 
-## Project Architecture
+## Tech Stack & Architecture
 
-### Tech Stack
+**Framework:** Next.js 15 with App Router, TypeScript (strict mode), Tailwind CSS with Shadcn/ui
+**Key Libraries:** React Hook Form + Zod, next-intl, Google Genkit, Recharts, Radix UI, next-themes
 
-- **Framework:** Next.js 15 with App Router
-- **Language:** TypeScript (strict mode enabled)
-- **Styling:** Tailwind CSS with Shadcn/ui components
-- **State Management:** React Context, useState, useReducer
-- **Forms:** React Hook Form with Zod validation
-- **Internationalization:** next-intl
-- **AI Integration:** Google Genkit
-- **UI Components:** Radix UI primitives with custom variants
-- **Theming:** next-themes for dark/light mode support
-- **Charts:** Recharts for data visualization
+**Directory Structure:**
 
-### Directory Structure
-
-```
-src/
-├── app/[locale]/              # Next.js App Router with i18n routing
-│   ├── (auth)/                # Auth route groups
-│   ├── (dashboard)/           # Dashboard route groups
-│   └── globals.css            # Global styles
-├── components/
-│   ├── ui/                   # Shadcn/ui reusable components
-│   ├── [feature]/            # Feature-specific components
-│   ├── auth/                 # Authentication components
-│   ├── dashboard/            # Dashboard components
-│   ├── users/                # User management components
-│   ├── calendar/             # Calendar components
-│   └── charts/               # Chart components
-├── lib/
-│   ├── types.ts              # Comprehensive type definitions (690+ lines)
-│   ├── utils.ts              # Utility functions (cn helper)
-│   ├── countries.ts          # Country data utilities
-│   └── data.ts               # Static data and constants
-├── hooks/                    # Custom React hooks
-├── services/                 # API service layer
-├── context/                  # React context providers
-├── ai/                       # Google Genkit AI integration
-│   ├── flows/                # AI workflow implementations
-│   └── genkit.ts             # AI configuration
-├── constants/                # Configuration constants
-├── config/                   # Application configuration
-├── messages/                 # i18n translation files (en.json, es.json)
-├── middleware.ts             # Next.js middleware
-└── i18n.ts                   # Internationalization configuration
-```
+- `src/app/[locale]/` - Next.js App Router with i18n
+- `src/components/ui/` - Shadcn/ui reusable components
+- `src/components/[feature]/` - Feature-specific components
+- `src/lib/types.ts` - Centralized type definitions
+- `src/hooks/`, `src/services/`, `src/context/` - Custom hooks, API services, React contexts
+- `src/ai/` - Google Genkit AI integration
 
 ## Code Style Guidelines
 
@@ -113,11 +80,7 @@ export const Component = React.forwardRef<HTMLDivElement, ComponentProps>(
     return (
       <div
         ref={ref}
-        className={cn(
-          'base-styles',
-          variant === 'secondary' && 'secondary-styles',
-          className
-        )}
+        className={cn('base-styles', variant === 'secondary' && 'secondary-styles', className)}
         {...props}
       />
     )
@@ -131,31 +94,11 @@ Component.displayName = 'Component'
 
 Follow this strict order with empty lines between groups:
 
-```typescript
-// 1. React and external libraries
-import * as React from 'react'
-import { useState, useEffect } from 'react'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-
-// 2. Internal UI components (@/components/ui/*)
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-
-// 3. Feature components (@/components/*)
-import { UserProfile } from '@/components/users/user-profile'
-
-// 4. Hooks, utilities, and services
-import { useToast } from '@/hooks/use-toast'
-import { cn } from '@/lib/utils'
-import { api } from '@/services/api'
-
-// 5. Types, constants, and config
-import { User, UserRole } from '@/lib/types'
-import { API_ROUTES } from '@/constants/routes'
-import { siteConfig } from '@/config/site'
-```
+1. React and external libraries
+2. Internal UI components (@/components/ui/*)
+3. Feature components (@/components/*)
+4. Hooks, utilities, and services
+5. Types, constants, and config
 
 ### Naming Conventions
 
@@ -165,8 +108,6 @@ import { siteConfig } from '@/config/site'
 - **Constants:** SCREAMING_SNAKE_CASE (`API_ROUTES`, `MAX_ITEMS`)
 - **Types/Interfaces:** PascalCase (`UserData`, `ApiResponse`)
 - **Custom Hooks:** `use` prefix (`useAuth`, `useLocalStorage`)
-- **Context:** PascalCase with `Context` suffix (`AuthContext`)
-- **Providers:** PascalCase with `Provider` suffix (`ThemeProvider`)
 
 ### Path Aliases
 
@@ -174,94 +115,22 @@ import { siteConfig } from '@/config/site'
 - `@/lib/*` - Utilities, types, helpers, and static data
 - `@/hooks/*` - Custom React hooks
 - `@/services/*` - API services and external integrations
-- `@/context/*` - React context providers
-- `@/constants/*` - Configuration constants and routes
-- `@/config/*` - Application configuration files
-- `@/messages/*` - Internationalization files
-
-### UI Component Guidelines
-
-- **Base Components:** Always use Shadcn/ui components from `@/components/ui/*`
-- **Variants:** Extend with Class Variance Authority (CVA) for consistent styling
-- **Accessibility:** Follow Radix UI patterns with proper ARIA attributes
-- **Styling:** Use `cn()` utility for conditional class merging
-- **Forward Refs:** Implement for interactive components to support ref forwarding
-- **Compound Components:** Use Radix patterns for complex component relationships
 
 ### Form Handling
 
-Always use React Hook Form with Zod validation:
-
-```typescript
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-
-const formSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().optional(),
-})
-
-type FormData = z.infer<typeof formSchema>
-
-export const UserForm = () => {
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      phone: '',
-    },
-  })
-
-  const onSubmit = async (data: FormData) => {
-    try {
-      // Handle form submission
-    } catch (error) {
-      // Handle error
-    }
-  }
-
-  return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
-      {/* Form fields */}
-    </form>
-  )
-}
-```
+Always use React Hook Form with Zod validation. Define schemas and use `z.infer<typeof schema>` for type safety.
 
 ### API Integration
 
-- **Centralized Service:** Use `@/services/api` for all API calls
-- **Error Handling:** Implement try-catch with proper error types
-- **Loading States:** Use React state or SWR/React Query for async operations
-- **Response Types:** Define API response types in `@/lib/types.ts`
-- **Authentication:** Include auth tokens automatically via interceptors
+- Use `@/services/api` for all API calls
+- Define API response types in `@/lib/types.ts`
+- Implement proper error handling and loading states
 
 ### Internationalization
 
-- **Hook Usage:** Always use `useTranslations` from next-intl
-- **Key Organization:** Feature-based keys (`users.title`, `dashboard.stats.revenue`)
-- **File Structure:** Translations in `src/messages/[locale].json`
-- **Routing:** Locale-based routing with `[locale]` dynamic segments
-- **Fallback:** Provide fallback text for missing translations
-
-### Error Handling
-
-- **Boundaries:** Implement `ErrorBoundary` components for crash recovery
-- **User Feedback:** Use `@/hooks/use-toast` for notifications
-- **Logging:** Log errors without exposing sensitive data
-- **Fallback UI:** Provide meaningful fallback states for failed operations
-- **Type Safety:** Define custom error types extending Error
-
-### AI Integration
-
-- **Location:** AI logic in `src/ai/` directory
-- **Framework:** Google Genkit for AI processing
-- **Architecture:** Keep AI logic server-side when possible
-- **Error Handling:** Implement proper error handling for AI responses
-- **Flows:** Modular flow implementations in `src/ai/flows/`
+- Use `useTranslations` from next-intl
+- Translations in `src/messages/[locale].json`
+- Locale-based routing with `[locale]` dynamic segments
 
 ## Development Workflow
 
@@ -274,22 +143,10 @@ export const UserForm = () => {
 
 ### After Making Changes
 
-1. Run `npm run typecheck && npm run lint` to verify code quality
+1. **CRITICAL:** Run `npm run typecheck && npm run lint` to verify code quality - never commit without this
 2. Test functionality manually in development server
 3. Ensure i18n keys are added for new user-facing text
 4. Verify responsive design across different screen sizes
-
-### Code Review Checklist
-
-- [ ] TypeScript types are properly defined and exported from `@/lib/types.ts`
-- [ ] Import organization follows the established order
-- [ ] Component follows established patterns with proper forward refs
-- [ ] Error handling is implemented with user-friendly feedback
-- [ ] Internationalization keys are added for user-facing text
-- [ ] Accessibility follows Radix UI patterns
-- [ ] Code follows naming conventions consistently
-- [ ] Responsive design is considered for mobile/tablet/desktop
-- [ ] Dark mode support is implemented where applicable
 
 ## Security Considerations
 

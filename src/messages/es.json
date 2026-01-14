@@ -2563,14 +2563,20 @@
             "completed": "Completada",
             "ignored": "Ignorada"
         },
-        "actions": {
+"actions": {
             "sendSms": "Enviar SMS",
+            "sendWhatsApp": "Enviar WhatsApp",
             "registerCall": "Registrar Llamada",
             "print": "Imprimir",
             "snooze": "Pausar",
             "assign": "Asignar",
             "addNote": "Agregar Nota",
             "ignore": "Ignorar"
+        },
+        "actionsGroups": {
+            "communication": "Comunicación",
+            "management": "Gestión",
+            "other": "Otras"
         },
         "snoozeAlert": {
             "title": "Pausar Alerta",
@@ -2589,16 +2595,18 @@
             "placeholder": "Ingrese razón...",
             "submit": "Ignorar"
         },
-        "bulkActions": {
+"bulkActions": {
             "title": "Acciones en Masa",
             "alertsSelected": "alerta(s) seleccionada(s)",
             "markAllCompleted": "Marcar todas como Completadas",
             "sendEmailToAll": "Enviar Correo a todas",
+            "sendSmsToAll": "Enviar SMS a todas",
+            "sendWhatsAppToAll": "Enviar WhatsApp a todas",
             "ignoreAll": "Ignorar Todas",
             "snoozeAll": "Pausar Todas",
             "deselectAll": "Deseleccionar todas"
         },
-        "toast": {
+"toast": {
             "alertsUpdated": "Alertas Actualizadas",
             "alertsMarkedCompleted": "{count} alerta(s) marcada(s) como completada(s).",
             "alertsMarkedIgnored": "{count} alerta(s) marcada(s) como ignorada(s).",
@@ -2612,7 +2620,15 @@
             "emailSent": "Correo Enviado",
             "emailSentDescription": "Correo enviado a {count} alerta(s).",
             "emailSendFailed": "Error al enviar correo",
-            "emailSendFailedDescription": "Ocurrió un error al enviar el correo. Por favor, inténtelo de nuevo."
+            "emailSendFailedDescription": "Ocurrió un error al enviar el correo. Por favor, inténtelo de nuevo.",
+            "smsSent": "SMS Enviado",
+            "smsSentDescription": "SMS enviado a {count} alerta(s).",
+            "smsSendFailed": "Error al enviar SMS",
+            "smsSendFailedDescription": "Ocurrió un error al enviar el SMS. Por favor, inténtelo de nuevo.",
+            "whatsappSent": "WhatsApp Enviado",
+            "whatsappSentDescription": "Mensaje de WhatsApp enviado a {count} alerta(s).",
+            "whatsappSendFailed": "Error al enviar WhatsApp",
+            "whatsappSendFailedDescription": "Ocurrió un error al enviar el mensaje de WhatsApp. Por favor, inténtelo de nuevo."
         },
         "noAlerts": "No hay alertas disponibles.",
         "AlertRulesPage": {

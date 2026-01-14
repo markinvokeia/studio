@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,7 +32,8 @@ import {
     Stethoscope,
     User,
     UserPlus,
-    XCircle
+    XCircle,
+    MessageCircle
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';
@@ -207,13 +208,33 @@ export default function AlertsCenterPage() {
         }
     };
 
-    const sendEmail = async (alertIds: string[]) => {
+const sendEmail = async (alertIds: string[]) => {
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SEND_EMAIL, { ids: alertIds });
             toast({ title: t('toast.emailSent'), description: t('toast.emailSentDescription', { count: alertIds.length }) });
         } catch (error) {
             console.error('Failed to send email:', error);
             toast({ title: t('toast.emailSendFailed'), description: t('toast.emailSendFailedDescription'), variant: 'destructive' });
+        }
+    };
+
+    const sendWhatsApp = async (alertIds: string[]) => {
+        try {
+            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SEND_WHATSAPP, { ids: alertIds });
+            toast({ title: t('toast.whatsappSent'), description: t('toast.whatsappSentDescription', { count: alertIds.length }) });
+        } catch (error) {
+            console.error('Failed to send WhatsApp message:', error);
+            toast({ title: t('toast.whatsappSendFailed'), description: t('toast.whatsappSendFailedDescription'), variant: 'destructive' });
+        }
+    };
+
+    const sendSms = async (alertIds: string[]) => {
+        try {
+            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SEND_SMS, { ids: alertIds });
+            toast({ title: t('toast.smsSent'), description: t('toast.smsSentDescription', { count: alertIds.length }) });
+        } catch (error) {
+            console.error('Failed to send SMS:', error);
+            toast({ title: t('toast.smsSendFailed'), description: t('toast.smsSendFailedDescription'), variant: 'destructive' });
         }
     };
 
@@ -291,8 +312,14 @@ export default function AlertsCenterPage() {
                                     <Button variant="ghost" size="sm" onClick={() => markAsCompleted(selectedAlerts)} title={t('bulkActions.markAllCompleted')}>
                                         <CheckCircle className="h-4 w-4" />
                                     </Button>
-                                    <Button variant="ghost" size="sm" onClick={() => sendEmail(selectedAlerts)} title={t('bulkActions.sendEmailToAll')}>
+<Button variant="ghost" size="sm" onClick={() => sendEmail(selectedAlerts)} title={t('bulkActions.sendEmailToAll')}>
                                         <Mail className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => sendSms(selectedAlerts)} title={t('bulkActions.sendSmsToAll')}>
+                                        <MessageSquare className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => sendWhatsApp(selectedAlerts)} title={t('bulkActions.sendWhatsAppToAll')}>
+                                        <MessageCircle className="h-4 w-4" />
                                     </Button>
                                     <Button variant="ghost" size="sm" onClick={() => { setAlertsToIgnore(selectedAlerts); setIgnoreDialogOpen(true); }} title={t('bulkActions.ignoreAll')}>
                                         <XCircle className="h-4 w-4" />
@@ -431,15 +458,20 @@ export default function AlertsCenterPage() {
                                                             <DropdownMenuTrigger asChild>
                                                                 <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
                                                             </DropdownMenuTrigger>
-                                                            <DropdownMenuContent>
-                                                                <DropdownMenuItem><MessageSquare className="mr-2 h-4 w-4" />{t('actions.sendSms')}</DropdownMenuItem>
+<DropdownMenuContent>
+                                                                <DropdownMenuLabel>{t('actionsGroups.communication')}</DropdownMenuLabel>
+                                                                <DropdownMenuItem onClick={() => sendSms([alert.id])}><MessageSquare className="mr-2 h-4 w-4" />{t('actions.sendSms')}</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => sendWhatsApp([alert.id])}><MessageCircle className="mr-2 h-4 w-4" />{t('actions.sendWhatsApp')}</DropdownMenuItem>
                                                                 <DropdownMenuItem><Phone className="mr-2 h-4 w-4" />{t('actions.registerCall')}</DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuLabel>{t('actionsGroups.management')}</DropdownMenuLabel>
+                                                                <DropdownMenuItem onClick={() => { setAlertsToSnooze([alert.id]); setSnoozeDialogOpen(true); }}><Clock className="mr-2 h-4 w-4" />{t('actions.snooze')}</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => { setAlertsToIgnore([alert.id]); setIgnoreDialogOpen(true); }}><XCircle className="mr-2 h-4 w-4" />{t('actions.ignore')}</DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuLabel>{t('actionsGroups.other')}</DropdownMenuLabel>
                                                                 <DropdownMenuItem><Printer className="mr-2 h-4 w-4" />{t('actions.print')}</DropdownMenuItem>
-                                                                <DropdownMenuItem><Clock className="mr-2 h-4 w-4" />{t('actions.snooze')}</DropdownMenuItem>
                                                                 <DropdownMenuItem><UserPlus className="mr-2 h-4 w-4" />{t('actions.assign')}</DropdownMenuItem>
                                                                 <DropdownMenuItem><FileText className="mr-2 h-4 w-4" />{t('actions.addNote')}</DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => { setAlertsToIgnore([alert.id]); setIgnoreDialogOpen(true); }}><XCircle className="mr-2 h-4 w-4" />{t('actions.ignore')}</DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => { setAlertsToSnooze([alert.id]); setSnoozeDialogOpen(true); }}><Clock className="mr-2 h-4 w-4" />{t('actions.snooze')}</DropdownMenuItem>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
                                                     </div>

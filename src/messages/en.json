@@ -2564,14 +2564,20 @@
       "completed": "Completed",
       "ignored": "Ignored"
     },
-    "actions": {
+"actions": {
       "sendSms": "Send SMS",
+      "sendWhatsApp": "Send WhatsApp",
       "registerCall": "Register Call",
       "print": "Print",
       "snooze": "Snooze",
       "assign": "Assign",
       "addNote": "Add Note",
       "ignore": "Ignore"
+    },
+    "actionsGroups": {
+      "communication": "Communication",
+      "management": "Management",
+      "other": "Other"
     },
     "snoozeAlert": {
       "title": "Snooze Alert",
@@ -2590,30 +2596,40 @@
       "placeholder": "Enter reason...",
       "submit": "Ignore"
     },
-    "bulkActions": {
+"bulkActions": {
       "title": "Bulk Actions",
       "alertsSelected": "alert(s) selected",
       "markAllCompleted": "Mark all as Completed",
       "sendEmailToAll": "Send Email to all",
+      "sendSmsToAll": "Send SMS to all",
+      "sendWhatsAppToAll": "Send WhatsApp to all",
       "ignoreAll": "Ignore All",
       "snoozeAll": "Snooze All",
       "deselectAll": "Deselect all"
     },
-    "toast": {
+"toast": {
       "alertsUpdated": "Alerts Updated",
       "alertsMarkedCompleted": "{count} alert(s) marked as completed.",
       "alertsMarkedIgnored": "{count} alert(s) marked as ignored.",
       "alertsSnoozed": "{count} alert(s) snoozed.",
       "markCompletedFailed": "Failed to mark alerts as completed",
-      "markCompletedFailedDescription": "An error occurred while marking the alerts as completed. Please try again.",
+      "markCompletedFailedDescription": "An error occurred while marking alerts as completed. Please try again.",
       "markIgnoredFailed": "Failed to mark alerts as ignored",
-      "markIgnoredFailedDescription": "An error occurred while marking the alerts as ignored. Please try again.",
+      "markIgnoredFailedDescription": "An error occurred while marking alerts as ignored. Please try again.",
       "snoozeFailed": "Failed to snooze alerts",
       "snoozeFailedDescription": "Could not snooze the alerts.",
       "emailSent": "Email Sent",
       "emailSentDescription": "Email sent to {count} alert(s).",
       "emailSendFailed": "Failed to send email",
-      "emailSendFailedDescription": "An error occurred while sending the email. Please try again."
+      "emailSendFailedDescription": "An error occurred while sending email. Please try again.",
+      "smsSent": "SMS Sent",
+      "smsSentDescription": "SMS sent to {count} alert(s).",
+      "smsSendFailed": "Failed to send SMS",
+      "smsSendFailedDescription": "An error occurred while sending SMS. Please try again.",
+      "whatsappSent": "WhatsApp Sent",
+      "whatsappSentDescription": "WhatsApp message sent to {count} alert(s).",
+      "whatsappSendFailed": "Failed to send WhatsApp",
+      "whatsappSendFailedDescription": "An error occurred while sending WhatsApp message. Please try again."
     },
     "noAlerts": "No alerts available."
   },

@@ -235,6 +235,8 @@ export const API_ROUTES = {
         ALERT_INSTANCES_COMPLETE: '/system/alert-instances/complete',
         ALERT_INSTANCES_IGNORE: '/system/alert-instances/ignore',
         ALERT_INSTANCES_SEND_EMAIL: '/system/alert-instances/send-email',
+        ALERT_INSTANCES_SEND_SMS: '/system/alert-instances/send-sms',
+        ALERT_INSTANCES_SEND_WHATSAPP: '/system/alert-instances/send-whatsapp',
         ALERT_INSTANCES_SNOOZE: '/system/alert-instances/snooze',
         ALERT_RULES: '/system/alert-rules',
         ALERTS_CONFIG: '/system/alerts-config',

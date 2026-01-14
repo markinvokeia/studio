@@ -15,13 +15,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+import { API_ROUTES } from '@/constants/routes';
+import { api } from '@/services/api';
 
 const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
     const pathname = usePathname();
     const t = useTranslations('Navigation');
     const locale = useLocale();
+    const [pendingAlertsCount, setPendingAlertsCount] = React.useState(0);
 
-    const getEffectivePathname = (p: string, l: string) => {
+const getEffectivePathname = (p: string, l: string) => {
         const localePrefix = `/${l}`;
         if (p.startsWith(localePrefix)) {
             return p.substring(localePrefix.length) || '/';
@@ -30,6 +34,23 @@ const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
     };
     
     const effectivePathname = getEffectivePathname(pathname, locale);
+
+    const fetchPendingAlertsCount = async () => {
+        try {
+            const response = await api.get(API_ROUTES.SYSTEM.ALERT_INSTANCES, { status: 'PENDING' });
+            if (Array.isArray(response)) {
+                setPendingAlertsCount(response.length);
+            }
+        } catch (error) {
+            console.error('Failed to fetch pending alerts count:', error);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchPendingAlertsCount();
+        const interval = setInterval(fetchPendingAlertsCount, 30000); // Update every 30 seconds
+        return () => clearInterval(interval);
+    }, []);
     
     return (
         <aside className="fixed inset-y-0 left-0 z-40 flex h-screen w-20 flex-col border-r bg-card">
@@ -52,22 +73,39 @@ const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
                             linkHref = `/${locale}/clinic-history/${userIdFromUrl}`;
                         }
 
-                        return (
-                            <Tooltip key={item.title}>
+return (
+                        <Tooltip key={String(item.title)}>
                                 <TooltipTrigger asChild>
                                     <Link 
                                         href={linkHref}
                                         className={cn(
-                                            "flex h-auto w-full flex-col items-center justify-center gap-1 rounded-none p-2 transition-colors",
+                                            "flex h-auto w-full flex-col items-center justify-center gap-1 rounded-none p-2 transition-colors relative",
                                             isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                                         )}
                                         onMouseEnter={() => onHover(item)}
                                     >
-                                        <item.icon className="h-6 w-6" />
+                                        <div className="relative">
+                                            <item.icon className="h-6 w-6" />
+                                            {item.title === 'AlertsCenter' && pendingAlertsCount > 0 && (
+                                                <Badge 
+                                                    variant="destructive" 
+                                                    className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs p-0"
+                                                >
+                                                    {pendingAlertsCount > 99 ? '99+' : pendingAlertsCount}
+                                                </Badge>
+                                            )}
+                                        </div>
                                         <span className="block w-full text-center text-[10px] font-medium leading-tight line-clamp-2">{t(item.title as any)}</span>
                                     </Link>
                                 </TooltipTrigger>
-                                <TooltipContent side="right">{t(item.title as any)}</TooltipContent>
+                                <TooltipContent side="right">
+                            {t(item.title as any)}
+                            {item.title === 'AlertsCenter' && pendingAlertsCount > 0 && (
+                                <span className="ml-2 text-xs text-muted-foreground">
+                                    ({pendingAlertsCount > 99 ? '99+' : pendingAlertsCount} pendientes)
+                                </span>
+                            )}
+                        </TooltipContent>
                             </Tooltip>
                         )
                     })}
