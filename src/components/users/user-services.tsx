@@ -228,7 +228,7 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
             filterPlaceholder={t('ServicesPage.filterPlaceholder')}
             onCreate={handleAddService}
             columnTranslations={{
-              name: t('ServicesColumns.service'),
+              name: t('ServicesColumns.name'),
               category: t('ServicesColumns.category'),
               price: t('ServicesColumns.price'),
               duration_minutes: t('ServicesColumns.duration'),

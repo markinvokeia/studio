@@ -102,6 +102,7 @@ export default function ServicesPage() {
   const t = useTranslations('ServicesPage');
   const tNav = useTranslations('Navigation');
   const tValidation = useTranslations('ServicesPage.validation');
+  const tColumns = useTranslations('ServicesColumns');
   const [services, setServices] = React.useState<Service[]>([]);
   const [categories, setCategories] = React.useState<MiscellaneousCategory[]>([]);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -203,6 +204,16 @@ export default function ServicesPage() {
 
   const servicesColumns = ServicesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
 
+  const columnTranslations = {
+    id: tColumns('id'),
+    name: tColumns('name'),
+    category: tColumns('category'),
+    price: tColumns('price'),
+    currency: tColumns('currency'),
+    duration_minutes: tColumns('duration'),
+    actions: tColumns('actions'),
+  };
+
 
   return (
     <>
@@ -220,6 +231,7 @@ export default function ServicesPage() {
             onCreate={handleCreate}
             onRefresh={loadServices}
             isRefreshing={isRefreshing}
+            columnTranslations={columnTranslations}
           />
         </CardContent>
       </Card>
