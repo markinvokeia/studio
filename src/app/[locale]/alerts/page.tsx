@@ -17,6 +17,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { toast } from '@/hooks/use-toast';
 import { AlertInstance, AlertAction, AlertCategory } from '@/lib/types';
 import { api } from '@/services/api';
+import { BulkActionsFloatingBar } from '@/components/alerts/bulk-actions-floating-bar';
 import {
     AlertTriangle,
     Calendar,
@@ -311,33 +312,7 @@ const sendEmail = async (alertIds: string[]) => {
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <CardTitle>{t('dailyAlerts')}</CardTitle>
-                        <div className="flex items-center gap-2">
-                            {selectedAlerts.length > 0 && (
-                                <>
-                                    <Button variant="ghost" size="sm" onClick={() => markAsCompleted(selectedAlerts)} title={t('bulkActions.markAllCompleted')}>
-                                        <CheckCircle className="h-4 w-4" />
-                                    </Button>
-<Button variant="ghost" size="sm" onClick={() => sendEmail(selectedAlerts)} title={t('bulkActions.sendEmailToAll')}>
-                                        <Mail className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="sm" onClick={() => sendSms(selectedAlerts)} title={t('bulkActions.sendSmsToAll')}>
-                                        <MessageSquare className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="sm" onClick={() => sendWhatsApp(selectedAlerts)} title={t('bulkActions.sendWhatsAppToAll')}>
-                                        <MessageCircle className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="sm" onClick={() => { setAlertsToIgnore(selectedAlerts); setIgnoreDialogOpen(true); }} title={t('bulkActions.ignoreAll')}>
-                                        <XCircle className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="sm" onClick={() => { setAlertsToSnooze(selectedAlerts); setSnoozeDialogOpen(true); }} title={t('bulkActions.snoozeAll')}>
-                                        <Clock className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="sm" onClick={() => setSelectedAlerts([])} title={t('bulkActions.deselectAll')}>
-                                        <XCircle className="h-4 w-4" />
-                                    </Button>
-                                    <div className="h-6 w-px bg-border" />
-                                </>
-                            )}
+<div className="flex items-center gap-2">
                             <Button variant="outline" size="sm" onClick={() => loadAlerts()} disabled={loading}>
                                 <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                                 {t('reload')}
@@ -569,7 +544,19 @@ const sendEmail = async (alertIds: string[]) => {
                         </Button>
                     </DialogFooter>
                 </DialogContent>
-            </Dialog>
+</Dialog>
+
+            {/* Floating Bulk Actions Bar */}
+            <BulkActionsFloatingBar
+                selectedCount={selectedAlerts.length}
+                onMarkAsCompleted={() => markAsCompleted(selectedAlerts)}
+                onSendEmail={() => sendEmail(selectedAlerts)}
+                onSendSms={() => sendSms(selectedAlerts)}
+                onSendWhatsApp={() => sendWhatsApp(selectedAlerts)}
+                onIgnore={() => { setAlertsToIgnore(selectedAlerts); setIgnoreDialogOpen(true); }}
+                onSnooze={() => { setAlertsToSnooze(selectedAlerts); setSnoozeDialogOpen(true); }}
+                onDeselectAll={() => setSelectedAlerts([])}
+            />
 
         </div>
     );

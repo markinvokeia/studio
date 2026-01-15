@@ -43,11 +43,9 @@ export function AlertNotificationsProvider({ children }: AlertNotificationsProvi
     setState(prev => ({ ...prev, isLoading: true, error: null }))
     
     try {
-      const response = await api.get(API_ROUTES.SYSTEM.ALERT_INSTANCES, { status: 'PENDING' })
-      
-      console.log('Alert Notifications Response:', response)
+const response = await api.get(API_ROUTES.SYSTEM.ALERT_INSTANCES, { status: 'PENDING' })
 
-      // Handle empty responses - the API returns an array with one empty object
+      // Handle empty responses - API returns an array with one empty object
       if (response.length === 1 && Object.keys(response[0]).length === 0) {
         setState({
           pendingCount: 0,
