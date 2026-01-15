@@ -1,0 +1,118 @@
+'use client'
+
+import * as React from 'react'
+import { api } from '@/services/api'
+import { API_ROUTES } from '@/constants/routes'
+
+interface AlertNotificationsState {
+  pendingCount: number
+  highestPriority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
+  isLoading: boolean
+  error: string | null
+}
+
+interface AlertNotificationsContextType extends AlertNotificationsState {
+  refreshAlerts: () => Promise<void>
+  lastUpdated: Date | null
+}
+
+const AlertNotificationsContext = React.createContext<AlertNotificationsContextType | undefined>(undefined)
+
+export function useAlertNotifications() {
+  const context = React.useContext(AlertNotificationsContext)
+  if (context === undefined) {
+    throw new Error('useAlertNotifications must be used within an AlertNotificationsProvider')
+  }
+  return context
+}
+
+interface AlertNotificationsProviderProps {
+  children: React.ReactNode
+}
+
+export function AlertNotificationsProvider({ children }: AlertNotificationsProviderProps) {
+  const [state, setState] = React.useState<AlertNotificationsState>({
+    pendingCount: 0,
+    highestPriority: 'LOW',
+    isLoading: false,
+    error: null
+  })
+  const [lastUpdated, setLastUpdated] = React.useState<Date | null>(null)
+
+  const fetchAlerts = React.useCallback(async () => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }))
+    
+    try {
+      const response = await api.get(API_ROUTES.SYSTEM.ALERT_INSTANCES, { status: 'PENDING' })
+      
+      console.log('Alert Notifications Response:', response)
+
+      // Handle empty responses - the API returns an array with one empty object
+      if (response.length === 1 && Object.keys(response[0]).length === 0) {
+        setState({
+          pendingCount: 0,
+          highestPriority: 'LOW',
+          isLoading: false,
+          error: null
+        })
+        setLastUpdated(new Date())
+        return
+      }
+
+      // Response is directly an array of alerts
+      const alerts: any[] = response
+      const pendingCount = alerts.length
+      
+      let highestPriority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW'
+      if (pendingCount > 0) {
+        const priorities = alerts.map((alert: any) => alert.priority).filter(Boolean)
+        if (priorities.includes('CRITICAL')) {
+          highestPriority = 'CRITICAL'
+        } else if (priorities.includes('HIGH')) {
+          highestPriority = 'HIGH'
+        } else if (priorities.includes('MEDIUM')) {
+          highestPriority = 'MEDIUM'
+        }
+      }
+
+      setState({
+        pendingCount,
+        highestPriority,
+        isLoading: false,
+        error: null
+      })
+      setLastUpdated(new Date())
+    } catch (error) {
+      console.error('Error fetching alert notifications:', error)
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'Failed to fetch alerts'
+      }))
+    }
+  }, [])
+
+  const refreshAlerts = React.useCallback(async () => {
+    await fetchAlerts()
+  }, [fetchAlerts])
+
+  React.useEffect(() => {
+    fetchAlerts()
+    
+    const interval = setInterval(fetchAlerts, 30000)
+    
+    return () => clearInterval(interval)
+  }, [fetchAlerts])
+
+  const contextValue: AlertNotificationsContextType = {
+    ...state,
+    refreshAlerts,
+    lastUpdated
+  }
+
+  return (
+    <AlertNotificationsContext.Provider value={contextValue}>
+      {children}
+    </AlertNotificationsContext.Provider>
+  )
+}

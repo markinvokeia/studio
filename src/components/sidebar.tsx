@@ -16,14 +16,13 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { API_ROUTES } from '@/constants/routes';
-import { api } from '@/services/api';
+import { useAlertNotifications } from '@/context/alert-notifications-context';
 
 const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
     const pathname = usePathname();
     const t = useTranslations('Navigation');
     const locale = useLocale();
-    const [pendingAlertsCount, setPendingAlertsCount] = React.useState(0);
+    const { pendingCount } = useAlertNotifications();
 
 const getEffectivePathname = (p: string, l: string) => {
         const localePrefix = `/${l}`;
@@ -35,22 +34,7 @@ const getEffectivePathname = (p: string, l: string) => {
     
     const effectivePathname = getEffectivePathname(pathname, locale);
 
-    const fetchPendingAlertsCount = async () => {
-        try {
-            const response = await api.get(API_ROUTES.SYSTEM.ALERT_INSTANCES, { status: 'PENDING' });
-            if (Array.isArray(response)) {
-                setPendingAlertsCount(response.length);
-            }
-        } catch (error) {
-            console.error('Failed to fetch pending alerts count:', error);
-        }
-    };
 
-    React.useEffect(() => {
-        fetchPendingAlertsCount();
-        const interval = setInterval(fetchPendingAlertsCount, 30000); // Update every 30 seconds
-        return () => clearInterval(interval);
-    }, []);
     
     return (
         <aside className="fixed inset-y-0 left-0 z-40 flex h-screen w-20 flex-col border-r bg-card">
@@ -86,12 +70,12 @@ return (
                                     >
                                         <div className="relative">
                                             <item.icon className="h-6 w-6" />
-                                            {item.title === 'AlertsCenter' && pendingAlertsCount > 0 && (
+                                            {item.title === 'AlertsCenter' && pendingCount > 0 && (
                                                 <Badge 
                                                     variant="destructive" 
                                                     className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs p-0"
                                                 >
-                                                    {pendingAlertsCount > 99 ? '99+' : pendingAlertsCount}
+                                                    {pendingCount > 99 ? '99+' : pendingCount}
                                                 </Badge>
                                             )}
                                         </div>
@@ -100,9 +84,9 @@ return (
                                 </TooltipTrigger>
                                 <TooltipContent side="right">
                             {t(item.title as any)}
-                            {item.title === 'AlertsCenter' && pendingAlertsCount > 0 && (
+                            {item.title === 'AlertsCenter' && pendingCount > 0 && (
                                 <span className="ml-2 text-xs text-muted-foreground">
-                                    ({pendingAlertsCount > 99 ? '99+' : pendingAlertsCount} pendientes)
+                                    ({pendingCount > 99 ? '99+' : pendingCount} pendientes)
                                 </span>
                             )}
                         </TooltipContent>

@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { OpenCashSessionWidget } from '@/components/cash-session-widget';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -87,8 +88,7 @@ export function Header() {
     const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
     const [passwordChangeError, setPasswordChangeError] = React.useState<string | null>(null);
 
-    const [pendingAlertsCount, setPendingAlertsCount] = React.useState(0);
-    const [highestPriority, setHighestPriority] = React.useState<'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'>('LOW');
+    const { pendingCount, highestPriority } = useAlertNotifications();
 
     const alertBadgeColor = {
         CRITICAL: 'bg-red-500',
@@ -97,43 +97,12 @@ export function Header() {
         LOW: 'bg-gray-500'
     }[highestPriority];
 
-    const fetchPendingAlertsCount = async () => {
-        try {
-            const response = await api.get(API_ROUTES.SYSTEM.ALERT_INSTANCES, { status: 'PENDING' });
-            if (response.length === 1 && Object.keys(response[0]).length === 0) {
-                setPendingAlertsCount(0);
-                setHighestPriority('LOW');
-                return;
-            }
-            const alerts: any[] = response;
-            setPendingAlertsCount(alerts.length);
-            if (alerts.length > 0) {
-                const priorities = alerts.map(a => a.priority);
-                if (priorities.includes('CRITICAL')) setHighestPriority('CRITICAL');
-                else if (priorities.includes('HIGH')) setHighestPriority('HIGH');
-                else if (priorities.includes('MEDIUM')) setHighestPriority('MEDIUM');
-                else setHighestPriority('LOW');
-            } else {
-                setHighestPriority('LOW');
-            }
-        } catch (error) {
-            console.error('Failed to fetch pending alerts count:', error);
-            setPendingAlertsCount(0);
-            setHighestPriority('LOW');
-        }
-    };
-
 
     const form = useForm<PasswordFormValues>({
         resolver: zodResolver(passwordFormSchema(t)),
     });
 
-    React.useEffect(() => {
-        fetchPendingAlertsCount();
-        // Refresh every 30 seconds
-        const interval = setInterval(fetchPendingAlertsCount, 30000);
-        return () => clearInterval(interval);
-    }, []);
+    
 
     React.useEffect(() => {
         if (isChangePasswordOpen) {
@@ -220,12 +189,12 @@ export function Header() {
                     <div className="flex items-center justify-end gap-2">
 <Link href={`/${locale}/alerts`} passHref>
                             <Button variant="outline" size="icon" className="relative">
-                                <div className={`h-[1.2rem] w-[1.2rem] flex items-center justify-center ${pendingAlertsCount > 0 ? 'animate-bell-ring' : ''}`}>
+                                <div className={`h-[1.2rem] w-[1.2rem] flex items-center justify-center ${pendingCount > 0 ? 'animate-bell-ring' : ''}`}>
                                     <Bell className="h-[1.2rem] w-[1.2rem]" />
                                 </div>
-                                {pendingAlertsCount > 0 && (
+                                {pendingCount > 0 && (
                                     <span className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-xs text-white bg-red-500`}>
-                                        {pendingAlertsCount}
+                                        {pendingCount}
                                     </span>
                                 )}
                                 <span className="sr-only">Alerts</span>

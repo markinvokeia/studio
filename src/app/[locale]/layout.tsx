@@ -7,6 +7,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { locales } from '@/i18n';
 import { AuthProvider } from '@/context/AuthContext';
+import { AlertNotificationsProvider } from '@/context/alert-notifications-context';
 import { PrivateRoute } from '@/components/auth/PrivateRoute';
 
 
@@ -27,14 +28,16 @@ export default async function LocaleLayout({
 
   const messages = await getMessages();
 
-  return (
+return (
     <AuthProvider>
-      <NextIntlClientProvider locale={locale} messages={messages}>
-        <PrivateRoute>
-          {children}
-        </PrivateRoute>
-        <Toaster />
-      </NextIntlClientProvider>
+      <AlertNotificationsProvider>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <PrivateRoute>
+            {children}
+          </PrivateRoute>
+          <Toaster />
+        </NextIntlClientProvider>
+      </AlertNotificationsProvider>
     </AuthProvider>
   );
 }

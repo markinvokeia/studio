@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { API_ROUTES } from '@/constants/routes';
 import { toast } from '@/hooks/use-toast';
 import { AlertInstance, AlertAction, AlertCategory } from '@/lib/types';
@@ -119,6 +120,7 @@ const SummaryCard = ({ title, count, color }: { title: string, count: number, co
 
 export default function AlertsCenterPage() {
     const t = useTranslations('AlertsCenterPage');
+    const { refreshAlerts } = useAlertNotifications();
     const [alerts, setAlerts] = React.useState<AlertInstance[]>([]);
     const [alertActions, setAlertActions] = React.useState<AlertAction[]>([]);
     const [alertCategories, setAlertCategories] = React.useState<AlertCategory[]>([]);
@@ -172,11 +174,12 @@ export default function AlertsCenterPage() {
         loadActions();
     }, [page, limit]);
 
-    const markAsCompleted = async (alertIds: string[]) => {
+const markAsCompleted = async (alertIds: string[]) => {
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_COMPLETE, { ids: alertIds });
             setAlerts(prev => prev.map(a => alertIds.includes(a.id) ? { ...a, status: 'COMPLETED' } : a));
             setSelectedAlerts([]);
+            refreshAlerts();
             toast({ title: t('toast.alertsUpdated'), description: t('toast.alertsMarkedCompleted', { count: alertIds.length }) });
         } catch (error) {
             console.error('Failed to mark alerts as completed:', error);
@@ -184,11 +187,12 @@ export default function AlertsCenterPage() {
         }
     };
 
-    const markAsIgnored = async (alertIds: string[], reason: string) => {
+const markAsIgnored = async (alertIds: string[], reason: string) => {
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_IGNORE, { ids: alertIds, reason });
             setAlerts(prev => prev.map(a => alertIds.includes(a.id) ? { ...a, status: 'IGNORED' } : a));
             setSelectedAlerts([]);
+            refreshAlerts();
             toast({ title: t('toast.alertsUpdated'), description: t('toast.alertsMarkedIgnored', { count: alertIds.length }) });
         } catch (error) {
             console.error('Failed to mark alerts as ignored:', error);
@@ -196,11 +200,12 @@ export default function AlertsCenterPage() {
         }
     };
 
-    const snoozeAlerts = async (alertIds: string[], snoozeUntil: string, reason: string) => {
+const snoozeAlerts = async (alertIds: string[], snoozeUntil: string, reason: string) => {
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SNOOZE, { ids: alertIds, snooze_until: snoozeUntil, reason });
             setAlerts(prev => prev.map(a => alertIds.includes(a.id) ? { ...a, status: 'SNOOZED' } : a));
             setSelectedAlerts([]);
+            refreshAlerts();
             toast({ title: t('toast.alertsUpdated'), description: t('toast.alertsSnoozed', { count: alertIds.length }) });
         } catch (error) {
             console.error('Failed to snooze alerts:', error);
