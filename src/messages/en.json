@@ -41,6 +41,7 @@
     "DoctorAvailability": "Doctor Availability",
     "DoctorAvailabilityExceptions": "Availability Exceptions",
     "Currencies": "Currencies & Exchange Rates",
+    "Sequences": "Sequences",
     "System": "System",
     "SystemUsers": "Users",
     "Roles": "Roles",
@@ -948,7 +949,6 @@
       "currency": "Currency",
       "cancel": "Cancel",
       "create": "Create",
-      "save": "Save",
       "success": {
         "title": "Success",
         "description": "Invoice created successfully.",
@@ -2576,7 +2576,7 @@
       "completed": "Completed",
       "ignored": "Ignored"
     },
-"actions": {
+    "actions": {
       "sendSms": "Send SMS",
       "sendWhatsApp": "Send WhatsApp",
       "registerCall": "Register Call",
@@ -2608,7 +2608,7 @@
       "placeholder": "Enter reason...",
       "submit": "Ignore"
     },
-"bulkActions": {
+    "bulkActions": {
       "title": "Bulk Actions",
       "alertsSelected": "alert(s) selected",
       "markAllCompleted": "Mark all as Completed",
@@ -2619,7 +2619,7 @@
       "snoozeAll": "Snooze All",
       "deselectAll": "Deselect all"
     },
-"toast": {
+    "toast": {
       "alertsUpdated": "Alerts Updated",
       "alertsMarkedCompleted": "{count} alert(s) marked as completed.",
       "alertsMarkedIgnored": "{count} alert(s) marked as ignored.",
@@ -2890,6 +2890,95 @@
       "saveSuccessDescription": "Your configuration changes have been saved.",
       "saveErrorTitle": "Save Error",
       "saveErrorDescription": "An error occurred while saving changes. Please try again."
+    }
+  },
+  "SequencesPage": {
+    "title": "Sequences",
+    "description": "Configure document numbering sequences for invoices, quotes, orders, and payments.",
+    "filterPlaceholder": "Filter sequences...",
+    "columns": {
+      "name": "Name",
+      "documentType": "Document Type",
+      "pattern": "Pattern",
+      "currentCounter": "Current Counter",
+      "resetPeriod": "Reset Period",
+      "isActive": "Active",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "createDialog": {
+      "title": "Create Sequence",
+      "editTitle": "Edit Sequence",
+      "description": "Configure a new document numbering sequence.",
+      "editDescription": "Update the document numbering sequence.",
+      "name": "Sequence Name",
+      "namePlaceholder": "Enter sequence name",
+      "documentType": "Document Type",
+      "selectDocumentType": "Select document type",
+      "pattern": "Pattern",
+      "patternPlaceholder": "e.g., INV-{YYYY}-{MM}-{COUNTER:4}",
+      "currentCounter": "Current Counter",
+      "resetPeriod": "Reset Period",
+      "selectResetPeriod": "Select reset period",
+      "isActive": "Active",
+      "variables": "Available Variables",
+      "variableDescription": "Click any variable to add it to the pattern",
+      "preview": "Preview",
+      "previewExample": "Example: ",
+      "cancel": "Cancel",
+      "save": "Create",
+      "editSave": "Update"
+    },
+    "deleteDialog": {
+      "title": "Delete Sequence",
+      "description": "Are you sure you want to delete this sequence? This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "documentTypes": {
+      "invoice": "Invoice",
+      "quote": "Quote",
+      "order": "Order",
+      "payment": "Payment",
+      "credit_note": "Credit Note",
+      "purchase_order": "Purchase Order"
+    },
+    "resetPeriods": {
+      "never": "Never",
+      "yearly": "Yearly",
+      "monthly": "Monthly"
+    },
+    "variables": {
+      "YYYY": "Full year (e.g., 2024)",
+      "YY": "Short year (e.g., 24)",
+      "MM": "Month with padding (01-12)",
+      "DD": "Day with padding (01-31)",
+      "COUNTER:N": "Sequential number with N digits (e.g., COUNTER:4 = 0001)",
+      "CLINIC": "Clinic code",
+      "DOCTYPE": "Document type code"
+    },
+    "validation": {
+      "nameRequired": "Sequence name is required",
+      "documentTypeRequired": "Document type is required",
+      "patternRequired": "Pattern is required",
+      "patternInvalid": "Pattern contains invalid variables",
+      "counterRequired": "Current counter is required",
+      "counterMin": "Counter must be at least 1",
+      "resetPeriodRequired": "Reset period is required"
+    },
+    "toast": {
+      "createSuccessTitle": "Sequence Created",
+      "createSuccessDescription": "The sequence has been created successfully.",
+      "editSuccessTitle": "Sequence Updated",
+      "editSuccessDescription": "The sequence has been updated successfully.",
+      "deleteSuccessTitle": "Sequence Deleted",
+      "deleteSuccessDescription": "The sequence has been deleted successfully.",
+      "errorTitle": "Error",
+      "createErrorDescription": "Failed to create sequence. Please try again.",
+      "editErrorDescription": "Failed to update sequence. Please try again.",
+      "deleteErrorDescription": "Failed to delete sequence. Please try again.",
+      "genericError": "An unexpected error occurred. Please try again."
     }
   },
   "RoleColumns": {

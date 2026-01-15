@@ -41,6 +41,7 @@
         "DoctorAvailability": "Disponibilidad Médica",
         "DoctorAvailabilityExceptions": "Excepciones de Disponibilidad",
         "Currencies": "Monedas y Tipos de Cambio",
+        "Sequences": "Secuencias",
         "System": "Sistema",
         "SystemUsers": "Usuarios",
         "Roles": "Roles",
@@ -2890,6 +2891,95 @@
             "saveSuccessDescription": "Sus cambios de configuración se han guardado.",
             "saveErrorTitle": "Error al Guardar",
             "saveErrorDescription": "Ocurrió un error al guardar los cambios. Por favor, inténtelo nuevamente."
+        }
+    },
+    "SequencesPage": {
+        "title": "Secuencias",
+        "description": "Configure secuencias de numeración de documentos para facturas, presupuestos, órdenes y pagos.",
+        "filterPlaceholder": "Filtrar secuencias...",
+        "columns": {
+            "name": "Nombre",
+            "documentType": "Tipo de Documento",
+            "pattern": "Patrón",
+            "currentCounter": "Contador Actual",
+            "resetPeriod": "Período de Reinicio",
+            "isActive": "Activo",
+            "actions": "Acciones",
+            "edit": "Editar",
+            "delete": "Eliminar"
+        },
+        "createDialog": {
+            "title": "Crear Secuencia",
+            "editTitle": "Editar Secuencia",
+            "description": "Configure una nueva secuencia de numeración de documentos.",
+            "editDescription": "Actualice la secuencia de numeración de documentos.",
+            "name": "Nombre de Secuencia",
+            "namePlaceholder": "Ingrese nombre de secuencia",
+            "documentType": "Tipo de Documento",
+            "selectDocumentType": "Seleccione tipo de documento",
+            "pattern": "Patrón",
+            "patternPlaceholder": "ej: FAC-{YYYY}-{MM}-{COUNTER:4}",
+            "currentCounter": "Contador Actual",
+            "resetPeriod": "Período de Reinicio",
+            "selectResetPeriod": "Seleccione período de reinicio",
+            "isActive": "Activo",
+            "variables": "Variables Disponibles",
+            "variableDescription": "Haga clic en cualquier variable para agregarla al patrón",
+            "preview": "Vista Previa",
+            "previewExample": "Ejemplo: ",
+            "cancel": "Cancelar",
+            "save": "Crear",
+            "editSave": "Actualizar"
+        },
+        "deleteDialog": {
+            "title": "Eliminar Secuencia",
+            "description": "¿Está seguro de que desea eliminar esta secuencia? Esta acción no se puede deshacer.",
+            "cancel": "Cancelar",
+            "confirm": "Eliminar"
+        },
+        "documentTypes": {
+            "invoice": "Factura",
+            "quote": "Presupuesto",
+            "order": "Orden",
+            "payment": "Pago",
+            "credit_note": "Nota de Crédito",
+            "purchase_order": "Orden de Compra"
+        },
+        "resetPeriods": {
+            "never": "Nunca",
+            "yearly": "Anualmente",
+            "monthly": "Mensualmente"
+        },
+        "variables": {
+            "YYYY": "Año completo (ej: 2024)",
+            "YY": "Año corto (ej: 24)",
+            "MM": "Mes con ceros (01-12)",
+            "DD": "Día con ceros (01-31)",
+            "COUNTER:N": "Número secuencial con N dígitos (ej: COUNTER:4 = 0001)",
+            "CLINIC": "Código de clínica",
+            "DOCTYPE": "Código de tipo de documento"
+        },
+        "validation": {
+            "nameRequired": "El nombre de secuencia es requerido",
+            "documentTypeRequired": "El tipo de documento es requerido",
+            "patternRequired": "El patrón es requerido",
+            "patternInvalid": "El patrón contiene variables inválidas",
+            "counterRequired": "El contador actual es requerido",
+            "counterMin": "El contador debe ser al menos 1",
+            "resetPeriodRequired": "El período de reinicio es requerido"
+        },
+        "toast": {
+            "createSuccessTitle": "Secuencia Creada",
+            "createSuccessDescription": "La secuencia ha sido creada exitosamente.",
+            "editSuccessTitle": "Secuencia Actualizada",
+            "editSuccessDescription": "La secuencia ha sido actualizada exitosamente.",
+            "deleteSuccessTitle": "Secuencia Eliminada",
+            "deleteSuccessDescription": "La secuencia ha sido eliminada exitosamente.",
+            "errorTitle": "Error",
+            "createErrorDescription": "No se pudo crear la secuencia. Por favor, inténtelo nuevamente.",
+            "editErrorDescription": "No se pudo actualizar la secuencia. Por favor, inténtelo nuevamente.",
+            "deleteErrorDescription": "No se pudo eliminar la secuencia. Por favor, inténtelo nuevamente.",
+            "genericError": "Ocurrió un error inesperado. Por favor, inténtelo nuevamente."
         }
     },
     "RoleColumns": {

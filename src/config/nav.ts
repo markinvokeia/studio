@@ -43,6 +43,7 @@ import {
   Mails,
   FileClock,
   BookCopy,
+  List,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -144,6 +145,7 @@ export const navItems: NavItem[] = [
       { title: 'DoctorAvailabilityExceptions', href: '/config/availability-exceptions', icon: UserX, isChidren: true },
       { title: 'Currencies', href: '/config/currencies', icon: DollarSign, isChidren: true },
       { title: 'MiscellaneousCategories', href: '/cashier/miscellaneous-categories', icon: Tags, isChidren: true },
+      { title: 'Sequences', href: '/config/sequences', icon: List, isChidren: true },
     ],
   },
   {

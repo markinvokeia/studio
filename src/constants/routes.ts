@@ -114,6 +114,10 @@ export const API_ROUTES = {
         HOLIDAYS: '/config/holidays',
         SCHEDULES: '/config/schedules',
         SERVICES: '/config/services',
+        SEQUENCES: '/config/sequences',
+        SEQUENCES_UPSERT: '/config/sequences/upsert',
+        SEQUENCES_DELETE: '/config/sequences/delete',
+        SEQUENCES_PREVIEW: '/config/sequences/preview',
     },
     DASHBOARD: {
         SUMMARY: '/dashboard_summary',

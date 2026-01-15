@@ -687,3 +687,28 @@ export type UserAlertPreference = {
   show_in_dashboard: boolean;
   email_notification: boolean;
 };
+
+export type Sequence = {
+  id: string;
+  name: string;
+  document_type: 'invoice' | 'quote' | 'order' | 'payment' | 'credit_note' | 'purchase_order';
+  pattern: string;
+  current_counter: number;
+  reset_period: 'never' | 'yearly' | 'monthly';
+  is_active: boolean;
+  preview_example?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type SequenceVariable = {
+  key: string;
+  description: string;
+  example: string;
+};
+
+export type SequencePatternValidation = {
+  is_valid: boolean;
+  errors: string[];
+  preview: string;
+};
