@@ -125,12 +125,14 @@ Always use React Hook Form with Zod validation. Define schemas and use `z.infer<
 - Use `@/services/api` for all API calls
 - Define API response types in `@/lib/types.ts`
 - Implement proper error handling and loading states
+- **CRITICAL:** Never hardcode API routes - use constants from config files
 
 ### Internationalization
 
 - Use `useTranslations` from next-intl
 - Translations in `src/messages/[locale].json`
 - Locale-based routing with `[locale]` dynamic segments
+- **CRITICAL:** When implementing new features or changes that use translations, add keys in ALL language files
 
 ## Development Workflow
 
