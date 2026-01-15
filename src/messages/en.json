@@ -1495,11 +1495,6 @@
       "editTitle": "Edit Service",
       "selectCurrency": "Select Currency"
     },
-    "CalendarsPage": {
-      "dialog": {
-        "color": "Color"
-      }
-    },
     "deleteDialog": {
       "cancel": "Cancel",
       "confirm": "Confirm",
@@ -1764,6 +1759,27 @@
       "editTitle": "Edit calendar",
       "editDescription": "Edit the calendar for the clinic",
       "save": "Save Changes"
+    },
+    "toast": {
+      "createSuccessTitle": "Calendar Created",
+      "editSuccessTitle": "Calendar Updated",
+      "successDescription": "The calendar \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Calendar Deleted",
+      "deleteSuccessDescription": "The calendar \"{name}\" has been deleted.",
+      "errorTitle": "Error",
+      "deleteErrorDescription": "Failed to delete the calendar.",
+      "genericError": "An unexpected error occurred."
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the calendar \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "delete": "Delete"
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "emailInvalid": "Invalid Google Calendar email.",
+      "colorInvalid": "Invalid hex color (e.g. #FFFFFF)."
     }
   },
   "DoctorsPage": {
@@ -2590,7 +2606,7 @@
       "completed": "Completed",
       "ignored": "Ignored"
     },
-"actions": {
+    "actions": {
       "sendSms": "Send SMS",
       "sendWhatsApp": "Send WhatsApp",
       "registerCall": "Register Call",
@@ -2622,7 +2638,7 @@
       "placeholder": "Enter reason...",
       "submit": "Ignore"
     },
-"bulkActions": {
+    "bulkActions": {
       "title": "Bulk Actions",
       "alertsSelected": "alert(s) selected",
       "markAllCompleted": "Mark all as Completed",
@@ -2633,7 +2649,7 @@
       "snoozeAll": "Snooze All",
       "deselectAll": "Deselect all"
     },
-"toast": {
+    "toast": {
       "alertsUpdated": "Alerts Updated",
       "alertsMarkedCompleted": "{count} alert(s) marked as completed.",
       "alertsMarkedIgnored": "{count} alert(s) marked as ignored.",
