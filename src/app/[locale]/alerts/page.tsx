@@ -140,6 +140,7 @@ export default function AlertsCenterPage() {
     const [snoozeDate, setSnoozeDate] = React.useState<string>('');
     const [page, setPage] = React.useState<number>(1);
     const [limit, setLimit] = React.useState<number>(50);
+    const [bulkActionLoading, setBulkActionLoading] = React.useState<'complete' | 'email' | 'sms' | 'whatsapp' | 'ignore' | 'snooze' | null>(null);
     const [totalPages, setTotalPages] = React.useState<number>(1);
 
 
@@ -175,7 +176,8 @@ export default function AlertsCenterPage() {
         loadActions();
     }, [page, limit]);
 
-const markAsCompleted = async (alertIds: string[]) => {
+const markAsCompleted = React.useCallback(async (alertIds: string[]) => {
+        setBulkActionLoading('complete');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_COMPLETE, { ids: alertIds });
             setAlerts(prev => prev.map(a => alertIds.includes(a.id) ? { ...a, status: 'COMPLETED' } : a));
@@ -185,10 +187,13 @@ const markAsCompleted = async (alertIds: string[]) => {
         } catch (error) {
             console.error('Failed to mark alerts as completed:', error);
             toast({ title: t('toast.markCompletedFailed'), description: t('toast.markCompletedFailedDescription'), variant: 'destructive' });
+        } finally {
+            setBulkActionLoading(null);
         }
-    };
+    }, []);
 
 const markAsIgnored = async (alertIds: string[], reason: string) => {
+        setBulkActionLoading('ignore');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_IGNORE, { ids: alertIds, reason });
             setAlerts(prev => prev.map(a => alertIds.includes(a.id) ? { ...a, status: 'IGNORED' } : a));
@@ -198,10 +203,13 @@ const markAsIgnored = async (alertIds: string[], reason: string) => {
         } catch (error) {
             console.error('Failed to mark alerts as ignored:', error);
             toast({ title: t('toast.markIgnoredFailed'), description: t('toast.markIgnoredFailedDescription'), variant: 'destructive' });
+        } finally {
+            setBulkActionLoading(null);
         }
     };
 
 const snoozeAlerts = async (alertIds: string[], snoozeUntil: string, reason: string) => {
+        setBulkActionLoading('snooze');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SNOOZE, { ids: alertIds, snooze_until: snoozeUntil, reason });
             setAlerts(prev => prev.map(a => alertIds.includes(a.id) ? { ...a, status: 'SNOOZED' } : a));
@@ -211,36 +219,47 @@ const snoozeAlerts = async (alertIds: string[], snoozeUntil: string, reason: str
         } catch (error) {
             console.error('Failed to snooze alerts:', error);
             toast({ title: t('toast.snoozeFailed'), description: t('toast.snoozeFailedDescription'), variant: 'destructive' });
+        } finally {
+            setBulkActionLoading(null);
         }
     };
 
-const sendEmail = async (alertIds: string[]) => {
+const sendEmail = React.useCallback(async (alertIds: string[]) => {
+        setBulkActionLoading('email');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SEND_EMAIL, { ids: alertIds });
             toast({ title: t('toast.emailSent'), description: t('toast.emailSentDescription', { count: alertIds.length }) });
         } catch (error) {
             console.error('Failed to send email:', error);
             toast({ title: t('toast.emailSendFailed'), description: t('toast.emailSendFailedDescription'), variant: 'destructive' });
+        } finally {
+            setBulkActionLoading(null);
         }
-    };
+    }, []);
 
     const sendWhatsApp = async (alertIds: string[]) => {
+        setBulkActionLoading('whatsapp');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SEND_WHATSAPP, { ids: alertIds });
             toast({ title: t('toast.whatsappSent'), description: t('toast.whatsappSentDescription', { count: alertIds.length }) });
         } catch (error) {
             console.error('Failed to send WhatsApp message:', error);
             toast({ title: t('toast.whatsappSendFailed'), description: t('toast.whatsappSendFailedDescription'), variant: 'destructive' });
+        } finally {
+            setBulkActionLoading(null);
         }
     };
 
     const sendSms = async (alertIds: string[]) => {
+        setBulkActionLoading('sms');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SEND_SMS, { ids: alertIds });
             toast({ title: t('toast.smsSent'), description: t('toast.smsSentDescription', { count: alertIds.length }) });
         } catch (error) {
             console.error('Failed to send SMS:', error);
             toast({ title: t('toast.smsSendFailed'), description: t('toast.smsSendFailedDescription'), variant: 'destructive' });
+        } finally {
+            setBulkActionLoading(null);
         }
     };
 
@@ -549,12 +568,13 @@ const sendEmail = async (alertIds: string[]) => {
             {/* Floating Bulk Actions Bar */}
             <BulkActionsFloatingBar
                 selectedCount={selectedAlerts.length}
+                loadingAction={bulkActionLoading}
                 onMarkAsCompleted={() => markAsCompleted(selectedAlerts)}
                 onSendEmail={() => sendEmail(selectedAlerts)}
                 onSendSms={() => sendSms(selectedAlerts)}
                 onSendWhatsApp={() => sendWhatsApp(selectedAlerts)}
-                onIgnore={() => { setAlertsToIgnore(selectedAlerts); setIgnoreDialogOpen(true); }}
-                onSnooze={() => { setAlertsToSnooze(selectedAlerts); setSnoozeDialogOpen(true); }}
+                onIgnore={() => { if (!bulkActionLoading) { setAlertsToIgnore(selectedAlerts); setIgnoreDialogOpen(true); } }}
+                onSnooze={() => { if (!bulkActionLoading) { setAlertsToSnooze(selectedAlerts); setSnoozeDialogOpen(true); } }}
                 onDeselectAll={() => setSelectedAlerts([])}
             />
 
