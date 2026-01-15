@@ -2583,7 +2583,7 @@
       "statusOptions": {
         "pending": "Pending",
         "completed": "Completed",
-        "inProgress": "In Progress",
+        "actionTaken": "Action Taken",
         "ignored": "Ignored"
       },
       "priorityOptions": {
@@ -2602,7 +2602,7 @@
     },
     "status": {
       "pending": "Pending",
-      "in_progress": "In Progress",
+      "action_taken": "Action Taken",
       "completed": "Completed",
       "ignored": "Ignored"
     },
@@ -2615,6 +2615,19 @@
       "assign": "Assign",
       "addNote": "Add Note",
       "ignore": "Ignore"
+    },
+    "actionHistory": {
+      "title": "Actions Taken",
+      "noActions": "No actions taken yet",
+      "sendEmail": "Send Email",
+      "sendSms": "Send SMS", 
+      "sendWhatsApp": "Send WhatsApp",
+      "performedAt": "Performed at",
+      "status": "Status",
+      "resultMessage": "Result",
+      "success": "Success",
+      "failed": "Failed",
+      "pending": "Pending"
     },
     "actionsGroups": {
       "communication": "Communication",

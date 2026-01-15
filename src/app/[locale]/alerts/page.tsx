@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useAlertNotifications } from '@/context/alert-notifications-context';
+import { useAlertNotifications, AlertNotificationsProvider } from '@/context/alert-notifications-context';
 import { API_ROUTES } from '@/constants/routes';
 import { toast } from '@/hooks/use-toast';
 import { AlertInstance, AlertAction, AlertCategory } from '@/lib/types';
@@ -119,7 +119,7 @@ const SummaryCard = ({ title, count, color }: { title: string, count: number, co
     </Card>
 );
 
-export default function AlertsCenterPage() {
+function AlertsCenterPageContent() {
     const t = useTranslations('AlertsCenterPage');
     const { refreshAlerts } = useAlertNotifications();
     const [alerts, setAlerts] = React.useState<AlertInstance[]>([]);
@@ -275,8 +275,8 @@ const sendEmail = React.useCallback(async (alertIds: string[]) => {
             setSelectedAlerts(prev => [...new Set([...prev, ...alertIds])]);
         } else {
             setSelectedAlerts(prev => prev.filter(id => !alertIds.includes(id)));
-        }
     };
+}
 
     const getCategoryName = (categoryId: string | undefined): string => {
         if (!categoryId) return 'DEFAULT';
@@ -352,7 +352,7 @@ const sendEmail = React.useCallback(async (alertIds: string[]) => {
                                                     <SelectItem value="all">{t('filters.all')}</SelectItem>
                                                     <SelectItem value="PENDING">{t('filters.statusOptions.pending')}</SelectItem>
                                                     <SelectItem value="COMPLETED">{t('filters.statusOptions.completed')}</SelectItem>
-                                                    <SelectItem value="IN_PROGRESS">{t('filters.statusOptions.inProgress')}</SelectItem>
+                                                    <SelectItem value="ACTION_TAKEN">{t('filters.statusOptions.actionTaken')}</SelectItem>
                                                     <SelectItem value="IGNORED">{t('filters.statusOptions.ignored')}</SelectItem>
                                                 </SelectContent>
                                             </Select>
@@ -414,40 +414,30 @@ const sendEmail = React.useCallback(async (alertIds: string[]) => {
                                                     <p className="font-semibold">{alert.title}</p>
                                                     <p className="text-sm text-muted-foreground">{alert.summary}</p>
                                                     {(() => {
-                                                         const actions = (alertActions || []).filter(action => action.alert_instance_id === parseInt(alert.id));
-                                                        const isOpen = openActionCollapsibles.includes(alert.id);
+                                                        const actions = alert.actions || [];
                                                         return actions.length > 0 ? (
-                                                            <Collapsible
-                                                                className="mt-2"
-                                                                open={isOpen}
-                                                                onOpenChange={(open) => setOpenActionCollapsibles(prev =>
-                                                                    open ? [...prev, alert.id] : prev.filter(id => id !== alert.id)
-                                                                )}
-                                                            >
-                                                                <CollapsibleTrigger className="text-xs text-muted-foreground hover:text-foreground">
-                                                                    Actions taken ({actions.length}) <ChevronDown className={`inline h-3 w-3 ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-                                                                </CollapsibleTrigger>
-                                                                <CollapsibleContent>
-                                                                    <div className="mt-1 space-y-1">
-                                                                        {actions.map(action => (
-                                                                            <div key={action.id} className="text-xs bg-muted p-2 rounded">
-                                                                                <strong>{action.action_type}</strong> - {action.result_status} ({new Date(action.performed_at).toLocaleString()})
-                                                                                {action.action_data?.data?.title && <p><strong>Title:</strong> {action.action_data.data.title}</p>}
-                                                                                {action.action_data?.data?.summary && <p><strong>Summary:</strong> {action.action_data.data.summary}</p>}
-                                                                                {(action.action_data?.patient?.email || action.action_data?.clinic?.email) && (
-                                                                                    <p><strong>Recipient:</strong> {action.action_data.patient?.email || action.action_data.clinic?.email}</p>
-                                                                                )}
-                                                                                {action.result_message && <p><strong>Message:</strong> {action.result_message}</p>}
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </CollapsibleContent>
-                                                            </Collapsible>
+                                                            <div className="mt-1 flex items-center gap-1 flex-wrap">
+                                                                <span className="text-xs text-muted-foreground">{t('actionHistory.title')}:</span>
+                                                                {actions.map(action => (
+                                                                    <span key={action.id} className="text-xs px-2 py-1 bg-muted rounded-full">
+                                                                        {action.action_type === 'SEND_EMAIL' && t('actionHistory.sendEmail')}
+                                                                        {action.action_type === 'SEND_SMS' && t('actionHistory.sendSms')}
+                                                                        {action.action_type === 'SEND_WHATSAPP' && t('actionHistory.sendWhatsApp')}
+                                                                        {action.action_type !== 'SEND_EMAIL' && action.action_type !== 'SEND_SMS' && action.action_type !== 'SEND_WHATSAPP' && action.action_type}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
                                                         ) : null;
                                                     })()}
                                                 </div>
                                                 <div className="flex items-center gap-4 text-muted-foreground">
-                                                    <Badge variant={alert.status === 'COMPLETED' ? 'default' : 'outline'}>{t(`status.${alert.status.toLowerCase()}` as any)}</Badge>
+                                                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                        alert.status === 'COMPLETED' 
+                                                            ? 'bg-primary text-primary-foreground' 
+                                                            : 'border border-input bg-background text-foreground'
+                                                    }`}>
+                                                        {t(`status.${alert.status.toLowerCase()}` as any)}
+                                                    </div>
                                                     <User className="h-4 w-4" />
                                                     <span className="text-sm">{alert.patient_name}</span>
                                                     <div className="flex items-center gap-1">
@@ -581,3 +571,5 @@ const sendEmail = React.useCallback(async (alertIds: string[]) => {
         </div>
     );
 }
+
+export default AlertsCenterPageContent;

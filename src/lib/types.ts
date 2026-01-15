@@ -586,8 +586,7 @@ export type AlertRule = {
 
 export type AlertInstance = {
   id: string;
-  rule_id: string;
-  rule_name?: string;
+  rule_id?: number;
   category_id?: string;
   reference_table: string;
   reference_id: string;
@@ -597,10 +596,14 @@ export type AlertInstance = {
   event_date?: string;
   title: string;
   summary?: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'IGNORED' | 'SNOOZED';
+  status: 'PENDING' | 'ACTION_TAKEN' | 'COMPLETED' | 'IGNORED' | 'SNOOZED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   assigned_to?: string;
   assigned_to_name?: string;
+  actions?: AlertAction[];
+  details_json?: any;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type CommunicationTemplate = {
