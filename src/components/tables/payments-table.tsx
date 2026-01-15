@@ -5,6 +5,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Payment } from '@/lib/types';
+import { formatDateTime } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -54,15 +55,7 @@ const getColumns = (
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('date')} />
       ),
-      cell: ({ row }) => {
-        const dateValue = row.getValue('payment_date');
-        if (!dateValue) return 'N/A';
-        try {
-          return format(parseISO(dateValue as string), 'yyyy-MM-dd');
-        } catch (e) {
-          return 'Invalid Date';
-        }
-      }
+      cell: ({ row }) => formatDateTime(row.getValue('payment_date'))
     },
     {
       accessorKey: 'amount_applied',

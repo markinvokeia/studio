@@ -7,6 +7,7 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
 import { UserLog } from '@/lib/types';
+import { formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
@@ -16,7 +17,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<UserLog>[] => [
   {
     accessorKey: 'timestamp',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.timestamp')} />,
-    cell: ({ row }) => new Date(row.getValue('timestamp')).toLocaleString(),
+    cell: ({ row }) => formatDateTime(row.getValue('timestamp')),
   },
   {
     accessorKey: 'action',

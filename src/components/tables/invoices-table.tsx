@@ -19,7 +19,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Credit, Invoice, PaymentMethod, Service, User } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
@@ -233,6 +233,7 @@ const getColumns = (
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={columnTranslations.createdAt || "Created At"} />
       ),
+      cell: ({ row }) => formatDateTime(row.original.createdAt),
     },
     {
       id: 'actions',

@@ -12,6 +12,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Badge } from '../ui/badge';
+import { formatDateTime } from '@/lib/utils';
 
 const getColumns = (t: (key: string) => string, tStatus: (key: string) => string): ColumnDef<Invoice>[] => [
   {
@@ -61,6 +62,7 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
   {
     accessorKey: 'createdAt',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.createdAt')} />,
+    cell: ({ row }) => formatDateTime(row.original.createdAt),
   },
 ];
 

@@ -12,6 +12,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Badge } from '../ui/badge';
+import { formatDateTime } from '@/lib/utils';
 
 const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
   {
@@ -116,6 +117,11 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
         </Badge>
       );
     },
+  },
+  {
+    accessorKey: 'createdAt',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.createdAt')} />,
+    cell: ({ row }) => formatDateTime(row.original.createdAt),
   }
 ];
 

@@ -165,6 +165,14 @@ export default function CalendarsPage() {
 
     const calendarsColumns = CalendarsColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
 
+    const columnTranslations = {
+        name: t('columns.name'),
+        google_calendar_id: t('columns.googleCalendarId'),
+        color: t('columns.color'),
+        is_active: t('columns.active'),
+        actions: t('columns.actions'),
+    };
+
     return (
         <>
             <Card>
@@ -181,6 +189,7 @@ export default function CalendarsPage() {
                         onCreate={handleCreate}
                         onRefresh={loadCalendars}
                         isRefreshing={isRefreshing}
+                        columnTranslations={columnTranslations}
                     />
                 </CardContent>
             </Card>
@@ -264,7 +273,7 @@ export default function CalendarsPage() {
                 </DialogContent>
             </Dialog>
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
+                <AlertDialogContent className="max-w-[400px]">
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
                         <AlertDialogDescription>

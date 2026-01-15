@@ -9,51 +9,53 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useTranslations } from 'next-intl';
 import React from 'react';
+import { formatDateTime } from '@/lib/utils';
 
 const getColumns = (
-    t: (key: string) => string
+  t: (key: string) => string
 ): ColumnDef<Order>[] => [
-  {
-    accessorKey: 'id',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />
-    ),
-  },
-  {
-    accessorKey: 'currency',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('QuoteColumns.currency')} />
-    ),
-    cell: ({ row }) => row.original.currency || 'N/A',
-  },
-  {
-    accessorKey: 'createdAt',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('OrderColumns.createdAt')} />
-    ),
-  },
-  {
-    accessorKey: 'status',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('UserColumns.status')} />
-    ),
-    cell: ({ row }) => {
-      const status = row.getValue('status') as string;
-      const variant = {
-        completed: 'success',
-        pending: 'info',
-        processing: 'default',
-        cancelled: 'destructive',
-      }[status.toLowerCase()] ?? ('default' as any);
-
-      return (
-        <Badge variant={variant} className="capitalize">
-          {status}
-        </Badge>
-      );
+    {
+      accessorKey: 'id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />
+      ),
     },
-  },
-];
+    {
+      accessorKey: 'currency',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('QuoteColumns.currency')} />
+      ),
+      cell: ({ row }) => row.original.currency || 'N/A',
+    },
+    {
+      accessorKey: 'createdAt',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('OrderColumns.createdAt')} />
+      ),
+      cell: ({ row }) => formatDateTime(row.original.createdAt),
+    },
+    {
+      accessorKey: 'status',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('UserColumns.status')} />
+      ),
+      cell: ({ row }) => {
+        const status = row.getValue('status') as string;
+        const variant = {
+          completed: 'success',
+          pending: 'info',
+          processing: 'default',
+          cancelled: 'destructive',
+        }[status.toLowerCase()] ?? ('default' as any);
+
+        return (
+          <Badge variant={variant} className="capitalize">
+            {status}
+          </Badge>
+        );
+      },
+    },
+  ];
 
 interface RecentOrdersTableProps {
   orders: Order[];

@@ -1442,6 +1442,7 @@
         },
         "dialog": {
             "createTitle": "Crear Método de Pago",
+            "editTitle": "Editar Método de Pago",
             "name": "Nombre",
             "namePlaceholder": "ej., Tarjeta de Crédito",
             "code": "Código",
@@ -1452,7 +1453,20 @@
             "create": "Crear",
             "save": "Guardar Cambios"
         },
-        "validation": "Validación",
+        "toast": {
+            "createSuccess": "Método de Pago Creado",
+            "editSuccess": "Método de Pago Actualizado",
+            "saveDescription": "El método de pago \"{name}\" se ha guardado exitosamente.",
+            "deleteSuccess": "Método de Pago Eliminado",
+            "deleteDescription": "El método de pago \"{name}\" ha sido eliminado.",
+            "errorTitle": "Error",
+            "deleteError": "No se pudo eliminar el método de pago.",
+            "genericError": "Ocurrió un error inesperado."
+        },
+        "validation": {
+            "nameRequired": "El nombre es obligatorio.",
+            "codeRequired": "El código es obligatorio."
+        },
         "deleteDialog": {
             "title": "Eliminar Método de Pago",
             "description": "Eliminar un método de pago",
@@ -1484,11 +1498,6 @@
             "editSave": "Guardar Cambios",
             "editTitle": "Editar Servicio",
             "selectCurrency": "Seleccionar Moneda"
-        },
-        "CalendarsPage": {
-            "dialog": {
-                "color": "Color"
-            }
         },
         "deleteDialog": {
             "cancel": "Cancelar",
@@ -1754,6 +1763,27 @@
             "editTitle": "Editar calendario",
             "editDescription": "Editar el calendario para la clínica",
             "save": "Guardar Cambios"
+        },
+        "toast": {
+            "createSuccessTitle": "Calendario Creado",
+            "editSuccessTitle": "Calendario Actualizado",
+            "successDescription": "El calendario \"{name}\" se ha guardado exitosamente.",
+            "deleteSuccessTitle": "Calendario Eliminado",
+            "deleteSuccessDescription": "El calendario \"{name}\" ha sido eliminado.",
+            "errorTitle": "Error",
+            "deleteErrorDescription": "No se pudo eliminar el calendario.",
+            "genericError": "Ocurrió un error inesperado."
+        },
+        "deleteDialog": {
+            "title": "¿Está seguro?",
+            "description": "Esto eliminará permanentemente el calendario \"{name}\". Esta acción no se puede deshacer.",
+            "cancel": "Cancelar",
+            "delete": "Eliminar"
+        },
+        "validation": {
+            "nameRequired": "El nombre es obligatorio.",
+            "emailInvalid": "Correo electrónico de Google Calendar inválido.",
+            "colorInvalid": "Color hexadecimal inválido (ej. #FFFFFF)."
         }
     },
     "DoctorsPage": {
@@ -2580,7 +2610,7 @@
             "completed": "Completada",
             "ignored": "Ignorada"
         },
-"actions": {
+        "actions": {
             "sendSms": "Enviar SMS",
             "sendWhatsApp": "Enviar WhatsApp",
             "registerCall": "Registrar Llamada",
@@ -2612,7 +2642,7 @@
             "placeholder": "Ingrese razón...",
             "submit": "Ignorar"
         },
-"bulkActions": {
+        "bulkActions": {
             "title": "Acciones en Masa",
             "alertsSelected": "alerta(s) seleccionada(s)",
             "markAllCompleted": "Marcar todas como Completadas",
@@ -2623,7 +2653,7 @@
             "snoozeAll": "Pausar Todas",
             "deselectAll": "Deseleccionar todas"
         },
-"toast": {
+        "toast": {
             "alertsUpdated": "Alertas Actualizadas",
             "alertsMarkedCompleted": "{count} alerta(s) marcada(s) como completada(s).",
             "alertsMarkedIgnored": "{count} alerta(s) marcada(s) como ignorada(s).",

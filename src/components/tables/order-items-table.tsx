@@ -19,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { OrderItem } from '@/lib/types';
+import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef } from '@tanstack/react-table';
 import { MoreHorizontal } from 'lucide-react';
@@ -39,9 +40,9 @@ const DateCell = ({ dateValue }: { dateValue: string | null }) => {
   now.setHours(0, 0, 0, 0);
 
   if (date < now) {
-    return <Badge variant="success">{dateValue}</Badge>;
+    return <Badge variant="success">{formatDateTime(dateValue)}</Badge>;
   }
-  return <Badge variant="info">{dateValue}</Badge>;
+  return <Badge variant="info">{formatDateTime(dateValue)}</Badge>;
 };
 
 interface OrderItemsTableProps {

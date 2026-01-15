@@ -36,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Quote } from '@/lib/types';
 import { api } from '@/services/api';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { format, parseISO } from 'date-fns';
+import { cn, formatDateTime } from '@/lib/utils';
 import { MoreHorizontal, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -89,13 +89,7 @@ const getColumns = (
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('QuoteColumns.createdAt')} />
       ),
-      cell: ({ row }) => {
-        try {
-          return format(parseISO(row.getValue('createdAt')), 'yyyy-MM-dd HH:mm');
-        } catch (e) {
-          return row.getValue('createdAt');
-        }
-      }
+      cell: ({ row }) => formatDateTime(row.getValue('createdAt')),
     },
     {
       accessorKey: 'total',

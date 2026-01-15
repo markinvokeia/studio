@@ -15,20 +15,12 @@ import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useTranslations } from 'next-intl';
-import { format, parseISO } from 'date-fns';
+import { formatDateTime } from '@/lib/utils';
 
 interface CashPointsColumnsProps {
     onEdit: (cashPoint: CashPoint) => void;
     onDelete: (cashPoint: CashPoint) => void;
 }
-
-const formatDate = (dateString: string) => {
-    try {
-        return format(parseISO(dateString), 'yyyy-MM-dd HH:mm');
-    } catch (error) {
-        return dateString;
-    }
-};
 
 export const CashPointsColumnsWrapper = ({ onEdit, onDelete }: CashPointsColumnsProps): ColumnDef<CashPoint>[] => {
     const t = useTranslations('PhysicalCashRegistersPage.columns');
@@ -44,12 +36,12 @@ export const CashPointsColumnsWrapper = ({ onEdit, onDelete }: CashPointsColumns
         {
             accessorKey: 'created_at',
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('createdAt')} />,
-            cell: ({ row }) => formatDate(row.original.created_at)
+            cell: ({ row }) => formatDateTime(row.original.created_at)
         },
         {
             accessorKey: 'updated_at',
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('updatedAt')} />,
-            cell: ({ row }) => formatDate(row.original.updated_at)
+            cell: ({ row }) => formatDateTime(row.original.updated_at)
         },
         {
             id: 'actions',
