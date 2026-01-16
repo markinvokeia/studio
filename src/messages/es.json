@@ -1647,6 +1647,8 @@
         "toast": {
           "successDesc": "Los detalles de la clínica han sido actualizados satisfactoriamente",
           "successTitle": "Operación exitosa",
+          "deleteSuccessDescription": "Registro eliminado satisfactoriamente",
+          "deleteSuccessTitle": "Eliminado Satisfactoriamente",
           "errorDesc": "Hubo un error y los detalles de la clínica no han sido actualizados satisfactoriamente",
           "errorTitle": "Error Actualizando Detalles"
         }
@@ -1702,6 +1704,8 @@
           "editSuccessTitle": "Operación exitosa",
           "successDescription": "Los detalles han sido actualizados satisfactoriamente",
           "successTitle": "Operación exitosa",
+          "deleteSuccessDescription": "Registro eliminado satisfactoriamente",
+          "deleteSuccessTitle": "Eliminado Satisfactoriamente",
           "errorDesc": "Hubo un error y los detalles no han sido actualizados satisfactoriamente",
           "errorTitle": "Error Actualizando"
         }

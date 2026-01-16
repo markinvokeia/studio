@@ -1643,6 +1643,8 @@
     "toast": {
       "successDesc": "Clinic Details saved successfully",
       "successTitle": "Successfull Update",
+      "deleteSuccessDescription": "Details have been deleted successfully",
+      "deleteSuccessTitle": "Successfully Deleted",
       "errorDesc": "There was an error and Clinic Details were not saved successfully",
       "errorTitle": "Error Updating Details"
     }
@@ -1698,6 +1700,8 @@
       "editSuccessTitle": "Successfully Updated",
       "successDescription": "Details have been updated successfully",
       "successTitle": "Successfully Updated",
+      "deleteSuccessDescription": "Details have been deleted successfully",
+      "deleteSuccessTitle": "Successfully Deleted",
       "errorDesc": "An error occurs and details have been updated successfully",
       "errorTitle": "Error Updating"
     }
