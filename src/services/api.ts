@@ -48,7 +48,7 @@ const apiRequest = async (
         cache: 'no-store',
     };
 
-    if (data && (method === 'POST' || method === 'PUT' || method === 'DELETE')) {
+    if (data && (method === 'POST' || method === 'PUT' || method === 'DELETE' || method === 'PATCH')) {
         if (data instanceof FormData) {
             config.body = data;
         } else {

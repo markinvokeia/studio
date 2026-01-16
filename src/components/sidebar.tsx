@@ -10,10 +10,10 @@ import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
@@ -24,18 +24,18 @@ const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
     const locale = useLocale();
     const { pendingCount } = useAlertNotifications();
 
-const getEffectivePathname = (p: string, l: string) => {
+    const getEffectivePathname = (p: string, l: string) => {
         const localePrefix = `/${l}`;
         if (p.startsWith(localePrefix)) {
             return p.substring(localePrefix.length) || '/';
         }
         return p;
     };
-    
+
     const effectivePathname = getEffectivePathname(pathname, locale);
 
 
-    
+
     return (
         <aside className="fixed inset-y-0 left-0 z-40 flex h-screen w-20 flex-col border-r bg-card">
             <div className="flex h-14 items-center justify-center border-b px-2 lg:h-[60px]">
@@ -47,7 +47,7 @@ const getEffectivePathname = (p: string, l: string) => {
                 <nav className="flex flex-col items-center gap-0.5 sm:py-2">
                     {navItems.map(item => {
                         const isActive = item.items
-                            ? item.items.some(subItem => effectivePathname.startsWith(subItem.href))
+                            ? item.items.some(subItem => subItem.href !== '' && effectivePathname.startsWith(subItem.href))
                             : (item.href === '/' ? effectivePathname === '/' : effectivePathname.startsWith(item.href));
 
                         let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
@@ -57,10 +57,10 @@ const getEffectivePathname = (p: string, l: string) => {
                             linkHref = `/${locale}/clinic-history/${userIdFromUrl}`;
                         }
 
-return (
-                        <Tooltip key={String(item.title)}>
+                        return (
+                            <Tooltip key={String(item.title)}>
                                 <TooltipTrigger asChild>
-                                    <Link 
+                                    <Link
                                         href={linkHref}
                                         className={cn(
                                             "flex h-auto w-full flex-col items-center justify-center gap-1 rounded-none p-2 transition-colors relative",
@@ -71,8 +71,8 @@ return (
                                         <div className="relative">
                                             <item.icon className="h-6 w-6" />
                                             {item.title === 'AlertsCenter' && pendingCount > 0 && (
-                                                <Badge 
-                                                    variant="destructive" 
+                                                <Badge
+                                                    variant="destructive"
                                                     className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs p-0"
                                                 >
                                                     {pendingCount > 99 ? '99+' : pendingCount}
@@ -83,13 +83,13 @@ return (
                                     </Link>
                                 </TooltipTrigger>
                                 <TooltipContent side="right">
-                            {t(item.title as any)}
-                            {item.title === 'AlertsCenter' && pendingCount > 0 && (
-                                <span className="ml-2 text-xs text-muted-foreground">
-                                    ({pendingCount > 99 ? '99+' : pendingCount} pendientes)
-                                </span>
-                            )}
-                        </TooltipContent>
+                                    {t(item.title as any)}
+                                    {item.title === 'AlertsCenter' && pendingCount > 0 && (
+                                        <span className="ml-2 text-xs text-muted-foreground">
+                                            ({pendingCount > 99 ? '99+' : pendingCount} pendientes)
+                                        </span>
+                                    )}
+                                </TooltipContent>
                             </Tooltip>
                         )
                     })}
@@ -104,15 +104,15 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
     if (!item || !item.items) {
         return null;
     }
-    
+
     return (
-        <div 
+        <div
             className="fixed inset-y-0 left-20 z-30 hidden h-screen w-64 flex-col border-r bg-card md:flex"
             onMouseLeave={onLeave}
         >
-             <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+            <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
                 <h2 className="text-lg font-semibold">{t(item.title as any)}</h2>
-             </div>
+            </div>
             <div className="flex-1 overflow-y-auto">
                 <Nav items={item.items} />
             </div>
@@ -125,7 +125,7 @@ export function Sidebar() {
     let leaveTimeout = React.useRef<NodeJS.Timeout>();
 
     const handleHover = (item: any) => {
-        if(leaveTimeout.current) {
+        if (leaveTimeout.current) {
             clearTimeout(leaveTimeout.current);
         }
         if (item.items) {
@@ -142,7 +142,7 @@ export function Sidebar() {
     };
 
     const handleSecondaryEnter = () => {
-         if(leaveTimeout.current) {
+        if (leaveTimeout.current) {
             clearTimeout(leaveTimeout.current);
         }
     }

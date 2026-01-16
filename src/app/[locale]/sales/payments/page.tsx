@@ -75,8 +75,25 @@ async function getPayments(): Promise<Payment[]> {
 
 async function getUsers(): Promise<User[]> {
     try {
-        const data = await api.get(API_ROUTES.USERS, { filter_type: 'PACIENTE' });
-        const usersData = Array.isArray(data) ? data : (data.data || []);
+        const responseData = await api.get(API_ROUTES.USERS, { filter_type: 'PACIENTE' });
+
+        let usersData = [];
+
+        if (Array.isArray(responseData) && responseData.length > 0) {
+            const firstElement = responseData[0];
+            if (firstElement.json && typeof firstElement.json === 'object') {
+                usersData = firstElement.json.data || [];
+            } else if (firstElement.data) {
+                usersData = firstElement.data;
+            } else {
+                usersData = responseData;
+            }
+        } else if (typeof responseData === 'object' && responseData !== null && responseData.data) {
+            usersData = responseData.data;
+        } else if (Array.isArray(responseData)) {
+            usersData = responseData;
+        }
+
         return usersData.map((apiUser: any) => ({
             id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
             name: apiUser.name || 'No Name',
@@ -120,6 +137,7 @@ export default function PaymentsPage() {
     const [users, setUsers] = React.useState<User[]>([]);
     const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+    const [isUserPopoverOpen, setIsUserPopoverOpen] = React.useState(false);
 
     const form = useForm<PrepaidFormValues>({
         resolver: zodResolver(prepaidFormSchema(tValidation)),
@@ -336,7 +354,7 @@ export default function PaymentsPage() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('prepaidDialog.client')}</FormLabel>
-                                        <Popover>
+                                        <Popover open={isUserPopoverOpen} onOpenChange={setIsUserPopoverOpen}>
                                             <PopoverTrigger asChild>
                                                 <FormControl>
                                                     <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
@@ -352,7 +370,14 @@ export default function PaymentsPage() {
                                                         <CommandEmpty>{t('prepaidDialog.noClient')}</CommandEmpty>
                                                         <CommandGroup>
                                                             {users.map((user) => (
-                                                                <CommandItem value={user.name} key={user.id} onSelect={() => form.setValue("user_id", user.id)}>
+                                                                <CommandItem
+                                                                    value={user.name}
+                                                                    key={user.id}
+                                                                    onSelect={() => {
+                                                                        form.setValue("user_id", user.id);
+                                                                        setIsUserPopoverOpen(false);
+                                                                    }}
+                                                                >
                                                                     <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
                                                                     {user.name}
                                                                 </CommandItem>
