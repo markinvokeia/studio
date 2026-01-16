@@ -1750,6 +1750,16 @@
             "description": "¿Está seguro de que desea eliminar este feriado? Esta acción no se puede deshacer.",
             "cancel": "Cancelar",
             "confirm": "Eliminar"
+        },
+        "toast": {
+            "createSuccessTitle": "Feriado Creado",
+            "editSuccessTitle": "Feriado Actualizado",
+            "successDescription": "El feriado ha sido guardado exitosamente.",
+            "deleteSuccessTitle": "Feriado Eliminado",
+            "deleteSuccessDescription": "El feriado ha sido eliminado exitosamente.",
+            "errorTitle": "Error",
+            "deleteErrorDescription": "No se pudo eliminar el feriado. Por favor, inténtelo de nuevo.",
+            "genericError": "Ocurrió un error inesperado."
         }
     },
     "CalendarsPage": {

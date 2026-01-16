@@ -1746,6 +1746,16 @@
       "description": "Are you sure you want to delete this holiday? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
+    },
+    "toast": {
+      "createSuccessTitle": "Holiday Created",
+      "editSuccessTitle": "Holiday Updated",
+      "successDescription": "The holiday has been saved successfully.",
+      "deleteSuccessTitle": "Holiday Deleted",
+      "deleteSuccessDescription": "The holiday has been deleted successfully.",
+      "errorTitle": "Error",
+      "deleteErrorDescription": "Failed to delete the holiday. Please try again.",
+      "genericError": "An unexpected error occurred."
     }
   },
   "CalendarsPage": {
