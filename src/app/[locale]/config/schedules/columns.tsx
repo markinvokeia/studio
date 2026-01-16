@@ -25,21 +25,21 @@ const dayOfWeekMap: { [key: number]: string } = {
   6: 'saturday',
 };
 
-interface SchedulesColumnsProps {
-    onEdit: (schedule: ClinicSchedule) => void;
-    onDelete: (schedule: ClinicSchedule) => void;
-}
 
-export const SchedulesColumnsWrapper = ({ onEdit, onDelete }: SchedulesColumnsProps): ColumnDef<ClinicSchedule>[] => {
+export const SchedulesColumnsWrapper = ({ onEdit, onDelete }: { onEdit: (schedule: ClinicSchedule) => void; onDelete: (schedule: ClinicSchedule) => void; }): ColumnDef<ClinicSchedule>[] => {
     const t = useTranslations('SchedulesPage.columns');
     const tDays = useTranslations('SchedulesPage.days');
     
     const columns: ColumnDef<ClinicSchedule>[] = [
         { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title={t('id')} /> },
         { 
-        accessorKey: 'day_of_week', 
-        header: ({column}) => <DataTableColumnHeader column={column} title={t('dayOfWeek')} />,
-        cell: ({ row }) => tDays(dayOfWeekMap[row.original.day_of_week] as any) || 'Unknown Day',
+            accessorKey: 'day_of_week', 
+            header: ({column}) => <DataTableColumnHeader column={column} title={t('dayOfWeek')} />,
+            cell: ({ row }) => tDays(dayOfWeekMap[row.original.day_of_week] as any) || 'Unknown Day',
+            filterFn: (row, id, value) => {
+                const dayName = tDays(dayOfWeekMap[row.original.day_of_week] as any) || 'Unknown Day';
+                return dayName.toLowerCase().includes(String(value).toLowerCase());
+            },
         },
         { accessorKey: 'start_time', header: ({column}) => <DataTableColumnHeader column={column} title={t('startTime')} /> },
         { accessorKey: 'end_time', header: ({column}) => <DataTableColumnHeader column={column} title={t('endTime')} /> },
