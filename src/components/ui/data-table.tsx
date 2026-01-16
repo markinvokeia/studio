@@ -149,11 +149,11 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      {typeof customToolbar === 'function' ? customToolbar(table) : customToolbar ? customToolbar : (filterColumnId && filterPlaceholder) && (
+      {typeof customToolbar === 'function' ? customToolbar(table) : customToolbar ? customToolbar : (filterColumnId || filterPlaceholder) && (
         <DataTableToolbar
           table={table}
-          filterColumnId={filterColumnId}
-          filterPlaceholder={filterPlaceholder}
+          filterColumnId={filterColumnId!}
+          filterPlaceholder={filterPlaceholder!}
           onCreate={onCreate}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
