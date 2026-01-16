@@ -1236,6 +1236,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     const [existingAttachments, setExistingAttachments] = useState<AttachedFile[]>([]);
     const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDragOver, setIsDragOver] = useState(false);
 
     const form = useForm<SessionFormValues>({
         resolver: zodResolver(sessionFormSchema),
@@ -1305,6 +1306,17 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     }, [isOpen, session, doctors, form]);
 
 
+
+    // Reset drag state when dialog closes
+    useEffect(() => {
+        if (!isOpen) {
+            setIsDragOver(false);
+        }
+    }, [isOpen]);
+
+
+
+
     const handleSave: SubmitHandler<SessionFormValues> = async (values) => {
         setIsSubmitting(true);
         const formData = new FormData();
@@ -1353,6 +1365,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         }
     };
 
+
+
     const removeNewAttachment = (indexToRemove: number) => {
         setNewAttachments(prev => prev.filter((_, index) => index !== indexToRemove));
     };
@@ -1365,7 +1379,56 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl">
+            <DialogContent
+                className="max-w-4xl"
+                onDragOver={(e: React.DragEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const label = document.getElementById('session-attachments-label');
+                    if (label) {
+                        label.style.borderColor = 'hsl(var(--primary))';
+                        label.style.backgroundColor = 'hsl(var(--primary) / 0.1)';
+                        label.style.transform = 'scale(1.02)';
+                    }
+                }}
+                onDragEnter={(e: React.DragEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const label = document.getElementById('session-attachments-label');
+                    if (label) {
+                        label.style.borderColor = 'hsl(var(--primary))';
+                        label.style.backgroundColor = 'hsl(var(--primary) / 0.1)';
+                        label.style.transform = 'scale(1.02)';
+                    }
+                }}
+                onDragLeave={(e: React.DragEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const label = document.getElementById('session-attachments-label');
+                    if (label) {
+                        label.style.borderColor = 'hsl(var(--muted-foreground) / 0.25)';
+                        label.style.backgroundColor = 'hsl(var(--muted))';
+                        label.style.transform = 'scale(1)';
+                    }
+                }}
+                onDrop={(e: React.DragEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const label = document.getElementById('session-attachments-label');
+                    if (label) {
+                        label.style.borderColor = 'hsl(var(--muted-foreground) / 0.25)';
+                        label.style.backgroundColor = 'hsl(var(--muted))';
+                        label.style.transform = 'scale(1)';
+                    }
+
+                    const droppedFiles = e.dataTransfer.files;
+                    if (droppedFiles && droppedFiles.length > 0) {
+                        const files = Array.from(droppedFiles);
+                        console.log('Files dropped:', files);
+                        setNewAttachments(prev => [...prev, ...files]);
+                    }
+                }}
+            >
                 <DialogHeader>
                     <DialogTitle>{session ? t('editTitle') : t('createTitle')}</DialogTitle>
                 </DialogHeader>
@@ -1488,16 +1551,31 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                         <CardTitle className="text-base">{t('attachments')}</CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="flex items-center justify-center w-full">
-                                            <label htmlFor="session-attachments" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
-                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                                                    <p className="mb-1 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                                    <p className="text-xs text-muted-foreground">PDF, PNG, JPG, etc.</p>
-                                                </div>
-                                                <Input id="session-attachments" type="file" multiple className="hidden" onChange={handleAttachmentFileChange} />
-                                            </label>
-                                        </div>
+                                        {/* Área de drag and drop con label restaurado */}
+                                        <label
+                                            id="session-attachments-label"
+                                            htmlFor="session-attachments"
+                                            className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${
+                                                isDragOver
+                                                    ? 'border-primary bg-primary/10 scale-[1.02]'
+                                                    : 'border-muted-foreground/25 bg-muted hover:bg-muted/50'
+                                            }`}
+                                        >
+                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
+                                                <p className="mb-1 text-sm text-muted-foreground">
+                                                    <span className="font-semibold">Click to upload</span> or drag and drop
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">PDF, PNG, JPG, etc.</p>
+                                            </div>
+                                            <Input
+                                                id="session-attachments"
+                                                type="file"
+                                                multiple
+                                                className="hidden"
+                                                onChange={handleAttachmentFileChange}
+                                            />
+                                        </label>
                                         <div className="mt-4 space-y-2">
                                             {existingAttachments.length > 0 && (
                                                 <div>
