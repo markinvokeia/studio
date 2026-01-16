@@ -174,6 +174,14 @@ export default function HolidaysPage() {
 
     const holidaysColumns = HolidaysColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
 
+    const columnTranslations = {
+        id: t('columns.id'),
+        date: t('columns.date'),
+        is_open: t('columns.status'),
+        start_time: t('columns.startTime'),
+        end_time: t('columns.endTime'),
+        notes: t('columns.notes'),
+    };
 
     return (
         <>
@@ -191,6 +199,7 @@ export default function HolidaysPage() {
                         onCreate={handleCreate}
                         onRefresh={loadHolidays}
                         isRefreshing={isRefreshing}
+                        columnTranslations={columnTranslations}
                     />
                 </CardContent>
             </Card>
