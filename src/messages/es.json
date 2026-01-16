@@ -2961,7 +2961,7 @@
             "documentType": "Tipo de Documento",
             "selectDocumentType": "Seleccione tipo de documento",
             "pattern": "Patrón",
-            "patternPlaceholder": "ej: FAC-{YYYY}-{MM}-{COUNTER:4}",
+            "patternPlaceholder": "ej: FAC-'{'YYYY'}'-'{'MM'}'-'{'COUNTER:4'}'",
             "currentCounter": "Contador Actual",
             "resetPeriod": "Período de Reinicio",
             "selectResetPeriod": "Seleccione período de reinicio",
@@ -3000,7 +3000,12 @@
             "DD": "Día con ceros (01-31)",
             "COUNTER:N": "Número secuencial con N dígitos (ej: COUNTER:4 = 0001)",
             "CLINIC": "Código de clínica",
-            "DOCTYPE": "Código de tipo de documento"
+            "DOCTYPE": "Código de tipo de documento",
+            "COUNTER": "Número secuencial",
+            "COUNTER:4": "Número secuencial con 4 dígitos",
+            "COUNTER:3": "Número secuencial con 3 dígitos",
+            "COUNTER:2": "Número secuencial con 2 dígitos",
+            "COUNTER:1": "Número secuencial con 1 dígito"
         },
         "validation": {
             "nameRequired": "El nombre de secuencia es requerido",

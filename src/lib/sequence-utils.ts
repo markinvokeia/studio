@@ -53,86 +53,132 @@ export function generateSequenceNumber(
   documentType: string,
   date: Date = new Date()
 ): string {
-  let result = pattern;
+  try {
+    if (!pattern) {
+      return '';
+    }
+    
+    let result = pattern;
 
-  // Date variables
-  const year = date.getFullYear();
-  const shortYear = year.toString().slice(-2);
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+    // Date variables
+    const year = date.getFullYear();
+    const shortYear = year.toString().slice(-2);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
 
-  // Replace basic variables
-  result = result.replace(/{YYYY}/g, year.toString());
-  result = result.replace(/{YY}/g, shortYear);
-  result = result.replace(/{MM}/g, month);
-  result = result.replace(/{DD}/g, day);
-  result = result.replace(/{CLINIC}/g, 'CLINIC01'); // TODO: Get from clinic settings
-  result = result.replace(/{DOCTYPE}/g, DOCUMENT_TYPE_CODES[documentType as keyof typeof DOCUMENT_TYPE_CODES] || 'DOC');
+    // Replace basic variables
+    result = result.replace(/{YYYY}/g, year.toString());
+    result = result.replace(/{YY}/g, shortYear);
+    result = result.replace(/{MM}/g, month);
+    result = result.replace(/{DD}/g, day);
+    result = result.replace(/{CLINIC}/g, 'CLINIC01'); // TODO: Get from clinic settings
+    result = result.replace(/{DOCTYPE}/g, DOCUMENT_TYPE_CODES[documentType as keyof typeof DOCUMENT_TYPE_CODES] || 'DOC');
 
-  // Handle COUNTER variable with padding
-  const counterRegex = /{COUNTER:(\d+)}/g;
-  result = result.replace(counterRegex, (match, padding) => {
-    const padLength = parseInt(padding, 10);
-    return String(counter).padStart(padLength, '0');
-  });
+    // Handle COUNTER variable with padding
+    const counterRegex = /{COUNTER:(\d+)}/g;
+    result = result.replace(counterRegex, (match, padding) => {
+      const padLength = parseInt(padding, 10);
+      if (isNaN(padLength) || padLength < 1 || padLength > 10) {
+        return String(counter).padStart(4, '0'); // Default to 4 digits
+      }
+      return String(counter).padStart(padLength, '0');
+    });
 
-  return result;
+    return result;
+  } catch (error) {
+    console.error('Error generating sequence number:', error);
+    return pattern || ''; // Return original pattern or empty string on error
+  }
 }
 
 export function validatePattern(pattern: string): SequencePatternValidation {
   const errors: string[] = [];
 
-  if (!pattern || pattern.trim() === '') {
-    errors.push('Pattern is required');
+  try {
+    if (!pattern || pattern.trim() === '') {
+      errors.push('Pattern is required');
+      return {
+        is_valid: false,
+        errors,
+        preview: ''
+      };
+    }
+
+    // Check for malformed curly braces
+    const openBraces = (pattern.match(/{/g) || []).length;
+    const closeBraces = (pattern.match(/}/g) || []).length;
+    if (openBraces !== closeBraces) {
+      errors.push('Mismatched curly braces in pattern');
+    }
+
+    // Check for invalid variables
+    const validVariables = ['YYYY', 'YY', 'MM', 'DD', 'COUNTER', 'CLINIC', 'DOCTYPE'];
+    const variableRegex = /{([^}]+)}/g;
+    let match;
+    const foundVariables: string[] = [];
+
+    // Reset regex lastIndex to ensure proper matching
+    variableRegex.lastIndex = 0;
+
+    while ((match = variableRegex.exec(pattern)) !== null) {
+      const variable = match[1];
+      
+      if (!variable || variable.trim() === '') {
+        errors.push('Empty variable found in pattern');
+        continue;
+      }
+      
+      if (variable.startsWith('COUNTER:')) {
+        const parts = variable.split(':');
+        if (parts.length !== 2) {
+          errors.push('Invalid COUNTER format. Use {COUNTER:N} where N is the padding length.');
+          continue;
+        }
+        
+        const padding = parseInt(parts[1], 10);
+        if (isNaN(padding) || padding < 1 || padding > 10) {
+          errors.push('Counter padding must be between 1 and 10 digits');
+        }
+      } else if (!validVariables.includes(variable)) {
+        errors.push(`Invalid variable: {${variable}}`);
+      }
+      
+      foundVariables.push(variable);
+    }
+
+    // Check if pattern has at least one variable
+    if (foundVariables.length === 0) {
+      errors.push('Pattern must contain at least one variable');
+    }
+
+    // Check for COUNTER variable (required for uniqueness)
+    const hasCounter = foundVariables.some(v => v.startsWith('COUNTER'));
+    if (!hasCounter) {
+      errors.push('Pattern must include a {COUNTER:N} variable for unique numbering');
+    }
+
+    const preview = errors.length === 0 ? generateSequenceNumber(pattern, 1, 'invoice') : '';
+
+    return {
+      is_valid: errors.length === 0,
+      errors,
+      preview
+    };
+  } catch (error) {
+    console.error('Pattern validation error:', error);
     return {
       is_valid: false,
-      errors,
+      errors: ['Pattern validation failed'],
       preview: ''
     };
   }
-
-  // Check for invalid variables
-  const validVariables = ['YYYY', 'YY', 'MM', 'DD', 'COUNTER', 'CLINIC', 'DOCTYPE'];
-  const variableRegex = /{([^}]+)}/g;
-  let match;
-  const foundVariables: string[] = [];
-
-  while ((match = variableRegex.exec(pattern)) !== null) {
-    const variable = match[1];
-    
-    if (variable.startsWith('COUNTER:')) {
-      const padding = parseInt(variable.split(':')[1], 10);
-      if (isNaN(padding) || padding < 1 || padding > 10) {
-        errors.push('Counter padding must be between 1 and 10 digits');
-      }
-    } else if (!validVariables.includes(variable)) {
-      errors.push(`Invalid variable: {${variable}}`);
-    }
-    
-    foundVariables.push(variable);
-  }
-
-  // Check if pattern has at least one variable
-  if (foundVariables.length === 0) {
-    errors.push('Pattern must contain at least one variable');
-  }
-
-  // Check for COUNTER variable (required for uniqueness)
-  const hasCounter = foundVariables.some(v => v.startsWith('COUNTER'));
-  if (!hasCounter) {
-    errors.push('Pattern must include a {COUNTER:N} variable for unique numbering');
-  }
-
-  const preview = errors.length === 0 ? generateSequenceNumber(pattern, 1, 'invoice') : '';
-
-  return {
-    is_valid: errors.length === 0,
-    errors,
-    preview
-  };
 }
 
 export function previewPattern(pattern: string, documentType: string = 'invoice'): string {
+  if (!pattern) {
+    return '';
+  }
+  
   const validation = validatePattern(pattern);
   if (!validation.is_valid) {
     return 'Invalid pattern';

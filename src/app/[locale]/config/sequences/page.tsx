@@ -25,15 +25,28 @@ import * as z from 'zod';
 import { SequencesColumnsWrapper } from './columns';
 
 const sequenceFormSchema = (t: (key: string) => string) => z.object({
-  id: z.string().optional(),
+  id: z.number().optional(),
   name: z.string().min(1, t('nameRequired')),
   document_type: z.enum(['invoice', 'quote', 'order', 'payment', 'credit_note', 'purchase_order'], {
     required_error: t('documentTypeRequired')
   }),
   pattern: z.string().min(1, t('patternRequired')).refine(
-    (pattern) => validatePattern(pattern).is_valid,
-    t('patternInvalid')
-  ),
+    (pattern) => {
+      if (!pattern || typeof pattern !== 'string') {
+        return false;
+      }
+      try {
+        const validation = validatePattern(pattern);
+        return validation.is_valid;
+      } catch (error) {
+        console.error('Pattern validation error:', error);
+        return false;
+      }
+    },
+    {
+      message: t('patternInvalid'),
+    }
+  ).transform((val) => val || ''),
   current_counter: z.number().min(1, t('counterMin')),
   reset_period: z.enum(['never', 'yearly', 'monthly'], {
     required_error: t('resetPeriodRequired')
@@ -48,18 +61,28 @@ async function getSequences(): Promise<Sequence[]> {
     const data = await api.get(API_ROUTES.CONFIG.SEQUENCES);
     const sequencesData = Array.isArray(data) ? data : (data.sequences || data.data || data.result || []);
 
-    return sequencesData.map((apiSequence: any) => ({
-      id: String(apiSequence.id),
-      name: apiSequence.name,
-      document_type: apiSequence.document_type,
-      pattern: apiSequence.pattern,
-      current_counter: Number(apiSequence.current_counter),
-      reset_period: apiSequence.reset_period,
-      is_active: Boolean(apiSequence.is_active),
-      preview_example: apiSequence.preview_example,
-      created_at: apiSequence.created_at,
-      updated_at: apiSequence.updated_at,
-    }));
+    // Filter out empty objects and map valid sequences
+    return sequencesData
+      .filter((apiSequence: any) => {
+        // Filter out empty objects or objects without required fields
+        return apiSequence && 
+               typeof apiSequence === 'object' && 
+               !Array.isArray(apiSequence) && 
+               Object.keys(apiSequence).length > 0 &&
+               apiSequence.id; // Ensure we have at least an id
+      })
+      .map((apiSequence: any) => ({
+        id: Number(apiSequence.id),
+        name: apiSequence.name || '',
+        document_type: apiSequence.document_type || 'invoice',
+        pattern: apiSequence.pattern || '',
+        current_counter: Number(apiSequence.current_counter) || 1,
+        reset_period: apiSequence.reset_period || 'never',
+        is_active: Boolean(apiSequence.is_active ?? true),
+        preview_example: apiSequence.preview_example,
+        created_at: apiSequence.created_at,
+        updated_at: apiSequence.updated_at,
+      }));
   } catch (error) {
     console.error("Failed to fetch sequences:", error);
     return [];
@@ -75,7 +98,7 @@ async function upsertSequence(sequenceData: SequenceFormValues) {
   return responseData;
 }
 
-async function deleteSequence(id: string) {
+async function deleteSequence(id: number) {
   const responseData = await api.delete(API_ROUTES.CONFIG.SEQUENCES_DELETE, { id });
   if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
     const message = responseData[0]?.message ? responseData[0].message : 'Failed to delete sequence';
@@ -96,7 +119,6 @@ export default function SequencesPage() {
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [deletingSequence, setDeletingSequence] = React.useState<Sequence | null>(null);
-  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
   const form = useForm<SequenceFormValues>({
     resolver: zodResolver(sequenceFormSchema(tValidation)),
@@ -131,7 +153,6 @@ export default function SequencesPage() {
       reset_period: 'never',
       is_active: true
     });
-    setSubmissionError(null);
     setIsDialogOpen(true);
   };
 
@@ -139,14 +160,13 @@ export default function SequencesPage() {
     setEditingSequence(sequence);
     form.reset({
       id: sequence.id,
-      name: sequence.name,
-      document_type: sequence.document_type,
-      pattern: sequence.pattern,
-      current_counter: sequence.current_counter,
-      reset_period: sequence.reset_period,
-      is_active: sequence.is_active,
+      name: sequence.name || '',
+      document_type: sequence.document_type || 'invoice',
+      pattern: sequence.pattern || '',
+      current_counter: sequence.current_counter || 1,
+      reset_period: sequence.reset_period || 'never',
+      is_active: sequence.is_active ?? true,
     });
-    setSubmissionError(null);
     setIsDialogOpen(true);
   };
 
@@ -176,7 +196,6 @@ export default function SequencesPage() {
   };
 
   const onSubmit = async (values: SequenceFormValues) => {
-    setSubmissionError(null);
     try {
       await upsertSequence(values);
       toast({
@@ -186,7 +205,12 @@ export default function SequencesPage() {
       setIsDialogOpen(false);
       loadSequences();
     } catch (error) {
-      setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
+      const errorMessage = error instanceof Error ? error.message : t('toast.genericError');
+      toast({
+        variant: 'destructive',
+        title: t('toast.errorTitle'),
+        description: errorMessage,
+      });
     }
   };
 
@@ -198,7 +222,7 @@ export default function SequencesPage() {
 
   const documentType = form.watch('document_type');
   const pattern = form.watch('pattern');
-  const preview = pattern ? previewPattern(pattern, documentType) : '';
+  const preview = pattern && documentType ? previewPattern(pattern, documentType) : '';
 
   const sequencesColumns = SequencesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
 
@@ -232,13 +256,6 @@ export default function SequencesPage() {
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-              {submissionError && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
-                  <AlertDescription>{submissionError}</AlertDescription>
-                </Alert>
-              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
@@ -289,7 +306,12 @@ export default function SequencesPage() {
                   <FormItem>
                     <FormLabel>{t('createDialog.pattern')}</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('createDialog.patternPlaceholder')} {...field} />
+                      <Input 
+                        placeholder={t('createDialog.patternPlaceholder')} 
+                        {...field} 
+                        value={field.value || ''}
+                        onChange={(e) => field.onChange(e.target.value)}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -309,12 +331,17 @@ export default function SequencesPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => addToPattern(`{${variable.key}}`)}
+                      onClick={() => addToPattern('{' + variable.key + '}')}
                       className="justify-start text-xs h-auto p-2"
                     >
                       <div>
-                        <div className="font-mono">{'{'}{variable.key}{'}'}</div>
-                        <div className="text-muted-foreground">{t(`variables.${variable.key}`)}</div>
+                        <div className="font-mono">{'{' + variable.key + '}'}</div>
+                        <div className="text-muted-foreground">
+                        {variable.key.startsWith('COUNTER:') 
+                          ? t(`variables.COUNTER:${variable.key.split(':')[1]}`) || t(`variables.COUNTER:N`)
+                          : t(`variables.${variable.key}`)
+                        }
+                      </div>
                       </div>
                     </Button>
                   ))}

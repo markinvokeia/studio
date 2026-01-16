@@ -2620,7 +2620,7 @@
       "title": "Actions Taken",
       "noActions": "No actions taken yet",
       "sendEmail": "Send Email",
-      "sendSms": "Send SMS", 
+      "sendSms": "Send SMS",
       "sendWhatsApp": "Send WhatsApp",
       "performedAt": "Performed at",
       "status": "Status",
@@ -2960,7 +2960,7 @@
       "documentType": "Document Type",
       "selectDocumentType": "Select document type",
       "pattern": "Pattern",
-      "patternPlaceholder": "e.g., INV-{YYYY}-{MM}-{COUNTER:4}",
+      "patternPlaceholder": "e.g., INV-'{'YYYY'}'-'{'MM'}'-'{'COUNTER:4'}'",
       "currentCounter": "Current Counter",
       "resetPeriod": "Reset Period",
       "selectResetPeriod": "Select reset period",
@@ -2999,7 +2999,12 @@
       "DD": "Day with padding (01-31)",
       "COUNTER:N": "Sequential number with N digits (e.g., COUNTER:4 = 0001)",
       "CLINIC": "Clinic code",
-      "DOCTYPE": "Document type code"
+      "DOCTYPE": "Document type code",
+      "COUNTER": "Sequential number",
+      "COUNTER:4": "Sequential number with 4 digits",
+      "COUNTER:3": "Sequential number with 3 digits",
+      "COUNTER:2": "Sequential number with 2 digits",
+      "COUNTER:1": "Sequential number with 1 digit"
     },
     "validation": {
       "nameRequired": "Sequence name is required",

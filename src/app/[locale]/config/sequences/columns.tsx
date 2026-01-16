@@ -43,17 +43,29 @@ export function SequencesColumnsWrapper({ onEdit, onDelete }: SequencesColumnsPr
       ),
       cell: ({ row }) => {
         const sequence = row.original;
+        const pattern = row.getValue('pattern') as string || sequence.pattern;
+        
+        if (!pattern) {
+          return (
+            <div className="max-w-xs">
+              <code className="text-xs bg-muted px-2 py-1 rounded">
+                -
+              </code>
+            </div>
+          );
+        }
+        
         return (
           <div className="max-w-xs">
             <code className="text-xs bg-muted px-2 py-1 rounded">
-              {row.getValue('pattern')}
+              {pattern}
             </code>
             <div className="text-xs text-muted-foreground mt-1">
               {t('createDialog.previewExample')}
               {generateSequenceNumber(
-                sequence.pattern,
-                sequence.current_counter,
-                sequence.document_type
+                pattern,
+                sequence.current_counter || 1,
+                sequence.document_type || 'invoice'
               )}
             </div>
           </div>

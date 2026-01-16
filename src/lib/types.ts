@@ -692,7 +692,7 @@ export type UserAlertPreference = {
 };
 
 export type Sequence = {
-  id: string;
+  id: number;
   name: string;
   document_type: 'invoice' | 'quote' | 'order' | 'payment' | 'credit_note' | 'purchase_order';
   pattern: string;
