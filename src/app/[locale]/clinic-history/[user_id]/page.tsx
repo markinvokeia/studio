@@ -2201,17 +2201,31 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     };
 
     const handleViewSessionAttachment = async (session: PatientSession, attachment: AttachedFile) => {
+        // Use mime_type if available, otherwise tipo, and detect image types
+        let mimeType: string = attachment.mime_type || attachment.tipo || '';
+        if (!mimeType.startsWith('image/')) {
+            // Check if it's an image based on file extension or tipo
+            const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+            const fileName = attachment.file_name || '';
+            const extension = fileName.split('.').pop()?.toLowerCase();
+            if (extension && imageExtensions.includes(extension)) {
+                mimeType = `image/${extension === 'jpg' ? 'jpeg' : extension}`;
+            } else if (imageExtensions.includes(mimeType.toLowerCase())) {
+                mimeType = `image/${mimeType.toLowerCase() === 'jpg' ? 'jpeg' : mimeType.toLowerCase()}`;
+            }
+        }
+
         const doc: Document = {
             id: String(attachment.id),
             name: attachment.file_name || 'Attachment',
-            mimeType: attachment.tipo,
+            mimeType: mimeType,
             thumbnailLink: getAttachmentUrl(attachment.thumbnail_url || '')
         };
         setSelectedDocument(doc);
         setIsViewerOpen(true);
         setDocumentContent(null);
         try {
-            const blob = await api.getBlob(API_ROUTES.CLINIC_HISTORY.SESSIONS_ATTACHMENT, { session_id: session.sesion_id, id: String(attachment.id) });
+            const blob = await api.getBlob(API_ROUTES.CLINIC_HISTORY.SESSIONS_ATTACHMENT, { session_id: String(session.sesion_id), id: String(attachment.id) });
             const url = URL.createObjectURL(blob);
             setDocumentContent(url);
         } catch (error) {
