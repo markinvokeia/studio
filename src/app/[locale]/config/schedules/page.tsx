@@ -170,6 +170,13 @@ export default function SchedulesPage() {
 
     const schedulesColumns = SchedulesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
 
+    const columnTranslations = {
+        id: t('columns.id'),
+        day_of_week: t('columns.dayOfWeek'),
+        start_time: t('columns.startTime'),
+        end_time: t('columns.endTime'),
+        actions: t('columns.actions'),
+    };
 
     return (
         <>
@@ -187,6 +194,7 @@ export default function SchedulesPage() {
                         onCreate={handleCreate}
                         onRefresh={loadSchedules}
                         isRefreshing={isRefreshing}
+                        columnTranslations={columnTranslations}
                     />
                 </CardContent>
             </Card>
