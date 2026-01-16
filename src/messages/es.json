@@ -1696,6 +1696,14 @@
             "description": "¿Está seguro de que desea eliminar este horario? Esta acción no se puede deshacer.",
             "cancel": "Cancelar",
             "confirm": "Eliminar"
+        },
+        "toast": {
+          "editSuccessDescription": "Los detalles han sido actualizados satisfactoriamente",
+          "editSuccessTitle": "Operación exitosa",
+          "successDescription": "Los detalles han sido actualizados satisfactoriamente",
+          "successTitle": "Operación exitosa",
+          "errorDesc": "Hubo un error y los detalles no han sido actualizados satisfactoriamente",
+          "errorTitle": "Error Actualizando"
         }
     },
     "HolidaysPage": {

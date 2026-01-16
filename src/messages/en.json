@@ -1692,6 +1692,14 @@
       "description": "Are you sure you want to delete this schedule? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
+    },
+    "toast": {
+      "editSuccessDescription": "Details have been updated successfully",
+      "editSuccessTitle": "Successfully Updated",
+      "successDescription": "Details have been updated successfully",
+      "successTitle": "Successfully Updated",
+      "errorDesc": "An error occurs and details have been updated successfully",
+      "errorTitle": "Error Updating"
     }
   },
   "HolidaysPage": {
