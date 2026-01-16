@@ -1643,7 +1643,13 @@
         "emailPlaceholder": "ej. juan.perez@ejemplo.com",
         "save": "Guardar",
         "currencyLabel": "Moneda",
-        "currencyPlaceholder": "Seleccionar una moneda"
+        "currencyPlaceholder": "Seleccionar una moneda",
+        "toast": {
+          "successDesc": "Los detalles de la clínica han sido actualizados satisfactoriamente",
+          "successTitle": "Operación exitosa",
+          "errorDesc": "Hubo un error y los detalles de la clínica no han sido actualizados satisfactoriamente",
+          "errorTitle": "Error Actualizando Detalles"
+        }
     },
     "SchedulesPage": {
         "title": "Horarios",

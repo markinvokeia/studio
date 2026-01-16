@@ -1639,7 +1639,13 @@
     "emailPlaceholder": "e.g. john.doe@example.com",
     "save": "Save",
     "currencyLabel": "Currency",
-    "currencyPlaceholder": "Select a currency"
+    "currencyPlaceholder": "Select a currency",
+    "toast": {
+      "successDesc": "Clinic Details saved successfully",
+      "successTitle": "Successfull Update",
+      "errorDesc": "There was an error and Clinic Details were not saved successfully",
+      "errorTitle": "Error Updating Details"
+    }
   },
   "SchedulesPage": {
     "title": "Schedules",
