@@ -1723,6 +1723,7 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
     const [uploadFile, setUploadFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const [deletingDocument, setDeletingDocument] = useState<Document | null>(null);
     const t = useTranslations('ClinicHistoryPage');
     const { toast } = useToast();
@@ -1761,6 +1762,25 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
         }
     };
 
+    const handleDragOver = (event: React.DragEvent<HTMLElement>) => {
+        event.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (event: React.DragEvent<HTMLElement>) => {
+        event.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (event: React.DragEvent<HTMLElement>) => {
+        event.preventDefault();
+        setIsDragging(false);
+        const files = event.dataTransfer.files;
+        if (files && files[0]) {
+            setUploadFile(files[0]);
+        }
+    };
+
     const handleUpload = async () => {
         if (!uploadFile || !userId) return;
         setIsUploading(true);
@@ -1793,7 +1813,7 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
     const confirmDeleteDocument = async () => {
         if (!deletingDocument || !userId) return;
         try {
-            await api.delete(API_ROUTES.CLINIC_HISTORY.USERS_DOCUMENT, undefined, { id: deletingDocument.id, user_id: userId });
+            await api.delete(API_ROUTES.CLINIC_HISTORY.USERS_DOCUMENT, undefined, undefined, { id: deletingDocument.id, user_id: userId });
             toast({ title: "Document Deleted", description: `Document "${deletingDocument.name}" has been deleted.` });
             fetchDocuments();
         } catch (error) {
@@ -1873,7 +1893,7 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
                     </DialogHeader>
                     <div className="py-4 space-y-4">
                         <div className="flex items-center justify-center w-full">
-                            <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
+                             <label htmlFor="dropzone-file" className={cn("flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50", isDragging && "border-primary bg-primary/10")} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
                                 {uploadFile ? (
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                         <FileText className="w-8 h-8 mb-4 text-primary" />
