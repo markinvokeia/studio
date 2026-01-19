@@ -5,9 +5,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
 import { Message } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
-import { format } from 'date-fns';
+import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { ScrollArea } from '../ui/scroll-area';
 
@@ -70,6 +70,7 @@ interface UserMessagesProps {
 }
 
 export function UserMessages({ userId }: UserMessagesProps) {
+  const t = useTranslations('UserMessages');
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const viewportRef = React.useRef<HTMLDivElement>(null);
@@ -124,19 +125,19 @@ export function UserMessages({ userId }: UserMessagesProps) {
                 >
                   <p className="font-semibold capitalize">
                     {message.sender === 'user'
-                      ? `User via ${message.channel || 'Website'}`
-                      : 'System Response'}
+                      ? t('userVia', { channel: message.channel || t('website') })
+                      : t('systemResponse')}
                   </p>
                   <div dangerouslySetInnerHTML={formatMessageContent(message.content)} />
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {format(new Date(message.timestamp), 'PPpp')}
+                  {formatDateTime(message.timestamp)}
                 </span>
               </div>
             ))}
             {messages.length === 0 && (
               <div className="flex h-full items-center justify-center text-muted-foreground">
-                No messages found for this user.
+                {t('noMessages')}
               </div>
             )}
           </div>

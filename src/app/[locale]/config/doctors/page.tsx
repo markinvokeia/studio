@@ -189,16 +189,16 @@ export default function DoctorsPage() {
       });
 
       toast({
-        title: 'Success',
-        description: `Doctor ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
+        title: !user.is_active ? t('DoctorsPage.createDialog.SuccessActivate') : t('DoctorsPage.createDialog.SuccessDeactivate'),
+        description: !user.is_active ? t('DoctorsPage.createDialog.SuccessActivateDescription', { name: user.name }) : t('DoctorsPage.createDialog.SuccessDeactivateDescription', { name: user.name }),
       });
 
       loadUsers();
     } catch (error) {
       toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not update doctor status.',
+        variant: !user.is_active ? 'default' : 'destructive',
+        title: !user.is_active ? t('DoctorsPage.createDialog.ErrorActivate') : t('DoctorsPage.createDialog.ErrorDeactivate'),
+        description: !user.is_active ? t('DoctorsPage.createDialog.ErrorActivateDescription') : t('DoctorsPage.createDialog.ErrorDeactivateDescription'),
       });
       console.error(error);
     }
@@ -319,6 +319,13 @@ export default function DoctorsPage() {
                 manualPagination={true}
                 columnFilters={columnFilters}
                 onColumnFiltersChange={setColumnFilters}
+                columnTranslations={{
+                  name: t('DoctorsPage.DoctorColumns.name'),
+                  email: t('DoctorsPage.DoctorColumns.email'),
+                  identity_document: t('DoctorsPage.DoctorColumns.identity_document'),
+                  phone_number: t('DoctorsPage.DoctorColumns.phone'),
+                  is_active: t('DoctorsPage.DoctorColumns.status'),
+                }}
               />
             </CardContent>
           </Card>
@@ -439,7 +446,7 @@ export default function DoctorsPage() {
                 name="color"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('DoctorsPage.dialog.color')}</FormLabel>
+                    <FormLabel>{t('DoctorsPage.createDialog.color')}</FormLabel>
                     <FormControl>
                       <div className="flex items-center gap-2">
                         <Input type="color" className="p-1 h-10 w-14" {...field} />

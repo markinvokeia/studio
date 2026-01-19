@@ -74,7 +74,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<Service>[] => [
   },
 ];
 
-async function getServicesForUser(userId: string): Promise<Service[]> {
+async function getServicesForUser(userId: string, t: any): Promise<Service[]> {
   if (!userId) return [];
   try {
     const data = await api.get(API_ROUTES.USER_SERVICES, { user_id: userId });
@@ -86,8 +86,8 @@ async function getServicesForUser(userId: string): Promise<Service[]> {
 
     return userServicesData.map((apiService: any) => ({
       id: apiService.id ? String(apiService.id) : `srv_${Math.random().toString(36).substr(2, 9)}`,
-      name: apiService.name || 'Unknown Service',
-      category: apiService.category || 'N/A',
+      name: apiService.name || t('General.unknown'),
+      category: apiService.category || t('General.notAvailable'),
       price: apiService.price || 0,
       duration_minutes: apiService.duration_minutes || 0,
       is_active: apiService.is_active,
@@ -131,7 +131,7 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
   const loadUserServices = React.useCallback(async () => {
     if (!userId) return;
     setIsLoading(true);
-    const fetchedUserServices = await getServicesForUser(userId);
+    const fetchedUserServices = await getServicesForUser(userId, t);
     setUserServices(fetchedUserServices);
     setIsLoading(false);
   }, [userId]);
@@ -247,8 +247,8 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
             <div className="flex justify-between items-center mb-4">
               <Label>{t('UserServices.dialog.availableServices')}</Label>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleSelectAll}>Select All</Button>
-                <Button variant="outline" size="sm" onClick={handleDeselectAll}>Deselect All</Button>
+                <Button variant="outline" size="sm" onClick={handleSelectAll}>{t('UserServices.dialog.selectAll')}</Button>
+                <Button variant="outline" size="sm" onClick={handleDeselectAll}>{t('UserServices.dialog.deselectAll')}</Button>
               </div>
             </div>
             <ScrollArea className="h-72 mt-2 border rounded-md p-4">
@@ -269,7 +269,7 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
                       {isSelected && (
                         <div className="flex items-center space-x-8">
                           <div className="flex items-center space-x-2 w-32">
-                            <Label htmlFor={`duration-${service.id}`} className="text-sm whitespace-nowrap">Duration</Label>
+                            <Label htmlFor={`duration-${service.id}`} className="text-sm whitespace-nowrap">{t('UserServices.dialog.duration')}</Label>
                             <Input
                               id={`duration-${service.id}`}
                               type="number"

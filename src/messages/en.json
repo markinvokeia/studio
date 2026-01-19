@@ -89,6 +89,11 @@
     "logout": "Logout",
     "commandPlaceholder": "Enter a command...",
     "changePassword": "Change Password",
+    "alerts": "Alerts",
+    "toggleTheme": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
     "logoutConfirmation": {
       "title": "Active Cash Session",
       "description": "You have an open cash session. Please close it before logging out.",
@@ -666,7 +671,10 @@
       "availableServices": "Available Services",
       "cancel": "Cancel",
       "assign": "Accept",
-      "activeLabel": "Active"
+      "activeLabel": "Active",
+      "selectAll": "Select All",
+      "deselectAll": "Deselect All",
+      "duration": "Duration"
     },
     "toast": {
       "success": "Success",
@@ -687,7 +695,17 @@
     "createdAt": "Created At"
   },
   "General": {
-    "noResults": "No results."
+    "noResults": "No results.",
+    "openMenu": "Open menu",
+    "selectRow": "Select row",
+    "unknown": "Unknown",
+    "notAvailable": "N/A"
+  },
+  "UserMessages": {
+    "noMessages": "No messages found for this user.",
+    "userVia": "User via {channel}",
+    "systemResponse": "System Response",
+    "website": "Website"
   },
   "QuotesPage": {
     "sendEmailDialog": {
@@ -1832,7 +1850,12 @@
       "actions": "Actions",
       "edit": "Edit",
       "deactivate": "Deactivate",
-      "copyId": "Copy ID"
+      "activate": "Activate",
+      "copyId": "Copy ID",
+      "active": "Active",
+      "inactive": "Inactive",
+      "openMenu": "Open menu",
+      "selectRow": "Select row"
     },
     "createDialog": {
       "createTitle": "Create doctor",
@@ -1851,7 +1874,24 @@
       "cancel": "Cancel",
       "editTitle": "Edit doctor",
       "editDescription": "Edit the doctor for the clinic",
-      "editSave": "Save Changes"
+      "editSave": "Save Changes",
+      "createSuccessTitle": "Doctor Created",
+      "createSuccessDescription": "The doctor has been created successfully.",
+      "editSuccessTitle": "Doctor Updated",
+      "editSuccessDescription": "The doctor has been updated successfully.",
+      "SuccessActivate": "Doctor Activated",
+      "SuccessDeactivate": "Doctor Deactivated",
+      "ErrorActivate": "Error Activating Doctor",
+      "ErrorDeactivate": "Error Deactivating Doctor",
+      "ErrorActivateDescription": "Could not activate doctor.",
+      "ErrorDeactivateDescription": "Could not deactivate doctor.",
+      "validation": {
+        "nameRequired": "Name is required.",
+        "emailInvalid": "Invalid email.",
+        "phoneInvalid": "Invalid phone number.",
+        "identityInvalid": "Invalid identity document.",
+        "identityMaxLength": "Identity document must be at most 10 characters long."
+      }
     }
   },
   "UserLogsPage": {
@@ -3100,5 +3140,13 @@
     "actions": "Actions",
     "edit": "Edit",
     "delete": "Delete"
+  },
+  "FloatingActions": {
+    "openWhatsapp": "Open WhatsApp",
+    "openTelegram": "Open Telegram",
+    "openChat": "Open Chat",
+    "openMenu": "Open Menu",
+    "closeMenu": "Close Menu",
+    "chatbotTitle": "Assistant"
   }
 }

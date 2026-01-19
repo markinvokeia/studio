@@ -89,6 +89,11 @@
         "logout": "Cerrar Sesión",
         "commandPlaceholder": "Escriba un comando...",
         "changePassword": "Cambiar Contraseña",
+        "alerts": "Alertas",
+        "toggleTheme": "Cambiar tema",
+        "light": "Claro",
+        "dark": "Oscuro",
+        "system": "Sistema",
         "logoutConfirmation": {
             "title": "Sesión de Caja Activa",
             "description": "Tiene una sesión de caja abierta. Por favor, ciérrela antes de cerrar sesión.",
@@ -132,7 +137,7 @@
         },
         "title": "Sin Sesión de Caja Activa",
         "description": "No tiene una sesión de caja activa. Por favor, abra una para comenzar a registrar transacciones.",
-        "button": "Abrar Sesión de Caja",
+        "button": "Abrir Sesión de Caja",
         "tooltip": "Sin sesión activa. Haga clic para abrir una."
     },
     "DataTableToolbar": {
@@ -666,7 +671,10 @@
             "availableServices": "Servicios Disponibles",
             "cancel": "Cancelar",
             "assign": "Aceptar",
-            "activeLabel": "Activo"
+            "activeLabel": "Activo",
+            "selectAll": "Seleccionar todo",
+            "deselectAll": "Deseleccionar todo",
+            "duration": "Duración"
         },
         "toast": {
             "success": "Éxito",
@@ -687,7 +695,17 @@
         "createdAt": "Creado En"
     },
     "General": {
-        "noResults": "No hay resultados."
+        "noResults": "No hay resultados.",
+        "openMenu": "Abrir menú",
+        "selectRow": "Seleccionar fila",
+        "unknown": "Desconocido",
+        "notAvailable": "N/A"
+    },
+    "UserMessages": {
+        "noMessages": "No se encontraron mensajes para este usuario.",
+        "userVia": "Usuario vía {channel}",
+        "systemResponse": "Respuesta del Sistema",
+        "website": "Sitio Web"
     },
     "QuotesPage": {
         "sendEmailDialog": {
@@ -1836,7 +1854,12 @@
             "actions": "Acciones",
             "edit": "Editar",
             "deactivate": "Desactivar",
-            "copyId": "Copiar ID"
+            "activate": "Activar",
+            "copyId": "Copiar ID",
+            "active": "Activo",
+            "inactive": "Inactivo",
+            "openMenu": "Abrir menú",
+            "selectRow": "Seleccionar fila"
         },
         "createDialog": {
             "createTitle": "Crear doctor",
@@ -1855,7 +1878,26 @@
             "cancel": "Cancelar",
             "editTitle": "Editar doctor",
             "editDescription": "Editar el doctor para la clínica",
-            "editSave": "Guardar Cambios"
+            "editSave": "Guardar Cambios",
+            "createSuccessTitle": "Doctor Creado",
+            "createSuccessDescription": "El doctor ha sido guardado exitosamente.",
+            "editSuccessTitle": "Doctor Actualizado",
+            "editSuccessDescription": "El doctor ha sido actualizado exitosamente.",
+            "SuccessActivate": "Doctor Activado",
+            "SuccessActivateDescription": "El doctor ha sido activado exitosamente.",
+            "SuccessDeactivate": "Doctor Desactivado",
+            "SuccessDeactivateDescription": "El doctor ha sido desactivado exitosamente.",
+            "ErrorActivate": "Error Activando Doctor",
+            "ErrorActivateDescription": "No se pudo activar el doctor.",
+            "ErrorDeactivate": "Error Desactivando Doctor",
+            "ErrorDeactivateDescription": "No se pudo desactivar el doctor.",
+            "validation": {
+                "nameRequired": "Nombre es obligatorio.",
+                "emailInvalid": "Correo electrónico inválido.",
+                "phoneInvalid": "Número de teléfono inválido.",
+                "identityInvalid": "Documento de identidad inválido.",
+                "identityMaxLength": "Documento de identidad debe tener como máximo 10 caracteres."
+            }
         }
     },
     "UserLogsPage": {
@@ -3101,5 +3143,13 @@
         "actions": "Acciones",
         "edit": "Editar",
         "delete": "Eliminar"
+    },
+    "FloatingActions": {
+        "openWhatsapp": "Abrir WhatsApp",
+        "openTelegram": "Abrir Telegram",
+        "openChat": "Abrir Chat",
+        "openMenu": "Abrir Menú",
+        "closeMenu": "Cerrar Menú",
+        "chatbotTitle": "Asistente"
     }
 }

@@ -10,21 +10,24 @@ import { cn } from '@/lib/utils';
 import { TelegramIcon } from './icons/telegram-icon';
 import { WhatsAppIcon } from './icons/whatsapp-icon';
 
+import { useTranslations } from 'next-intl';
+
 export function FloatingActions() {
+  const t = useTranslations('FloatingActions');
   const [isChatOpen, setChatOpen] = useState(false);
   const [isMenuOpen, setMenuOpen] = useState(false);
 
   const toggleChat = () => {
     setChatOpen(!isChatOpen);
     if (!isChatOpen) {
-        setMenuOpen(false); // Close main menu if opening chat
+      setMenuOpen(false); // Close main menu if opening chat
     }
   };
 
   const toggleMenu = () => {
     setMenuOpen(!isMenuOpen);
     if (!isMenuOpen) {
-        setChatOpen(false); // Close chat if opening menu
+      setChatOpen(false); // Close chat if opening menu
     }
   };
 
@@ -32,28 +35,28 @@ export function FloatingActions() {
     <>
       <div className="fixed bottom-4 left-4 z-50 flex flex-col items-start gap-2">
         {isMenuOpen && (
-            <>
-                <Link href="https://wa.me/59894024661" target="_blank" rel="noopener noreferrer">
-                    <Button size="icon" className="rounded-full h-12 w-12 bg-green-500 text-white shadow-lg hover:bg-green-600">
-                        <WhatsAppIcon className="h-6 w-6" />
-                        <span className="sr-only">Open WhatsApp</span>
-                    </Button>
-                </Link>
-                <Link href="https://t.me/InvokIA_bot" target="_blank" rel="noopener noreferrer">
-                    <Button size="icon" className="rounded-full h-12 w-12 bg-blue-500 text-white shadow-lg hover:bg-blue-600">
-                        <TelegramIcon className="h-6 w-6" />
-                        <span className="sr-only">Open Telegram</span>
-                    </Button>
-                </Link>
-                 <Button onClick={toggleChat} size="icon" className="rounded-full h-12 w-12 bg-purple-500 text-white shadow-lg hover:bg-purple-600">
-                    <MessageSquare className="h-6 w-6" />
-                    <span className="sr-only">Open Chat</span>
-                </Button>
-             </>
+          <>
+            <Link href="https://wa.me/59894024661" target="_blank" rel="noopener noreferrer">
+              <Button size="icon" className="rounded-full h-12 w-12 bg-green-500 text-white shadow-lg hover:bg-green-600">
+                <WhatsAppIcon className="h-6 w-6" />
+                <span className="sr-only">{t('openWhatsapp')}</span>
+              </Button>
+            </Link>
+            <Link href="https://t.me/InvokIA_bot" target="_blank" rel="noopener noreferrer">
+              <Button size="icon" className="rounded-full h-12 w-12 bg-blue-500 text-white shadow-lg hover:bg-blue-600">
+                <TelegramIcon className="h-6 w-6" />
+                <span className="sr-only">{t('openTelegram')}</span>
+              </Button>
+            </Link>
+            <Button onClick={toggleChat} size="icon" className="rounded-full h-12 w-12 bg-purple-500 text-white shadow-lg hover:bg-purple-600">
+              <MessageSquare className="h-6 w-6" />
+              <span className="sr-only">{t('openChat')}</span>
+            </Button>
+          </>
         )}
         <Button onClick={toggleMenu} size="sm" className="rounded-full h-10 w-10 p-0 bg-black text-white shadow-lg hover:bg-gray-800">
           {isMenuOpen ? <X className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-          <span className="sr-only">{isMenuOpen ? 'Close Menu' : 'Open Menu'}</span>
+          <span className="sr-only">{isMenuOpen ? t('closeMenu') : t('openMenu')}</span>
         </Button>
       </div>
 
@@ -65,10 +68,10 @@ export function FloatingActions() {
       >
         <Card className="flex flex-col h-[60vh]">
           <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
-            <CardTitle className="text-lg">Chatbot</CardTitle>
-             <Button variant="ghost" size="icon" onClick={toggleChat}>
-                <X className="h-4 w-4" />
-             </Button>
+            <CardTitle className="text-lg">{t('chatbotTitle')}</CardTitle>
+            <Button variant="ghost" size="icon" onClick={toggleChat}>
+              <X className="h-4 w-4" />
+            </Button>
           </CardHeader>
           <CardContent className="p-0 flex-1">
             <iframe
