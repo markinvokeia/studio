@@ -1623,7 +1623,12 @@
     "recoverPasswordTitle": "Recover Password",
     "recoverPasswordDescription": "Enter your email to recover your password",
     "recoverPasswordButton": "Recover Password",
-    "backToLogin": "Back to Login"
+    "backToLogin": "Back to Login",
+    "errors": {
+        "title": "Error",
+        "invalidCredentials": "The credentials you entered are incorrect. Please check your email and password and try again.",
+        "unexpected": "An unexpected error occurred. Please try again later."
+    }
   },
   "ClinicDetailsPage": {
     "title": "Clinic Details",

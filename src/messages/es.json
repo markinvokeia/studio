@@ -1627,7 +1627,12 @@
         "recoverPasswordTitle": "Recuperar Contraseña",
         "recoverPasswordDescription": "Ingrese su correo para recuperar su contraseña",
         "recoverPasswordButton": "Recuperar Contraseña",
-        "backToLogin": "Volver al inicio de sesión"
+        "backToLogin": "Volver al inicio de sesión",
+        "errors": {
+            "title": "Error",
+            "invalidCredentials": "Las credenciales que ingresaste son incorrectas. Por favor, verifica tu email y contraseña e intenta nuevamente.",
+            "unexpected": "Ocurrió un error inesperado. Por favor, intenta de nuevo más tarde."
+        }
     },
     "ClinicDetailsPage": {
         "title": "Detalles de la Clínica",
