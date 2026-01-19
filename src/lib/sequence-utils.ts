@@ -25,16 +25,6 @@ export const SEQUENCE_VARIABLES: SequenceVariable[] = [
     key: 'COUNTER:N',
     description: 'Sequential number with N digits',
     example: 'COUNTER:4 = 0001'
-  },
-  {
-    key: 'CLINIC',
-    description: 'Clinic code',
-    example: 'CLINIC01'
-  },
-  {
-    key: 'DOCTYPE',
-    description: 'Document type code',
-    example: 'INV'
   }
 ];
 
@@ -71,8 +61,6 @@ export function generateSequenceNumber(
     result = result.replace(/{YY}/g, shortYear);
     result = result.replace(/{MM}/g, month);
     result = result.replace(/{DD}/g, day);
-    result = result.replace(/{CLINIC}/g, 'CLINIC01'); // TODO: Get from clinic settings
-    result = result.replace(/{DOCTYPE}/g, DOCUMENT_TYPE_CODES[documentType as keyof typeof DOCUMENT_TYPE_CODES] || 'DOC');
 
     // Handle COUNTER variable with padding
     const counterRegex = /{COUNTER:(\d+)}/g;
@@ -112,7 +100,7 @@ export function validatePattern(pattern: string): SequencePatternValidation {
     }
 
     // Check for invalid variables
-    const validVariables = ['YYYY', 'YY', 'MM', 'DD', 'COUNTER', 'CLINIC', 'DOCTYPE'];
+    const validVariables = ['YYYY', 'YY', 'MM', 'DD', 'COUNTER'];
     const variableRegex = /{([^}]+)}/g;
     let match;
     const foundVariables: string[] = [];
@@ -203,18 +191,29 @@ export function getNextCounter(sequence: Sequence): number {
       }
       break;
       
-    case 'monthly':
-      // Reset counter on first day of each month
-      const currentMonth = today.getFullYear() * 12 + today.getMonth();
-      const sequenceMonth = new Date(sequence.updated_at || sequence.created_at || today).getFullYear() * 12 + 
-                           new Date(sequence.updated_at || sequence.created_at || today).getMonth();
-      
-      if (currentMonth > sequenceMonth) {
-        return 1;
-      }
-      break;
-      
-    case 'never':
+     case 'monthly':
+       // Reset counter on first day of each month
+       const currentMonth = today.getFullYear() * 12 + today.getMonth();
+       const sequenceMonth = new Date(sequence.updated_at || sequence.created_at || today).getFullYear() * 12 +
+                            new Date(sequence.updated_at || sequence.created_at || today).getMonth();
+
+       if (currentMonth > sequenceMonth) {
+         return 1;
+       }
+       break;
+
+     case 'daily':
+       // Reset counter every day
+       const currentDate = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+       const sequenceDateObj = new Date(sequence.updated_at || sequence.created_at || today);
+       const lastSequenceDate = sequenceDateObj.getFullYear() * 10000 + (sequenceDateObj.getMonth() + 1) * 100 + sequenceDateObj.getDate();
+
+       if (currentDate > lastSequenceDate) {
+         return 1;
+       }
+       break;
+
+     case 'never':
     default:
       // Never reset, continue incrementing
       break;

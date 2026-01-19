@@ -697,7 +697,7 @@ export type Sequence = {
   document_type: 'invoice' | 'quote' | 'order' | 'payment' | 'credit_note' | 'purchase_order';
   pattern: string;
   current_counter: number;
-  reset_period: 'never' | 'yearly' | 'monthly';
+   reset_period: 'never' | 'yearly' | 'monthly' | 'daily';
   is_active: boolean;
   preview_example?: string;
   created_at?: string;
