@@ -231,8 +231,13 @@ export default function InvoicesPage() {
     };
 
     const handlePrintInvoice = async (invoice: Invoice) => {
+        toast({
+            title: "Generating PDF",
+            description: `Preparing PDF for Invoice #${invoice.id}...`,
+        });
+
         try {
-            const blob = await api.getBlob(API_ROUTES.PURCHASES.API_INVOICE_PRINT, {}, { invoiceId: invoice.id });
+            const blob = await api.getBlob(API_ROUTES.PURCHASES.API_INVOICE_PRINT, { id: invoice.id });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
