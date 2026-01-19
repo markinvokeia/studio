@@ -1643,7 +1643,15 @@
         "emailPlaceholder": "ej. juan.perez@ejemplo.com",
         "save": "Guardar",
         "currencyLabel": "Moneda",
-        "currencyPlaceholder": "Seleccionar una moneda"
+        "currencyPlaceholder": "Seleccionar una moneda",
+        "toast": {
+          "successDesc": "Los detalles de la clínica han sido actualizados satisfactoriamente",
+          "successTitle": "Operación exitosa",
+          "deleteSuccessDescription": "Registro eliminado satisfactoriamente",
+          "deleteSuccessTitle": "Eliminado Satisfactoriamente",
+          "errorDesc": "Hubo un error y los detalles de la clínica no han sido actualizados satisfactoriamente",
+          "errorTitle": "Error Actualizando Detalles"
+        }
     },
     "SchedulesPage": {
         "title": "Horarios",
@@ -1690,6 +1698,16 @@
             "description": "¿Está seguro de que desea eliminar este horario? Esta acción no se puede deshacer.",
             "cancel": "Cancelar",
             "confirm": "Eliminar"
+        },
+        "toast": {
+          "editSuccessDescription": "Los detalles han sido actualizados satisfactoriamente",
+          "editSuccessTitle": "Operación exitosa",
+          "successDescription": "Los detalles han sido actualizados satisfactoriamente",
+          "successTitle": "Operación exitosa",
+          "deleteSuccessDescription": "Registro eliminado satisfactoriamente",
+          "deleteSuccessTitle": "Eliminado Satisfactoriamente",
+          "errorDesc": "Hubo un error y los detalles no han sido actualizados satisfactoriamente",
+          "errorTitle": "Error Actualizando"
         }
     },
     "HolidaysPage": {
@@ -1732,6 +1750,16 @@
             "description": "¿Está seguro de que desea eliminar este feriado? Esta acción no se puede deshacer.",
             "cancel": "Cancelar",
             "confirm": "Eliminar"
+        },
+        "toast": {
+            "createSuccessTitle": "Feriado Creado",
+            "editSuccessTitle": "Feriado Actualizado",
+            "successDescription": "El feriado ha sido guardado exitosamente.",
+            "deleteSuccessTitle": "Feriado Eliminado",
+            "deleteSuccessDescription": "El feriado ha sido eliminado exitosamente.",
+            "errorTitle": "Error",
+            "deleteErrorDescription": "No se pudo eliminar el feriado. Por favor, inténtelo de nuevo.",
+            "genericError": "Ocurrió un error inesperado."
         }
     },
     "CalendarsPage": {

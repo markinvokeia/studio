@@ -30,6 +30,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { HolidaysColumnsWrapper } from './columns';
+import { DataTableAdvancedToolbar } from '@/components/ui/data-table-advanced-toolbar';
 
 const holidayFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
@@ -49,7 +50,7 @@ async function getHolidays(): Promise<ClinicException[]> {
 
         return holidaysData.map((apiHoliday: any) => ({
             id: apiHoliday.id ? String(apiHoliday.id) : `ex_${Math.random().toString(36).substr(2, 9)}`,
-            date: apiHoliday.date,
+            date: format(parseISO(apiHoliday.date), 'yyyy-MM-dd'),
             is_open: apiHoliday.is_open,
             start_time: apiHoliday.start_time,
             end_time: apiHoliday.end_time,
@@ -94,6 +95,7 @@ export default function HolidaysPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingHoliday, setDeletingHoliday] = React.useState<ClinicException | null>(null);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = React.useState('');
 
     const form = useForm<HolidayFormValues>({
         resolver: zodResolver(holidayFormSchema(tValidation)),
@@ -172,8 +174,27 @@ export default function HolidaysPage() {
         }
     };
 
+    const filteredHolidays = React.useMemo(() => {
+        if (!searchQuery) {
+            return holidays;
+        }
+        return holidays.filter(holiday =>
+            Object.values(holiday).some(value =>
+                String(value).toLowerCase().includes(searchQuery.toLowerCase())
+            )
+        );
+    }, [holidays, searchQuery]);
+
     const holidaysColumns = HolidaysColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
 
+    const columnTranslations = {
+        id: t('columns.id'),
+        date: t('columns.date'),
+        is_open: t('columns.status'),
+        start_time: t('columns.startTime'),
+        end_time: t('columns.endTime'),
+        notes: t('columns.notes'),
+    };
 
     return (
         <>
@@ -185,12 +206,20 @@ export default function HolidaysPage() {
                 <CardContent>
                     <DataTable
                         columns={holidaysColumns}
-                        data={holidays}
-                        filterColumnId="date"
-                        filterPlaceholder={t('filterPlaceholder')}
-                        onCreate={handleCreate}
-                        onRefresh={loadHolidays}
-                        isRefreshing={isRefreshing}
+                        data={filteredHolidays}
+                        customToolbar={(table) => (
+                          <DataTableAdvancedToolbar
+                            table={table}
+                            searchQuery={searchQuery}
+                            onSearchChange={setSearchQuery}
+                            filterPlaceholder={t('filterPlaceholder')}
+                            onCreate={handleCreate}
+                            onRefresh={loadHolidays}
+                            isRefreshing={isRefreshing}
+                            columnTranslations={columnTranslations}
+                          />
+                        )}
+                        columnTranslations={columnTranslations}
                     />
                 </CardContent>
             </Card>

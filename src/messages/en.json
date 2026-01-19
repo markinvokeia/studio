@@ -1639,7 +1639,15 @@
     "emailPlaceholder": "e.g. john.doe@example.com",
     "save": "Save",
     "currencyLabel": "Currency",
-    "currencyPlaceholder": "Select a currency"
+    "currencyPlaceholder": "Select a currency",
+    "toast": {
+      "successDesc": "Clinic Details saved successfully",
+      "successTitle": "Successfull Update",
+      "deleteSuccessDescription": "Details have been deleted successfully",
+      "deleteSuccessTitle": "Successfully Deleted",
+      "errorDesc": "There was an error and Clinic Details were not saved successfully",
+      "errorTitle": "Error Updating Details"
+    }
   },
   "SchedulesPage": {
     "title": "Schedules",
@@ -1686,6 +1694,16 @@
       "description": "Are you sure you want to delete this schedule? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
+    },
+    "toast": {
+      "editSuccessDescription": "Details have been updated successfully",
+      "editSuccessTitle": "Successfully Updated",
+      "successDescription": "Details have been updated successfully",
+      "successTitle": "Successfully Updated",
+      "deleteSuccessDescription": "Details have been deleted successfully",
+      "deleteSuccessTitle": "Successfully Deleted",
+      "errorDesc": "An error occurs and details have been updated successfully",
+      "errorTitle": "Error Updating"
     }
   },
   "HolidaysPage": {
@@ -1728,6 +1746,16 @@
       "description": "Are you sure you want to delete this holiday? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
+    },
+    "toast": {
+      "createSuccessTitle": "Holiday Created",
+      "editSuccessTitle": "Holiday Updated",
+      "successDescription": "The holiday has been saved successfully.",
+      "deleteSuccessTitle": "Holiday Deleted",
+      "deleteSuccessDescription": "The holiday has been deleted successfully.",
+      "errorTitle": "Error",
+      "deleteErrorDescription": "Failed to delete the holiday. Please try again.",
+      "genericError": "An unexpected error occurred."
     }
   },
   "CalendarsPage": {
