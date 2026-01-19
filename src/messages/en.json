@@ -1944,10 +1944,22 @@
     "filterPlaceholder": "Filter here...",
     "columns": {
       "date": "Date",
-      "from": "From",
-      "to": "To",
-      "rate": "Rate"
+      "usdBuy": "USD Buy",
+      "usdSell": "USD Sell",
+      "usdAverage": "USD Average",
+      "actions": "Actions",
+      "viewDetails": "View Details"
     },
+    "detailsModal": {
+      "title": "Exchange Rate Details",
+      "buy": "Buy",
+      "sell": "Sell",
+      "code": "Code"
+    },
+    "filters": "Filters",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "applyFilters": "Apply Filters",
     "dialog": {
       "createTitle": "Create Currency",
       "createDescription": "Create a new currency for the clinic",

@@ -1948,10 +1948,22 @@
         "filterPlaceholder": "Filtrar aquí...",
         "columns": {
             "date": "Fecha",
-            "from": "De",
-            "to": "A",
-            "rate": "Tasa"
+            "usdBuy": "Compra USD",
+            "usdSell": "Venta USD",
+            "usdAverage": "Promedio USD",
+            "actions": "Acciones",
+            "viewDetails": "Ver Detalles"
         },
+        "detailsModal": {
+            "title": "Detalles de Tipos de Cambio",
+            "buy": "Compra",
+            "sell": "Venta",
+            "code": "Código"
+        },
+        "filters": "Filtros",
+        "startDate": "Fecha Inicio",
+        "endDate": "Fecha Fin",
+        "applyFilters": "Aplicar Filtros",
         "dialog": {
             "createTitle": "Crear Moneda",
             "createDescription": "Crear una nueva moneda para la clínica",
