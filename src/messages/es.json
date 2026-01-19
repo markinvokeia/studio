@@ -1128,7 +1128,11 @@
             "notes": "Notas",
             "notesPlaceholder": "Ingrese notas aquí...",
             "closeSessionButton": "Cerrar Sesión",
-            "difference": "Diferencia"
+            "difference": "Diferencia",
+            "toast": {
+                "closeSuccessTitle": "Sesión Cerrada",
+                "closeSuccessDescription": "La sesión de caja se ha cerrado exitosamente."
+            }
         },
         "report": {
             "title": "Reporte {currency}",
@@ -1650,12 +1654,12 @@
         "currencyLabel": "Moneda",
         "currencyPlaceholder": "Seleccionar una moneda",
         "toast": {
-          "successDesc": "Los detalles de la clínica han sido actualizados satisfactoriamente",
-          "successTitle": "Operación exitosa",
-          "deleteSuccessDescription": "Registro eliminado satisfactoriamente",
-          "deleteSuccessTitle": "Eliminado Satisfactoriamente",
-          "errorDesc": "Hubo un error y los detalles de la clínica no han sido actualizados satisfactoriamente",
-          "errorTitle": "Error Actualizando Detalles"
+            "successDesc": "Los detalles de la clínica han sido actualizados satisfactoriamente",
+            "successTitle": "Operación exitosa",
+            "deleteSuccessDescription": "Registro eliminado satisfactoriamente",
+            "deleteSuccessTitle": "Eliminado Satisfactoriamente",
+            "errorDesc": "Hubo un error y los detalles de la clínica no han sido actualizados satisfactoriamente",
+            "errorTitle": "Error Actualizando Detalles"
         }
     },
     "SchedulesPage": {
@@ -1705,14 +1709,14 @@
             "confirm": "Eliminar"
         },
         "toast": {
-          "editSuccessDescription": "Los detalles han sido actualizados satisfactoriamente",
-          "editSuccessTitle": "Operación exitosa",
-          "successDescription": "Los detalles han sido actualizados satisfactoriamente",
-          "successTitle": "Operación exitosa",
-          "deleteSuccessDescription": "Registro eliminado satisfactoriamente",
-          "deleteSuccessTitle": "Eliminado Satisfactoriamente",
-          "errorDesc": "Hubo un error y los detalles no han sido actualizados satisfactoriamente",
-          "errorTitle": "Error Actualizando"
+            "editSuccessDescription": "Los detalles han sido actualizados satisfactoriamente",
+            "editSuccessTitle": "Operación exitosa",
+            "successDescription": "Los detalles han sido actualizados satisfactoriamente",
+            "successTitle": "Operación exitosa",
+            "deleteSuccessDescription": "Registro eliminado satisfactoriamente",
+            "deleteSuccessTitle": "Eliminado Satisfactoriamente",
+            "errorDesc": "Hubo un error y los detalles no han sido actualizados satisfactoriamente",
+            "errorTitle": "Error Actualizando"
         }
     },
     "HolidaysPage": {

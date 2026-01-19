@@ -1128,7 +1128,11 @@
       "notes": "Notes",
       "notesPlaceholder": "Enter notes here...",
       "closeSessionButton": "Close Session",
-      "difference": "Difference"
+      "difference": "Difference",
+      "toast": {
+        "closeSuccessTitle": "Session Closed",
+        "closeSuccessDescription": "The cash session has been successfully closed."
+      }
     },
     "report": {
       "title": "{currency} Report",
@@ -1625,9 +1629,9 @@
     "recoverPasswordButton": "Recover Password",
     "backToLogin": "Back to Login",
     "errors": {
-        "title": "Error",
-        "invalidCredentials": "The credentials you entered are incorrect. Please check your email and password and try again.",
-        "unexpected": "An unexpected error occurred. Please try again later."
+      "title": "Error",
+      "invalidCredentials": "The credentials you entered are incorrect. Please check your email and password and try again.",
+      "unexpected": "An unexpected error occurred. Please try again later."
     }
   },
   "ClinicDetailsPage": {
