@@ -34,7 +34,7 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
             row.toggleSelected(true);
           }}
         >
-          <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
+          <RadioGroupItem value={row.id} id={row.id} aria-label={t('selectRow')} />
         </RadioGroup>
       );
     },
@@ -58,7 +58,7 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
       <DataTableColumnHeader column={column} title={t('email')} />
     ),
   },
-    {
+  {
     accessorKey: 'identity_document',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t('identity_document')} />
@@ -77,7 +77,7 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
     ),
     cell: ({ row }) => (
       <Badge variant={row.getValue('is_active') ? 'default' : 'outline'}>
-        {row.getValue('is_active') ? 'Active' : 'Inactive'}
+        {row.getValue('is_active') ? t('active') : t('inactive')}
       </Badge>
     ),
   },
@@ -91,7 +91,7 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
+                <span className="sr-only">{t('openMenu')}</span>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -100,7 +100,7 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
               <DropdownMenuItem
                 onClick={() => navigator.clipboard.writeText(user.id)}
               >
-                {t('copyId')} 
+                {t('copyId')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onEdit(user)}>{t('edit')}</DropdownMenuItem>
@@ -117,9 +117,9 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
 
 
 export function DoctorsColumnsWrapper({ onToggleActivate, onEdit }: { onToggleActivate: (user: User) => void; onEdit: (user: User) => void; }) {
-    const t = useTranslations('DoctorsPage.DoctorColumns');
-    const columns = React.useMemo(() => {
-        return getColumns(t, onToggleActivate, onEdit);
-    }, [t, onToggleActivate, onEdit]);
-    return columns;
+  const t = useTranslations('DoctorsPage.DoctorColumns');
+  const columns = React.useMemo(() => {
+    return getColumns(t, onToggleActivate, onEdit);
+  }, [t, onToggleActivate, onEdit]);
+  return columns;
 }

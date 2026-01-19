@@ -102,7 +102,7 @@ export function Header() {
         resolver: zodResolver(passwordFormSchema(t)),
     });
 
-    
+
 
     React.useEffect(() => {
         if (isChangePasswordOpen) {
@@ -187,7 +187,7 @@ export function Header() {
                     <OpenCashSessionWidget />
 
                     <div className="flex items-center justify-end gap-2">
-<Link href={`/${locale}/alerts`} passHref>
+                        <Link href={`/${locale}/alerts`} passHref>
                             <Button variant="outline" size="icon" className="relative">
                                 <div className={`h-[1.2rem] w-[1.2rem] flex items-center justify-center ${pendingCount > 0 ? 'animate-bell-ring' : ''}`}>
                                     <Bell className="h-[1.2rem] w-[1.2rem]" />
@@ -197,7 +197,7 @@ export function Header() {
                                         {pendingCount}
                                     </span>
                                 )}
-                                <span className="sr-only">Alerts</span>
+                                <span className="sr-only">{t('alerts')}</span>
                             </Button>
                         </Link>
                         {activeCashSession && <ExchangeRate />}
@@ -234,13 +234,13 @@ export function Header() {
                                 <Button variant="outline" size="icon">
                                     <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                                     <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                                    <span className="sr-only">Toggle theme</span>
+                                    <span className="sr-only">{t('toggleTheme')}</span>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => setTheme('light')}>Light</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTheme('dark')}>Dark</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTheme('system')}>System</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTheme('light')}>{t('light')}</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTheme('dark')}>{t('dark')}</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTheme('system')}>{t('system')}</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                         <DropdownMenu>

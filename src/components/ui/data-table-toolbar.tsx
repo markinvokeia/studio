@@ -51,8 +51,8 @@ export function DataTableToolbar<TData>({
 }: DataTableToolbarProps<TData>) {
   const t = useTranslations('DataTableToolbar');
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex flex-1 items-center space-x-2">
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex items-center space-x-2">
         <div className="relative flex items-center">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -61,7 +61,7 @@ export function DataTableToolbar<TData>({
             onChange={(event) =>
               table.getColumn(filterColumnId)?.setFilterValue(event.target.value)
             }
-            className="h-9 w-[150px] lg:w-[250px] pl-9 pr-9"
+            className="h-9 w-[180px] sm:w-[200px] lg:w-[300px] pl-9 pr-9"
           />
           {((table.getColumn(filterColumnId)?.getFilterValue() as string) ?? '').length > 0 && (
             <Button
@@ -96,25 +96,27 @@ export function DataTableToolbar<TData>({
       </div>
       <div className="flex items-center space-x-2">
         {onCreate && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size={createButtonIconOnly ? "icon" : "sm"} className={createButtonIconOnly ? "h-9 w-9" : "h-9"} onClick={onCreate}>
-                  <PlusCircle className={createButtonIconOnly ? "h-4 w-4" : "mr-2 h-4 w-4"} />
-                  {createButtonIconOnly ? <span className="sr-only">{createButtonLabel || t('create')}</span> : (createButtonLabel || t('create'))}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{createButtonLabel || t('create')}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="shrink-0">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size={createButtonIconOnly ? "icon" : "sm"} className={createButtonIconOnly ? "h-9 w-9" : "h-9"} onClick={onCreate}>
+                    <PlusCircle className={createButtonIconOnly ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+                    {createButtonIconOnly ? <span className="sr-only">{createButtonLabel || t('create')}</span> : (createButtonLabel || t('create'))}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{createButtonLabel || t('create')}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         )}
         {onRefresh && (
           <Button
             variant="outline"
             size="icon"
-            className="h-9 w-9"
+            className="h-9 w-9 shrink-0"
             onClick={onRefresh}
             disabled={isRefreshing}
           >
@@ -124,7 +126,7 @@ export function DataTableToolbar<TData>({
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="ml-auto h-9 w-9 lg:flex">
+            <Button variant="outline" size="icon" className="h-9 w-9 lg:flex shrink-0">
               <SlidersHorizontal className="h-4 w-4" />
               <span className="sr-only">{t('view')}</span>
             </Button>
