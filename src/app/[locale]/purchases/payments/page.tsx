@@ -68,8 +68,13 @@ export default function PaymentsPage() {
     }, [loadPayments]);
 
     const handlePrintPayment = async (payment: Payment) => {
+        toast({
+            title: "Generating PDF",
+            description: `Preparing PDF for Payment #${payment.id}...`,
+        });
+
         try {
-            const blob = await api.getBlob(API_ROUTES.PURCHASES.API_PAYMENT_PRINT, {}, { paymentId: payment.id });
+            const blob = await api.getBlob(API_ROUTES.PURCHASES.API_PAYMENT_PRINT, { paymentId: payment.id });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;

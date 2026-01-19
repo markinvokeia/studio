@@ -2,7 +2,7 @@
 
 import { UsFlagIcon } from '@/components/icons/us-flag-icon';
 import { UyFlagIcon } from '@/components/icons/uy-flag-icon';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -17,7 +17,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
-import { AlertTriangle, ArrowLeft, Check, Globe, Loader2, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, Check, Globe, Loader2, Moon, Sun } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import Image from 'next/image';
@@ -31,7 +31,7 @@ export default function LoginPage() {
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+
   const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<View>('login');
   const { login } = useAuth();
@@ -64,16 +64,23 @@ export default function LoginPage() {
 
   const handleLoginSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
     try {
       await login(email, password);
       router.push(`/${locale}`);
     } catch (err: any) {
-      if (err.message === 'Invalid credentials') {
-        setError(tLogin('errors.invalidCredentials'));
+      if (err.message.includes('401') || err.message.includes('Invalid credentials')) {
+        toast({
+          variant: "destructive",
+          title: tLogin('errors.title'),
+          description: tLogin('errors.invalidCredentials'),
+        });
       } else {
-        setError(err.message || tLogin('errors.unexpected'));
+        toast({
+          variant: "destructive",
+          title: tLogin('errors.title'),
+          description: err.message || tLogin('errors.unexpected'),
+        });
       }
     } finally {
       setIsLoading(false);
@@ -82,7 +89,6 @@ export default function LoginPage() {
 
   const handleRecoverySubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
     try {
       await api.post(API_ROUTES.SYSTEM.RECOVER_EMAIL, { email });
@@ -93,7 +99,11 @@ export default function LoginPage() {
       });
       setView('login');
     } catch (err: any) {
-      setError(err.message);
+      toast({
+        variant: "destructive",
+        title: tLogin('errors.title'),
+        description: err.message || tLogin('errors.unexpected'),
+      });
     } finally {
       setIsLoading(false);
     }
@@ -179,13 +189,7 @@ export default function LoginPage() {
             )}
           </CardHeader>
           <CardContent>
-            {error && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>{tLogin('errors.title')}</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+
             {view === 'login' ? (
               <form onSubmit={handleLoginSubmit} className="space-y-4">
                 <div className="space-y-2">

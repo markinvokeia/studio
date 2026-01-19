@@ -266,7 +266,7 @@ interface RecentQuotesTableProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   rowSelection?: RowSelectionState;
-  setRowSelection?: (selection: RowSelectionState) => void;
+   setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
   onEdit?: (quote: Quote) => void;
   onDelete?: (quote: Quote) => void;
   onQuoteAction?: (quote: Quote, action: 'confirm' | 'reject') => void;
@@ -280,8 +280,13 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
   const [emailRecipients, setEmailRecipients] = React.useState('');
 
   const handlePrintQuote = async (quote: Quote) => {
+    toast({
+      title: "Generating PDF",
+      description: `Please wait while we prepare your PDF for Quote #${quote.id}.`,
+    });
+
     try {
-      const blob = await api.postBlob(API_ROUTES.QUOTES_PRINT, { quoteId: quote.id });
+      const blob = await api.getBlob(API_ROUTES.PURCHASES.QUOTES_PRINT, { quoteId: quote.id.toString() });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -334,7 +339,7 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
 
 
     try {
-      await api.post(API_ROUTES.QUOTES_SEND, { quoteId: selectedQuoteForEmail.id, emails });
+      await api.post(API_ROUTES.PURCHASES.QUOTES_SEND, { quoteId: selectedQuoteForEmail.id, emails });
 
       toast({
         title: 'Email Sent',

@@ -103,6 +103,21 @@ export const api = {
 
     delete: (endpoint: string, data?: any, params?: Record<string, string>, query?: Record<string, string>) =>
         apiRequest('DELETE', endpoint, data, params, query),
+
+    getExchangeRateHistory: (query?: {
+        start_date?: string;
+        end_date?: string;
+        page?: number;
+        limit?: number;
+    }) => {
+        const queryParams: Record<string, string> = {};
+        if (query?.start_date) queryParams.start_date = query.start_date;
+        if (query?.end_date) queryParams.end_date = query.end_date;
+        if (query?.page !== undefined) queryParams.page = query.page.toString();
+        if (query?.limit !== undefined) queryParams.limit = query.limit.toString();
+
+        return apiRequest('GET', '/cotizaciones-history', undefined, undefined, Object.keys(queryParams).length > 0 ? queryParams : undefined);
+    },
 };
 
 export default api;

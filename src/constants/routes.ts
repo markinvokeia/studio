@@ -39,6 +39,7 @@ export const API_ROUTES = {
         MISCELLANEOUS_TRANSACTIONS_UPSERT: '/misc_transactions/upsert',
         MISCELLANEOUS_TRANSACTIONS_DELETE: '/misc_transactions/delete',
         PAYMENT_METHODS: '/metodospago/all',
+        COTIZACIONES_HISTORY: '/cotizaciones-history',
         SESSIONS: '/cashier/sessions',
         SESSIONS_SEARCH: '/cash-session/search',
         SESSIONS_PRINT: '/cash-session/print',

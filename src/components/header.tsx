@@ -200,7 +200,7 @@ export function Header() {
                                 <span className="sr-only">{t('alerts')}</span>
                             </Button>
                         </Link>
-                        {activeCashSession && <ExchangeRate />}
+                        {activeCashSession && <ExchangeRate activeCashSession={activeCashSession} />}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="icon">

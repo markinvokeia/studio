@@ -1146,7 +1146,11 @@
             "notes": "Notas",
             "notesPlaceholder": "Ingrese notas aquí...",
             "closeSessionButton": "Cerrar Sesión",
-            "difference": "Diferencia"
+            "difference": "Diferencia",
+            "toast": {
+                "closeSuccessTitle": "Sesión Cerrada",
+                "closeSuccessDescription": "La sesión de caja se ha cerrado exitosamente."
+            }
         },
         "report": {
             "title": "Reporte {currency}",
@@ -1645,7 +1649,12 @@
         "recoverPasswordTitle": "Recuperar Contraseña",
         "recoverPasswordDescription": "Ingrese su correo para recuperar su contraseña",
         "recoverPasswordButton": "Recuperar Contraseña",
-        "backToLogin": "Volver al inicio de sesión"
+        "backToLogin": "Volver al inicio de sesión",
+        "errors": {
+            "title": "Error",
+            "invalidCredentials": "Las credenciales que ingresaste son incorrectas. Por favor, verifica tu email y contraseña e intenta nuevamente.",
+            "unexpected": "Ocurrió un error inesperado. Por favor, intenta de nuevo más tarde."
+        }
     },
     "ClinicDetailsPage": {
         "title": "Detalles de la Clínica",
@@ -1985,10 +1994,22 @@
         "filterPlaceholder": "Filtrar aquí...",
         "columns": {
             "date": "Fecha",
-            "from": "De",
-            "to": "A",
-            "rate": "Tasa"
+            "usdBuy": "Compra USD",
+            "usdSell": "Venta USD",
+            "usdAverage": "Promedio USD",
+            "actions": "Acciones",
+            "viewDetails": "Ver Detalles"
         },
+        "detailsModal": {
+            "title": "Detalles de Tipos de Cambio",
+            "buy": "Compra",
+            "sell": "Venta",
+            "code": "Código"
+        },
+        "filters": "Filtros",
+        "startDate": "Fecha Inicio",
+        "endDate": "Fecha Fin",
+        "applyFilters": "Aplicar Filtros",
         "dialog": {
             "createTitle": "Crear Moneda",
             "createDescription": "Crear una nueva moneda para la clínica",

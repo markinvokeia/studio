@@ -1236,6 +1236,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     const [existingAttachments, setExistingAttachments] = useState<AttachedFile[]>([]);
     const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDragOver, setIsDragOver] = useState(false);
 
     const form = useForm<SessionFormValues>({
         resolver: zodResolver(sessionFormSchema),
@@ -1305,6 +1306,17 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     }, [isOpen, session, doctors, form]);
 
 
+
+    // Reset drag state when dialog closes
+    useEffect(() => {
+        if (!isOpen) {
+            setIsDragOver(false);
+        }
+    }, [isOpen]);
+
+
+
+
     const handleSave: SubmitHandler<SessionFormValues> = async (values) => {
         setIsSubmitting(true);
         const formData = new FormData();
@@ -1353,6 +1365,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         }
     };
 
+
+
     const removeNewAttachment = (indexToRemove: number) => {
         setNewAttachments(prev => prev.filter((_, index) => index !== indexToRemove));
     };
@@ -1365,7 +1379,56 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl">
+            <DialogContent
+                className="max-w-4xl"
+                onDragOver={(e: React.DragEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const label = document.getElementById('session-attachments-label');
+                    if (label) {
+                        label.style.borderColor = 'hsl(var(--primary))';
+                        label.style.backgroundColor = 'hsl(var(--primary) / 0.1)';
+                        label.style.transform = 'scale(1.02)';
+                    }
+                }}
+                onDragEnter={(e: React.DragEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const label = document.getElementById('session-attachments-label');
+                    if (label) {
+                        label.style.borderColor = 'hsl(var(--primary))';
+                        label.style.backgroundColor = 'hsl(var(--primary) / 0.1)';
+                        label.style.transform = 'scale(1.02)';
+                    }
+                }}
+                onDragLeave={(e: React.DragEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const label = document.getElementById('session-attachments-label');
+                    if (label) {
+                        label.style.borderColor = 'hsl(var(--muted-foreground) / 0.25)';
+                        label.style.backgroundColor = 'hsl(var(--muted))';
+                        label.style.transform = 'scale(1)';
+                    }
+                }}
+                onDrop={(e: React.DragEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const label = document.getElementById('session-attachments-label');
+                    if (label) {
+                        label.style.borderColor = 'hsl(var(--muted-foreground) / 0.25)';
+                        label.style.backgroundColor = 'hsl(var(--muted))';
+                        label.style.transform = 'scale(1)';
+                    }
+
+                    const droppedFiles = e.dataTransfer.files;
+                    if (droppedFiles && droppedFiles.length > 0) {
+                        const files = Array.from(droppedFiles);
+                        console.log('Files dropped:', files);
+                        setNewAttachments(prev => [...prev, ...files]);
+                    }
+                }}
+            >
                 <DialogHeader>
                     <DialogTitle>{session ? t('editTitle') : t('createTitle')}</DialogTitle>
                 </DialogHeader>
@@ -1488,16 +1551,31 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                         <CardTitle className="text-base">{t('attachments')}</CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="flex items-center justify-center w-full">
-                                            <label htmlFor="session-attachments" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
-                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                                                    <p className="mb-1 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                                    <p className="text-xs text-muted-foreground">PDF, PNG, JPG, etc.</p>
-                                                </div>
-                                                <Input id="session-attachments" type="file" multiple className="hidden" onChange={handleAttachmentFileChange} />
-                                            </label>
-                                        </div>
+                                        {/* Área de drag and drop con label restaurado */}
+                                        <label
+                                            id="session-attachments-label"
+                                            htmlFor="session-attachments"
+                                            className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${
+                                                isDragOver
+                                                    ? 'border-primary bg-primary/10 scale-[1.02]'
+                                                    : 'border-muted-foreground/25 bg-muted hover:bg-muted/50'
+                                            }`}
+                                        >
+                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
+                                                <p className="mb-1 text-sm text-muted-foreground">
+                                                    <span className="font-semibold">Click to upload</span> or drag and drop
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">PDF, PNG, JPG, etc.</p>
+                                            </div>
+                                            <Input
+                                                id="session-attachments"
+                                                type="file"
+                                                multiple
+                                                className="hidden"
+                                                onChange={handleAttachmentFileChange}
+                                            />
+                                        </label>
                                         <div className="mt-4 space-y-2">
                                             {existingAttachments.length > 0 && (
                                                 <div>
@@ -1645,6 +1723,7 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
     const [uploadFile, setUploadFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const [deletingDocument, setDeletingDocument] = useState<Document | null>(null);
     const t = useTranslations('ClinicHistoryPage');
     const { toast } = useToast();
@@ -1683,6 +1762,25 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
         }
     };
 
+    const handleDragOver = (event: React.DragEvent<HTMLElement>) => {
+        event.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (event: React.DragEvent<HTMLElement>) => {
+        event.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (event: React.DragEvent<HTMLElement>) => {
+        event.preventDefault();
+        setIsDragging(false);
+        const files = event.dataTransfer.files;
+        if (files && files[0]) {
+            setUploadFile(files[0]);
+        }
+    };
+
     const handleUpload = async () => {
         if (!uploadFile || !userId) return;
         setIsUploading(true);
@@ -1715,7 +1813,7 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
     const confirmDeleteDocument = async () => {
         if (!deletingDocument || !userId) return;
         try {
-            await api.delete(API_ROUTES.CLINIC_HISTORY.USERS_DOCUMENT, undefined, { id: deletingDocument.id, user_id: userId });
+            await api.delete(API_ROUTES.CLINIC_HISTORY.USERS_DOCUMENT, undefined, undefined, { id: deletingDocument.id, user_id: userId });
             toast({ title: "Document Deleted", description: `Document "${deletingDocument.name}" has been deleted.` });
             fetchDocuments();
         } catch (error) {
@@ -1795,7 +1893,7 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
                     </DialogHeader>
                     <div className="py-4 space-y-4">
                         <div className="flex items-center justify-center w-full">
-                            <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
+                             <label htmlFor="dropzone-file" className={cn("flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50", isDragging && "border-primary bg-primary/10")} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
                                 {uploadFile ? (
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                         <FileText className="w-8 h-8 mb-4 text-primary" />
@@ -2123,17 +2221,31 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     };
 
     const handleViewSessionAttachment = async (session: PatientSession, attachment: AttachedFile) => {
+        // Use mime_type if available, otherwise tipo, and detect image types
+        let mimeType: string = attachment.mime_type || attachment.tipo || '';
+        if (!mimeType.startsWith('image/')) {
+            // Check if it's an image based on file extension or tipo
+            const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+            const fileName = attachment.file_name || '';
+            const extension = fileName.split('.').pop()?.toLowerCase();
+            if (extension && imageExtensions.includes(extension)) {
+                mimeType = `image/${extension === 'jpg' ? 'jpeg' : extension}`;
+            } else if (imageExtensions.includes(mimeType.toLowerCase())) {
+                mimeType = `image/${mimeType.toLowerCase() === 'jpg' ? 'jpeg' : mimeType.toLowerCase()}`;
+            }
+        }
+
         const doc: Document = {
             id: String(attachment.id),
             name: attachment.file_name || 'Attachment',
-            mimeType: attachment.tipo,
+            mimeType: mimeType,
             thumbnailLink: getAttachmentUrl(attachment.thumbnail_url || '')
         };
         setSelectedDocument(doc);
         setIsViewerOpen(true);
         setDocumentContent(null);
         try {
-            const blob = await api.getBlob(API_ROUTES.CLINIC_HISTORY.SESSIONS_ATTACHMENT, { session_id: session.sesion_id, id: String(attachment.id) });
+            const blob = await api.getBlob(API_ROUTES.CLINIC_HISTORY.SESSIONS_ATTACHMENT, { session_id: String(session.sesion_id), id: String(attachment.id) });
             const url = URL.createObjectURL(blob);
             setDocumentContent(url);
         } catch (error) {

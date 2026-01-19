@@ -715,3 +715,32 @@ export type SequencePatternValidation = {
   errors: string[];
   preview: string;
 };
+
+export type Cotizacion = {
+  venta: number;
+  codigo: string;
+  compra: number;
+  moneda: string;
+};
+
+export type ExchangeRateHistoryItem = {
+  id: number;
+  fecha: string;
+  datos_completos: {
+    usd_venta: number;
+    usd_compra: number;
+    cotizaciones: Cotizacion[];
+  };
+};
+
+export type ExchangeRateHistoryMetadata = {
+  total_registros: number;
+  total_paginas: number;
+  pagina_actual: number;
+  registros_por_pagina: number;
+};
+
+export type ExchangeRateHistoryResponse = {
+  metadata: ExchangeRateHistoryMetadata;
+  data: ExchangeRateHistoryItem[];
+};

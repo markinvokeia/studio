@@ -132,7 +132,7 @@ Always use React Hook Form with Zod validation. Define schemas and use `z.infer<
 - Use `useTranslations` from next-intl
 - Translations in `src/messages/[locale].json`
 - Locale-based routing with `[locale]` dynamic segments
-- **CRITICAL:** When implementing new features or changes that use translations, add keys in ALL language files
+- **MANDATORY:** Every time new text is added to the application, add the respective translations for all supported languages in ALL language files (`src/messages/[locale].json`)
 
 ## Development Workflow
 
@@ -147,7 +147,7 @@ Always use React Hook Form with Zod validation. Define schemas and use `z.infer<
 
 1. **CRITICAL:** Run `npm run typecheck && npm run lint` to verify code quality - never commit without this
 2. Test functionality manually in development server
-3. Ensure i18n keys are added for new user-facing text
+3. **MANDATORY:** Add i18n keys and translations for all supported languages for any new user-facing text
 4. Verify responsive design across different screen sizes
 
 ## Security Considerations
