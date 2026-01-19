@@ -1410,7 +1410,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                     </div>
                     <div className="space-y-1">
                         <Label htmlFor="date_rate">{t('openSession.exchangeRate')}</Label>
-                        <Input id="date_rate" type="number" step="0.00001" value={sessionData.date_rate || ''} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: parseFloat(e.target.value) || 0 }))} disabled={disabled} />
+                        <Input id="date_rate" type="number" step="1" value={sessionData.date_rate || ''} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: parseFloat(e.target.value) || 0 }))} disabled={disabled} />
                     </div>
                     <div className="space-y-1">
                         <Label>{t('openSession.currency')}</Label>
