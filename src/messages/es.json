@@ -137,7 +137,7 @@
         },
         "title": "Sin Sesión de Caja Activa",
         "description": "No tiene una sesión de caja activa. Por favor, abra una para comenzar a registrar transacciones.",
-        "button": "Abrar Sesión de Caja",
+        "button": "Abrir Sesión de Caja",
         "tooltip": "Sin sesión activa. Haga clic para abrir una."
     },
     "DataTableToolbar": {
