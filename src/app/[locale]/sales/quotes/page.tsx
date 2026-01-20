@@ -1,3 +1,4 @@
+
 'use client';
 
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
@@ -657,7 +658,7 @@ export default function QuotesPage() {
 
     return (
         <>
-            <div className="relative overflow-hidden h-[calc(100vh-10rem)]">
+            <div className="relative overflow-hidden h-full">
                 <div className={cn("transition-all duration-300 w-full h-full")}>
                     <RecentQuotesTable
                         quotes={quotes}
@@ -767,7 +768,6 @@ export default function QuotesPage() {
                     )}
                 </div>
             </div>
-
             <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
