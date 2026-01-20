@@ -11,13 +11,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Sequence } from '@/lib/types';
 import { SEQUENCE_VARIABLES, previewPattern, validatePattern } from '@/lib/sequence-utils';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, Info } from 'lucide-react';
+import { AlertTriangle, Info, Search, Calendar, Filter, Check, CalendarIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -48,26 +49,45 @@ const sequenceFormSchema = (t: (key: string) => string) => z.object({
     }
   ).transform((val) => val || ''),
   current_counter: z.number().min(1, t('counterMin')),
-  reset_period: z.enum(['never', 'yearly', 'monthly'], {
+   reset_period: z.enum(['never', 'yearly', 'monthly', 'daily'], {
     required_error: t('resetPeriodRequired')
-  }),
+   }),
   is_active: z.boolean(),
 });
 
 type SequenceFormValues = z.infer<ReturnType<typeof sequenceFormSchema>>;
 
-async function getSequences(): Promise<Sequence[]> {
+async function getSequences(params?: {
+  page?: number;
+  limit?: number;
+  search_term?: string;
+  active_only?: boolean;
+  start_date?: string | null;
+  end_date?: string | null;
+}): Promise<{ sequences: Sequence[]; total: number }> {
   try {
-    const data = await api.get(API_ROUTES.CONFIG.SEQUENCES);
+    const queryParams: Record<string, any> = {};
+
+    if (params?.page !== undefined) queryParams.page = params.page;
+    if (params?.limit !== undefined) queryParams.limit = params.limit;
+    if (params?.search_term) queryParams.search_term = params.search_term;
+    if (params?.active_only !== undefined) queryParams.active_only = params.active_only;
+    if (params?.start_date !== null && params?.start_date !== undefined) queryParams.start_date = params.start_date;
+    if (params?.end_date !== null && params?.end_date !== undefined) queryParams.end_date = params.end_date;
+
+    const data = await api.get(API_ROUTES.CONFIG.SEQUENCES, queryParams);
+
+    // Handle paginated response
     const sequencesData = Array.isArray(data) ? data : (data.sequences || data.data || data.result || []);
+    const total = data.total || data.total_count || sequencesData.length;
 
     // Filter out empty objects and map valid sequences
-    return sequencesData
+    const sequences = sequencesData
       .filter((apiSequence: any) => {
         // Filter out empty objects or objects without required fields
-        return apiSequence && 
-               typeof apiSequence === 'object' && 
-               !Array.isArray(apiSequence) && 
+        return apiSequence &&
+               typeof apiSequence === 'object' &&
+               !Array.isArray(apiSequence) &&
                Object.keys(apiSequence).length > 0 &&
                apiSequence.id; // Ensure we have at least an id
       })
@@ -83,9 +103,11 @@ async function getSequences(): Promise<Sequence[]> {
         created_at: apiSequence.created_at,
         updated_at: apiSequence.updated_at,
       }));
+
+    return { sequences, total };
   } catch (error) {
     console.error("Failed to fetch sequences:", error);
-    return [];
+    return { sequences: [], total: 0 };
   }
 }
 
@@ -112,7 +134,22 @@ export default function SequencesPage() {
   const tValidation = useTranslations('SequencesPage.validation');
   const { toast } = useToast();
   const [sequences, setSequences] = React.useState<Sequence[]>([]);
+  const [total, setTotal] = React.useState(0);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [pagination, setPagination] = React.useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [activeOnly, setActiveOnly] = React.useState(true);
+  const [dateRange, setDateRange] = React.useState<{
+    start_date: string | null;
+    end_date: string | null;
+  }>({
+    start_date: null,
+    end_date: null,
+  });
+
 
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingSequence, setEditingSequence] = React.useState<Sequence | null>(null);
@@ -134,10 +171,18 @@ export default function SequencesPage() {
 
   const loadSequences = React.useCallback(async () => {
     setIsRefreshing(true);
-    const fetchedSequences = await getSequences();
-    setSequences(fetchedSequences);
+    const result = await getSequences({
+      page: pagination.pageIndex + 1, // API uses 1-based pagination
+      limit: pagination.pageSize,
+      search_term: searchTerm || undefined,
+      active_only: activeOnly,
+      start_date: dateRange.start_date,
+      end_date: dateRange.end_date,
+    });
+    setSequences(result.sequences);
+    setTotal(result.total);
     setIsRefreshing(false);
-  }, []);
+  }, [pagination, searchTerm, activeOnly, dateRange]);
 
   React.useEffect(() => {
     loadSequences();
@@ -234,14 +279,103 @@ export default function SequencesPage() {
           <CardDescription>{t('description')}</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Filters Section */}
+          <div className="space-y-4 mb-6">
+            {/* Main Search and Advanced Filters */}
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+              <div className="flex-1 min-w-[200px] max-w-md">
+                <Label htmlFor="search-term" className="text-sm font-medium">
+                  {t('filters.searchTerm')}
+                </Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="search-term"
+                    placeholder={t('filters.searchTermPlaceholder')}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+
+              {/* Advanced Filters Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    {t('filters.advancedFilters')}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <DropdownMenuLabel>{t('filters.advancedFilters')}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+
+                  {/* Active Only Filter */}
+                  <DropdownMenuCheckboxItem
+                    checked={activeOnly}
+                    onCheckedChange={setActiveOnly}
+                  >
+                    <div className="flex items-center space-x-2">
+                      {activeOnly && <Check className="h-4 w-4" />}
+                      <span>{t('filters.activeOnly')}</span>
+                    </div>
+                  </DropdownMenuCheckboxItem>
+
+                  <DropdownMenuSeparator />
+
+                  {/* Date Range Section */}
+                  <div className="px-2 py-1">
+                    <div className="text-xs font-medium text-muted-foreground mb-2">
+                      {t('filters.dateRange')}
+                    </div>
+                    <div className="space-y-2">
+                      <div>
+                        <Label htmlFor="start-date" className="text-xs">{t('filters.startDate')}</Label>
+                        <Input
+                          id="start-date"
+                          type="date"
+                          value={dateRange.start_date || ''}
+                          onChange={(e) => setDateRange(prev => ({ ...prev, start_date: e.target.value || null }))}
+                          className="h-8"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="end-date" className="text-xs">{t('filters.endDate')}</Label>
+                        <Input
+                          id="end-date"
+                          type="date"
+                          value={dateRange.end_date || ''}
+                          onChange={(e) => setDateRange(prev => ({ ...prev, end_date: e.target.value || null }))}
+                          className="h-8"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <DropdownMenuSeparator />
+
+                  {/* Apply Filters Button */}
+                  <DropdownMenuItem asChild>
+                    <Button onClick={loadSequences} className="w-full" size="sm">
+                      {t('filters.applyFilters')}
+                    </Button>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
           <DataTable
             columns={sequencesColumns}
             data={sequences}
-            filterColumnId="name"
-            filterPlaceholder={t('filterPlaceholder')}
             onCreate={handleCreate}
             onRefresh={loadSequences}
             isRefreshing={isRefreshing}
+            manualPagination={true}
+            pageCount={Math.ceil(total / pagination.pageSize)}
+            pagination={pagination}
+            onPaginationChange={setPagination}
           />
         </CardContent>
       </Card>
@@ -391,11 +525,12 @@ export default function SequencesPage() {
                             <SelectValue placeholder={t('createDialog.selectResetPeriod')} />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="never">{t('resetPeriods.never')}</SelectItem>
-                          <SelectItem value="yearly">{t('resetPeriods.yearly')}</SelectItem>
-                          <SelectItem value="monthly">{t('resetPeriods.monthly')}</SelectItem>
-                        </SelectContent>
+                         <SelectContent>
+                           <SelectItem value="never">{t('resetPeriods.never')}</SelectItem>
+                           <SelectItem value="yearly">{t('resetPeriods.yearly')}</SelectItem>
+                           <SelectItem value="monthly">{t('resetPeriods.monthly')}</SelectItem>
+                           <SelectItem value="daily">{t('resetPeriods.daily')}</SelectItem>
+                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>

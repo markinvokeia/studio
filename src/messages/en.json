@@ -3129,25 +3129,24 @@
       "credit_note": "Credit Note",
       "purchase_order": "Purchase Order"
     },
-    "resetPeriods": {
-      "never": "Never",
-      "yearly": "Yearly",
-      "monthly": "Monthly"
-    },
-    "variables": {
-      "YYYY": "Full year (e.g., 2024)",
-      "YY": "Short year (e.g., 24)",
-      "MM": "Month with padding (01-12)",
-      "DD": "Day with padding (01-31)",
-      "COUNTER:N": "Sequential number with N digits (e.g., COUNTER:4 = 0001)",
-      "CLINIC": "Clinic code",
-      "DOCTYPE": "Document type code",
-      "COUNTER": "Sequential number",
-      "COUNTER:4": "Sequential number with 4 digits",
-      "COUNTER:3": "Sequential number with 3 digits",
-      "COUNTER:2": "Sequential number with 2 digits",
-      "COUNTER:1": "Sequential number with 1 digit"
-    },
+     "resetPeriods": {
+       "never": "Never",
+       "yearly": "Yearly",
+       "monthly": "Monthly",
+       "daily": "Daily"
+     },
+      "variables": {
+        "YYYY": "Full year (e.g., 2024)",
+        "YY": "Short year (e.g., 24)",
+        "MM": "Month with padding (01-12)",
+        "DD": "Day with padding (01-31)",
+        "COUNTER:N": "Sequential number with N digits (e.g., COUNTER:4 = 0001)",
+        "COUNTER": "Sequential number",
+        "COUNTER:4": "Sequential number with 4 digits",
+        "COUNTER:3": "Sequential number with 3 digits",
+        "COUNTER:2": "Sequential number with 2 digits",
+        "COUNTER:1": "Sequential number with 1 digit"
+      },
     "validation": {
       "nameRequired": "Sequence name is required",
       "documentTypeRequired": "Document type is required",
@@ -3157,19 +3156,36 @@
       "counterMin": "Counter must be at least 1",
       "resetPeriodRequired": "Reset period is required"
     },
-    "toast": {
-      "createSuccessTitle": "Sequence Created",
-      "createSuccessDescription": "The sequence has been created successfully.",
-      "editSuccessTitle": "Sequence Updated",
-      "editSuccessDescription": "The sequence has been updated successfully.",
-      "deleteSuccessTitle": "Sequence Deleted",
-      "deleteSuccessDescription": "The sequence has been deleted successfully.",
-      "errorTitle": "Error",
-      "createErrorDescription": "Failed to create sequence. Please try again.",
-      "editErrorDescription": "Failed to update sequence. Please try again.",
-      "deleteErrorDescription": "Failed to delete sequence. Please try again.",
-      "genericError": "An unexpected error occurred. Please try again."
-    }
+     "nameRequired": "Sequence name is required",
+     "documentTypeRequired": "Document type is required",
+     "patternRequired": "Pattern is required",
+     "patternInvalid": "Pattern contains invalid variables",
+     "counterMin": "Counter must be at least 1",
+     "resetPeriodRequired": "Reset period is required",
+     "filters": {
+       "searchTerm": "Search Term",
+       "searchTermPlaceholder": "Search by sequence name...",
+       "activeOnly": "Active Only",
+       "startDate": "Start Date",
+       "endDate": "End Date",
+       "dateRange": "Date Range",
+       "applyFilters": "Apply Filters",
+       "advancedFilters": "Advanced Filters"
+     },
+     "toast": {
+       "createSuccessTitle": "Sequence Created",
+       "createSuccessDescription": "The sequence has been created successfully.",
+       "editSuccessTitle": "Sequence Updated",
+       "editSuccessDescription": "The sequence has been updated successfully.",
+       "successDescription": "The sequence has been saved successfully.",
+       "deleteSuccessTitle": "Sequence Deleted",
+       "deleteSuccessDescription": "The sequence has been deleted successfully.",
+       "errorTitle": "Error",
+       "createErrorDescription": "Failed to create sequence. Please try again.",
+       "editErrorDescription": "Failed to update sequence. Please try again.",
+       "deleteErrorDescription": "Failed to delete sequence. Please try again.",
+       "genericError": "An unexpected error occurred. Please try again."
+     }
   },
   "RoleColumns": {
     "roleId": "ID",
