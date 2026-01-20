@@ -1916,7 +1916,12 @@
             "daily": "Diario",
             "weekly": "Semanal",
             "monthly": "Mensual",
-            "biweekley": "Quincenal",
+            "biweekly": "Quincenal",
+            "selectRecurrence": "Seleccione recurrencia",
+            "searchDoctor": "Buscar doctor",
+            "noDoctorFound": "No se encontró el doctor",
+            "selectDay": "Seleccione día",
+            "save": "Guardar",
             "createTitle": "Crear Disponibilidad",
             "createDescription": "Crear una nueva disponibilidad para el doctor",
             "editTitle": "Editar Disponibilidad",
@@ -1940,6 +1945,31 @@
             "friday": "Viernes",
             "saturday": "Sábado",
             "sunday": "Domingo"
+        },
+        "validation": {
+            "doctorRequired": "El doctor es obligatorio.",
+            "recurrenceRequired": "La recurrencia es obligatoria.",
+            "startTimeRequired": "La hora de inicio es obligatoria.",
+            "endTimeRequired": "La hora de fin es obligatoria.",
+            "startDateRequired": "La fecha de inicio es obligatoria.",
+            "dayOfWeekRequired": "El día de la semana es obligatorio para recurrencia semanal o quincenal."
+        },
+        "toast": {
+            "createTitle": "Disponibilidad Creada",
+            "editTitle": "Disponibilidad Actualizada",
+            "successDescription": "La disponibilidad ha sido guardada exitosamente.",
+            "deleteTitle": "Disponibilidad Eliminada",
+            "deleteDescription": "La disponibilidad ha sido eliminada exitosamente.",
+            "errorTitle": "Error",
+            "deleteError": "No se pudo eliminar la disponibilidad.",
+            "saveError": "No se pudo guardar la disponibilidad.",
+            "unexpectedError": "Ocurrió un error inesperado."
+        },
+        "deleteDialog": {
+            "title": "Eliminar Disponibilidad",
+            "description": "¿Está seguro que desea eliminar esta disponibilidad? Esta acción no se puede deshacer.",
+            "cancel": "Cancelar",
+            "confirm": "Eliminar"
         }
     },
     "DoctorAvailabilityColumns": {
@@ -1952,7 +1982,8 @@
         "endDate": "Fecha de Fin",
         "actions": "Acciones",
         "edit": "Editar",
-        "delete": "Eliminar"
+        "delete": "Eliminar",
+        "openMenu": "Abrir menú"
     },
     "DoctorAvailabilityExceptionsPage": {
         "title": "Excepciones de Disponibilidad",

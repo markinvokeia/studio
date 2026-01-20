@@ -18,3 +18,16 @@ export function formatDateTime(date: string | Date | null | undefined): string {
     return 'Invalid Date';
   }
 }
+
+export function formatDate(date: string | Date | null | undefined): string {
+  if (!date) return 'N/A';
+
+  try {
+    const d = typeof date === 'string' ? parseISO(date) : date;
+    if (isNaN(d.getTime())) return 'Invalid Date';
+    return format(d, 'yyyy-MM-dd');
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Invalid Date';
+  }
+}

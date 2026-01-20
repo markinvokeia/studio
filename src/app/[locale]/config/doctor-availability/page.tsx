@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { AlertTriangle, Check, ChevronsUpDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -33,14 +33,14 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { AvailabilityRulesColumnsWrapper } from './columns';
 
-const availabilityFormSchema = z.object({
+const availabilityFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
-    user_id: z.string().min(1, 'Doctor is required'),
+    user_id: z.string().min(1, t('doctorRequired')),
     recurrence: z.enum(['daily', 'weekly', 'biweekly']),
     day_of_week: z.string().optional(),
-    start_time: z.string().min(1, 'Start time is required'),
-    end_time: z.string().min(1, 'End time is required'),
-    start_date: z.string().min(1, 'Start date is required'),
+    start_time: z.string().min(1, t('startTimeRequired')),
+    end_time: z.string().min(1, t('endTimeRequired')),
+    start_date: z.string().min(1, t('startDateRequired')),
     end_date: z.string().optional(),
 }).refine(data => {
     if ((data.recurrence === 'weekly' || data.recurrence === 'biweekly') && !data.day_of_week) {
@@ -48,11 +48,11 @@ const availabilityFormSchema = z.object({
     }
     return true;
 }, {
-    message: "Day of week is required for weekly or biweekly recurrence",
+    message: t('dayOfWeekRequired'),
     path: ["day_of_week"],
 });
 
-type AvailabilityFormValues = z.infer<typeof availabilityFormSchema>;
+type AvailabilityFormValues = z.infer<ReturnType<typeof availabilityFormSchema>>;
 
 type GetAvailabilityResponse = {
     rules: AvailabilityRule[];
@@ -99,7 +99,7 @@ async function upsertAvailabilityRule(ruleData: AvailabilityFormValues) {
         day_of_week: ruleData.day_of_week ? Number(ruleData.day_of_week) : null,
     });
     if (responseData.error || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message) || 'Failed to save rule';
+        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
         throw new Error(message);
     }
     return responseData;
@@ -108,7 +108,7 @@ async function upsertAvailabilityRule(ruleData: AvailabilityFormValues) {
 async function deleteAvailabilityRule(id: string) {
     const responseData = await api.delete(API_ROUTES.AVAILABILITY_RULES_DELETE, { id });
     if (responseData.error || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message) || 'Failed to delete rule';
+        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
         throw new Error(message);
     }
     return responseData;
@@ -132,8 +132,9 @@ export default function DoctorAvailabilityPage() {
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
+    const tValidation = useTranslations('DoctorAvailabilityPage.validation');
     const form = useForm<AvailabilityFormValues>({
-        resolver: zodResolver(availabilityFormSchema),
+        resolver: zodResolver(availabilityFormSchema(tValidation)),
     });
     const [isDoctorComboboxOpen, setIsDoctorComboboxOpen] = React.useState(false);
     const watchedRecurrence = form.watch("recurrence");
@@ -186,8 +187,8 @@ export default function DoctorAvailabilityPage() {
             day_of_week: rule.day_of_week?.toString(),
             start_time: rule.start_time,
             end_time: rule.end_time,
-            start_date: format(new Date(rule.start_date), 'yyyy-MM-dd'),
-            end_date: rule.end_date ? format(new Date(rule.end_date), 'yyyy-MM-dd') : '',
+            start_date: format(parseISO(rule.start_date), 'yyyy-MM-dd'),
+            end_date: rule.end_date ? format(parseISO(rule.end_date), 'yyyy-MM-dd') : '',
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -210,7 +211,7 @@ export default function DoctorAvailabilityPage() {
             toast({
                 variant: 'destructive',
                 title: t('toast.errorTitle'),
-                description: error instanceof Error ? error.message : t('toast.deleteError'),
+                description: error instanceof Error && error.message ? error.message : t('toast.deleteError'),
             });
         }
     };
@@ -223,12 +224,22 @@ export default function DoctorAvailabilityPage() {
             setIsDialogOpen(false);
             loadRules();
         } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : "An unexpected error occurred.");
+            setSubmissionError(error instanceof Error && error.message ? error.message : t('toast.saveError'));
         }
     };
 
     const availabilityColumns = AvailabilityRulesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
 
+    const tColumns = useTranslations('DoctorAvailabilityColumns');
+    const columnTranslations = {
+        user_name: tColumns('doctor'),
+        recurrence: tColumns('recurrence'),
+        day_of_week: tColumns('day'),
+        start_time: tColumns('startTime'),
+        end_time: tColumns('endTime'),
+        start_date: tColumns('startDate'),
+        end_date: tColumns('endDate'),
+    };
 
     return (
         <>
@@ -252,6 +263,7 @@ export default function DoctorAvailabilityPage() {
                         onCreate={handleCreate}
                         onRefresh={loadRules}
                         isRefreshing={isRefreshing}
+                        columnTranslations={columnTranslations}
                     />
                 </CardContent>
             </Card>
