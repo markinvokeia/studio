@@ -72,6 +72,7 @@ export type UserClinic = {
 
 export type Quote = {
   id: string;
+  doc_no?: string;
   user_id: string;
   total: number;
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'pending' | 'confirmed';

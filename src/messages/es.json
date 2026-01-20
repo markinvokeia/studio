@@ -684,7 +684,7 @@
         }
     },
     "QuoteColumns": {
-        "quoteId": "ID de Presupuesto",
+        "quoteId": "No. Documento",
         "total": "Total",
         "billingStatus": "Estado de Facturación",
         "createdAt": "Creado En",
@@ -724,7 +724,10 @@
             "user": "Usuario",
             "selectUser": "Seleccionar Usuario",
             "searchUser": "Buscar Usuario",
+            "total": "Total",
             "currency": "Moneda",
+            "editSave": "Actualizar",
+            "noUserFound": "No se encontraron usuarios.",
             "status": "Estado",
             "draft": "Borrador",
             "pending": "Pendiente",
@@ -774,11 +777,24 @@
         "sendEmail": "Enviar Correo",
         "print": "Imprimir",
         "confirm": "Confirmar",
+        "generatingPdf": "Generando PDF",
+        "pleaseWait": "Por favor espere mientras preparamos su PDF para el presupuesto #{id}.",
+        "downloadStarted": "Descarga Iniciada",
+        "pdfDownloading": "Su PDF para el presupuesto #{id} se está descargando.",
+        "printError": "Error de Impresión",
+        "couldNotPrint": "No se pudo imprimir el presupuesto.",
+        "emailError": "Error de Correo Electrónico",
+        "invalidEmail": "Dirección de Correo Inválida",
+        "atLeastOneEmail": "Por favor ingrese al menos un correo electrónico destinatario.",
+        "invalidEmails": "Los siguientes correos electrónicos son inválidos: {emails}",
+        "emailSent": "Correo Enviado",
+        "emailSentSuccess": "El presupuesto ha sido enviado exitosamente a {emails}.",
+        "unexpectedError": "Ocurrió un error inesperado.",
         "reject": "Rechazar",
         "edit": "Editar",
         "delete": "Eliminar",
         "detailsFor": "Detalles para {name}",
-        "quoteId": "ID de Presupuesto",
+        "quoteId": "No. Documento",
         "tabs": {
             "items": "Artículos",
             "orders": "Órdenes",
@@ -820,7 +836,7 @@
         },
         "deleteQuoteDialog": {
             "title": "Eliminar Presupuesto",
-            "description": "Eliminar un presupuesto",
+            "description": "¿Está seguro de que desea eliminar el presupuesto #{id}?",
             "cancel": "Cancelar",
             "confirm": "Confirmar"
         },
@@ -829,7 +845,8 @@
             "description": "Eliminar un artículo",
             "cancel": "Cancelar",
             "confirm": "Confirmar"
-        }
+        },
+        "close": "Close details"
     },
     "InvoicesPage": {
         "title": "Facturas",
@@ -839,7 +856,7 @@
             "provider": "Proveedor",
             "userName": "Usuario",
             "orderId": "ID de Orden",
-            "quoteId": "ID de Presupuesto",
+            "quoteId": "No. Documento",
             "total": "Total",
             "status": "Estado",
             "paymentStatus": "Pago",
@@ -1396,7 +1413,7 @@
             "method": "Método",
             "status": "Estado",
             "createdAt": "Creado En",
-            "quoteId": "ID de Presupuesto",
+            "quoteId": "No. Documento",
             "orderId": "ID de Orden",
             "user": "Usuario",
             "date": "Fecha",

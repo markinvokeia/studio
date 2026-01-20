@@ -94,10 +94,10 @@ export const permissions: Permission[] = [
 ];
 
 export const services: Service[] = [
-  { id: 'srv_1', name: 'Initial Consultation', category: 'Consulting', price: 150, duration_minutes: 60 },
-  { id: 'srv_2', name: 'Advanced SEO Package', category: 'Marketing', price: 1200, duration_minutes: 0 },
-  { id: 'srv_3', name: 'Web Development', category: 'Development', price: 5000, duration_minutes: 0 },
-  { id: 'srv_4', name: 'Support Retainer', category: 'Support', price: 500, duration_minutes: 0 },
+  { id: 'srv_1', name: 'Initial Consultation', category: 'Consulting', price: 150, duration_minutes: 60, is_active: true },
+  { id: 'srv_2', name: 'Advanced SEO Package', category: 'Marketing', price: 1200, duration_minutes: 0, is_active: true },
+  { id: 'srv_3', name: 'Web Development', category: 'Development', price: 5000, duration_minutes: 0, is_active: true },
+  { id: 'srv_4', name: 'Support Retainer', category: 'Support', price: 500, duration_minutes: 0, is_active: true },
 ];
 
 export const clinics: Clinic[] = [
@@ -106,11 +106,11 @@ export const clinics: Clinic[] = [
 ];
 
 export const quotes: Quote[] = [
-  { id: 'qt_1', user_id: 'usr_1', total: 1500, status: 'accepted', payment_status: 'paid', billing_status: 'invoiced', userName: 'Alice Johnson', userEmail: 'alice@example.com', createdAt: '2023-10-01' },
-  { id: 'qt_2', user_id: 'usr_2', total: 500, status: 'sent', payment_status: 'unpaid', billing_status: 'not invoiced', userName: 'Bob Williams', userEmail: 'bob@example.com', createdAt: '2023-10-05' },
-  { id: 'qt_3', user_id: 'usr_3', total: 7500, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', userName: 'Charlie Brown', userEmail: 'charlie@example.com', createdAt: '2023-10-10' },
-  { id: 'qt_4', user_id: 'usr_4', total: 300, status: 'accepted', payment_status: 'partial', billing_status: 'partially invoiced', userName: 'Diana Miller', userEmail: 'diana@example.com', createdAt: '2023-10-12' },
-  { id: 'qt_5', user_id: 'usr_5', total: 2500, status: 'rejected', payment_status: 'unpaid', billing_status: 'not invoiced', userName: 'Ethan Davis', userEmail: 'ethan@example.com', createdAt: '2023-10-15' },
+  { id: 'qt_1', doc_no: 'QUO-0001', user_id: 'usr_1', total: 1500, status: 'accepted', payment_status: 'paid', billing_status: 'invoiced', user_name: 'Alice Johnson', userEmail: 'alice@example.com', createdAt: '2023-10-01' },
+  { id: 'qt_2', doc_no: 'QUO-0002', user_id: 'usr_2', total: 500, status: 'sent', payment_status: 'unpaid', billing_status: 'not invoiced', user_name: 'Bob Williams', userEmail: 'bob@example.com', createdAt: '2023-10-05' },
+  { id: 'qt_3', doc_no: 'QUO-0003', user_id: 'usr_3', total: 7500, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', user_name: 'Charlie Brown', userEmail: 'charlie@example.com', createdAt: '2023-10-10' },
+  { id: 'qt_4', doc_no: 'QUO-0004', user_id: 'usr_4', total: 300, status: 'accepted', payment_status: 'partial', billing_status: 'partially invoiced', user_name: 'Diana Miller', userEmail: 'diana@example.com', createdAt: '2023-10-12' },
+  { id: 'qt_5', doc_no: 'QUO-0005', user_id: 'usr_5', total: 2500, status: 'rejected', payment_status: 'unpaid', billing_status: 'not invoiced', user_name: 'Ethan Davis', userEmail: 'ethan@example.com', createdAt: '2023-10-15' },
 ];
 
 export const conversations: Conversation[] = [
@@ -243,13 +243,13 @@ export const messages: Message[] = [
 
 
 export const appointments: Appointment[] = [
-  { id: 'apt_1', user_name: 'Alice Johnson', service_name: 'Initial Consultation', date: '2024-06-01', time: '10:00:00', status: 'completed' },
-  { id: 'apt_2', user_name: 'Bob Williams', service_name: 'Follow-up', date: '2024-06-15', time: '14:30:00', status: 'confirmed' },
-  { id: 'apt_3', user_name: 'Charlie Brown', service_name: 'Dental Cleaning', date: '2024-07-01', time: '11:00:00', status: 'confirmed' },
-  { id: 'apt_4', user_name: 'Diana Miller', service_name: 'Check-up', date: '2024-05-20', time: '09:00:00', status: 'cancelled' },
-  { id: 'apt_5', user_name: 'Ethan Davis', service_name: 'Teeth Whitening', date: '2024-08-01', time: '16:00:00', status: 'pending' },
-  { id: 'apt_6', user_name: 'Alice Johnson', service_name: 'Dental Cleaning', date: '2024-07-10', time: '09:30:00', status: 'confirmed' },
-  { id: 'apt_7', user_name: 'Charlie Brown', service_name: 'Follow-up', date: '2024-07-22', time: '15:00:00', status: 'confirmed' },
+  { id: 'apt_1', patientName: 'Alice Johnson', service_name: 'Initial Consultation', date: '2024-06-01', time: '10:00:00', status: 'completed', calendar_id: 'cal_1' },
+  { id: 'apt_2', patientName: 'Bob Williams', service_name: 'Follow-up', date: '2024-06-15', time: '14:30:00', status: 'confirmed', calendar_id: 'cal_1' },
+  { id: 'apt_3', patientName: 'Charlie Brown', service_name: 'Dental Cleaning', date: '2024-07-01', time: '11:00:00', status: 'confirmed', calendar_id: 'cal_1' },
+  { id: 'apt_4', patientName: 'Diana Miller', service_name: 'Check-up', date: '2024-05-20', time: '09:00:00', status: 'cancelled', calendar_id: 'cal_1' },
+  { id: 'apt_5', patientName: 'Ethan Davis', service_name: 'Teeth Whitening', date: '2024-08-01', time: '16:00:00', status: 'pending', calendar_id: 'cal_1' },
+  { id: 'apt_6', patientName: 'Alice Johnson', service_name: 'Dental Cleaning', date: '2024-07-10', time: '09:30:00', status: 'confirmed', calendar_id: 'cal_1' },
+  { id: 'apt_7', patientName: 'Charlie Brown', service_name: 'Follow-up', date: '2024-07-22', time: '15:00:00', status: 'confirmed', calendar_id: 'cal_1' },
 ];
 
 export const userLogs: UserLog[] = [

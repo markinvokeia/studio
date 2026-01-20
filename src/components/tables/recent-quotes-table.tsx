@@ -72,7 +72,7 @@ const getColumns = (
       size: 20,
     },
     {
-      accessorKey: 'id',
+      accessorKey: 'doc_no',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('QuoteColumns.quoteId')} />
       ),
@@ -280,9 +280,10 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
   const [emailRecipients, setEmailRecipients] = React.useState('');
 
   const handlePrintQuote = async (quote: Quote) => {
+    const displayId = quote.doc_no || quote.id;
     toast({
-      title: "Generating PDF",
-      description: `Please wait while we prepare your PDF for Quote #${quote.id}.`,
+      title: t('QuotesPage.generatingPdf'),
+      description: t('QuotesPage.pleaseWait', { id: displayId }),
     });
 
     try {
@@ -290,22 +291,22 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Quote-${quote.id}.pdf`;
+      a.download = `Quote-${displayId}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       a.remove();
 
       toast({
-        title: "Download Started",
-        description: `Your PDF for Quote #${quote.id} is downloading.`,
+        title: t('QuotesPage.downloadStarted'),
+        description: t('QuotesPage.pdfDownloading', { id: displayId }),
       });
 
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Print Error',
-        description: error instanceof Error ? error.message : 'Could not print the quote.',
+        title: t('QuotesPage.printError'),
+        description: error instanceof Error ? error.message : t('QuotesPage.couldNotPrint'),
       });
     }
   };
@@ -321,7 +322,7 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
 
     const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
     if (emails.length === 0) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Please enter at least one recipient email.' });
+      toast({ variant: 'destructive', title: t('QuotesPage.emailError'), description: t('QuotesPage.atLeastOneEmail') });
       return;
     }
 
@@ -331,8 +332,8 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
     if (invalidEmails.length > 0) {
       toast({
         variant: 'destructive',
-        title: 'Invalid Email Address',
-        description: `The following emails are invalid: ${invalidEmails.join(', ')}`,
+        title: t('QuotesPage.invalidEmail'),
+        description: t('QuotesPage.invalidEmails', { emails: invalidEmails.join(', ') }),
       });
       return;
     }
@@ -342,8 +343,8 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
       await api.post(API_ROUTES.PURCHASES.QUOTES_SEND, { quoteId: selectedQuoteForEmail.id, emails });
 
       toast({
-        title: 'Email Sent',
-        description: `The quote has been successfully sent to ${emails.join(', ')}.`,
+        title: t('QuotesPage.emailSent'),
+        description: t('QuotesPage.emailSentSuccess', { emails: emails.join(', ') }),
       });
 
       setIsSendEmailDialogOpen(false);
@@ -351,8 +352,8 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+        title: t('QuotesPage.emailError'),
+        description: error instanceof Error ? error.message : t('QuotesPage.unexpectedError'),
       });
     }
   };
@@ -383,7 +384,7 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
             columnTranslations={{
-              id: t('QuoteColumns.quoteId'),
+              doc_no: t('QuoteColumns.quoteId'),
               user_name: t('UserColumns.name'),
               createdAt: t('QuoteColumns.createdAt'),
               total: t('QuoteColumns.total'),
@@ -400,7 +401,7 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('QuotesPage.sendEmailDialog.title')}</DialogTitle>
-            <DialogDescription>{t('QuotesPage.sendEmailDialog.description', { id: selectedQuoteForEmail?.id })}</DialogDescription>
+            <DialogDescription>{t('QuotesPage.sendEmailDialog.description', { id: selectedQuoteForEmail?.doc_no || selectedQuoteForEmail?.id })}</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Label htmlFor="email-recipients">{t('QuotesPage.sendEmailDialog.recipients')}</Label>

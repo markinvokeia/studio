@@ -77,6 +77,7 @@ async function getQuotes(): Promise<Quote[]> {
 
         return quotesData.map((apiQuote: any) => ({
             id: apiQuote.id ? String(apiQuote.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
+            doc_no: apiQuote.doc_no || 'N/A',
             user_id: apiQuote.user_id || 'N/A',
             total: apiQuote.total || 0,
             status: apiQuote.status || 'draft',
@@ -476,7 +477,7 @@ export default function QuotesPage() {
         if (!deletingQuote) return;
         try {
             await deleteQuote(deletingQuote.id);
-            toast({ title: t('toast.quoteDeleted'), description: t('toast.quoteDeleteSuccess', { id: deletingQuote.id }) });
+            toast({ title: t('toast.quoteDeleted'), description: t('toast.quoteDeleteSuccess', { id: deletingQuote.doc_no || deletingQuote.id }) });
             setIsDeleteQuoteDialogOpen(false);
             setDeletingQuote(null);
             loadQuotes();
@@ -598,7 +599,7 @@ export default function QuotesPage() {
                 const message = responseData[0]?.message ? responseData[0].message : t('toast.quoteActionError', { action: action });
                 throw new Error(message);
             }
-            toast({ title: action === 'confirm' ? t('toast.quoteConfirmed') : t('toast.quoteRejected'), description: t(action === 'confirm' ? 'toast.quoteConfirmSuccess' : 'toast.quoteRejectSuccess', { id: quote.id }) });
+            toast({ title: action === 'confirm' ? t('toast.quoteConfirmed') : t('toast.quoteRejected'), description: t(action === 'confirm' ? 'toast.quoteConfirmSuccess' : 'toast.quoteRejectSuccess', { id: quote.doc_no || quote.id }) });
             loadQuotes();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('toast.quoteActionError', { action: action }) });
@@ -687,8 +688,8 @@ export default function QuotesPage() {
                         <Card className="h-full shadow-lg rounded-none">
                             <CardHeader className="flex flex-row items-start justify-between">
                                 <div>
-                                    <CardTitle>{t('detailsFor')}</CardTitle>
-                                    <CardDescription>{t('quoteId')}: {selectedQuote.id}</CardDescription>
+                                    <CardTitle>{t('detailsFor', { name: selectedQuote.user_name })}</CardTitle>
+                                    <CardDescription>{t('quoteId')}: {selectedQuote.doc_no || selectedQuote.id}</CardDescription>
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                                     <X className="h-5 w-5" />
@@ -927,7 +928,7 @@ export default function QuotesPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('deleteQuoteDialog.title')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            {t('deleteQuoteDialog.description', { id: deletingQuote?.id })}
+                            {t('deleteQuoteDialog.description', { id: deletingQuote?.doc_no || deletingQuote?.id })}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

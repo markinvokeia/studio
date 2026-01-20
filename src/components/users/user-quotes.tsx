@@ -16,7 +16,7 @@ import { formatDateTime } from '@/lib/utils';
 
 const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
   {
-    accessorKey: 'id',
+    accessorKey: 'doc_no',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.quoteId')} />,
   },
   {
@@ -133,6 +133,7 @@ async function getQuotesForUser(userId: string): Promise<Quote[]> {
 
     return userQuotesData.map((apiQuote: any) => ({
       id: apiQuote.id ? String(apiQuote.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
+      doc_no: apiQuote.doc_no || 'N/A',
       user_id: apiQuote.user_id || 'N/A',
       total: apiQuote.total || 0,
       status: apiQuote.status || 'draft',
@@ -184,10 +185,10 @@ export function UserQuotes({ userId }: UserQuotesProps) {
         <DataTable
           columns={columns}
           data={userQuotes}
-          filterColumnId='id'
+          filterColumnId='doc_no'
           filterPlaceholder={t('UserQuotes.filterPlaceholder')}
           columnTranslations={{
-            id: t('QuoteColumns.quoteId'),
+            doc_no: t('QuoteColumns.quoteId'),
             total: t('QuoteColumns.total'),
             status: t('UserColumns.status'),
             payment_status: t('Navigation.Payments'),

@@ -684,7 +684,7 @@
     }
   },
   "QuoteColumns": {
-    "quoteId": "Quote ID",
+    "quoteId": "Doc No.",
     "total": "Total",
     "billingStatus": "Billing Status",
     "createdAt": "Created At",
@@ -724,7 +724,10 @@
       "user": "User",
       "selectUser": "Select User",
       "searchUser": "Search User",
+      "total": "Total",
       "currency": "Currency",
+      "editSave": "Update",
+      "noUserFound": "No users found.",
       "status": "Status",
       "draft": "Draft",
       "pending": "Pending",
@@ -774,11 +777,24 @@
     "sendEmail": "Send Email",
     "print": "Print",
     "confirm": "Confirm",
+    "generatingPdf": "Generating PDF",
+    "pleaseWait": "Please wait while we prepare your PDF for quote #{id}.",
+    "downloadStarted": "Download Started",
+    "pdfDownloading": "Your PDF for quote #{id} is downloading.",
+    "printError": "Print Error",
+    "couldNotPrint": "Could not print quote.",
+    "emailError": "Email Error",
+    "invalidEmail": "Invalid Email Address",
+    "atLeastOneEmail": "Please enter at least one recipient email.",
+    "invalidEmails": "The following emails are invalid: {emails}",
+    "emailSent": "Email Sent",
+    "emailSentSuccess": "The quote has been successfully sent to {emails}.",
+    "unexpectedError": "An unexpected error occurred.",
     "reject": "Reject",
     "edit": "Edit",
     "delete": "Delete",
     "detailsFor": "Details for {name}",
-    "quoteId": "Quote ID",
+    "quoteId": "No. Document",
     "tabs": {
       "items": "Items",
       "orders": "Orders",
@@ -820,7 +836,7 @@
     },
     "deleteQuoteDialog": {
       "title": "Delete Quote",
-      "description": "Delete a quote",
+      "description": "Are you sure you want to delete quote #{id}?",
       "cancel": "Cancel",
       "confirm": "Confirm"
     },
@@ -829,7 +845,8 @@
       "description": "Delete an item",
       "cancel": "Cancel",
       "confirm": "Confirm"
-    }
+    },
+    "close": "Close details"
   },
   "InvoicesPage": {
     "title": "Invoices",
@@ -839,7 +856,7 @@
       "provider": "Provider",
       "userName": "User",
       "orderId": "Order ID",
-      "quoteId": "Quote ID",
+      "quoteId": "Doc No.",
       "total": "Total",
       "status": "Status",
       "paymentStatus": "Payment",
@@ -1392,7 +1409,7 @@
       "method": "Method",
       "status": "Status",
       "createdAt": "Created At",
-      "quoteId": "Quote ID",
+      "quoteId": "Doc No.",
       "orderId": "Order ID",
       "user": "User",
       "date": "Date",
