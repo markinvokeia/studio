@@ -1264,7 +1264,8 @@
       "amountPositive": "Amount must be a positive number.",
       "descriptionRequired": "Description is required.",
       "sessionRequired": "Session is required.",
-      "paymentMethodRequired": "Payment method is required."
+      "paymentMethodRequired": "Payment method is required.",
+      "noActiveSession": "You must open a cash register before creating miscellaneous transactions."
     },
     "actions": {
       "edit": "Edit",
@@ -1302,7 +1303,9 @@
       "fetchError": "Failed to fetch miscellaneous transactions",
       "saveError": "Failed to save transaction",
       "deleteError": "Failed to delete transaction",
-      "genericError": "An unexpected error occurred."
+      "checkSessionError": "Failed to check active session:",
+      "genericError": "An unexpected error occurred.",
+      "errorTitle": "Error"
     }
   },
   "PhysicalCashRegistersPage": {

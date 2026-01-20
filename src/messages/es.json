@@ -1264,7 +1264,8 @@
             "amountPositive": "El monto debe ser un número positivo.",
             "descriptionRequired": "La descripción es obligatoria.",
             "sessionRequired": "La sesión es obligatoria.",
-            "paymentMethodRequired": "El método de pago es obligatorio."
+            "paymentMethodRequired": "El método de pago es obligatorio.",
+            "noActiveSession": "Debe abrir una caja antes de crear transacciones misceláneas."
         },
         "actions": {
             "edit": "Editar",
@@ -1302,7 +1303,9 @@
             "fetchError": "Error al obtener transacciones misceláneas",
             "saveError": "Error al guardar transacción",
             "deleteError": "Error al eliminar transacción",
-            "genericError": "Ocurrió un error inesperado."
+            "checkSessionError": "Error al verificar sesión activa:",
+            "genericError": "Ocurrió un error inesperado.",
+            "errorTitle": "Error"
         }
     },
     "PhysicalCashRegistersPage": {

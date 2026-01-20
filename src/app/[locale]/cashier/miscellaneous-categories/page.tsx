@@ -25,7 +25,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { ColumnFiltersState } from '@tanstack/react-table';
+import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/services/api';
@@ -42,20 +42,58 @@ const categoryFormSchema = (t: (key: string) => string) => z.object({
 
 type CategoryFormValues = z.infer<ReturnType<typeof categoryFormSchema>>;
 
-async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
-    try {
-        const data = await api.get(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_GET);
-        if (!data) return [];
-        const categoriesData = data?.data || (Array.isArray(data) ? data : []);
+type GetCategoriesResponse = {
+    categories: MiscellaneousCategory[];
+    total: number;
+};
 
-        return categoriesData.map((c: any) => ({
-            ...c,
-            id: String(c.id),
-            type: c.category_type
-        }));
+async function getMiscellaneousCategories(pagination: PaginationState, searchQuery: string): Promise<GetCategoriesResponse> {
+    try {
+        const data = await api.get(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_GET, {
+            page: (pagination.pageIndex + 1).toString(),
+            limit: pagination.pageSize.toString(),
+            search: searchQuery,
+        });
+
+        if (!data) return { categories: [], total: 0 };
+
+        // Handle different API response formats:
+        // 1. Direct object: { data: [...], total: X }
+        // 2. Array with object: [{ data: [...], total: X }]
+        // 3. Direct array: [{...}, {...}]
+        let categoriesData: any[] = [];
+        let total = 0;
+
+        if (Array.isArray(data)) {
+            if (data.length > 0 && data[0]?.data) {
+                // Format: [{ data: [...], total: X }]
+                categoriesData = data[0].data || [];
+                total = Number(data[0].total) || categoriesData.length;
+            } else {
+                // Format: Direct array [{...}, {...}]
+                categoriesData = data;
+                total = data.length;
+            }
+        } else if (data?.data) {
+            // Format: { data: [...], total: X }
+            categoriesData = data.data;
+            total = Number(data.total) || categoriesData.length;
+        } else {
+            // Unknown format, return empty
+            return { categories: [], total: 0 };
+        }
+
+        return {
+            categories: categoriesData.map((c: any) => ({
+                ...c,
+                id: String(c.id),
+                type: c.category_type || c.type
+            })),
+            total
+        };
     } catch (error) {
         console.error("Failed to fetch miscellaneous categories:", error);
-        return [];
+        return { categories: [], total: 0 };
     }
 }
 
@@ -88,6 +126,7 @@ export default function MiscellaneousCategoriesPage() {
     const tValidation = useTranslations('ProductCategoriesPage.validation');
     const { toast } = useToast();
     const [categories, setCategories] = React.useState<MiscellaneousCategory[]>([]);
+    const [categoryCount, setCategoryCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
 
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -98,6 +137,7 @@ export default function MiscellaneousCategoriesPage() {
 
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
 
     const form = useForm<CategoryFormValues>({
         resolver: zodResolver(categoryFormSchema(tValidation)),
@@ -105,10 +145,12 @@ export default function MiscellaneousCategoriesPage() {
 
     const loadCategories = React.useCallback(async () => {
         setIsRefreshing(true);
-        const fetchedCategories = await getMiscellaneousCategories();
+        const searchQuery = (columnFilters.find(f => f.id === 'name')?.value as string) || '';
+        const { categories: fetchedCategories, total } = await getMiscellaneousCategories(pagination, searchQuery);
         setCategories(fetchedCategories);
+        setCategoryCount(total);
         setIsRefreshing(false);
-    }, []);
+    }, [pagination, columnFilters]);
 
     React.useEffect(() => {
         loadCategories();
@@ -192,8 +234,12 @@ export default function MiscellaneousCategoriesPage() {
                     <DataTable
                         columns={columns}
                         data={categories}
+                        pageCount={Math.ceil(categoryCount / pagination.pageSize)}
+                        pagination={pagination}
+                        onPaginationChange={setPagination}
                         columnFilters={columnFilters}
                         onColumnFiltersChange={setColumnFilters}
+                        manualPagination={true}
                         filterColumnId="name"
                         filterPlaceholder={t('filterPlaceholder')}
                         onCreate={handleCreate}
