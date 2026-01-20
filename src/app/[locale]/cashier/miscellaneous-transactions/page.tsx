@@ -485,27 +485,7 @@ export default function MiscellaneousTransactionsPage() {
                     <CardDescription>{t('description')}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                    {dateRange?.from ? (dateRange.to ? `${format(dateRange.from, 'LLL dd, y')} - ${format(dateRange.to, 'LLL dd, y')}` : format(dateRange.from, 'LLL dd, y')) : t('filters.dateRange')}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="range" selected={dateRange} onSelect={setDateRange} initialFocus />
-                            </PopoverContent>
-                        </Popover>
-                        <div className="flex flex-wrap items-center gap-1">
-                            <QuickFilterButton filter="pending" label={t('filters.pending')} />
-                            <QuickFilterButton filter="completed_today" label={t('filters.completedToday')} />
-                            <QuickFilterButton filter="income_month" label={t('filters.incomeMonth')} />
-                            <QuickFilterButton filter="expense_month" label={t('filters.expenseMonth')} />
-                            <QuickFilterButton filter="salaries" label={t('filters.salaries')} />
-                            <QuickFilterButton filter="services" label={t('filters.services')} />
-                            <QuickFilterButton filter="taxes" label={t('filters.taxes')} />
-                        </div>
-                    </div>
+
                     <DataTable
                         columns={columns}
                         data={transactions}
