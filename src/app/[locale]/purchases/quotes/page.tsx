@@ -191,6 +191,7 @@ async function getInvoices(quoteId: string): Promise<Invoice[]> {
         const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
         return invoicesData.map((apiInvoice: any) => ({
             id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
+            invoice_ref: apiInvoice.invoice_ref || 'N/A',
             quote_id: apiInvoice.quote_id,
             total: apiInvoice.total || 0,
             status: apiInvoice.status || 'draft',

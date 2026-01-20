@@ -77,7 +77,6 @@ const createInvoiceFormSchema = z.object({
   user_id: z.string().min(1, 'A user or provider is required.'),
   total: z.coerce.number().min(0, 'Total must be a non-negative number.'),
   currency: z.enum(['UYU', 'USD']),
-  invoice_ref: z.string().optional(),
   order_id: z.string().optional(),
   quote_id: z.string().optional(),
   items: z.array(z.object({
@@ -140,11 +139,15 @@ const getColumns = (
       enableSorting: false,
       enableHiding: false,
     },
-    {
-      accessorKey: 'id',
+{
+      accessorKey: 'invoice_ref',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={columnTranslations.id || "Invoice ID"} />
+        <DataTableColumnHeader column={column} title={columnTranslations.invoice_ref || "Invoice Ref"} />
       ),
+      cell: ({ row }) => {
+        const value = row.getValue('invoice_ref') as string;
+        return <div className="font-medium">{value || '-'}</div>;
+      },
     },
     {
       accessorKey: 'user_name',
@@ -656,7 +659,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       <DataTable
         columns={columns}
         data={invoices}
-        filterColumnId="id"
+        filterColumnId="invoice_ref"
         filterPlaceholder={t('filterPlaceholder')}
         onRowSelectionChange={onRowSelectionChange}
         enableSingleRowSelection={!!onRowSelectionChange}
@@ -668,8 +671,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         }}
         rowSelection={rowSelection}
         setRowSelection={setRowSelection}
-        columnTranslations={{
-          id: t('columns.invoiceId'),
+columnTranslations={{
+          invoice_ref: t('columns.invoiceRef'),
           user_name: t('columns.userName'),
           order_id: t('columns.orderId'),
           quote_id: t('columns.quoteId'),
@@ -1081,12 +1084,11 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
             const itemsData = await api.get(itemsEndpoint, { invoice_id: invoice.id, is_sales: isSales ? 'true' : 'false' });
             const itemsNormalized = Array.isArray(itemsData) ? itemsData : (itemsData.invoice_items || itemsData.data || itemsData.result || []);
 
-            form.reset({
+form.reset({
               type: (invoice.type?.toString().includes('credit') ? 'credit_note' : 'invoice') as any,
               user_id: Array.isArray(invoice.user_id) ? String(invoice.user_id[0]) : String(invoice.user_id || ''),
               currency: (invoice.currency?.toUpperCase() as any) || 'UYU',
               total: Number(invoice.total || 0),
-              invoice_ref: '',
               order_id: invoice.order_id ? String(invoice.order_id) : undefined,
               quote_id: invoice.quote_id ? String(invoice.quote_id) : undefined,
               items: itemsNormalized.map((item: any) => {
@@ -1247,7 +1249,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={form.control} name="invoice_ref" render={({ field }) => (<FormItem><FormLabel>{t('invoiceRef')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+              
             </div>
 
             <Card>

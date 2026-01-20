@@ -67,6 +67,7 @@ async function getInvoicesForOrder(orderId: string): Promise<Invoice[]> {
         const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
         return invoicesData.map((apiInvoice: any) => ({
             id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
+            invoice_ref: apiInvoice.invoice_ref || 'N/A',
             order_id: apiInvoice.order_id,
             quote_id: apiInvoice.quote_id,
             user_name: apiInvoice.user_name || 'N/A',
