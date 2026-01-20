@@ -158,6 +158,7 @@ export default function MedicationsPage() {
     };
 
     const medicationsColumns = MedicationsColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
+    const tColumns = useTranslations('MedicationsColumns');
 
 
     return (
@@ -176,6 +177,11 @@ export default function MedicationsPage() {
                         onCreate={handleCreate}
                         onRefresh={loadMedications}
                         isRefreshing={isRefreshing}
+                        columnTranslations={{
+                            id: tColumns('id'),
+                            nombre_generico: tColumns('genericName'),
+                            nombre_comercial: tColumns('commercialName'),
+                        }}
                     />
                 </CardContent>
             </Card>

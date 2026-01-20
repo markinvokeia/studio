@@ -170,6 +170,16 @@ export default function MiscellaneousCategoriesPage() {
     };
 
     const columns = MiscellaneousCategoriesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
+    const tColumns = useTranslations('MiscellaneousCategoriesPage.columns');
+
+    const columnTranslations = {
+        id: tColumns('id'),
+        code: tColumns('code'),
+        name: tColumns('name'),
+        description: tColumns('description'),
+        type: tColumns('type'),
+        is_active: tColumns('isActive'),
+    };
 
     return (
         <>
@@ -189,6 +199,7 @@ export default function MiscellaneousCategoriesPage() {
                         onCreate={handleCreate}
                         onRefresh={loadCategories}
                         isRefreshing={isRefreshing}
+                        columnTranslations={columnTranslations}
                     />
                 </CardContent>
             </Card>

@@ -167,6 +167,7 @@ export default function AilmentsPage() {
     };
 
     const ailmentsColumns = AilmentsColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
+    const tColumns = useTranslations('AilmentsColumns');
 
 
     return (
@@ -185,6 +186,11 @@ export default function AilmentsPage() {
                         onCreate={handleCreate}
                         onRefresh={loadAilments}
                         isRefreshing={isRefreshing}
+                        columnTranslations={{
+                            nombre: tColumns('name'),
+                            categoria: tColumns('category'),
+                            nivel_alerta: tColumns('alertLevel'),
+                        }}
                     />
                 </CardContent>
             </Card>
