@@ -89,7 +89,7 @@ async function getDoctors(): Promise<User[]> {
 async function upsertAvailabilityException(exceptionData: ExceptionFormValues) {
     const responseData = await api.post(API_ROUTES.AVAILABILITY_EXCEPTIONS_UPSERT, exceptionData);
     if (Array.isArray(responseData) && responseData[0]?.code >= 400 || responseData.error) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message) || 'Failed to save exception';
+        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
         throw new Error(message);
     }
     return responseData;
@@ -98,7 +98,7 @@ async function upsertAvailabilityException(exceptionData: ExceptionFormValues) {
 async function deleteAvailabilityException(id: string) {
     const responseData = await api.delete(API_ROUTES.AVAILABILITY_EXCEPTIONS_DELETE, { id });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400 || responseData.error) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message) || 'Failed to delete exception';
+        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
         throw new Error(message);
     }
     return responseData;
@@ -193,7 +193,7 @@ export default function AvailabilityExceptionsPage() {
             toast({
                 variant: 'destructive',
                 title: t('toast.errorTitle'),
-                description: error instanceof Error ? error.message : t('toast.deleteError'),
+                description: error instanceof Error && error.message ? error.message : t('toast.deleteError'),
             });
         }
     };
@@ -206,11 +206,20 @@ export default function AvailabilityExceptionsPage() {
             setIsDialogOpen(false);
             loadExceptions();
         } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
+            setSubmissionError(error instanceof Error && error.message ? error.message : t('toast.saveError'));
         }
     };
 
     const exceptionsColumns = ExceptionsColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
+
+    const tColumns = useTranslations('DoctorAvailabilityExceptionsPage.columns');
+    const columnTranslations = {
+        user_name: tColumns('doctor'),
+        exception_date: tColumns('date'),
+        is_available: tColumns('available'),
+        start_time: tColumns('startTime'),
+        end_time: tColumns('endTime'),
+    };
 
     return (
         <>
@@ -234,6 +243,7 @@ export default function AvailabilityExceptionsPage() {
                         onCreate={handleCreate}
                         onRefresh={loadExceptions}
                         isRefreshing={isRefreshing}
+                        columnTranslations={columnTranslations}
                     />
                 </CardContent>
             </Card>
