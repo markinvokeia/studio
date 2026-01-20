@@ -48,6 +48,7 @@ async function getPaymentsForUser(userId: string): Promise<Payment[]> {
     return paymentsData.map((apiPayment: any) => ({
       id: apiPayment.id.toString(),
       order_id: apiPayment.order_id?.toString() ?? '',
+      order_doc_no: apiPayment.order_doc_no || `ORD-${apiPayment.order_id}`,
       invoice_id: apiPayment.invoice_id?.toString() ?? '',
       quote_id: apiPayment.quote_id?.toString() ?? '',
       user_name: '', // Not needed

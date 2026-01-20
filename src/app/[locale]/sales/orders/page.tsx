@@ -23,6 +23,7 @@ async function getOrders(): Promise<Order[]> {
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
         return ordersData.map((apiOrder: any) => ({
             id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
+            doc_no: apiOrder.doc_no || `ORD-${apiOrder.id}`,
             user_id: apiOrder.user_id,
             quote_id: apiOrder.quote_id,
             user_name: apiOrder.user_name || 'N/A',
@@ -68,7 +69,9 @@ async function getInvoicesForOrder(orderId: string): Promise<Invoice[]> {
         return invoicesData.map((apiInvoice: any) => ({
             id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
             invoice_ref: apiInvoice.invoice_ref || 'N/A',
+            doc_no: apiInvoice.doc_no || `INV-${apiInvoice.id}`,
             order_id: apiInvoice.order_id,
+            order_doc_no: apiInvoice.order_doc_no || `ORD-${apiInvoice.order_id}`,
             quote_id: apiInvoice.quote_id,
             user_name: apiInvoice.user_name || 'N/A',
             total: apiInvoice.total || 0,
@@ -92,6 +95,7 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
         return paymentsData.map((apiPayment: any) => ({
             id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
             order_id: apiPayment.order_id,
+            order_doc_no: apiPayment.order_doc_no || `ORD-${apiPayment.order_id}`,
             invoice_id: apiPayment.invoice_id,
             quote_id: apiPayment.quote_id,
             user_name: apiPayment.user_name || 'N/A',
@@ -259,7 +263,7 @@ export default function OrdersPage() {
                             <CardHeader className="flex flex-row items-start justify-between">
                                 <div>
                                     <CardTitle>{t('detailsFor', { name: selectedOrder.user_name })}</CardTitle>
-                                    <CardDescription>{t('orderId')}: {selectedOrder.id}</CardDescription>
+                                    <CardDescription>{t('orderId')}: {selectedOrder.doc_no}</CardDescription>
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                                     <X className="h-5 w-5" />
@@ -275,7 +279,7 @@ export default function OrdersPage() {
                                     </TabsList>
                                     <TabsContent value="items">
                                         <div className="flex items-center justify-between mb-2">
-                                            <h4 className="text-md font-semibold">{tOrderItems('title', { id: selectedOrder.id })}</h4>
+                                            <h4 className="text-md font-semibold">{tOrderItems('title', { id: selectedOrder.doc_no })}</h4>
                                             <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
                                                 <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                             </Button>

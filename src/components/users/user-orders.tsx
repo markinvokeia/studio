@@ -15,7 +15,7 @@ import { Badge } from '../ui/badge';
 
 const getColumns = (t: (key: string) => string): ColumnDef<Order>[] => [
   {
-    accessorKey: 'id',
+    accessorKey: 'doc_no',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />,
   },
   {
@@ -69,6 +69,7 @@ async function getOrdersForUser(userId: string): Promise<Order[]> {
     const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
     return ordersData.map((apiOrder: any) => ({
       id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
+      doc_no: apiOrder.doc_no || `ORD-${apiOrder.id}`,
       user_id: apiOrder.user_id,
       quote_id: apiOrder.quote_id,
       status: apiOrder.status,
@@ -119,10 +120,10 @@ export function UserOrders({ userId }: UserOrdersProps) {
         <DataTable
           columns={columns}
           data={orders}
-          filterColumnId='id'
+          filterColumnId='doc_no'
           filterPlaceholder={t('OrdersPage.filterPlaceholder')}
           columnTranslations={{
-            id: t('OrderColumns.orderId'),
+            doc_no: t('OrderColumns.orderId'),
             quote_id: t('QuoteColumns.quoteId'),
             createdAt: t('OrderColumns.createdAt'),
             status: t('UserColumns.status'),

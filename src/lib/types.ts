@@ -96,6 +96,7 @@ export type QuoteItem = {
 
 export type Order = {
   id: string;
+  doc_no?: string;
   user_id: string;
   quote_id: string;
   user_name?: string;
@@ -121,7 +122,9 @@ export type OrderItem = {
 export type Invoice = {
   id: string;
   invoice_ref: string;
+  doc_no?: string;
   order_id: string;
+  order_doc_no?: string;
   quote_id: string;
   user_name: string;
   userEmail?: string;
@@ -148,6 +151,7 @@ export type InvoiceItem = {
 export type Payment = {
   id: string;
   order_id: string;
+  order_doc_no?: string;
   invoice_id: string;
   quote_id: string;
   user_name: string;

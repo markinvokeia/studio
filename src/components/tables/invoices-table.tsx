@@ -139,13 +139,13 @@ const getColumns = (
       enableSorting: false,
       enableHiding: false,
     },
-{
-      accessorKey: 'invoice_ref',
+    {
+      accessorKey: 'doc_no',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={columnTranslations.invoice_ref || "Invoice Ref"} />
       ),
       cell: ({ row }) => {
-        const value = row.getValue('invoice_ref') as string;
+        const value = row.getValue('doc_no') as string;
         return <div className="font-medium">{value || '-'}</div>;
       },
     },
@@ -154,7 +154,7 @@ const getColumns = (
       header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.user_name || "User"} />,
     },
     {
-      accessorKey: 'order_id',
+      accessorKey: 'order_doc_no',
       header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.order_id || "Order ID"} />,
     },
     {
@@ -659,7 +659,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       <DataTable
         columns={columns}
         data={invoices}
-        filterColumnId="invoice_ref"
+        filterColumnId="doc_no"
         filterPlaceholder={t('filterPlaceholder')}
         onRowSelectionChange={onRowSelectionChange}
         enableSingleRowSelection={!!onRowSelectionChange}
@@ -672,9 +672,9 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         rowSelection={rowSelection}
         setRowSelection={setRowSelection}
 columnTranslations={{
-          invoice_ref: t('columns.invoiceRef'),
+          doc_no: t('columns.invoiceRef'),
           user_name: t('columns.userName'),
-          order_id: t('columns.orderId'),
+          order_doc_no: t('columns.orderId'),
           quote_id: t('columns.quoteId'),
           total: t('columns.total'),
           currency: t('columns.currency'),

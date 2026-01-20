@@ -16,10 +16,10 @@ import { formatDateTime } from '@/lib/utils';
 
 const getColumns = (t: (key: string) => string, tStatus: (key: string) => string): ColumnDef<Invoice>[] => [
   {
-    accessorKey: 'invoice_ref',
+    accessorKey: 'doc_no',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.invoiceRef')} />,
     cell: ({ row }) => {
-      const value = row.getValue('invoice_ref') as string;
+      const value = row.getValue('doc_no') as string;
       return <div className="font-medium">{value || '-'}</div>;
     },
   },
@@ -78,7 +78,9 @@ async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
     return invoicesData.map((apiInvoice: any) => ({
       id: apiInvoice.id.toString(),
       invoice_ref: apiInvoice.invoice_ref || 'N/A',
+      doc_no: apiInvoice.doc_no || `INV-${apiInvoice.id}`,
       order_id: apiInvoice.order_id?.toString() ?? '',
+      order_doc_no: apiInvoice.order_doc_no || `ORD-${apiInvoice.order_id}`,
       quote_id: apiInvoice.quote_id?.toString() ?? '',
       user_name: '', // Not needed for this view
       total: parseFloat(apiInvoice.total),

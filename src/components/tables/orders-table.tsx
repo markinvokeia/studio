@@ -104,7 +104,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
 
       toast({
         title: tOrdersPage('invoiceDialog.invoiceSuccess'),
-        description: tOrdersPage('invoiceDialog.invoiceSuccessDesc', { orderId: selectedOrderForInvoice.id }),
+        description: tOrdersPage('invoiceDialog.invoiceSuccessDesc', { orderId: selectedOrderForInvoice.doc_no }),
       });
 
       if (onRefresh) {
@@ -142,7 +142,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
       enableHiding: false,
     },
     {
-      accessorKey: 'id',
+      accessorKey: 'doc_no',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={tOrderColumns('orderId')} />
       ),
@@ -249,7 +249,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
             columnTranslations={{
-              id: tOrderColumns('orderId'),
+              doc_no: tOrderColumns('orderId'),
               user_name: tUserColumns('name'),
               quote_id: tQuoteColumns('quoteId'),
               currency: t('QuoteColumns.currency'),
@@ -265,7 +265,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
           <DialogHeader>
             <DialogTitle>{tOrdersPage('invoiceDialog.title')}</DialogTitle>
             <DialogDescription>
-              {tOrdersPage('invoiceDialog.description', { orderId: selectedOrderForInvoice?.id })}
+              {tOrdersPage('invoiceDialog.description', { orderId: selectedOrderForInvoice?.doc_no })}
             </DialogDescription>
           </DialogHeader>
           {invoiceSubmissionError && (
