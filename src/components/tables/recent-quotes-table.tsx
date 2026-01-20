@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Badge } from '@/components/ui/badge';
@@ -35,12 +34,15 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Quote } from '@/lib/types';
 import { api } from '@/services/api';
-import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { ColumnDef, RowSelectionState, SortingState, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable } from '@tanstack/react-table';
 import { cn, formatDateTime } from '@/lib/utils';
 import { MoreHorizontal, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DocumentTextIcon } from '../icons/document-text-icon';
+import { DataTableToolbar } from '../ui/data-table-toolbar';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { DataTablePagination } from '../ui/data-table-pagination';
 
 const getColumns = (
   t: (key: string) => string,
@@ -89,7 +91,7 @@ const getColumns = (
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('QuoteColumns.createdAt')} />
       ),
-      cell: ({ row }) => formatDateTime(row.getValue('createdAt')),
+      cell: ({ row }) => formatDateTime(row.original.createdAt),
     },
     {
       accessorKey: 'total',
@@ -279,6 +281,9 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
   const [selectedQuoteForEmail, setSelectedQuoteForEmail] = React.useState<Quote | null>(null);
   const [emailRecipients, setEmailRecipients] = React.useState('');
 
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+
   const handlePrintQuote = async (quote: Quote) => {
     toast({
       title: "Generating PDF",
@@ -358,10 +363,48 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
   };
 
   const columns = React.useMemo(() => getColumns(t, onEdit, onDelete, onQuoteAction, handlePrintQuote, handleSendEmailClick), [t, onEdit, onDelete, onQuoteAction]);
+  
+  const table = useReactTable({
+    data: quotes,
+    columns,
+    state: {
+      sorting,
+      columnFilters,
+      rowSelection: rowSelection ?? {},
+    },
+    enableRowSelection: true,
+    enableMultiRowSelection: !true,
+    onRowSelectionChange: setRowSelection,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+  });
+
+  React.useEffect(() => {
+    if (onRowSelectionChange) {
+      const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original);
+      onRowSelectionChange(selectedRows);
+    }
+  }, [rowSelection, table, onRowSelectionChange]);
+
+
+  const columnTranslations = {
+    id: t('QuoteColumns.quoteId'),
+    user_name: t('UserColumns.name'),
+    createdAt: t('QuoteColumns.createdAt'),
+    total: t('QuoteColumns.total'),
+    currency: t('QuoteColumns.currency'),
+    status: t('UserColumns.status'),
+    billing_status: t('QuoteColumns.billingStatus'),
+    payment_status: t('Navigation.Payments'),
+  };
 
   return (
     <>
-      <Card>
+      <Card className="h-full flex flex-col">
         <CardHeader>
           <div className="flex items-center gap-2">
             <DocumentTextIcon className="h-6 w-6 text-amber-500" />
@@ -369,30 +412,76 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
           </div>
           <CardDescription>{t('RecentQuotesTable.description')}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={columns}
-            data={quotes}
-            filterColumnId="user_name"
-            filterPlaceholder={t('RecentQuotesTable.filterPlaceholder')}
-            onRowSelectionChange={onRowSelectionChange}
-            enableSingleRowSelection={onRowSelectionChange ? true : false}
-            onCreate={onCreate}
-            onRefresh={onRefresh}
-            isRefreshing={isRefreshing}
-            rowSelection={rowSelection}
-            setRowSelection={setRowSelection}
-            columnTranslations={{
-              id: t('QuoteColumns.quoteId'),
-              user_name: t('UserColumns.name'),
-              createdAt: t('QuoteColumns.createdAt'),
-              total: t('QuoteColumns.total'),
-              currency: t('QuoteColumns.currency'),
-              status: t('UserColumns.status'),
-              billing_status: t('QuoteColumns.billingStatus'),
-              payment_status: t('Navigation.Payments'),
-            }}
-          />
+        <CardContent className="flex-1 flex flex-col min-h-0">
+          <div className="flex flex-col h-full space-y-4">
+             <DataTableToolbar
+                table={table}
+                filterColumnId="user_name"
+                filterPlaceholder={t('RecentQuotesTable.filterPlaceholder')}
+                onCreate={onCreate}
+                onRefresh={onRefresh}
+                isRefreshing={isRefreshing}
+                columnTranslations={columnTranslations}
+              />
+            <div className="rounded-md border overflow-y-auto flex-1 min-h-0 relative">
+              <table className={cn("w-full caption-bottom text-sm")}>
+                <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => {
+                        return (
+                          <TableHead key={header.id} style={{ width: header.getSize() !== 150 ? `${header.getSize()}px` : undefined }}>
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                          </TableHead>
+                        )
+                      })}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected() && 'selected'}
+                        onClick={() => {
+                            if (onRowSelectionChange) {
+                                table.toggleAllPageRowsSelected(false);
+                                row.toggleSelected(true);
+                            }
+                        }}
+                        className={onRowSelectionChange ? 'cursor-pointer' : ''}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="h-24 text-center"
+                      >
+                        {t('General.noResults')}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </table>
+            </div>
+             <DataTablePagination table={table} />
+          </div>
         </CardContent>
       </Card>
 
@@ -421,4 +510,3 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
     </>
   );
 }
-
