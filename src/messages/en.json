@@ -692,7 +692,8 @@
   },
   "OrderColumns": {
     "orderId": "Doc No.",
-    "createdAt": "Created At"
+    "createdAt": "Created At",
+    "docNo": "Doc No."
   },
   "General": {
     "noResults": "No results.",
@@ -865,7 +866,10 @@
       "currency": "Currency",
       "type": "Type",
       "paidAmount": "Paid Amount",
-      "invoiceRef": "Invoice Reference"
+      "invoiceRef": "Invoice Reference",
+      "docNo": "Doc No.",
+      "orderDocNo": "Order Doc No.",
+      "quoteDocNo": "Quote Doc No."
     },
     "paymentDialog": {
       "add": "Add Payment",
@@ -1419,7 +1423,8 @@
       "source_currency": "Source Currency",
       "exchange_rate": "Exchange Rate",
       "transaction_type": "Transaction Type",
-      "reference_doc_id": "Reference Document ID"
+      "reference_doc_id": "Reference Document ID",
+      "order_doc_no": "Order Doc No."
     },
     "transactionType": {
       "payment_allocation": "Payment Allocation",

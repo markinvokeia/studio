@@ -683,16 +683,17 @@
             "servicesAssignFailed": "No se pudieron asignar los servicios."
         }
     },
-  "QuoteColumns": {
-    "quoteId": "ID de Cotización",
-    "total": "Total",
-    "billingStatus": "Estado de Facturación",
-    "createdAt": "Creado En",
+    "QuoteColumns": {
+        "quoteId": "ID de Cotización",
+        "total": "Total",
+        "billingStatus": "Estado de Facturación",
+        "createdAt": "Creado En",
         "currency": "Moneda"
     },
     "OrderColumns": {
         "orderId": "No. Documento",
-        "createdAt": "Creado En"
+        "createdAt": "Creado En",
+        "docNo": "Doc No."
     },
     "General": {
         "noResults": "No hay resultados.",
@@ -865,7 +866,10 @@
             "currency": "Moneda",
             "type": "Tipo",
             "paidAmount": "Monto Pagado",
-            "invoiceRef": "Referencia de Factura"
+            "invoiceRef": "Referencia de Factura",
+            "docNo": "Doc No.",
+            "orderDocNo": "Orden Doc No.",
+            "quoteDocNo": "Quote Doc No."
         },
         "paymentDialog": {
             "add": "Agregar Pago",
@@ -1423,7 +1427,8 @@
             "source_currency": "Moneda de Origen",
             "exchange_rate": "Tipo de Cambio",
             "transaction_type": "Tipo de Transacción",
-            "reference_doc_id": "ID Doc. de Referencia"
+            "reference_doc_id": "ID Doc. de Referencia",
+            "order_doc_no": "Orden Doc No."
         },
         "transactionType": {
             "payment_allocation": "Asignación de Pago",

@@ -149,9 +149,9 @@ async function getOrders(quoteId: string): Promise<Order[]> {
     try {
         const data = await api.get(API_ROUTES.PURCHASES.QUOTES_ORDERS, { quote_id: quoteId, is_sales: 'false' });
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
-return ordersData.map((apiOrder: any) => ({
-            id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
-            doc_no: apiOrder.doc_no || `ORD-${apiOrder.id}`,
+        return ordersData.map((apiOrder: any) => ({
+            id: apiOrder.id ? String(apiOrder.id) : 'N/A',
+            doc_no: apiOrder.doc_no || 'N/A',
             user_id: apiOrder.user_id,
             user_name: apiOrder.user_name || apiOrder.name || 'N/A',
             status: apiOrder.status,
@@ -743,7 +743,7 @@ export default function QuotesPage() {
                                         {selectedOrder && (
                                             <div className="mt-4">
                                                 <div className="flex items-center justify-between mb-2">
-                                                     <h4 className="text-md font-semibold">Order Items for {selectedOrder.doc_no || `ORD-${selectedOrder.id}`}</h4>
+                                                    <h4 className="text-md font-semibold">Order Items for {selectedOrder.doc_no || `ORD-${selectedOrder.id}`}</h4>
                                                     <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
                                                         <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                                     </Button>

@@ -61,10 +61,13 @@ async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
         const data = await api.get(API_ROUTES.SALES.INVOICES_ALL, query);
         const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
         return invoicesData.map((apiInvoice: any) => ({
-            id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiInvoice.id ? String(apiInvoice.id) : 'N/A',
+            doc_no: apiInvoice.doc_no || 'N/A',
             invoice_ref: apiInvoice.invoice_ref || 'N/A',
             order_id: apiInvoice.order_id,
+            order_doc_no: apiInvoice.order_doc_no || 'N/A',
             quote_id: apiInvoice.quote_id,
+            quote_doc_no: apiInvoice.quote_doc_no || 'N/A',
             user_name: apiInvoice.user_name || 'N/A',
             userEmail: apiInvoice.user_email || '',
             user_id: apiInvoice.user_id,
@@ -113,11 +116,14 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
         const data = await api.get(API_ROUTES.SALES.INVOICE_PAYMENTS, { invoice_id: invoiceId, is_sales: 'true' });
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
-            id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
-            doc_no: apiPayment.doc_no || `PAY-${apiPayment.transaction_id}`,
+            id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : 'N/A',
+            doc_no: apiPayment.doc_no || 'N/A',
             order_id: apiPayment.order_id,
+            order_doc_no: apiPayment.order_doc_no || 'N/A',
             invoice_id: apiPayment.invoice_id,
+            invoice_doc_no: apiPayment.invoice_doc_no || 'N/A',
             quote_id: apiPayment.quote_id,
+            quote_doc_no: apiPayment.quote_doc_no || 'N/A',
             user_name: apiPayment.user_name || 'N/A',
             amount: apiPayment.amount_applied || 0,
             method: apiPayment.payment_method || 'credit_card',
@@ -431,10 +437,10 @@ export default function InvoicesPage() {
 
 
     const columnTranslations = {
-        id: t('columns.invoiceId'),
+        doc_no: t('columns.docNo'),
         user_name: t('columns.provider'),
-        order_id: t('columns.orderId'),
-        quote_id: t('columns.quoteId'),
+        order_doc_no: t('columns.orderDocNo'),
+        quote_doc_no: t('columns.quoteDocNo'),
         total: t('columns.total'),
         status: t('columns.status'),
         payment_status: t('columns.payment'),

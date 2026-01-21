@@ -17,10 +17,18 @@ import { formatDateTime } from '@/lib/utils';
 const getColumns = (t: (key: string) => string, tStatus: (key: string) => string): ColumnDef<Invoice>[] => [
   {
     accessorKey: 'doc_no',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.invoiceRef')} />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.docNo')} />,
     cell: ({ row }) => {
       const value = row.getValue('doc_no') as string;
-      return <div className="font-medium">{value || '-'}</div>;
+      return <div className="font-medium">{value || `INV-${row.original.id}`}</div>;
+    },
+  },
+  {
+    accessorKey: 'order_doc_no',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.orderDocNo')} />,
+    cell: ({ row }) => {
+      const value = row.getValue('order_doc_no') as string;
+      return <div className="font-medium">{value || (row.original.order_id ? `ORD-${row.original.order_id}` : '-')}</div>;
     },
   },
   {
@@ -78,10 +86,10 @@ async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
     return invoicesData.map((apiInvoice: any) => ({
       id: apiInvoice.id.toString(),
       invoice_ref: apiInvoice.invoice_ref || 'N/A',
-      doc_no: apiInvoice.doc_no || `INV-${apiInvoice.id}`,
-      order_id: apiInvoice.order_id?.toString() ?? '',
-      order_doc_no: apiInvoice.order_doc_no || `ORD-${apiInvoice.order_id}`,
-      quote_id: apiInvoice.quote_id?.toString() ?? '',
+      doc_no: apiInvoice.doc_no || null,
+      order_id: apiInvoice.order_id?.toString() ?? 'N/A',
+      order_doc_no: apiInvoice.order_doc_no || 'N/A',
+      quote_id: apiInvoice.quote_id?.toString() ?? 'N/A',
       user_name: '', // Not needed for this view
       total: parseFloat(apiInvoice.total),
       status: apiInvoice.status,
@@ -134,10 +142,11 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
         <DataTable
           columns={columns}
           data={invoices}
-          filterColumnId='id'
+          filterColumnId='doc_no'
           filterPlaceholder={t('InvoicesPage.filterPlaceholder')}
           columnTranslations={{
-            id: t('InvoicesPage.columns.invoiceId'),
+            doc_no: t('InvoicesPage.columns.docNo'),
+            order_doc_no: t('InvoicesPage.columns.orderDocNo'),
             total: t('InvoicesPage.columns.total'),
             status: t('InvoicesPage.columns.status'),
             payment_status: t('InvoicesPage.columns.payment'),

@@ -44,7 +44,7 @@ const getColumns = (
     {
       accessorKey: 'order_doc_no',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Order Doc No" />
+        <DataTableColumnHeader column={column} title={t('order_doc_no')} />
       ),
     },
 
@@ -201,7 +201,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           columnTranslations={{
             doc_no: t('doc_no'),
             user_name: t('user'),
-            order_doc_no: "Order Doc No",
+            order_doc_no: t('order_doc_no'),
             payment_date: t('date'),
             amount_applied: t('amount_applied'),
             source_amount: t('source_amount'),
