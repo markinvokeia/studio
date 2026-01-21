@@ -100,12 +100,20 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
             invoice_id: apiPayment.invoice_id,
             quote_id: apiPayment.quote_id,
             user_name: apiPayment.user_name || 'N/A',
-            amount: apiPayment.amount || 0,
-            method: apiPayment.method || 'credit_card',
+            payment_date: apiPayment.created_at || new Date().toISOString().split('T')[0],
+            amount_applied: parseFloat(apiPayment.converted_amount) || 0,
+            source_amount: parseFloat(apiPayment.amount) || 0,
+            source_currency: apiPayment.currency || 'UYU',
+            exchange_rate: parseFloat(apiPayment.exchange_rate) || 1,
+            payment_method: apiPayment.method || 'credit_card',
+            transaction_type: 'direct_payment',
+            transaction_id: apiPayment.doc_no || String(apiPayment.id),
             status: apiPayment.status || 'pending',
             createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
-            currency: apiPayment.currency || 'URU',
+            amount: parseFloat(apiPayment.converted_amount) || 0,
+            method: apiPayment.method || 'credit_card',
+            currency: apiPayment.invoice_currency || 'USD',
         }));
     } catch (error) {
         console.error("Failed to fetch payments for order:", error);
