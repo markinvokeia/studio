@@ -22,10 +22,11 @@ async function getOrders(): Promise<Order[]> {
         const data = await api.get(API_ROUTES.SALES.ORDERS_ALL, { is_sales: 'true' });
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
         return ordersData.map((apiOrder: any) => ({
-            id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
-            doc_no: apiOrder.doc_no || `ORD-${apiOrder.id}`,
+            id: apiOrder.id ? String(apiOrder.id) : 'N/A',
+            doc_no: apiOrder.doc_no || 'N/A',
             user_id: apiOrder.user_id,
             quote_id: apiOrder.quote_id,
+            quote_doc_no: apiOrder.quote_doc_no || 'N/A',
             user_name: apiOrder.user_name || 'N/A',
             status: apiOrder.status,
             currency: apiOrder.currency || 'URU',

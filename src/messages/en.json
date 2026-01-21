@@ -689,7 +689,8 @@
     "total": "Total",
     "billingStatus": "Billing Status",
     "createdAt": "Created At",
-    "currency": "Currency"
+    "currency": "Currency",
+    "quoteDocNo": "Quote Doc No."
   },
   "OrderColumns": {
     "orderId": "Doc No.",
@@ -1385,7 +1386,8 @@
       "processing": "Processing",
       "pending": "Pending",
       "label": "Status",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "select": "Select Status"
     },
     "filterPlaceholder": "Filter here...",
     "title": "Orders",
@@ -1393,13 +1395,18 @@
     "createTitle": "Create Order",
     "createDescription": "Create a new order",
     "selectUser": "Select User",
+    "searchUser": "Search User",
+    "noUserFound": "No users found.",
     "selectQuote": "Select Quote",
+    "searchQuote": "Search Quote",
+    "noQuoteFound": "No quotes found.",
     "cancel": "Cancel",
     "create": "Create",
     "invoiceDialog": {
       "title": "Create Invoice",
       "description": "Create an invoice for the order",
-      "confirm": "Confirm"
+      "confirm": "Confirm",
+      "error": "Facturation Error"
     },
     "detailsFor": "Details for {name}",
     "orderId": "Order ID",

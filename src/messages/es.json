@@ -689,7 +689,8 @@
         "total": "Total",
         "billingStatus": "Estado de Facturación",
         "createdAt": "Creado En",
-        "currency": "Moneda"
+        "currency": "Moneda",
+        "quoteDocNo": "Presupuesto Doc No."
     },
     "OrderColumns": {
         "orderId": "No. Documento",
@@ -1385,7 +1386,8 @@
             "processing": "Procesando",
             "pending": "Pendiente",
             "label": "Estado",
-            "cancelled": "Cancelada"
+            "cancelled": "Cancelada",
+            "select": "Seleccionar Estado"
         },
         "filterPlaceholder": "Filtrar aquí...",
         "title": "Órdenes",
@@ -1393,7 +1395,11 @@
         "createTitle": "Crear Orden",
         "createDescription": "Crear una nueva orden",
         "selectUser": "Seleccionar Usuario",
+        "searchUser": "Buscar Usuario",
+        "noUserFound": "No se encontraron usuarios.",
         "selectQuote": "Seleccionar Presupuesto",
+        "searchQuote": "Buscar Presupuesto",
+        "noQuoteFound": "No se encontraron presupuestos.",
         "cancel": "Cancelar",
         "create": "Crear",
         "invoiceDialog": {
