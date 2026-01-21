@@ -73,7 +73,7 @@ type QuoteItemFormValues = z.infer<ReturnType<typeof quoteItemFormSchema>>;
 
 async function getQuotes(): Promise<Quote[]> {
     try {
-        const data = await api.get(API_ROUTES.PURCHASES.QUOTES_ALL, { is_sales: 'false' });
+        const data = await api.get(API_ROUTES.PURCHASES.QUOTES_ALL, { is_sales: 'true' });
         const quotesData = Array.isArray(data) ? data : (data.quotes || data.data || data.result || []);
 
         return quotesData.map((apiQuote: any) => ({
@@ -98,7 +98,7 @@ async function getQuotes(): Promise<Quote[]> {
 async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
     if (!quoteId) return [];
     try {
-        const data = await api.get(API_ROUTES.PURCHASES.QUOTES_ITEMS, { quote_id: quoteId, is_sales: 'false' });
+        const data = await api.get(API_ROUTES.SALES.QUOTES_ITEMS, { quote_id: quoteId });
         const itemsData = Array.isArray(data) ? data : (data.quote_items || data.data || data.result || []);
 
         return itemsData.map((apiItem: any) => ({
@@ -117,7 +117,7 @@ async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
 
 async function getServices(): Promise<Service[]> {
     try {
-        const data = await api.get(API_ROUTES.PURCHASES.SERVICES_ALL, { is_sales: 'false' });
+        const data = await api.get(API_ROUTES.SALES.SERVICES, {});
         const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
         return servicesData.map((s: any) => ({ ...s, id: String(s.id), currency: s.currency || 'USD' }));
     } catch (error) {
@@ -127,7 +127,7 @@ async function getServices(): Promise<Service[]> {
 }
 
 async function upsertQuoteItem(itemData: QuoteItemFormValues) {
-    const responseData = await api.post(API_ROUTES.PURCHASES.QUOTES_LINES_UPSERT, { ...itemData, is_sales: false });
+    const responseData = await api.post(API_ROUTES.SALES.QUOTES_LINES_UPSERT, { ...itemData, is_sales: true });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         const message = responseData[0]?.message ? responseData[0].message : 'Failed to save quote item.';
         throw new Error(message);
@@ -136,7 +136,7 @@ async function upsertQuoteItem(itemData: QuoteItemFormValues) {
 }
 
 async function deleteQuoteItem(id: string, quoteId: string) {
-    const responseData = await api.delete(API_ROUTES.PURCHASES.QUOTES_LINES_DELETE, { id, quote_id: quoteId, is_sales: false });
+    const responseData = await api.delete(API_ROUTES.SALES.QUOTES_LINES_DELETE, { id, quote_id: quoteId, is_sales: true });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         const message = responseData[0]?.message ? responseData[0].message : 'Failed to delete quote item.';
         throw new Error(message);
@@ -148,7 +148,7 @@ async function deleteQuoteItem(id: string, quoteId: string) {
 async function getOrders(quoteId: string): Promise<Order[]> {
     if (!quoteId) return [];
     try {
-        const data = await api.get(API_ROUTES.PURCHASES.QUOTES_ORDERS, { quote_id: quoteId, is_sales: 'false' });
+        const data = await api.get(API_ROUTES.SALES.QUOTES_ORDERS, { quote_id: quoteId });
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
         return ordersData.map((apiOrder: any) => ({
             id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
@@ -170,7 +170,7 @@ async function getOrders(quoteId: string): Promise<Order[]> {
 async function getOrderItems(orderId: string): Promise<OrderItem[]> {
     if (!orderId) return [];
     try {
-        const data = await api.get(API_ROUTES.PURCHASES.ORDER_ITEMS, { order_id: orderId, is_sales: 'false' });
+        const data = await api.get(API_ROUTES.SALES.ORDER_ITEMS, { order_id: orderId });
         const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
         return itemsData.map((apiItem: any) => ({
             id: apiItem.order_item_id ? String(apiItem.order_item_id) : 'N/A',
@@ -193,7 +193,7 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
 async function getInvoices(quoteId: string): Promise<Invoice[]> {
     if (!quoteId) return [];
     try {
-        const data = await api.get(API_ROUTES.PURCHASES.QUOTES_INVOICES, { quote_id: quoteId, is_sales: 'false' });
+        const data = await api.get(API_ROUTES.SALES.QUOTES_INVOICES, { quote_id: quoteId });
         const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
         return invoicesData.map((apiInvoice: any) => ({
             id: apiInvoice.id ? String(apiInvoice.id) : 'N/A',
@@ -219,7 +219,7 @@ async function getInvoices(quoteId: string): Promise<Invoice[]> {
 async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
     if (!invoiceId) return [];
     try {
-        const data = await api.get(API_ROUTES.PURCHASES.INVOICE_ITEMS, { invoice_id: invoiceId, is_sales: 'false' });
+        const data = await api.get(API_ROUTES.SALES.INVOICE_ITEMS, { invoice_id: invoiceId });
         const itemsData = Array.isArray(data) ? data : (data.invoice_items || data.data || []);
         return itemsData.map((apiItem: any) => ({
             id: apiItem.id ? String(apiItem.id) : 'N/A',
@@ -239,7 +239,7 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
 async function getPayments(quoteId: string): Promise<Payment[]> {
     if (!quoteId) return [];
     try {
-        const data = await api.get(API_ROUTES.PURCHASES.QUOTES_PAYMENTS, { quote_id: quoteId, is_sales: 'false' });
+        const data = await api.get(API_ROUTES.SALES.QUOTES_PAYMENTS, { quote_id: quoteId });
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
             id: apiPayment.id ? String(apiPayment.id) : 'N/A',
@@ -291,7 +291,7 @@ async function getUsers(): Promise<User[]> {
 }
 
 async function upsertQuote(quoteData: QuoteFormValues, t: (key: string) => string) {
-    const responseData = await api.post(API_ROUTES.PURCHASES.QUOTES_UPSERT, { ...quoteData, is_sales: false });
+    const responseData = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, { ...quoteData, is_sales: true });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : t('errors.failedToSave');
         throw new Error(message);
@@ -300,7 +300,7 @@ async function upsertQuote(quoteData: QuoteFormValues, t: (key: string) => strin
 }
 
 async function deleteQuote(id: string, t: (key: string) => string) {
-    const responseData = await api.delete(API_ROUTES.PURCHASES.QUOTE_DELETE, { id, is_sales: false });
+    const responseData = await api.delete(API_ROUTES.SALES.QUOTE_DELETE, { id, is_sales: true });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : t('errors.failedToDelete');
         throw new Error(message);
