@@ -1280,7 +1280,8 @@
       "actions": "Actions",
       "edit": "Edit",
       "delete": "Delete",
-      "openMenu": "Open menu"
+      "openMenu": "Open menu",
+      "docNo": "Doc No."
     },
     "validation": {
       "categoryRequired": "Category is required.",
@@ -2547,6 +2548,8 @@
         "searchAilment": "Search Ailment",
         "noAilmentFound": "No ailment found"
       },
+      "createNew": "Create New",
+      "refresh": "Refresh",
       "toast": {
         "success": "Success",
         "personalSuccess": "Personal information saved successfully",
@@ -3168,7 +3171,8 @@
       "order": "Order",
       "payment": "Payment",
       "credit_note": "Credit Note",
-      "purchase_order": "Purchase Order"
+      "purchase_order": "Purchase Order",
+      "miscellaneous": "Miscellaneous"
     },
     "resetPeriods": {
       "never": "Never",

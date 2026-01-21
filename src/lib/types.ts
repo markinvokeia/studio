@@ -525,7 +525,7 @@ export type MiscellaneousCategory = {
 
 export type MiscellaneousTransaction = {
   id: string;
-  transaction_number: string;
+  doc_no: string;
   transaction_date: string;
   amount: number;
   currency: string;
@@ -704,7 +704,7 @@ export type Sequence = {
   document_type: 'invoice' | 'quote' | 'order' | 'payment' | 'credit_note' | 'purchase_order';
   pattern: string;
   current_counter: number;
-   reset_period: 'never' | 'yearly' | 'monthly' | 'daily';
+  reset_period: 'never' | 'yearly' | 'monthly' | 'daily';
   is_active: boolean;
   preview_example?: string;
   created_at?: string;

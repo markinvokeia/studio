@@ -89,7 +89,7 @@ async function getMiscellaneousTransactions(pagination: PaginationState, searchQ
         return {
             transactions: normalized.items.map((t: any) => ({
                 id: String(t.id),
-                transaction_number: t.transaction_number,
+                doc_no: t.doc_no,
                 transaction_date: t.transaction_date,
                 amount: parseFloat(t.amount),
                 currency: t.currency || t.transaction_currency,
@@ -329,7 +329,7 @@ export default function MiscellaneousTransactionsPage() {
         if (!deletingTransaction) return;
         try {
             await deleteMiscellaneousTransaction(deletingTransaction.id);
-            toast({ title: t('toasts.deletedTitle'), description: t('toasts.deletedDesc', { number: deletingTransaction.transaction_number }) });
+            toast({ title: t('toasts.deletedTitle'), description: t('toasts.deletedDesc', { number: deletingTransaction.doc_no }) });
             setIsDeleteDialogOpen(false);
             setDeletingTransaction(null);
             loadTransactions();
@@ -344,7 +344,7 @@ export default function MiscellaneousTransactionsPage() {
 
     const getColumns = (t: (key: string) => string): ColumnDef<MiscellaneousTransaction>[] => [
         { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} /> },
-        { accessorKey: 'transaction_number', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.transactionNumber')} /> },
+        { accessorKey: 'doc_no', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.docNo')} /> },
         { accessorKey: 'transaction_date', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.date')} />, cell: ({ row }) => format(parseISO(row.original.transaction_date), 'yyyy-MM-dd') },
         {
             accessorKey: 'category_name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.category')} />,
@@ -481,7 +481,7 @@ export default function MiscellaneousTransactionsPage() {
                         isRefreshing={isRefreshing}
                         columnTranslations={{
                             id: t('columns.id'),
-                            transaction_number: t('columns.transactionNumber'),
+                            doc_no: t('columns.docNo'),
                             transaction_date: t('columns.date'),
                             category_name: t('columns.category'),
                             beneficiary_name: t('columns.beneficiary'),
@@ -567,7 +567,7 @@ export default function MiscellaneousTransactionsPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('dialog.areYouSure')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            {t('dialog.deleteConfirmation', { number: deletingTransaction?.transaction_number })}
+                            {t('dialog.deleteConfirmation', { number: deletingTransaction?.doc_no })}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

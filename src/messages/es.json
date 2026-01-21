@@ -1280,7 +1280,8 @@
             "actions": "Acciones",
             "edit": "Editar",
             "delete": "Eliminar",
-            "openMenu": "Abrir menú"
+            "openMenu": "Abrir menú",
+            "docNo": "Doc No."
         },
         "validation": {
             "categoryRequired": "La categoría es obligatoria.",
@@ -3170,7 +3171,8 @@
             "order": "Orden",
             "payment": "Pago",
             "credit_note": "Nota de Crédito",
-            "purchase_order": "Orden de Compra"
+            "purchase_order": "Orden de Compra",
+            "miscellaneous": "Misceláneo"
         },
         "resetPeriods": {
             "never": "Nunca",
@@ -3215,6 +3217,8 @@
             "applyFilters": "Aplicar Filtros",
             "advancedFilters": "Filtros Avanzados"
         },
+        "createNew": "Crear Nuevo",
+        "refresh": "Actualizar",
         "toast": {
             "createSuccessTitle": "Secuencia Creada",
             "createSuccessDescription": "La secuencia ha sido creada exitosamente.",
