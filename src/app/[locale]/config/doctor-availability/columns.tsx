@@ -5,25 +5,26 @@ import { ColumnDef } from '@tanstack/react-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { AvailabilityRule } from '@/lib/types';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useTranslations } from 'next-intl';
+import { formatDate } from '@/lib/utils';
 
 const dayOfWeekMap: { [key: number]: string } = {
-  1: 'monday',
-  2: 'tuesday',
-  3: 'wednesday',
-  4: 'thursday',
-  5: 'friday',
-  6: 'saturday',
-  7: 'sunday',
+    1: 'monday',
+    2: 'tuesday',
+    3: 'wednesday',
+    4: 'thursday',
+    5: 'friday',
+    6: 'saturday',
+    7: 'sunday',
 };
 
 
@@ -31,42 +32,51 @@ export const AvailabilityRulesColumnsWrapper = ({ onEdit, onDelete }: { onEdit: 
     const t = useTranslations('DoctorAvailabilityColumns');
     const tDays = useTranslations('DoctorAvailabilityPage.days');
     const tDialog = useTranslations('DoctorAvailabilityPage.dialog');
-    
+    const tGeneral = useTranslations('General');
+
     const columns: ColumnDef<AvailabilityRule>[] = [
-        { accessorKey: 'user_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('doctor')} /> },
-        { 
-          accessorKey: 'recurrence', 
-          header: ({column}) => <DataTableColumnHeader column={column} title={t('recurrence')} />,
-          cell: ({ row }) => <Badge variant="secondary" className="capitalize">{tDialog(row.original.recurrence)}</Badge>
+        { accessorKey: 'user_name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('doctor')} /> },
+        {
+            accessorKey: 'recurrence',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('recurrence')} />,
+            cell: ({ row }) => <Badge variant="secondary" className="capitalize">{tDialog(row.original.recurrence)}</Badge>
         },
-        { 
-            accessorKey: 'day_of_week', 
-            header: ({column}) => <DataTableColumnHeader column={column} title={t('day')} />,
-            cell: ({ row }) => row.original.day_of_week ? tDays(dayOfWeekMap[row.original.day_of_week]) : 'N/A',
+        {
+            accessorKey: 'day_of_week',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('day')} />,
+            cell: ({ row }) => row.original.day_of_week ? tDays(dayOfWeekMap[row.original.day_of_week]) : tGeneral('notAvailable'),
         },
-        { accessorKey: 'start_time', header: ({column}) => <DataTableColumnHeader column={column} title={t('startTime')} /> },
-        { accessorKey: 'end_time', header: ({column}) => <DataTableColumnHeader column={column} title={t('endTime')} /> },
-        { accessorKey: 'start_date', header: ({column}) => <DataTableColumnHeader column={column} title={t('startDate')} /> },
-        { accessorKey: 'end_date', header: ({column}) => <DataTableColumnHeader column={column} title={t('endDate')} /> },
+        { accessorKey: 'start_time', header: ({ column }) => <DataTableColumnHeader column={column} title={t('startTime')} /> },
+        { accessorKey: 'end_time', header: ({ column }) => <DataTableColumnHeader column={column} title={t('endTime')} /> },
+        {
+            accessorKey: 'start_date',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('startDate')} />,
+            cell: ({ row }) => formatDate(row.original.start_date)
+        },
+        {
+            accessorKey: 'end_date',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('endDate')} />,
+            cell: ({ row }) => row.original.end_date ? formatDate(row.original.end_date) : tGeneral('notAvailable')
+        },
         {
             id: 'actions',
             cell: ({ row }) => {
-            const rule = row.original;
-            return (
-                <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Open menu</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onEdit(rule)}>{t('edit')}</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDelete(rule)} className="text-destructive">{t('delete')}</DropdownMenuItem>
-                </DropdownMenuContent>
-                </DropdownMenu>
-            );
+                const rule = row.original;
+                return (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">{t('openMenu')}</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => onEdit(rule)}>{t('edit')}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onDelete(rule)} className="text-destructive">{t('delete')}</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                );
             },
         },
     ];

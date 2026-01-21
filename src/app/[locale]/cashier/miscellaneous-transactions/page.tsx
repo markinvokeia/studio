@@ -83,9 +83,31 @@ async function getMiscellaneousTransactions(pagination: PaginationState, searchQ
 
         if (!data) return { transactions: [], total: 0 };
 
-        const parsedData = Array.isArray(data) && data.length > 0 ? data[0] : data;
-        const transactionsData = parsedData?.data || (Array.isArray(parsedData) ? parsedData : []);
-        const total = Number(parsedData?.total) || transactionsData.length;
+        // Handle different API response formats:
+        // 1. Direct object: { data: [...], total: X }
+        // 2. Array with object: [{ data: [...], total: X }]
+        // 3. Direct array: [{...}, {...}]
+        let transactionsData: any[] = [];
+        let total = 0;
+
+        if (Array.isArray(data)) {
+            if (data.length > 0 && data[0]?.data) {
+                // Format: [{ data: [...], total: X }]
+                transactionsData = data[0].data || [];
+                total = Number(data[0].total) || transactionsData.length;
+            } else {
+                // Format: Direct array [{...}, {...}]
+                transactionsData = data;
+                total = data.length;
+            }
+        } else if (data?.data) {
+            // Format: { data: [...], total: X }
+            transactionsData = data.data;
+            total = Number(data.total) || transactionsData.length;
+        } else {
+            // Unknown format, return empty
+            return { transactions: [], total: 0 };
+        }
 
         return {
             transactions: transactionsData.map((t: any) => ({
@@ -99,10 +121,10 @@ async function getMiscellaneousTransactions(pagination: PaginationState, searchQ
                 description: t.description,
                 external_reference: t.reference_number,
                 status: t.status,
-                category_id: String(t.category_id),
-                category_code: t.category_code,
-                category_name: t.category_name,
-                category_type: t.category_type,
+                category_id: t.category_id ? String(t.category_id) : (t.category?.id ? String(t.category.id) : ''),
+                category_code: t.category_code || t.category?.code,
+                category_name: t.category_name || t.category?.name,
+                category_type: t.category_type || t.category?.type || t.category?.category_type,
                 beneficiary_id: t.beneficiary_id ? String(t.beneficiary_id) : undefined,
                 beneficiary_name: t.beneficiary_name,
                 beneficiary_type: t.beneficiary_type,
@@ -139,10 +161,33 @@ async function getBeneficiaries(searchQuery: string): Promise<User[]> {
 
 async function getCategories(): Promise<MiscellaneousCategory[]> {
     try {
-        const data = await api.get(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_GET);
+        const data = await api.get(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_GET, {
+            page: '1',
+            limit: '1000',
+            search: '',
+        });
         if (!data) return [];
-        const categoriesData = data?.data || (Array.isArray(data) ? data : []);
-        return categoriesData.map((cat: any) => ({ ...cat, id: String(cat.id), category_type: cat.type }));
+
+        // Handle different API response formats
+        let categoriesData: any[] = [];
+
+        if (Array.isArray(data)) {
+            if (data.length > 0 && data[0]?.data) {
+                categoriesData = data[0].data || [];
+            } else {
+                categoriesData = data;
+            }
+        } else if (data?.data) {
+            categoriesData = data.data;
+        } else {
+            return [];
+        }
+
+        return categoriesData.map((cat: any) => ({
+            ...cat,
+            id: String(cat.id),
+            category_type: cat.type || cat.category_type
+        }));
     } catch (error) {
         console.error("Failed to fetch categories:", error);
         return [];
@@ -160,6 +205,8 @@ async function getPaymentMethods(): Promise<PaymentMethod[]> {
         return [];
     }
 }
+
+
 
 
 async function upsertMiscellaneousTransaction(transactionData: TransactionFormValues, userId: string) {
@@ -200,7 +247,7 @@ export default function MiscellaneousTransactionsPage() {
     const t = useTranslations('MiscellaneousTransactionsPage');
     // const tValidation = useTranslations('MiscellaneousTransactionsPage.validation'); // No longer needed as separate namespace if accessing via full path or if t covers it
     const { toast } = useToast();
-    const { user } = useAuth();
+    const { user, activeCashSession } = useAuth();
     const [transactions, setTransactions] = React.useState<MiscellaneousTransaction[]>([]);
     const [transactionCount, setTransactionCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -233,11 +280,9 @@ export default function MiscellaneousTransactionsPage() {
     });
 
     React.useEffect(() => {
-        if (isDialogOpen) {
-            getCategories().then(setCategories);
-            getPaymentMethods().then(setPaymentMethods);
-        }
-    }, [isDialogOpen]);
+        getCategories().then(setCategories);
+        getPaymentMethods().then(setPaymentMethods);
+    }, []);
 
     React.useEffect(() => {
         const handler = setTimeout(() => {
@@ -246,21 +291,54 @@ export default function MiscellaneousTransactionsPage() {
         return () => clearTimeout(handler);
     }, [beneficiarySearch]);
 
+    React.useEffect(() => {
+        if (isDialogOpen) {
+            if (editingTransaction) {
+                // Helper to prevent "undefined" or "null" strings
+                const cleanValue = (val: any) => {
+                    if (val === null || val === undefined) return '';
+                    const str = String(val);
+                    return (str === 'null' || str === 'undefined') ? '' : str;
+                };
+
+                form.reset({
+                    id: editingTransaction.id,
+                    category_id: cleanValue(editingTransaction.category_id),
+                    transaction_date: format(parseISO(editingTransaction.transaction_date), 'yyyy-MM-dd'),
+                    amount: editingTransaction.amount,
+                    description: editingTransaction.description,
+                    beneficiary_id: cleanValue(editingTransaction.beneficiary_id) || undefined,
+                    currency: editingTransaction.currency as any,
+                    exchange_rate: editingTransaction.exchange_rate,
+                    external_reference: editingTransaction.external_reference,
+                    tags: Array.isArray(editingTransaction.tags) ? editingTransaction.tags.join(', ') : '',
+                    payment_method_id: editingTransaction.payment_method_id?.toString(),
+                });
+            } else {
+                form.reset({
+                    transaction_date: format(new Date(), 'yyyy-MM-dd'),
+                    currency: 'UYU',
+                    exchange_rate: 1,
+                    description: '',
+                    beneficiary_id: '',
+                    category_id: '',
+                    amount: 0,
+                    tags: '',
+                    external_reference: '',
+                    payment_method_id: '',
+                });
+            }
+        }
+    }, [isDialogOpen, editingTransaction, form]);
+
+    const handleCreate = () => {
+        setEditingTransaction(null);
+        setSubmissionError(null);
+        setIsDialogOpen(true);
+    };
+
     const handleEdit = (transaction: MiscellaneousTransaction) => {
         setEditingTransaction(transaction);
-        form.reset({
-            id: transaction.id,
-            category_id: transaction.category_id,
-            transaction_date: format(parseISO(transaction.transaction_date), 'yyyy-MM-dd'),
-            amount: transaction.amount,
-            description: transaction.description,
-            beneficiary_id: transaction.beneficiary_id,
-            currency: transaction.currency as any,
-            exchange_rate: transaction.exchange_rate,
-            external_reference: transaction.external_reference,
-            tags: Array.isArray(transaction.tags) ? transaction.tags.join(', ') : '',
-            payment_method_id: transaction.payment_method_id?.toString(),
-        });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -286,7 +364,6 @@ export default function MiscellaneousTransactionsPage() {
             });
         }
     };
-
 
     const getColumns = (t: (key: string) => string): ColumnDef<MiscellaneousTransaction>[] => [
         { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} /> },
@@ -356,27 +433,22 @@ export default function MiscellaneousTransactionsPage() {
         loadTransactions();
     }, [loadTransactions]);
 
-    const handleCreate = () => {
-        setEditingTransaction(null);
-        form.reset({
-            transaction_date: format(new Date(), 'yyyy-MM-dd'),
-            currency: 'UYU',
-            exchange_rate: 1,
-            description: '',
-            beneficiary_id: '',
-            category_id: '',
-            amount: 0,
-            tags: '',
-            external_reference: '',
-            payment_method_id: '',
-        });
-        setIsDialogOpen(true);
-    };
-
     const onSubmit = async (values: TransactionFormValues) => {
         if (!user) return;
         setSubmissionError(null);
+
         try {
+            // Check if there's an active cash session
+            if (!activeCashSession) {
+                setSubmissionError(t('validation.noActiveSession'));
+                toast({
+                    variant: 'destructive',
+                    title: t('toasts.errorTitle'),
+                    description: t('validation.noActiveSession'),
+                });
+                return;
+            }
+
             await upsertMiscellaneousTransaction(values, user.id);
             toast({ title: editingTransaction ? t('toasts.updatedTitle') : t('toasts.createdTitle'), description: t('toasts.savedDesc') });
             setIsDialogOpen(false);
@@ -413,27 +485,7 @@ export default function MiscellaneousTransactionsPage() {
                     <CardDescription>{t('description')}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                    {dateRange?.from ? (dateRange.to ? `${format(dateRange.from, 'LLL dd, y')} - ${format(dateRange.to, 'LLL dd, y')}` : format(dateRange.from, 'LLL dd, y')) : t('filters.dateRange')}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="range" selected={dateRange} onSelect={setDateRange} initialFocus />
-                            </PopoverContent>
-                        </Popover>
-                        <div className="flex flex-wrap items-center gap-1">
-                            <QuickFilterButton filter="pending" label={t('filters.pending')} />
-                            <QuickFilterButton filter="completed_today" label={t('filters.completedToday')} />
-                            <QuickFilterButton filter="income_month" label={t('filters.incomeMonth')} />
-                            <QuickFilterButton filter="expense_month" label={t('filters.expenseMonth')} />
-                            <QuickFilterButton filter="salaries" label={t('filters.salaries')} />
-                            <QuickFilterButton filter="services" label={t('filters.services')} />
-                            <QuickFilterButton filter="taxes" label={t('filters.taxes')} />
-                        </div>
-                    </div>
+
                     <DataTable
                         columns={columns}
                         data={transactions}
@@ -473,10 +525,15 @@ export default function MiscellaneousTransactionsPage() {
                             <FormField control={form.control} name="category_id" render={({ field }) => (
                                 <FormItem><FormLabel>{t('dialog.category')}</FormLabel>
                                     <Popover open={isCategoryOpen} onOpenChange={setIsCategoryOpen}><PopoverTrigger asChild><FormControl>
-                                        <Button variant="outline" role="combobox" className="w-full justify-between">{field.value ? categories.find(c => c.id === field.value)?.name : t('dialog.selectCategory')}<ChevronsUpDown /></Button>
+                                        <Button variant="outline" role="combobox" className="w-full justify-between">
+                                            {field.value
+                                                ? (categories.find(c => String(c.id) === String(field.value))?.name || t('dialog.selectCategory'))
+                                                : t('dialog.selectCategory')}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
                                     </FormControl></PopoverTrigger>
                                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput /><CommandList><CommandEmpty>No category found.</CommandEmpty><CommandGroup>
-                                            {categories.map(c => <CommandItem value={c.name} key={c.id} onSelect={() => { form.setValue("category_id", c.id); setIsCategoryOpen(false); }}><Check className={cn("mr-2", c.id === field.value ? "opacity-100" : "opacity-0")} />{c.name}</CommandItem>)}
+                                            {categories.map(c => <CommandItem value={c.name} key={c.id} onSelect={() => { form.setValue("category_id", String(c.id)); setIsCategoryOpen(false); }}><Check className={cn("mr-2", String(c.id) === String(field.value) ? "opacity-100" : "opacity-0")} />{c.name}</CommandItem>)}
                                         </CommandGroup></CommandList></Command></PopoverContent>
                                     </Popover><FormMessage />
                                 </FormItem>

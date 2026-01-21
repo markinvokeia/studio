@@ -160,6 +160,13 @@ export default function CurrenciesPage() {
                         isRefreshing={isLoading}
                         onRefresh={handleRefresh}
                         customToolbar={customToolbar}
+                        columnTranslations={{
+                            fecha: t('columns.date'),
+                            usd_compra: t('columns.usdBuy'),
+                            usd_venta: t('columns.usdSell'),
+                            usd_promedio: t('columns.usdAverage'),
+                            actions: t('columns.actions'),
+                        }}
                     />
                 </CardContent>
             </Card>

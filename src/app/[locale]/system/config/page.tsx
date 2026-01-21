@@ -196,6 +196,15 @@ export default function SystemConfigPage() {
                         onCreate={handleCreate}
                         onRefresh={loadConfigs}
                         isRefreshing={isRefreshing}
+                        columnTranslations={{
+                            id: t('columns.id'),
+                            key: t('columns.key'),
+                            value: t('columns.value'),
+                            description: t('columns.description'),
+                            data_type: t('columns.type'),
+                            is_public: t('columns.isPublic'),
+                            updated_by: t('columns.updatedBy'),
+                        }}
                     />
                 </CardContent>
             </Card>
