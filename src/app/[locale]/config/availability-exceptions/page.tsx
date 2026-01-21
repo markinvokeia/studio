@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AvailabilityException, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
+import { getErrorMessage } from '@/lib/error-utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
@@ -206,7 +207,7 @@ export default function AvailabilityExceptionsPage() {
             setIsDialogOpen(false);
             loadExceptions();
         } catch (error) {
-            setSubmissionError(error instanceof Error && error.message ? error.message : t('toast.saveError'));
+            setSubmissionError(getErrorMessage(error));
         }
     };
 

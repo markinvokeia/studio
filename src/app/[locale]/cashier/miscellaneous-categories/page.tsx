@@ -30,6 +30,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
+import { normalizeApiResponse } from '@/lib/api-utils';
 
 const categoryFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
@@ -57,39 +58,15 @@ async function getMiscellaneousCategories(pagination: PaginationState, searchQue
 
         if (!data) return { categories: [], total: 0 };
 
-        // Handle different API response formats:
-        // 1. Direct object: { data: [...], total: X }
-        // 2. Array with object: [{ data: [...], total: X }]
-        // 3. Direct array: [{...}, {...}]
-        let categoriesData: any[] = [];
-        let total = 0;
-
-        if (Array.isArray(data)) {
-            if (data.length > 0 && data[0]?.data) {
-                // Format: [{ data: [...], total: X }]
-                categoriesData = data[0].data || [];
-                total = Number(data[0].total) || categoriesData.length;
-            } else {
-                // Format: Direct array [{...}, {...}]
-                categoriesData = data;
-                total = data.length;
-            }
-        } else if (data?.data) {
-            // Format: { data: [...], total: X }
-            categoriesData = data.data;
-            total = Number(data.total) || categoriesData.length;
-        } else {
-            // Unknown format, return empty
-            return { categories: [], total: 0 };
-        }
-
+        const normalized = normalizeApiResponse(data);
+        
         return {
-            categories: categoriesData.map((c: any) => ({
+            categories: normalized.items.map((c: any) => ({
                 ...c,
                 id: String(c.id),
                 type: c.category_type || c.type
             })),
-            total
+            total: normalized.total
         };
     } catch (error) {
         console.error("Failed to fetch miscellaneous categories:", error);

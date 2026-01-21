@@ -620,7 +620,8 @@
         "activate": "Activar",
         "deactivate": "Desactivar",
         "identity_document": "Documento de Identidad",
-        "currentDebt": "Deuda Actual"
+        "currentDebt": "Deuda Actual",
+        "openMenu": "Abrir menú"
     },
     "UserRoles": {
         "columns": {

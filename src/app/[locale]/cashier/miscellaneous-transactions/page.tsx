@@ -35,6 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import { MiscellaneousCategory, MiscellaneousTransaction, PaymentMethod, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
+import { normalizeApiResponse } from '@/lib/api-utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
@@ -83,34 +84,10 @@ async function getMiscellaneousTransactions(pagination: PaginationState, searchQ
 
         if (!data) return { transactions: [], total: 0 };
 
-        // Handle different API response formats:
-        // 1. Direct object: { data: [...], total: X }
-        // 2. Array with object: [{ data: [...], total: X }]
-        // 3. Direct array: [{...}, {...}]
-        let transactionsData: any[] = [];
-        let total = 0;
-
-        if (Array.isArray(data)) {
-            if (data.length > 0 && data[0]?.data) {
-                // Format: [{ data: [...], total: X }]
-                transactionsData = data[0].data || [];
-                total = Number(data[0].total) || transactionsData.length;
-            } else {
-                // Format: Direct array [{...}, {...}]
-                transactionsData = data;
-                total = data.length;
-            }
-        } else if (data?.data) {
-            // Format: { data: [...], total: X }
-            transactionsData = data.data;
-            total = Number(data.total) || transactionsData.length;
-        } else {
-            // Unknown format, return empty
-            return { transactions: [], total: 0 };
-        }
+        const normalized = normalizeApiResponse(data);
 
         return {
-            transactions: transactionsData.map((t: any) => ({
+            transactions: normalized.items.map((t: any) => ({
                 id: String(t.id),
                 transaction_number: t.transaction_number,
                 transaction_date: t.transaction_date,
@@ -138,7 +115,7 @@ async function getMiscellaneousTransactions(pagination: PaginationState, searchQ
                 recurrence_pattern: t.recurrence_pattern,
                 completed_at: t.completed_at,
             })),
-            total
+            total: normalized.total
         };
     } catch (error) {
         console.error("Failed to fetch miscellaneous transactions:", error);

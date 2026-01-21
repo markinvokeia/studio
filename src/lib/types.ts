@@ -468,7 +468,7 @@ export type CajaSesion = {
   user_name?: string;
   puntoDeCajaId?: string;
   cash_point_name?: string;
-  estado: 'OPEN' | 'CLOSE';
+  estado: 'OPEN' | 'CLOSE' | 'ABIERTA' | 'CERRADA';
   fechaApertura: string;
   fechaCierre?: string | null;
   montoApertura: number;

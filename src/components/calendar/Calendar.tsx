@@ -65,7 +65,7 @@ interface CalendarProps {
   children?: React.ReactNode;
   isLoading?: boolean;
   onEventClick: (event: any) => void;
-  onViewChange?: (view: string) => void;
+  onViewChange?: (view: 'day' | 'week' | 'month' | 'year' | '2-day' | '3-day' | 'schedule') => void;
   assignees?: { id: string; name: string; email: string }[];
   selectedAssignees?: string[];
   onSelectedAssigneesChange?: (assignees: string[]) => void;
@@ -80,7 +80,7 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
   const dateLocale = locale === 'es' ? es : enUS;
 
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState('month');
+  const [view, setView] = useState<'day' | 'week' | 'month' | 'year' | '2-day' | '3-day' | 'schedule'>('month');
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -91,7 +91,7 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
   }, []);
 
 
-  const handleDateChange = useCallback((start, end) => {
+  const handleDateChange = useCallback((start: Date, end: Date) => {
     if (onDateChange) {
       onDateChange({ start, end });
     }
@@ -159,7 +159,7 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
     setCurrentDate(new Date());
   };
 
-  const handleViewChange = (newView) => {
+  const handleViewChange = (newView: 'day' | 'week' | 'month' | 'year' | '2-day' | '3-day' | 'schedule') => {
     setView(newView);
     if (onViewChange) {
       onViewChange(newView);
@@ -181,7 +181,7 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
     }
   }, [currentDate, view, dateLocale]);
 
-  const EventComponent = ({ event }) => (
+  const EventComponent = ({ event }: { event: CalendarEvent }) => (
     <ContextMenu onOpenChange={(open) => { if (!open) onEventClick(event.data); }}>
       <ContextMenuTrigger>
         <div
@@ -208,15 +208,15 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
     </ContextMenu>
   );
 
-  const EventInDayViewComponent = ({ event, style }) => (
+  const EventInDayViewComponent = ({ event, style }: { event: CalendarEvent; style: React.CSSProperties }) => (
     <ContextMenu onOpenChange={(open) => { if (!open) onEventClick(event.data); }}>
       <ContextMenuTrigger>
         <div
           className="event-in-day-view"
           style={{
             ...style,
-            left: `${(event.column / event.totalColumns) * 100}%`,
-            width: `${(1 / event.totalColumns) * 100}%`,
+            left: `${((event.column || 0) / (event.totalColumns || 1)) * 100}%`,
+            width: `${(1 / (event.totalColumns || 1)) * 100}%`,
             paddingRight: '4px', // Add some gap between events
           }}
           onClick={(e) => {
@@ -314,7 +314,7 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
     return positionedEvents;
   }, []);
 
-  const renderDayOrWeekView = (numDays) => {
+  const renderDayOrWeekView = (numDays: number) => {
     const startDay = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
     const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
 
@@ -323,7 +323,7 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
     const columns = group ? assignees.filter((a) => selectedAssignees.includes(a.id)) : [{ id: 'all', name: t('all'), email: 'all' }];
     const numColumnsPerDay = group ? columns.length : 1;
 
-    const getEventStyle = (event) => {
+    const getEventStyle = (event: CalendarEvent) => {
       const start = typeof event.start === 'string' ? parseISO(event.start) : event.start;
       const end = typeof event.end === 'string' ? parseISO(event.end) : event.end;
       const top = (getHours(start) + getMinutes(start) / 60) * 60;
@@ -499,7 +499,7 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
   const renderYearView = () => {
     const year = getYear(currentDate);
     const months = Array.from({ length: 12 }, (_, i) => new Date(year, i, 1));
-    const getMonth = (date) => date.getMonth();
+    const getMonth = (date: Date) => date.getMonth();
 
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 overflow-y-auto">
@@ -530,7 +530,7 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
   };
 
   const renderScheduleView = () => {
-    const groupedEvents = events.reduce((acc, event) => {
+    const groupedEvents = events.reduce((acc: Record<string, CalendarEvent[]>, event: CalendarEvent) => {
       if (!event.start) return acc;
       try {
         const date = format(typeof event.start === 'string' ? parseISO(event.start) : event.start, 'yyyy-MM-dd');
@@ -540,7 +540,7 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
         console.error("Invalid event start date for schedule view:", event.start);
       }
       return acc;
-    }, {});
+    }, {} as Record<string, CalendarEvent[]>);
 
     const sortedDates = Object.keys(groupedEvents).sort();
 
