@@ -142,11 +142,11 @@ const getColumns = (
     {
       accessorKey: 'doc_no',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={columnTranslations.invoice_ref || "Invoice Ref"} />
+        <DataTableColumnHeader column={column} title="Doc. No" />
       ),
       cell: ({ row }) => {
         const value = row.getValue('doc_no') as string;
-        return <div className="font-medium">{value || '-'}</div>;
+        return <div className="font-medium">{value || `INV-${row.original.id}`}</div>;
       },
     },
     {
@@ -155,12 +155,9 @@ const getColumns = (
     },
     {
       accessorKey: 'order_doc_no',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.order_id || "Order ID"} />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.order_id || "Order Doc No"} />,
     },
-    {
-      accessorKey: 'quote_id',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.quote_id || "Quote ID"} />,
-    },
+
     {
       accessorKey: 'total',
       header: ({ column }) => (
@@ -671,12 +668,11 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         }}
         rowSelection={rowSelection}
         setRowSelection={setRowSelection}
-columnTranslations={{
-          doc_no: t('columns.invoiceRef'),
-          user_name: t('columns.userName'),
-          order_doc_no: t('columns.orderId'),
-          quote_id: t('columns.quoteId'),
-          total: t('columns.total'),
+          columnTranslations={{
+            doc_no: "Doc. No",
+            user_name: t('columns.userName'),
+            order_doc_no: t('columns.orderId'),
+            total: t('columns.total'),
           currency: t('columns.currency'),
           status: t('columns.status'),
           type: t('columns.type'),
@@ -1084,7 +1080,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
             const itemsData = await api.get(itemsEndpoint, { invoice_id: invoice.id, is_sales: isSales ? 'true' : 'false' });
             const itemsNormalized = Array.isArray(itemsData) ? itemsData : (itemsData.invoice_items || itemsData.data || itemsData.result || []);
 
-form.reset({
+            form.reset({
               type: (invoice.type?.toString().includes('credit') ? 'credit_note' : 'invoice') as any,
               user_id: Array.isArray(invoice.user_id) ? String(invoice.user_id[0]) : String(invoice.user_id || ''),
               currency: (invoice.currency?.toUpperCase() as any) || 'UYU',
@@ -1249,7 +1245,7 @@ form.reset({
                   <FormMessage />
                 </FormItem>
               )} />
-              
+
             </div>
 
             <Card>

@@ -44,7 +44,7 @@ const getColumns = (
     {
       accessorKey: 'order_doc_no',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('orderId')} />
+        <DataTableColumnHeader column={column} title="Order Doc No" />
       ),
     },
 
@@ -113,13 +113,10 @@ const getColumns = (
       ),
       cell: ({ row }) => {
         const type = row.original.transaction_type;
-        return <Badge variant="secondary" className="capitalize">{tTransactionType(type)}</Badge>;
+        return <Badge variant="secondary" className="capitalize">{tTransactionType(type || 'direct_payment')}</Badge>;
       }
     },
-    {
-      accessorKey: 'reference_doc_id',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={t('reference_doc_id')} />,
-    },
+
   ];
 
   if (onPrint || onSendEmail) {
@@ -204,7 +201,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           columnTranslations={{
             doc_no: t('doc_no'),
             user_name: t('user'),
-            order_doc_no: t('orderId'),
+            order_doc_no: "Order Doc No",
             payment_date: t('date'),
             amount_applied: t('amount_applied'),
             source_amount: t('source_amount'),
@@ -212,7 +209,6 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
             exchange_rate: t('exchange_rate'),
             method: t('method'),
             transaction_type: t('transaction_type'),
-            reference_doc_id: t('reference_doc_id'),
           }}
         />
       </CardContent>

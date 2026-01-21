@@ -58,15 +58,23 @@ export function DataTableToolbar<TData>({
           <Input
             placeholder={filterPlaceholder}
             value={(table.getColumn(filterColumnId)?.getFilterValue() as string) ?? ''}
-            onChange={(event) =>
-              table.getColumn(filterColumnId)?.setFilterValue(event.target.value)
-            }
+            onChange={(event) => {
+              const column = table.getColumn(filterColumnId);
+              if (column) {
+                column.setFilterValue(event.target.value);
+              }
+            }}
             className="h-9 w-[180px] sm:w-[200px] lg:w-[300px] pl-9 pr-9"
           />
           {((table.getColumn(filterColumnId)?.getFilterValue() as string) ?? '').length > 0 && (
             <Button
               variant="ghost"
-              onClick={() => table.getColumn(filterColumnId)?.setFilterValue('')}
+              onClick={() => {
+                const column = table.getColumn(filterColumnId);
+                if (column) {
+                  column.setFilterValue('');
+                }
+              }}
               className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-transparent text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4" />

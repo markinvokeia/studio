@@ -149,12 +149,15 @@ async function getOrders(quoteId: string): Promise<Order[]> {
     try {
         const data = await api.get(API_ROUTES.PURCHASES.QUOTES_ORDERS, { quote_id: quoteId, is_sales: 'false' });
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
-        return ordersData.map((apiOrder: any) => ({
+return ordersData.map((apiOrder: any) => ({
             id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
+            doc_no: apiOrder.doc_no || `ORD-${apiOrder.id}`,
             user_id: apiOrder.user_id,
+            user_name: apiOrder.user_name || apiOrder.name || 'N/A',
             status: apiOrder.status,
-            createdAt: apiOrder.createdAt || new Date().toISOString().split('T')[0],
+            createdAt: apiOrder.created_at || apiOrder.createdAt || new Date().toISOString().split('T')[0],
             currency: apiOrder.currency || 'UYU',
+            quote_id: apiOrder.quote_id,
         }));
     } catch (error) {
         console.error("Failed to fetch orders:", error);
@@ -238,16 +241,26 @@ async function getPayments(quoteId: string): Promise<Payment[]> {
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
             id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
+            doc_no: apiPayment.doc_no || `PAY-${apiPayment.id}`,
             invoice_id: apiPayment.invoice_id,
-            amount: apiPayment.amount || 0,
+            amount: parseFloat(apiPayment.amount) || 0,
+            amount_applied: parseFloat(apiPayment.amount) || 0,
+            source_amount: parseFloat(apiPayment.amount) || 0,
+            source_currency: apiPayment.currency as 'UYU' | 'USD' || 'UYU',
             method: apiPayment.method || 'credit_card',
+            payment_method: apiPayment.method || 'credit_card',
             status: apiPayment.status || 'pending',
-            createdAt: apiPayment.createdAt || new Date().toISOString().split('T')[0],
+            createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
+            payment_date: apiPayment.created_at || new Date().toISOString().split('T')[0],
             currency: apiPayment.currency || 'UYU',
-            order_id: apiPayment.order_id,
+            order_id: apiPayment.order_id || '',
+            order_doc_no: apiPayment.order_doc_no || (apiPayment.order_id ? `ORD-${apiPayment.order_id}` : ''),
             quote_id: apiPayment.quote_id,
             user_name: apiPayment.user_name || 'N/A',
-            updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0]
+            exchange_rate: parseFloat(apiPayment.exchange_rate) || 1,
+            transaction_type: apiPayment.transaction_type || 'direct_payment',
+            transaction_id: String(apiPayment.id),
+            updatedAt: apiPayment.updated_at || new Date().toISOString().split('T')[0]
         }));
     } catch (error) {
         console.error("Failed to fetch payments:", error);
@@ -730,7 +743,7 @@ export default function QuotesPage() {
                                         {selectedOrder && (
                                             <div className="mt-4">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-md font-semibold">Order Items for {selectedOrder.id}</h4>
+                                                     <h4 className="text-md font-semibold">Order Items for {selectedOrder.doc_no || `ORD-${selectedOrder.id}`}</h4>
                                                     <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
                                                         <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                                     </Button>

@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
 import { Quote } from '@/lib/types';
 import { api } from '@/services/api';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Badge } from '../ui/badge';
@@ -149,14 +149,24 @@ async function getQuotesForUser(userId: string): Promise<Quote[]> {
 
 interface UserQuotesProps {
   userId: string;
+  onQuoteSelect?: (quote: Quote | null) => void;
 }
 
-export function UserQuotes({ userId }: UserQuotesProps) {
+export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
   const t = useTranslations();
   const [userQuotes, setUserQuotes] = React.useState<Quote[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
   const columns = React.useMemo(() => getColumns(t), [t]);
+
+  const handleRowSelectionChange = React.useCallback((selectedRows: Quote[]) => {
+    const selectedQuote = selectedRows.length > 0 ? selectedRows[0] : null;
+
+    if (onQuoteSelect) {
+      onQuoteSelect(selectedQuote);
+    }
+  }, [onQuoteSelect]);
 
   React.useEffect(() => {
     async function loadQuotes() {
@@ -187,6 +197,10 @@ export function UserQuotes({ userId }: UserQuotesProps) {
           data={userQuotes}
           filterColumnId='doc_no'
           filterPlaceholder={t('UserQuotes.filterPlaceholder')}
+          onRowSelectionChange={handleRowSelectionChange}
+          enableSingleRowSelection={true}
+          rowSelection={rowSelection}
+          setRowSelection={setRowSelection}
           columnTranslations={{
             doc_no: t('QuoteColumns.quoteId'),
             total: t('QuoteColumns.total'),

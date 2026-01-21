@@ -146,6 +146,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={tOrderColumns('orderId')} />
       ),
+      cell: ({ row }) => row.original.doc_no || `ORD-${row.original.id}`,
     },
     {
       accessorKey: 'user_name',
@@ -232,15 +233,22 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
     const key = (col as any).accessorKey;
     return !key || !columnsToHide.includes(key);
   });
+
+  // Check if doc_no column exists in filtered columns, otherwise use the first available column
+  const availableFilterColumns = filteredColumns
+    .map(col => (col as any).accessorKey)
+    .filter(key => key);
+  const filterColumnId = availableFilterColumns.includes('doc_no') ? 'doc_no' : (availableFilterColumns[0] || '');
+
   return (
     <>
       <Card>
         <CardContent className="p-4">
-          <DataTable
-            columns={filteredColumns}
-            data={orders}
-            filterColumnId="user_name"
-            filterPlaceholder={tOrdersPage('filterPlaceholder')}
+           <DataTable
+             columns={filteredColumns}
+             data={orders}
+             filterColumnId={filterColumnId}
+             filterPlaceholder={tOrdersPage('filterPlaceholder')}
             onRowSelectionChange={onRowSelectionChange}
             enableSingleRowSelection={onRowSelectionChange ? true : false}
             onRefresh={onRefresh}

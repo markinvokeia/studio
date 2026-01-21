@@ -6,7 +6,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
-import { Order } from '@/lib/types';
+import { Order, Quote } from '@/lib/types';
 import { api } from '@/services/api';
 import { ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
@@ -16,11 +16,11 @@ import { Badge } from '../ui/badge';
 const getColumns = (t: (key: string) => string): ColumnDef<Order>[] => [
   {
     accessorKey: 'doc_no',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />,
-  },
-  {
-    accessorKey: 'quote_id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.quoteId')} />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('OrderColumns.docNo')} />,
+    cell: ({ row }) => {
+      const docNo = row.getValue('doc_no') as string;
+      return docNo || 'N/A';
+    },
   },
   {
     accessorKey: 'createdAt',
@@ -68,9 +68,10 @@ async function getOrdersForUser(userId: string): Promise<Order[]> {
     const data = await api.get(API_ROUTES.USER_ORDERS, { user_id: userId });
     const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
     return ordersData.map((apiOrder: any) => ({
-      id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
-      doc_no: apiOrder.doc_no || `ORD-${apiOrder.id}`,
+      id: apiOrder.id ? String(apiOrder.id) : 'N/A',
+      doc_no: apiOrder.doc_no || 'N/A',
       user_id: apiOrder.user_id,
+      user_name: apiOrder.user_name || '',
       quote_id: apiOrder.quote_id,
       status: apiOrder.status,
       createdAt: apiOrder.created_at,
@@ -85,9 +86,10 @@ async function getOrdersForUser(userId: string): Promise<Order[]> {
 
 interface UserOrdersProps {
   userId: string;
+  selectedQuote?: Quote | null;
 }
 
-export function UserOrders({ userId }: UserOrdersProps) {
+export function UserOrders({ userId, selectedQuote }: UserOrdersProps) {
   const t = useTranslations();
   const [orders, setOrders] = React.useState<Order[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -98,11 +100,15 @@ export function UserOrders({ userId }: UserOrdersProps) {
       if (!userId) return;
       setIsLoading(true);
       const fetchedOrders = await getOrdersForUser(userId);
-      setOrders(fetchedOrders);
+      let filteredOrders = fetchedOrders;
+      if (selectedQuote) {
+        filteredOrders = fetchedOrders.filter(order => order.quote_id === selectedQuote.id);
+      }
+      setOrders(filteredOrders);
       setIsLoading(false);
     }
     loadOrders();
-  }, [userId]);
+  }, [userId, selectedQuote]);
 
   if (isLoading) {
     return (
@@ -117,13 +123,24 @@ export function UserOrders({ userId }: UserOrdersProps) {
   return (
     <Card>
       <CardContent className="p-4">
+        {selectedQuote && (
+          <div className="mb-4 p-3 bg-muted rounded-lg">
+            <div className="text-sm text-muted-foreground">
+              {t('UserOrders.showingForQuote')}:
+            </div>
+            <div className="font-medium">
+              {selectedQuote.doc_no}
+            </div>
+          </div>
+        )}
         <DataTable
           columns={columns}
           data={orders}
           filterColumnId='doc_no'
           filterPlaceholder={t('OrdersPage.filterPlaceholder')}
           columnTranslations={{
-            doc_no: t('OrderColumns.orderId'),
+            doc_no: t('OrderColumns.docNo'),
+            user_name: t('UserColumns.name'),
             quote_id: t('QuoteColumns.quoteId'),
             createdAt: t('OrderColumns.createdAt'),
             status: t('UserColumns.status'),

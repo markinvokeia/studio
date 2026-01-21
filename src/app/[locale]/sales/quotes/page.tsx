@@ -151,9 +151,13 @@ async function getOrders(quoteId: string): Promise<Order[]> {
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
         return ordersData.map((apiOrder: any) => ({
             id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
+            doc_no: apiOrder.doc_no || 'N/A',
             user_id: apiOrder.user_id,
+            quote_id: apiOrder.quote_id,
+            user_name: apiOrder.user_name || apiOrder.name || 'N/A',
             status: apiOrder.status,
-            createdAt: apiOrder.createdAt || new Date().toISOString().split('T')[0],
+            createdAt: apiOrder.created_at || apiOrder.createdAt || new Date().toISOString().split('T')[0],
+            updatedAt: apiOrder.updated_at || apiOrder.updatedAt || new Date().toISOString().split('T')[0],
             currency: apiOrder.currency || 'UYU',
         }));
     } catch (error) {
@@ -168,7 +172,7 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
         const data = await api.get(API_ROUTES.SALES.ORDER_ITEMS, { order_id: orderId, is_sales: 'true' });
         const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
         return itemsData.map((apiItem: any) => ({
-            id: apiItem.order_item_id ? String(apiItem.order_item_id) : `oi_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiItem.order_item_id ? String(apiItem.order_item_id) : 'N/A',
             service_id: apiItem.service_id,
             service_name: apiItem.service_name || 'N/A',
             quantity: apiItem.quantity,
@@ -191,10 +195,10 @@ async function getInvoices(quoteId: string): Promise<Invoice[]> {
         const data = await api.get(API_ROUTES.SALES.QUOTES_INVOICES, { quote_id: quoteId, is_sales: 'true' });
         const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
         return invoicesData.map((apiInvoice: any) => ({
-            id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiInvoice.id ? String(apiInvoice.id) : 'N/A',
             invoice_ref: apiInvoice.invoice_ref || 'N/A',
             doc_no: apiInvoice.doc_no || `INV-${apiInvoice.id}`,
-            order_doc_no: apiInvoice.order_doc_no || `ORD-${apiInvoice.order_id}`,
+            order_doc_no: apiInvoice.order_doc_no || 'N/A',
             quote_id: apiInvoice.quote_id,
             total: apiInvoice.total || 0,
             status: apiInvoice.status || 'draft',
@@ -217,7 +221,7 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
         const data = await api.get(API_ROUTES.SALES.INVOICE_ITEMS, { invoice_id: invoiceId, is_sales: 'true' });
         const itemsData = Array.isArray(data) ? data : (data.invoice_items || data.data || []);
         return itemsData.map((apiItem: any) => ({
-            id: apiItem.id ? String(apiItem.id) : `ii_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiItem.id ? String(apiItem.id) : 'N/A',
             service_id: apiItem.service_id,
             service_name: apiItem.service_name || 'N/A',
             quantity: apiItem.quantity,
@@ -237,17 +241,27 @@ async function getPayments(quoteId: string): Promise<Payment[]> {
         const data = await api.get(API_ROUTES.SALES.QUOTES_PAYMENTS, { quote_id: quoteId, is_sales: 'true' });
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
-            id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiPayment.id ? String(apiPayment.id) : 'N/A',
+            doc_no: apiPayment.doc_no || `PAY-${apiPayment.id}`,
             invoice_id: apiPayment.invoice_id,
-            amount: apiPayment.amount || 0,
+            amount: parseFloat(apiPayment.amount) || 0,
+            amount_applied: parseFloat(apiPayment.amount) || 0,
+            source_amount: parseFloat(apiPayment.amount) || 0,
+            source_currency: apiPayment.currency as 'UYU' | 'USD' || 'UYU',
             method: apiPayment.method || 'credit_card',
+            payment_method: apiPayment.method || 'credit_card',
             status: apiPayment.status || 'pending',
-            createdAt: apiPayment.createdAt || new Date().toISOString().split('T')[0],
+            createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
+            payment_date: apiPayment.created_at || new Date().toISOString().split('T')[0],
             currency: apiPayment.currency || 'UYU',
-            order_id: apiPayment.order_id,
+            order_id: apiPayment.order_id || '',
+            order_doc_no: apiPayment.order_doc_no || (apiPayment.order_id ? `ORD-${apiPayment.order_id}` : ''),
             quote_id: apiPayment.quote_id,
             user_name: apiPayment.user_name || 'N/A',
-            updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0]
+            exchange_rate: parseFloat(apiPayment.exchange_rate) || 1,
+            transaction_type: apiPayment.transaction_type || 'direct_payment',
+            transaction_id: String(apiPayment.id),
+            updatedAt: apiPayment.updated_at || new Date().toISOString().split('T')[0]
         }));
     } catch (error) {
         console.error("Failed to fetch payments:", error);

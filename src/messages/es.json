@@ -683,15 +683,15 @@
             "servicesAssignFailed": "No se pudieron asignar los servicios."
         }
     },
-    "QuoteColumns": {
-        "quoteId": "No. Documento",
-        "total": "Total",
-        "billingStatus": "Estado de Facturación",
-        "createdAt": "Creado En",
+  "QuoteColumns": {
+    "quoteId": "ID de Cotización",
+    "total": "Total",
+    "billingStatus": "Estado de Facturación",
+    "createdAt": "Creado En",
         "currency": "Moneda"
     },
     "OrderColumns": {
-        "orderId": "ID de Orden",
+        "orderId": "No. Documento",
         "createdAt": "Creado En"
     },
     "General": {
@@ -794,7 +794,7 @@
         "edit": "Editar",
         "delete": "Eliminar",
         "detailsFor": "Detalles para {name}",
-        "quoteId": "No. Documento",
+        "quoteId": "ID de Cotización",
         "tabs": {
             "items": "Artículos",
             "orders": "Órdenes",
@@ -856,7 +856,7 @@
             "provider": "Proveedor",
             "userName": "Usuario",
             "orderId": "ID de Orden",
-            "quoteId": "No. Documento",
+            "quoteId": "ID de Cotización",
             "total": "Total",
             "status": "Estado",
             "paymentStatus": "Pago",
@@ -1414,7 +1414,7 @@
             "method": "Método",
             "status": "Estado",
             "createdAt": "Creado En",
-            "quoteId": "No. Documento",
+            "quoteId": "ID de Cotización",
             "orderId": "ID de Orden",
             "user": "Usuario",
             "date": "Fecha",
@@ -2576,6 +2576,12 @@
     },
     "UserQuotes": {
         "filterPlaceholder": "Filtrar aquí..."
+    },
+    "UserOrders": {
+        "showingForQuote": "Mostrando órdenes para el presupuesto"
+    },
+    "UserPayments": {
+        "showingForQuote": "Mostrando pagos para el presupuesto"
     },
     "SystemUserColumns": {
         "name": "Nombre",

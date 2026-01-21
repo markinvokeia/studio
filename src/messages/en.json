@@ -684,14 +684,14 @@
     }
   },
   "QuoteColumns": {
-    "quoteId": "Doc No.",
+    "quoteId": "Quote ID",
     "total": "Total",
     "billingStatus": "Billing Status",
     "createdAt": "Created At",
     "currency": "Currency"
   },
   "OrderColumns": {
-    "orderId": "Order ID",
+    "orderId": "Doc No.",
     "createdAt": "Created At"
   },
   "General": {
@@ -856,7 +856,7 @@
       "provider": "Provider",
       "userName": "User",
       "orderId": "Order ID",
-      "quoteId": "Doc No.",
+      "quoteId": "Quote ID",
       "total": "Total",
       "status": "Status",
       "paymentStatus": "Payment",
@@ -1410,7 +1410,7 @@
       "method": "Method",
       "status": "Status",
       "createdAt": "Created At",
-      "quoteId": "Doc No.",
+      "quoteId": "Quote ID",
       "orderId": "Order ID",
       "user": "User",
       "date": "Date",
@@ -2569,7 +2569,13 @@
     "searching": "Buscando..."
   },
   "UserQuotes": {
-    "filterPlaceholder": "Filtrar aquí..."
+    "filterPlaceholder": "Filter quotes..."
+  },
+  "UserOrders": {
+    "showingForQuote": "Showing orders for quote"
+  },
+  "UserPayments": {
+    "showingForQuote": "Showing payments for quote"
   },
   "SystemUserColumns": {
     "name": "Nombre",

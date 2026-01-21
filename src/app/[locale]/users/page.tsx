@@ -36,7 +36,7 @@ import { UserQuotes } from '@/components/users/user-quotes';
 import { UserServices } from '@/components/users/user-services';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { User, UserRole } from '@/lib/types';
+import { User, UserRole, Quote } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -246,6 +246,7 @@ export default function UsersPage() {
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
   const [selectedUserRoles, setSelectedUserRoles] = React.useState<UserRole[]>([]);
+  const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
   const [isRolesLoading, setIsRolesLoading] = React.useState(false);
   const [editingUser, setEditingUser] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -445,6 +446,7 @@ export default function UsersPage() {
 
   const handleCloseDetails = () => {
     setSelectedUser(null);
+    setSelectedQuote(null);
     setRowSelection({});
   };
 
@@ -713,16 +715,16 @@ export default function UsersPage() {
                     </TabsContent>
                   )}
                   <TabsContent value="quotes">
-                    <UserQuotes userId={selectedUser.id} />
+                    <UserQuotes userId={selectedUser.id} onQuoteSelect={setSelectedQuote} />
                   </TabsContent>
                   <TabsContent value="orders">
-                    <UserOrders userId={selectedUser.id} />
+                    <UserOrders userId={selectedUser.id} selectedQuote={selectedQuote} />
                   </TabsContent>
                   <TabsContent value="invoices">
                     <UserInvoices userId={selectedUser.id} />
                   </TabsContent>
                   <TabsContent value="payments">
-                    <UserPayments userId={selectedUser.id} />
+                    <UserPayments userId={selectedUser.id} selectedQuote={selectedQuote} />
                   </TabsContent>
                   <TabsContent value="appointments">
                     <UserAppointments user={selectedUser} />
