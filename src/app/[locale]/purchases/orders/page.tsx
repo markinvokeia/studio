@@ -264,7 +264,7 @@ export default function OrdersPage() {
                         <Card className="h-full shadow-lg rounded-none">
                             <CardHeader className="flex flex-row items-start justify-between">
                                 <div>
-                                    <CardTitle>{t('detailsFor')}</CardTitle>
+                                    <CardTitle>{t('detailsFor', { name: selectedOrder.user_name })}</CardTitle>
                                     <CardDescription>{t('orderId')}: {selectedOrder.doc_no}</CardDescription>
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
