@@ -14,8 +14,12 @@ import * as React from 'react';
 
 const getColumns = (t: (key: string) => string): ColumnDef<Payment>[] => [
   {
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('PaymentsPage.columns.id')} />,
+    accessorKey: 'doc_no',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('PaymentsPage.columns.doc_no')} />,
+    cell: ({ row }) => {
+      const docNo = row.getValue('doc_no') as string;
+      return docNo || 'N/A';
+    },
   },
   {
     accessorKey: 'amount',
@@ -47,6 +51,7 @@ async function getPaymentsForUser(userId: string): Promise<Payment[]> {
 
     return paymentsData.map((apiPayment: any) => ({
       id: apiPayment.id.toString(),
+      doc_no: apiPayment.doc_no || `PAY-${apiPayment.id}`,
       order_id: apiPayment.order_id?.toString() ?? '',
       order_doc_no: apiPayment.order_doc_no || `ORD-${apiPayment.order_id}`,
       invoice_id: apiPayment.invoice_id?.toString() ?? '',
@@ -111,10 +116,10 @@ export function UserPayments({ userId }: UserPaymentsProps) {
         <DataTable
           columns={columns}
           data={payments}
-          filterColumnId='id'
+          filterColumnId='doc_no'
           filterPlaceholder={t('PaymentsPage.filterPlaceholder')}
           columnTranslations={{
-            id: t('PaymentsPage.columns.id'),
+            doc_no: t('PaymentsPage.columns.doc_no'),
             amount: t('PaymentsPage.columns.amount'),
             method: t('PaymentsPage.columns.method'),
             createdAt: t('PaymentsPage.columns.createdAt'),

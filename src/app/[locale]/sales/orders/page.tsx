@@ -94,6 +94,7 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
             id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
+            doc_no: apiPayment.doc_no || `PAY-${apiPayment.id}`,
             order_id: apiPayment.order_id,
             order_doc_no: apiPayment.order_doc_no || `ORD-${apiPayment.order_id}`,
             invoice_id: apiPayment.invoice_id,

@@ -150,6 +150,7 @@ export type InvoiceItem = {
 
 export type Payment = {
   id: string;
+  doc_no?: string;
   order_id: string;
   order_doc_no?: string;
   invoice_id: string;

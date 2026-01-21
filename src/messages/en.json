@@ -1402,6 +1402,7 @@
     "description": "An overview of payments.",
     "filterPlaceholder": "Filter here...",
     "columns": {
+      "doc_no": "Document No.",
       "id": "ID",
       "invoiceId": "Invoice ID",
       "amount": "Amount",

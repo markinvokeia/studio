@@ -1406,6 +1406,7 @@
         "description": "Una visión general de los pagos.",
         "filterPlaceholder": "Filtrar aquí...",
         "columns": {
+            "doc_no": "No. Documento",
             "id": "ID",
             "invoiceId": "ID de Factura",
             "amount": "Monto",

@@ -14,7 +14,6 @@ import { useTranslations } from 'next-intl';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
 import { MoreHorizontal, Printer, Send } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
 
 const getColumns = (
   t: (key: string) => string,
@@ -27,10 +26,14 @@ const getColumns = (
 
   const columns: ColumnDef<Payment>[] = [
     {
-      accessorKey: 'id',
+      accessorKey: 'doc_no',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('id')} />
+        <DataTableColumnHeader column={column} title={t('doc_no')} />
       ),
+      cell: ({ row }) => {
+        const docNo = row.getValue('doc_no') as string;
+        return docNo || 'N/A';
+      },
     },
     {
       accessorKey: 'user_name',
@@ -44,12 +47,7 @@ const getColumns = (
         <DataTableColumnHeader column={column} title={t('orderId')} />
       ),
     },
-    {
-      accessorKey: 'quote_id',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('quoteId')} />
-      ),
-    },
+
     {
       accessorKey: 'payment_date',
       header: ({ column }) => (
@@ -197,17 +195,16 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
         <DataTable
           columns={filteredColumns}
           data={payments}
-          filterColumnId="id"
+          filterColumnId="doc_no"
           filterPlaceholder={tPage('filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
           onCreate={onCreate ? () => onCreate() : undefined}
           createButtonLabel={tPage('createPrepaid')}
           columnTranslations={{
-            id: t('id'),
+            doc_no: t('doc_no'),
             user_name: t('user'),
             order_doc_no: t('orderId'),
-            quote_id: t('quoteId'),
             payment_date: t('date'),
             amount_applied: t('amount_applied'),
             source_amount: t('source_amount'),

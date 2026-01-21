@@ -114,6 +114,7 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
             id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
+            doc_no: apiPayment.doc_no || `PAY-${apiPayment.transaction_id}`,
             order_id: apiPayment.order_id,
             invoice_id: apiPayment.invoice_id,
             quote_id: apiPayment.quote_id,
