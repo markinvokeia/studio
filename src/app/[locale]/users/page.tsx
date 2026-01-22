@@ -593,6 +593,7 @@ export default function UsersPage() {
     <>
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <TwoPanelLayout
+          minLeftSize={20}
           isRightPanelOpen={!!selectedUser}
           leftPanel={
             <Card className="h-full flex flex-col">
@@ -709,16 +710,16 @@ export default function UsersPage() {
                         </TabsContent>
                       )}
                       <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserQuotes userId={selectedUser.id} />
+                        <UserQuotes userId={selectedUser.id} onQuoteSelect={setSelectedQuote} />
                       </TabsContent>
                       <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserOrders userId={selectedUser.id} />
+                        <UserOrders userId={selectedUser.id} selectedQuote={selectedQuote} />
                       </TabsContent>
                       <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                         <UserInvoices userId={selectedUser.id} />
                       </TabsContent>
                       <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserPayments userId={selectedUser.id} />
+                        <UserPayments userId={selectedUser.id} selectedQuote={selectedQuote} />
                       </TabsContent>
                       <TabsContent value="appointments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                         <UserAppointments user={selectedUser} />

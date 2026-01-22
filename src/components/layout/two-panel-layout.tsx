@@ -54,10 +54,11 @@ export function TwoPanelLayout({
         <div className={cn("flex-1 w-full overflow-hidden flex flex-col min-h-0", className)}>
             <Group orientation="horizontal" className="flex-1">
                 <Panel
-                    defaultSize={isRightPanelOpen ? leftPanelDefaultSize : 100}
-                    minSize={isRightPanelOpen ? minLeftSize : 100}
+                    defaultSize={isRightPanelOpen ? `${leftPanelDefaultSize}%` : "100%"}
+                    minSize={isRightPanelOpen ? `${minLeftSize}%` : "100%"}
+                    collapsible={false}
                     className="h-full relative overflow-hidden"
-                    id="left-panel"
+                    id="left-panel-v4"
                 >
                     <div className="absolute inset-0 overflow-hidden px-1">
                         {leftPanel}
@@ -65,19 +66,23 @@ export function TwoPanelLayout({
                 </Panel>
 
                 {isRightPanelOpen && (
-                    <>
-                        <Separator className="w-2 hover:bg-primary/5 transition-colors flex items-center justify-center group relative cursor-col-resize z-10" />
-                        <Panel
-                            defaultSize={rightPanelDefaultSize}
-                            minSize={minRightSize}
-                            className="h-full relative overflow-hidden"
-                            id="right-panel"
-                        >
-                            <div className="absolute inset-0 overflow-hidden px-1">
-                                {rightPanel}
-                            </div>
-                        </Panel>
-                    </>
+                    <Separator className="w-2 hover:bg-primary/5 transition-colors flex items-center justify-center group relative cursor-col-resize z-10 outline-none">
+                        <div className="h-4 w-1 rounded-full bg-border group-hover:bg-primary/20 transition-colors" />
+                    </Separator>
+                )}
+
+                {isRightPanelOpen && (
+                    <Panel
+                        defaultSize={`${rightPanelDefaultSize}%`}
+                        minSize={`${minRightSize}%`}
+                        collapsible={false}
+                        className="h-full relative overflow-hidden"
+                        id="right-panel-v4"
+                    >
+                        <div className="absolute inset-0 overflow-hidden px-1">
+                            {rightPanel}
+                        </div>
+                    </Panel>
                 )}
             </Group>
         </div>

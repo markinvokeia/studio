@@ -190,8 +190,8 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="p-4">
+    <Card className="flex-1 flex flex-col min-h-0 shadow-none border-0">
+      <CardContent className="flex-1 flex flex-col min-h-0 p-0">
         <DataTable
           columns={columns}
           data={userQuotes}

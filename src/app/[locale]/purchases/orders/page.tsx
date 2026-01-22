@@ -256,58 +256,39 @@ export default function OrdersPage() {
                             />
                         </div>
 
-                <div className={cn(
-                    "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l z-20 transition-transform duration-300 ease-in-out",
-                    selectedOrder ? 'translate-x-0' : 'translate-x-full'
-                )}>
-                    {selectedOrder && (
-                        <Card className="h-full shadow-lg rounded-none">
-                            <CardHeader className="flex flex-row items-start justify-between">
-                                <div>
-                                    <CardTitle>{t('detailsFor', { name: selectedOrder.user_name })}</CardTitle>
-                                    <CardDescription>{t('orderId')}: {selectedOrder.doc_no}</CardDescription>
-                                </div>
-                                <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
-                                    <X className="h-5 w-5" />
-                                    <span className="sr-only">Close details</span>
-                                </Button>
-                            </CardHeader>
-                            <CardContent>
-                                <Tabs defaultValue="items" className="w-full">
-                                    <TabsList className="h-auto items-center justify-start flex-wrap">
-                                        <TabsTrigger value="items">{tQuotes('tabs.items')}</TabsTrigger>
-                                        <TabsTrigger value="invoices">{tQuotes('tabs.invoices')}</TabsTrigger>
-                                        <TabsTrigger value="payments">{tQuotes('tabs.payments')}</TabsTrigger>
-                                    </TabsList>
-                                    <TabsContent value="items">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <h4 className="text-md font-semibold">{tOrderItems('title', { id: selectedOrder.doc_no })}</h4>
-                                            <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
-                                                <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
-                                            </Button>
+                        <div className={cn(
+                            "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l z-20 transition-transform duration-300 ease-in-out",
+                            selectedOrder ? 'translate-x-0' : 'translate-x-full'
+                        )}>
+                            {selectedOrder && (
+                                <Card className="h-full shadow-lg rounded-none flex flex-col min-h-0">
+                                    <CardHeader className="flex flex-row items-start justify-between flex-none">
+                                        <div>
+                                            <CardTitle>{t('detailsFor', { name: selectedOrder.user_name })}</CardTitle>
+                                            <CardDescription>{t('orderId')}: {selectedOrder.doc_no}</CardDescription>
                                         </div>
                                         <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                                             <X className="h-5 w-5" />
                                             <span className="sr-only">Close details</span>
                                         </Button>
                                     </CardHeader>
-                                    <CardContent>
-                                        <Tabs defaultValue="items" className="w-full">
-                                            <TabsList className="h-auto items-center justify-start flex-wrap">
+                                    <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                                        <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
+                                            <TabsList className="h-auto items-center justify-start flex-wrap flex-none">
                                                 <TabsTrigger value="items">{tQuotes('tabs.items')}</TabsTrigger>
                                                 <TabsTrigger value="invoices">{tQuotes('tabs.invoices')}</TabsTrigger>
                                                 <TabsTrigger value="payments">{tQuotes('tabs.payments')}</TabsTrigger>
                                             </TabsList>
-                                            <TabsContent value="items">
+                                            <TabsContent value="items" className="flex-1 min-h-0 overflow-auto py-4">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-md font-semibold">{tOrderItems('title', { id: selectedOrder.id })}</h4>
+                                                    <h4 className="text-md font-semibold">{tOrderItems('title', { id: selectedOrder.doc_no })}</h4>
                                                     <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
                                                         <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                                     </Button>
                                                 </div>
                                                 <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedOrder.quote_id} isSales={false} userId={selectedOrder.user_id} />
                                             </TabsContent>
-                                            <TabsContent value="invoices">
+                                            <TabsContent value="invoices" className="flex-1 min-h-0 overflow-auto py-4">
                                                 <div className="space-y-4">
                                                     <InvoicesTable
                                                         invoices={invoices}
@@ -329,7 +310,7 @@ export default function OrdersPage() {
                                                     )}
                                                 </div>
                                             </TabsContent>
-                                            <TabsContent value="payments">
+                                            <TabsContent value="payments" className="flex-1 min-h-0 overflow-auto py-4">
                                                 <PaymentsTable
                                                     payments={payments}
                                                     isLoading={isLoadingPayments}

@@ -118,8 +118,8 @@ export function UserPayments({ userId, selectedQuote }: UserPaymentsProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="p-4">
+    <Card className="flex-1 flex flex-col min-h-0 shadow-none border-0">
+      <CardContent className="flex-1 flex flex-col min-h-0 p-0">
         {selectedQuote && (
           <div className="mb-4 p-3 bg-muted rounded-lg">
             <div className="text-sm text-muted-foreground">
