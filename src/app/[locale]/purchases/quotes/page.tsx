@@ -678,7 +678,7 @@ export default function QuotesPage() {
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden pr-2 pb-4">
             <div className="relative flex-1 min-h-0">
-                <div className={cn("transition-all duration-300 w-full h-full flex flex-col")}>
+                <div className={cn("transition-all duration-300 h-full flex flex-col", selectedQuote ? "w-[25%]" : "w-full")}>
                     <RecentQuotesTable
                         quotes={quotes}
                         onRowSelectionChange={handleRowSelectionChange}
