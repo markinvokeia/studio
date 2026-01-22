@@ -4,7 +4,7 @@
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
-import { CreateOrderDialog, OrdersTable } from '@/components/tables/orders-table';
+import { OrdersTable } from '@/components/tables/orders-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -154,7 +154,6 @@ export default function OrdersPage() {
     const [isLoadingInvoices, setIsLoadingInvoices] = React.useState(false);
     const [isLoadingInvoiceItems, setIsLoadingInvoiceItems] = React.useState(false);
     const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
-    const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
 
     const loadOrders = React.useCallback(async () => {
         setIsLoadingOrders(true);
@@ -248,7 +247,6 @@ export default function OrdersPage() {
                                 onRowSelectionChange={handleRowSelectionChange}
                                 onRefresh={loadOrders}
                                 isRefreshing={isLoadingOrders}
-                                onCreate={() => setIsCreateDialogOpen(true)}
                                 rowSelection={rowSelection}
                                 setRowSelection={setRowSelection}
                                 isSales={false}
@@ -326,12 +324,6 @@ export default function OrdersPage() {
                     </div>
                 </CardContent>
             </Card>
-            <CreateOrderDialog
-                isOpen={isCreateDialogOpen}
-                onOpenChange={setIsCreateDialogOpen}
-                onOrderCreated={loadOrders}
-                isSales={false}
-            />
         </div>
     );
 }
