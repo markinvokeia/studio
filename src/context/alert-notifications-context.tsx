@@ -97,7 +97,7 @@ const response = await api.get(API_ROUTES.SYSTEM.ALERT_INSTANCES, { status: 'PEN
   React.useEffect(() => {
     fetchAlerts()
     
-    const interval = setInterval(fetchAlerts, 30000)
+    const interval = setInterval(fetchAlerts, 60000)
     
     return () => clearInterval(interval)
   }, [fetchAlerts])
