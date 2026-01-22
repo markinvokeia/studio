@@ -697,6 +697,91 @@
         "createdAt": "Creado En",
         "docNo": "Doc No."
     },
+    "OrdersPage": {
+        "title": "Órdenes",
+        "description": "Gestionar todas las órdenes.",
+        "detailsFor": "Detalles para {name}",
+        "orderId": "ID de Orden",
+        "filterPlaceholder": "Filtrar aquí...",
+        "close": "Cerrar detalles",
+        "cancel": "Cancelar",
+        "createTitle": "Crear Orden",
+        "createDescription": "Crear una nueva orden",
+        "selectUser": "Seleccionar Usuario",
+        "searchUser": "Buscar Usuario",
+        "noUserFound": "No se encontraron usuarios.",
+        "selectQuote": "Seleccionar Presupuesto",
+        "searchQuote": "Buscar Presupuesto",
+        "noQuoteFound": "No se encontraron presupuestos.",
+        "create": "Crear",
+        "status": {
+            "completed": "Completado",
+            "processing": "Procesando",
+            "pending": "Pendiente",
+            "cancelled": "Cancelado",
+            "label": "Estado",
+            "select": "Seleccionar Estado"
+        },
+        "invoiceDialog": {
+            "title": "Crear Factura",
+            "description": "Crear una factura para la orden #{orderId}",
+            "confirm": "Confirmar",
+            "error": "Error de Facturación",
+            "invoiceSuccess": "Factura Creada",
+            "invoiceSuccessDesc": "La factura para la orden #{orderId} ha sido creada exitosamente.",
+            "createError": "Error al crear la factura"
+        },
+        "createSuccess": "Orden Creada",
+        "createSuccessDesc": "La nueva orden ha sido creada exitosamente.",
+        "createError": "Error al Crear Orden",
+        "createErrorDesc": "Ocurrió un error al crear la orden."
+    },
+    "OrderItemsTable": {
+        "title": "Ítems de la Orden para #{id}",
+        "filterPlaceholder": "Filtrar aquí...",
+        "columns": {
+            "id": "ID",
+            "service": "Servicio",
+            "quantity": "Cantidad",
+            "unitPrice": "Precio Unitario",
+            "total": "Total",
+            "status": "Estado",
+            "scheduled": "Programado",
+            "completed": "Completado",
+            "invoiced": "Facturado"
+        },
+        "status": {
+            "completed": "Completado",
+            "scheduled": "Programado",
+            "cancelled": "Cancelado",
+            "invoiced": "Facturado"
+        },
+        "actions": {
+            "openMenu": "Abrir menú",
+            "title": "Acciones",
+            "schedule": "Programar",
+            "complete": "Completar"
+        },
+        "dateDialog": {
+            "title": {
+                "schedule": "Programar Ítem",
+                "complete": "Completar Ítem"
+            },
+            "description": {
+                "schedule": "Seleccione una fecha para programar este ítem.",
+                "complete": "Seleccione una fecha para completar este ítem."
+            },
+            "cancel": "Cancelar",
+            "save": "Guardar"
+        },
+        "toast": {
+            "scheduledTitle": "Ítem Programado",
+            "completedTitle": "Ítem Completado",
+            "updateSuccess": "Ítem actualizado exitosamente.",
+            "error": "Error",
+            "updateError": "Error al actualizar el ítem."
+        }
+    },
     "General": {
         "noResults": "No hay resultados.",
         "openMenu": "Abrir menú",
@@ -823,17 +908,7 @@
             "edit": "Editar",
             "delete": "Eliminar"
         },
-        "errors": {
-            "cannotEdit": "No se puede editar el presupuesto",
-            "cannotEditDetail": "Solo puedes editar presupuestos que estén en estado \"Borrador\".",
-            "cannotDelete": "No se puede eliminar el presupuesto",
-            "cannotDeleteDetail": "Solo puedes eliminar presupuestos que estén en estado \"Borrador\".",
-            "failedToSave": "Error al guardar el presupuesto",
-            "failedToDelete": "Error al eliminar el presupuesto",
-            "failedToLoadServices": "No se pudieron cargar los servicios.",
-            "failedToLoadServiceData": "No se pudieron cargar los datos del servicio para editar."
-        },
-"validation": {
+        "validation": {
             "userRequired": "Un usuario es obligatorio",
             "serviceRequired": "Un servicio es obligatorio",
             "totalPositive": "El total debe ser un número positivo",
@@ -851,7 +926,7 @@
             "description": "Eliminar un artículo",
             "cancel": "Cancelar",
             "confirm": "Confirmar"
-},
+        },
         "close": "Close details",
         "errors": {
             "errorTitle": "Error",
@@ -1403,41 +1478,6 @@
             "genericError": "Ocurrió un error"
         }
     },
-    "OrdersPage": {
-        "status": {
-            "completed": "Completada",
-            "processing": "Procesando",
-            "pending": "Pendiente",
-            "label": "Estado",
-            "cancelled": "Cancelada",
-            "select": "Seleccionar Estado"
-        },
-        "filterPlaceholder": "Filtrar aquí...",
-        "title": "Órdenes",
-        "description": "Una visión general de las órdenes.",
-        "createTitle": "Crear Orden",
-        "createDescription": "Crear una nueva orden",
-        "selectUser": "Seleccionar Usuario",
-        "searchUser": "Buscar Usuario",
-        "noUserFound": "No se encontraron usuarios.",
-        "selectQuote": "Seleccionar Presupuesto",
-        "searchQuote": "Buscar Presupuesto",
-        "noQuoteFound": "No se encontraron presupuestos.",
-        "cancel": "Cancelar",
-        "create": "Crear",
-        "invoiceDialog": {
-            "title": "Crear Factura",
-            "description": "Crear una factura para la orden #{orderId}",
-            "confirm": "Confirmar",
-            "error": "Error de Facturación",
-            "createError": "Hubo un error al crear la factura.",
-            "invoiceSuccess": "Factura Creada",
-            "invoiceSuccessDesc": "La factura para la orden #{orderId} ha sido creada exitosamente."
-        },
-        "detailsFor": "Detalles para {name}",
-        "orderId": "ID de Orden",
-        "close": "Cerrar detalles"
-    },
     "PaymentsPage": {
         "title": "Pagos",
         "description": "Una visión general de los pagos.",
@@ -1648,54 +1688,6 @@
         "copyId": "Copiar ID de usuario",
         "edit": "Editar",
         "deactivate": "Desactivar"
-    },
-    "OrderItemsTable": {
-        "title": "Artículos de la Orden",
-        "titleWithId": "Artículos de la Orden para {id}",
-        "filterPlaceholder": "Filtrar aquí...",
-        "columns": {
-            "id": "ID",
-            "service": "Servicio",
-            "quantity": "Cantidad",
-            "unitPrice": "Precio Unitario",
-            "total": "Total",
-            "status": "Estado",
-            "scheduled": "Programado En",
-            "completed": "Completado En",
-            "invoiced": "Facturado En"
-        },
-        "status": {
-            "invoiced": "Facturado",
-            "completed": "Completado",
-            "scheduled": "Programado",
-            "cancelled": "Cancelado",
-            "pending": "Pendiente"
-        },
-        "toast": {
-            "scheduledTitle": "Artículo Programado",
-            "completedTitle": "Artículo Completado",
-            "updateSuccess": "El artículo se ha actualizado correctamente.",
-            "updateError": "Error al actualizar el artículo.",
-            "error": "Error"
-        },
-        "dateDialog": {
-            "title": {
-                "schedule": "Programar Artículo",
-                "complete": "Completar Artículo"
-            },
-            "description": {
-                "schedule": "Seleccione una fecha para programar este artículo.",
-                "complete": "Seleccione la fecha de finalización para este artículo."
-            },
-            "cancel": "Cancelar",
-            "save": "Guardar"
-        },
-        "actions": {
-            "title": "Acciones",
-            "schedule": "Programar",
-            "complete": "Completar",
-            "openMenu": "Abrir menú"
-        }
     },
     "LoginPage": {
         "title": "Iniciar Sesión",
