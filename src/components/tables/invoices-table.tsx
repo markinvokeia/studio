@@ -77,7 +77,6 @@ const createInvoiceFormSchema = z.object({
   user_id: z.string().min(1, 'A user or provider is required.'),
   total: z.coerce.number().min(0, 'Total must be a non-negative number.'),
   currency: z.enum(['UYU', 'USD']),
-  invoice_ref: z.string().optional(),
   order_id: z.string().optional(),
   quote_id: z.string().optional(),
   items: z.array(z.object({
@@ -141,23 +140,24 @@ const getColumns = (
       enableHiding: false,
     },
     {
-      accessorKey: 'id',
+      accessorKey: 'doc_no',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={columnTranslations.id || "Invoice ID"} />
+        <DataTableColumnHeader column={column} title="Doc. No" />
       ),
+      cell: ({ row }) => {
+        const value = row.getValue('doc_no') as string;
+        return <div className="font-medium">{value || `INV-${row.original.id}`}</div>;
+      },
     },
     {
       accessorKey: 'user_name',
       header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.user_name || "User"} />,
     },
     {
-      accessorKey: 'order_id',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.order_id || "Order ID"} />,
+      accessorKey: 'order_doc_no',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.order_id || "Order Doc No"} />,
     },
-    {
-      accessorKey: 'quote_id',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.quote_id || "Quote ID"} />,
-    },
+
     {
       accessorKey: 'total',
       header: ({ column }) => (
@@ -656,7 +656,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       <DataTable
         columns={columns}
         data={invoices}
-        filterColumnId="id"
+        filterColumnId="doc_no"
         filterPlaceholder={t('filterPlaceholder')}
         onRowSelectionChange={onRowSelectionChange}
         enableSingleRowSelection={!!onRowSelectionChange}
@@ -668,12 +668,11 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         }}
         rowSelection={rowSelection}
         setRowSelection={setRowSelection}
-        columnTranslations={{
-          id: t('columns.invoiceId'),
-          user_name: t('columns.userName'),
-          order_id: t('columns.orderId'),
-          quote_id: t('columns.quoteId'),
-          total: t('columns.total'),
+          columnTranslations={{
+            doc_no: "Doc. No",
+            user_name: t('columns.userName'),
+            order_doc_no: t('columns.orderId'),
+            total: t('columns.total'),
           currency: t('columns.currency'),
           status: t('columns.status'),
           type: t('columns.type'),
@@ -1086,7 +1085,6 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
               user_id: Array.isArray(invoice.user_id) ? String(invoice.user_id[0]) : String(invoice.user_id || ''),
               currency: (invoice.currency?.toUpperCase() as any) || 'UYU',
               total: Number(invoice.total || 0),
-              invoice_ref: '',
               order_id: invoice.order_id ? String(invoice.order_id) : undefined,
               quote_id: invoice.quote_id ? String(invoice.quote_id) : undefined,
               items: itemsNormalized.map((item: any) => {
@@ -1247,7 +1245,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={form.control} name="invoice_ref" render={({ field }) => (<FormItem><FormLabel>{t('invoiceRef')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+
             </div>
 
             <Card>

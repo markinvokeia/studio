@@ -46,7 +46,7 @@ export function HorizontalNav({ items }: HorizontalNavProps) {
             );
 
             return (
-              <NavigationMenuItem key={item.title}>
+              <NavigationMenuItem key={String(item.title)}>
                 <NavigationMenuTrigger className={cn("text-sm", isParentActive && "bg-accent/50")}>
                   {t(item.title as any)}
                 </NavigationMenuTrigger>
@@ -69,8 +69,8 @@ export function HorizontalNav({ items }: HorizontalNavProps) {
                       </NavigationMenuLink>
                     </li>
                     {item.items.map((subItem) => (
-                       <ListItem
-                        key={subItem.title}
+                        <ListItem
+                        key={String(subItem.title)}
                         title={t(subItem.title as any)}
                         href={`/${locale}${subItem.href}`}
                         className={effectivePathname.startsWith(subItem.href) ? 'bg-accent/50' : ''}
@@ -91,7 +91,7 @@ export function HorizontalNav({ items }: HorizontalNavProps) {
               : effectivePathname.startsWith(item.href);
 
             return (
-              <NavigationMenuItem key={item.title}>
+              <NavigationMenuItem key={String(item.title)}>
                   <Link href={linkHref} legacyBehavior passHref>
                     <NavigationMenuLink active={isActive} className={cn(navigationMenuTriggerStyle(), "text-sm")}>
                         {t(item.title as any)}

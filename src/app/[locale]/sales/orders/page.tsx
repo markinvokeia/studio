@@ -22,9 +22,11 @@ async function getOrders(): Promise<Order[]> {
         const data = await api.get(API_ROUTES.SALES.ORDERS_ALL, { is_sales: 'true' });
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
         return ordersData.map((apiOrder: any) => ({
-            id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiOrder.id ? String(apiOrder.id) : 'N/A',
+            doc_no: apiOrder.doc_no || 'N/A',
             user_id: apiOrder.user_id,
             quote_id: apiOrder.quote_id,
+            quote_doc_no: apiOrder.quote_doc_no || 'N/A',
             user_name: apiOrder.user_name || 'N/A',
             status: apiOrder.status,
             currency: apiOrder.currency || 'URU',
@@ -67,7 +69,10 @@ async function getInvoicesForOrder(orderId: string): Promise<Invoice[]> {
         const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
         return invoicesData.map((apiInvoice: any) => ({
             id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
+            invoice_ref: apiInvoice.invoice_ref || 'N/A',
+            doc_no: apiInvoice.doc_no || `INV-${apiInvoice.id}`,
             order_id: apiInvoice.order_id,
+            order_doc_no: apiInvoice.order_doc_no || `ORD-${apiInvoice.order_id}`,
             quote_id: apiInvoice.quote_id,
             user_name: apiInvoice.user_name || 'N/A',
             total: apiInvoice.total || 0,
@@ -90,16 +95,26 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
             id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
+            doc_no: apiPayment.doc_no || `PAY-${apiPayment.id}`,
             order_id: apiPayment.order_id,
+            order_doc_no: apiPayment.order_doc_no || `ORD-${apiPayment.order_id}`,
             invoice_id: apiPayment.invoice_id,
             quote_id: apiPayment.quote_id,
             user_name: apiPayment.user_name || 'N/A',
-            amount: apiPayment.amount || 0,
-            method: apiPayment.method || 'credit_card',
+            payment_date: apiPayment.created_at || new Date().toISOString().split('T')[0],
+            amount_applied: parseFloat(apiPayment.converted_amount) || 0,
+            source_amount: parseFloat(apiPayment.amount) || 0,
+            source_currency: apiPayment.currency || 'UYU',
+            exchange_rate: parseFloat(apiPayment.exchange_rate) || 1,
+            payment_method: apiPayment.method || 'credit_card',
+            transaction_type: 'direct_payment',
+            transaction_id: apiPayment.doc_no || String(apiPayment.id),
             status: apiPayment.status || 'pending',
             createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
-            currency: apiPayment.currency || 'URU',
+            amount: parseFloat(apiPayment.converted_amount) || 0,
+            method: apiPayment.method || 'credit_card',
+            currency: apiPayment.invoice_currency || 'USD',
         }));
     } catch (error) {
         console.error("Failed to fetch payments for order:", error);
@@ -248,16 +263,35 @@ export default function OrdersPage() {
                             />
                         </div>
 
-                        <div className={cn(
-                            "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l z-20 transition-transform duration-300 ease-in-out",
-                            selectedOrder ? 'translate-x-0' : 'translate-x-full'
-                        )}>
-                            {selectedOrder && (
-                                <Card className="h-full shadow-lg rounded-none">
-                                    <CardHeader className="flex flex-row items-start justify-between">
-                                        <div>
-                                            <CardTitle>{t('detailsFor', { name: selectedOrder.user_name })}</CardTitle>
-                                            <CardDescription>{t('orderId')}: {selectedOrder.id}</CardDescription>
+                <div className={cn(
+                    "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l z-20 transition-transform duration-300 ease-in-out",
+                    selectedOrder ? 'translate-x-0' : 'translate-x-full'
+                )}>
+                    {selectedOrder && (
+                        <Card className="h-full shadow-lg rounded-none">
+                            <CardHeader className="flex flex-row items-start justify-between">
+                                <div>
+                                    <CardTitle>{t('detailsFor', { name: selectedOrder.user_name })}</CardTitle>
+                                    <CardDescription>{t('orderId')}: {selectedOrder.doc_no}</CardDescription>
+                                </div>
+                                <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                                    <X className="h-5 w-5" />
+                                    <span className="sr-only">{t('close')}</span>
+                                </Button>
+                            </CardHeader>
+                            <CardContent>
+                                <Tabs defaultValue="items" className="w-full">
+                                    <TabsList className="h-auto items-center justify-start flex-wrap">
+                                        <TabsTrigger value="items">{tQuotes('tabs.items')}</TabsTrigger>
+                                        <TabsTrigger value="invoices">{tQuotes('tabs.invoices')}</TabsTrigger>
+                                        <TabsTrigger value="payments">{tQuotes('tabs.payments')}</TabsTrigger>
+                                    </TabsList>
+                                    <TabsContent value="items">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 className="text-md font-semibold">{tOrderItems('title', { id: selectedOrder.doc_no })}</h4>
+                                            <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
+                                                <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
+                                            </Button>
                                         </div>
                                         <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                                             <X className="h-5 w-5" />

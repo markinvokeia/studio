@@ -77,6 +77,7 @@ async function getQuotes(): Promise<Quote[]> {
 
         return quotesData.map((apiQuote: any) => ({
             id: apiQuote.id ? String(apiQuote.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
+            doc_no: apiQuote.doc_no || 'N/A',
             user_id: apiQuote.user_id || 'N/A',
             total: apiQuote.total || 0,
             status: apiQuote.status || 'draft',
@@ -149,11 +150,14 @@ async function getOrders(quoteId: string): Promise<Order[]> {
         const data = await api.get(API_ROUTES.PURCHASES.QUOTES_ORDERS, { quote_id: quoteId, is_sales: 'false' });
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
         return ordersData.map((apiOrder: any) => ({
-            id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiOrder.id ? String(apiOrder.id) : 'N/A',
+            doc_no: apiOrder.doc_no || 'N/A',
             user_id: apiOrder.user_id,
+            user_name: apiOrder.user_name || apiOrder.name || 'N/A',
             status: apiOrder.status,
-            createdAt: apiOrder.createdAt || new Date().toISOString().split('T')[0],
+            createdAt: apiOrder.created_at || apiOrder.createdAt || new Date().toISOString().split('T')[0],
             currency: apiOrder.currency || 'UYU',
+            quote_id: apiOrder.quote_id,
         }));
     } catch (error) {
         console.error("Failed to fetch orders:", error);
@@ -191,6 +195,9 @@ async function getInvoices(quoteId: string): Promise<Invoice[]> {
         const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
         return invoicesData.map((apiInvoice: any) => ({
             id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
+            invoice_ref: apiInvoice.invoice_ref || 'N/A',
+            doc_no: apiInvoice.doc_no || `INV-${apiInvoice.id}`,
+            order_doc_no: apiInvoice.order_doc_no || `ORD-${apiInvoice.order_id}`,
             quote_id: apiInvoice.quote_id,
             total: apiInvoice.total || 0,
             status: apiInvoice.status || 'draft',
@@ -234,16 +241,26 @@ async function getPayments(quoteId: string): Promise<Payment[]> {
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
             id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
+            doc_no: apiPayment.doc_no || `PAY-${apiPayment.id}`,
             invoice_id: apiPayment.invoice_id,
-            amount: apiPayment.amount || 0,
+            amount: parseFloat(apiPayment.amount) || 0,
+            amount_applied: parseFloat(apiPayment.amount) || 0,
+            source_amount: parseFloat(apiPayment.amount) || 0,
+            source_currency: apiPayment.currency as 'UYU' | 'USD' || 'UYU',
             method: apiPayment.method || 'credit_card',
+            payment_method: apiPayment.method || 'credit_card',
             status: apiPayment.status || 'pending',
-            createdAt: apiPayment.createdAt || new Date().toISOString().split('T')[0],
+            createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
+            payment_date: apiPayment.created_at || new Date().toISOString().split('T')[0],
             currency: apiPayment.currency || 'UYU',
-            order_id: apiPayment.order_id,
+            order_id: apiPayment.order_id || '',
+            order_doc_no: apiPayment.order_doc_no || (apiPayment.order_id ? `ORD-${apiPayment.order_id}` : ''),
             quote_id: apiPayment.quote_id,
             user_name: apiPayment.user_name || 'N/A',
-            updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0]
+            exchange_rate: parseFloat(apiPayment.exchange_rate) || 1,
+            transaction_type: apiPayment.transaction_type || 'direct_payment',
+            transaction_id: String(apiPayment.id),
+            updatedAt: apiPayment.updated_at || new Date().toISOString().split('T')[0]
         }));
     } catch (error) {
         console.error("Failed to fetch payments:", error);
@@ -475,7 +492,7 @@ export default function QuotesPage() {
         if (!deletingQuote) return;
         try {
             await deleteQuote(deletingQuote.id);
-            toast({ title: t('toast.quoteDeleted'), description: t('toast.quoteDeleteSuccess', { id: deletingQuote.id }) });
+            toast({ title: t('toast.quoteDeleted'), description: t('toast.quoteDeleteSuccess', { id: deletingQuote.doc_no || deletingQuote.id }) });
             setIsDeleteQuoteDialogOpen(false);
             setDeletingQuote(null);
             loadQuotes();
@@ -597,7 +614,7 @@ export default function QuotesPage() {
                 const message = responseData[0]?.message ? responseData[0].message : t('toast.quoteActionError', { action: action });
                 throw new Error(message);
             }
-            toast({ title: action === 'confirm' ? t('toast.quoteConfirmed') : t('toast.quoteRejected'), description: t(action === 'confirm' ? 'toast.quoteConfirmSuccess' : 'toast.quoteRejectSuccess', { id: quote.id }) });
+            toast({ title: action === 'confirm' ? t('toast.quoteConfirmed') : t('toast.quoteRejected'), description: t(action === 'confirm' ? 'toast.quoteConfirmSuccess' : 'toast.quoteRejectSuccess', { id: quote.doc_no || quote.id }) });
             loadQuotes();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('toast.quoteActionError', { action: action }) });
@@ -687,8 +704,8 @@ export default function QuotesPage() {
                         <Card className="h-full shadow-lg rounded-none">
                             <CardHeader className="flex flex-row items-start justify-between">
                                 <div>
-                                    <CardTitle>{t('detailsFor')}</CardTitle>
-                                    <CardDescription>{t('quoteId')}: {selectedQuote.id}</CardDescription>
+                                    <CardTitle>{t('detailsFor', { name: selectedQuote.user_name })}</CardTitle>
+                                    <CardDescription>{t('quoteId')}: {selectedQuote.doc_no || selectedQuote.id}</CardDescription>
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                                     <X className="h-5 w-5" />
@@ -727,7 +744,7 @@ export default function QuotesPage() {
                                         {selectedOrder && (
                                             <div className="mt-4">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-md font-semibold">Order Items for {selectedOrder.id}</h4>
+                                                    <h4 className="text-md font-semibold">Order Items for {selectedOrder.doc_no || `ORD-${selectedOrder.id}`}</h4>
                                                     <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
                                                         <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                                     </Button>
@@ -927,7 +944,7 @@ export default function QuotesPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('deleteQuoteDialog.title')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            {t('deleteQuoteDialog.description', { id: deletingQuote?.id })}
+                            {t('deleteQuoteDialog.description', { id: deletingQuote?.doc_no || deletingQuote?.id })}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AvailabilityRule, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
+import { getErrorMessage } from '@/lib/error-utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
@@ -211,7 +212,7 @@ export default function DoctorAvailabilityPage() {
             toast({
                 variant: 'destructive',
                 title: t('toast.errorTitle'),
-                description: error instanceof Error && error.message ? error.message : t('toast.deleteError'),
+                description: getErrorMessage(error),
             });
         }
     };
@@ -224,7 +225,7 @@ export default function DoctorAvailabilityPage() {
             setIsDialogOpen(false);
             loadRules();
         } catch (error) {
-            setSubmissionError(error instanceof Error && error.message ? error.message : t('toast.saveError'));
+            setSubmissionError(getErrorMessage(error));
         }
     };
 

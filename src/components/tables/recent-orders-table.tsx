@@ -15,7 +15,7 @@ const getColumns = (
   t: (key: string) => string
 ): ColumnDef<Order>[] => [
     {
-      accessorKey: 'id',
+      accessorKey: 'doc_no',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />
       ),
@@ -78,7 +78,7 @@ export function RecentOrdersTable({ orders, onRefresh, isRefreshing }: RecentOrd
         <DataTable
           columns={columns}
           data={orders}
-          filterColumnId="id"
+          filterColumnId="doc_no"
           filterPlaceholder={t('RecentOrdersTable.filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}

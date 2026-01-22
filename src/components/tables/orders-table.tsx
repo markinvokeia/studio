@@ -105,7 +105,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
 
       toast({
         title: tOrdersPage('invoiceDialog.invoiceSuccess'),
-        description: tOrdersPage('invoiceDialog.invoiceSuccessDesc', { orderId: selectedOrderForInvoice.id }),
+        description: tOrdersPage('invoiceDialog.invoiceSuccessDesc', { orderId: selectedOrderForInvoice.doc_no }),
       });
 
       if (onRefresh) {
@@ -143,18 +143,19 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
       enableHiding: false,
     },
     {
-      accessorKey: 'id',
+      accessorKey: 'doc_no',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={tOrderColumns('orderId')} />
       ),
+      cell: ({ row }) => row.original.doc_no || `ORD-${row.original.id}`,
     },
     {
       accessorKey: 'user_name',
       header: ({ column }) => <DataTableColumnHeader column={column} title={tUserColumns('name')} />,
     },
     {
-      accessorKey: 'quote_id',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={tQuoteColumns('quoteId')} />,
+      accessorKey: 'quote_doc_no',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={tQuoteColumns('quoteDocNo')} />,
     },
     {
       accessorKey: 'currency',
@@ -233,6 +234,13 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
     const key = (col as any).accessorKey;
     return !key || !columnsToHide.includes(key);
   });
+
+  // Check if doc_no column exists in filtered columns, otherwise use the first available column
+  const availableFilterColumns = filteredColumns
+    .map(col => (col as any).accessorKey)
+    .filter(key => key);
+  const filterColumnId = availableFilterColumns.includes('doc_no') ? 'doc_no' : (availableFilterColumns[0] || '');
+
   return (
     <div className={cn("flex-1 flex flex-col min-h-0", className)}>
       <Card className="flex-1 flex flex-col min-h-0">
@@ -240,7 +248,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
           <DataTable
             columns={filteredColumns}
             data={orders}
-            filterColumnId="user_name"
+            filterColumnId={filterColumnId}
             filterPlaceholder={tOrdersPage('filterPlaceholder')}
             onRowSelectionChange={onRowSelectionChange}
             enableSingleRowSelection={onRowSelectionChange ? true : false}
@@ -250,7 +258,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
             columnTranslations={{
-              id: tOrderColumns('orderId'),
+              doc_no: tOrderColumns('orderId'),
               user_name: tUserColumns('name'),
               quote_id: tQuoteColumns('quoteId'),
               currency: t('QuoteColumns.currency'),
@@ -266,7 +274,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
           <DialogHeader>
             <DialogTitle>{tOrdersPage('invoiceDialog.title')}</DialogTitle>
             <DialogDescription>
-              {tOrdersPage('invoiceDialog.description', { orderId: selectedOrderForInvoice?.id })}
+              {tOrdersPage('invoiceDialog.description', { orderId: selectedOrderForInvoice?.doc_no })}
             </DialogDescription>
           </DialogHeader>
           {invoiceSubmissionError && (
@@ -344,7 +352,7 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated, isSale
         }
       };
       fetchQuotes();
-      form.setValue('user_id', selectedUserId);
+      form.setValue('user_id', selectedUserId || '');
       form.setValue('quote_id', '');
     }
   }, [selectedUserId, form]);
@@ -380,7 +388,7 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated, isSale
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                          {field.value ? users.find((user) => user.id === field.value)?.name : t('selectUser')}
+                          {field.value ? users.find((user) => String(user.id) === field.value)?.name : t('selectUser')}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </FormControl>
@@ -394,13 +402,13 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated, isSale
                             {users.map((user) => (
                               <CommandItem
                                 value={user.name}
-                                key={user.id}
+                                key={String(user.id)}
                                 onSelect={() => {
-                                  setSelectedUserId(user.id);
+                                  setSelectedUserId(String(user.id));
                                   setUserSearchOpen(false);
                                 }}
                               >
-                                <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
+                                <Check className={cn("mr-2 h-4 w-4", String(user.id) === field.value ? "opacity-100" : "opacity-0")} />
                                 {user.name}
                               </CommandItem>
                             ))}
@@ -423,7 +431,7 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated, isSale
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button variant="outline" role="combobox" disabled={!selectedUserId} className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                          {field.value ? `Quote #${field.value}` : t('selectQuote')}
+                          {field.value ? quotes.find((quote) => String(quote.id) === field.value)?.doc_no || `Quote #${field.value}` : t('selectQuote')}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </FormControl>
@@ -436,15 +444,15 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated, isSale
                           <CommandGroup>
                             {quotes.map((quote) => (
                               <CommandItem
-                                value={quote.id}
-                                key={quote.id}
+                                value={String(quote.id)}
+                                key={String(quote.id)}
                                 onSelect={() => {
-                                  form.setValue('quote_id', quote.id);
+                                  form.setValue('quote_id', String(quote.id));
                                   setQuoteSearchOpen(false);
                                 }}
                               >
-                                <Check className={cn("mr-2 h-4 w-4", quote.id === field.value ? "opacity-100" : "opacity-0")} />
-                                {`Quote #${quote.id} - $${quote.total}`}
+                                <Check className={cn("mr-2 h-4 w-4", String(quote.id) === field.value ? "opacity-100" : "opacity-0")} />
+                                {`${quote.doc_no || `Quote #${quote.id}`} - $${quote.total}`}
                               </CommandItem>
                             ))}
                           </CommandGroup>

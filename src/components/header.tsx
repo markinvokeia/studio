@@ -72,7 +72,7 @@ const passwordFormSchema = (t: (key: string) => string) => z.object({
     path: ['confirm_password'],
 });
 
-type PasswordFormValues = z.infer<typeof passwordFormSchema>;
+type PasswordFormValues = z.infer<ReturnType<typeof passwordFormSchema>>;
 
 export function Header() {
     const pathname = usePathname();

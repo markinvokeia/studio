@@ -6,7 +6,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
-import { Payment } from '@/lib/types';
+import { Payment, Quote } from '@/lib/types';
 import { api } from '@/services/api';
 import { ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
@@ -14,8 +14,12 @@ import * as React from 'react';
 
 const getColumns = (t: (key: string) => string): ColumnDef<Payment>[] => [
   {
-    accessorKey: 'id',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('PaymentsPage.columns.id')} />,
+    accessorKey: 'doc_no',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('PaymentsPage.columns.doc_no')} />,
+    cell: ({ row }) => {
+      const docNo = row.getValue('doc_no') as string;
+      return docNo || 'N/A';
+    },
   },
   {
     accessorKey: 'amount',
@@ -47,10 +51,12 @@ async function getPaymentsForUser(userId: string): Promise<Payment[]> {
 
     return paymentsData.map((apiPayment: any) => ({
       id: apiPayment.id.toString(),
+      doc_no: apiPayment.doc_no || `PAY-${apiPayment.id}`,
       order_id: apiPayment.order_id?.toString() ?? '',
+      order_doc_no: apiPayment.order_doc_no || `ORD-${apiPayment.order_id}`,
       invoice_id: apiPayment.invoice_id?.toString() ?? '',
       quote_id: apiPayment.quote_id?.toString() ?? '',
-      user_name: '', // Not needed
+      user_name: apiPayment.user_name || '',
       amount: parseFloat(apiPayment.amount),
       method: apiPayment.method,
       status: apiPayment.status,
@@ -75,24 +81,31 @@ async function getPaymentsForUser(userId: string): Promise<Payment[]> {
 
 interface UserPaymentsProps {
   userId: string;
+  selectedQuote?: Quote | null;
 }
 
-export function UserPayments({ userId }: UserPaymentsProps) {
+export function UserPayments({ userId, selectedQuote }: UserPaymentsProps) {
   const t = useTranslations();
   const [payments, setPayments] = React.useState<Payment[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const columns = React.useMemo(() => getColumns(t), [t]);
+
+
 
   React.useEffect(() => {
     async function loadPayments() {
       if (!userId) return;
       setIsLoading(true);
       const fetchedPayments = await getPaymentsForUser(userId);
-      setPayments(fetchedPayments);
+      let filteredPayments = fetchedPayments;
+      if (selectedQuote) {
+        filteredPayments = fetchedPayments.filter(payment => payment.quote_id === selectedQuote.id);
+      }
+      setPayments(filteredPayments);
       setIsLoading(false);
     }
     loadPayments();
-  }, [userId]);
+  }, [userId, selectedQuote]);
 
   if (isLoading) {
     return (
@@ -105,17 +118,32 @@ export function UserPayments({ userId }: UserPaymentsProps) {
   }
 
   return (
-    <DataTable
-      columns={columns}
-      data={payments}
-      filterColumnId='id'
-      filterPlaceholder={t('PaymentsPage.filterPlaceholder')}
-      columnTranslations={{
-        id: t('PaymentsPage.columns.id'),
-        amount: t('PaymentsPage.columns.amount'),
-        method: t('PaymentsPage.columns.method'),
-        createdAt: t('PaymentsPage.columns.createdAt'),
-      }}
-    />
+    <Card>
+      <CardContent className="p-4">
+        {selectedQuote && (
+          <div className="mb-4 p-3 bg-muted rounded-lg">
+            <div className="text-sm text-muted-foreground">
+              {t('UserPayments.showingForQuote')}:
+            </div>
+            <div className="font-medium">
+              {selectedQuote.doc_no || selectedQuote.id}
+            </div>
+          </div>
+        )}
+        <DataTable
+          columns={columns}
+          data={payments}
+          filterColumnId='doc_no'
+          filterPlaceholder={t('PaymentsPage.filterPlaceholder')}
+          columnTranslations={{
+            doc_no: t('PaymentsPage.columns.doc_no'),
+            user_name: t('PaymentsPage.columns.user'),
+            amount: t('PaymentsPage.columns.amount'),
+            method: t('PaymentsPage.columns.method'),
+            createdAt: t('PaymentsPage.columns.createdAt'),
+          }}
+        />
+      </CardContent>
+    </Card>
   );
 }

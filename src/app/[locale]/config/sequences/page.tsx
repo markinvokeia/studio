@@ -18,7 +18,7 @@ import { Sequence } from '@/lib/types';
 import { SEQUENCE_VARIABLES, previewPattern, validatePattern } from '@/lib/sequence-utils';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, Info, Search, Calendar, Filter, Check, CalendarIcon } from 'lucide-react';
+import { AlertTriangle, Info, Search, Calendar, Filter, Check, CalendarIcon, PlusCircle, RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -28,7 +28,7 @@ import { SequencesColumnsWrapper } from './columns';
 const sequenceFormSchema = (t: (key: string) => string) => z.object({
   id: z.number().optional(),
   name: z.string().min(1, t('nameRequired')),
-  document_type: z.enum(['invoice', 'quote', 'order', 'payment', 'credit_note', 'purchase_order'], {
+  document_type: z.enum(['invoice', 'quote', 'order', 'payment', 'credit_note', 'purchase_order', 'miscellaneous'], {
     required_error: t('documentTypeRequired')
   }),
   pattern: z.string().min(1, t('patternRequired')).refine(
@@ -279,93 +279,6 @@ export default function SequencesPage() {
           <CardDescription>{t('description')}</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Filters Section */}
-          <div className="space-y-4 mb-6">
-            {/* Main Search and Advanced Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
-              <div className="flex-1 min-w-[200px] max-w-md">
-                <Label htmlFor="search-term" className="text-sm font-medium">
-                  {t('filters.searchTerm')}
-                </Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="search-term"
-                    placeholder={t('filters.searchTermPlaceholder')}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-              </div>
-
-              {/* Advanced Filters Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Filter className="h-4 w-4" />
-                    {t('filters.advancedFilters')}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80">
-                  <DropdownMenuLabel>{t('filters.advancedFilters')}</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-
-                  {/* Active Only Filter */}
-                  <DropdownMenuCheckboxItem
-                    checked={activeOnly}
-                    onCheckedChange={setActiveOnly}
-                  >
-                    <div className="flex items-center space-x-2">
-                      {activeOnly && <Check className="h-4 w-4" />}
-                      <span>{t('filters.activeOnly')}</span>
-                    </div>
-                  </DropdownMenuCheckboxItem>
-
-                  <DropdownMenuSeparator />
-
-                  {/* Date Range Section */}
-                  <div className="px-2 py-1">
-                    <div className="text-xs font-medium text-muted-foreground mb-2">
-                      {t('filters.dateRange')}
-                    </div>
-                    <div className="space-y-2">
-                      <div>
-                        <Label htmlFor="start-date" className="text-xs">{t('filters.startDate')}</Label>
-                        <Input
-                          id="start-date"
-                          type="date"
-                          value={dateRange.start_date || ''}
-                          onChange={(e) => setDateRange(prev => ({ ...prev, start_date: e.target.value || null }))}
-                          className="h-8"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="end-date" className="text-xs">{t('filters.endDate')}</Label>
-                        <Input
-                          id="end-date"
-                          type="date"
-                          value={dateRange.end_date || ''}
-                          onChange={(e) => setDateRange(prev => ({ ...prev, end_date: e.target.value || null }))}
-                          className="h-8"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <DropdownMenuSeparator />
-
-                  {/* Apply Filters Button */}
-                  <DropdownMenuItem asChild>
-                    <Button onClick={loadSequences} className="w-full" size="sm">
-                      {t('filters.applyFilters')}
-                    </Button>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-
           <DataTable
             columns={sequencesColumns}
             data={sequences}
@@ -376,6 +289,115 @@ export default function SequencesPage() {
             pageCount={Math.ceil(total / pagination.pageSize)}
             pagination={pagination}
             onPaginationChange={setPagination}
+            customToolbar={(table) => (
+              <div className="flex flex-wrap items-center justify-between gap-4 w-full">
+                {/* Search and Filters Section */}
+                <div className="flex items-center space-x-2">
+                  <div className="relative flex items-center">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder={t('filters.searchTermPlaceholder')}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="h-9 w-[200px] pl-9 pr-9"
+                    />
+                    {searchTerm.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                        <span className="sr-only">Clear</span>
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Advanced Filters Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="flex items-center gap-2 h-9">
+                        <Filter className="h-4 w-4" />
+                        {t('filters.advancedFilters')}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-80">
+                      <DropdownMenuLabel>{t('filters.advancedFilters')}</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+
+                      {/* Active Only Filter */}
+                      <DropdownMenuCheckboxItem
+                        checked={activeOnly}
+                        onCheckedChange={setActiveOnly}
+                      >
+                        <div className="flex items-center space-x-2">
+                          {activeOnly && <Check className="h-4 w-4" />}
+                          <span>{t('filters.activeOnly')}</span>
+                        </div>
+                      </DropdownMenuCheckboxItem>
+
+                      <DropdownMenuSeparator />
+
+                      {/* Date Range Section */}
+                      <div className="px-2 py-1">
+                        <div className="text-xs font-medium text-muted-foreground mb-2">
+                          {t('filters.dateRange')}
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <Label htmlFor="start-date" className="text-xs">{t('filters.startDate')}</Label>
+                            <Input
+                              id="start-date"
+                              type="date"
+                              value={dateRange.start_date || ''}
+                              onChange={(e) => setDateRange(prev => ({ ...prev, start_date: e.target.value || null }))}
+                              className="h-8"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="end-date" className="text-xs">{t('filters.endDate')}</Label>
+                            <Input
+                              id="end-date"
+                              type="date"
+                              value={dateRange.end_date || ''}
+                              onChange={(e) => setDateRange(prev => ({ ...prev, end_date: e.target.value || null }))}
+                              className="h-8"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <DropdownMenuSeparator />
+
+                      {/* Apply Filters Button */}
+                      <DropdownMenuItem asChild>
+                        <Button onClick={loadSequences} className="w-full" size="sm">
+                          {t('filters.applyFilters')}
+                        </Button>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* Buttons Section */}
+                <div className="flex items-center gap-2">
+                  <Button onClick={handleCreate} className="h-9">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    {t('createNew')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={loadSequences}
+                    disabled={isRefreshing}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    <span className="sr-only">{t('refresh')}</span>
+                  </Button>
+                </div>
+              </div>
+            )}
           />
         </CardContent>
       </Card>
@@ -425,6 +447,7 @@ export default function SequencesPage() {
                           <SelectItem value="payment">{t('documentTypes.payment')}</SelectItem>
                           <SelectItem value="credit_note">{t('documentTypes.credit_note')}</SelectItem>
                           <SelectItem value="purchase_order">{t('documentTypes.purchase_order')}</SelectItem>
+                          <SelectItem value="miscellaneous">{t('documentTypes.miscellaneous')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

@@ -14,7 +14,6 @@ import { useTranslations } from 'next-intl';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
 import { MoreHorizontal, Printer, Send } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
 
 const getColumns = (
   t: (key: string) => string,
@@ -27,10 +26,14 @@ const getColumns = (
 
   const columns: ColumnDef<Payment>[] = [
     {
-      accessorKey: 'id',
+      accessorKey: 'doc_no',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('id')} />
+        <DataTableColumnHeader column={column} title={t('doc_no')} />
       ),
+      cell: ({ row }) => {
+        const docNo = row.getValue('doc_no') as string;
+        return docNo || 'N/A';
+      },
     },
     {
       accessorKey: 'user_name',
@@ -39,17 +42,12 @@ const getColumns = (
       ),
     },
     {
-      accessorKey: 'order_id',
+      accessorKey: 'order_doc_no',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('orderId')} />
+        <DataTableColumnHeader column={column} title={t('order_doc_no')} />
       ),
     },
-    {
-      accessorKey: 'quote_id',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('quoteId')} />
-      ),
-    },
+
     {
       accessorKey: 'payment_date',
       header: ({ column }) => (
@@ -115,13 +113,10 @@ const getColumns = (
       ),
       cell: ({ row }) => {
         const type = row.original.transaction_type;
-        return <Badge variant="secondary" className="capitalize">{tTransactionType(type)}</Badge>;
+        return <Badge variant="secondary" className="capitalize">{tTransactionType(type || 'direct_payment')}</Badge>;
       }
     },
-    {
-      accessorKey: 'reference_doc_id',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={t('reference_doc_id')} />,
-    },
+
   ];
 
   if (onPrint || onSendEmail) {
@@ -197,17 +192,16 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
         <DataTable
           columns={filteredColumns}
           data={payments}
-          filterColumnId="id"
+          filterColumnId="doc_no"
           filterPlaceholder={tPage('filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
           onCreate={onCreate ? () => onCreate() : undefined}
           createButtonLabel={tPage('createPrepaid')}
           columnTranslations={{
-            id: t('id'),
+            doc_no: t('doc_no'),
             user_name: t('user'),
-            order_id: t('orderId'),
-            quote_id: t('quoteId'),
+            order_doc_no: t('order_doc_no'),
             payment_date: t('date'),
             amount_applied: t('amount_applied'),
             source_amount: t('source_amount'),
@@ -215,7 +209,6 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
             exchange_rate: t('exchange_rate'),
             method: t('method'),
             transaction_type: t('transaction_type'),
-            reference_doc_id: t('reference_doc_id'),
           }}
         />
       </CardContent>

@@ -72,6 +72,7 @@ export type UserClinic = {
 
 export type Quote = {
   id: string;
+  doc_no?: string;
   user_id: string;
   total: number;
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'pending' | 'confirmed';
@@ -95,6 +96,7 @@ export type QuoteItem = {
 
 export type Order = {
   id: string;
+  doc_no?: string;
   user_id: string;
   quote_id: string;
   user_name?: string;
@@ -119,7 +121,10 @@ export type OrderItem = {
 
 export type Invoice = {
   id: string;
+  invoice_ref: string;
+  doc_no?: string;
   order_id: string;
+  order_doc_no?: string;
   quote_id: string;
   user_name: string;
   userEmail?: string;
@@ -145,7 +150,9 @@ export type InvoiceItem = {
 
 export type Payment = {
   id: string;
+  doc_no?: string;
   order_id: string;
+  order_doc_no?: string;
   invoice_id: string;
   quote_id: string;
   user_name: string;
@@ -461,7 +468,7 @@ export type CajaSesion = {
   user_name?: string;
   puntoDeCajaId?: string;
   cash_point_name?: string;
-  estado: 'OPEN' | 'CLOSE';
+  estado: 'OPEN' | 'CLOSE' | 'ABIERTA' | 'CERRADA';
   fechaApertura: string;
   fechaCierre?: string | null;
   montoApertura: number;
@@ -518,7 +525,7 @@ export type MiscellaneousCategory = {
 
 export type MiscellaneousTransaction = {
   id: string;
-  transaction_number: string;
+  doc_no: string;
   transaction_date: string;
   amount: number;
   currency: string;
@@ -697,7 +704,7 @@ export type Sequence = {
   document_type: 'invoice' | 'quote' | 'order' | 'payment' | 'credit_note' | 'purchase_order';
   pattern: string;
   current_counter: number;
-   reset_period: 'never' | 'yearly' | 'monthly' | 'daily';
+  reset_period: 'never' | 'yearly' | 'monthly' | 'daily';
   is_active: boolean;
   preview_example?: string;
   created_at?: string;
