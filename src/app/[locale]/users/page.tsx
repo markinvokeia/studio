@@ -43,7 +43,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { endOfDay, endOfMonth, endOfWeek, format, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Banknote, Check, CreditCard, DollarSign, Filter, KeyRound, Receipt, X } from 'lucide-react';
+import { AlertTriangle, Banknote, Check, ChevronDown, ChevronUp, CreditCard, DollarSign, Filter, KeyRound, Receipt, X } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
@@ -72,6 +73,8 @@ type GetUsersResponse = {
 };
 
 const UserStats = ({ user, t }: { user: User, t: (key: string) => string }) => {
+  const [isOpen, setIsOpen] = React.useState(true);
+
   const formatCurrency = (value: any, currency: 'USD' | 'UYU') => {
     const symbol = currency === 'USD' ? 'U$S' : '$U';
     const numericValue = Number(value) || 0;
@@ -79,42 +82,86 @@ const UserStats = ({ user, t }: { user: User, t: (key: string) => string }) => {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(numericValue);
-    return `${symbol} ${formattedValue}`;
+    return { symbol, formattedValue, full: `${symbol} ${formattedValue}` };
   };
 
-  const renderStatValue = (value: any) => {
-    const usdValue = value?.USD ?? 0;
-    const uyuValue = value?.UYU ?? 0;
+  const renderStatValue = (value: any, valueColor: string) => {
+    const usd = value?.USD ?? 0;
+    const uyu = value?.UYU ?? 0;
+    const usdFormatted = formatCurrency(usd, 'USD');
+    const uyuFormatted = formatCurrency(uyu, 'UYU');
 
     return (
-      <div className="text-lg font-bold">
-        <div>{formatCurrency(usdValue, 'USD')}</div>
-        <div>{formatCurrency(uyuValue, 'UYU')}</div>
+      <div className="flex flex-col leading-tight">
+        <span className={cn("text-sm font-bold tracking-tight", valueColor)}>
+          {uyuFormatted.full}
+        </span>
+        <span className="text-[11px] text-muted-foreground font-medium">
+          {usdFormatted.full}
+        </span>
       </div>
     );
   };
 
   const stats = [
-    { title: t('UsersPage.stats.totalInvoiced'), value: user.total_invoiced, icon: Receipt, color: 'text-blue-500' },
-    { title: t('UsersPage.stats.totalPaid'), value: user.total_paid, icon: DollarSign, color: 'text-green-500' },
-    { title: t('UsersPage.stats.currentDebt'), value: user.current_debt, icon: CreditCard, color: 'text-red-500' },
-    { title: t('UsersPage.stats.availableBalance'), value: user.available_balance, icon: Banknote, color: 'text-indigo-500' },
+    {
+      title: t('UsersPage.stats.totalInvoiced'),
+      value: user.total_invoiced,
+      icon: Receipt,
+      color: 'text-foreground'
+    },
+    {
+      title: t('UsersPage.stats.totalPaid'),
+      value: user.total_paid,
+      icon: DollarSign,
+      color: 'text-emerald-600'
+    },
+    {
+      title: t('UsersPage.stats.currentDebt'),
+      value: user.current_debt,
+      icon: CreditCard,
+      color: 'text-rose-600'
+    },
+    {
+      title: t('UsersPage.stats.availableBalance'),
+      value: user.available_balance,
+      icon: Banknote,
+      color: 'text-foreground'
+    },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      {stats.map(stat => (
-        <Card key={stat.title}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-            <stat.icon className={cn("h-4 w-4 text-muted-foreground", stat.color)} />
-          </CardHeader>
-          <CardContent>
-            {renderStatValue(stat.value)}
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+    <Collapsible
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className="mb-4"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+          {t('UsersPage.stats.title') || 'Resumen Financiero'}
+        </h4>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-accent/50">
+            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            <span className="sr-only">Toggle stats</span>
+          </Button>
+        </CollapsibleTrigger>
+      </div>
+      <CollapsibleContent className="transition-all">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {stats.map(stat => (
+            <Card key={stat.title} className="shadow-none border p-2 flex flex-col justify-between gap-1 overflow-hidden bg-card/50">
+              <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-tight truncate">
+                {stat.title}
+              </span>
+              <div className="mt-0.5">
+                {renderStatValue(stat.value, stat.color)}
+              </div>
+            </Card>
+          ))}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
 
@@ -596,10 +643,10 @@ export default function UsersPage() {
           minLeftSize={20}
           isRightPanelOpen={!!selectedUser}
           leftPanel={
-            <Card className="h-full flex flex-col">
-              <CardHeader className="flex-none">
-                <CardTitle>{t('UsersPage.title')}</CardTitle>
-                <CardDescription>{t('UsersPage.description')}</CardDescription>
+            <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+              <CardHeader className="flex-none p-4 pb-2">
+                <CardTitle className="text-lg lg:text-xl">{t('UsersPage.title')}</CardTitle>
+                <CardDescription className="text-xs">{t('UsersPage.description')}</CardDescription>
               </CardHeader>
               <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
                 <DataTable
@@ -623,6 +670,7 @@ export default function UsersPage() {
                   customToolbar={(table) => (
                     <DataTableAdvancedToolbar
                       table={table}
+                      isCompact={!!selectedUser}
                       filterPlaceholder={t('UsersPage.filterPlaceholder')}
                       searchQuery={(columnFilters.find(f => f.id === 'email')?.value as string) || ''}
                       onSearchChange={(value) => {
@@ -666,41 +714,43 @@ export default function UsersPage() {
           }
           rightPanel={
             selectedUser && (
-              <Card className="h-full flex flex-col">
-                <CardHeader className="flex flex-row items-start justify-between flex-none">
-                  <div>
-                    <CardTitle>{t('UsersPage.detailsFor', { name: selectedUser.name })}</CardTitle>
+              <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between flex-none p-4 pb-2">
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="text-lg lg:text-xl truncate">
+                      {t('UsersPage.detailsFor', { name: selectedUser.name })}
+                    </CardTitle>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 ml-2">
                     {canSetFirstPassword && (
-                      <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
-                        <KeyRound className="mr-2 h-4 w-4" />
-                        {t('UsersPage.setInitialPassword')}
+                      <Button variant="outline" size="sm" className="hidden sm:flex h-8 px-2" onClick={handleSendInitialPassword}>
+                        <KeyRound className="mr-2 h-3.5 w-3.5" />
+                        <span className="text-xs">{t('UsersPage.setInitialPassword')}</span>
                       </Button>
                     )}
-                    <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors" onClick={handleCloseDetails}>
                       <X className="h-5 w-5" />
                       <span className="sr-only">{t('UsersPage.close')}</span>
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
+                <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   <UserStats user={selectedUser} t={t} />
                   <Tabs defaultValue="history" className="w-full flex-1 flex flex-col min-h-0">
-                    <TabsList className="h-auto items-center justify-start flex-wrap flex-none">
-                      <TabsTrigger value="history">{t('UsersPage.tabs.history')}</TabsTrigger>
+                    <TabsList className="h-auto items-center justify-start flex-wrap flex-none bg-muted/50 p-1 gap-1">
+                      <TabsTrigger value="history" className="text-xs px-2 py-1">{t('UsersPage.tabs.history')}</TabsTrigger>
                       {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                        <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
+                        <TabsTrigger value="services" className="text-xs px-2 py-1">{t('UsersPage.tabs.services')}</TabsTrigger>
                       )}
-                      <TabsTrigger value="quotes">{t('UsersPage.tabs.quotes')}</TabsTrigger>
-                      <TabsTrigger value="orders">{t('UsersPage.tabs.orders')}</TabsTrigger>
-                      <TabsTrigger value="invoices">{t('UsersPage.tabs.invoices')}</TabsTrigger>
-                      <TabsTrigger value="payments">{t('UsersPage.tabs.payments')}</TabsTrigger>
-                      <TabsTrigger value="appointments">{t('UsersPage.tabs.appointments')}</TabsTrigger>
-                      <TabsTrigger value="messages">{t('UsersPage.tabs.messages')}</TabsTrigger>
-                      <TabsTrigger value="logs">{t('UsersPage.tabs.logs')}</TabsTrigger>
+                      <TabsTrigger value="quotes" className="text-xs px-2 py-1">{t('UsersPage.tabs.quotes')}</TabsTrigger>
+                      <TabsTrigger value="orders" className="text-xs px-2 py-1">{t('UsersPage.tabs.orders')}</TabsTrigger>
+                      <TabsTrigger value="invoices" className="text-xs px-2 py-1">{t('UsersPage.tabs.invoices')}</TabsTrigger>
+                      <TabsTrigger value="payments" className="text-xs px-2 py-1">{t('UsersPage.tabs.payments')}</TabsTrigger>
+                      <TabsTrigger value="appointments" className="text-xs px-2 py-1">{t('UsersPage.tabs.appointments')}</TabsTrigger>
+                      <TabsTrigger value="messages" className="text-xs px-2 py-1">{t('UsersPage.tabs.messages')}</TabsTrigger>
+                      <TabsTrigger value="logs" className="text-xs px-2 py-1">{t('UsersPage.tabs.logs')}</TabsTrigger>
                     </TabsList>
-                    <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-4">
+                    <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-3">
                       <TabsContent value="history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                         <MedicalHistory user={selectedUser} />
                       </TabsContent>

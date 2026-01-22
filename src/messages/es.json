@@ -521,6 +521,7 @@
     "UsersPage": {
         "title": "Pacientes",
         "stats": {
+            "title": "Resumen finaciero",
             "totalInvoiced": "Total Facturado",
             "totalPaid": "Total Pagado",
             "currentDebt": "Deuda Actual",

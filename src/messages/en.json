@@ -521,6 +521,7 @@
   "UsersPage": {
     "title": "Patients",
     "stats": {
+      "title": "Financial Summary",
       "totalInvoiced": "Total Invoiced",
       "totalPaid": "Total Paid",
       "currentDebt": "Current Debt",

@@ -30,19 +30,42 @@ export function TwoPanelLayout({
     className,
 }: TwoPanelLayoutProps) {
     const [mounted, setMounted] = React.useState(false);
+    const [isMobile, setIsMobile] = React.useState(false);
 
     React.useEffect(() => {
         setMounted(true);
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 1024);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
     if (!mounted) {
         return (
-            <div className={cn("grid grid-cols-1 gap-4 lg:grid-cols-5 h-full", className)}>
-                <div className={cn("h-full min-h-0 overflow-hidden", isRightPanelOpen ? "lg:col-span-2" : "lg:col-span-5")}>
+            <div className={cn("grid grid-cols-1 lg:grid-cols-5 h-full", className)}>
+                <div className={cn("h-full min-h-0 overflow-hidden", isRightPanelOpen ? "hidden lg:block lg:col-span-2" : "lg:col-span-5")}>
                     {leftPanel}
                 </div>
                 {isRightPanelOpen && (
                     <div className="lg:col-span-3 h-full min-h-0 overflow-hidden">
+                        {rightPanel}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    if (isMobile) {
+        return (
+            <div className={cn("flex-1 w-full overflow-hidden flex flex-col min-h-0", className)}>
+                {!isRightPanelOpen ? (
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                        {leftPanel}
+                    </div>
+                ) : (
+                    <div className="flex-1 min-h-0 overflow-hidden">
                         {rightPanel}
                     </div>
                 )}
@@ -88,3 +111,4 @@ export function TwoPanelLayout({
         </div>
     );
 }
+
