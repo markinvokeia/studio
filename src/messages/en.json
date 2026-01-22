@@ -833,9 +833,12 @@
       "failedToLoadServices": "Could not load services.",
       "failedToLoadServiceData": "Could not load service data for editing."
     },
-    "validation": {
+"validation": {
       "userRequired": "An user is required",
-      "serviceRequired": "A service is required"
+      "serviceRequired": "A service is required",
+      "totalPositive": "Total must be a positive number",
+      "quantityMinOne": "Quantity must be at least 1",
+      "unitPricePositive": "Unit price must be positive"
     },
     "deleteQuoteDialog": {
       "title": "Delete Quote",
@@ -848,8 +851,27 @@
       "description": "Delete an item",
       "cancel": "Cancel",
       "confirm": "Confirm"
+},
+    "close": "Close details",
+    "errors": {
+      "errorTitle": "Error",
+      "cannotEditQuote": "Cannot Edit Quote",
+      "cannotEditQuoteDetail": "You can only edit quotes that are in \"Draft\" status.",
+      "cannotDeleteQuote": "Cannot Delete Quote",
+      "cannotDeleteQuoteDetail": "You can only delete quotes that are in \"Draft\" status.",
+      "failedToSaveQuote": "Failed to save quote",
+      "failedToDeleteQuote": "Failed to delete quote",
+      "failedToSaveQuoteItem": "Failed to save quote item.",
+      "failedToDeleteQuoteItem": "Failed to delete quote item.",
+      "failedToLoadServices": "Could not load services.",
+      "failedToLoadServiceData": "Could not load service data for editing."
     },
-    "close": "Close details"
+    "common": {
+      "closeDetails": "Close details"
+    },
+    "ui": {
+      "orderItemsFor": "Order Items for"
+    }
   },
   "InvoicesPage": {
     "title": "Invoices",

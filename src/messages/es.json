@@ -833,9 +833,12 @@
             "failedToLoadServices": "No se pudieron cargar los servicios.",
             "failedToLoadServiceData": "No se pudieron cargar los datos del servicio para editar."
         },
-        "validation": {
+"validation": {
             "userRequired": "Un usuario es obligatorio",
-            "serviceRequired": "Un servicio es obligatorio"
+            "serviceRequired": "Un servicio es obligatorio",
+            "totalPositive": "El total debe ser un número positivo",
+            "quantityMinOne": "La cantidad debe ser al menos 1",
+            "unitPricePositive": "El precio unitario debe ser positivo"
         },
         "deleteQuoteDialog": {
             "title": "Eliminar Presupuesto",
@@ -848,8 +851,27 @@
             "description": "Eliminar un artículo",
             "cancel": "Cancelar",
             "confirm": "Confirmar"
+},
+        "close": "Close details",
+        "errors": {
+            "errorTitle": "Error",
+            "cannotEditQuote": "No se puede editar el presupuesto",
+            "cannotEditQuoteDetail": "Solo puede editar presupuestos que estén en estado \"Borrador\".",
+            "cannotDeleteQuote": "No se puede eliminar el presupuesto",
+            "cannotDeleteQuoteDetail": "Solo puede eliminar presupuestos que estén en estado \"Borrador\".",
+            "failedToSaveQuote": "Error al guardar presupuesto",
+            "failedToDeleteQuote": "Error al eliminar presupuesto",
+            "failedToSaveQuoteItem": "Error al guardar artículo del presupuesto.",
+            "failedToDeleteQuoteItem": "Error al eliminar artículo del presupuesto.",
+            "failedToLoadServices": "No se pudieron cargar los servicios.",
+            "failedToLoadServiceData": "No se pudieron cargar los datos del servicio para editar."
         },
-        "close": "Close details"
+        "common": {
+            "closeDetails": "Cerrar detalles"
+        },
+        "ui": {
+            "orderItemsFor": "Artículos de la orden para"
+        }
     },
     "InvoicesPage": {
         "title": "Facturas",
