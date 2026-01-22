@@ -657,9 +657,9 @@ export default function QuotesPage() {
     }, [watchedServiceId, watchedQuantity, watchedExchangeRate, allServices, selectedQuote, quoteItemForm]);
 
     return (
-        <>
-            <div className="relative overflow-hidden h-full">
-                <div className={cn("transition-all duration-300 w-full h-full")}>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden pr-2 pb-4">
+            <div className="relative flex-1 min-h-0">
+                <div className={cn("transition-all duration-300 w-full h-full flex flex-col")}>
                     <RecentQuotesTable
                         quotes={quotes}
                         onRowSelectionChange={handleRowSelectionChange}
@@ -1054,6 +1054,6 @@ export default function QuotesPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </>
+        </div>
     );
 }

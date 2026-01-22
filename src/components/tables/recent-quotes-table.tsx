@@ -268,13 +268,26 @@ interface RecentQuotesTableProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   rowSelection?: RowSelectionState;
-   setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
   onEdit?: (quote: Quote) => void;
   onDelete?: (quote: Quote) => void;
   onQuoteAction?: (quote: Quote, action: 'confirm' | 'reject') => void;
+  className?: string;
 }
 
-export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRefresh, isRefreshing, rowSelection, setRowSelection, onEdit = () => { }, onDelete = () => { }, onQuoteAction = () => { } }: RecentQuotesTableProps) {
+export function RecentQuotesTable({
+  quotes,
+  onRowSelectionChange,
+  onCreate,
+  onRefresh,
+  isRefreshing,
+  rowSelection,
+  setRowSelection,
+  onEdit = () => { },
+  onDelete = () => { },
+  onQuoteAction = () => { },
+  className
+}: RecentQuotesTableProps) {
   const t = useTranslations();
   const { toast } = useToast();
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
@@ -363,7 +376,7 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
   };
 
   const columns = React.useMemo(() => getColumns(t, onEdit, onDelete, onQuoteAction, handlePrintQuote, handleSendEmailClick), [t, onEdit, onDelete, onQuoteAction]);
-  
+
   const table = useReactTable({
     data: quotes,
     columns,
@@ -404,26 +417,26 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
 
   return (
     <>
-      <Card className="h-full flex flex-col">
-        <CardHeader>
+      <Card className={cn("flex-1 flex flex-col min-h-0", className)}>
+        <CardHeader className="flex-none">
           <div className="flex items-center gap-2">
             <DocumentTextIcon className="h-6 w-6 text-amber-500" />
             <CardTitle>{t('RecentQuotesTable.title')}</CardTitle>
           </div>
           <CardDescription>{t('RecentQuotesTable.description')}</CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col min-h-0">
-          <div className="flex flex-col h-full space-y-4">
-             <DataTableToolbar
-                table={table}
-                filterColumnId="user_name"
-                filterPlaceholder={t('RecentQuotesTable.filterPlaceholder')}
-                onCreate={onCreate}
-                onRefresh={onRefresh}
-                isRefreshing={isRefreshing}
-                columnTranslations={columnTranslations}
-              />
-            <div className="rounded-md border overflow-y-auto flex-1 min-h-0 relative">
+        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="flex flex-col flex-1 min-h-0 space-y-4 overflow-hidden">
+            <DataTableToolbar
+              table={table}
+              filterColumnId="user_name"
+              filterPlaceholder={t('RecentQuotesTable.filterPlaceholder')}
+              onCreate={onCreate}
+              onRefresh={onRefresh}
+              isRefreshing={isRefreshing}
+              columnTranslations={columnTranslations}
+            />
+            <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
               <table className={cn("w-full caption-bottom text-sm")}>
                 <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
                   {table.getHeaderGroups().map((headerGroup) => (
@@ -434,9 +447,9 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
                             {header.isPlaceholder
                               ? null
                               : flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext()
-                                )}
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
                           </TableHead>
                         )
                       })}
@@ -450,10 +463,10 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
                         key={row.id}
                         data-state={row.getIsSelected() && 'selected'}
                         onClick={() => {
-                            if (onRowSelectionChange) {
-                                table.toggleAllPageRowsSelected(false);
-                                row.toggleSelected(true);
-                            }
+                          if (onRowSelectionChange) {
+                            table.toggleAllPageRowsSelected(false);
+                            row.toggleSelected(true);
+                          }
                         }}
                         className={onRowSelectionChange ? 'cursor-pointer' : ''}
                       >
@@ -480,7 +493,9 @@ export function RecentQuotesTable({ quotes, onRowSelectionChange, onCreate, onRe
                 </TableBody>
               </table>
             </div>
-             <DataTablePagination table={table} />
+            <div className="flex-none">
+              <DataTablePagination table={table} />
+            </div>
           </div>
         </CardContent>
       </Card>

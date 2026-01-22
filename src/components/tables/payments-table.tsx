@@ -192,8 +192,8 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
   const filteredColumns = columns.filter(col => !columnsToHide.includes((col as any).accessorKey));
 
   return (
-    <Card>
-      <CardContent className="p-4">
+    <Card className="flex-1 flex flex-col min-h-0">
+      <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden">
         <DataTable
           columns={filteredColumns}
           data={payments}

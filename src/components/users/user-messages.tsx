@@ -94,7 +94,7 @@ export function UserMessages({ userId }: UserMessagesProps) {
 
   if (isLoading) {
     return (
-      <div className="space-y-4 pt-4">
+      <div className="flex-1 flex flex-col min-h-0 space-y-4 pt-4">
         <Skeleton className="h-16 w-3/4 self-end" />
         <Skeleton className="h-16 w-3/4" />
         <Skeleton className="h-16 w-3/4 self-end" />
@@ -103,46 +103,44 @@ export function UserMessages({ userId }: UserMessagesProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="p-0">
-        <ScrollArea className="h-[400px] w-full p-4" viewportRef={viewportRef}>
-          <div className="flex flex-col gap-4">
-            {messages.map((message) => (
+    <div className="flex-1 flex flex-col min-h-0">
+      <ScrollArea className="flex-1 w-full p-4" viewportRef={viewportRef}>
+        <div className="flex flex-col gap-4">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={cn(
+                'flex max-w-[80%] flex-col gap-1',
+                message.sender === 'user' ? 'self-end items-end' : 'self-start items-start'
+              )}
+            >
               <div
-                key={message.id}
                 className={cn(
-                  'flex max-w-[80%] flex-col gap-1',
-                  message.sender === 'user' ? 'self-end items-end' : 'self-start items-start'
+                  'rounded-lg p-3 text-sm',
+                  message.sender === 'user'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted'
                 )}
               >
-                <div
-                  className={cn(
-                    'rounded-lg p-3 text-sm',
-                    message.sender === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
-                  )}
-                >
-                  <p className="font-semibold capitalize">
-                    {message.sender === 'user'
-                      ? t('userVia', { channel: message.channel || t('website') })
-                      : t('systemResponse')}
-                  </p>
-                  <div dangerouslySetInnerHTML={formatMessageContent(message.content)} />
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {formatDateTime(message.timestamp)}
-                </span>
+                <p className="font-semibold capitalize">
+                  {message.sender === 'user'
+                    ? t('userVia', { channel: message.channel || t('website') })
+                    : t('systemResponse')}
+                </p>
+                <div dangerouslySetInnerHTML={formatMessageContent(message.content)} />
               </div>
-            ))}
-            {messages.length === 0 && (
-              <div className="flex h-full items-center justify-center text-muted-foreground">
-                {t('noMessages')}
-              </div>
-            )}
-          </div>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+              <span className="text-xs text-muted-foreground">
+                {formatDateTime(message.timestamp)}
+              </span>
+            </div>
+          ))}
+          {messages.length === 0 && (
+            <div className="flex h-full items-center justify-center text-muted-foreground min-h-[200px]">
+              {t('noMessages')}
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
   );
 }

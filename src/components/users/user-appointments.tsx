@@ -136,7 +136,7 @@ export function UserAppointments({ user }: UserAppointmentsProps) {
 
   if (isLoading) {
     return (
-      <div className="space-y-2 pt-4">
+      <div className="flex-1 flex flex-col min-h-0 space-y-2 pt-4">
         <Skeleton className="h-8 w-full" />
         <Skeleton className="h-12 w-full" />
         <Skeleton className="h-12 w-full" />
@@ -145,21 +145,17 @@ export function UserAppointments({ user }: UserAppointmentsProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <DataTable
-          columns={columns}
-          data={appointments}
-          filterColumnId="service_name"
-          filterPlaceholder={tAppointmentsPage('filterByService')}
-          columnTranslations={{
-            service_name: t('service'),
-            date: t('date'),
-            time: t('time'),
-            status: t('status'),
-          }}
-        />
-      </CardContent>
-    </Card>
+    <DataTable
+      columns={columns}
+      data={appointments}
+      filterColumnId="service_name"
+      filterPlaceholder={tAppointmentsPage('filterByService')}
+      columnTranslations={{
+        service_name: t('service'),
+        date: t('date'),
+        time: t('time'),
+        status: t('status'),
+      }}
+    />
   );
 }

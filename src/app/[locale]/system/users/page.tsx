@@ -28,7 +28,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { User, UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import api from '@/services/api';
+import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
@@ -38,6 +38,8 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { SystemUserColumnsWrapper } from './columns';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { DataTableAdvancedToolbar, FilterOption } from '@/components/ui/data-table-advanced-toolbar';
 
 
 const userFormSchema = (t: (key: string) => string) => z.object({
@@ -336,105 +338,146 @@ export default function SystemUsersPage() {
     }
   };
 
+  const filtersOptionList: FilterOption[] = [
+    // Add any system user specific filters here if needed
+  ];
+
+  const handleClearFilters = () => {
+    setColumnFilters([]);
+  };
+
   return (
     <>
-      <div className={cn("grid grid-cols-1 gap-4", selectedUser ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
-        <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-2" : "lg:col-span-5")}>
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('SystemUsersPage.title')}</CardTitle>
-              <CardDescription>{t('SystemUsersPage.description')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DataTable
-                columns={userColumns}
-                data={users}
-                filterColumnId="email"
-                filterPlaceholder={t('SystemUsersPage.filterPlaceholder')}
-                onRowSelectionChange={handleRowSelectionChange}
-                enableSingleRowSelection={true}
-                onCreate={handleCreate}
-                onRefresh={loadUsers}
-                isRefreshing={isRefreshing}
-                rowSelection={rowSelection}
-                setRowSelection={setRowSelection}
-                pageCount={Math.ceil(userCount / pagination.pageSize)}
-                pagination={pagination}
-                onPaginationChange={setPagination}
-                manualPagination={true}
-                columnFilters={columnFilters}
-                onColumnFiltersChange={setColumnFilters}
-              />
-            </CardContent>
-          </Card>
-        </div>
-
-        {selectedUser && (
-          <div className="lg:col-span-3">
-            <Card>
-              <CardHeader className="flex flex-row items-start justify-between">
-                <div>
-                  <CardTitle>{t('SystemUsersPage.detailsFor', { name: selectedUser.name })}</CardTitle>
-                </div>
-                <div className="flex items-center gap-2">
-                  {canSetFirstPassword && (
-                    <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
-                      <KeyRound className="mr-2 h-4 w-4" />
-                      {t('SystemUsersPage.setInitialPassword')}
-                    </Button>
-                  )}
-                  <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
-                    <X className="h-5 w-5" />
-                    <span className="sr-only">{t('SystemUsersPage.close')}</span>
-                  </Button>
-                </div>
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <TwoPanelLayout
+          isRightPanelOpen={!!selectedUser}
+          leftPanel={
+            <Card className="h-full flex flex-col">
+              <CardHeader className="flex-none">
+                <CardTitle>{t('SystemUsersPage.title')}</CardTitle>
+                <CardDescription>{t('SystemUsersPage.description')}</CardDescription>
               </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="roles" className="w-full">
-                  <TabsList className="h-auto items-center justify-start flex-wrap">
-                    <TabsTrigger value="roles">{t('SystemUsersPage.tabs.roles')}</TabsTrigger>
-                    {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                      <TabsTrigger value="services">{t('SystemUsersPage.tabs.services')}</TabsTrigger>
-                    )}
-                    <TabsTrigger value="quotes">{t('SystemUsersPage.tabs.quotes')}</TabsTrigger>
-                    <TabsTrigger value="appointments">{t('SystemUsersPage.tabs.appointments')}</TabsTrigger>
-                    <TabsTrigger value="messages">{t('SystemUsersPage.tabs.messages')}</TabsTrigger>
-                    <TabsTrigger value="logs">{t('SystemUsersPage.tabs.logs')}</TabsTrigger>
-                    <TabsTrigger value="history">{t('SystemUsersPage.tabs.history')}</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="roles">
-                    <UserRoles
-                      userId={selectedUser.id}
-                      initialUserRoles={selectedUserRoles}
-                      isLoading={isRolesLoading}
-                      onRolesChange={() => loadUserRoles(selectedUser.id)}
+              <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
+                <DataTable
+                  columns={userColumns}
+                  data={users}
+                  filterColumnId="email"
+                  filterPlaceholder={t('SystemUsersPage.filterPlaceholder')}
+                  onRowSelectionChange={handleRowSelectionChange}
+                  enableSingleRowSelection={true}
+                  onCreate={handleCreate}
+                  onRefresh={loadUsers}
+                  isRefreshing={isRefreshing}
+                  rowSelection={rowSelection}
+                  setRowSelection={setRowSelection}
+                  pageCount={Math.ceil(userCount / pagination.pageSize)}
+                  pagination={pagination}
+                  onPaginationChange={setPagination}
+                  manualPagination={true}
+                  columnFilters={columnFilters}
+                  onColumnFiltersChange={setColumnFilters}
+                  customToolbar={(table) => (
+                    <DataTableAdvancedToolbar
+                      table={table}
+                      filterPlaceholder={t('SystemUsersPage.filterPlaceholder')}
+                      searchQuery={(columnFilters.find(f => f.id === 'email')?.value as string) || ''}
+                      onSearchChange={(value) => {
+                        setColumnFilters((prev) => {
+                          const newFilters = prev.filter((f) => f.id !== 'email');
+                          if (value) {
+                            newFilters.push({ id: 'email', value });
+                          }
+                          return newFilters;
+                        });
+                      }}
+                      filters={filtersOptionList}
+                      onClearFilters={handleClearFilters}
+                      onCreate={handleCreate}
+                      onRefresh={loadUsers}
+                      isRefreshing={isRefreshing}
+                      extraButtons={null}
                     />
-                  </TabsContent>
-                  {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                    <TabsContent value="services">
-                      <UserServices userId={selectedUser.id} isSalesUser={true} />
-                    </TabsContent>
                   )}
-                  <TabsContent value="quotes">
-                    <UserQuotes userId={selectedUser.id} />
-                  </TabsContent>
-                  <TabsContent value="appointments">
-                    <UserAppointments user={selectedUser} />
-                  </TabsContent>
-                  <TabsContent value="messages">
-                    <UserMessages userId={selectedUser.id} />
-                  </TabsContent>
-                  <TabsContent value="logs">
-                    <UserLogs userId={selectedUser.id} />
-                  </TabsContent>
-                  <TabsContent value="history">
-                    <MedicalHistory user={selectedUser} />
-                  </TabsContent>
-                </Tabs>
+                  columnTranslations={{
+                    name: t('SystemUserColumns.name'),
+                    email: t('SystemUserColumns.email'),
+                    phone_number: t('SystemUserColumns.phone'),
+                    is_active: t('SystemUserColumns.status'),
+                    roles: t('SystemUserColumns.roles'),
+                  }}
+                />
               </CardContent>
             </Card>
-          </div>
-        )}
+          }
+          rightPanel={
+            selectedUser && (
+              <Card className="h-full flex flex-col">
+                <CardHeader className="flex flex-row items-start justify-between flex-none">
+                  <div>
+                    <CardTitle>{t('SystemUsersPage.detailsFor', { name: selectedUser.name })}</CardTitle>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {canSetFirstPassword && (
+                      <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
+                        <KeyRound className="mr-2 h-4 w-4" />
+                        {t('SystemUsersPage.setInitialPassword')}
+                      </Button>
+                    )}
+                    <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
+                      <X className="h-5 w-5" />
+                      <span className="sr-only">{t('SystemUsersPage.close')}</span>
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
+                  <Tabs defaultValue="roles" className="w-full flex-1 flex flex-col min-h-0">
+                    <TabsList className="h-auto items-center justify-start flex-wrap flex-none">
+                      <TabsTrigger value="roles">{t('SystemUsersPage.tabs.roles')}</TabsTrigger>
+                      {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
+                        <TabsTrigger value="services">{t('SystemUsersPage.tabs.services')}</TabsTrigger>
+                      )}
+                      <TabsTrigger value="quotes">{t('SystemUsersPage.tabs.quotes')}</TabsTrigger>
+                      <TabsTrigger value="appointments">{t('SystemUsersPage.tabs.appointments')}</TabsTrigger>
+                      <TabsTrigger value="messages">{t('SystemUsersPage.tabs.messages')}</TabsTrigger>
+                      <TabsTrigger value="logs">{t('SystemUsersPage.tabs.logs')}</TabsTrigger>
+                      <TabsTrigger value="history">{t('SystemUsersPage.tabs.history')}</TabsTrigger>
+                    </TabsList>
+                    <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-4">
+                      <TabsContent value="roles" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                        <UserRoles
+                          userId={selectedUser.id}
+                          initialUserRoles={selectedUserRoles}
+                          isLoading={isRolesLoading}
+                          onRolesChange={() => loadUserRoles(selectedUser.id)}
+                        />
+                      </TabsContent>
+                      {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
+                        <TabsContent value="services" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <UserServices userId={selectedUser.id} isSalesUser={true} />
+                        </TabsContent>
+                      )}
+                      <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                        <UserQuotes userId={selectedUser.id} />
+                      </TabsContent>
+                      <TabsContent value="appointments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                        <UserAppointments user={selectedUser} />
+                      </TabsContent>
+                      <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                        <UserMessages userId={selectedUser.id} />
+                      </TabsContent>
+                      <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                        <UserLogs userId={selectedUser.id} />
+                      </TabsContent>
+                      <TabsContent value="history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                        <MedicalHistory user={selectedUser} />
+                      </TabsContent>
+                    </div>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            )
+          }
+        />
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

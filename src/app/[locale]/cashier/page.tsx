@@ -180,91 +180,107 @@ export default function CashierPage() {
     }, [activeSession, fetchSessionMovements]);
 
     if (isLoading) {
-        return <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-[200px] w-full" />)}
-        </div>;
+        return (
+            <div className="flex-1 overflow-y-auto pr-2 pb-4 min-h-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-[200px] w-full" />)}
+                </div>
+            </div>
+        );
     }
 
     if (serverError) {
         return (
-            <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>{t('toast.error')}</AlertTitle>
-                <AlertDescription>{serverError}</AlertDescription>
-            </Alert>
+            <div className="flex-1 overflow-y-auto pr-2 pb-4 min-h-0">
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{t('toast.error')}</AlertTitle>
+                    <AlertDescription>{serverError}</AlertDescription>
+                </Alert>
+            </div>
         );
     }
 
     if (activeSession) {
-        if (showClosingWizard) {
-            return <CloseSessionWizard
-                currentStep={closeWizardStep}
-                setCurrentStep={setCloseWizardStep}
-                onExitWizard={() => {
-                    setShowClosingWizard(false);
-                    setCloseWizardStep('REVIEW');
-                    setClosedSessionReport(null);
-                    setActiveSession(null);
-                    checkActiveSession();
-                    fetchCashPointStatus();
-                }}
-                activeSession={activeSession}
-                sessionMovements={sessionMovements}
-                uyuDenominations={uyuDenominations}
-                setUyuDenominations={setUyuDenominations}
-                usdDenominations={usdDenominations}
-                setUsdDenominations={setUsdDenominations}
-                closedSessionReport={closedSessionReport}
-                setClosedSessionReport={setClosedSessionReport}
-            />
-        }
-
         return (
-            <ActiveSessionDashboard
-                session={activeSession}
-                movements={sessionMovements}
-                onCloseSession={() => setShowClosingWizard(true)}
-                onViewAllCashPoints={() => {
-                    setActiveSession(null);
-                    fetchCashPointStatus();
-                }}
-            />
+            <div className="flex-1 overflow-y-auto pr-2 pb-4 min-h-0">
+                {showClosingWizard ? (
+                    <CloseSessionWizard
+                        currentStep={closeWizardStep}
+                        setCurrentStep={setCloseWizardStep}
+                        onExitWizard={() => {
+                            setShowClosingWizard(false);
+                            setCloseWizardStep('REVIEW');
+                            setClosedSessionReport(null);
+                            setActiveSession(null);
+                            checkActiveSession();
+                            fetchCashPointStatus();
+                        }}
+                        activeSession={activeSession}
+                        sessionMovements={sessionMovements}
+                        uyuDenominations={uyuDenominations}
+                        setUyuDenominations={setUyuDenominations}
+                        usdDenominations={usdDenominations}
+                        setUsdDenominations={setUsdDenominations}
+                        closedSessionReport={closedSessionReport}
+                        setClosedSessionReport={setClosedSessionReport}
+                    />
+                ) : (
+                    <ActiveSessionDashboard
+                        session={activeSession}
+                        movements={sessionMovements}
+                        onCloseSession={() => setShowClosingWizard(true)}
+                        onViewAllCashPoints={() => {
+                            setActiveSession(null);
+                            fetchCashPointStatus();
+                        }}
+                    />
+                )}
+            </div>
         );
     }
 
     if (showOpeningWizard) {
-        return <OpenSessionWizard
-            currentStep={openWizardStep}
-            setCurrentStep={setOpenWizardStep}
-            onExitWizard={(newSession) => {
-                setShowOpeningWizard(false);
-                setOpenWizardStep('CONFIG');
-                if (newSession) {
-                    setActiveSession(newSession);
-                    checkActiveSession();
-                }
-                fetchCashPointStatus();
-            }}
-            sessionData={openingSessionData}
-            setSessionData={setOpeningSessionData}
-            uyuDenominations={uyuDenominations}
-            setUyuDenominations={setUyuDenominations}
-            usdDenominations={usdDenominations}
-            setUsdDenominations={setUsdDenominations}
-            toast={toast}
-        />
+        return (
+            <div className="flex-1 overflow-y-auto pr-2 pb-4 min-h-0">
+                <OpenSessionWizard
+                    currentStep={openWizardStep}
+                    setCurrentStep={setOpenWizardStep}
+                    onExitWizard={(newSession) => {
+                        setShowOpeningWizard(false);
+                        setOpenWizardStep('CONFIG');
+                        if (newSession) {
+                            setActiveSession(newSession);
+                            checkActiveSession();
+                        }
+                        fetchCashPointStatus();
+                    }}
+                    sessionData={openingSessionData}
+                    setSessionData={setOpeningSessionData}
+                    uyuDenominations={uyuDenominations}
+                    setUyuDenominations={setUyuDenominations}
+                    usdDenominations={usdDenominations}
+                    setUsdDenominations={setUsdDenominations}
+                    toast={toast}
+                />
+            </div>
+        );
     }
 
-    return <OpenSessionDashboard
-        cashPoints={cashPoints}
-        onStartOpening={(cashPoint) => {
-            setOpeningSessionData({ puntoDeCajaId: cashPoint.id, cash_point_name: cashPoint.name, currency: 'UYU', date_rate: 40 });
-            setShowOpeningWizard(true);
-        }}
-        onViewSession={(session) => {
-            setActiveSession(session);
-        }}
-    />;
+    return (
+        <div className="flex-1 overflow-y-auto pr-2 pb-4 min-h-0">
+            <OpenSessionDashboard
+                cashPoints={cashPoints}
+                onStartOpening={(cashPoint) => {
+                    setOpeningSessionData({ puntoDeCajaId: cashPoint.id, cash_point_name: cashPoint.name, currency: 'UYU', date_rate: 40 });
+                    setShowOpeningWizard(true);
+                }}
+                onViewSession={(session) => {
+                    setActiveSession(session);
+                }}
+            />
+        </div>
+    );
 }
 
 

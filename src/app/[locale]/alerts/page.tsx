@@ -176,7 +176,7 @@ function AlertsCenterPageContent() {
         loadActions();
     }, [page, limit]);
 
-const markAsCompleted = React.useCallback(async (alertIds: string[]) => {
+    const markAsCompleted = React.useCallback(async (alertIds: string[]) => {
         setBulkActionLoading('complete');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_COMPLETE, { ids: alertIds });
@@ -192,7 +192,7 @@ const markAsCompleted = React.useCallback(async (alertIds: string[]) => {
         }
     }, []);
 
-const markAsIgnored = async (alertIds: string[], reason: string) => {
+    const markAsIgnored = async (alertIds: string[], reason: string) => {
         setBulkActionLoading('ignore');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_IGNORE, { ids: alertIds, reason });
@@ -208,7 +208,7 @@ const markAsIgnored = async (alertIds: string[], reason: string) => {
         }
     };
 
-const snoozeAlerts = async (alertIds: string[], snoozeUntil: string, reason: string) => {
+    const snoozeAlerts = async (alertIds: string[], snoozeUntil: string, reason: string) => {
         setBulkActionLoading('snooze');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SNOOZE, { ids: alertIds, snooze_until: snoozeUntil, reason });
@@ -224,7 +224,7 @@ const snoozeAlerts = async (alertIds: string[], snoozeUntil: string, reason: str
         }
     };
 
-const sendEmail = React.useCallback(async (alertIds: string[]) => {
+    const sendEmail = React.useCallback(async (alertIds: string[]) => {
         setBulkActionLoading('email');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SEND_EMAIL, { ids: alertIds });
@@ -275,8 +275,8 @@ const sendEmail = React.useCallback(async (alertIds: string[]) => {
             setSelectedAlerts(prev => [...new Set([...prev, ...alertIds])]);
         } else {
             setSelectedAlerts(prev => prev.filter(id => !alertIds.includes(id)));
-    };
-}
+        };
+    }
 
     const getCategoryName = (categoryId: string | undefined): string => {
         if (!categoryId) return 'DEFAULT';
@@ -313,7 +313,7 @@ const sendEmail = React.useCallback(async (alertIds: string[]) => {
     };
 
     return (
-        <div className="space-y-4 pb-20">
+        <div className="flex-1 overflow-y-auto pr-2 space-y-4 pb-24 min-h-0">
             <Card>
                 <CardHeader>
                     <CardTitle>{t('title')}</CardTitle>
@@ -331,7 +331,7 @@ const sendEmail = React.useCallback(async (alertIds: string[]) => {
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <CardTitle>{t('dailyAlerts')}</CardTitle>
-<div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                             <Button variant="outline" size="sm" onClick={() => loadAlerts()} disabled={loading}>
                                 <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                                 {t('reload')}
@@ -431,11 +431,10 @@ const sendEmail = React.useCallback(async (alertIds: string[]) => {
                                                     })()}
                                                 </div>
                                                 <div className="flex items-center gap-4 text-muted-foreground">
-                                                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                        alert.status === 'COMPLETED' 
-                                                            ? 'bg-primary text-primary-foreground' 
-                                                            : 'border border-input bg-background text-foreground'
-                                                    }`}>
+                                                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${alert.status === 'COMPLETED'
+                                                        ? 'bg-primary text-primary-foreground'
+                                                        : 'border border-input bg-background text-foreground'
+                                                        }`}>
                                                         {t(`status.${alert.status.toLowerCase()}` as any)}
                                                     </div>
                                                     <User className="h-4 w-4" />
@@ -447,7 +446,7 @@ const sendEmail = React.useCallback(async (alertIds: string[]) => {
                                                             <DropdownMenuTrigger asChild>
                                                                 <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
                                                             </DropdownMenuTrigger>
-<DropdownMenuContent>
+                                                            <DropdownMenuContent>
                                                                 <DropdownMenuLabel>{t('actionsGroups.communication')}</DropdownMenuLabel>
                                                                 <DropdownMenuItem onClick={() => sendSms([alert.id])}><MessageSquare className="mr-2 h-4 w-4" />{t('actions.sendSms')}</DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => sendWhatsApp([alert.id])}><MessageCircle className="mr-2 h-4 w-4" />{t('actions.sendWhatsApp')}</DropdownMenuItem>
@@ -471,10 +470,10 @@ const sendEmail = React.useCallback(async (alertIds: string[]) => {
                                 </CollapsibleContent>
                             </Collapsible>
                         )
-                     })}
-                     {Object.keys(groupedAlerts).length === 0 && <p className="text-center text-muted-foreground py-8">{t('noAlerts')}</p>}
-                 </CardContent>
-             </Card>
+                    })}
+                    {Object.keys(groupedAlerts).length === 0 && <p className="text-center text-muted-foreground py-8">{t('noAlerts')}</p>}
+                </CardContent>
+            </Card>
 
             <Dialog open={ignoreDialogOpen} onOpenChange={setIgnoreDialogOpen}>
                 <DialogContent>
@@ -553,7 +552,7 @@ const sendEmail = React.useCallback(async (alertIds: string[]) => {
                         </Button>
                     </DialogFooter>
                 </DialogContent>
-</Dialog>
+            </Dialog>
 
             {/* Floating Bulk Actions Bar */}
             <BulkActionsFloatingBar

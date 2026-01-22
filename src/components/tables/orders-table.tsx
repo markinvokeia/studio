@@ -51,13 +51,14 @@ interface OrdersTableProps {
   isRefreshing?: boolean;
   onCreate?: () => void;
   rowSelection?: RowSelectionState;
-  setRowSelection?: (selection: RowSelectionState) => void;
+  setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
   columnTranslations?: { [key: string]: string };
   columnsToHide?: string[];
   isSales?: boolean;
+  className?: string;
 }
 
-export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, columnTranslations, columnsToHide = [], isSales = true }: OrdersTableProps) {
+export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, columnTranslations, columnsToHide = [], isSales = true, className }: OrdersTableProps) {
   const t = useTranslations();
   const tOrderColumns = useTranslations('OrderColumns');
   const tUserColumns = useTranslations('UserColumns');
@@ -233,9 +234,9 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
     return !key || !columnsToHide.includes(key);
   });
   return (
-    <>
-      <Card>
-        <CardContent className="p-4">
+    <div className={cn("flex-1 flex flex-col min-h-0", className)}>
+      <Card className="flex-1 flex flex-col min-h-0">
+        <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden">
           <DataTable
             columns={filteredColumns}
             data={orders}
@@ -289,7 +290,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
 

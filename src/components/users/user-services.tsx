@@ -219,24 +219,20 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
 
   return (
     <>
-      <Card>
-        <CardContent className="p-4">
-          <DataTable
-            columns={columns}
-            data={userServices}
-            filterColumnId='name'
-            filterPlaceholder={t('ServicesPage.filterPlaceholder')}
-            onCreate={handleAddService}
-            columnTranslations={{
-              name: t('ServicesColumns.name'),
-              category: t('ServicesColumns.category'),
-              price: t('ServicesColumns.price'),
-              duration_minutes: t('ServicesColumns.duration'),
-              is_active: t('UserRoles.columns.status'),
-            }}
-          />
-        </CardContent>
-      </Card>
+      <DataTable
+        columns={columns}
+        data={userServices}
+        filterColumnId='name'
+        filterPlaceholder={t('ServicesPage.filterPlaceholder')}
+        onCreate={handleAddService}
+        columnTranslations={{
+          name: t('ServicesColumns.name'),
+          category: t('ServicesColumns.category'),
+          price: t('ServicesColumns.price'),
+          duration_minutes: t('ServicesColumns.duration'),
+          is_active: t('UserRoles.columns.status'),
+        }}
+      />
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>

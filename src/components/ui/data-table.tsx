@@ -148,7 +148,7 @@ export function DataTable<TData, TValue>({
 
 
   return (
-    <div className="space-y-4">
+    <div className="w-full flex-1 flex flex-col min-h-0 space-y-4">
       {typeof customToolbar === 'function' ? customToolbar(table) : customToolbar ? customToolbar : (filterColumnId || filterPlaceholder) && (
         <DataTableToolbar
           table={table}
@@ -166,7 +166,7 @@ export function DataTable<TData, TValue>({
           createButtonIconOnly={createButtonIconOnly}
         />
       )}
-      <div className="rounded-md border overflow-auto max-h-[calc(100vh-220px)] relative">
+      <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
         <table className={cn("w-full caption-bottom text-sm")}>
           <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
             {table.getHeaderGroups().map((headerGroup) => (

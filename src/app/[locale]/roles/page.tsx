@@ -31,6 +31,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { RolesColumnsWrapper } from './columns';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 
 const roleFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -163,14 +164,15 @@ export default function RolesPage() {
 
   return (
     <>
-      <div className={cn("grid grid-cols-1 gap-4", selectedRole ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
-        <div className={cn("transition-all duration-300", selectedRole ? "lg:col-span-2" : "lg:col-span-5")}>
-          <Card>
-            <CardHeader>
+      <TwoPanelLayout
+        isRightPanelOpen={!!selectedRole}
+        leftPanel={
+          <Card className="h-full flex flex-col">
+            <CardHeader className="flex-none">
               <CardTitle>{t('title')}</CardTitle>
               <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
               <DataTable
                 columns={rolesColumns}
                 data={roles}
@@ -186,11 +188,11 @@ export default function RolesPage() {
               />
             </CardContent>
           </Card>
-        </div>
-        {selectedRole && (
-          <div className="lg:col-span-3">
-            <Card>
-              <CardHeader className="flex flex-row items-start justify-between">
+        }
+        rightPanel={
+          selectedRole && (
+            <Card className="h-full flex flex-col">
+              <CardHeader className="flex flex-row items-start justify-between flex-none">
                 <div>
                   <CardTitle>{t('detailsFor', { name: selectedRole.name })}</CardTitle>
                   <CardDescription>Role ID: {selectedRole.id}</CardDescription>
@@ -200,24 +202,26 @@ export default function RolesPage() {
                   <span className="sr-only">{t('close')}</span>
                 </Button>
               </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="users" className="w-full">
-                  <TabsList className="h-auto items-center justify-start flex-wrap">
+              <CardContent className="flex-1 overflow-auto">
+                <Tabs defaultValue="users" className="w-full h-full flex flex-col">
+                  <TabsList className="h-auto items-center justify-start flex-wrap flex-none">
                     <TabsTrigger value="users">{t('tabs.users')}</TabsTrigger>
                     <TabsTrigger value="permissions">{t('tabs.permissions')}</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="users">
-                    <RoleUsers roleId={selectedRole.id} />
-                  </TabsContent>
-                  <TabsContent value="permissions">
-                    <RolePermissions roleId={selectedRole.id} />
-                  </TabsContent>
+                  <div className="flex-1 overflow-auto mt-4">
+                    <TabsContent value="users" className="m-0">
+                      <RoleUsers roleId={selectedRole.id} />
+                    </TabsContent>
+                    <TabsContent value="permissions" className="m-0">
+                      <RolePermissions roleId={selectedRole.id} />
+                    </TabsContent>
+                  </div>
                 </Tabs>
               </CardContent>
             </Card>
-          </div>
-        )}
-      </div>
+          )
+        }
+      />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>

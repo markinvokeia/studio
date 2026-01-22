@@ -71,7 +71,7 @@ export function UserLogs({ userId }: UserLogsProps) {
 
   if (isLoading) {
     return (
-      <div className="space-y-2 pt-4">
+      <div className="flex-1 flex flex-col min-h-0 space-y-2 pt-4">
         <Skeleton className="h-8 w-full" />
         <Skeleton className="h-12 w-full" />
         <Skeleton className="h-12 w-full" />
@@ -80,20 +80,16 @@ export function UserLogs({ userId }: UserLogsProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <DataTable
-          columns={columns}
-          data={logs}
-          filterColumnId="action"
-          filterPlaceholder={t('filterPlaceholder')}
-          columnTranslations={{
-            timestamp: t('columns.timestamp'),
-            action: t('columns.action'),
-            details: t('columns.details'),
-          }}
-        />
-      </CardContent>
-    </Card>
+    <DataTable
+      columns={columns}
+      data={logs}
+      filterColumnId="action"
+      filterPlaceholder={t('filterPlaceholder')}
+      columnTranslations={{
+        timestamp: t('columns.timestamp'),
+        action: t('columns.action'),
+        details: t('columns.details'),
+      }}
+    />
   );
 }

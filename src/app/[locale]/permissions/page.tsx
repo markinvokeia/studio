@@ -37,6 +37,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { PermissionsColumnsWrapper } from './columns';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 
 const permissionFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -173,14 +174,15 @@ export default function PermissionsPage() {
 
   return (
     <>
-      <div className={cn("grid grid-cols-1 gap-4", selectedPermission ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
-        <div className={cn("transition-all duration-300", selectedPermission ? "lg:col-span-2" : "lg:col-span-5")}>
-          <Card>
-            <CardHeader>
+      <TwoPanelLayout
+        isRightPanelOpen={!!selectedPermission}
+        leftPanel={
+          <Card className="h-full flex flex-col">
+            <CardHeader className="flex-none">
               <CardTitle>{t('title')}</CardTitle>
               <CardDescription>{t('description')}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
               <DataTable
                 columns={permissionsColumns}
                 data={permissions}
@@ -196,11 +198,11 @@ export default function PermissionsPage() {
               />
             </CardContent>
           </Card>
-        </div>
-        {selectedPermission && (
-          <div className="lg:col-span-3">
-            <Card>
-              <CardHeader className="flex flex-row items-start justify-between">
+        }
+        rightPanel={
+          selectedPermission && (
+            <Card className="h-full flex flex-col">
+              <CardHeader className="flex flex-row items-start justify-between flex-none">
                 <div>
                   <CardTitle>{t('detailsFor', { name: selectedPermission.name })}</CardTitle>
                   <CardDescription>{t('permissionId')}: {selectedPermission.id}</CardDescription>
@@ -210,20 +212,22 @@ export default function PermissionsPage() {
                   <span className="sr-only">{t('close')}</span>
                 </Button>
               </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="users" className="w-full">
-                  <TabsList className="h-auto items-center justify-start flex-wrap">
+              <CardContent className="flex-1 overflow-auto">
+                <Tabs defaultValue="users" className="w-full h-full flex flex-col">
+                  <TabsList className="h-auto items-center justify-start flex-wrap flex-none">
                     <TabsTrigger value="users">{t('tabs.users')}</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="users">
-                    <PermissionUsers permissionId={selectedPermission.id} />
-                  </TabsContent>
+                  <div className="flex-1 overflow-auto mt-4">
+                    <TabsContent value="users" className="m-0">
+                      <PermissionUsers permissionId={selectedPermission.id} />
+                    </TabsContent>
+                  </div>
                 </Tabs>
               </CardContent>
             </Card>
-          </div>
-        )}
-      </div>
+          )
+        }
+      />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>

@@ -50,6 +50,7 @@ import { DateRange } from 'react-day-picker';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { UserColumnsWrapper } from './columns';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 
 const userFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -588,156 +589,151 @@ export default function UsersPage() {
 
   return (
     <>
-      <div className={cn("grid grid-cols-1 gap-4", selectedUser ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
-        <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-2" : "lg:col-span-5")}>
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('UsersPage.title')}</CardTitle>
-              <CardDescription>{t('UsersPage.description')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DataTable
-                columns={showDebtors ? debtorColumns : userColumns}
-                data={users}
-                filterColumnId="email"
-                filterPlaceholder={t('UsersPage.filterPlaceholder')}
-                onRowSelectionChange={handleRowSelectionChange}
-                enableSingleRowSelection={true}
-                onCreate={handleCreate}
-                onRefresh={loadUsers}
-                isRefreshing={isRefreshing}
-                rowSelection={rowSelection}
-                setRowSelection={setRowSelection}
-                pageCount={Math.ceil(userCount / pagination.pageSize)}
-                pagination={pagination}
-                onPaginationChange={setPagination}
-                manualPagination={true}
-                columnFilters={columnFilters}
-                onColumnFiltersChange={setColumnFilters}
-                // Custom Toolbar Implementation
-                customToolbar={(table) => (
-                  <DataTableAdvancedToolbar
-                    table={table}
-                    filterPlaceholder={t('UsersPage.filterPlaceholder')}
-                    searchQuery={(columnFilters.find(f => f.id === 'email')?.value as string) || ''}
-                    onSearchChange={(value) => {
-                      setColumnFilters((prev) => {
-                        const newFilters = prev.filter((f) => f.id !== 'email');
-                        if (value) {
-                          newFilters.push({ id: 'email', value });
-                        }
-                        return newFilters;
-                      });
-                    }}
-                    filters={filtersOptionList}
-                    onClearFilters={handleClearFilters}
-                    onCreate={handleCreate}
-                    onRefresh={loadUsers}
-                    isRefreshing={isRefreshing}
-                    // We can still pass extra buttons if we had any other independent actions, but we merged them.
-                    // If we want the Calendar Popover for Custom Range, we might need a specific slot or add it to filters differently.
-                    // For now strictly following the request to merge standard filters.
-                    extraButtons={
-                      // Optionally keep the Custom Range Picker accessible if desired, maybe as a separate button next to the toolbar?
-                      // Or just assume the presets cover most cases as per the simplified requirement.
-                      // Let's keep it clean as requested.
-                      null
-                    }
-                    columnTranslations={{
-                      name: t('UserColumns.name'),
-                      email: t('UserColumns.email'),
-                      identity_document: t('UserColumns.identity_document'),
-                      phone_number: t('UserColumns.phone'),
-                      is_active: t('UserColumns.status'),
-                      debt_uyu: `${t('UserColumns.currentDebt')} (UYU)`,
-                      debt_usd: `${t('UserColumns.currentDebt')} (USD)`,
-                    }}
-                  />
-                )}
-                columnTranslations={{
-                  name: t('UserColumns.name'),
-                  email: t('UserColumns.email'),
-                  identity_document: t('UserColumns.identity_document'),
-                  phone_number: t('UserColumns.phone'),
-                  is_active: t('UserColumns.status'),
-                  debt_uyu: `${t('UserColumns.currentDebt')} (UYU)`,
-                  debt_usd: `${t('UserColumns.currentDebt')} (USD)`,
-                }}
-              />
-            </CardContent>
-          </Card>
-        </div>
-
-        {selectedUser && (
-          <div className="lg:col-span-3">
-            <Card>
-              <CardHeader className="flex flex-row items-start justify-between">
-                <div>
-                  <CardTitle>{t('UsersPage.detailsFor', { name: selectedUser.name })}</CardTitle>
-                </div>
-                <div className="flex items-center gap-2">
-                  {canSetFirstPassword && (
-                    <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
-                      <KeyRound className="mr-2 h-4 w-4" />
-                      {t('UsersPage.setInitialPassword')}
-                    </Button>
-                  )}
-                  <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
-                    <X className="h-5 w-5" />
-                    <span className="sr-only">{t('UsersPage.close')}</span>
-                  </Button>
-                </div>
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <TwoPanelLayout
+          isRightPanelOpen={!!selectedUser}
+          leftPanel={
+            <Card className="h-full flex flex-col">
+              <CardHeader className="flex-none">
+                <CardTitle>{t('UsersPage.title')}</CardTitle>
+                <CardDescription>{t('UsersPage.description')}</CardDescription>
               </CardHeader>
-              <CardContent>
-                <UserStats user={selectedUser} t={t} />
-                <Tabs defaultValue="history" className="w-full">
-                  <TabsList className="h-auto items-center justify-start flex-wrap">
-                    <TabsTrigger value="history">{t('UsersPage.tabs.history')}</TabsTrigger>
-                    {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                      <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
-                    )}
-                    <TabsTrigger value="quotes">{t('UsersPage.tabs.quotes')}</TabsTrigger>
-                    <TabsTrigger value="orders">{t('UsersPage.tabs.orders')}</TabsTrigger>
-                    <TabsTrigger value="invoices">{t('UsersPage.tabs.invoices')}</TabsTrigger>
-                    <TabsTrigger value="payments">{t('UsersPage.tabs.payments')}</TabsTrigger>
-                    <TabsTrigger value="appointments">{t('UsersPage.tabs.appointments')}</TabsTrigger>
-                    <TabsTrigger value="messages">{t('UsersPage.tabs.messages')}</TabsTrigger>
-                    <TabsTrigger value="logs">{t('UsersPage.tabs.logs')}</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="history">
-                    <MedicalHistory user={selectedUser} />
-                  </TabsContent>
-                  {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                    <TabsContent value="services">
-                      <UserServices userId={selectedUser.id} isSalesUser={true} />
-                    </TabsContent>
+              <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
+                <DataTable
+                  columns={showDebtors ? debtorColumns : userColumns}
+                  data={users}
+                  filterColumnId="email"
+                  filterPlaceholder={t('UsersPage.filterPlaceholder')}
+                  onRowSelectionChange={handleRowSelectionChange}
+                  enableSingleRowSelection={true}
+                  onCreate={handleCreate}
+                  onRefresh={loadUsers}
+                  isRefreshing={isRefreshing}
+                  rowSelection={rowSelection}
+                  setRowSelection={setRowSelection}
+                  pageCount={Math.ceil(userCount / pagination.pageSize)}
+                  pagination={pagination}
+                  onPaginationChange={setPagination}
+                  manualPagination={true}
+                  columnFilters={columnFilters}
+                  onColumnFiltersChange={setColumnFilters}
+                  customToolbar={(table) => (
+                    <DataTableAdvancedToolbar
+                      table={table}
+                      filterPlaceholder={t('UsersPage.filterPlaceholder')}
+                      searchQuery={(columnFilters.find(f => f.id === 'email')?.value as string) || ''}
+                      onSearchChange={(value) => {
+                        setColumnFilters((prev) => {
+                          const newFilters = prev.filter((f) => f.id !== 'email');
+                          if (value) {
+                            newFilters.push({ id: 'email', value });
+                          }
+                          return newFilters;
+                        });
+                      }}
+                      filters={filtersOptionList}
+                      onClearFilters={handleClearFilters}
+                      onCreate={handleCreate}
+                      onRefresh={loadUsers}
+                      isRefreshing={isRefreshing}
+                      extraButtons={null}
+                      columnTranslations={{
+                        name: t('UserColumns.name'),
+                        email: t('UserColumns.email'),
+                        identity_document: t('UserColumns.identity_document'),
+                        phone_number: t('UserColumns.phone'),
+                        is_active: t('UserColumns.status'),
+                        debt_uyu: `${t('UserColumns.currentDebt')} (UYU)`,
+                        debt_usd: `${t('UserColumns.currentDebt')} (USD)`,
+                      }}
+                    />
                   )}
-                  <TabsContent value="quotes">
-                    <UserQuotes userId={selectedUser.id} />
-                  </TabsContent>
-                  <TabsContent value="orders">
-                    <UserOrders userId={selectedUser.id} />
-                  </TabsContent>
-                  <TabsContent value="invoices">
-                    <UserInvoices userId={selectedUser.id} />
-                  </TabsContent>
-                  <TabsContent value="payments">
-                    <UserPayments userId={selectedUser.id} />
-                  </TabsContent>
-                  <TabsContent value="appointments">
-                    <UserAppointments user={selectedUser} />
-                  </TabsContent>
-                  <TabsContent value="messages">
-                    <UserMessages userId={selectedUser.id} />
-                  </TabsContent>
-                  <TabsContent value="logs">
-                    <UserLogs userId={selectedUser.id} />
-                  </TabsContent>
-                </Tabs>
+                  columnTranslations={{
+                    name: t('UserColumns.name'),
+                    email: t('UserColumns.email'),
+                    identity_document: t('UserColumns.identity_document'),
+                    phone_number: t('UserColumns.phone'),
+                    is_active: t('UserColumns.status'),
+                    debt_uyu: `${t('UserColumns.currentDebt')} (UYU)`,
+                    debt_usd: `${t('UserColumns.currentDebt')} (USD)`,
+                  }}
+                />
               </CardContent>
             </Card>
-          </div>
-        )}
+          }
+          rightPanel={
+            selectedUser && (
+              <Card className="h-full flex flex-col">
+                <CardHeader className="flex flex-row items-start justify-between flex-none">
+                  <div>
+                    <CardTitle>{t('UsersPage.detailsFor', { name: selectedUser.name })}</CardTitle>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {canSetFirstPassword && (
+                      <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
+                        <KeyRound className="mr-2 h-4 w-4" />
+                        {t('UsersPage.setInitialPassword')}
+                      </Button>
+                    )}
+                    <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
+                      <X className="h-5 w-5" />
+                      <span className="sr-only">{t('UsersPage.close')}</span>
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
+                  <UserStats user={selectedUser} t={t} />
+                  <Tabs defaultValue="history" className="w-full flex-1 flex flex-col min-h-0">
+                    <TabsList className="h-auto items-center justify-start flex-wrap flex-none">
+                      <TabsTrigger value="history">{t('UsersPage.tabs.history')}</TabsTrigger>
+                      {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
+                        <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
+                      )}
+                      <TabsTrigger value="quotes">{t('UsersPage.tabs.quotes')}</TabsTrigger>
+                      <TabsTrigger value="orders">{t('UsersPage.tabs.orders')}</TabsTrigger>
+                      <TabsTrigger value="invoices">{t('UsersPage.tabs.invoices')}</TabsTrigger>
+                      <TabsTrigger value="payments">{t('UsersPage.tabs.payments')}</TabsTrigger>
+                      <TabsTrigger value="appointments">{t('UsersPage.tabs.appointments')}</TabsTrigger>
+                      <TabsTrigger value="messages">{t('UsersPage.tabs.messages')}</TabsTrigger>
+                      <TabsTrigger value="logs">{t('UsersPage.tabs.logs')}</TabsTrigger>
+                    </TabsList>
+                    <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-4">
+                      <TabsContent value="history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                        <MedicalHistory user={selectedUser} />
+                      </TabsContent>
+                      {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
+                        <TabsContent value="services" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <UserServices userId={selectedUser.id} isSalesUser={true} />
+                        </TabsContent>
+                      )}
+                      <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                        <UserQuotes userId={selectedUser.id} />
+                      </TabsContent>
+                      <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                        <UserOrders userId={selectedUser.id} />
+                      </TabsContent>
+                      <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                        <UserInvoices userId={selectedUser.id} />
+                      </TabsContent>
+                      <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                        <UserPayments userId={selectedUser.id} />
+                      </TabsContent>
+                      <TabsContent value="appointments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                        <UserAppointments user={selectedUser} />
+                      </TabsContent>
+                      <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                        <UserMessages userId={selectedUser.id} />
+                      </TabsContent>
+                      <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                        <UserLogs userId={selectedUser.id} />
+                      </TabsContent>
+                    </div>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            )
+          }
+        />
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -800,50 +796,50 @@ export default function UsersPage() {
                   </FormItem>
                 )}
               />
-               <FormField
-                 control={form.control}
-                 name="identity_document"
-                 render={({ field }) => (
-                   <FormItem>
-                     <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
-                     <FormControl>
-                       <Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} />
-                     </FormControl>
-                     <FormMessage />
-                   </FormItem>
-                 )}
-               />
-               <FormField
-                 control={form.control}
-                 name="birth_date"
-                 render={({ field }) => (
-                   <FormItem>
-                     <FormLabel>{t('UsersPage.createDialog.birth_date')}</FormLabel>
-                     <FormControl>
-                       <Input
-                         type="date"
-                         placeholder={t('UsersPage.createDialog.birth_date_placeholder')}
-                         {...field}
-                         max={new Date().toISOString().split('T')[0]}
-                         min="1900-01-01"
-                       />
-                     </FormControl>
-                     <FormMessage />
-                   </FormItem>
-                 )}
-               />
-               <FormField
-                 control={form.control}
-                 name="is_active"
-                 render={({ field }) => (
-                   <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                     <FormControl>
-                       <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                     </FormControl>
-                     <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
-                   </FormItem>
-                 )}
-               />
+              <FormField
+                control={form.control}
+                name="identity_document"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="birth_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('UsersPage.createDialog.birth_date')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        placeholder={t('UsersPage.createDialog.birth_date_placeholder')}
+                        {...field}
+                        max={new Date().toISOString().split('T')[0]}
+                        min="1900-01-01"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="is_active"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
+                  </FormItem>
+                )}
+              />
               <div className="flex justify-end space-x-2 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('UsersPage.createDialog.cancel')}</Button>
                 <Button type="submit">{editingUser ? t('UsersPage.createDialog.editSave') : t('UsersPage.createDialog.save')}</Button>

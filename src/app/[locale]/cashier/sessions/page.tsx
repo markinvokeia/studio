@@ -350,13 +350,13 @@ export default function CashSessionsPage() {
     const columns = CashSessionsColumnsWrapper({ onView: handleView, onPrint: handlePrint });
 
     return (
-        <>
-            <Card>
-                <CardHeader>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <Card className="flex-1 flex flex-col min-h-0">
+                <CardHeader className="flex-none">
                     <CardTitle>{t('title')}</CardTitle>
                     <CardDescription>{t('description')}</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     <DataTable
                         columns={columns}
                         data={sessions}
@@ -400,7 +400,7 @@ export default function CashSessionsPage() {
                     )}
                 </DialogContent>
             </Dialog>
-        </>
+        </div>
     );
 }
 

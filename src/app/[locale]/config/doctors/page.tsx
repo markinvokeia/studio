@@ -34,6 +34,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { DoctorsColumnsWrapper } from './columns';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 
 
 const doctorFormSchema = (t: (key: string) => string) => z.object({
@@ -293,14 +294,15 @@ export default function DoctorsPage() {
 
   return (
     <>
-      <div className={cn("grid grid-cols-1 gap-4", selectedUser ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
-        <div className={cn("transition-all duration-300", selectedUser ? "lg:col-span-2" : "lg:col-span-5")}>
-          <Card>
-            <CardHeader>
+      <TwoPanelLayout
+        isRightPanelOpen={!!selectedUser}
+        leftPanel={
+          <Card className="h-full flex flex-col">
+            <CardHeader className="flex-none">
               <CardTitle>{t('Navigation.Doctors')}</CardTitle>
               <CardDescription>{t('DoctorsPage.description')}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
               <DataTable
                 columns={userColumns}
                 data={users}
@@ -329,12 +331,11 @@ export default function DoctorsPage() {
               />
             </CardContent>
           </Card>
-        </div>
-
-        {selectedUser && (
-          <div className="lg:col-span-3">
-            <Card>
-              <CardHeader className="flex flex-row items-start justify-between">
+        }
+        rightPanel={
+          selectedUser && (
+            <Card className="h-full flex flex-col">
+              <CardHeader className="flex flex-row items-start justify-between flex-none">
                 <div>
                   <CardTitle>{t('UsersPage.detailsFor', { name: selectedUser.name })}</CardTitle>
                 </div>
@@ -345,28 +346,30 @@ export default function DoctorsPage() {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="services" className="w-full">
-                  <TabsList className="h-auto items-center justify-start flex-wrap">
+              <CardContent className="flex-1 overflow-auto">
+                <Tabs defaultValue="services" className="w-full h-full flex flex-col">
+                  <TabsList className="h-auto items-center justify-start flex-wrap flex-none">
                     <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
                     <TabsTrigger value="messages">{t('UsersPage.tabs.messages')}</TabsTrigger>
                     <TabsTrigger value="logs">{t('UsersPage.tabs.logs')}</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="services">
-                    <UserServices userId={selectedUser.id} isSalesUser={selectedUser.is_sales || true} />
-                  </TabsContent>
-                  <TabsContent value="messages">
-                    <UserMessages userId={selectedUser.id} />
-                  </TabsContent>
-                  <TabsContent value="logs">
-                    <UserLogs userId={selectedUser.id} />
-                  </TabsContent>
+                  <div className="flex-1 overflow-auto mt-4">
+                    <TabsContent value="services" className="m-0">
+                      <UserServices userId={selectedUser.id} isSalesUser={selectedUser.is_sales || true} />
+                    </TabsContent>
+                    <TabsContent value="messages" className="m-0">
+                      <UserMessages userId={selectedUser.id} />
+                    </TabsContent>
+                    <TabsContent value="logs" className="m-0">
+                      <UserLogs userId={selectedUser.id} />
+                    </TabsContent>
+                  </div>
                 </Tabs>
               </CardContent>
             </Card>
-          </div>
-        )}
-      </div>
+          )
+        }
+      />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>

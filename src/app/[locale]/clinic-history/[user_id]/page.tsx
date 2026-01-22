@@ -1555,11 +1555,10 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                         <label
                                             id="session-attachments-label"
                                             htmlFor="session-attachments"
-                                            className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${
-                                                isDragOver
-                                                    ? 'border-primary bg-primary/10 scale-[1.02]'
-                                                    : 'border-muted-foreground/25 bg-muted hover:bg-muted/50'
-                                            }`}
+                                            className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${isDragOver
+                                                ? 'border-primary bg-primary/10 scale-[1.02]'
+                                                : 'border-muted-foreground/25 bg-muted hover:bg-muted/50'
+                                                }`}
                                         >
                                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                                 <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
@@ -1893,7 +1892,7 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
                     </DialogHeader>
                     <div className="py-4 space-y-4">
                         <div className="flex items-center justify-center w-full">
-                             <label htmlFor="dropzone-file" className={cn("flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50", isDragging && "border-primary bg-primary/10")} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+                            <label htmlFor="dropzone-file" className={cn("flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50", isDragging && "border-primary bg-primary/10")} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
                                 {uploadFile ? (
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                         <FileText className="w-8 h-8 mb-4 text-primary" />
@@ -2443,10 +2442,10 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     };
 
     return (
-        <div className={cn("min-h-screen", !isFullscreen && "bg-background")}>
+        <div className={cn("flex-1 flex flex-col min-h-0", !isFullscreen && "bg-background")}>
             {/* Header */}
             {!isFullscreen && (
-                <div className="bg-card shadow-sm border-b border-border px-6 py-4">
+                <div className="flex-none bg-card shadow-sm border-b border-border px-6 py-4">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-4">
                             <h1 className="text-2xl font-bold text-card-foreground">{t('title')}</h1>
@@ -2505,9 +2504,8 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
 
             {selectedPatient ? (
                 <>
-                    <div className={cn(!isFullscreen && "px-6 py-8")}>
-                        <div className={cn("h-[calc(100vh-230px)]",
-                            activeView === 'timeline' && 'flex flex-col',
+                    <div className={cn("flex-1 flex flex-col min-h-0", !isFullscreen && "px-6 py-4")}>
+                        <div className={cn("flex-1 flex flex-col min-h-0",
                             activeView !== 'odontogram' && 'space-y-6')}>
 
                             {activeView === 'anamnesis' &&
@@ -2534,9 +2532,9 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                     </div>
                                 </ScrollArea>
                             }
-                            {activeView === 'timeline' && <TreatmentTimeline sessions={patientSessions} onAction={handleSessionAction} />}
+                            {activeView === 'timeline' && <ScrollArea className='flex-1'><div className="pr-4"><TreatmentTimeline sessions={patientSessions} onAction={handleSessionAction} /></div></ScrollArea>}
                             {activeView === 'odontogram' && (
-                                <div className={cn("relative", isFullscreen ? "fixed inset-0 z-50 bg-background" : "h-[800px] w-full")}>
+                                <div className={cn("relative", isFullscreen ? "fixed inset-0 z-50 bg-background" : "flex-1 min-h-0 w-full")}>
                                     <Button
                                         variant="ghost"
                                         size="icon"
@@ -2548,13 +2546,13 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                     <iframe src={`https://odontogramiia.invokeia.com/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
                                 </div>
                             )}
-                            {activeView === 'documents' && <ImageGallery userId={userId} onViewDocument={handleViewDocument} />}
+                            {activeView === 'documents' && <ScrollArea className='flex-1'><div className="pr-4"><ImageGallery userId={userId} onViewDocument={handleViewDocument} /></div></ScrollArea>}
                         </div>
                     </div>
                 </>
             ) : (
                 !isFullscreen && (
-                    <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
+                    <div className="flex-1 flex flex-col items-center justify-center text-center">
                         <SearchCheck className="w-24 h-24 text-muted-foreground/30 mb-4" />
                         <h2 className="text-2xl font-semibold text-foreground/80">{t('selectPatientTitle')}</h2>
                         <p className="text-muted-foreground mt-2">{t('selectPatientDescription')}</p>

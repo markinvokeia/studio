@@ -122,7 +122,7 @@ export function UserRoles({ userId, initialUserRoles, isLoading, onRolesChange }
 
   if (isLoading) {
     return (
-      <div className="space-y-2 pt-4">
+      <div className="flex-1 flex flex-col min-h-0 space-y-2 pt-4">
         <Skeleton className="h-8 w-full" />
         <Skeleton className="h-12 w-full" />
         <Skeleton className="h-12 w-full" />
@@ -132,19 +132,15 @@ export function UserRoles({ userId, initialUserRoles, isLoading, onRolesChange }
 
   return (
     <>
-      <Card>
-        <CardContent className="p-4">
-          <DataTable
-            columns={columns}
-            data={initialUserRoles}
-            filterColumnId="name"
-            filterPlaceholder={t('filterPlaceholder')}
-            onCreate={handleAddRole}
-            columnFilters={columnFilters}
-            onColumnFiltersChange={setColumnFilters}
-          />
-        </CardContent>
-      </Card>
+      <DataTable
+        columns={columns}
+        data={initialUserRoles}
+        filterColumnId="name"
+        filterPlaceholder={t('filterPlaceholder')}
+        onCreate={handleAddRole}
+        columnFilters={columnFilters}
+        onColumnFiltersChange={setColumnFilters}
+      />
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>

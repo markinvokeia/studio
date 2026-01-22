@@ -13,6 +13,13 @@
 }
 
 @layer base {
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+}
+
+@layer base {
   :root {
     --background: 240 10% 97%;
     --foreground: 222.2 84% 4.9%;

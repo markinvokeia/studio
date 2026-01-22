@@ -354,35 +354,33 @@ export default function DashboardPage() {
     }, []);
 
     return (
-        <>
-            <div className="space-y-4">
-                <ReportFilters date={date} setDate={setDate} />
-                <Stats data={stats} />
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <SalesSummaryChart
-                        salesTrend={salesTrend}
-                        date={date}
-                        chartData={salesChartData}
-                        isLoading={isChartLoading}
-                    />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <SalesByServiceChart chartData={salesByServiceData} isLoading={isSalesByServiceLoading} />
-                        <InvoiceStatusChart chartData={invoiceStatusData} isLoading={isInvoiceStatusLoading} />
-                    </div>
-                </div>
-                <KpiRow
-                    averageBillingData={averageBilling}
-                    appointmentAttendanceData={appointmentAttendance}
-                    patientDemographicsData={patientDemographics}
-                    isLoading={isKpiLoading}
+        <div className="flex-1 overflow-y-auto pr-2 space-y-4 min-h-0">
+            <ReportFilters date={date} setDate={setDate} />
+            <Stats data={stats} />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <SalesSummaryChart
+                    salesTrend={salesTrend}
+                    date={date}
+                    chartData={salesChartData}
+                    isLoading={isChartLoading}
                 />
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <RecentQuotesTable quotes={quotes} />
-                    <RecentOrdersTable orders={orders} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <SalesByServiceChart chartData={salesByServiceData} isLoading={isSalesByServiceLoading} />
+                    <InvoiceStatusChart chartData={invoiceStatusData} isLoading={isInvoiceStatusLoading} />
                 </div>
-                <NewUsersTable users={users} />
             </div>
-        </>
+            <KpiRow
+                averageBillingData={averageBilling}
+                appointmentAttendanceData={appointmentAttendance}
+                patientDemographicsData={patientDemographics}
+                isLoading={isKpiLoading}
+            />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <RecentQuotesTable quotes={quotes} />
+                <RecentOrdersTable orders={orders} />
+            </div>
+            <NewUsersTable users={users} />
+        </div>
     );
 }
 

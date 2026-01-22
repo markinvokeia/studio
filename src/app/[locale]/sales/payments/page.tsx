@@ -296,13 +296,13 @@ export default function PaymentsPage() {
     };
 
     return (
-        <>
-            <Card>
-                <CardHeader>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden pr-2 pb-4">
+            <Card className="flex-1 flex flex-col min-h-0">
+                <CardHeader className="flex-none">
                     <CardTitle>{t('title')}</CardTitle>
                     <CardDescription>{t('description')}</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     <PaymentsTable
                         payments={payments}
                         isLoading={isLoading}
@@ -460,6 +460,6 @@ export default function PaymentsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </>
+        </div>
     );
 }

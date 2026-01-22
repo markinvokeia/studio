@@ -122,22 +122,18 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <DataTable
-          columns={columns}
-          data={invoices}
-          filterColumnId='id'
-          filterPlaceholder={t('InvoicesPage.filterPlaceholder')}
-          columnTranslations={{
-            id: t('InvoicesPage.columns.invoiceId'),
-            total: t('InvoicesPage.columns.total'),
-            status: t('InvoicesPage.columns.status'),
-            payment_status: t('InvoicesPage.columns.payment'),
-            createdAt: t('InvoicesPage.columns.createdAt'),
-          }}
-        />
-      </CardContent>
-    </Card>
+    <DataTable
+      columns={columns}
+      data={invoices}
+      filterColumnId='id'
+      filterPlaceholder={t('InvoicesPage.filterPlaceholder')}
+      columnTranslations={{
+        id: t('InvoicesPage.columns.invoiceId'),
+        total: t('InvoicesPage.columns.total'),
+        status: t('InvoicesPage.columns.status'),
+        payment_status: t('InvoicesPage.columns.payment'),
+        createdAt: t('InvoicesPage.columns.createdAt'),
+      }}
+    />
   );
 }

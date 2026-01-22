@@ -105,21 +105,17 @@ export function UserPayments({ userId }: UserPaymentsProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <DataTable
-          columns={columns}
-          data={payments}
-          filterColumnId='id'
-          filterPlaceholder={t('PaymentsPage.filterPlaceholder')}
-          columnTranslations={{
-            id: t('PaymentsPage.columns.id'),
-            amount: t('PaymentsPage.columns.amount'),
-            method: t('PaymentsPage.columns.method'),
-            createdAt: t('PaymentsPage.columns.createdAt'),
-          }}
-        />
-      </CardContent>
-    </Card>
+    <DataTable
+      columns={columns}
+      data={payments}
+      filterColumnId='id'
+      filterPlaceholder={t('PaymentsPage.filterPlaceholder')}
+      columnTranslations={{
+        id: t('PaymentsPage.columns.id'),
+        amount: t('PaymentsPage.columns.amount'),
+        method: t('PaymentsPage.columns.method'),
+        createdAt: t('PaymentsPage.columns.createdAt'),
+      }}
+    />
   );
 }

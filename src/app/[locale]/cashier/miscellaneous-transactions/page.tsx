@@ -464,8 +464,8 @@ export default function MiscellaneousTransactionsPage() {
     );
 
     return (
-        <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 flex-none">
                 <Card>
                     <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t('dashboard.totalIncome')}</CardTitle></CardHeader>
                     <CardContent><p className="text-2xl font-bold text-green-600">${totalIncome.toFixed(2)}</p></CardContent>
@@ -479,12 +479,12 @@ export default function MiscellaneousTransactionsPage() {
                     <CardContent><p className="text-2xl font-bold text-blue-600">${(totalIncome - totalExpense).toFixed(2)}</p></CardContent>
                 </Card>
             </div>
-            <Card>
-                <CardHeader>
+            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <CardHeader className="flex-none">
                     <CardTitle>{t('title')}</CardTitle>
                     <CardDescription>{t('description')}</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
                     <DataTable
                         columns={columns}

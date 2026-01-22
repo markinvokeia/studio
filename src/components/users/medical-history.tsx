@@ -72,104 +72,98 @@ export function MedicalHistory({ user }: MedicalHistoryProps) {
 
     if (isLoading) {
         return (
-            <Card>
-                <CardContent className="p-4">
-                    <div className="space-y-6">
-                        <Skeleton className="h-16 w-full" />
-                        <Skeleton className="h-16 w-full" />
-                        <Skeleton className="h-16 w-full" />
-                    </div>
-                </CardContent>
-            </Card>
+            <div className="flex-1 flex flex-col min-h-0 space-y-2 pt-4">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+            </div>
         );
     }
 
     return (
-        <Card>
-            <CardContent className="p-0">
-                <ScrollArea className="h-[400px] w-full p-4">
-                    {sessions.length > 0 ? (
-                        <Timeline>
-                            {sessions.map((session) => {
-                                const Icon = eventIcons['procedure']; // Default icon
-                                const isOpen = openItems.includes(String(session.sesion_id));
-                                return (
-                                    <TimelineItem key={session.sesion_id}>
-                                        <TimelineConnector />
-                                        <TimelineHeader>
-                                            <TimelineIcon>
-                                                <Icon size={16} />
-                                            </TimelineIcon>
-                                            <div className="flex flex-col flex-grow ml-5">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-baseline gap-2">
-                                                        <p className='text-sm font-medium text-muted-foreground'>{format(parseISO(session.fecha_sesion), 'PPP', { locale: dateFnsLocale })}</p>
-                                                        <TimelineTitle>{session.procedimiento_realizado}</TimelineTitle>
-                                                    </div>
+        <div className="flex-1 flex flex-col min-h-0">
+            <ScrollArea className="flex-1 w-full p-4">
+                {sessions.length > 0 ? (
+                    <Timeline>
+                        {sessions.map((session) => {
+                            const Icon = eventIcons['procedure']; // Default icon
+                            const isOpen = openItems.includes(String(session.sesion_id));
+                            return (
+                                <TimelineItem key={session.sesion_id}>
+                                    <TimelineConnector />
+                                    <TimelineHeader>
+                                        <TimelineIcon>
+                                            <Icon size={16} />
+                                        </TimelineIcon>
+                                        <div className="flex flex-col flex-grow ml-5">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-baseline gap-2">
+                                                    <p className='text-sm font-medium text-muted-foreground'>{format(parseISO(session.fecha_sesion), 'PPP', { locale: dateFnsLocale })}</p>
+                                                    <TimelineTitle>{session.procedimiento_realizado}</TimelineTitle>
                                                 </div>
-                                                <p className="text-sm text-muted-foreground">{session.diagnostico}</p>
                                             </div>
-                                        </TimelineHeader>
-                                        <TimelineContent>
-                                            <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>
-                                                <CollapsibleTrigger asChild>
-                                                    <Button variant="link" className="p-0 h-auto text-sm flex items-center gap-1">
-                                                        {isOpen ? t('showLess') : t('showMore', { count: '' })}
-                                                        <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
-                                                    </Button>
-                                                </CollapsibleTrigger>
-                                                <CollapsibleContent>
-                                                    <div className="mt-2 text-sm text-muted-foreground space-y-2">
-                                                        <p><strong>{t('notes')}</strong> {session.notas_clinicas}</p>
-                                                        {session.tratamientos && session.tratamientos.length > 0 && (
-                                                            <div>
-                                                                <strong>{t('treatments')}</strong>
-                                                                <ul className="list-disc pl-5">
-                                                                    {session.tratamientos.map((treatment, i) => (
-                                                                        <li key={i}>{treatment.descripcion} {treatment.numero_diente && `(${t('tooth', { tooth: treatment.numero_diente })})`}</li>
-                                                                    ))}
-                                                                </ul>
-                                                            </div>
-                                                        )}
-                                                        {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
-                                                            <div>
-                                                                <strong>{t('attachments')}</strong>
-                                                                <ul className="list-disc pl-5">
-                                                                    {session.archivos_adjuntos.map((file, i) => (
-                                                                        <li key={i}>
-                                                                            <a href={file.ruta} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                                                                {file.tipo} {file.diente_asociado && `(${t('tooth', { tooth: file.diente_asociado })})`}
-                                                                            </a>
-                                                                        </li>
-                                                                    ))}
-                                                                </ul>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </CollapsibleContent>
-                                            </Collapsible>
-                                        </TimelineContent>
-                                    </TimelineItem>
-                                );
-                            })}
-                        </Timeline>
-                    ) : (
-                        <div className="flex h-full items-center justify-center text-muted-foreground">
-                            {t('noHistory')}
-                        </div>
-                    )}
-                </ScrollArea>
-                <CardFooter className="p-4 border-t">
-                    <div className="w-full">
-                        <Link href={`/${locale}/clinic-history/${user.id}`} passHref>
-                            <Button variant="outline" className="w-full">
-                                {t('viewFullHistory')}
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
-                        </Link>
+                                            <p className="text-sm text-muted-foreground">{session.diagnostico}</p>
+                                        </div>
+                                    </TimelineHeader>
+                                    <TimelineContent>
+                                        <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>
+                                            <CollapsibleTrigger asChild>
+                                                <Button variant="link" className="p-0 h-auto text-sm flex items-center gap-1">
+                                                    {isOpen ? t('showLess') : t('showMore', { count: '' })}
+                                                    <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
+                                                </Button>
+                                            </CollapsibleTrigger>
+                                            <CollapsibleContent>
+                                                <div className="mt-2 text-sm text-muted-foreground space-y-2">
+                                                    <p><strong>{t('notes')}</strong> {session.notas_clinicas}</p>
+                                                    {session.tratamientos && session.tratamientos.length > 0 && (
+                                                        <div>
+                                                            <strong>{t('treatments')}</strong>
+                                                            <ul className="list-disc pl-5">
+                                                                {session.tratamientos.map((treatment, i) => (
+                                                                    <li key={i}>{treatment.descripcion} {treatment.numero_diente && `(${t('tooth', { tooth: treatment.numero_diente })})`}</li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                    {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
+                                                        <div>
+                                                            <strong>{t('attachments')}</strong>
+                                                            <ul className="list-disc pl-5">
+                                                                {session.archivos_adjuntos.map((file, i) => (
+                                                                    <li key={i}>
+                                                                        <a href={file.ruta} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                                                            {file.tipo} {file.diente_asociado && `(${t('tooth', { tooth: file.diente_asociado })})`}
+                                                                        </a>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </CollapsibleContent>
+                                        </Collapsible>
+                                    </TimelineContent>
+                                </TimelineItem>
+                            );
+                        })}
+                    </Timeline>
+                ) : (
+                    <div className="flex h-full items-center justify-center text-muted-foreground min-h-[200px]">
+                        {t('noHistory')}
                     </div>
-                </CardFooter>
-            </CardContent>
-        </Card>
+                )}
+            </ScrollArea>
+            <div className="p-4 border-t mt-auto">
+                <div className="w-full">
+                    <Link href={`/${locale}/clinic-history/${user.id}`} passHref>
+                        <Button variant="outline" className="w-full">
+                            {t('viewFullHistory')}
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+        </div>
     );
 }

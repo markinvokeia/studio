@@ -27,12 +27,14 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const activeParentItem = navItems.find(item => item.href !== '/' && effectivePathname.startsWith(item.href) && item.items);
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar />
-      <div className={cn("flex flex-col flex-1 transition-all duration-300 ml-20 min-w-0")}>
+      <div className={cn("flex flex-col flex-1 transition-all duration-300 ml-20 min-w-0 h-full overflow-hidden")}>
         <Header />
-        <main className="flex-1 overflow-auto bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 lg:p-6">
-          {children}
+        <main className="flex-1 flex flex-col min-h-0 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 px-4 lg:px-6 pb-4 lg:pb-6 pt-0 overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0 pt-4 lg:pt-6 overflow-hidden relative">
+            {children}
+          </div>
         </main>
       </div>
       <FloatingActionsWrapper />
