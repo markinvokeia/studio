@@ -361,11 +361,11 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated, isSale
     try {
       const apiRoute = isSales ? API_ROUTES.SALES.ORDERS_UPSERT : API_ROUTES.PURCHASES.ORDERS_UPSERT;
       await api.post(apiRoute, values);
-      toast({ title: 'Order Created', description: 'The new order has been created successfully.' });
+      toast({ title: t('createSuccess'), description: t('createSuccessDesc') });
       onOrderCreated();
       onOpenChange(false);
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'An error occurred.' });
+      toast({ variant: 'destructive', title: t('createError'), description: error instanceof Error ? error.message : t('createErrorDesc') });
     }
   };
 

@@ -698,6 +698,91 @@
     "createdAt": "Created At",
     "docNo": "Doc No."
   },
+  "OrdersPage": {
+    "title": "Orders",
+    "description": "Manage all orders.",
+    "detailsFor": "Details for {name}",
+    "orderId": "Order ID",
+    "filterPlaceholder": "Filter here...",
+    "close": "Close details",
+    "cancel": "Cancel",
+    "createTitle": "Create Order",
+    "createDescription": "Create a new order",
+    "selectUser": "Select User",
+    "searchUser": "Search User",
+    "noUserFound": "No users found.",
+    "selectQuote": "Select Quote",
+    "searchQuote": "Search Quote",
+    "noQuoteFound": "No quotes found.",
+    "create": "Create",
+    "status": {
+      "completed": "Completed",
+      "processing": "Processing",
+      "pending": "Pending",
+      "cancelled": "Cancelled",
+      "label": "Status",
+      "select": "Select Status"
+    },
+    "invoiceDialog": {
+      "title": "Create Invoice",
+      "description": "Create an invoice for order #{orderId}",
+      "confirm": "Confirm",
+      "error": "Invoicing Error",
+      "invoiceSuccess": "Invoice Created",
+      "invoiceSuccessDesc": "The invoice for order #{orderId} has been created successfully.",
+      "createError": "Error creating invoice"
+    },
+    "createSuccess": "Order Created",
+    "createSuccessDesc": "The new order has been created successfully.",
+    "createError": "Error Creating Order",
+    "createErrorDesc": "An error occurred while creating the order."
+  },
+  "OrderItemsTable": {
+    "title": "Order Items for #{id}",
+    "filterPlaceholder": "Filter here...",
+    "columns": {
+      "id": "ID",
+      "service": "Service",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "total": "Total",
+      "status": "Status",
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "invoiced": "Invoiced"
+    },
+    "status": {
+      "completed": "Completed",
+      "scheduled": "Scheduled",
+      "cancelled": "Cancelled",
+      "invoiced": "Invoiced"
+    },
+    "actions": {
+      "openMenu": "Open menu",
+      "title": "Actions",
+      "schedule": "Schedule",
+      "complete": "Complete"
+    },
+    "dateDialog": {
+      "title": {
+        "schedule": "Schedule Item",
+        "complete": "Complete Item"
+      },
+      "description": {
+        "schedule": "Select a date to schedule this item.",
+        "complete": "Select a date to complete this item."
+      },
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "toast": {
+      "scheduledTitle": "Item Scheduled",
+      "completedTitle": "Item Completed",
+      "updateSuccess": "Item updated successfully.",
+      "error": "Error",
+      "updateError": "Error updating item."
+    }
+  },
   "General": {
     "noResults": "No results.",
     "openMenu": "Open menu",
@@ -824,19 +909,12 @@
       "edit": "Edit",
       "delete": "Delete"
     },
-    "errors": {
-      "cannotEdit": "Cannot Edit Quote",
-      "cannotEditDetail": "You can only edit quotes that are in \"Draft\" status.",
-      "cannotDelete": "Cannot Delete Quote",
-      "cannotDeleteDetail": "You can only delete quotes that are in \"Draft\" status.",
-      "failedToSave": "Failed to save quote",
-      "failedToDelete": "Failed to delete quote",
-      "failedToLoadServices": "Could not load services.",
-      "failedToLoadServiceData": "Could not load service data for editing."
-    },
     "validation": {
       "userRequired": "An user is required",
-      "serviceRequired": "A service is required"
+      "serviceRequired": "A service is required",
+      "totalPositive": "Total must be a positive number",
+      "quantityMinOne": "Quantity must be at least 1",
+      "unitPricePositive": "Unit price must be positive"
     },
     "deleteQuoteDialog": {
       "title": "Delete Quote",
@@ -850,7 +928,26 @@
       "cancel": "Cancel",
       "confirm": "Confirm"
     },
-    "close": "Close details"
+    "close": "Close details",
+    "errors": {
+      "errorTitle": "Error",
+      "cannotEditQuote": "Cannot Edit Quote",
+      "cannotEditQuoteDetail": "You can only edit quotes that are in \"Draft\" status.",
+      "cannotDeleteQuote": "Cannot Delete Quote",
+      "cannotDeleteQuoteDetail": "You can only delete quotes that are in \"Draft\" status.",
+      "failedToSaveQuote": "Failed to save quote",
+      "failedToDeleteQuote": "Failed to delete quote",
+      "failedToSaveQuoteItem": "Failed to save quote item.",
+      "failedToDeleteQuoteItem": "Failed to delete quote item.",
+      "failedToLoadServices": "Could not load services.",
+      "failedToLoadServiceData": "Could not load service data for editing."
+    },
+    "common": {
+      "closeDetails": "Close details"
+    },
+    "ui": {
+      "orderItemsFor": "Order Items for"
+    }
   },
   "InvoicesPage": {
     "title": "Invoices",
@@ -1382,38 +1479,6 @@
       "genericError": "An error occurred"
     }
   },
-  "OrdersPage": {
-    "status": {
-      "completed": "Completed",
-      "processing": "Processing",
-      "pending": "Pending",
-      "label": "Status",
-      "cancelled": "Cancelled",
-      "select": "Select Status"
-    },
-    "filterPlaceholder": "Filter here...",
-    "title": "Orders",
-    "description": "An overview of the orders.",
-    "createTitle": "Create Order",
-    "createDescription": "Create a new order",
-    "selectUser": "Select User",
-    "searchUser": "Search User",
-    "noUserFound": "No users found.",
-    "selectQuote": "Select Quote",
-    "searchQuote": "Search Quote",
-    "noQuoteFound": "No quotes found.",
-    "cancel": "Cancel",
-    "create": "Create",
-    "invoiceDialog": {
-      "title": "Create Invoice",
-      "description": "Create an invoice for the order",
-      "confirm": "Confirm",
-      "error": "Facturation Error"
-    },
-    "detailsFor": "Details for {name}",
-    "orderId": "Order ID",
-    "close": "Close details"
-  },
   "PaymentsPage": {
     "title": "Payments",
     "description": "An overview of payments.",
@@ -1624,54 +1689,6 @@
     "copyId": "Copy user ID",
     "edit": "Edit",
     "deactivate": "Deactivate"
-  },
-  "OrderItemsTable": {
-    "title": "Order Items",
-    "titleWithId": "Order Items for {id}",
-    "filterPlaceholder": "Filter here...",
-    "columns": {
-      "id": "ID",
-      "service": "Service",
-      "quantity": "Quantity",
-      "unitPrice": "Unit Price",
-      "total": "Total",
-      "status": "Status",
-      "scheduled": "Scheduled At",
-      "completed": "Completed At",
-      "invoiced": "Invoiced At"
-    },
-    "status": {
-      "invoiced": "Invoiced",
-      "completed": "Completed",
-      "scheduled": "Scheduled",
-      "cancelled": "Cancelled",
-      "pending": "Pending"
-    },
-    "toast": {
-      "scheduledTitle": "Item Scheduled",
-      "completedTitle": "Item Completed",
-      "updateSuccess": "The item has been updated successfully.",
-      "updateError": "Failed to update item.",
-      "error": "Error"
-    },
-    "dateDialog": {
-      "title": {
-        "schedule": "Schedule Item",
-        "complete": "Complete Item"
-      },
-      "description": {
-        "schedule": "Select a date to schedule this item.",
-        "complete": "Select the completion date for this item."
-      },
-      "cancel": "Cancel",
-      "save": "Save"
-    },
-    "actions": {
-      "title": "Actions",
-      "schedule": "Schedule",
-      "complete": "Complete",
-      "openMenu": "Open menu"
-    }
   },
   "LoginPage": {
     "title": "Login",

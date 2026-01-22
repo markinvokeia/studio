@@ -48,7 +48,7 @@ import * as z from 'zod';
 const quoteFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     user_id: z.string().min(1, t('validation.userRequired')),
-    total: z.coerce.number().min(0, 'Total must be a positive number'),
+    total: z.coerce.number().min(0, t('validation.totalPositive')),
     currency: z.enum(['UYU', 'USD']).default('USD'),
     status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed']),
     payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid']),
@@ -61,9 +61,9 @@ const quoteItemFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     quote_id: z.string(),
     service_id: z.string().min(1, t('validation.serviceRequired')),
-    quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
-    unit_price: z.coerce.number().min(0, 'Unit price must be positive'),
-    total: z.coerce.number().min(0, 'Total must be positive'),
+    quantity: z.coerce.number().min(1, t('validation.quantityMinOne')),
+    unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')),
+    total: z.coerce.number().min(0, t('validation.totalPositive')),
     exchange_rate: z.coerce.number().optional(),
 });
 
@@ -125,19 +125,19 @@ async function getServices(): Promise<Service[]> {
     }
 }
 
-async function upsertQuoteItem(itemData: QuoteItemFormValues) {
+async function upsertQuoteItem(itemData: QuoteItemFormValues, t: (key: string) => string) {
     const responseData = await api.post(API_ROUTES.PURCHASES.QUOTES_LINES_UPSERT, { ...itemData, is_sales: false });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
-        const message = responseData[0]?.message ? responseData[0].message : 'Failed to save quote item.';
+        const message = responseData[0]?.message ? responseData[0].message : t('errors.failedToSaveQuoteItem');
         throw new Error(message);
     }
     return responseData;
 }
 
-async function deleteQuoteItem(id: string, quoteId: string) {
+async function deleteQuoteItem(id: string, quoteId: string, t: (key: string) => string) {
     const responseData = await api.delete(API_ROUTES.PURCHASES.QUOTES_LINES_DELETE, { id, quote_id: quoteId, is_sales: false });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
-        const message = responseData[0]?.message ? responseData[0].message : 'Failed to delete quote item.';
+        const message = responseData[0]?.message ? responseData[0].message : t('errors.failedToDeleteQuoteItem');
         throw new Error(message);
     }
     return responseData;
@@ -288,19 +288,19 @@ async function getUsers(): Promise<User[]> {
     }
 }
 
-async function upsertQuote(quoteData: QuoteFormValues) {
+async function upsertQuote(quoteData: QuoteFormValues, t: (key: string) => string) {
     const responseData = await api.post(API_ROUTES.PURCHASES.QUOTES_UPSERT, { ...quoteData, is_sales: false });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
-        const message = responseData[0]?.message ? responseData[0].message : 'Failed to save quote';
+        const message = responseData[0]?.message ? responseData[0].message : t('errors.failedToSaveQuote');
         throw new Error(message);
     }
     return responseData;
 }
 
-async function deleteQuote(id: string) {
+async function deleteQuote(id: string, t: (key: string) => string) {
     const responseData = await api.delete(API_ROUTES.PURCHASES.QUOTE_DELETE, { id, is_sales: false });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
-        const message = responseData[0]?.message ? responseData[0].message : 'Failed to delete quote';
+        const message = responseData[0]?.message ? responseData[0].message : t('errors.failedToDeleteQuote');
         throw new Error(message);
     }
     return responseData;
@@ -469,7 +469,7 @@ export default function QuotesPage() {
 
     const handleEditQuote = async (quote: Quote) => {
         if (quote.status.toLowerCase() !== 'draft') {
-            toast({ variant: 'destructive', title: 'Cannot Edit Quote', description: 'You can only edit quotes that are in "Draft" status.' });
+            toast({ variant: 'destructive', title: t('errors.cannotEditQuote'), description: t('errors.cannotEditQuoteDetail') });
             return;
         }
         setEditingQuote(quote);
@@ -481,7 +481,7 @@ export default function QuotesPage() {
 
     const handleDeleteQuote = (quote: Quote) => {
         if (quote.status.toLowerCase() !== 'draft') {
-            toast({ variant: 'destructive', title: 'Cannot Delete Quote', description: 'You can only delete quotes that are in "Draft" status.' });
+            toast({ variant: 'destructive', title: t('errors.cannotDeleteQuote'), description: t('errors.cannotDeleteQuoteDetail') });
             return;
         }
         setDeletingQuote(quote);
@@ -491,21 +491,21 @@ export default function QuotesPage() {
     const confirmDeleteQuote = async () => {
         if (!deletingQuote) return;
         try {
-            await deleteQuote(deletingQuote.id);
+            await deleteQuote(deletingQuote.id, t);
             toast({ title: t('toast.quoteDeleted'), description: t('toast.quoteDeleteSuccess', { id: deletingQuote.doc_no || deletingQuote.id }) });
             setIsDeleteQuoteDialogOpen(false);
             setDeletingQuote(null);
             loadQuotes();
             if (selectedQuote?.id === deletingQuote.id) setSelectedQuote(null);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('toast.quoteDeleteError') });
+            toast({ variant: 'destructive', title: t('errors.errorTitle'), description: error instanceof Error ? error.message : t('toast.quoteDeleteError') });
         }
     };
 
     const onQuoteSubmit = async (values: QuoteFormValues) => {
         setQuoteSubmissionError(null);
         try {
-            await upsertQuote(values);
+            await upsertQuote(values, t);
             toast({ title: editingQuote ? t('toast.quoteUpdated') : t('toast.quoteCreated'), description: t('toast.quoteSaveSuccess') });
             setIsQuoteDialogOpen(false);
             loadQuotes();
@@ -528,7 +528,7 @@ export default function QuotesPage() {
             quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
             setIsQuoteItemDialogOpen(true);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not load services.' });
+            toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadServices') });
         }
     };
 
@@ -569,7 +569,7 @@ export default function QuotesPage() {
 
             setIsQuoteItemDialogOpen(true);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not load service data for editing.' });
+            toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadServiceData') });
         }
     };
 
@@ -581,12 +581,12 @@ export default function QuotesPage() {
     const confirmDeleteQuoteItem = async () => {
         if (!deletingQuoteItem || !selectedQuote) return;
         try {
-            await deleteQuoteItem(deletingQuoteItem.id, selectedQuote.id);
+            await deleteQuoteItem(deletingQuoteItem.id, selectedQuote.id, t);
             toast({ title: t('toast.itemDeleted'), description: t('toast.itemDeleteSuccess') });
             loadQuoteItems();
             loadQuotes(); // To update total
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('toast.itemDeleteError') });
+            toast({ variant: 'destructive', title: t('errors.errorTitle'), description: error instanceof Error ? error.message : t('toast.itemDeleteError') });
         } finally {
             setIsDeleteQuoteItemDialogOpen(false);
             setDeletingQuoteItem(null);
@@ -596,7 +596,7 @@ export default function QuotesPage() {
     const onQuoteItemSubmit = async (values: QuoteItemFormValues) => {
         setQuoteItemSubmissionError(null);
         try {
-            await upsertQuoteItem(values);
+            await upsertQuoteItem(values, t);
             toast({ title: editingQuoteItem ? t('toast.itemUpdated') : t('toast.itemAdded'), description: t('toast.itemSaveSuccess') });
             setIsQuoteItemDialogOpen(false);
             loadQuoteItems();
@@ -617,7 +617,7 @@ export default function QuotesPage() {
             toast({ title: action === 'confirm' ? t('toast.quoteConfirmed') : t('toast.quoteRejected'), description: t(action === 'confirm' ? 'toast.quoteConfirmSuccess' : 'toast.quoteRejectSuccess', { id: quote.doc_no || quote.id }) });
             loadQuotes();
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('toast.quoteActionError', { action: action }) });
+            toast({ variant: 'destructive', title: t('errors.errorTitle'), description: error instanceof Error ? error.message : t('toast.quoteActionError', { action: action }) });
         }
     };
 
@@ -709,7 +709,7 @@ export default function QuotesPage() {
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                                     <X className="h-5 w-5" />
-                                    <span className="sr-only">Close details</span>
+                                    <span className="sr-only">{t('common.closeDetails')}</span>
                                 </Button>
                             </CardHeader>
                             <CardContent>
@@ -744,7 +744,7 @@ export default function QuotesPage() {
                                         {selectedOrder && (
                                             <div className="mt-4">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-md font-semibold">Order Items for {selectedOrder.doc_no || `ORD-${selectedOrder.id}`}</h4>
+                                                    <h4 className="text-md font-semibold">{t('ui.orderItemsFor')} {selectedOrder.doc_no || `ORD-${selectedOrder.id}`}</h4>
                                                     <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
                                                         <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                                     </Button>
@@ -802,7 +802,7 @@ export default function QuotesPage() {
                             {quoteSubmissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>Error</AlertTitle>
+                                    <AlertTitle>{t('errors.errorTitle')}</AlertTitle>
                                     <AlertDescription>{quoteSubmissionError}</AlertDescription>
                                 </Alert>
                             )}
@@ -966,7 +966,7 @@ export default function QuotesPage() {
                             {quoteItemSubmissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>Error</AlertTitle>
+                                    <AlertTitle>{t('errors.errorTitle')}</AlertTitle>
                                     <AlertDescription>{quoteItemSubmissionError}</AlertDescription>
                                 </Alert>
                             )}

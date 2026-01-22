@@ -1,7 +1,6 @@
 
 'use client';
 
-import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { OpenCashSessionWidget } from '@/components/cash-session-widget';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -31,6 +30,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { API_ROUTES } from '@/constants/routes';
+import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
@@ -76,7 +76,7 @@ type PasswordFormValues = z.infer<ReturnType<typeof passwordFormSchema>>;
 
 export function Header() {
     const pathname = usePathname();
-    const { setTheme } = useTheme();
+    const { theme, setTheme } = useTheme();
     const t = useTranslations('Header');
     const locale = useLocale();
     const router = useRouter();
@@ -238,9 +238,24 @@ export function Header() {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => setTheme('light')}>{t('light')}</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTheme('dark')}>{t('dark')}</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTheme('system')}>{t('system')}</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTheme('light')} disabled={theme === 'light'}>
+                                    <span className="flex items-center justify-between w-full">
+                                        <span>{t('light')}</span>
+                                        {theme === 'light' && <Check className="h-4 w-4 ml-2" />}
+                                    </span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTheme('dark')} disabled={theme === 'dark'}>
+                                    <span className="flex items-center justify-between w-full">
+                                        <span>{t('dark')}</span>
+                                        {theme === 'dark' && <Check className="h-4 w-4 ml-2" />}
+                                    </span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTheme('system')} disabled={theme === 'system'}>
+                                    <span className="flex items-center justify-between w-full">
+                                        <span>{t('system')}</span>
+                                        {theme === 'system' && <Check className="h-4 w-4 ml-2" />}
+                                    </span>
+                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                         <DropdownMenu>

@@ -29,8 +29,11 @@ import * as React from 'react';
 type ActionType = 'schedule' | 'complete';
 
 const DateCell = ({ dateValue }: { dateValue: string | null }) => {
-  if (!dateValue || dateValue === 'N/A') {
-    return <Badge variant="destructive">N/A</Badge>;
+  const tGeneral = useTranslations('General');
+  const notAvailable = tGeneral('notAvailable');
+  
+  if (!dateValue || dateValue === notAvailable) {
+    return <Badge variant="destructive">{notAvailable}</Badge>;
   }
 
   const date = new Date(dateValue);
