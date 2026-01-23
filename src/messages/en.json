@@ -947,6 +947,17 @@
     },
     "ui": {
       "orderItemsFor": "Order Items for"
+    },
+    "defaults": {
+      "notAvailable": "N/A",
+      "noName": "No Name",
+      "noEmail": "no-email@example.com"
+    },
+    "placeholders": {
+      "total": "0.00",
+      "exchangeRate": "1.00",
+      "quantity": "1",
+      "unitPrice": "0.00"
     }
   },
   "InvoicesPage": {

@@ -70,22 +70,22 @@ const quoteItemFormSchema = (t: (key: string) => string) => z.object({
 type QuoteItemFormValues = z.infer<ReturnType<typeof quoteItemFormSchema>>;
 
 
-async function getQuotes(): Promise<Quote[]> {
+async function getQuotes(t: (key: string) => string): Promise<Quote[]> {
     try {
         const data = await api.get(API_ROUTES.PURCHASES.QUOTES_ALL, { is_sales: 'false' });
         const quotesData = Array.isArray(data) ? data : (data.quotes || data.data || data.result || []);
 
         return quotesData.map((apiQuote: any) => ({
             id: apiQuote.id ? String(apiQuote.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
-            doc_no: apiQuote.doc_no || 'N/A',
-            user_id: apiQuote.user_id || 'N/A',
+            doc_no: apiQuote.doc_no || t('defaults.notAvailable'),
+            user_id: apiQuote.user_id || t('defaults.notAvailable'),
             total: apiQuote.total || 0,
             status: apiQuote.status || 'draft',
             payment_status: apiQuote.payment_status || 'unpaid',
             billing_status: apiQuote.billing_status || 'not invoiced',
             currency: apiQuote.currency || 'UYU',
-            user_name: apiQuote.user_name || 'No Name',
-            userEmail: apiQuote.userEmail || 'no-email@example.com',
+            user_name: apiQuote.user_name || t('defaults.noName'),
+            userEmail: apiQuote.userEmail || t('defaults.noEmail'),
             createdAt: apiQuote.created_at || new Date().toISOString().split('T')[0],
         }));
     } catch (error) {
@@ -94,16 +94,16 @@ async function getQuotes(): Promise<Quote[]> {
     }
 }
 
-async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
+async function getQuoteItems(quoteId: string, t: (key: string) => string): Promise<QuoteItem[]> {
     if (!quoteId) return [];
     try {
         const data = await api.get(API_ROUTES.PURCHASES.QUOTES_ITEMS, { quote_id: quoteId, is_sales: 'false' });
         const itemsData = Array.isArray(data) ? data : (data.quote_items || data.data || data.result || []);
 
         return itemsData.map((apiItem: any) => ({
-            id: apiItem.id ? String(apiItem.id) : `qi_${Math.random().toString(36).substr(2, 9)}`,
-            service_id: apiItem.service_id || 'N/A',
-            service_name: apiItem.service_name || 'N/A',
+            id: apiItem.id ? String(apiItem.id) : t('defaults.notAvailable'),
+            service_id: apiItem.service_id || t('defaults.notAvailable'),
+            service_name: apiItem.service_name || t('defaults.notAvailable'),
             unit_price: apiItem.unit_price || 0,
             quantity: apiItem.quantity || 0,
             total: apiItem.total || 0,
@@ -144,16 +144,16 @@ async function deleteQuoteItem(id: string, quoteId: string, t: (key: string) => 
 }
 
 
-async function getOrders(quoteId: string): Promise<Order[]> {
+async function getOrders(quoteId: string, t: (key: string) => string): Promise<Order[]> {
     if (!quoteId) return [];
     try {
         const data = await api.get(API_ROUTES.PURCHASES.QUOTES_ORDERS, { quote_id: quoteId, is_sales: 'false' });
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
         return ordersData.map((apiOrder: any) => ({
-            id: apiOrder.id ? String(apiOrder.id) : 'N/A',
-            doc_no: apiOrder.doc_no || 'N/A',
+            id: apiOrder.id ? String(apiOrder.id) : t('defaults.notAvailable'),
+            doc_no: apiOrder.doc_no || t('defaults.notAvailable'),
             user_id: apiOrder.user_id,
-            user_name: apiOrder.user_name || apiOrder.name || 'N/A',
+            user_name: apiOrder.user_name || apiOrder.name || t('defaults.notAvailable'),
             status: apiOrder.status,
             createdAt: apiOrder.created_at || apiOrder.createdAt || new Date().toISOString().split('T')[0],
             currency: apiOrder.currency || 'UYU',
@@ -165,7 +165,7 @@ async function getOrders(quoteId: string): Promise<Order[]> {
     }
 }
 
-async function getOrderItems(orderId: string): Promise<OrderItem[]> {
+async function getOrderItems(orderId: string, t: (key: string) => string): Promise<OrderItem[]> {
     if (!orderId) return [];
     try {
         const data = await api.get(API_ROUTES.PURCHASES.ORDER_ITEMS, { order_id: orderId, is_sales: 'false' });
@@ -173,7 +173,7 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
         return itemsData.map((apiItem: any) => ({
             id: apiItem.order_item_id ? String(apiItem.order_item_id) : `oi_${Math.random().toString(36).substr(2, 9)}`,
             service_id: apiItem.service_id,
-            service_name: apiItem.service_name || 'N/A',
+            service_name: apiItem.service_name || t('defaults.notAvailable'),
             quantity: apiItem.quantity,
             unit_price: apiItem.unit_price,
             total: apiItem.total,
@@ -188,23 +188,23 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
     }
 }
 
-async function getInvoices(quoteId: string): Promise<Invoice[]> {
+async function getInvoices(quoteId: string, t: (key: string) => string): Promise<Invoice[]> {
     if (!quoteId) return [];
     try {
         const data = await api.get(API_ROUTES.PURCHASES.QUOTES_INVOICES, { quote_id: quoteId, is_sales: 'false' });
         const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
         return invoicesData.map((apiInvoice: any) => ({
-            id: apiInvoice.id ? String(apiInvoice.id) : `inv_${Math.random().toString(36).substr(2, 9)}`,
-            invoice_ref: apiInvoice.invoice_ref || 'N/A',
+            id: apiInvoice.id ? String(apiInvoice.id) : t('defaults.notAvailable'),
+            invoice_ref: apiInvoice.invoice_ref || t('defaults.notAvailable'),
             doc_no: apiInvoice.doc_no || `INV-${apiInvoice.id}`,
-            order_doc_no: apiInvoice.order_doc_no || `ORD-${apiInvoice.order_id}`,
+            order_doc_no: apiInvoice.order_doc_no || t('defaults.notAvailable'),
             quote_id: apiInvoice.quote_id,
             total: apiInvoice.total || 0,
             status: apiInvoice.status || 'draft',
             createdAt: apiInvoice.createdAt || new Date().toISOString().split('T')[0],
             currency: apiInvoice.currency || 'UYU',
             order_id: apiInvoice.order_id,
-            user_name: apiInvoice.user_name || 'N/A',
+            user_name: apiInvoice.user_name || t('defaults.notAvailable'),
             payment_status: apiInvoice.payment_status || 'unpaid',
             updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0]
         }));
@@ -214,15 +214,15 @@ async function getInvoices(quoteId: string): Promise<Invoice[]> {
     }
 }
 
-async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
+async function getInvoiceItems(invoiceId: string, t: (key: string) => string): Promise<InvoiceItem[]> {
     if (!invoiceId) return [];
     try {
         const data = await api.get(API_ROUTES.PURCHASES.INVOICE_ITEMS, { invoice_id: invoiceId, is_sales: 'false' });
         const itemsData = Array.isArray(data) ? data : (data.invoice_items || data.data || []);
         return itemsData.map((apiItem: any) => ({
-            id: apiItem.id ? String(apiItem.id) : `ii_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiItem.id ? String(apiItem.id) : t('defaults.notAvailable'),
             service_id: apiItem.service_id,
-            service_name: apiItem.service_name || 'N/A',
+            service_name: apiItem.service_name || t('defaults.notAvailable'),
             quantity: apiItem.quantity,
             unit_price: apiItem.unit_price,
             total: apiItem.total,
@@ -234,13 +234,13 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
 }
 
 
-async function getPayments(quoteId: string): Promise<Payment[]> {
+async function getPayments(quoteId: string, t: (key: string) => string): Promise<Payment[]> {
     if (!quoteId) return [];
     try {
         const data = await api.get(API_ROUTES.PURCHASES.QUOTES_PAYMENTS, { quote_id: quoteId, is_sales: 'false' });
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
-            id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
+            id: apiPayment.id ? String(apiPayment.id) : t('defaults.notAvailable'),
             doc_no: apiPayment.doc_no || `PAY-${apiPayment.id}`,
             invoice_id: apiPayment.invoice_id,
             amount: parseFloat(apiPayment.amount) || 0,
@@ -256,7 +256,7 @@ async function getPayments(quoteId: string): Promise<Payment[]> {
             order_id: apiPayment.order_id || '',
             order_doc_no: apiPayment.order_doc_no || (apiPayment.order_id ? `ORD-${apiPayment.order_id}` : ''),
             quote_id: apiPayment.quote_id,
-            user_name: apiPayment.user_name || 'N/A',
+            user_name: apiPayment.user_name || t('defaults.notAvailable'),
             exchange_rate: parseFloat(apiPayment.exchange_rate) || 1,
             transaction_type: apiPayment.transaction_type || 'direct_payment',
             transaction_id: String(apiPayment.id),
@@ -268,15 +268,15 @@ async function getPayments(quoteId: string): Promise<Payment[]> {
     }
 }
 
-async function getUsers(): Promise<User[]> {
+async function getUsers(t: (key: string) => string): Promise<User[]> {
     try {
         const responseData = await api.get(API_ROUTES.PURCHASES.USERS);
         const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
         const usersData = Array.isArray(data.data) ? data.data : [];
         return usersData.map((apiUser: any) => ({
-            id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
-            name: apiUser.name || 'No Name',
-            email: apiUser.email || 'no-email@example.com',
+            id: apiUser.id ? String(apiUser.id) : t('defaults.notAvailable'),
+            name: apiUser.name || t('defaults.noName'),
+            email: apiUser.email || t('defaults.noEmail'),
             phone_number: apiUser.phone_number || '000-000-0000',
             is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
             avatar: '',
@@ -376,10 +376,10 @@ export default function QuotesPage() {
 
     const loadQuotes = React.useCallback(async () => {
         setIsRefreshing(true);
-        const fetchedQuotes = await getQuotes();
+        const fetchedQuotes = await getQuotes(t);
         setQuotes(fetchedQuotes);
         setIsRefreshing(false);
-    }, []);
+    }, [t]);
 
     React.useEffect(() => {
         loadQuotes();
@@ -388,44 +388,44 @@ export default function QuotesPage() {
     const loadQuoteItems = React.useCallback(async () => {
         if (!selectedQuote) return;
         setIsLoadingItems(true);
-        setQuoteItems(await getQuoteItems(selectedQuote.id));
+        setQuoteItems(await getQuoteItems(selectedQuote.id, t));
         setIsLoadingItems(false);
-    }, [selectedQuote]);
+    }, [selectedQuote, t]);
 
     const loadOrders = React.useCallback(async () => {
         if (!selectedQuote) return;
         setIsLoadingOrders(true);
-        setOrders(await getOrders(selectedQuote.id));
+        setOrders(await getOrders(selectedQuote.id, t));
         setIsLoadingOrders(false);
-    }, [selectedQuote]);
+    }, [selectedQuote, t]);
 
     const loadOrderItems = React.useCallback(async () => {
         if (!selectedOrder) return;
         setIsLoadingOrderItems(true);
-        setOrderItems(await getOrderItems(selectedOrder.id));
+        setOrderItems(await getOrderItems(selectedOrder.id, t));
         setIsLoadingOrderItems(false);
-    }, [selectedOrder]);
+    }, [selectedOrder, t]);
 
     const loadInvoices = React.useCallback(async () => {
         if (!selectedQuote) return;
         setIsLoadingInvoices(true);
-        setInvoices(await getInvoices(selectedQuote.id));
+        setInvoices(await getInvoices(selectedQuote.id, t));
         setIsLoadingInvoices(false);
-    }, [selectedQuote]);
+    }, [selectedQuote, t]);
 
     const loadInvoiceItems = React.useCallback(async () => {
         if (!selectedInvoice) return;
         setIsLoadingInvoiceItems(true);
-        setInvoiceItems(await getInvoiceItems(selectedInvoice.id));
+        setInvoiceItems(await getInvoiceItems(selectedInvoice.id, t));
         setIsLoadingInvoiceItems(false);
-    }, [selectedInvoice]);
+    }, [selectedInvoice, t]);
 
     const loadPayments = React.useCallback(async () => {
         if (!selectedQuote) return;
         setIsLoadingPayments(true);
-        setPayments(await getPayments(selectedQuote.id));
+        setPayments(await getPayments(selectedQuote.id, t));
         setIsLoadingPayments(false);
-    }, [selectedQuote]);
+    }, [selectedQuote, t]);
 
     React.useEffect(() => {
         if (selectedQuote) {
@@ -463,7 +463,7 @@ export default function QuotesPage() {
         setEditingQuote(null);
         quoteForm.reset({ user_id: '', total: 0, currency: 'USD', status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced' });
         setQuoteSubmissionError(null);
-        setAllUsers(await getUsers());
+        setAllUsers(await getUsers(t));
         setIsQuoteDialogOpen(true);
     };
 
@@ -475,7 +475,7 @@ export default function QuotesPage() {
         setEditingQuote(quote);
         quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status as any, billing_status: quote.billing_status as any });
         setQuoteSubmissionError(null);
-        setAllUsers(await getUsers());
+        setAllUsers(await getUsers(t));
         setIsQuoteDialogOpen(true);
     };
 
@@ -851,7 +851,7 @@ export default function QuotesPage() {
                                             <FormItem>
                                                 <FormLabel>{t('quoteDialog.total')}</FormLabel>
                                                 <FormControl>
-                                                    <Input type="number" placeholder="0.00" {...field} />
+                                                    <Input type="number" placeholder={t('placeholders.total')} {...field} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>

@@ -928,7 +928,7 @@
             "cancel": "Cancelar",
             "confirm": "Confirmar"
         },
-        "close": "Close details",
+        "close": "Cerrar detalles",
         "errors": {
             "errorTitle": "Error",
             "cannotEditQuote": "No se puede editar el presupuesto",
@@ -947,6 +947,17 @@
         },
         "ui": {
             "orderItemsFor": "Artículos de la orden para"
+        },
+        "defaults": {
+            "notAvailable": "N/A",
+            "noName": "Sin Nombre",
+            "noEmail": "sin-correo@ejemplo.com"
+        },
+        "placeholders": {
+            "total": "0.00",
+            "exchangeRate": "1.00",
+            "quantity": "1",
+            "unitPrice": "0.00"
         }
     },
     "InvoicesPage": {
