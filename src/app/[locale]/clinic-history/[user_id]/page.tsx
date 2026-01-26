@@ -2543,7 +2543,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                     >
                                         {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
                                     </Button>
-                                    <iframe src={`https://odontogramiia.invokeia.com/?lang=${locale}&user_id=${userId}`} className="w-full h-full border-0" title="Odontograma"></iframe>
+                                    <iframe src={`${process.env.NEXT_PUBLIC_ONDONTOGRAMA_URL || 'https://odontogramiia.invokeia.com'}?lang=${locale}&user_id=${userId}&token=${typeof window !== 'undefined' ? localStorage.getItem('token') || '' : ''}`} className="w-full h-full border-0" title="Odontograma"></iframe>
                                 </div>
                             )}
                             {activeView === 'documents' && <ScrollArea className='flex-1'><div className="pr-4"><ImageGallery userId={userId} onViewDocument={handleViewDocument} /></div></ScrollArea>}
