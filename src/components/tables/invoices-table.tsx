@@ -4,7 +4,7 @@
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
@@ -28,6 +28,7 @@ import { AlertTriangle, ArrowRight, Box, CalendarIcon, FileUp, Loader2, MoreHori
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
+import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -305,10 +306,15 @@ interface InvoicesTableProps {
   onFilterChange?: (value: string) => void;
   filterValue?: string;
   onEdit?: (invoice: Invoice) => void;
+  isCompact?: boolean;
   isSales?: boolean;
+  className?: string;
+  title?: string;
+  description?: string;
+  standalone?: boolean;
 }
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, isSales = true }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, onEdit, isSales = true, isCompact = false, className, title, description, standalone = false }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
@@ -653,46 +659,100 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         isSales={isSales}
         invoice={editingInvoice}
       />
-      <DataTable
-        columns={columns}
-        data={invoices}
-        filterColumnId="doc_no"
-        filterPlaceholder={t('filterPlaceholder')}
-        onRowSelectionChange={onRowSelectionChange}
-        enableSingleRowSelection={!!onRowSelectionChange}
-        onRefresh={onRefresh}
-        isRefreshing={isRefreshing}
-        onCreate={() => {
-          setEditingInvoice(null);
-          setIsFormDialogOpen(true);
-        }}
-        rowSelection={rowSelection}
-        setRowSelection={setRowSelection}
-          columnTranslations={{
-            doc_no: "Doc. No",
-            user_name: t('columns.userName'),
-            order_doc_no: t('columns.orderId'),
-            total: t('columns.total'),
-          currency: t('columns.currency'),
-          status: t('columns.status'),
-          type: t('columns.type'),
-          payment_status: t('columns.paymentStatus'),
-          paid_amount: t('columns.paidAmount'),
-          createdAt: t('columns.createdAt'),
-        }}
-        filterOptions={filterOptions}
-        onFilterChange={onFilterChange}
-        filterValue={filterValue}
-        extraButtons={
-          <>
-            {onImport && (
-              <Button variant="outline" size="sm" className="h-9" onClick={onImport}>
-                <FileUp className="mr-2 h-4 w-4" /> {t('import')}
-              </Button>
-            )}
-          </>
-        }
-      />
+      <Card className={cn("h-full flex-1 flex flex-col min-h-0 border-0 lg:border shadow-none lg:shadow-sm", className)}>
+        {title && (
+          <CardHeader className="flex-none p-4 pb-0">
+            <CardTitle className="text-lg lg:text-xl">{title}</CardTitle>
+            {description && <CardDescription className="text-xs">{description}</CardDescription>}
+          </CardHeader>
+        )}
+        <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden">
+          <DataTable
+            columns={columns}
+            data={invoices}
+            filterColumnId="doc_no"
+            onRowSelectionChange={onRowSelectionChange}
+            enableSingleRowSelection={!!onRowSelectionChange}
+            onRefresh={onRefresh}
+            isRefreshing={isRefreshing}
+            onCreate={() => {
+              setEditingInvoice(null);
+              setIsFormDialogOpen(true);
+            }}
+            rowSelection={rowSelection}
+            setRowSelection={setRowSelection}
+            customToolbar={standalone ? (table) => (
+              <DataTableAdvancedToolbar
+                table={table}
+                isCompact={isCompact}
+                filterPlaceholder={t('filterPlaceholder')}
+                searchQuery={(table.getState().columnFilters.find((f: any) => f.id === 'doc_no')?.value as string) || ''}
+                onSearchChange={(value) => {
+                  table.setColumnFilters((prev: any) => {
+                    const newFilters = prev.filter((f: any) => f.id !== 'doc_no');
+                    if (value) {
+                      newFilters.push({ id: 'doc_no', value });
+                    }
+                    return newFilters;
+                  });
+                }}
+                onCreate={() => {
+                  setEditingInvoice(null);
+                  setIsFormDialogOpen(true);
+                }}
+                onRefresh={onRefresh}
+                isRefreshing={isRefreshing}
+                filters={[
+                  ...(filterOptions?.map(opt => ({
+                    value: opt.value,
+                    label: opt.label,
+                    group: t('columns.type') || "Type",
+                    isActive: filterValue === opt.value,
+                    onSelect: () => onFilterChange?.(opt.value)
+                  })) || [])
+                ]}
+                onClearFilters={() => onFilterChange?.('')}
+                columnTranslations={{
+                  doc_no: "Doc. No",
+                  user_name: t('columns.userName'),
+                  order_doc_no: t('columns.orderId'),
+                  total: t('columns.total'),
+                  currency: t('columns.currency'),
+                  status: t('columns.status'),
+                  type: t('columns.type'),
+                  payment_status: t('columns.paymentStatus'),
+                  paid_amount: t('columns.paidAmount'),
+                  createdAt: t('columns.createdAt'),
+                }}
+                extraButtons={
+                  <>
+                    {onImport && (
+                      <Button variant="outline" size="sm" className="h-9" onClick={onImport}>
+                        <FileUp className="mr-2 h-4 w-4" /> {t('import')}
+                      </Button>
+                    )}
+                  </>
+                }
+              />
+            ) : undefined}
+            columnTranslations={{
+              doc_no: "Doc. No",
+              user_name: t('columns.userName'),
+              order_doc_no: t('columns.orderId'),
+              total: t('columns.total'),
+              currency: t('columns.currency'),
+              status: t('columns.status'),
+              type: t('columns.type'),
+              payment_status: t('columns.paymentStatus'),
+              paid_amount: t('columns.paidAmount'),
+              createdAt: t('columns.createdAt'),
+            }}
+            filterOptions={filterOptions}
+            onFilterChange={onFilterChange}
+            filterValue={filterValue}
+          />
+        </CardContent>
+      </Card>
 
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
         <DialogContent className="max-w-2xl">

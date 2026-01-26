@@ -31,7 +31,7 @@ type ActionType = 'schedule' | 'complete';
 const DateCell = ({ dateValue }: { dateValue: string | null }) => {
   const tGeneral = useTranslations('General');
   const notAvailable = tGeneral('notAvailable');
-  
+
   if (!dateValue || dateValue === notAvailable) {
     return <Badge variant="destructive">{notAvailable}</Badge>;
   }
@@ -240,8 +240,8 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
   }
   return (
     <>
-      <Card>
-        <CardContent className="p-4">
+      <Card className="h-full flex flex-col min-h-0">
+        <CardContent className="flex-1 flex flex-col min-h-0 p-4">
           <DataTable
             columns={columns}
             data={items}

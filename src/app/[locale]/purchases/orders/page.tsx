@@ -16,6 +16,7 @@ import { api } from '@/services/api';
 import { RowSelectionState } from '@tanstack/react-table';
 import { RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import * as React from 'react';
 
 async function getOrders(): Promise<Order[]> {
@@ -232,98 +233,96 @@ export default function OrdersPage() {
     };
 
     return (
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden pr-2 pb-4">
-            <Card className="flex-1 flex flex-col min-h-0">
-                <CardHeader className="flex-none">
-                    <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                    <div className="relative flex-1 min-h-0">
-                        <div className={cn("transition-all duration-300 h-full flex flex-col", selectedOrder ? "w-[25%]" : "w-full")}>
-                            <OrdersTable
-                                orders={orders}
-                                isLoading={isLoadingOrders}
-                                onRowSelectionChange={handleRowSelectionChange}
-                                onRefresh={loadOrders}
-                                isRefreshing={isLoadingOrders}
-                                rowSelection={rowSelection}
-                                setRowSelection={setRowSelection}
-                                isSales={false}
-                                className="!border-none !shadow-none !p-0"
-                            />
-                        </div>
-
-                        <div className={cn(
-                            "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l z-20 transition-transform duration-300 ease-in-out",
-                            selectedOrder ? 'translate-x-0' : 'translate-x-full'
-                        )}>
-                            {selectedOrder && (
-                                <Card className="h-full shadow-lg rounded-none flex flex-col min-h-0">
-                                    <CardHeader className="flex flex-row items-start justify-between flex-none">
-                                        <div>
-                                            <CardTitle>{t('detailsFor', { name: selectedOrder.user_name })}</CardTitle>
-                                            <CardDescription>{t('orderId')}: {selectedOrder.doc_no}</CardDescription>
-                                        </div>
-                                        <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
-                                            <X className="h-5 w-5" />
-                                            <span className="sr-only">{t('close')}</span>
-                                        </Button>
-                                    </CardHeader>
-                                    <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                                        <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
-                                            <TabsList className="h-auto items-center justify-start flex-wrap flex-none">
-                                                <TabsTrigger value="items">{tQuotes('tabs.items')}</TabsTrigger>
-                                                <TabsTrigger value="invoices">{tQuotes('tabs.invoices')}</TabsTrigger>
-                                                <TabsTrigger value="payments">{tQuotes('tabs.payments')}</TabsTrigger>
-                                            </TabsList>
-                                            <TabsContent value="items" className="flex-1 min-h-0 overflow-auto py-4">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-md font-semibold">{tOrderItems('title', { id: selectedOrder.doc_no })}</h4>
-                                                    <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
-                                                        <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
-                                                    </Button>
-                                                </div>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <TwoPanelLayout
+                isRightPanelOpen={!!selectedOrder}
+                leftPanel={
+                    <OrdersTable
+                        orders={orders}
+                        isLoading={isLoadingOrders}
+                        onRowSelectionChange={handleRowSelectionChange}
+                        onRefresh={loadOrders}
+                        isRefreshing={isLoadingOrders}
+                        rowSelection={rowSelection}
+                        setRowSelection={setRowSelection}
+                        isSales={false}
+                        isCompact={!!selectedOrder}
+                        standalone={true}
+                        title={t('title')}
+                        description={t('description')}
+                        className="h-full"
+                    />
+                }
+                rightPanel={
+                    selectedOrder && (
+                        <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0">
+                            <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
+                                <div className="min-w-0 flex-1">
+                                    <CardTitle className="text-lg lg:text-xl truncate">{t('detailsFor', { name: selectedOrder.user_name })}</CardTitle>
+                                    <CardDescription className="text-xs">{t('orderId')}: {selectedOrder.doc_no}</CardDescription>
+                                </div>
+                                <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                                    <X className="h-5 w-5" />
+                                    <span className="sr-only">{t('close')}</span>
+                                </Button>
+                            </CardHeader>
+                            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 pt-0">
+                                <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
+                                    <TabsList className="h-auto items-center justify-start flex-wrap flex-none bg-muted/50 p-1">
+                                        <TabsTrigger value="items" className="text-xs">{tQuotes('tabs.items')}</TabsTrigger>
+                                        <TabsTrigger value="invoices" className="text-xs">{tQuotes('tabs.invoices')}</TabsTrigger>
+                                        <TabsTrigger value="payments" className="text-xs">{tQuotes('tabs.payments')}</TabsTrigger>
+                                    </TabsList>
+                                    <div className="flex-1 min-h-0 mt-3 flex flex-col overflow-hidden">
+                                        <TabsContent value="items" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                            <div className="flex items-center justify-between mb-2 flex-none">
+                                                <h4 className="text-sm font-semibold">{tOrderItems('title', { id: selectedOrder.doc_no || selectedOrder.id })}</h4>
+                                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
+                                                    <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
+                                                </Button>
+                                            </div>
+                                            <div className="flex-1 min-h-0">
                                                 <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedOrder.quote_id} isSales={false} userId={selectedOrder.user_id} />
-                                            </TabsContent>
-                                            <TabsContent value="invoices" className="flex-1 min-h-0 overflow-auto py-4">
-                                                <div className="space-y-4">
-                                                    <InvoicesTable
-                                                        invoices={invoices}
-                                                        isLoading={isLoadingInvoices}
-                                                        onRowSelectionChange={handleInvoiceSelectionChange}
-                                                        onRefresh={loadInvoices}
-                                                        isRefreshing={isLoadingInvoices}
-                                                    />
-                                                    {selectedInvoice && (
-                                                        <div className="mt-4 rounded-lg border bg-card text-card-foreground shadow-sm">
-                                                            <div className="flex items-center justify-between p-4">
-                                                                <h4 className="text-md font-semibold">{tInvoiceItems('title', { id: selectedInvoice.id })}</h4>
-                                                                <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
-                                                                    <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
-                                                                </Button>
-                                                            </div>
-                                                            <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </TabsContent>
-                                            <TabsContent value="payments" className="flex-1 min-h-0 overflow-auto py-4">
-                                                <PaymentsTable
-                                                    payments={payments}
-                                                    isLoading={isLoadingPayments}
-                                                    onRefresh={loadPayments}
-                                                    isRefreshing={isLoadingPayments}
+                                            </div>
+                                        </TabsContent>
+                                        <TabsContent value="invoices" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
+                                            <div className="flex-1 min-h-[400px] flex flex-col">
+                                                <InvoicesTable
+                                                    invoices={invoices}
+                                                    isLoading={isLoadingInvoices}
+                                                    onRowSelectionChange={handleInvoiceSelectionChange}
+                                                    onRefresh={loadInvoices}
+                                                    isRefreshing={isLoadingInvoices}
+                                                    isCompact={true}
                                                 />
-                                            </TabsContent>
-                                        </Tabs>
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+                                            </div>
+                                            {selectedInvoice && (
+                                                <div className="mt-4 border-t pt-4 flex-1 flex flex-col min-h-[400px]">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <h4 className="text-sm font-semibold">{tInvoiceItems('titleWithId', { id: selectedInvoice.doc_no || selectedInvoice.id })}</h4>
+                                                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
+                                                            <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
+                                                        </Button>
+                                                    </div>
+                                                    <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
+                                                </div>
+                                            )}
+                                        </TabsContent>
+                                        <TabsContent value="payments" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                            <PaymentsTable
+                                                payments={payments}
+                                                isLoading={isLoadingPayments}
+                                                onRefresh={loadPayments}
+                                                isRefreshing={isLoadingPayments}
+                                            />
+                                        </TabsContent>
+                                    </div>
+                                </Tabs>
+                            </CardContent>
+                        </Card>
+                    )
+                }
+            />
         </div>
     );
 }

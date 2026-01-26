@@ -49,9 +49,9 @@ const sequenceFormSchema = (t: (key: string) => string) => z.object({
     }
   ).transform((val) => val || ''),
   current_counter: z.number().min(1, t('counterMin')),
-   reset_period: z.enum(['never', 'yearly', 'monthly', 'daily'], {
+  reset_period: z.enum(['never', 'yearly', 'monthly', 'daily'], {
     required_error: t('resetPeriodRequired')
-   }),
+  }),
   is_active: z.boolean(),
 });
 
@@ -86,10 +86,10 @@ async function getSequences(params?: {
       .filter((apiSequence: any) => {
         // Filter out empty objects or objects without required fields
         return apiSequence &&
-               typeof apiSequence === 'object' &&
-               !Array.isArray(apiSequence) &&
-               Object.keys(apiSequence).length > 0 &&
-               apiSequence.id; // Ensure we have at least an id
+          typeof apiSequence === 'object' &&
+          !Array.isArray(apiSequence) &&
+          Object.keys(apiSequence).length > 0 &&
+          apiSequence.id; // Ensure we have at least an id
       })
       .map((apiSequence: any) => ({
         id: Number(apiSequence.id),
@@ -272,13 +272,13 @@ export default function SequencesPage() {
   const sequencesColumns = SequencesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
 
   return (
-    <>
-      <Card>
-        <CardHeader>
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <CardHeader className="flex-none">
           <CardTitle>{t('title')}</CardTitle>
           <CardDescription>{t('description')}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <DataTable
             columns={sequencesColumns}
             data={sequences}
@@ -463,9 +463,9 @@ export default function SequencesPage() {
                   <FormItem>
                     <FormLabel>{t('createDialog.pattern')}</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder={t('createDialog.patternPlaceholder')} 
-                        {...field} 
+                      <Input
+                        placeholder={t('createDialog.patternPlaceholder')}
+                        {...field}
                         value={field.value || ''}
                         onChange={(e) => field.onChange(e.target.value)}
                       />
@@ -494,11 +494,11 @@ export default function SequencesPage() {
                       <div>
                         <div className="font-mono">{'{' + variable.key + '}'}</div>
                         <div className="text-muted-foreground">
-                        {variable.key.startsWith('COUNTER:') 
-                          ? t(`variables.COUNTER:${variable.key.split(':')[1]}`) || t(`variables.COUNTER:N`)
-                          : t(`variables.${variable.key}`)
-                        }
-                      </div>
+                          {variable.key.startsWith('COUNTER:')
+                            ? t(`variables.COUNTER:${variable.key.split(':')[1]}`) || t(`variables.COUNTER:N`)
+                            : t(`variables.${variable.key}`)
+                          }
+                        </div>
                       </div>
                     </Button>
                   ))}
@@ -548,12 +548,12 @@ export default function SequencesPage() {
                             <SelectValue placeholder={t('createDialog.selectResetPeriod')} />
                           </SelectTrigger>
                         </FormControl>
-                         <SelectContent>
-                           <SelectItem value="never">{t('resetPeriods.never')}</SelectItem>
-                           <SelectItem value="yearly">{t('resetPeriods.yearly')}</SelectItem>
-                           <SelectItem value="monthly">{t('resetPeriods.monthly')}</SelectItem>
-                           <SelectItem value="daily">{t('resetPeriods.daily')}</SelectItem>
-                         </SelectContent>
+                        <SelectContent>
+                          <SelectItem value="never">{t('resetPeriods.never')}</SelectItem>
+                          <SelectItem value="yearly">{t('resetPeriods.yearly')}</SelectItem>
+                          <SelectItem value="monthly">{t('resetPeriods.monthly')}</SelectItem>
+                          <SelectItem value="daily">{t('resetPeriods.daily')}</SelectItem>
+                        </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
@@ -608,6 +608,6 @@ export default function SequencesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }

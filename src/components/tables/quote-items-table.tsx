@@ -125,8 +125,8 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
     );
   }
   return (
-    <Card>
-      <CardContent className="p-4">
+    <Card className="h-full flex flex-col min-h-0">
+      <CardContent className="flex-1 flex flex-col min-h-0 p-4">
         <DataTable
           columns={columns}
           data={items}

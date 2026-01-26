@@ -13,7 +13,7 @@ import {
     DropdownMenuTrigger,
     DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
-import { Filter, X, Search, ChevronDown, Check, PlusCircle, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { Filter, X, Search, ChevronDown, Check, PlusCircle, RefreshCw, SlidersHorizontal, Settings2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -78,100 +78,52 @@ export function DataTableAdvancedToolbar<TData>({
 
     const SearchBar = (
         <div
-            className="flex min-h-[40px] w-full items-center rounded-md border border-input bg-background px-3 py-1 ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+            className="flex h-9 w-full items-center rounded-md border border-input bg-background ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-1 overflow-hidden"
             onClick={() => inputRef.current?.focus()}
         >
-            <Search className="mr-2 h-4 w-4 text-muted-foreground shrink-0" />
 
-            <div className="flex flex-1 flex-wrap items-center gap-1.5 min-w-0 overflow-hidden py-0.5">
-                {/* Active Filter Chips */}
-                {activeFilters.map((filter) => (
-                    <div
-                        key={filter.value}
-                        className="flex items-center rounded-sm bg-primary/20 text-primary px-2 py-0.5 text-xs font-medium shrink-0 max-w-full"
-                    >
-                        {filter.group ? <span className="mr-1 opacity-70 whitespace-nowrap hidden sm:inline">{filter.group}:</span> : null}
-                        <span className="truncate">{filter.label}</span>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="ml-1 h-3 w-3 p-0 hover:bg-transparent shrink-0"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                filter.onSelect?.();
-                            }}
+
+            <div className="flex items-center px-3 flex-none">
+                <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+            </div>
+
+            <div className="flex flex-1 items-center gap-1.5 min-w-0 overflow-hidden">
+                {/* Active Filter Chips - made smaller to fit h-9 */}
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap">
+                    {activeFilters.map((filter) => (
+                        <div
+                            key={filter.value}
+                            className="flex items-center rounded-sm bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium shrink-0"
                         >
-                            <X className="h-3 w-3" />
-                            <span className="sr-only">Remove {filter.label}</span>
-                        </Button>
-                    </div>
-                ))}
+                            {filter.group ? <span className="mr-1 opacity-70 hidden sm:inline">{filter.group}:</span> : null}
+                            <span className="truncate max-w-[100px]">{filter.label}</span>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="ml-1 h-3 w-3 p-0 hover:bg-transparent shrink-0"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    filter.onSelect?.();
+                                }}
+                            >
+                                <X className="h-2.5 w-2.5" />
+                                <span className="sr-only">Remove {filter.label}</span>
+                            </Button>
+                        </div>
+                    ))}
+                </div>
 
                 <Input
                     ref={inputRef}
                     placeholder={activeFilters.length > 0 ? "" : filterPlaceholder}
                     value={searchQuery}
                     onChange={(event) => onSearchChange?.(event.target.value)}
-                    className="flex-1 min-w-[120px] border-0 bg-transparent p-0 text-sm placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 outline-none h-7"
+                    className="flex-1 min-w-[80px] border-0 bg-transparent py-0 px-1 text-sm placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 outline-none h-full"
                 />
             </div>
 
             {/* Actions Group inside Input */}
-            <div className="flex items-center shrink-0 ml-2 gap-1 border-l pl-2">
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-muted-foreground hover:text-foreground"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <Filter className="h-4 w-4" />
-                            <ChevronDown className="ml-1 h-3 w-3" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-[200px] z-50">
-                        <DropdownMenuLabel>{t('filter')}</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {Object.entries(groupedFilters).map(([group, groupFilters], index) => (
-                            <React.Fragment key={group}>
-                                {group !== 'Other' && (
-                                    <>
-                                        {index > 0 && <DropdownMenuSeparator />}
-                                        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal pb-1">
-                                            {group}
-                                        </DropdownMenuLabel>
-                                    </>
-                                )}
-                                {groupFilters.map((filter) => (
-                                    <DropdownMenuItem
-                                        key={filter.value}
-                                        className="flex items-center justify-between"
-                                        onSelect={(e) => {
-                                            e.preventDefault();
-                                            filter.onSelect?.();
-                                        }}
-                                    >
-                                        <span className={cn(filter.isActive && "font-medium")}>{filter.label}</span>
-                                        {filter.isActive && <Check className="h-4 w-4" />}
-                                    </DropdownMenuItem>
-                                ))}
-                            </React.Fragment>
-                        ))}
-                        {hasActiveFilters && (
-                            <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    onSelect={() => onClearFilters?.()}
-                                    className="justify-center text-center text-destructive focus:text-destructive"
-                                >
-                                    {t('clear')}
-                                </DropdownMenuItem>
-                            </>
-                        )}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-
+            <div className="flex items-center shrink-0 h-full pr-1.5">
                 {searchQuery && (
                     <Button
                         variant="ghost"
@@ -180,18 +132,75 @@ export function DataTableAdvancedToolbar<TData>({
                             e.stopPropagation();
                             onSearchChange?.('');
                         }}
-                        className="h-7 w-7 p-0 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                        className="h-7 w-7 p-0 hover:bg-muted text-muted-foreground hover:text-foreground mr-1"
                     >
-                        <X className="h-4 w-4" />
+                        <X className="h-3.5 w-3.5" />
                         <span className="sr-only">Clear Search</span>
                     </Button>
+                )}
+
+                <div className="h-4 w-[1px] bg-border mx-1" />
+
+                {filters.length > 0 && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <SlidersHorizontal className="h-3.5 w-3.5" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[200px] z-50">
+                            <DropdownMenuLabel className="text-xs">{t('advancedFilters') || 'Advanced Filters'}</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {Object.entries(groupedFilters).map(([group, groupFilters], index) => (
+                                <React.Fragment key={group}>
+                                    {group !== 'Other' && (
+                                        <>
+                                            {index > 0 && <DropdownMenuSeparator />}
+                                            <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold pb-1">
+                                                {group}
+                                            </DropdownMenuLabel>
+                                        </>
+                                    )}
+                                    {groupFilters.map((filter) => (
+                                        <DropdownMenuItem
+                                            key={filter.value}
+                                            className="flex items-center justify-between text-sm py-1.5"
+                                            onSelect={(e) => {
+                                                e.preventDefault();
+                                                filter.onSelect?.();
+                                            }}
+                                        >
+                                            <span className={cn(filter.isActive && "font-medium")}>{filter.label}</span>
+                                            {filter.isActive && <Check className="h-4 w-4" />}
+                                        </DropdownMenuItem>
+                                    ))}
+                                </React.Fragment>
+                            ))}
+                            {hasActiveFilters && (
+                                <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        onSelect={() => onClearFilters?.()}
+                                        className="justify-center text-center text-destructive focus:text-destructive text-sm"
+                                    >
+                                        {t('clear')}
+                                    </DropdownMenuItem>
+                                </>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 )}
             </div>
         </div>
     );
 
     return (
-        <div className="flex flex-col gap-y-3 w-full">
+        <div className="flex flex-col gap-y-2 w-full">
             <div className="flex items-center justify-between gap-x-4 w-full">
                 <div className="flex items-center gap-2 flex-grow min-w-0">
                     {isCompact ? (
@@ -259,7 +268,7 @@ export function DataTableAdvancedToolbar<TData>({
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="icon" className="h-9 w-9">
-                                    <SlidersHorizontal className="h-4 w-4" />
+                                    <Settings2 className="h-4 w-4" />
                                     <span className="sr-only">{t('view')}</span>
                                 </Button>
                             </DropdownMenuTrigger>

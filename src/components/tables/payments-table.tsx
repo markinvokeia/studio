@@ -5,7 +5,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Payment } from '@/lib/types';
-import { formatDateTime } from '@/lib/utils';
+import { cn, formatDateTime } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -165,9 +165,10 @@ interface PaymentsTableProps {
   onPrint?: (payment: Payment) => void;
   onSendEmail?: (payment: Payment) => void;
   onCreate?: () => void;
+  className?: string;
 }
 
-export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onCreate }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onCreate, className }: PaymentsTableProps) {
   const t = useTranslations('PaymentsPage.columns');
   const tPage = useTranslations('PaymentsPage');
   const tTransactionType = useTranslations('PaymentsPage.transactionType');
@@ -187,7 +188,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
   const filteredColumns = columns.filter(col => !columnsToHide.includes((col as any).accessorKey));
 
   return (
-    <Card className="flex-1 flex flex-col min-h-0">
+    <Card className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
       <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden">
         <DataTable
           columns={filteredColumns}

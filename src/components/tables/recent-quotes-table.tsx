@@ -40,9 +40,10 @@ import { MoreHorizontal, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DocumentTextIcon } from '../icons/document-text-icon';
-import { DataTableToolbar } from '../ui/data-table-toolbar';
+import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { DataTablePagination } from '../ui/data-table-pagination';
+import { DataTableToolbar } from '../ui/data-table-toolbar';
 
 const getColumns = (
   t: (key: string) => string,
@@ -273,6 +274,10 @@ interface RecentQuotesTableProps {
   onDelete?: (quote: Quote) => void;
   onQuoteAction?: (quote: Quote, action: 'confirm' | 'reject') => void;
   className?: string;
+  isCompact?: boolean;
+  title?: string;
+  description?: string;
+  standalone?: boolean;
 }
 
 export function RecentQuotesTable({
@@ -286,7 +291,11 @@ export function RecentQuotesTable({
   onEdit = () => { },
   onDelete = () => { },
   onQuoteAction = () => { },
-  className
+  className,
+  isCompact = false,
+  title,
+  description,
+  standalone = false,
 }: RecentQuotesTableProps) {
   const t = useTranslations();
   const { toast } = useToast();
@@ -418,25 +427,49 @@ export function RecentQuotesTable({
 
   return (
     <>
-      <Card className={cn("flex-1 flex flex-col min-h-0", className)}>
-        <CardHeader className="flex-none">
-          <div className="flex items-center gap-2">
-            <DocumentTextIcon className="h-6 w-6 text-amber-500" />
-            <CardTitle>{t('RecentQuotesTable.title')}</CardTitle>
-          </div>
-          <CardDescription>{t('RecentQuotesTable.description')}</CardDescription>
-        </CardHeader>
+      <Card className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
+        {title && (
+          <CardHeader className="flex-none p-4 pb-0">
+            <div className="flex items-center gap-2">
+              <DocumentTextIcon className="h-6 w-6 text-amber-500" />
+              <CardTitle className="text-lg lg:text-xl">{title}</CardTitle>
+            </div>
+            {description && <CardDescription className="text-xs">{description}</CardDescription>}
+          </CardHeader>
+        )}
         <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <div className="flex flex-col flex-1 min-h-0 space-y-4 overflow-hidden">
-            <DataTableToolbar
-              table={table}
-              filterColumnId="user_name"
-              filterPlaceholder={t('RecentQuotesTable.filterPlaceholder')}
-              onCreate={onCreate}
-              onRefresh={onRefresh}
-              isRefreshing={isRefreshing}
-              columnTranslations={columnTranslations}
-            />
+            {standalone ? (
+              <DataTableAdvancedToolbar
+                table={table}
+                isCompact={isCompact}
+                filterPlaceholder={t('RecentQuotesTable.filterPlaceholder')}
+                searchQuery={(columnFilters.find(f => f.id === 'user_name')?.value as string) || ''}
+                onSearchChange={(value) => {
+                  setColumnFilters((prev) => {
+                    const newFilters = prev.filter((f) => f.id !== 'user_name');
+                    if (value) {
+                      newFilters.push({ id: 'user_name', value });
+                    }
+                    return newFilters;
+                  });
+                }}
+                onCreate={onCreate}
+                onRefresh={onRefresh}
+                isRefreshing={isRefreshing}
+                columnTranslations={columnTranslations}
+              />
+            ) : (
+              <DataTableToolbar
+                table={table}
+                filterColumnId="user_name"
+                filterPlaceholder={t('RecentQuotesTable.filterPlaceholder')}
+                onRefresh={onRefresh}
+                isRefreshing={isRefreshing}
+                onCreate={onCreate}
+                columnTranslations={columnTranslations}
+              />
+            )}
             <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
               <table className={cn("w-full caption-bottom text-sm")}>
                 <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">

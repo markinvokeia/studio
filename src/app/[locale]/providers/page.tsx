@@ -326,15 +326,15 @@ export default function ProvidersPage() {
   };
 
   return (
-    <>
-      <div className={cn("grid grid-cols-1 gap-4", selectedProvider ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
-        <div className={cn("transition-all duration-300", selectedProvider ? "lg:col-span-2" : "lg:col-span-5")}>
-          <Card>
-            <CardHeader>
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <div className={cn("grid grid-cols-1 gap-4 flex-1 min-h-0 overflow-hidden", selectedProvider ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
+        <div className={cn("transition-all duration-300 flex flex-col min-h-0 overflow-hidden", selectedProvider ? "lg:col-span-2" : "lg:col-span-1")}>
+          <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <CardHeader className="flex-none">
               <CardTitle>{t('ProvidersPage.title')}</CardTitle>
               <CardDescription>{t('ProvidersPage.description')}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
               <DataTable
                 columns={providerColumns}
                 data={providers}
@@ -359,9 +359,9 @@ export default function ProvidersPage() {
         </div>
 
         {selectedProvider && (
-          <div className="lg:col-span-3">
-            <Card>
-              <CardHeader className="flex flex-row items-start justify-between">
+          <div className="lg:col-span-3 flex flex-col min-h-0 overflow-hidden">
+            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <CardHeader className="flex flex-row items-start justify-between flex-none">
                 <div>
                   <CardTitle>{t('ProvidersPage.detailsFor', { name: selectedProvider.name })}</CardTitle>
                 </div>
@@ -378,23 +378,25 @@ export default function ProvidersPage() {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="roles" className="w-full">
-                  <TabsList>
-                    <TabsTrigger value="roles">{t('ProvidersPage.tabs.roles')}</TabsTrigger>
-                    <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
+              <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 pt-0">
+                <Tabs defaultValue="roles" className="flex-1 flex flex-col min-h-0">
+                  <TabsList className="h-auto items-center justify-start flex-wrap flex-none bg-muted/50 p-1">
+                    <TabsTrigger value="roles" className="text-xs">{t('ProvidersPage.tabs.roles')}</TabsTrigger>
+                    <TabsTrigger value="services" className="text-xs">{t('UsersPage.tabs.services')}</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="roles">
-                    <UserRoles
-                      userId={selectedProvider.id}
-                      initialUserRoles={selectedProviderRoles}
-                      isLoading={isRolesLoading}
-                      onRolesChange={() => loadProviderRoles(selectedProvider.id)}
-                    />
-                  </TabsContent>
-                  <TabsContent value="services">
-                    <UserServices userId={selectedProvider.id} isSalesUser={false} />
-                  </TabsContent>
+                  <div className="flex-1 min-h-0 mt-3 flex flex-col overflow-hidden">
+                    <TabsContent value="roles" className="m-0 flex-1 min-h-0 overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
+                      <UserRoles
+                        userId={selectedProvider.id}
+                        initialUserRoles={selectedProviderRoles}
+                        isLoading={isRolesLoading}
+                        onRolesChange={() => loadProviderRoles(selectedProvider.id)}
+                      />
+                    </TabsContent>
+                    <TabsContent value="services" className="m-0 flex-1 min-h-0 overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
+                      <UserServices userId={selectedProvider.id} isSalesUser={false} />
+                    </TabsContent>
+                  </div>
                 </Tabs>
               </CardContent>
             </Card>
@@ -495,7 +497,7 @@ export default function ProvidersPage() {
           </Form>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
 

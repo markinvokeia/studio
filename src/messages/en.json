@@ -147,7 +147,8 @@
     "all": "All",
     "refresh": "Refresh",
     "view": "View",
-    "create": "Create"
+    "create": "Create",
+    "advancedFilters": "Advanced Filters"
   },
   "DataTablePagination": {
     "selected": "{count, plural, one {# selected} other {# selected}} of {total} row(s).",
@@ -797,6 +798,8 @@
     "website": "Website"
   },
   "QuotesPage": {
+    "title": "Quotes",
+    "description": "Manage all your quotes here.",
     "sendEmailDialog": {
       "title": "Send Quote by Email",
       "description": "Enter the recipient emails for quote #{id}.",
@@ -952,6 +955,9 @@
   "InvoicesPage": {
     "title": "Invoices",
     "description": "Manage all your invoices here.",
+    "filterAll": "All",
+    "invoice": "Invoice",
+    "creditNote": "Credit Note",
     "columns": {
       "invoiceId": "Invoice ID",
       "provider": "Provider",

@@ -197,27 +197,27 @@ export default function HolidaysPage() {
     };
 
     return (
-        <>
-            <Card>
-                <CardHeader>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <CardHeader className="flex-none">
                     <CardTitle>{tNav('Holidays')}</CardTitle>
                     <CardDescription>{t('description')}</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     <DataTable
                         columns={holidaysColumns}
                         data={filteredHolidays}
                         customToolbar={(table) => (
-                          <DataTableAdvancedToolbar
-                            table={table}
-                            searchQuery={searchQuery}
-                            onSearchChange={setSearchQuery}
-                            filterPlaceholder={t('filterPlaceholder')}
-                            onCreate={handleCreate}
-                            onRefresh={loadHolidays}
-                            isRefreshing={isRefreshing}
-                            columnTranslations={columnTranslations}
-                          />
+                            <DataTableAdvancedToolbar
+                                table={table}
+                                searchQuery={searchQuery}
+                                onSearchChange={setSearchQuery}
+                                filterPlaceholder={t('filterPlaceholder')}
+                                onCreate={handleCreate}
+                                onRefresh={loadHolidays}
+                                isRefreshing={isRefreshing}
+                                columnTranslations={columnTranslations}
+                            />
                         )}
                         columnTranslations={columnTranslations}
                     />
@@ -327,6 +327,6 @@ export default function HolidaysPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </>
+        </div>
     );
 }

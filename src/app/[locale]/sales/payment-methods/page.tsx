@@ -187,13 +187,13 @@ export default function PaymentMethodsPage() {
     ];
 
     return (
-        <>
-            <Card>
-                <CardHeader>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <CardHeader className="flex-none">
                     <CardTitle>{t('title')}</CardTitle>
                     <CardDescription>{t('description')}</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     <DataTable
                         columns={columns}
                         data={methods}
@@ -205,6 +205,7 @@ export default function PaymentMethodsPage() {
                     />
                 </CardContent>
             </Card>
+
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -289,6 +290,6 @@ export default function PaymentMethodsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </>
+        </div>
     );
 }

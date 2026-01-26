@@ -3,7 +3,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
@@ -24,6 +24,7 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { AlertTriangle, Check, ChevronsUpDown, MoreHorizontal } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
+import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -56,9 +57,13 @@ interface OrdersTableProps {
   columnsToHide?: string[];
   isSales?: boolean;
   className?: string;
+  isCompact?: boolean;
+  title?: string;
+  description?: string;
+  standalone?: boolean;
 }
 
-export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, columnTranslations, columnsToHide = [], isSales = true, className }: OrdersTableProps) {
+export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, columnTranslations, columnsToHide = [], isSales = true, className, isCompact = false, title, description, standalone = false }: OrdersTableProps) {
   const t = useTranslations();
   const tOrderColumns = useTranslations('OrderColumns');
   const tUserColumns = useTranslations('UserColumns');
@@ -242,14 +247,19 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
   const filterColumnId = availableFilterColumns.includes('doc_no') ? 'doc_no' : (availableFilterColumns[0] || '');
 
   return (
-    <div className={cn("flex-1 flex flex-col min-h-0", className)}>
-      <Card className="flex-1 flex flex-col min-h-0">
+    <div className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
+      <Card className="h-full flex-1 flex flex-col min-h-0">
+        {title && (
+          <CardHeader className="flex-none p-4 pb-0">
+            <CardTitle className="text-lg lg:text-xl">{title}</CardTitle>
+            {description && <CardDescription className="text-xs">{description}</CardDescription>}
+          </CardHeader>
+        )}
         <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden">
           <DataTable
             columns={filteredColumns}
             data={orders}
             filterColumnId={filterColumnId}
-            filterPlaceholder={tOrdersPage('filterPlaceholder')}
             onRowSelectionChange={onRowSelectionChange}
             enableSingleRowSelection={onRowSelectionChange ? true : false}
             onRefresh={onRefresh}
@@ -257,6 +267,34 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             onCreate={onCreate}
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
+            customToolbar={standalone ? (table) => (
+              <DataTableAdvancedToolbar
+                table={table}
+                isCompact={isCompact}
+                filterPlaceholder={tOrdersPage('filterPlaceholder')}
+                searchQuery={(table.getState().columnFilters.find((f: any) => f.id === filterColumnId)?.value as string) || ''}
+                onSearchChange={(value) => {
+                  table.setColumnFilters((prev: any) => {
+                    const newFilters = prev.filter((f: any) => f.id !== filterColumnId);
+                    if (value) {
+                      newFilters.push({ id: filterColumnId, value });
+                    }
+                    return newFilters;
+                  });
+                }}
+                onCreate={onCreate}
+                onRefresh={onRefresh}
+                isRefreshing={isRefreshing}
+                columnTranslations={{
+                  doc_no: tOrderColumns('orderId'),
+                  user_name: tUserColumns('name'),
+                  quote_id: tQuoteColumns('quoteId'),
+                  currency: t('QuoteColumns.currency'),
+                  status: tUserColumns('status'),
+                  createdAt: tOrderColumns('createdAt'),
+                }}
+              />
+            ) : undefined}
             columnTranslations={{
               doc_no: tOrderColumns('orderId'),
               user_name: tUserColumns('name'),

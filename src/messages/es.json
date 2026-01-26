@@ -147,7 +147,8 @@
         "all": "Todos",
         "refresh": "Refrescar",
         "view": "Ver",
-        "create": "Crear"
+        "create": "Crear",
+        "advancedFilters": "Filtros Avanzados"
     },
     "DataTablePagination": {
         "selected": "{count, plural, one {# seleccionado} other {# seleccionados}} de {total} fila(s).",
@@ -797,6 +798,8 @@
         "website": "Sitio Web"
     },
     "QuotesPage": {
+        "title": "Presupuestos",
+        "description": "Gestione todos sus presupuestos aquí.",
         "sendEmailDialog": {
             "title": "Enviar Presupuesto por Correo",
             "description": "Ingrese los correos de los destinatarios para el presupuesto #{id}.",
@@ -952,6 +955,9 @@
     "InvoicesPage": {
         "title": "Facturas",
         "description": "Gestione todas sus facturas aquí.",
+        "filterAll": "Todos",
+        "invoice": "Factura",
+        "creditNote": "Nota de Crédito",
         "columns": {
             "invoiceId": "ID de Factura",
             "provider": "Proveedor",

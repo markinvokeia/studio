@@ -293,7 +293,7 @@ export default function DoctorsPage() {
   };
 
   return (
-    <>
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <TwoPanelLayout
         isRightPanelOpen={!!selectedUser}
         leftPanel={
@@ -480,7 +480,7 @@ export default function DoctorsPage() {
           </Form>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
 

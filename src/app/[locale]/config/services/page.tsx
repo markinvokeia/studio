@@ -225,13 +225,13 @@ export default function ServicesPage() {
 
 
   return (
-    <>
-      <Card>
-        <CardHeader>
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <CardHeader className="flex-none">
           <CardTitle>{t('title')}</CardTitle>
           <CardDescription>{t('description')}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <DataTable
             columns={servicesColumns}
             data={services}
@@ -413,7 +413,7 @@ export default function ServicesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }
 

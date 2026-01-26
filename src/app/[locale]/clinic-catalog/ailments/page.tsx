@@ -171,13 +171,13 @@ export default function AilmentsPage() {
 
 
     return (
-        <>
-            <Card>
-                <CardHeader>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <CardHeader className="flex-none">
                     <CardTitle>{t('title')}</CardTitle>
                     <CardDescription>{t('description')}</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     <DataTable
                         columns={ailmentsColumns}
                         data={ailments}
@@ -194,6 +194,7 @@ export default function AilmentsPage() {
                     />
                 </CardContent>
             </Card>
+
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -282,6 +283,6 @@ export default function AilmentsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </>
+        </div>
     );
 }

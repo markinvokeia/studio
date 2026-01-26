@@ -22,6 +22,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
 import { CheckCircle, File, FileUp, Loader2, PlusCircle, RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -149,6 +150,7 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
 
 export default function InvoicesPage() {
     const t = useTranslations('InvoicesPage');
+    const tQuotes = useTranslations('QuotesPage');
     const { toast } = useToast();
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
@@ -453,91 +455,75 @@ export default function InvoicesPage() {
 
 
     return (
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden pr-2 pb-4">
-            <Card className="flex-1 flex flex-col min-h-0">
-                <CardHeader className="flex-none">
-                    <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                    <div className="relative flex-1 min-h-0">
-                        <div className={cn("transition-all duration-300 h-full flex flex-col", selectedInvoice ? "w-[25%]" : "w-full")}>
-                            <InvoicesTable
-                                invoices={invoices}
-                                isLoading={isLoadingInvoices}
-                                onRowSelectionChange={handleRowSelectionChange}
-                                onRefresh={loadInvoices}
-                                onPrint={handlePrintInvoice}
-                                onSendEmail={handleSendEmailClick}
-                                onImport={() => {
-                                    setImportFile(null);
-                                    setIsProcessingImport(false);
-                                    setIsImportDialogOpen(true);
-                                }}
-                                onConfirm={handleConfirmInvoiceClick}
-                                isRefreshing={isLoadingInvoices}
-                                rowSelection={rowSelection}
-                                setRowSelection={setRowSelection}
-                                columnTranslations={columnTranslations}
-                                filterValue={invoiceType}
-                                onFilterChange={setInvoiceType}
-                                filterOptions={[
-                                    { label: "Invoice", value: "invoice" },
-                                    { label: "Credit Note", value: "credit_note" },
-                                ]}
-                                isSales={true}
-                            />
-                        </div>
-
-                        <div
-                            className={cn(
-                                "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l z-20 transition-transform duration-300 ease-in-out",
-                                selectedInvoice ? 'translate-x-0' : 'translate-x-full'
-                            )}
-                        >
-                            {selectedInvoice && (
-                                <Card className="h-full shadow-lg rounded-none">
-                                    <CardHeader className="flex flex-row items-start justify-between">
-                                        <div>
-                                            <CardTitle>{t('detailsFor')}</CardTitle>
-                                            <CardDescription>{t('invoiceId')}: {selectedInvoice.id}</CardDescription>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                            {selectedInvoice.status.toLowerCase() === 'draft' && (
-                                                <Button variant="outline" size="sm" onClick={() => handleConfirmInvoiceClick(selectedInvoice)}>
-                                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                                    {t('confirmInvoice')}
-                                                </Button>
-                                            )}
-                                            <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
-                                                <X className="h-5 w-5" />
-                                                <span className="sr-only">{t('close')}</span>
-                                            </Button>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Tabs defaultValue="items" className="w-full">
-                                            <TabsList className="h-auto items-center justify-start flex-wrap">
-                                                <TabsTrigger value="items">{t('tabs.items')}</TabsTrigger>
-                                                <TabsTrigger value="payments">{t('tabs.payments')}</TabsTrigger>
-                                            </TabsList>
-                                            <TabsContent value="items">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-md font-semibold">{t('InvoiceItemsTable.title', { id: selectedInvoice.id })}</h4>
-                                                    <div className="flex items-center gap-2">
-                                                        {canEditItems && (
-                                                            <Button variant="outline" size="icon" onClick={handleCreateItem}>
-                                                                <PlusCircle className="h-4 w-4" />
-                                                            </Button>
-                                                        )}
-                                                        <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
-                                                            <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
-                                                        </Button>
-                                                    </div>
+        <>
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <TwoPanelLayout
+                    isRightPanelOpen={!!selectedInvoice}
+                    leftPanel={
+                        <InvoicesTable
+                            invoices={invoices}
+                            isLoading={isLoadingInvoices}
+                            onRowSelectionChange={handleRowSelectionChange}
+                            onRefresh={loadInvoices}
+                            onPrint={handlePrintInvoice}
+                            onSendEmail={handleSendEmailClick}
+                            onImport={() => {
+                                setImportFile(null);
+                                setIsProcessingImport(false);
+                                setIsImportDialogOpen(true);
+                            }}
+                            onConfirm={handleConfirmInvoiceClick}
+                            isRefreshing={isLoadingInvoices}
+                            rowSelection={rowSelection}
+                            setRowSelection={setRowSelection}
+                            columnTranslations={columnTranslations}
+                            filterValue={invoiceType}
+                            onFilterChange={setInvoiceType}
+                            filterOptions={[
+                                { label: t('filterAll'), value: '' },
+                                { label: t('invoice'), value: 'Factura' },
+                                { label: t('creditNote'), value: 'Nota de Crédito' },
+                            ]}
+                            isSales={true}
+                            isCompact={!!selectedInvoice}
+                            standalone={true}
+                            title={t('title')}
+                            description={t('description')}
+                            className="h-full"
+                        />
+                    }
+                    rightPanel={
+                        selectedInvoice && (
+                            <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0">
+                                <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
+                                    <div className="min-w-0 flex-1">
+                                        <CardTitle className="text-lg lg:text-xl truncate">{t('detailsFor', { name: selectedInvoice.user_name })}</CardTitle>
+                                        <CardDescription className="text-xs">{t('invoiceId')}: {selectedInvoice.doc_no || selectedInvoice.id}</CardDescription>
+                                    </div>
+                                    <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                                        <X className="h-5 w-5" />
+                                        <span className="sr-only">{t('close')}</span>
+                                    </Button>
+                                </CardHeader>
+                                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 pt-0">
+                                    <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
+                                        <TabsList className="h-auto items-center justify-start flex-wrap flex-none bg-muted/50 p-1">
+                                            <TabsTrigger value="items" className="text-xs">{t('tabs.items')}</TabsTrigger>
+                                            <TabsTrigger value="payments" className="text-xs">{t('tabs.payments')}</TabsTrigger>
+                                        </TabsList>
+                                        <div className="flex-1 min-h-0 mt-3 flex flex-col overflow-hidden">
+                                            <TabsContent value="items" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                                                <div className="flex items-center justify-between mb-2 flex-none">
+                                                    <h4 className="text-sm font-semibold">{t('InvoiceItemsTable.titleWithId', { id: selectedInvoice.id })}</h4>
+                                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
+                                                        <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
+                                                    </Button>
                                                 </div>
-                                                <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} canEdit={canEditItems} onEdit={handleEditItem} onDelete={handleDeleteItem} />
+                                                <div className="flex-1 min-h-0">
+                                                    <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
+                                                </div>
                                             </TabsContent>
-                                            <TabsContent value="payments">
+                                            <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                                                 <PaymentsTable
                                                     payments={payments}
                                                     isLoading={isLoadingPayments}
@@ -545,118 +531,118 @@ export default function InvoicesPage() {
                                                     isRefreshing={isLoadingPayments}
                                                 />
                                             </TabsContent>
-                                        </Tabs>
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </div>
+                                        </div>
+                                    </Tabs>
+                                </CardContent>
+                            </Card>
+                        )
+                    }
+                />
+            </div>
 
-                        <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>{t('sendEmailDialog.title')}</DialogTitle>
-                                    <DialogDescription>{t('sendEmailDialog.description', { id: selectedInvoiceForEmail?.id })}</DialogDescription>
-                                </DialogHeader>
-                                <div className="py-4">
-                                    <Label htmlFor="email-recipients">{t('sendEmailDialog.recipients')}</Label>
-                                    <Input
-                                        id="email-recipients"
-                                        value={emailRecipients}
-                                        onChange={(e) => setEmailRecipients(e.target.value)}
-                                        placeholder={t('sendEmailDialog.placeholder')}
-                                    />
-                                    <p className="text-sm text-muted-foreground mt-1">{t('sendEmailDialog.helperText')}</p>
-                                </div>
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>{t('paymentDialog.cancel')}</Button>
-                                    <Button onClick={handleConfirmSendEmail}>{t('sendEmailDialog.title')}</Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                        <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>{t('importDialog.title')}</DialogTitle>
-                                    <DialogDescription>
-                                        {t('importDialog.description')}
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="py-4 space-y-4">
-                                    <div className="flex items-center justify-center w-full">
-                                        <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
-                                            {importFile ? (
-                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <File className="w-8 h-8 mb-4 text-primary" />
-                                                    <p className="font-semibold text-foreground">{importFile.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{(importFile.size / 1024).toFixed(2)} KB</p>
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <FileUp className="w-8 h-8 mb-4 text-muted-foreground" />
-                                                    <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">{t('importDialog.clickToUpload')}</span> {t('importDialog.dragAndDrop')}</p>
-                                                    <p className="text-xs text-muted-foreground">{t('importDialog.fileTypes')}</p>
-                                                </div>
-                                            )}
-                                            <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
-                                        </label>
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isProcessingImport}>{t('paymentDialog.cancel')}</Button>
-                                    <Button onClick={handleImportSubmit} disabled={!importFile || isProcessingImport}>
-                                        {isProcessingImport ? (
-                                            <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                {t('importDialog.processing')}
-                                            </>
-                                        ) : (
-                                            t('importDialog.createInvoice')
-                                        )}
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-
-                        <ItemFormDialog
-                            isOpen={isItemDialogOpen}
-                            onOpenChange={setIsItemDialogOpen}
-                            editingItem={editingItem}
-                            onSubmit={onItemSubmit}
-                            itemForm={itemForm}
-                            services={services}
-                            t={t}
+            <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('sendEmailDialog.title')}</DialogTitle>
+                        <DialogDescription>{t('sendEmailDialog.description', { id: selectedInvoiceForEmail?.id })}</DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Label htmlFor="email-recipients">{t('sendEmailDialog.recipients')}</Label>
+                        <Input
+                            id="email-recipients"
+                            value={emailRecipients}
+                            onChange={(e) => setEmailRecipients(e.target.value)}
+                            placeholder={t('sendEmailDialog.placeholder')}
                         />
-
-                        <AlertDialog open={isDeleteItemDialogOpen} onOpenChange={setIsDeleteItemDialogOpen}>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>{t('deleteItemDialog.title')}</AlertDialogTitle>
-                                    <AlertDialogDescription>{t('deleteItemDialog.description')}</AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
-                                    <AlertDialogAction onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                        <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>{t('confirmInvoiceDialog.title')}</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        {t('confirmInvoiceDialog.description', { id: confirmingInvoice?.id })}
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>{t('confirmInvoiceDialog.cancel')}</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleConfirmInvoice}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
+                        <p className="text-sm text-muted-foreground mt-1">{t('sendEmailDialog.helperText')}</p>
                     </div>
-                </CardContent>
-            </Card>
-        </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>{t('paymentDialog.cancel')}</Button>
+                        <Button onClick={handleConfirmSendEmail}>{t('sendEmailDialog.title')}</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('importDialog.title')}</DialogTitle>
+                        <DialogDescription>
+                            {t('importDialog.description')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        <div className="flex items-center justify-center w-full">
+                            <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
+                                {importFile ? (
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <File className="w-8 h-8 mb-4 text-primary" />
+                                        <p className="font-semibold text-foreground">{importFile.name}</p>
+                                        <p className="text-xs text-muted-foreground">{(importFile.size / 1024).toFixed(2)} KB</p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <FileUp className="w-8 h-8 mb-4 text-muted-foreground" />
+                                        <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">{t('importDialog.clickToUpload')}</span> {t('importDialog.dragAndDrop')}</p>
+                                        <p className="text-xs text-muted-foreground">{t('importDialog.fileTypes')}</p>
+                                    </div>
+                                )}
+                                <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
+                            </label>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isProcessingImport}>{t('paymentDialog.cancel')}</Button>
+                        <Button onClick={handleImportSubmit} disabled={!importFile || isProcessingImport}>
+                            {isProcessingImport ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    {t('importDialog.processing')}
+                                </>
+                            ) : (
+                                t('importDialog.createInvoice')
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <ItemFormDialog
+                isOpen={isItemDialogOpen}
+                onOpenChange={setIsItemDialogOpen}
+                editingItem={editingItem}
+                onSubmit={onItemSubmit}
+                itemForm={itemForm}
+                services={services}
+                t={t}
+            />
+
+            <AlertDialog open={isDeleteItemDialogOpen} onOpenChange={setIsDeleteItemDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('deleteItemDialog.title')}</AlertDialogTitle>
+                        <AlertDialogDescription>{t('deleteItemDialog.description')}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('confirmInvoiceDialog.title')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {t('confirmInvoiceDialog.description', { id: confirmingInvoice?.id })}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t('confirmInvoiceDialog.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmInvoice}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 }
 

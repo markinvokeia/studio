@@ -41,6 +41,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
 import { AlertTriangle, Check, ChevronsUpDown, RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -675,116 +676,126 @@ export default function QuotesPage() {
     }, [watchedServiceId, watchedQuantity, watchedExchangeRate, allServices, selectedQuote, quoteItemForm]);
 
     return (
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden pr-2 pb-4">
-            <div className="relative flex-1 min-h-0">
-                <div className={cn("transition-all duration-300 h-full flex flex-col", selectedQuote ? "w-[25%]" : "w-full")}>
-                    <RecentQuotesTable
-                        quotes={quotes}
-                        onRowSelectionChange={handleRowSelectionChange}
-                        onCreate={handleCreateQuote}
-                        onRefresh={loadQuotes}
-                        isRefreshing={isRefreshing}
-                        rowSelection={rowSelection}
-                        setRowSelection={setRowSelection}
-                        onEdit={handleEditQuote}
-                        onDelete={handleDeleteQuote}
-                        onQuoteAction={handleQuoteAction}
-                    />
-                </div>
-
-                <div
-                    className={cn(
-                        "absolute top-0 right-0 h-full w-[75%] bg-background/95 backdrop-blur-sm border-l z-20 transition-transform duration-300 ease-in-out",
-                        selectedQuote ? 'translate-x-0' : 'translate-x-full'
-                    )}
-                >
-                    {selectedQuote && (
-                        <Card className="h-full shadow-lg rounded-none flex flex-col">
-                            <CardHeader className="flex flex-row items-start justify-between">
-                                <div>
-                                    <CardTitle>{t('detailsFor', { name: selectedQuote.user_name })}</CardTitle>
-                                    <CardDescription>{t('quoteId')}: {selectedQuote.doc_no || selectedQuote.id}</CardDescription>
-                                </div>
-                                <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
-                                    <X className="h-5 w-5" />
-                                    <span className="sr-only">{t('close')}</span>
-                                </Button>
-                            </CardHeader>
-                            <CardContent className="flex-1 overflow-y-auto p-4 md:p-6">
-                                <Tabs defaultValue="items" className="w-full">
-                                    <TabsList className="h-auto items-center justify-start flex-wrap">
-                                        <TabsTrigger value="items">{t('tabs.items')}</TabsTrigger>
-                                        <TabsTrigger value="orders">{t('tabs.orders')}</TabsTrigger>
-                                        <TabsTrigger value="invoices">{t('tabs.invoices')}</TabsTrigger>
-                                        <TabsTrigger value="payments">{t('tabs.payments')}</TabsTrigger>
-                                    </TabsList>
-                                    <TabsContent value="items">
-                                        <QuoteItemsTable
-                                            items={quoteItems}
-                                            isLoading={isLoadingItems}
-                                            onRefresh={loadQuoteItems}
-                                            isRefreshing={isLoadingItems}
-                                            canEdit={canEditQuote}
-                                            onCreate={handleCreateQuoteItem}
-                                            onEdit={handleEditQuoteItem}
-                                            onDelete={handleDeleteQuoteItem}
-                                        />
-                                    </TabsContent>
-                                    <TabsContent value="orders">
-                                        <OrdersTable
-                                            orders={orders}
-                                            isLoading={isLoadingOrders}
-                                            onRowSelectionChange={handleOrderSelectionChange}
-                                            onRefresh={loadOrders}
-                                            isRefreshing={isLoadingOrders}
-                                            columnsToHide={['user_name', 'quote_id']}
-                                        />
-                                        {selectedOrder && (
-                                            <div className="mt-4">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-md font-semibold">{tRoot('OrderItemsTable.titleWithId', { id: selectedOrder.id })}</h4>
-                                                    <Button variant="outline" size="icon" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
-                                                        <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
-                                                    </Button>
+        <>
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <TwoPanelLayout
+                    isRightPanelOpen={!!selectedQuote}
+                    leftPanel={
+                        <RecentQuotesTable
+                            quotes={quotes}
+                            onRowSelectionChange={handleRowSelectionChange}
+                            onCreate={handleCreateQuote}
+                            onRefresh={loadQuotes}
+                            isRefreshing={isRefreshing}
+                            rowSelection={rowSelection}
+                            setRowSelection={setRowSelection}
+                            onEdit={handleEditQuote}
+                            onDelete={handleDeleteQuote}
+                            onQuoteAction={handleQuoteAction}
+                            isCompact={!!selectedQuote}
+                            standalone={true}
+                            title={t('title')}
+                            description={t('description')}
+                            className="h-full"
+                        />
+                    }
+                    rightPanel={
+                        selectedQuote && (
+                            <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0">
+                                <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
+                                    <div className="min-w-0 flex-1">
+                                        <CardTitle className="text-lg lg:text-xl truncate">{t('detailsFor', { name: selectedQuote.user_name })}</CardTitle>
+                                        <CardDescription className="text-xs">{t('quoteId')}: {selectedQuote.doc_no || selectedQuote.id}</CardDescription>
+                                    </div>
+                                    <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                                        <X className="h-5 w-5" />
+                                        <span className="sr-only">{t('close')}</span>
+                                    </Button>
+                                </CardHeader>
+                                <CardContent className="flex-1 flex flex-col overflow-hidden p-4 pt-0 min-h-0">
+                                    <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
+                                        <TabsList className="h-auto items-center justify-start flex-wrap flex-none bg-muted/50 p-1">
+                                            <TabsTrigger value="items" className="text-xs">{t('tabs.items')}</TabsTrigger>
+                                            <TabsTrigger value="orders" className="text-xs">{t('tabs.orders')}</TabsTrigger>
+                                            <TabsTrigger value="invoices" className="text-xs">{t('tabs.invoices')}</TabsTrigger>
+                                            <TabsTrigger value="payments" className="text-xs">{t('tabs.payments')}</TabsTrigger>
+                                        </TabsList>
+                                        <div className="flex-1 min-h-0 mt-4 flex flex-col">
+                                            <TabsContent value="items" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                                <QuoteItemsTable
+                                                    items={quoteItems}
+                                                    isLoading={isLoadingItems}
+                                                    onRefresh={loadQuoteItems}
+                                                    isRefreshing={isLoadingItems}
+                                                    canEdit={canEditQuote}
+                                                    onCreate={handleCreateQuoteItem}
+                                                    onEdit={handleEditQuoteItem}
+                                                    onDelete={handleDeleteQuoteItem}
+                                                />
+                                            </TabsContent>
+                                            <TabsContent value="orders" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
+                                                <div className="flex-1 min-h-[400px]">
+                                                    <OrdersTable
+                                                        orders={orders}
+                                                        isLoading={isLoadingOrders}
+                                                        onRowSelectionChange={handleOrderSelectionChange}
+                                                        onRefresh={loadOrders}
+                                                        isRefreshing={isLoadingOrders}
+                                                        columnsToHide={['user_name', 'quote_id']}
+                                                        isCompact={true}
+                                                    />
                                                 </div>
-                                                <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedQuote.id} userId={selectedOrder.user_id} />
-                                            </div>
-                                        )}
-                                    </TabsContent>
-                                    <TabsContent value="invoices">
-                                        <InvoicesTable
-                                            invoices={invoices}
-                                            isLoading={isLoadingInvoices}
-                                            onRowSelectionChange={handleInvoiceSelectionChange}
-                                            onRefresh={loadInvoices}
-                                            isRefreshing={isLoadingInvoices}
-                                        />
-                                        {selectedInvoice && (
-                                            <div className="mt-4">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-md font-semibold">{tRoot('InvoicesPage.InvoiceItemsTable.titleWithId', { id: selectedInvoice.id })}</h4>
-                                                    <Button variant="outline" size="icon" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
-                                                        <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
-                                                    </Button>
+                                                {selectedOrder && (
+                                                    <div className="mt-4 border-t pt-4 flex-1 flex flex-col min-h-[400px]">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <h4 className="text-sm font-semibold">{tRoot('OrderItemsTable.title', { id: selectedOrder.doc_no || selectedOrder.id })}</h4>
+                                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
+                                                                <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
+                                                            </Button>
+                                                        </div>
+                                                        <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedQuote.id} userId={selectedOrder.user_id} />
+                                                    </div>
+                                                )}
+                                            </TabsContent>
+                                            <TabsContent value="invoices" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
+                                                <div className="flex-1 min-h-[400px]">
+                                                    <InvoicesTable
+                                                        invoices={invoices}
+                                                        isLoading={isLoadingInvoices}
+                                                        onRowSelectionChange={handleInvoiceSelectionChange}
+                                                        onRefresh={loadInvoices}
+                                                        isRefreshing={isLoadingInvoices}
+                                                        isCompact={true}
+                                                    />
                                                 </div>
-                                                <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
-                                            </div>
-                                        )}
-                                    </TabsContent>
-                                    <TabsContent value="payments">
-                                        <PaymentsTable
-                                            payments={payments}
-                                            isLoading={isLoadingPayments}
-                                            onRefresh={loadPayments}
-                                            isRefreshing={isLoadingPayments}
-                                            columnsToHide={['quote_id', 'order_id', 'user_name']}
-                                        />
-                                    </TabsContent>
-                                </Tabs>
-                            </CardContent>
-                        </Card>
-                    )}
-                </div>
+                                                {selectedInvoice && (
+                                                    <div className="mt-4 border-t pt-4 flex-1 flex flex-col min-h-[400px]">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <h4 className="text-sm font-semibold">{tRoot('InvoicesPage.InvoiceItemsTable.titleWithId', { id: selectedInvoice.doc_no || selectedInvoice.id })}</h4>
+                                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
+                                                                <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
+                                                            </Button>
+                                                        </div>
+                                                        <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
+                                                    </div>
+                                                )}
+                                            </TabsContent>
+                                            <TabsContent value="payments" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                                <PaymentsTable
+                                                    payments={payments}
+                                                    isLoading={isLoadingPayments}
+                                                    onRefresh={loadPayments}
+                                                    isRefreshing={isLoadingPayments}
+                                                    columnsToHide={['quote_id', 'order_id', 'user_name']}
+                                                />
+                                            </TabsContent>
+                                        </div>
+                                    </Tabs>
+                                </CardContent>
+                            </Card>
+                        )
+                    }
+                />
             </div>
             <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
                 <DialogContent>
@@ -1072,6 +1083,6 @@ export default function QuotesPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div>
+        </>
     );
 }

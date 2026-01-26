@@ -131,8 +131,8 @@ export default function CurrenciesPage() {
 
 
     return (
-        <div className="space-y-6">
-            <Card>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-1 gap-4">
+            <Card className="flex-none">
                 <CardHeader>
                     <CardTitle>{t('title')}</CardTitle>
                     <CardDescription>{t('description')}</CardDescription>
@@ -145,11 +145,11 @@ export default function CurrenciesPage() {
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
+            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <CardHeader className="flex-none">
                     <CardTitle>{t('exchangeRateHistory')}</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     <DataTable
                         columns={columns}
                         data={data}
