@@ -107,24 +107,26 @@ export default function CommunicationHistoryPage() {
     };
 
     return (
-        <Card>
-        <CardHeader>
-            <CardTitle>{t('title')}</CardTitle>
-            <CardDescription>{t('description')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <DataTable
-                columns={columns}
-                data={logs}
-                filterColumnId="recipient_address"
-                filterPlaceholder={t('filterPlaceholder')}
-                onRefresh={onRefresh}
-                isRefreshing={isRefreshing}
-                pagination={pagination}
-                onPaginationChange={onPaginationChange}
-                manualPagination
-            />
-        </CardContent>
-        </Card>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <CardHeader className="flex-none">
+                    <CardTitle>{t('title')}</CardTitle>
+                    <CardDescription>{t('description')}</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                    <DataTable
+                        columns={columns}
+                        data={logs}
+                        filterColumnId="recipient_address"
+                        filterPlaceholder={t('filterPlaceholder')}
+                        onRefresh={onRefresh}
+                        isRefreshing={isRefreshing}
+                        pagination={pagination}
+                        onPaginationChange={onPaginationChange}
+                        manualPagination
+                    />
+                </CardContent>
+            </Card>
+        </div>
     );
 }

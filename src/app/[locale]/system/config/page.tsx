@@ -182,32 +182,34 @@ export default function SystemConfigPage() {
 
     return (
         <>
-            <Card>
-                <CardHeader>
-                    <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <DataTable
-                        columns={configsColumns}
-                        data={configs}
-                        filterColumnId="key"
-                        filterPlaceholder={t('filterPlaceholder')}
-                        onCreate={handleCreate}
-                        onRefresh={loadConfigs}
-                        isRefreshing={isRefreshing}
-                        columnTranslations={{
-                            id: t('columns.id'),
-                            key: t('columns.key'),
-                            value: t('columns.value'),
-                            description: t('columns.description'),
-                            data_type: t('columns.type'),
-                            is_public: t('columns.isPublic'),
-                            updated_by: t('columns.updatedBy'),
-                        }}
-                    />
-                </CardContent>
-            </Card>
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                    <CardHeader className="flex-none">
+                        <CardTitle>{t('title')}</CardTitle>
+                        <CardDescription>{t('description')}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                        <DataTable
+                            columns={configsColumns}
+                            data={configs}
+                            filterColumnId="key"
+                            filterPlaceholder={t('filterPlaceholder')}
+                            onCreate={handleCreate}
+                            onRefresh={loadConfigs}
+                            isRefreshing={isRefreshing}
+                            columnTranslations={{
+                                id: t('columns.id'),
+                                key: t('columns.key'),
+                                value: t('columns.value'),
+                                description: t('columns.description'),
+                                data_type: t('columns.type'),
+                                is_public: t('columns.isPublic'),
+                                updated_by: t('columns.updatedBy'),
+                            }}
+                        />
+                    </CardContent>
+                </Card>
+            </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
