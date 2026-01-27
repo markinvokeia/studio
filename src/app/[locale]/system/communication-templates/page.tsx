@@ -331,29 +331,31 @@ export default function CommunicationTemplatesPage() {
 
     return (
         <>
-            <Card>
-                <CardHeader>
-                    <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <DataTable
-                        columns={columns}
-                        data={templates}
-                        filterColumnId="name"
-                        filterPlaceholder={t('filterPlaceholder')}
-                        onCreate={handleCreate}
-                        onRefresh={loadData}
-                        isRefreshing={isRefreshing}
-                        pageCount={Math.ceil(templatesPagination.total / pagination.pageSize)}
-                        pagination={pagination}
-                        onPaginationChange={setPagination}
-                        columnFilters={columnFilters}
-                        onColumnFiltersChange={setColumnFilters}
-                        manualPagination={true}
-                    />
-                </CardContent>
-            </Card>
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                    <CardHeader className="flex-none">
+                        <CardTitle>{t('title')}</CardTitle>
+                        <CardDescription>{t('description')}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                        <DataTable
+                            columns={columns}
+                            data={templates}
+                            filterColumnId="name"
+                            filterPlaceholder={t('filterPlaceholder')}
+                            onCreate={handleCreate}
+                            onRefresh={loadData}
+                            isRefreshing={isRefreshing}
+                            pageCount={Math.ceil(templatesPagination.total / pagination.pageSize)}
+                            pagination={pagination}
+                            onPaginationChange={setPagination}
+                            columnFilters={columnFilters}
+                            onColumnFiltersChange={setColumnFilters}
+                            manualPagination={true}
+                        />
+                    </CardContent>
+                </Card>
+            </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="max-w-4xl">
                     <DialogHeader>
