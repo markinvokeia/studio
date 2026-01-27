@@ -44,56 +44,58 @@ const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
                 </Link>
             </div>
             <TooltipProvider>
-                <nav className="flex flex-col items-center gap-0.5 sm:py-2">
-                    {navItems.map(item => {
-                        const isActive = item.items
-                            ? item.items.some(subItem => subItem.href !== '' && effectivePathname.startsWith(subItem.href))
-                            : (item.href === '/' ? effectivePathname === '/' : effectivePathname.startsWith(item.href));
+                <div className="flex-1 min-h-0 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                    <nav className="flex flex-col items-center gap-0.5 sm:py-2">
+                        {navItems.map(item => {
+                            const isActive = item.items
+                                ? item.items.some(subItem => subItem.href !== '' && effectivePathname.startsWith(subItem.href))
+                                : (item.href === '/' ? effectivePathname === '/' : effectivePathname.startsWith(item.href));
 
-                        let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
-                        if (item.href.includes('/clinic-history')) {
-                            const parts = effectivePathname.split('/');
-                            const userIdFromUrl = parts[2] && !isNaN(parseInt(parts[2])) ? parts[2] : '1';
-                            linkHref = `/${locale}/clinic-history/${userIdFromUrl}`;
-                        }
+                            let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
+                            if (item.href.includes('/clinic-history')) {
+                                const parts = effectivePathname.split('/');
+                                const userIdFromUrl = parts[2] && !isNaN(parseInt(parts[2])) ? parts[2] : '1';
+                                linkHref = `/${locale}/clinic-history/${userIdFromUrl}`;
+                            }
 
-                        return (
-                            <Tooltip key={String(item.title)}>
-                                <TooltipTrigger asChild>
-                                    <Link
-                                        href={linkHref}
-                                        className={cn(
-                                            "flex h-auto w-full flex-col items-center justify-center gap-1 rounded-none p-2 transition-colors relative",
-                                            isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                                        )}
-                                        onMouseEnter={() => onHover(item)}
-                                    >
-                                        <div className="relative">
-                                            <item.icon className="h-6 w-6" />
-                                            {item.title === 'AlertsCenter' && pendingCount > 0 && (
-                                                <Badge
-                                                    variant="destructive"
-                                                    className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs p-0"
-                                                >
-                                                    {pendingCount > 99 ? '99+' : pendingCount}
-                                                </Badge>
+                            return (
+                                <Tooltip key={String(item.title)}>
+                                    <TooltipTrigger asChild>
+                                        <Link
+                                            href={linkHref}
+                                            className={cn(
+                                                "flex h-auto w-full flex-col items-center justify-center gap-1 rounded-none p-2 transition-colors relative",
+                                                isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                                             )}
-                                        </div>
-                                        <span className="block w-full text-center text-[10px] font-medium leading-tight line-clamp-2">{t(item.title as any)}</span>
-                                    </Link>
-                                </TooltipTrigger>
-                                <TooltipContent side="right">
-                                    {t(item.title as any)}
-                                    {item.title === 'AlertsCenter' && pendingCount > 0 && (
-                                        <span className="ml-2 text-xs text-muted-foreground">
-                                            ({pendingCount > 99 ? '99+' : pendingCount} pendientes)
-                                        </span>
-                                    )}
-                                </TooltipContent>
-                            </Tooltip>
-                        )
-                    })}
-                </nav>
+                                            onMouseEnter={() => onHover(item)}
+                                        >
+                                            <div className="relative">
+                                                <item.icon className="h-6 w-6" />
+                                                {item.title === 'AlertsCenter' && pendingCount > 0 && (
+                                                    <Badge
+                                                        variant="destructive"
+                                                        className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs p-0"
+                                                    >
+                                                        {pendingCount > 99 ? '99+' : pendingCount}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <span className="block w-full text-center text-[10px] font-medium leading-tight line-clamp-2">{t(item.title as any)}</span>
+                                        </Link>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        {t(item.title as any)}
+                                        {item.title === 'AlertsCenter' && pendingCount > 0 && (
+                                            <span className="ml-2 text-xs text-muted-foreground">
+                                                ({pendingCount > 99 ? '99+' : pendingCount} pendientes)
+                                            </span>
+                                        )}
+                                    </TooltipContent>
+                                </Tooltip>
+                            )
+                        })}
+                    </nav>
+                </div>
             </TooltipProvider>
         </aside>
     );
