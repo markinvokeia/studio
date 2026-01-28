@@ -1188,7 +1188,7 @@ const DentalClinicalSystem = () => {
                           {session.archivos_adjuntos.map((file, i) => (
                             <li key={i}>
                               <a
-                                href={`https://n8n-project-n8n.7ig1i3.easypanel.host${file.ruta}`}
+                                href={`${process.env.NEXT_PUBLIC_API_URL}${file.ruta}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:underline flex items-center gap-1"

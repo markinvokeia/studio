@@ -89,7 +89,7 @@ const getAttachmentUrl = (path: string | null | undefined) => {
         }
         return path;
     } catch (_) {
-        return `https://n8n-project-n8n.7ig1i3.easypanel.host${path}`;
+        return `${process.env.NEXT_PUBLIC_API_URL}${path}`;
     }
 };
 

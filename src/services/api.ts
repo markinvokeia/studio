@@ -1,4 +1,4 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/webhook` : 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook';
 
 const getToken = (): string | null => {
     if (typeof window !== 'undefined') {
