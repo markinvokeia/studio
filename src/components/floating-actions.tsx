@@ -75,7 +75,7 @@ export function FloatingActions() {
           </CardHeader>
           <CardContent className="p-0 flex-1">
             <iframe
-              src="https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/a8ad846b-de6a-4d89-8e02-01072101cfe6/chat"
+              src={`${process.env.NEXT_PUBLIC_API_URL}/webhook/a8ad846b-de6a-4d89-8e02-01072101cfe6/chat`}
               className="w-full h-full border-0"
               title="n8n Chatbot"
             ></iframe>
