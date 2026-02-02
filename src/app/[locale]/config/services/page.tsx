@@ -28,6 +28,7 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { normalizeApiResponse } from '@/lib/api-utils';
 import { ServicesColumnsWrapper } from './columns';
 
 const serviceFormSchema = (t: (key: string) => string) => z.object({
@@ -47,7 +48,8 @@ type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
 async function getServices(): Promise<Service[]> {
   try {
     const data = await api.get(API_ROUTES.SERVICES, { is_sales: 'true' });
-    const servicesData = Array.isArray(data) ? data : (data.services || data.data || data.result || []);
+    const normalized = normalizeApiResponse(data);
+    const servicesData = normalized.items;
 
     return servicesData.map((apiService: any) => ({
       id: apiService.id ? String(apiService.id) : `srv_${Math.random().toString(36).substr(2, 9)}`,
@@ -70,7 +72,8 @@ async function getServices(): Promise<Service[]> {
 async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
   try {
     const data = await api.get(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_GET);
-    const categoriesData = Array.isArray(data) ? data : (data.data || []);
+    const normalized = normalizeApiResponse(data);
+    const categoriesData = normalized.items;
 
     return categoriesData.map((c: any) => ({
       ...c,
@@ -353,7 +356,7 @@ export default function ServicesPage() {
                 name="color"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('CalendarsPage.dialog.color')}</FormLabel>
+                    <FormLabel>{t('createDialog.color')}</FormLabel>
                     <FormControl>
                       <div className="flex items-center gap-2">
                         <Input type="color" className="p-1 h-10 w-14" {...field} value={field.value || ''} />

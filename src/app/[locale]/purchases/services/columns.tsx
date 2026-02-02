@@ -57,6 +57,12 @@ export const ServicesColumnsWrapper = ({ onEdit, onDelete }: ServicesColumnsProp
       ),
     },
     {
+      accessorKey: 'duration_minutes',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('duration')} />
+      ),
+    },
+    {
       id: 'actions',
       cell: ({ row }) => {
         const service = row.original;

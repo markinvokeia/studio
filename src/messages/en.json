@@ -1634,7 +1634,8 @@
       "editDescription": "Edit the service details.",
       "editSave": "Save Changes",
       "editTitle": "Edit Service",
-      "selectCurrency": "Select Currency"
+      "selectCurrency": "Select Currency",
+      "color": "Color"
     },
     "deleteDialog": {
       "cancel": "Cancel",

@@ -1634,7 +1634,8 @@
             "editDescription": "Editar los detalles del servicio.",
             "editSave": "Guardar Cambios",
             "editTitle": "Editar Servicio",
-            "selectCurrency": "Seleccionar Moneda"
+            "selectCurrency": "Seleccionar Moneda",
+            "color": "Color"
         },
         "deleteDialog": {
             "cancel": "Cancelar",

@@ -20,30 +20,31 @@ export function normalizeApiResponse<T>(data: any): NormalizedResponse<T> {
     return { items: [], total: 0 };
   }
 
-  let itemsData: any[] = [];
-  let total = 0;
-
-  if (Array.isArray(data)) {
-    if (data.length > 0 && data[0]?.data) {
-      // Format: [{ data: [...], total: X }]
-      itemsData = data[0].data || [];
-      total = Number(data[0].total) || itemsData.length;
-    } else {
-      // Format: Direct array [{...}, {...}]
-      itemsData = data;
-      total = data.length;
-    }
-  } else if (data?.data) {
-    // Format: { data: [...], total: X }
-    itemsData = data.data;
-    total = Number(data.total) || itemsData.length;
-  } else {
-    // Unknown format, return empty
-    return { items: [], total: 0 };
+  // If it's the specific format reported: [{ data: [...] }]
+  if (Array.isArray(data) && data.length > 0 && data[0] && Array.isArray(data[0].data)) {
+    return {
+      items: data[0].data,
+      total: Number(data[0].total) || data[0].data.length
+    };
   }
 
-  return {
-    items: itemsData,
-    total
-  };
+  // Direct array: [{...}, {...}]
+  if (Array.isArray(data)) {
+    return {
+      items: data,
+      total: data.length
+    };
+  }
+
+  // Object with data/items property
+  if (data && typeof data === 'object') {
+    const items = data.items || data.data || data.result || [];
+    const total = Number(data.total) || (Array.isArray(items) ? items.length : 0);
+    return {
+      items: Array.isArray(items) ? items : [],
+      total
+    };
+  }
+
+  return { items: [], total: 0 };
 }

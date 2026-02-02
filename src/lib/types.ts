@@ -186,6 +186,7 @@ export type Service = {
   id: string;
   name: string;
   category: string;
+  category_id?: string;
   price: number;
   currency?: 'UYU' | 'USD';
   duration_minutes: number;
