@@ -277,7 +277,7 @@ async function getPayments(quoteId: string, t: (key: string) => string): Promise
 
 async function getUsers(t: (key: string) => string): Promise<User[]> {
     try {
-        const responseData = await api.get(API_ROUTES.PURCHASES.USERS);
+        const responseData = await api.get(API_ROUTES.SALES.USERS, { filter_type: 'PACIENTE' });
         const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
         const usersData = Array.isArray(data.data) ? data.data : [];
         return usersData.map((apiUser: any) => ({

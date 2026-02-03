@@ -756,7 +756,8 @@
       "completed": "Completed",
       "scheduled": "Scheduled",
       "cancelled": "Cancelled",
-      "invoiced": "Invoiced"
+      "invoiced": "Invoiced",
+      "pending": "Pending"
     },
     "actions": {
       "openMenu": "Open menu",
