@@ -324,7 +324,12 @@ const AnamnesisDashboard = ({
                 try {
                     const data = await api.get(API_ROUTES.CLINIC_HISTORY.MEDICATIONS_CATALOG);
                     const medicationsData = Array.isArray(data) ? data : (data.catalogo_medicamentos || data.data || data.result || []);
-                    setMedicationsCatalog(medicationsData.map((m: any) => ({ ...m, id: String(m.id), nombre_generico: m.nombre_generico })));
+                    setMedicationsCatalog(medicationsData.map((m: any) => ({
+                        ...m,
+                        id: String(m.id),
+                        nombre_generico: m.nombre_generico,
+                        nombre_comercial: m.nombre_comercial
+                    })));
                 } catch (error) {
                     console.error("Failed to fetch medications catalog", error);
                 }
@@ -1089,12 +1094,13 @@ const AnamnesisDashboard = ({
                                                         key={med.id}
                                                         value={med.nombre_generico}
                                                         onSelect={() => {
-                                                            setSelectedMedication({ id: med.id, name: med.nombre_generico });
+                                                            const displayName = med.nombre_comercial ? `${med.nombre_generico} - ${med.nombre_comercial}` : med.nombre_generico;
+                                                            setSelectedMedication({ id: med.id, name: displayName });
                                                             setIsMedicationComboboxOpen(false);
                                                         }}
                                                     >
                                                         <Check className={cn("mr-2 h-4 w-4", selectedMedication?.id === med.id ? "opacity-100" : "opacity-0")} />
-                                                        {med.nombre_generico}
+                                                        {med.nombre_generico}{med.nombre_comercial ? ` - ${med.nombre_comercial}` : ''}
                                                     </CommandItem>
                                                 ))}
                                             </CommandGroup>
