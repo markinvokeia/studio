@@ -548,13 +548,13 @@
     },
     "createDialog": {
       "title": "Create New Patient",
-      "description": "Fill in the details below to add a new user.",
-      "editTitle": "Edit User",
-      "editDescription": "Update the details for this user.",
-      "createSuccessTitle": "User Created",
-      "createSuccessDescription": "The new user has been added successfully.",
-      "editSuccessTitle": "User Updated",
-      "editSuccessDescription": "The user has been updated successfully.",
+      "description": "Fill in the details below to add a new patient.",
+      "editTitle": "Edit Patient",
+      "editDescription": "Update the details for this patient.",
+      "createSuccessTitle": "Patient Created",
+      "createSuccessDescription": "The new patient has been added successfully.",
+      "editSuccessTitle": "Patient Updated",
+      "editSuccessDescription": "The patient has been updated successfully.",
       "name": "Name",
       "namePlaceholder": "John Doe",
       "email": "Email",
@@ -565,7 +565,7 @@
       "identity_document_placeholder": "e.g., 12345678",
       "isActive": "Is Active",
       "cancel": "Cancel",
-      "save": "Create User",
+      "save": "Create Patient",
       "editSave": "Save Changes",
       "validation": {
         "errorTitle": "Error",
@@ -590,7 +590,7 @@
     },
     "filters": {
       "type": {
-        "label": "User Type",
+        "label": "Patient Type",
         "all": "All",
         "paciente": "Patient",
         "doctor": "Doctor",
