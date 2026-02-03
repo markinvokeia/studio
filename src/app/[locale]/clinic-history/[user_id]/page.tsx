@@ -1092,7 +1092,7 @@ const AnamnesisDashboard = ({
                                                 {medicationsCatalog.map((med) => (
                                                     <CommandItem
                                                         key={med.id}
-                                                        value={med.nombre_generico}
+                                                        value={med.id}
                                                         onSelect={() => {
                                                             const displayName = med.nombre_comercial ? `${med.nombre_generico} - ${med.nombre_comercial}` : med.nombre_generico;
                                                             setSelectedMedication({ id: med.id, name: displayName });
