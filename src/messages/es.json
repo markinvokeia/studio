@@ -1718,10 +1718,13 @@
         "recoverPasswordTitle": "Recuperar Contraseña",
         "recoverPasswordDescription": "Ingrese su correo para recuperar su contraseña",
         "recoverPasswordButton": "Recuperar Contraseña",
+        "recoverSuccessTitle": "Correo enviado",
+        "recoverSuccessDescription": "Te hemos enviado un enlace a tu correo electrónico para restablecer tu contraseña.",
         "backToLogin": "Volver al inicio de sesión",
         "errors": {
             "title": "Error",
             "invalidCredentials": "Las credenciales que ingresaste son incorrectas. Por favor, verifica tu email y contraseña e intenta nuevamente.",
+            "emailNotFound": "El correo electrónico ingresado no existe en nuestro sistema. Por favor, verifica el email e intenta nuevamente.",
             "unexpected": "Ocurrió un error inesperado. Por favor, intenta de nuevo más tarde."
         }
     },
@@ -3284,5 +3287,30 @@
         "openMenu": "Abrir Menú",
         "closeMenu": "Cerrar Menú",
         "chatbotTitle": "Asistente"
+    },
+    "ResetPasswordPage": {
+        "title": "Restablecer contraseña",
+        "description": "Por favor, ingresa tu nueva contraseña a continuación.",
+        "newPassword": "Nueva contraseña",
+        "confirmPassword": "Confirmar nueva contraseña",
+        "submitButton": "Actualizar contraseña",
+        "errors": {
+            "title": "Error",
+            "tokenMissing": "Falta el código de seguridad. Por favor, usa el enlace enviado a tu correo.",
+            "generic": "Algo salió mal. Por favor, inténtalo de nuevo.",
+            "invalidPassword": "La contraseña no cumple con los requisitos mínimos de seguridad.",
+            "invalidToken": "El enlace ha expirado o no es válido. Por favor, solicita uno nuevo.",
+            "serverError": "Error de conexión con el servidor. Inténtalo más tarde."
+        },
+        "success": {
+            "title": "Contraseña actualizada",
+            "description": "Tu contraseña ha sido cambiada con éxito. Ya puedes iniciar sesión."
+        },
+        "validation": {
+            "newPasswordMin": "La nueva contraseña debe tener al menos 8 caracteres.",
+            "newPasswordUpper": "La nueva contraseña debe contener una letra mayúscula.",
+            "newPasswordNumber": "La nueva contraseña debe contener un número.",
+            "passwordsMismatch": "Las contraseñas no coinciden."
+        }
     }
 }

@@ -99,10 +99,15 @@ export default function LoginPage() {
       });
       setView('login');
     } catch (err: any) {
+      let errorMessage = err.message || tLogin('errors.unexpected');
+      if (err.message.includes('401')) {
+        errorMessage = tLogin('errors.emailNotFound');
+      }
+
       toast({
         variant: "destructive",
         title: tLogin('errors.title'),
-        description: err.message || tLogin('errors.unexpected'),
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);

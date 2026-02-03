@@ -40,6 +40,13 @@ export function AlertNotificationsProvider({ children }: AlertNotificationsProvi
   const [lastUpdated, setLastUpdated] = React.useState<Date | null>(null)
 
   const fetchAlerts = React.useCallback(async () => {
+    // Check if user is authenticated before making API calls
+    const token = localStorage.getItem('token')
+    if (!token) {
+      // No authentication token, don't fetch alerts
+      return
+    }
+
     setState(prev => ({ ...prev, isLoading: true, error: null }))
     
     try {
@@ -95,11 +102,48 @@ const response = await api.get(API_ROUTES.SYSTEM.ALERT_INSTANCES, { status: 'PEN
   }, [fetchAlerts])
 
   React.useEffect(() => {
-    fetchAlerts()
-    
-    const interval = setInterval(fetchAlerts, 60000)
-    
-    return () => clearInterval(interval)
+    let interval: NodeJS.Timeout | null = null
+
+    const setupAlerts = () => {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        if (interval) {
+          clearInterval(interval)
+          interval = null
+        }
+        // Reset state when logged out
+        setState({
+          pendingCount: 0,
+          highestPriority: 'LOW',
+          isLoading: false,
+          error: null
+        })
+        setLastUpdated(null)
+        return
+      }
+
+      fetchAlerts()
+      interval = setInterval(fetchAlerts, 60000)
+    }
+
+    // Initial setup
+    setupAlerts()
+
+    // Listen for storage changes (for login/logout from other tabs)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'token' || e.key === 'user') {
+        setupAlerts()
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      if (interval) {
+        clearInterval(interval)
+      }
+      window.removeEventListener('storage', handleStorageChange)
+    }
   }, [fetchAlerts])
 
   const contextValue: AlertNotificationsContextType = {
