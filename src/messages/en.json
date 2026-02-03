@@ -1747,7 +1747,8 @@
       "deleteSuccessTitle": "Successfully Deleted",
       "errorDesc": "There was an error and Clinic Details were not saved successfully",
       "errorTitle": "Error Updating Details"
-    }
+    },
+    "saving": "Saving"
   },
   "SchedulesPage": {
     "title": "Schedules",
@@ -2564,13 +2565,13 @@
           "addDescription": "Add medication for the patient",
           "editTitle": "Edit Medication",
           "editDescription": "Edit medication for the patient",
-          "name": "Name",
-          "selectMedication": "Select Medication",
-          "dose": "Dose",
-          "frequency": "Frequency",
-          "startDate": "Start Date",
-          "endDate": "End Date",
-          "reason": "Reason",
+          "name": "Name *",
+          "selectMedication": "Select Medication *",
+          "dose": "Dose (Optional)",
+          "frequency": "Frequency (Optional)",
+          "startDate": "Start Date *",
+          "endDate": "End Date (Optional)",
+          "reason": "Reason (Optional)",
           "searchMedication": "Search Medication",
           "noMedicationFound": "No medication found"
         },

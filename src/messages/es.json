@@ -1747,7 +1747,8 @@
             "deleteSuccessTitle": "Eliminado Satisfactoriamente",
             "errorDesc": "Hubo un error y los detalles de la clínica no han sido actualizados satisfactoriamente",
             "errorTitle": "Error Actualizando Detalles"
-        }
+        },
+        "saving": "Guardando"
     },
     "SchedulesPage": {
         "title": "Horarios",
@@ -2566,13 +2567,13 @@
                     "addDescription": "Agregar medicamento para el paciente",
                     "editTitle": "Editar Medicamento",
                     "editDescription": "Editar medicamento para el paciente",
-                    "name": "Nombre",
-                    "selectMedication": "Seleccionar Medicamento",
-                    "dose": "Dosis",
-                    "frequency": "Frecuencia",
-                    "startDate": "Fecha Inicio",
-                    "endDate": "Fecha Fin",
-                    "reason": "Razón",
+                    "name": "Nombre *",
+                    "selectMedication": "Seleccionar Medicamento *",
+                    "dose": "Dosis (Opcional)",
+                    "frequency": "Frecuencia (Opcional)",
+                    "startDate": "Fecha Inicio *",
+                    "endDate": "Fecha Fin (Opcional)",
+                    "reason": "Razón (Opcional)",
                     "searchMedication": "Buscar Medicamento",
                     "noMedicationFound": "No se encontró el medicamento"
                 },

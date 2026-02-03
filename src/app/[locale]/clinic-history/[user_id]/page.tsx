@@ -408,7 +408,9 @@ const AnamnesisDashboard = ({
                 });
             } else {
                 setSelectedMedication(null);
-                setMedicationData({ dosis: '', frecuencia: '', fecha_inicio: '', fecha_fin: '', motivo: '' });
+                // Set today's date as default for start date
+                const today = new Date().toISOString().split('T')[0];
+                setMedicationData({ dosis: '', frecuencia: '', fecha_inicio: today, fecha_fin: '', motivo: '' });
             }
             setMedicationSubmissionError(null);
         } else {
@@ -543,6 +545,12 @@ const AnamnesisDashboard = ({
         event.preventDefault();
         if (isSubmittingMedication || !userId || !selectedMedication) return;
 
+        // Validate required fields: medication and start date
+        if (!medicationData.fecha_inicio) {
+            setMedicationSubmissionError('La fecha de inicio es obligatoria');
+            return;
+        }
+
         setIsSubmittingMedication(true);
         setMedicationSubmissionError(null);
 
@@ -562,12 +570,30 @@ const AnamnesisDashboard = ({
         }
 
         try {
-            await api.post(API_ROUTES.CLINIC_HISTORY.MEDICATIONS_UPSERT, payload);
-            toast({ title: t('anamnesis.toast.success'), description: t('anamnesis.toast.medicationSuccess') });
-            setIsMedicationDialogOpen(false);
-            fetchMedications(userId);
+            const response = await api.post(API_ROUTES.CLINIC_HISTORY.MEDICATIONS_UPSERT, payload);
+
+            // Handle API response format
+            if (response && response.code === 200) {
+                const message = response.message || t('anamnesis.toast.medicationSuccess');
+                toast({ title: t('anamnesis.toast.success'), description: message });
+                setIsMedicationDialogOpen(false);
+                fetchMedications(userId);
+            } else if (response && response.code === 400) {
+                const errorMessage = response.message || t('anamnesis.toast.medicationError');
+                setMedicationSubmissionError(errorMessage);
+            } else {
+                // Fallback for unexpected response format
+                toast({ title: t('anamnesis.toast.success'), description: t('anamnesis.toast.medicationSuccess') });
+                setIsMedicationDialogOpen(false);
+                fetchMedications(userId);
+            }
         } catch (error: any) {
-            setMedicationSubmissionError(error.message || t('anamnesis.toast.medicationError'));
+            // Handle network errors or non-JSON responses
+            if (error.message && error.message.includes('HTTP error! status: 400')) {
+                setMedicationSubmissionError(t('anamnesis.toast.medicationError'));
+            } else {
+                setMedicationSubmissionError(error.message || t('anamnesis.toast.medicationError'));
+            }
         } finally {
             setIsSubmittingMedication(false);
         }
@@ -659,12 +685,30 @@ const AnamnesisDashboard = ({
         }
 
         try {
-            await api.delete(endpoint, body);
+            const response = await api.delete(endpoint, body);
 
-            toast({
-                title: t('anamnesis.toast.success'),
-                description: t('anamnesis.toast.deleteSuccess', { item: t(`anamnesis.itemTypes.${itemTypeKey}`) }),
-            });
+            // Handle API response format for deletion
+            if (response && response.code === 200) {
+                const message = response.message || t('anamnesis.toast.deleteSuccess', { item: t(`anamnesis.itemTypes.${itemTypeKey}`) });
+                toast({
+                    title: t('anamnesis.toast.success'),
+                    description: message,
+                });
+            } else if (response && response.code === 400) {
+                const errorMessage = response.message || t('anamnesis.toast.deleteError', { item: t(`anamnesis.itemTypes.${itemTypeKey}`) });
+                toast({
+                    variant: 'destructive',
+                    title: t('anamnesis.toast.error'),
+                    description: errorMessage,
+                });
+                return; // Don't close dialog on error
+            } else {
+                // Fallback for unexpected response format
+                toast({
+                    title: t('anamnesis.toast.success'),
+                    description: t('anamnesis.toast.deleteSuccess', { item: t(`anamnesis.itemTypes.${itemTypeKey}`) }),
+                });
+            }
 
             setIsDeleteDialogOpen(false);
             setDeletingItem(null);
@@ -673,12 +717,20 @@ const AnamnesisDashboard = ({
                 fetchCallback(userId);
             }
 
-        } catch (error) {
+        } catch (error: any) {
             console.error(`Error deleting ${deletingItem.type}:`, error);
+            // Handle network errors or non-JSON responses
+            let errorMessage = t('anamnesis.toast.deleteError', { item: t(`anamnesis.itemTypes.${itemTypeKey}`) });
+            if (error.message && error.message.includes('HTTP error! status: 400')) {
+                errorMessage = t('anamnesis.toast.deleteError', { item: t(`anamnesis.itemTypes.${itemTypeKey}`) });
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+
             toast({
                 variant: 'destructive',
                 title: t('anamnesis.toast.error'),
-                description: error instanceof Error ? error.message : t('anamnesis.toast.deleteError', { item: t(`anamnesis.itemTypes.${itemTypeKey}`) }),
+                description: errorMessage,
             });
         }
     };
