@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
+import { DataTableAdvancedToolbar } from '@/components/ui/data-table-advanced-toolbar';
 import {
     Dialog,
     DialogContent,
@@ -21,16 +22,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { ClinicException } from '@/lib/types';
+import { formatHolidayDate } from '@/lib/utils';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format, parseISO } from 'date-fns';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { HolidaysColumnsWrapper } from './columns';
-import { DataTableAdvancedToolbar } from '@/components/ui/data-table-advanced-toolbar';
 
 const holidayFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
@@ -50,7 +50,7 @@ async function getHolidays(): Promise<ClinicException[]> {
 
         return holidaysData.map((apiHoliday: any) => ({
             id: apiHoliday.id ? String(apiHoliday.id) : `ex_${Math.random().toString(36).substr(2, 9)}`,
-            date: format(parseISO(apiHoliday.date), 'yyyy-MM-dd'),
+            date: formatHolidayDate(apiHoliday.date),
             is_open: apiHoliday.is_open,
             start_time: apiHoliday.start_time,
             end_time: apiHoliday.end_time,
@@ -64,10 +64,19 @@ async function getHolidays(): Promise<ClinicException[]> {
 
 async function upsertHoliday(holidayData: HolidayFormValues) {
     const responseData = await api.post(API_ROUTES.HOLIDAYS_UPSERT, holidayData);
+
+    // Handle holiday-specific error format: {"message":"'start_time' expects time (hh:mm:(:ss)) but we got ''.","code":400,"error":true}
+    if (responseData && typeof responseData === 'object' && responseData.error === true) {
+        const message = responseData.message || 'Failed to save holiday';
+        throw new Error(message);
+    }
+
+    // Handle existing array format for backward compatibility
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         const message = responseData[0]?.message ? responseData[0].message : 'Failed to save holiday';
         throw new Error(message);
     }
+
     return responseData;
 }
 
@@ -122,9 +131,10 @@ export default function HolidaysPage() {
 
     const handleEdit = (holiday: ClinicException) => {
         setEditingHoliday(holiday);
+
         form.reset({
             id: holiday.id,
-            date: format(parseISO(holiday.date), 'yyyy-MM-dd'),
+            date: formatHolidayDate(holiday.date),
             is_open: holiday.is_open,
             start_time: holiday.start_time,
             end_time: holiday.end_time,
@@ -162,7 +172,14 @@ export default function HolidaysPage() {
     const onSubmit = async (values: HolidayFormValues) => {
         setSubmissionError(null);
         try {
-            await upsertHoliday(values);
+            // Set default times if not provided
+            const processedValues = {
+                ...values,
+                start_time: values.start_time || '00:00',
+                end_time: values.end_time || '12:00',
+            };
+
+            await upsertHoliday(processedValues);
             toast({
                 title: editingHoliday ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'),
                 description: t('toast.successDescription'),
