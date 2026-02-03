@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { Service } from '@/lib/types';
+import { MiscellaneousCategory, Service } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle } from 'lucide-react';
@@ -27,12 +27,15 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { normalizeApiResponse } from '@/lib/api-utils';
 import { ServicesColumnsWrapper } from './columns';
+
+console.log("Services Page Loaded. API_ROUTES.SERVICES:", API_ROUTES.SERVICES);
 
 const serviceFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   name: z.string().min(1, t('nameRequired')),
-  category: z.string().min(1, t('categoryRequired')),
+  category_id: z.string().min(1, t('categoryRequired')),
   price: z.coerce.number().positive(t('pricePositive')),
   currency: z.enum(['UYU', 'USD']).default('USD'),
   duration_minutes: z.coerce.number().int().positive(t('durationInteger')),
@@ -45,12 +48,14 @@ type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
 async function getServices(): Promise<Service[]> {
   try {
     const data = await api.get(API_ROUTES.SERVICES, { is_sales: 'true' });
-    const servicesData = Array.isArray(data) ? data : (data.services || data.data || data.result || []);
+    const normalized = normalizeApiResponse(data);
+    console.log("Normalized Sales Services Items Count:", normalized.items.length);
 
-    return servicesData.map((apiService: any) => ({
+    const services = normalized.items.map((apiService: any) => ({
       id: apiService.id ? String(apiService.id) : `srv_${Math.random().toString(36).substr(2, 9)}`,
       name: apiService.name || 'No Name',
-      category: apiService.category || 'No Category',
+      category: apiService.category_name || apiService.category || 'No Category',
+      category_id: apiService.category_id ? String(apiService.category_id) : undefined,
       price: apiService.price || 0,
       currency: apiService.currency || 'USD',
       duration_minutes: apiService.duration_minutes || 0,
@@ -58,8 +63,28 @@ async function getServices(): Promise<Service[]> {
       indications: apiService.indications,
       is_active: apiService.is_active,
     }));
+    return services;
   } catch (error) {
     console.error("Failed to fetch services:", error);
+    return [];
+  }
+}
+
+async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
+  try {
+    const data = await api.get(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_GET, { limit: '1000' });
+    console.log("FETCHED CATEGORIES DATA:", data);
+    const normalized = normalizeApiResponse(data);
+    console.log("NORMALIZED CATEGORIES:", normalized);
+
+    const categories = normalized.items.map((c: any) => ({
+      ...c,
+      id: String(c.id),
+      type: c.category_type || c.type
+    }));
+    return categories;
+  } catch (error) {
+    console.error("Failed to fetch miscellaneous categories:", error);
     return [];
   }
 }
@@ -87,6 +112,7 @@ export default function ServicesPage() {
   const tValidation = useTranslations('ServicesPage.validation');
   const tColumns = useTranslations('ServicesColumns');
   const [services, setServices] = React.useState<Service[]>([]);
+  const [categories, setCategories] = React.useState<MiscellaneousCategory[]>([]);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingService, setEditingService] = React.useState<Service | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -111,11 +137,17 @@ export default function ServicesPage() {
     loadServices();
   }, [loadServices]);
 
+  React.useEffect(() => {
+    if (isDialogOpen) {
+      getMiscellaneousCategories().then(setCategories);
+    }
+  }, [isDialogOpen]);
+
   const handleCreate = () => {
     setEditingService(null);
     form.reset({
       name: '',
-      category: '',
+      category_id: '',
       price: 0,
       currency: 'USD',
       duration_minutes: 60,
@@ -131,7 +163,7 @@ export default function ServicesPage() {
     form.reset({
       id: service.id,
       name: service.name,
-      category: service.category,
+      category_id: service.category_id,
       price: service.price,
       currency: service.currency || 'USD',
       duration_minutes: service.duration_minutes,
@@ -248,13 +280,24 @@ export default function ServicesPage() {
               />
               <FormField
                 control={form.control}
-                name="category"
+                name="category_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('createDialog.category')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('createDialog.categoryPlaceholder')} {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('createDialog.categoryPlaceholder')} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

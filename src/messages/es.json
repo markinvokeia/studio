@@ -549,12 +549,12 @@
         "createDialog": {
             "title": "Crear Nuevo Paciente",
             "description": "Complete los detalles a continuación para agregar un nuevo usuario.",
-            "editTitle": "Editar Usuario",
-            "editDescription": "Actualice los detalles de este usuario.",
-            "createSuccessTitle": "Usuario Creado",
-            "createSuccessDescription": "El nuevo usuario ha sido agregado exitosamente.",
-            "editSuccessTitle": "Usuario Actualizado",
-            "editSuccessDescription": "El usuario ha sido actualizado exitosamente.",
+            "editTitle": "Editar Paciente",
+            "editDescription": "Actualice los detalles de este paciente.",
+            "createSuccessTitle": "Paciente Creado",
+            "createSuccessDescription": "El nuevo paciente ha sido agregado exitosamente.",
+            "editSuccessTitle": "Paciente Actualizado",
+            "editSuccessDescription": "El paciente ha sido actualizado exitosamente.",
             "name": "Nombre",
             "namePlaceholder": "Juan Pérez",
             "email": "Correo Electrónico",
@@ -565,7 +565,7 @@
             "identity_document_placeholder": "ej., 12345678",
             "isActive": "Está Activo",
             "cancel": "Cancelar",
-            "save": "Crear Usuario",
+            "save": "Crear Paciente",
             "editSave": "Guardar Cambios",
             "validation": {
                 "errorTitle": "Error",
@@ -590,7 +590,7 @@
         },
         "filters": {
             "type": {
-                "label": "Tipo de Usuario",
+                "label": "Tipo de Paciente",
                 "all": "Todos",
                 "paciente": "Paciente",
                 "doctor": "Doctor",
@@ -615,10 +615,10 @@
         "phone": "Teléfono",
         "status": "Estado",
         "actions": "Acciones",
-        "copyId": "Copiar ID de usuario",
+        "copyId": "Copiar ID de paciente",
         "viewDetails": "Ver detalles",
-        "edit": "Editar usuario",
-        "delete": "Eliminar usuario",
+        "edit": "Editar paciente",
+        "delete": "Eliminar paciente",
         "activate": "Activar",
         "deactivate": "Desactivar",
         "identity_document": "Documento de Identidad",
@@ -756,7 +756,8 @@
             "completed": "Completado",
             "scheduled": "Programado",
             "cancelled": "Cancelado",
-            "invoiced": "Facturado"
+            "invoiced": "Facturado",
+            "pending": "Pendiente"
         },
         "actions": {
             "openMenu": "Abrir menú",
@@ -1634,7 +1635,8 @@
             "editDescription": "Editar los detalles del servicio.",
             "editSave": "Guardar Cambios",
             "editTitle": "Editar Servicio",
-            "selectCurrency": "Seleccionar Moneda"
+            "selectCurrency": "Seleccionar Moneda",
+            "color": "Color"
         },
         "deleteDialog": {
             "cancel": "Cancelar",

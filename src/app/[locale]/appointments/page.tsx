@@ -190,8 +190,19 @@ async function getServices(): Promise<Service[]> {
 async function getDoctors(): Promise<UserType[]> {
     try {
         const data = await api.get(API_ROUTES.USERS, { filter_type: 'DOCTOR' });
-        const responseData = (Array.isArray(data) && data.length > 0) ? data[0] : { data: [], total: 0 };
-        const doctorsData = Array.isArray(responseData.data) ? responseData.data : [];
+
+        let doctorsData = [];
+        if (Array.isArray(data) && data.length > 0) {
+            const firstElement = data[0];
+            if (firstElement.json && typeof firstElement.json === 'object') {
+                doctorsData = firstElement.json.data || [];
+            } else if (firstElement.data) {
+                doctorsData = firstElement.data;
+            }
+        } else if (typeof data === 'object' && data !== null && data.data) {
+            doctorsData = data.data;
+        }
+
         return doctorsData.map((d: any) => ({ ...d, id: String(d.id) }));
     } catch (error) {
         console.error("Failed to fetch doctors:", error);
@@ -418,15 +429,30 @@ export default function AppointmentsPage() {
     // Debounced search effect for users
     React.useEffect(() => {
         const handler = setTimeout(async () => {
-            if (userSearchQuery.length < 2) {
-                setUserSearchResults([]);
-                return;
-            };
+            if (!isUserSearchOpen && userSearchQuery.length === 0) {
+                if (isUserSearchOpen) {
+                    // continue to fetch
+                } else {
+                    setUserSearchResults([]);
+                    return;
+                }
+            }
+
             setIsSearchingUsers(true);
             try {
                 const data = await api.get(API_ROUTES.USERS, { search: userSearchQuery, filter_type: 'PACIENTE' });
-                const responseData = (Array.isArray(data) && data.length > 0) ? data[0] : { data: [], total: 0 };
-                const usersData = Array.isArray(responseData.data) ? responseData.data : [];
+
+                let usersData = [];
+                if (Array.isArray(data) && data.length > 0) {
+                    const firstElement = data[0];
+                    if (firstElement.json && typeof firstElement.json === 'object') {
+                        usersData = firstElement.json.data || [];
+                    } else if (firstElement.data) {
+                        usersData = firstElement.data;
+                    }
+                } else if (typeof data === 'object' && data !== null && data.data) {
+                    usersData = data.data;
+                }
 
                 const mappedUsers = usersData.map((apiUser: any): UserType => ({
                     id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
@@ -448,7 +474,7 @@ export default function AppointmentsPage() {
         return () => {
             clearTimeout(handler);
         };
-    }, [userSearchQuery]);
+    }, [userSearchQuery, isUserSearchOpen]);
 
     // Debounced search effect for services
     React.useEffect(() => {

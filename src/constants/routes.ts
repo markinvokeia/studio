@@ -227,6 +227,7 @@ export const API_ROUTES = {
         QUOTE_CONFIRM: '/quote/confirm',
         QUOTE_REJECT: '/quote/reject',
         SERVICES: '/sales/services',
+        USERS: '/users',
     },
     SET_FIRST_PASSWORD: '/set-first-password',
     SHARED_STUDIES: '/shared-studies',

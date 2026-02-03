@@ -28,12 +28,15 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { normalizeApiResponse } from '@/lib/api-utils';
 import { ServicesColumnsWrapper } from './columns';
+
+console.log("Purchases Services Page Loaded. API_ROUTES.SERVICES_ALL:", API_ROUTES.PURCHASES.SERVICES_ALL);
 
 const serviceFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   name: z.string().min(1, t('nameRequired')),
-  category: z.string().min(1, t('categoryRequired')),
+  category_id: z.string().min(1, t('categoryRequired')),
   price: z.coerce.number().positive(t('pricePositive')),
   currency: z.enum(['UYU', 'USD']).default('USD'),
   description: z.string().optional(),
@@ -44,12 +47,14 @@ type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
 async function getServices(): Promise<Service[]> {
   try {
     const data = await api.get(API_ROUTES.PURCHASES.SERVICES_ALL, { is_sales: 'false' });
-    const servicesData = Array.isArray(data) ? data : (data.services || data.data || data.result || []);
+    const normalized = normalizeApiResponse(data);
+    console.log("Normalized Purchases Services Items Count:", normalized.items.length);
 
-    return servicesData.map((apiService: any) => ({
+    const services = normalized.items.map((apiService: any) => ({
       id: apiService.id ? String(apiService.id) : `srv_${Math.random().toString(36).substr(2, 9)}`,
       name: apiService.name || 'No Name',
       category: apiService.category_name || apiService.category || 'No Category',
+      category_id: apiService.category_id ? String(apiService.category_id) : undefined,
       price: apiService.price || 0,
       currency: apiService.currency || 'USD',
       duration_minutes: apiService.duration_minutes || 0,
@@ -57,6 +62,7 @@ async function getServices(): Promise<Service[]> {
       indications: apiService.indications,
       is_active: apiService.is_active,
     }));
+    return services;
   } catch (error) {
     console.error("Failed to fetch services:", error);
     return [];
@@ -65,14 +71,17 @@ async function getServices(): Promise<Service[]> {
 
 async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
   try {
-    const data = await api.get(API_ROUTES.PURCHASES.MISC_CATEGORIES);
-    const categoriesData = Array.isArray(data) ? data : (data.data || []);
+    const data = await api.get(API_ROUTES.PURCHASES.MISC_CATEGORIES, { limit: '1000' });
+    console.log("PURCHASES CATEGORIES DATA:", data);
+    const normalized = normalizeApiResponse(data);
+    console.log("NORMALIZED PURCHASES CATEGORIES:", normalized);
 
-    return categoriesData.map((c: any) => ({
+    const categories = normalized.items.map((c: any) => ({
       ...c,
       id: String(c.id),
-      type: c.category_type
+      type: c.category_type || c.type
     }));
+    return categories;
   } catch (error) {
     console.error("Failed to fetch miscellaneous categories:", error);
     return [];
@@ -139,7 +148,7 @@ export default function ServicesPage() {
     setEditingService(null);
     form.reset({
       name: '',
-      category: '',
+      category_id: '',
       price: 0,
       currency: 'USD',
       description: '',
@@ -153,7 +162,7 @@ export default function ServicesPage() {
     form.reset({
       id: service.id,
       name: service.name,
-      category: service.category,
+      category_id: service.category_id,
       price: service.price,
       currency: service.currency || 'USD',
       description: service.description,
@@ -268,11 +277,11 @@ export default function ServicesPage() {
               />
               <FormField
                 control={form.control}
-                name="category"
+                name="category_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('createDialog.category')}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder={t('createDialog.categoryPlaceholder')} />
@@ -280,7 +289,7 @@ export default function ServicesPage() {
                       </FormControl>
                       <SelectContent>
                         {categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.name}>
+                          <SelectItem key={cat.id} value={cat.id}>
                             {cat.name}
                           </SelectItem>
                         ))}

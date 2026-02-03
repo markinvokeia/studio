@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { API_ROUTES } from '@/constants/routes';
+import { normalizeApiResponse } from '@/lib/api-utils';
 import { useToast } from '@/hooks/use-toast';
 import { Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -75,7 +76,8 @@ type QuoteItemFormValues = z.infer<ReturnType<typeof quoteItemFormSchema>>;
 async function getQuotes(t: (key: string) => string): Promise<Quote[]> {
     try {
         const data = await api.get(API_ROUTES.PURCHASES.QUOTES_ALL, { is_sales: 'true' });
-        const quotesData = Array.isArray(data) ? data : (data.quotes || data.data || data.result || []);
+        const normalized = normalizeApiResponse(data);
+        const quotesData = normalized.items;
 
         return quotesData.map((apiQuote: any) => ({
             id: apiQuote.id ? String(apiQuote.id) : t('defaults.notAvailable'),
@@ -100,7 +102,8 @@ async function getQuoteItems(quoteId: string, t: (key: string) => string): Promi
     if (!quoteId) return [];
     try {
         const data = await api.get(API_ROUTES.SALES.QUOTES_ITEMS, { quote_id: quoteId });
-        const itemsData = Array.isArray(data) ? data : (data.quote_items || data.data || data.result || []);
+        const normalized = normalizeApiResponse(data);
+        const itemsData = normalized.items;
 
         return itemsData.map((apiItem: any) => ({
             id: apiItem.id ? String(apiItem.id) : t('defaults.notAvailable'),
@@ -118,8 +121,9 @@ async function getQuoteItems(quoteId: string, t: (key: string) => string): Promi
 
 async function getServices(): Promise<Service[]> {
     try {
-        const data = await api.get(API_ROUTES.SALES.SERVICES, {});
-        const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
+        const data = await api.get(API_ROUTES.SERVICES, { is_sales: 'true' });
+        const normalized = normalizeApiResponse(data);
+        const servicesData = normalized.items;
         return servicesData.map((s: any) => ({ ...s, id: String(s.id), currency: s.currency || 'USD' }));
     } catch (error) {
         console.error("Failed to fetch services:", error);
@@ -273,7 +277,7 @@ async function getPayments(quoteId: string, t: (key: string) => string): Promise
 
 async function getUsers(t: (key: string) => string): Promise<User[]> {
     try {
-        const responseData = await api.get(API_ROUTES.PURCHASES.USERS);
+        const responseData = await api.get(API_ROUTES.SALES.USERS, { filter_type: 'PACIENTE' });
         const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
         const usersData = Array.isArray(data.data) ? data.data : [];
         return usersData.map((apiUser: any) => ({
