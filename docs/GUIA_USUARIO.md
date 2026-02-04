@@ -5,141 +5,90 @@ InvokeAI Command Center es una plataforma integral de gestión clínica y admini
 
 ---
 
-## 2. Acceso y Seguridad
+## 2. Panel de Control (Dashboard)
+El Dashboard es la pantalla de aterrizaje principal y ofrece una visión de 360° del estado del negocio.
 
-### 2.1 Inicio de Sesión (Login)
-*   **Ruta:** `/login`
-*   **Requisitos:** Correo electrónico y contraseña válidos.
-*   **Validaciones:** 
-    *   Credenciales correctas.
-    *   Cuenta de usuario activa.
-*   **Flujo:** Tras un inicio de sesión exitoso, el sistema verifica si el usuario tiene una **Sesión de Caja** activa. Si la tiene, se muestra un widget de estado en la cabecera.
+### 2.1 Indicadores en Tiempo Real (KPIs)
+*   **Resumen Financiero:** Muestra ingresos totales, crecimiento comparado con el mes anterior y tasa de conversión de presupuestos.
+*   **Métricas Clínicas:** Visualiza la tasa de asistencia a citas (Show Rate) y la facturación promedio por paciente.
+*   **Demografía:** Gráficos circulares que diferencian entre pacientes nuevos y recurrentes.
 
-### 2.2 Gestión de Contraseña
-*   **Recuperación:** Desde la pantalla de login, el usuario puede solicitar un correo de recuperación.
-*   **Primer Acceso:** Los administradores pueden enviar un "Token de Contraseña Inicial" a nuevos usuarios desde el panel de gestión de usuarios.
-*   **Cambio de Contraseña:** Disponible en el menú de usuario (esquina superior derecha). Requiere la contraseña actual y una nueva que cumpla con:
-    *   Mínimo 8 caracteres.
-    *   Al menos una mayúscula.
-    *   Al menos un número.
+### 2.2 Gráficos de Análisis
+*   **Tendencia de Ventas:** Línea de tiempo que muestra la evolución de los ingresos.
+*   **Ventas por Servicio:** Identifica qué tratamientos o productos son los más demandados.
+*   **Estado de Facturación:** Resumen visual de facturas cobradas, pendientes y vencidas.
 
 ---
 
-## 3. Centro de Alertas
-El sistema utiliza un motor de reglas para automatizar notificaciones y recordatorios.
+## 3. Ciclo de Ventas: De la Propuesta al Cobro
+El sistema gestiona un flujo documental completo que garantiza la trazabilidad de cada centavo y cada servicio.
 
-### 3.1 Gestión de Alertas
-*   **Ruta:** `/alerts`
-*   **Funcionamiento:** Muestra alertas pendientes agrupadas por categoría (Citas, Facturación, etc.).
-*   **Acciones:**
-    *   **Marcar como Completada:** Finaliza el ciclo de la alerta.
-    *   **Pausar (Snooze):** Permite ocultar la alerta hasta una fecha futura (ej. 1 día, 1 semana).
-    *   **Ignorar:** Descarta la alerta solicitando un motivo.
-    *   **Comunicación Directa:** Permite enviar Email, SMS o WhatsApp basados en plantillas predefinidas.
+### 3.1 Presupuestos (Quotes)
+*   **Propósito:** Documentar la propuesta comercial para el paciente.
+*   **Requisito:** El paciente y los servicios deben existir en el catálogo.
+*   **Conversión Automática:** Al marcar un presupuesto como **Confirmado**, el sistema genera automáticamente una **Orden de Venta** vinculada.
 
-### 3.2 Configuración del Motor de Alertas (Administrador)
-*   **Categorías de Alerta:** Definen el grupo y el color/icono visual.
-*   **Reglas de Alerta:**
-    *   **Pre-requisito:** Existencia de tablas en la base de datos y plantillas de comunicación.
-    *   **Configuración:** Se define una tabla origen, un campo de ID, un campo de Usuario y condiciones lógicas (ej. `dias_antes = 1` para recordatorios de citas).
-*   **Plantillas:** Permiten usar variables dinámicas como `{{patient.full_name}}` o `{{appointment.time}}`.
-*   **Programador (Scheduler):** Se configura para ejecutarse automáticamente (típicamente de noche) para procesar todas las reglas y generar las alertas del día siguiente.
+### 3.2 Órdenes y Planificación (Orders)
+*   **Gestión de Ítems:** Las líneas de la orden representan los compromisos adquiridos.
+*   **Calendario:** Desde la vista de ítems de la orden, el usuario puede **Planificar** cada servicio asignándole una fecha y hora en la agenda médica.
+*   **Ejecución:** Una vez realizado el procedimiento, el ítem se marca como **Completado**. Solo los ítems completados son elegibles para ser facturados masivamente.
 
----
+### 3.3 Facturación (Invoices)
+*   **Generación:** Se pueden crear facturas desde una orden (basadas en ítems completados) o de forma **Independiente** para ventas directas en mostrador.
+*   **Estados:** Los documentos transitan por estados: *Borrador* (editable), *Enviada* (contabilizada) y *Pagada*.
 
-## 4. Gestión de Caja (Cashier)
-Es el núcleo financiero diario. **Importante:** La mayoría de las operaciones de pago requieren una sesión de caja abierta.
-
-### 4.1 Apertura de Sesión
-*   **Ruta:** `/cashier`
-*   **Pre-requisitos:** Existencia de un Punto de Caja (Caja Registradora Física).
-*   **Flujo de Apertura:**
-    1.  **Tasa de Cambio:** El sistema consulta automáticamente las cotizaciones (BROU/BCU). El usuario puede ajustarla manualmente. Esta tasa será la base para todas las conversiones de moneda de la sesión.
-    2.  **Arqueo Inicial:** El usuario debe contar el efectivo físico (billetes y monedas) en UYU y USD.
-    3.  **Confirmación:** Se registra el monto de apertura y la sesión queda vinculada al usuario.
-
-### 4.2 Operaciones Diarias
-*   **Transacciones Misceláneas:** Registro de gastos o ingresos que no provienen de facturas (ej. limpieza, papelería). Requiere una **Categoría Miscelánea** previa.
-*   **Pagos de Facturas:** Se vinculan automáticamente a la sesión activa del usuario que recibe el dinero.
-
-### 4.3 Cierre de Sesión (Arqueo)
-*   **Flujo de Cierre:**
-    1.  **Revisión:** Verificación de todos los movimientos del día.
-    2.  **Conteo Final:** Registro del efectivo físico al final del día.
-    3.  **Declaración de Depósito:** Si se retira dinero para depositar en el banco, se declara aquí (opcional adjuntar comprobante).
-    4.  **Conciliación:** El sistema compara el "Total Teórico" (Apertura + Ingresos - Egresos) contra el "Total Declarado". Muestra las diferencias (faltantes o sobrantes).
-    5.  **Reporte:** Generación de PDF de cierre.
+### 3.4 Pagos y Créditos (Payments)
+*   **Flexibilidad de Cobro:** Permite registrar pagos parciales o totales asociados a una o varias facturas.
+*   **Prepagos:** Los pacientes pueden realizar entregas de dinero a cuenta (prepago) que quedan como saldo a favor para futuras facturas.
+*   **Créditos por Devoluciones:** En caso de cancelaciones o errores, el sistema permite generar Notas de Crédito que alimentan el "Saldo Disponible" del cliente.
 
 ---
 
-## 5. Gestión de Pacientes y Clínica
+## 4. Ciclo de Compras y Carga por IA
+Gestión eficiente de la relación con proveedores y gastos operativos.
 
-### 5.1 Pacientes
-*   **Registro:** Requiere Nombre, Documento, Email y Teléfono.
-*   **Historia Clínica:** Centraliza Anamnesis, Odontograma, Documentos y Línea de Tiempo.
-*   **Odontograma:** Representación gráfica dental (ISO 3950). Permite registrar hallazgos (Caries, Coronas, etc.) en superficies específicas.
-*   **Estudios:** Visor DICOM integrado para radiografías y tomografías.
-
-### 5.2 Citas (Appointments)
-*   **Pre-requisitos:** Paciente, Servicio, Doctor, Calendario y Horario del Doctor.
-*   **Flujo:** 
-    1.  Selección de fecha/hora.
-    2.  Verificación de disponibilidad automática. 
-    3.  Si hay conflicto, el sistema ofrece sugerencias basadas en la agenda del doctor.
+### 4.1 Carga Automática (IA Import)
+*   **Importación Inteligente:** El sistema permite subir archivos **PDF o fotografías** de facturas de proveedores.
+*   **Procesamiento:** Mediante GenAI (Genkit), el sistema extrae automáticamente el proveedor, fecha, número de documento, ítems, impuestos y totales, eliminando la necesidad de entrada manual de datos.
+*   **Validación:** El usuario solo debe revisar los datos extraídos y confirmar la creación del documento en el sistema.
 
 ---
 
-## 6. Ciclo de Ventas y Compras
+## 5. Gestión de Caja (Cashier)
+Es el núcleo financiero diario. Todas las transacciones de efectivo deben ocurrir dentro de una sesión.
 
-### 6.1 Ventas (Flujo Estándar)
-1.  **Presupuesto (Quote):** 
-    *   **Pre-requisito:** Paciente y Servicios/Productos.
-    *   **Validación:** El presupuesto debe ser aprobado antes de generar una orden.
-2.  **Orden (Order):** Se genera al aceptar el presupuesto. Crea el compromiso de servicio.
-3.  **Factura (Invoice):** Puede generarse desde la orden o importarse (PDF/Imagen) mediante IA.
-4.  **Pago (Payment):**
-    *   **Pre-requisito:** Sesión de caja abierta.
-    *   **Flujo:** Se selecciona el método de pago (Efectivo, Tarjeta, Créditos del cliente). Si las monedas difieren, se aplica la tasa de cambio de la sesión de caja.
+### 5.1 Widget de Estado Permanente
+*   En la barra superior del sistema, se muestra un widget dinámico con el saldo actual en **UYU y USD**. 
+*   Este valor se actualiza en tiempo real con cada ingreso (pagos, ventas) o egreso (gastos misceláneos) registrado.
 
-### 6.2 Compras
-*   Mismo flujo que ventas pero orientado a **Proveedores** y productos de insumo clínico.
-
----
-
-## 7. Configuración de Negocio (Administración)
-
-### 7.1 Detalles de la Clínica
-*   Configuración de nombre, logo (base64 para reportes), dirección y moneda base.
-
-### 7.2 Horarios y Feriados
-*   **Schedules:** Horario general de apertura.
-*   **Holidays:** Días de cierre o excepción que bloquean la agenda de citas automáticamente.
-
-### 7.3 Doctores y Disponibilidad
-*   Cada doctor tiene sus propios servicios asignados.
-*   **Disponibilidad:** Reglas recurrentes (ej. Lunes de 08:00 a 12:00).
-*   **Excepciones:** Días específicos donde el doctor no estará disponible a pesar de la regla recurrente.
-
-### 7.4 Secuencias
-*   Define el formato de numeración de documentos (ej. `FAC-{YYYY}-{COUNTER:4}`).
-*   Permite reinicio automático anual, mensual o diario.
+### 5.2 Flujo de Cierre (Arqueo Paso a Paso)
+El cierre de caja es un proceso guiado para asegurar que no existan discrepancias:
+1.  **Revisión de Movimientos:** El sistema presenta una lista de todas las transacciones del día para confirmación visual.
+2.  **Conteo Físico (UYU/USD):** El usuario ingresa la cantidad de billetes y monedas por cada denominación.
+3.  **Declaración de Depósito:** Registro opcional de dinero retirado de la caja para ser depositado en el banco (permite adjuntar el comprobante de depósito).
+4.  **Análisis de Diferencias:** El sistema compara el **Total Teórico** (Apertura + Entradas - Salidas) contra el **Declarado**.
+5.  **Conciliación:** Si existen diferencias (faltantes o sobrantes), el sistema solicita una justificación antes de generar el reporte final en PDF.
 
 ---
 
-## 8. Administración del Sistema
-
-### 8.1 Usuarios, Roles y Permisos
-*   Los **Roles** agrupan **Permisos**.
-*   Los **Usuarios** pueden tener múltiples roles.
-*   **Seguridad:** El sistema valida los permisos en cada acción de la UI y en las llamadas a la API.
-
-### 8.2 Registros (Logs)
-*   **Audit Log:** Historial de cambios en los datos (Quién cambió qué y cuándo).
-*   **Access Log:** Registro de inicios de sesión y accesos.
-*   **Error Log:** Registro técnico de fallos del sistema para soporte.
+## 6. Flexibilidad y Operaciones Independientes
+Aunque el sistema promueve flujos ordenados (Presupuesto -> Orden -> Factura), permite total libertad:
+*   Crear una **Factura** directamente sin presupuesto previo.
+*   Generar una **Orden** manual para servicios recurrentes.
+*   Registrar **Gastos Misceláneos** (limpieza, papelería) directamente asociados a la sesión de caja sin pasar por el módulo de compras.
 
 ---
 
-## 9. Datos Financieros y Tasa de Cambio
-*   **Origen de la Tasa:** El sistema se sincroniza mediante webhooks con indicadores financieros oficiales. 
-*   **Prioridad:** Prevalece la tasa definida en la **Apertura de Caja** para todas las transacciones de esa sesión, garantizando que el arqueo final sea consistente.
+## 7. Configuración del Motor de Alertas
+El sistema utiliza un motor de reglas para automatizar notificaciones.
+
+### 7.1 Categorías y Reglas
+*   **Categorías:** Grupos lógicos (Citas, Cobranzas, Cumpleaños) con iconos y colores distintivos.
+*   **Reglas:** Consultas dinámicas sobre las tablas del sistema (ej. "Facturas vencidas hace más de 5 días").
+*   **Plantillas:** Diseñador de mensajes con variables dinámicas como `{{patient.full_name}}`.
+
+---
+
+## 8. Datos Financieros y Tasa de Cambio
+*   **Sincronización:** El sistema consulta indicadores oficiales (BROU/BCU).
+*   **Consistencia:** Al abrir la caja, se fija la tasa de la sesión. Todos los cálculos de conversión de esa jornada (ej. pagar una factura en USD con Pesos) usarán esa tasa para garantizar que el arqueo final sea exacto.
