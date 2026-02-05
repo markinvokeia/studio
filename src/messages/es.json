@@ -1751,7 +1751,8 @@
             "errorDesc": "Hubo un error y los detalles de la clínica no han sido actualizados satisfactoriamente",
             "errorTitle": "Error Actualizando Detalles"
         },
-        "saving": "Guardando"
+        "saving": "Guardando",
+        "noClinic": "No hay clínicas registradas."
     },
     "SchedulesPage": {
         "title": "Horarios",

@@ -57,9 +57,21 @@ const apiRequest = async (
         }
     }
 
-    try {
+try {
         const response = await fetch(url, config);
         if (!response.ok) {
+            // For 400 status codes, try to parse the error response and return it
+            if (response.status === 400) {
+                const text = await response.text();
+                if (text.trim()) {
+                    try {
+                        return JSON.parse(text);
+                    } catch (jsonError) {
+                        throw new Error('Bad request');
+                    }
+                }
+                throw new Error('Bad request');
+            }
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         if (responseType === 'blob') {

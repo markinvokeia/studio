@@ -1751,7 +1751,8 @@
       "errorDesc": "There was an error and Clinic Details were not saved successfully",
       "errorTitle": "Error Updating Details"
     },
-    "saving": "Saving"
+    "saving": "Saving",
+    "noClinic": "There are no registered clinics."
   },
   "SchedulesPage": {
     "title": "Schedules",

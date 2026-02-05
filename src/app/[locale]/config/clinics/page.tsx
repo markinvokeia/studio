@@ -27,7 +27,7 @@ async function getClinic(): Promise<Clinic | null> {
 
         const apiClinic = clinicsData[0];
 
-        return {
+return {
             id: apiClinic.id ? String(apiClinic.id) : `cli_${Math.random().toString(36).substr(2, 9)}`,
             name: apiClinic.name || 'No Name',
             location: apiClinic.address || 'No Location',
@@ -35,6 +35,7 @@ async function getClinic(): Promise<Clinic | null> {
             phone_number: apiClinic.phone || '000-000-0000',
             logo_base64: apiClinic.logo_base64,
             currency: apiClinic.currency || 'USD',
+            thumbnail_link: apiClinic.thumbnail_link,
         };
     } catch (error) {
         console.error("Failed to fetch clinics:", error);
@@ -52,11 +53,15 @@ export default function ClinicsPage() {
     const [logoFile, setLogoFile] = React.useState<File | null>(null);
     const { toast } = useToast();
 
-    const loadClinic = React.useCallback(async () => {
+const loadClinic = React.useCallback(async () => {
         setIsLoading(true);
         const fetchedClinic = await getClinic();
         setClinic(fetchedClinic);
-        if (fetchedClinic?.logo_base64) {
+        if (fetchedClinic?.thumbnail_link) {
+            // Use thumbnail link from API response
+            setLogoPreview(fetchedClinic.thumbnail_link);
+        } else if (fetchedClinic?.logo_base64) {
+            // Fallback to base64 data
             setLogoPreview(fetchedClinic.logo_base64);
         }
         setIsLoading(false);
@@ -112,21 +117,35 @@ export default function ClinicsPage() {
         }
 
         if (logoFile) {
-            formData.append('logo', logoFile);
+            formData.append('data', logoFile);
         }
 
-        try {
+try {
             const responseData = await api.post(API_ROUTES.CLINIC_UPDATE, formData);
 
-            if (responseData.code === 200 || responseData[0]?.code === 200) {
-                toast({
-                    title: t('toast.successTitle'),
-                    description: t('toast.successDesc'),
-                });
-                loadClinic();
+            // Handle the new response format
+            // Success: array with clinic data (status 200)
+            // Error: array with error message (status 400)
+            if (Array.isArray(responseData) && responseData.length > 0) {
+                const firstItem = responseData[0];
+                
+                // Check if this is an error response (has message field) or success response (has clinic data)
+                if (firstItem.message) {
+                    // Error response
+                    throw new Error(firstItem.message);
+                } else if (firstItem.id && firstItem.name) {
+                    // Success response - clinic data
+                    toast({
+                        title: t('toast.successTitle'),
+                        description: t('toast.successDesc'),
+                    });
+                    loadClinic();
+                } else {
+                    // Unknown response format
+                    throw new Error(t('toast.errorUnknown'));
+                }
             } else {
-                const errorMessage = responseData.message || (responseData[0]?.message) || t('toast.errorUnknown');
-                throw new Error(errorMessage);
+                throw new Error(t('toast.errorUnknown'));
             }
         } catch (error) {
             toast({

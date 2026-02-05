@@ -206,6 +206,17 @@ export type Clinic = {
   logo?: string;
   logo_base64?: string;
   currency?: 'UYU' | 'USD';
+  // New fields from API response
+  address?: string;
+  phone?: string;
+  email?: string;
+  is_active?: boolean;
+  created_at?: string;
+  logo_filename?: string;
+  logo_mimetype?: string;
+  drive_file_id?: string;
+  web_view_link?: string;
+  thumbnail_link?: string;
 };
 
 export type ClinicSchedule = {
