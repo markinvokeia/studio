@@ -15,6 +15,7 @@ export type User = {
   total_paid?: any;
   current_debt?: any;
   available_balance?: any;
+  notes?: string;
 };
 
 export type Debtor = {

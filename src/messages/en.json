@@ -544,7 +544,8 @@
       "history": "Clinic History",
       "orders": "Orders",
       "invoices": "Invoices",
-      "payments": "Payments"
+      "payments": "Payments",
+      "notes": "Notes"
     },
     "createDialog": {
       "title": "Create New Patient",
@@ -586,7 +587,17 @@
         }
       },
       "birth_date": "Birth Date",
-      "birth_date_placeholder": "01/01/1999"
+      "birth_date_placeholder": "01/01/1999",
+      "notes": {
+        "description": "Patient notes",
+        "edit": "Edit",
+        "cancel": "Cancel",
+        "save": "Save",
+        "placeholder": "Add notes about the patient...",
+        "saving": "Saving...",
+        "saveSuccess": "Notes Saved",
+        "saveSuccessDescription": "Your notes have been saved successfully"
+      }
     },
     "filters": {
       "type": {
@@ -607,6 +618,21 @@
         "allTime": "All Time"
       },
       "showOnlyDebtors": "Show only debtors"
+    },
+    "notes": {
+      "title": "Patient Notes",
+      "description": "Manage patient notes and observations",
+      "edit": "Edit Notes",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "placeholder": "Add notes about the patient...",
+      "noNotes": "No notes recorded for this patient",
+      "addFirstNote": "Add First Note",
+      "saveSuccess": "Notes Saved",
+      "saveSuccessDescription": "Patient notes have been updated successfully",
+      "saveError": "Save Error",
+      "saveErrorDescription": "Could not save notes. Please try again"
     }
   },
   "UserColumns": {
@@ -2259,7 +2285,8 @@
       "appointments": "Appointments",
       "messages": "Messages",
       "logs": "Logs",
-      "history": "Clinic History"
+      "history": "Clinic History",
+      "notes": "Notes"
     },
     "detailsFor": "Details for {name}"
   },
@@ -2528,7 +2555,8 @@
       "toast": {
         "success": "Success",
         "deleteSuccess": "Deleted successfully"
-      }
+      },
+      "nextSessionPlan": "Next Session Plan"
     },
     "anamnesis": {
       "personalTitle": "Personal Information",

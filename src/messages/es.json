@@ -544,7 +544,8 @@
             "history": "Historia Clínica",
             "orders": "Órdenes",
             "invoices": "Facturas",
-            "payments": "Pagos"
+            "payments": "Pagos",
+            "notes": "Notas"
         },
         "createDialog": {
             "title": "Crear Nuevo Paciente",
@@ -586,7 +587,17 @@
                 }
             },
             "birth_date": "Fecha de nacimiento",
-            "birth_date_placeholder": "01/01/1999"
+            "birth_date_placeholder": "01/01/1999",
+            "notes": {
+                "description": "Notas del paciente",
+                "edit": "Editar",
+                "cancel": "Cancelar",
+                "save": "Guardar",
+                "placeholder": "Agregar notas sobre el paciente...",
+                "saving": "Guardando...",
+                "saveSuccess": "Notas Guardadas",
+                "saveSuccessDescription": "Las notas del paciente han sido actualizadas exitosamente"
+            }
         },
         "filters": {
             "type": {
@@ -607,6 +618,21 @@
                 "allTime": "Todo el Tiempo"
             },
             "showOnlyDebtors": "Mostrar solo deudores"
+        },
+        "notes": {
+            "title": "Notas del Paciente",
+            "description": "Gestionar las notas y observaciones del paciente",
+            "edit": "Editar Notas",
+            "save": "Guardar",
+            "cancel": "Cancelar",
+            "saving": "Guardando...",
+            "placeholder": "Agregar notas sobre el paciente...",
+            "noNotes": "No hay notas registradas para este paciente",
+            "addFirstNote": "Agregar Primera Nota",
+            "saveSuccess": "Notas Guardadas",
+            "saveSuccessDescription": "Las notas del paciente han sido actualizadas exitosamente",
+            "saveError": "Error al Guardar",
+            "saveErrorDescription": "No se pudieron guardar las notas. Por favor, inténtelo de nuevo"
         }
     },
     "UserColumns": {
@@ -2261,7 +2287,8 @@
             "appointments": "Citas",
             "messages": "Mensajes",
             "logs": "Registros",
-            "history": "Historia Clínica"
+            "history": "Historia Clínica",
+            "notes": "Notas"
         },
         "detailsFor": "Detalles para {name}"
     },
@@ -2530,7 +2557,8 @@
             "toast": {
                 "success": "Éxito",
                 "deleteSuccess": "Eliminado exitosamente"
-            }
+            },
+            "nextSessionPlan": "Plan para la Próxima Sesión"
         },
         "anamnesis": {
             "personalTitle": "Información Personal",

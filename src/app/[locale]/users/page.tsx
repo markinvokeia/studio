@@ -21,6 +21,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
+import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
@@ -62,6 +63,7 @@ const userFormSchema = (t: (key: string) => string) => z.object({
     .regex(/^\d+$/, { message: t('UsersPage.createDialog.validation.identityInvalid') })
     .max(10, { message: t('UsersPage.createDialog.validation.identityMaxLength') }),
   birth_date: z.string().optional(),
+  notes: z.string().optional(),
   is_active: z.boolean().default(false),
 });
 
@@ -234,7 +236,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
       total = Number(responseData.total) || usersData.length;
     }
 
-    const mappedUsers = usersData.map((apiUser: any) => ({
+const mappedUsers = usersData.map((apiUser: any) => ({
       id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
       name: apiUser.name || 'No Name',
       email: apiUser.email || 'no-email@example.com',
@@ -247,6 +249,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
       total_paid: apiUser.total_paid,
       current_debt: apiUser.current_debt,
       available_balance: apiUser.available_balance,
+      notes: apiUser.notes,
     }));
 
     return { users: mappedUsers, total };
@@ -286,6 +289,119 @@ async function getRolesForUser(userId: string): Promise<UserRole[]> {
   }
 }
 
+const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) => void }) => {
+  const t = useTranslations();
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [notes, setNotes] = React.useState(user.notes || '');
+  const [isSaving, setIsSaving] = React.useState(false);
+  const { toast } = useToast();
+
+  React.useEffect(() => {
+    setNotes(user.notes || '');
+  }, [user.notes]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await onUpdate(notes);
+      setIsEditing(false);
+      toast({
+        title: t('UsersPage.notes.saveSuccess'),
+        description: t('UsersPage.notes.saveSuccessDescription'),
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: t('UsersPage.notes.saveError'),
+        description: t('UsersPage.notes.saveErrorDescription'),
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setNotes(user.notes || '');
+    setIsEditing(false);
+  };
+
+  return (
+    <Card className="h-full flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between flex-none p-4 pb-2">
+        <div className="min-w-0 flex-1">
+          <CardTitle className="text-lg">{t('UsersPage.notes.title')}</CardTitle>
+          <CardDescription className="text-sm">
+            {t('UsersPage.notes.description')}
+          </CardDescription>
+        </div>
+        <div className="flex items-center gap-2 ml-2">
+          {!isEditing && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsEditing(true)}
+            >
+              {t('UsersPage.notes.edit')}
+            </Button>
+          )}
+          {isEditing && (
+            <>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleCancel}
+                disabled={isSaving}
+              >
+                {t('UsersPage.notes.cancel')}
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={handleSave}
+                disabled={isSaving}
+              >
+                {isSaving ? t('UsersPage.notes.saving') : t('UsersPage.notes.save')}
+              </Button>
+            </>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1 overflow-auto p-4 pt-2">
+        {isEditing ? (
+          <div className="h-full flex flex-col">
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder={t('UsersPage.notes.placeholder')}
+              className="flex-1 min-h-[200px] resize-none"
+            />
+          </div>
+        ) : (
+          <div className="h-full">
+            {notes ? (
+              <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                {notes}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                <p className="text-center mb-4">
+                  {t('UsersPage.notes.noNotes')}
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setIsEditing(true)}
+                >
+                  {t('UsersPage.notes.addFirstNote')}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 export default function UsersPage() {
   const t = useTranslations();
 
@@ -313,7 +429,7 @@ export default function UsersPage() {
   const [datePreset, setDatePreset] = React.useState<string | null>('allTime');
   const [showDebtors, setShowDebtors] = React.useState(false);
 
-  const form = useForm<UserFormValues>({
+const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
     defaultValues: {
       name: '',
@@ -321,6 +437,7 @@ export default function UsersPage() {
       phone: '',
       identity_document: '',
       birth_date: '',
+      notes: '',
       is_active: true,
     },
   });
@@ -371,7 +488,7 @@ export default function UsersPage() {
     }
   };
 
-  const handleCreate = () => {
+const handleCreate = () => {
     setEditingUser(null);
     form.reset({
       name: '',
@@ -379,13 +496,14 @@ export default function UsersPage() {
       phone: '',
       identity_document: '',
       birth_date: '',
+      notes: '',
       is_active: true,
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
   };
 
-  const handleEdit = (user: User) => {
+const handleEdit = (user: User) => {
     setEditingUser(user);
     form.reset({
       id: user.id,
@@ -394,6 +512,7 @@ export default function UsersPage() {
       phone: user.phone_number,
       identity_document: user.identity_document,
       birth_date: user.birth_date || '',
+      notes: user.notes || '',
       is_active: user.is_active,
     });
     setSubmissionError(null);
@@ -492,10 +611,45 @@ export default function UsersPage() {
     }
   }, [selectedUser, loadUserRoles]);
 
-  const handleCloseDetails = () => {
+const handleCloseDetails = () => {
     setSelectedUser(null);
     setSelectedQuote(null);
     setRowSelection({});
+  };
+
+  const handleUpdateNotes = async (notes: string) => {
+    if (!selectedUser) return;
+    
+    try {
+      const updatedUserData = {
+        ...selectedUser,
+        notes,
+      };
+      
+      await upsertUser({
+        id: selectedUser.id,
+        name: selectedUser.name,
+        email: selectedUser.email,
+        phone: selectedUser.phone_number,
+        identity_document: selectedUser.identity_document || '',
+        birth_date: selectedUser.birth_date || '',
+        notes,
+        is_active: selectedUser.is_active,
+      });
+      
+      setSelectedUser(updatedUserData);
+      
+      // Update the user in the users list
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === selectedUser.id ? { ...user, notes } : user
+        )
+      );
+      
+    } catch (error) {
+      console.error('Failed to update notes:', error);
+      throw error;
+    }
   };
 
   const onSubmit = async (data: UserFormValues) => {
@@ -734,10 +888,10 @@ export default function UsersPage() {
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
+<CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   <UserStats user={selectedUser} t={t} />
                   <Tabs defaultValue="history" className="w-full flex-1 flex flex-col min-h-0">
-                    <TabsList className="h-auto items-center justify-start flex-wrap flex-none bg-muted/50 p-1 gap-1">
+<TabsList className="h-auto items-center justify-start flex-wrap flex-none bg-muted/50 p-1 gap-1">
                       <TabsTrigger value="history" className="text-xs px-2 py-1">{t('UsersPage.tabs.history')}</TabsTrigger>
                       {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
                         <TabsTrigger value="services" className="text-xs px-2 py-1">{t('UsersPage.tabs.services')}</TabsTrigger>
@@ -749,6 +903,7 @@ export default function UsersPage() {
                       <TabsTrigger value="appointments" className="text-xs px-2 py-1">{t('UsersPage.tabs.appointments')}</TabsTrigger>
                       <TabsTrigger value="messages" className="text-xs px-2 py-1">{t('UsersPage.tabs.messages')}</TabsTrigger>
                       <TabsTrigger value="logs" className="text-xs px-2 py-1">{t('UsersPage.tabs.logs')}</TabsTrigger>
+                      <TabsTrigger value="notes" className="text-xs px-2 py-1">{t('UsersPage.tabs.notes')}</TabsTrigger>
                     </TabsList>
                     <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-3">
                       <TabsContent value="history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
@@ -777,8 +932,11 @@ export default function UsersPage() {
                       <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                         <UserMessages userId={selectedUser.id} />
                       </TabsContent>
-                      <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+<TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                         <UserLogs userId={selectedUser.id} />
+                      </TabsContent>
+                      <TabsContent value="notes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                        <NotesTab user={selectedUser} onUpdate={handleUpdateNotes} />
                       </TabsContent>
                     </div>
                   </Tabs>
@@ -862,7 +1020,7 @@ export default function UsersPage() {
                   </FormItem>
                 )}
               />
-              <FormField
+<FormField
                 control={form.control}
                 name="birth_date"
                 render={({ field }) => (
@@ -875,6 +1033,24 @@ export default function UsersPage() {
                         {...field}
                         max={new Date().toISOString().split('T')[0]}
                         min="1900-01-01"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('UsersPage.createDialog.notes')}</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder={t('UsersPage.createDialog.notesPlaceholder')}
+                        className="resize-none"
+                        rows={3}
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
