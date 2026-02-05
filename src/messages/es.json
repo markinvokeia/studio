@@ -589,14 +589,19 @@
             "birth_date": "Fecha de nacimiento",
             "birth_date_placeholder": "01/01/1999",
             "notes": {
-                "description": "Notas del paciente",
-                "edit": "Editar",
-                "cancel": "Cancelar",
+                "title": "Notas del Paciente",
+                "description": "Gestionar las notas y observaciones del paciente",
+                "edit": "Editar Notas",
                 "save": "Guardar",
-                "placeholder": "Agregar notas sobre el paciente...",
+                "cancel": "Cancelar",
                 "saving": "Guardando...",
+                "placeholder": "Agregar notas sobre el paciente...",
+                "noNotes": "No hay notas registradas para este paciente",
+                "addFirstNote": "Agregar Primera Nota",
                 "saveSuccess": "Notas Guardadas",
-                "saveSuccessDescription": "Las notas del paciente han sido actualizadas exitosamente"
+                "saveSuccessDescription": "Las notas del paciente han sido actualizadas exitosamente",
+                "saveError": "Error al Guardar",
+                "saveErrorDescription": "No se pudieron guardar las notas. Por favor, inténtelo de nuevo"
             }
         },
         "filters": {

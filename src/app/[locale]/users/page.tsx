@@ -236,7 +236,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
       total = Number(responseData.total) || usersData.length;
     }
 
-const mappedUsers = usersData.map((apiUser: any) => ({
+    const mappedUsers = usersData.map((apiUser: any) => ({
       id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
       name: apiUser.name || 'No Name',
       email: apiUser.email || 'no-email@example.com',
@@ -336,9 +336,9 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
         </div>
         <div className="flex items-center gap-2 ml-2">
           {!isEditing && (
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setIsEditing(true)}
             >
               {t('UsersPage.notes.edit')}
@@ -346,16 +346,16 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
           )}
           {isEditing && (
             <>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleCancel}
                 disabled={isSaving}
               >
                 {t('UsersPage.notes.cancel')}
               </Button>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 onClick={handleSave}
                 disabled={isSaving}
               >
@@ -386,9 +386,9 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
                 <p className="text-center mb-4">
                   {t('UsersPage.notes.noNotes')}
                 </p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setIsEditing(true)}
                 >
                   {t('UsersPage.notes.addFirstNote')}
@@ -429,7 +429,7 @@ export default function UsersPage() {
   const [datePreset, setDatePreset] = React.useState<string | null>('allTime');
   const [showDebtors, setShowDebtors] = React.useState(false);
 
-const form = useForm<UserFormValues>({
+  const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
     defaultValues: {
       name: '',
@@ -488,7 +488,7 @@ const form = useForm<UserFormValues>({
     }
   };
 
-const handleCreate = () => {
+  const handleCreate = () => {
     setEditingUser(null);
     form.reset({
       name: '',
@@ -503,7 +503,7 @@ const handleCreate = () => {
     setIsDialogOpen(true);
   };
 
-const handleEdit = (user: User) => {
+  const handleEdit = (user: User) => {
     setEditingUser(user);
     form.reset({
       id: user.id,
@@ -611,7 +611,7 @@ const handleEdit = (user: User) => {
     }
   }, [selectedUser, loadUserRoles]);
 
-const handleCloseDetails = () => {
+  const handleCloseDetails = () => {
     setSelectedUser(null);
     setSelectedQuote(null);
     setRowSelection({});
@@ -619,13 +619,13 @@ const handleCloseDetails = () => {
 
   const handleUpdateNotes = async (notes: string) => {
     if (!selectedUser) return;
-    
+
     try {
       const updatedUserData = {
         ...selectedUser,
         notes,
       };
-      
+
       await upsertUser({
         id: selectedUser.id,
         name: selectedUser.name,
@@ -636,16 +636,16 @@ const handleCloseDetails = () => {
         notes,
         is_active: selectedUser.is_active,
       });
-      
+
       setSelectedUser(updatedUserData);
-      
+
       // Update the user in the users list
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
           user.id === selectedUser.id ? { ...user, notes } : user
         )
       );
-      
+
     } catch (error) {
       console.error('Failed to update notes:', error);
       throw error;
@@ -888,10 +888,10 @@ const handleCloseDetails = () => {
                     </Button>
                   </div>
                 </CardHeader>
-<CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
+                <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   <UserStats user={selectedUser} t={t} />
                   <Tabs defaultValue="history" className="w-full flex-1 flex flex-col min-h-0">
-<TabsList className="h-auto items-center justify-start flex-wrap flex-none bg-muted/50 p-1 gap-1">
+                    <TabsList className="h-auto items-center justify-start flex-wrap flex-none bg-muted/50 p-1 gap-1">
                       <TabsTrigger value="history" className="text-xs px-2 py-1">{t('UsersPage.tabs.history')}</TabsTrigger>
                       {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
                         <TabsTrigger value="services" className="text-xs px-2 py-1">{t('UsersPage.tabs.services')}</TabsTrigger>
@@ -932,7 +932,7 @@ const handleCloseDetails = () => {
                       <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                         <UserMessages userId={selectedUser.id} />
                       </TabsContent>
-<TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                      <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                         <UserLogs userId={selectedUser.id} />
                       </TabsContent>
                       <TabsContent value="notes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
@@ -1020,7 +1020,7 @@ const handleCloseDetails = () => {
                   </FormItem>
                 )}
               />
-<FormField
+              <FormField
                 control={form.control}
                 name="birth_date"
                 render={({ field }) => (
@@ -1044,10 +1044,10 @@ const handleCloseDetails = () => {
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('UsersPage.createDialog.notes')}</FormLabel>
+                    <FormLabel>{t('UsersPage.createDialog.notes.title')}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder={t('UsersPage.createDialog.notesPlaceholder')}
+                        placeholder={t('UsersPage.createDialog.notes.placeholder')}
                         className="resize-none"
                         rows={3}
                         {...field}
