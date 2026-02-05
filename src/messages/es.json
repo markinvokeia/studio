@@ -2553,7 +2553,7 @@
             "showLess": "Mostrar menos",
             "edit": "Editar",
             "delete": "Eliminar",
-            "odontogramTooltip": "Ver odontograma",
+            "odontogramTooltip": "Tipo de sesión: Odontograma",
             "toast": {
                 "success": "Éxito",
                 "deleteSuccess": "Eliminado exitosamente"

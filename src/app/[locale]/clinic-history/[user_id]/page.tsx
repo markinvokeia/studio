@@ -1328,8 +1328,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         diagnostico: session.diagnostico || '',
                         notas_clinicas: session.notas_clinicas || '',
                         plan_proxima_cita: session.plan_proxima_cita || '',
-                        treatments: (session.tratamientos || []).map(t => ({
-                            tratamiento_id: t.tratamiento_id ? String(t.tratamiento_id) : undefined,
+treatments: (session.tratamientos || []).map(t => ({
                             numero_diente: t.numero_diente ? String(t.numero_diente) : '',
                             descripcion: t.descripcion || ''
                         })),
@@ -2399,13 +2398,13 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                         return (
                             <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
                                 <div className="absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-2 border-background shadow-md bg-card flex items-center justify-center">
-                                    <TooltipProvider>
+<TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Icon className="h-4 w-4 text-primary" />
                                             </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>{session.tipo_sesion === 'odontograma' ? t('odontogramTooltip') : t('sessionType')}: {session.tipo_sesion}</p>
+                                            <TooltipContent className="z-50">
+                                                <p>{session.tipo_sesion === 'odontograma' ? t('odontogramTooltip') : `${t('sessionType')}: ${session.tipo_sesion}`}</p>
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
@@ -2417,17 +2416,19 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                                 <h4 className="font-semibold text-foreground">{session.procedimiento_realizado}</h4>
                                                 <p className="text-sm text-muted-foreground">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</p>
                                             </div>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent>
-                                                    <DropdownMenuItem onClick={() => onAction('edit', session)}>{t('edit')}</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => onAction('delete', session)} className="text-destructive">{t('delete')}</DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
+{session.tipo_sesion !== 'odontograma' ? (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent>
+                                                        <DropdownMenuItem onClick={() => onAction('edit', session)}>{t('edit')}</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => onAction('delete', session)} className="text-destructive">{t('delete')}</DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            ) : null}
                                         </div>
                                         <div className="space-y-3 text-sm text-muted-foreground">
                                             <p><strong>{t('diagnosis')}:</strong> {session.diagnostico}</p>

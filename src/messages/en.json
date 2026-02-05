@@ -2551,7 +2551,7 @@
       "showLess": "Show less",
       "edit": "Edit",
       "delete": "Delete",
-      "odontogramTooltip": "View odontogram",
+      "odontogramTooltip": "Session Type: Odontogram",
       "toast": {
         "success": "Success",
         "deleteSuccess": "Deleted successfully"
