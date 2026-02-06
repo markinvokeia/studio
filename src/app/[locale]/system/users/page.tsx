@@ -431,18 +431,11 @@ export default function SystemUsersPage() {
                 </CardHeader>
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
                   <Tabs defaultValue="roles" className="w-full flex-1 flex flex-col min-h-0">
-                    <TabsList className="h-auto items-center justify-start flex-wrap flex-none">
+<TabsList className="h-auto items-center justify-start flex-wrap flex-none">
                       <TabsTrigger value="roles">{t('SystemUsersPage.tabs.roles')}</TabsTrigger>
-                      {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                        <TabsTrigger value="services">{t('SystemUsersPage.tabs.services')}</TabsTrigger>
-                      )}
-                      <TabsTrigger value="quotes">{t('SystemUsersPage.tabs.quotes')}</TabsTrigger>
-                      <TabsTrigger value="appointments">{t('SystemUsersPage.tabs.appointments')}</TabsTrigger>
-                      <TabsTrigger value="messages">{t('SystemUsersPage.tabs.messages')}</TabsTrigger>
                       <TabsTrigger value="logs">{t('SystemUsersPage.tabs.logs')}</TabsTrigger>
-                      <TabsTrigger value="history">{t('SystemUsersPage.tabs.history')}</TabsTrigger>
                     </TabsList>
-                    <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-4">
+<div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-4">
                       <TabsContent value="roles" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                         <UserRoles
                           userId={selectedUser.id}
@@ -451,25 +444,8 @@ export default function SystemUsersPage() {
                           onRolesChange={() => loadUserRoles(selectedUser.id)}
                         />
                       </TabsContent>
-                      {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                        <TabsContent value="services" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                          <UserServices userId={selectedUser.id} isSalesUser={true} />
-                        </TabsContent>
-                      )}
-                      <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserQuotes userId={selectedUser.id} />
-                      </TabsContent>
-                      <TabsContent value="appointments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserAppointments user={selectedUser} />
-                      </TabsContent>
-                      <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserMessages userId={selectedUser.id} />
-                      </TabsContent>
                       <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                         <UserLogs userId={selectedUser.id} />
-                      </TabsContent>
-                      <TabsContent value="history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <MedicalHistory user={selectedUser} />
                       </TabsContent>
                     </div>
                   </Tabs>

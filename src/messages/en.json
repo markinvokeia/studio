@@ -772,7 +772,7 @@
   "OrderItemsTable": {
     "title": "Order Items for #{id}",
     "filterPlaceholder": "Filter here...",
-"columns": {
+    "columns": {
       "id": "ID",
       "service": "Service",
       "toothNumber": "Tooth Number",
@@ -954,7 +954,7 @@
       "totalPositive": "Total must be a positive number",
       "quantityMinOne": "Quantity must be at least 1",
       "unitPricePositive": "Unit price must be positive",
-"toothNumberMin": "Tooth number must be at least 11",
+      "toothNumberMin": "Tooth number must be at least 11",
       "toothNumberMax": "Tooth number must be at most 85"
     },
     "deleteQuoteDialog": {
@@ -2300,7 +2300,8 @@
       "history": "Clinic History",
       "notes": "Notes"
     },
-    "detailsFor": "Details for {name}"
+    "detailsFor": "Details for {name}",
+    "close": "Close details"
   },
   "RolesPage": {
     "title": "Roles",
@@ -2740,7 +2741,9 @@
     "actions": "Actions",
     "edit": "Edit",
     "deactivate": "Deactivate",
-    "copyId": "Copy user ID"
+    "copyId": "Copy user ID",
+    "roles": "Roles",
+    "activate": "Activate"
   },
   "Calendar": {
     "all": "All",

@@ -772,7 +772,7 @@
     "OrderItemsTable": {
         "title": "Ítems de la Orden para #{id}",
         "filterPlaceholder": "Filtrar aquí...",
-"columns": {
+        "columns": {
             "id": "ID",
             "service": "Servicio",
             "toothNumber": "Número de Diente",
@@ -783,7 +783,7 @@
             "scheduled": "Programado",
             "completed": "Completado",
             "invoiced": "Facturado"
-         },
+        },
         "status": {
             "completed": "Completado",
             "scheduled": "Programado",
@@ -954,7 +954,7 @@
             "totalPositive": "El total debe ser un número positivo",
             "quantityMinOne": "La cantidad debe ser al menos 1",
             "unitPricePositive": "El precio unitario debe ser positivo",
-"toothNumberMin": "El número de diente debe ser al menos 11",
+            "toothNumberMin": "El número de diente debe ser al menos 11",
             "toothNumberMax": "El número de diente debe ser como máximo 85"
         },
         "deleteQuoteDialog": {
@@ -2302,7 +2302,8 @@
             "history": "Historia Clínica",
             "notes": "Notas"
         },
-        "detailsFor": "Detalles para {name}"
+        "detailsFor": "Detalles para {name}",
+        "close": "Close details"
     },
     "RolesPage": {
         "title": "Roles",
@@ -2740,7 +2741,9 @@
         "actions": "Acciones",
         "edit": "Editar",
         "deactivate": "Desactivar",
-        "copyId": "Copiar ID de usuario"
+        "copyId": "Copiar ID de usuario",
+        "roles": "Roles",
+        "activate": "Activar"
     },
     "Calendar": {
         "all": "Todos",
