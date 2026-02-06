@@ -88,34 +88,11 @@ export function DataTableAdvancedToolbar<TData>({
             </div>
 
             <div className="flex flex-1 items-center gap-1.5 min-w-0 overflow-hidden">
-                {/* Active Filter Chips - made smaller to fit h-9 */}
-                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap">
-                    {activeFilters.map((filter) => (
-                        <div
-                            key={filter.value}
-                            className="flex items-center rounded-sm bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium shrink-0"
-                        >
-                            {filter.group ? <span className="mr-1 opacity-70 hidden sm:inline">{filter.group}:</span> : null}
-                            <span className="truncate max-w-[100px]">{filter.label}</span>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="ml-1 h-3 w-3 p-0 hover:bg-transparent shrink-0"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    filter.onSelect?.();
-                                }}
-                            >
-                                <X className="h-2.5 w-2.5" />
-                                <span className="sr-only">Remove {filter.label}</span>
-                            </Button>
-                        </div>
-                    ))}
-                </div>
+{/* Active Filter Chips - moved outside search bar */}
 
                 <Input
                     ref={inputRef}
-                    placeholder={activeFilters.length > 0 ? "" : filterPlaceholder}
+                    placeholder={filterPlaceholder}
                     value={searchQuery}
                     onChange={(event) => onSearchChange?.(event.target.value)}
                     className="flex-1 min-w-[80px] border-0 bg-transparent py-0 px-1 text-sm placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 outline-none h-full"
@@ -299,7 +276,9 @@ export function DataTableAdvancedToolbar<TData>({
                     )}
                     {extraButtons}
                 </div>
-            </div>
+</div>
+
+            
 
             {isCompact && showSearch && (
                 <div className="w-full animate-in fade-in slide-in-from-top-2 duration-200">

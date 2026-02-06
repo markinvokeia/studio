@@ -195,14 +195,15 @@ function formatBirthDate(dateStr: string | undefined): string {
   return dateStr; // Return as is if can't format
 }
 
-async function getUsers(pagination: PaginationState, searchQuery: string, onlyDebtors: boolean, dateRange?: DateRange): Promise<GetUsersResponse> {
+async function getUsers(pagination: PaginationState, searchQuery: string, onlyDebtors: boolean, onlyActive: boolean, dateRange?: DateRange): Promise<GetUsersResponse> {
   try {
     const query: Record<string, string> = {
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
       search: searchQuery,
       filter_type: "PACIENTE",
-      only_debtors: String(onlyDebtors)
+      only_debtors: String(onlyDebtors),
+      only_active: String(onlyActive)
     };
 
     if (dateRange?.from) {
@@ -428,6 +429,7 @@ export default function UsersPage() {
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
   const [datePreset, setDatePreset] = React.useState<string | null>('allTime');
   const [showDebtors, setShowDebtors] = React.useState(false);
+  const [showOnlyActive, setShowOnlyActive] = React.useState(true);
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
@@ -445,11 +447,11 @@ export default function UsersPage() {
   const loadUsers = React.useCallback(async () => {
     setIsRefreshing(true);
     const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
-    const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery, showDebtors, date);
+    const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery, showDebtors, showOnlyActive, date);
     setUsers(fetchedUsers);
     setUserCount(total);
     setIsRefreshing(false);
-  }, [pagination, columnFilters, date, showDebtors]);
+  }, [pagination, columnFilters, date, showDebtors, showOnlyActive]);
 
   const loadUserRoles = React.useCallback(async (userId: string) => {
     setIsRolesLoading(true);
@@ -735,10 +737,11 @@ export default function UsersPage() {
   // When 'date' changes manually (via calendar), we might lose the preset label unless we track it.
   // But for now, we rely on 'datePreset' state for the chip labels.
 
-  const handleClearFilters = () => {
+const handleClearFilters = () => {
     setDatePreset('allTime');
     setDate(undefined);
     setShowDebtors(false);
+    setShowOnlyActive(true);
     setColumnFilters((prev) => prev.filter(f => f.id !== 'email')); // Clear search too if desired, or keep it separate.
     // Usually "Clear Filters" implies clearing the dropdown filters, not necessarily the text search.
     // If we want to clear text search, we can do that too. 
@@ -781,12 +784,19 @@ export default function UsersPage() {
     // The requirement asks for "Date Range" filters. 
     // Let's keep the predefined ranges first.
 
-    {
+{
       value: 'debtors',
       label: t('UsersPage.filters.showOnlyDebtors'),
       group: 'Status', // Or translate "Status"
       isActive: showDebtors,
       onSelect: () => setShowDebtors(!showDebtors),
+    },
+    {
+      value: 'active',
+      label: t('UsersPage.filters.showOnlyActive'),
+      group: 'Status',
+      isActive: showOnlyActive,
+      onSelect: () => setShowOnlyActive(!showOnlyActive),
     }
   ];
 

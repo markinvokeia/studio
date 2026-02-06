@@ -60,12 +60,13 @@ type GetUsersResponse = {
   total: number;
 };
 
-async function getUsers(pagination: PaginationState, searchQuery: string): Promise<GetUsersResponse> {
+async function getUsers(pagination: PaginationState, searchQuery: string, onlyActive: boolean): Promise<GetUsersResponse> {
   try {
     const responseData = await api.get(API_ROUTES.USERS, {
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
       search: searchQuery,
+      only_active: String(onlyActive),
     });
 
     let usersData = [];
@@ -156,6 +157,7 @@ export default function SystemUsersPage() {
     pageSize: 10,
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [showOnlyActive, setShowOnlyActive] = React.useState(true);
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
@@ -171,11 +173,11 @@ export default function SystemUsersPage() {
   const loadUsers = React.useCallback(async () => {
     setIsRefreshing(true);
     const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
-    const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery);
+    const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery, showOnlyActive);
     setUsers(fetchedUsers);
     setUserCount(total);
     setIsRefreshing(false);
-  }, [pagination, columnFilters]);
+  }, [pagination, columnFilters, showOnlyActive]);
 
   const loadUserRoles = React.useCallback(async (userId: string) => {
     setIsRolesLoading(true);
@@ -338,11 +340,18 @@ export default function SystemUsersPage() {
     }
   };
 
-  const filtersOptionList: FilterOption[] = [
-    // Add any system user specific filters here if needed
+const filtersOptionList: FilterOption[] = [
+    {
+      value: 'active',
+      label: t('SystemUsersPage.filters.showOnlyActive'),
+      group: 'Status',
+      isActive: showOnlyActive,
+      onSelect: () => setShowOnlyActive(!showOnlyActive),
+    },
   ];
 
   const handleClearFilters = () => {
+    setShowOnlyActive(true);
     setColumnFilters([]);
   };
 

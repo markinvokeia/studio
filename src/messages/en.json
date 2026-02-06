@@ -622,7 +622,8 @@
         "customRange": "Custom Range",
         "allTime": "All Time"
       },
-      "showOnlyDebtors": "Show only debtors"
+      "showOnlyDebtors": "Show only debtors",
+      "showOnlyActive": "Show only active"
     },
     "notes": {
       "title": "Patient Notes",
@@ -2008,6 +2009,9 @@
         "identityInvalid": "Invalid identity document.",
         "identityMaxLength": "Identity document must be at most 10 characters long."
       }
+    },
+    "filters": {
+      "showOnlyActive": "Show only active"
     }
   },
   "UserLogsPage": {
@@ -2302,7 +2306,10 @@
       "notes": "Notes"
     },
     "detailsFor": "Details for {name}",
-    "close": "Close details"
+    "close": "Close details",
+    "filters": {
+      "showOnlyActive": "Show only active"
+    }
   },
   "RolesPage": {
     "title": "Roles",
@@ -3301,7 +3308,9 @@
       "endDate": "End Date",
       "dateRange": "Date Range",
       "applyFilters": "Apply Filters",
-      "advancedFilters": "Advanced Filters"
+"advancedFilters": "Advanced Filters",
+    "activeFilters": "Active filters",
+    "clearAll": "Clear all"
     },
     "toast": {
       "createSuccessTitle": "Sequence Created",

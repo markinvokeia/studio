@@ -35,6 +35,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { DoctorsColumnsWrapper } from './columns';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { DataTableAdvancedToolbar, FilterOption } from '@/components/ui/data-table-advanced-toolbar';
 
 
 const doctorFormSchema = (t: (key: string) => string) => z.object({
@@ -56,13 +57,14 @@ type GetUsersResponse = {
   total: number;
 };
 
-async function getUsers(pagination: PaginationState, searchQuery: string): Promise<GetUsersResponse> {
+async function getUsers(pagination: PaginationState, searchQuery: string, onlyActive: boolean): Promise<GetUsersResponse> {
   try {
     const responseData = await api.get(API_ROUTES.USERS, {
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
       search: searchQuery,
       filter_type: "DOCTOR",
+      only_active: String(onlyActive),
     });
 
     let usersData = [];
@@ -153,6 +155,7 @@ export default function DoctorsPage() {
     pageSize: 10,
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [showOnlyActive, setShowOnlyActive] = React.useState(true);
 
   const form = useForm<DoctorFormValues>({
     resolver: zodResolver(doctorFormSchema(t)),
@@ -169,11 +172,11 @@ export default function DoctorsPage() {
   const loadUsers = React.useCallback(async () => {
     setIsRefreshing(true);
     const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
-    const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery);
+    const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery, showOnlyActive);
     setUsers(fetchedUsers);
     setUserCount(total);
     setIsRefreshing(false);
-  }, [pagination, columnFilters]);
+  }, [pagination, columnFilters, showOnlyActive]);
 
   React.useEffect(() => {
     const debounce = setTimeout(() => {
@@ -249,6 +252,21 @@ export default function DoctorsPage() {
     setRowSelection({});
   };
 
+const filtersOptionList: FilterOption[] = [
+    {
+      value: 'active',
+      label: t('DoctorsPage.filters.showOnlyActive'),
+      group: 'Status',
+      isActive: showOnlyActive,
+      onSelect: () => setShowOnlyActive(!showOnlyActive),
+    },
+  ];
+
+  const handleClearFilters = () => {
+    setShowOnlyActive(true);
+    setColumnFilters([]);
+  };
+
   const onSubmit = async (data: DoctorFormValues) => {
     setSubmissionError(null);
     form.clearErrors();
@@ -303,7 +321,7 @@ export default function DoctorsPage() {
               <CardDescription>{t('DoctorsPage.description')}</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
-              <DataTable
+<DataTable
                 columns={userColumns}
                 data={users}
                 filterColumnId="email"
@@ -321,6 +339,35 @@ export default function DoctorsPage() {
                 manualPagination={true}
                 columnFilters={columnFilters}
                 onColumnFiltersChange={setColumnFilters}
+                customToolbar={(table) => (
+                  <DataTableAdvancedToolbar
+                    table={table}
+                    filterPlaceholder={t('UsersPage.filterPlaceholder')}
+                    searchQuery={(columnFilters.find(f => f.id === 'email')?.value as string) || ''}
+                    onSearchChange={(value) => {
+                      setColumnFilters((prev) => {
+                        const newFilters = prev.filter((f) => f.id !== 'email');
+                        if (value) {
+                          newFilters.push({ id: 'email', value });
+                        }
+                        return newFilters;
+                      });
+                    }}
+                    filters={filtersOptionList}
+                    onClearFilters={handleClearFilters}
+                    onCreate={handleCreate}
+                    onRefresh={loadUsers}
+                    isRefreshing={isRefreshing}
+                    extraButtons={null}
+                    columnTranslations={{
+                      name: t('DoctorsPage.DoctorColumns.name'),
+                      email: t('DoctorsPage.DoctorColumns.email'),
+                      identity_document: t('DoctorsPage.DoctorColumns.identity_document'),
+                      phone_number: t('DoctorsPage.DoctorColumns.phone'),
+                      is_active: t('DoctorsPage.DoctorColumns.status'),
+                    }}
+                  />
+                )}
                 columnTranslations={{
                   name: t('DoctorsPage.DoctorColumns.name'),
                   email: t('DoctorsPage.DoctorColumns.email'),

@@ -622,7 +622,8 @@
                 "customRange": "Rango Personalizado",
                 "allTime": "Todo el Tiempo"
             },
-            "showOnlyDebtors": "Mostrar solo deudores"
+            "showOnlyDebtors": "Mostrar solo deudores",
+            "showOnlyActive": "Mostrar solo activos"
         },
         "notes": {
             "title": "Notas del Paciente",
@@ -2010,6 +2011,9 @@
                 "identityInvalid": "Documento de identidad inválido.",
                 "identityMaxLength": "Documento de identidad debe tener como máximo 10 caracteres."
             }
+        },
+        "filters": {
+            "showOnlyActive": "Mostrar solo activos"
         }
     },
     "UserLogsPage": {
@@ -2304,7 +2308,10 @@
             "notes": "Notas"
         },
         "detailsFor": "Detalles para {name}",
-        "close": "Close details"
+        "close": "Close details",
+        "filters": {
+            "showOnlyActive": "Mostrar solo activos"
+        }
     },
     "RolesPage": {
         "title": "Roles",
@@ -3299,7 +3306,9 @@
             "endDate": "Fecha de Fin",
             "dateRange": "Rango de Fechas",
             "applyFilters": "Aplicar Filtros",
-            "advancedFilters": "Filtros Avanzados"
+"advancedFilters": "Filtros Avanzados",
+        "activeFilters": "Filtros activos",
+        "clearAll": "Limpiar todos"
         },
         "createNew": "Crear Nuevo",
         "refresh": "Actualizar",
