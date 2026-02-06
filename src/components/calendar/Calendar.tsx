@@ -72,9 +72,10 @@ interface CalendarProps {
   group?: boolean;
   onGroupChange?: (group: boolean) => void;
   onEventColorChange: (event: any, colorId: string) => void;
+  onSlotClick?: (date: Date) => void;
 }
 
-const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children, isLoading = false, onEventClick, onViewChange, assignees = [], selectedAssignees = [], onSelectedAssigneesChange, group = false, onGroupChange, onEventColorChange }) => {
+const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children, isLoading = false, onEventClick, onViewChange, assignees = [], selectedAssignees = [], onSelectedAssigneesChange, group = false, onGroupChange, onEventColorChange, onSlotClick }) => {
   const t = useTranslations('Calendar');
   const locale = useLocale();
   const dateLocale = locale === 'es' ? es : enUS;
@@ -187,7 +188,10 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
         <div
           className="event"
           style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
-          onClick={() => onEventClick(event.data)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onEventClick(event.data);
+          }}
         >
           <span className='mr-2' style={{ backgroundColor: event.color }}>&nbsp;</span>
           {event.title}
@@ -391,7 +395,20 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
               const eventsWithLayout = getEventsWithLayout(dayColEvents);
 
               return (
-                <div key={`${format(day, 'yyyy-MM-dd')}-${col.id}`} className="day-column">
+                <div
+                  key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}
+                  className="day-column"
+                  onClick={(e) => {
+                    if (onSlotClick) {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const y = e.clientY - rect.top;
+                      const hour = Math.floor(y / 60);
+                      const minute = Math.floor((y % 60) / 15) * 15;
+                      const clickedDate = set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
+                      onSlotClick(clickedDate);
+                    }
+                  }}
+                >
                   {timeSlots.map(time => <div key={`${time}-${col.id}`} className="time-slot" />)}
                   {eventsWithLayout.map((event) => (
                     <EventInDayViewComponent key={event.id} event={event} style={getEventStyle(event)} />
@@ -399,7 +416,20 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
                 </div>
               );
             }) : (
-              <div key={format(day, 'yyyy-MM-dd')} className="day-column">
+              <div
+                key={format(day, 'yyyy-MM-dd')}
+                className="day-column"
+                onClick={(e) => {
+                  if (onSlotClick) {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const y = e.clientY - rect.top;
+                    const hour = Math.floor(y / 60);
+                    const minute = Math.floor((y % 60) / 15) * 15;
+                    const clickedDate = set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
+                    onSlotClick(clickedDate);
+                  }
+                }}
+              >
                 {timeSlots.map(time => <div key={time} className="time-slot" />)}
                 {getEventsWithLayout(events.filter((e: any) => isSameDay(typeof e.start === 'string' ? parseISO(e.start) : e.start, day))).map((event: any) => (
                   <EventInDayViewComponent key={event.id} event={event} style={getEventStyle(event)} />
@@ -449,7 +479,16 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
         });
 
         dayElements.push(
-          <div key={day} className="calendar-day">
+          <div
+            key={day}
+            className="calendar-day"
+            onClick={(e) => {
+              if (onSlotClick) {
+                e.stopPropagation();
+                onSlotClick(date);
+              }
+            }}
+          >
             <span className={cn('font-semibold w-6 h-6 flex items-center justify-center rounded-full', isSameDay(date, new Date()) && 'current-day-month-view')}>{day}</span>
             <div className='mt-1 space-y-1'>
               {dayEvents.map((event, index) => (
