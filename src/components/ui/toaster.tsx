@@ -9,11 +9,12 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
+import { createPortal } from "react-dom"
 
 export function Toaster() {
   const { toasts } = useToast()
 
-  return (
+  return createPortal(
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
@@ -30,6 +31,7 @@ export function Toaster() {
         )
       })}
       <ToastViewport />
-    </ToastProvider>
+    </ToastProvider>,
+    document.body
   )
 }

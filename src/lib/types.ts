@@ -584,6 +584,7 @@ export type AlertCategory = {
   color?: string;
   sort_order?: number;
   is_active: boolean;
+  rules_count?: number;
 };
 
 export type AlertRule = {

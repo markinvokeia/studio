@@ -89,19 +89,47 @@ async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
 
 async function upsertService(serviceData: ServiceFormValues) {
   const responseData = await api.post(API_ROUTES.SERVICES_UPSERT, { ...serviceData, is_sales: true });
-  if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
-    const message = responseData[0]?.message ? responseData[0].message : 'Failed to save service';
-    throw new Error(message);
+  
+  // Check for error responses in array format
+  if (Array.isArray(responseData) && responseData.length > 0) {
+    const firstItem = responseData[0];
+    if (firstItem && (firstItem.code >= 400 || firstItem.error)) {
+      const message = firstItem.message || firstItem.error || 'Failed to save service';
+      throw new Error(message);
+    }
   }
+  
+  // Check for error responses in object format
+  if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
+    if (responseData.error || responseData.code >= 400) {
+      const message = responseData.message || responseData.error || 'Failed to save service';
+      throw new Error(message);
+    }
+  }
+  
   return responseData;
 }
 
 async function deleteService(id: string) {
   const responseData = await api.delete(API_ROUTES.SERVICES_DELETE, { id, is_sales: true });
-  if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
-    const message = responseData[0]?.message ? responseData[0].message : 'Failed to delete service';
-    throw new Error(message);
+  
+  // Check for error responses in array format
+  if (Array.isArray(responseData) && responseData.length > 0) {
+    const firstItem = responseData[0];
+    if (firstItem && (firstItem.code >= 400 || firstItem.error)) {
+      const message = firstItem.message || firstItem.error || 'Failed to delete service';
+      throw new Error(message);
+    }
   }
+  
+  // Check for error responses in object format
+  if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
+    if (responseData.error || responseData.code >= 400) {
+      const message = responseData.message || responseData.error || 'Failed to delete service';
+      throw new Error(message);
+    }
+  }
+  
   return responseData;
 }
 

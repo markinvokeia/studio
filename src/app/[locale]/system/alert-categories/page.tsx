@@ -95,10 +95,24 @@ const response = await api.get(API_ROUTES.SYSTEM.ALERT_CATEGORIES, query);
 async function upsertCategory(category: Partial<CategoryFormValues>): Promise<AlertCategory> {
     try {
         const response = await api.post(API_ROUTES.SYSTEM.ALERT_CATEGORY, category);
-        if (response.error || (Array.isArray(response) && response[0]?.code >= 400)) {
-            const message = response.message || (Array.isArray(response) && response[0]?.message) || 'Failed to save category';
-            throw new Error(message);
+        
+        // Check for error responses in array format
+        if (Array.isArray(response) && response.length > 0) {
+            const firstItem = response[0];
+            if (firstItem && (firstItem.code >= 400 || firstItem.error)) {
+                const message = firstItem.message || firstItem.error || 'Failed to save category';
+                throw new Error(message);
+            }
         }
+        
+        // Check for error responses in object format
+        if (response && typeof response === 'object' && !Array.isArray(response)) {
+            if (response.error || response.code >= 400) {
+                const message = response.message || response.error || 'Failed to save category';
+                throw new Error(message);
+            }
+        }
+        
         return response;
     } catch (error) {
         console.error('Failed to upsert alert category:', error);
@@ -169,7 +183,7 @@ export default function AlertCategoriesPage() {
         loadCategories(columnFilters, currentPage, pageSize);
     }, [loadCategories, columnFilters, currentPage, pageSize]);
 
-    const handleColumnFiltersChange = React.useCallback((filters: ColumnFiltersState) => {
+const handleColumnFiltersChange = React.useCallback((filters: ColumnFiltersState | ((prev: ColumnFiltersState) => ColumnFiltersState)) => {
         setColumnFilters(filters);
         setCurrentPage(DEFAULT_PAGE);
     }, []);

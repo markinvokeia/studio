@@ -76,25 +76,47 @@ async function getMiscellaneousCategories(pagination: PaginationState, searchQue
 
 async function upsertMiscellaneousCategory(categoryData: CategoryFormValues) {
     const response = await api.post(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_UPSERT, categoryData);
-    if (Array.isArray(response) && response[0]?.code >= 400) {
-        const message = response[0]?.message || 'Failed to save category';
-        throw new Error(message);
+    
+    // Check for error responses in array format
+    if (Array.isArray(response) && response.length > 0) {
+        const firstItem = response[0];
+        if (firstItem && (firstItem.code >= 400 || firstItem.error)) {
+            const message = firstItem.message || firstItem.error || 'Failed to save category';
+            throw new Error(message);
+        }
     }
-    if (response.error) {
-        throw new Error(response.message || 'Failed to save category');
+    
+    // Check for error responses in object format
+    if (response && typeof response === 'object' && !Array.isArray(response)) {
+        if (response.error || response.code >= 400) {
+            const message = response.message || response.error || 'Failed to save category';
+            throw new Error(message);
+        }
     }
+    
     return response;
 }
 
 async function deleteMiscellaneousCategory(id: string) {
     const response = await api.delete(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_DELETE, { id });
-    if (Array.isArray(response) && response[0]?.code >= 400) {
-        const message = response[0]?.message || 'Failed to delete category';
-        throw new Error(message);
+    
+    // Check for error responses in array format
+    if (Array.isArray(response) && response.length > 0) {
+        const firstItem = response[0];
+        if (firstItem && (firstItem.code >= 400 || firstItem.error)) {
+            const message = firstItem.message || firstItem.error || 'Failed to delete category';
+            throw new Error(message);
+        }
     }
-    if (response.error) {
-        throw new Error(response.message || 'Failed to delete category');
+    
+    // Check for error responses in object format
+    if (response && typeof response === 'object' && !Array.isArray(response)) {
+        if (response.error || response.code >= 400) {
+            const message = response.message || response.error || 'Failed to delete category';
+            throw new Error(message);
+        }
     }
+    
     return response;
 }
 

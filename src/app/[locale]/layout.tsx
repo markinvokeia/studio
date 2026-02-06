@@ -35,8 +35,8 @@ return (
           <PrivateRoute>
             {children}
           </PrivateRoute>
-          <Toaster />
         </NextIntlClientProvider>
+        <Toaster />
       </AlertNotificationsProvider>
     </AuthProvider>
   );
