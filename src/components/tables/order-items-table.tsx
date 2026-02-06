@@ -124,11 +124,21 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         <DataTableColumnHeader column={column} title={t('columns.id')} />
       ),
     },
-    {
+{
       accessorKey: 'service_name',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('columns.service')} />
       ),
+    },
+    {
+      accessorKey: 'tooth_number',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('columns.toothNumber')} />
+      ),
+      cell: ({ row }) => {
+        const toothNumber = row.getValue('tooth_number') as number;
+        return toothNumber ? <div className="font-medium">{toothNumber}</div> : <div className="text-muted-foreground">-</div>;
+      },
     },
     {
       accessorKey: 'quantity',
@@ -247,9 +257,10 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
             data={items}
             filterColumnId="service_name"
             filterPlaceholder={t('filterPlaceholder')}
-            columnTranslations={{
+columnTranslations={{
               id: t('columns.id'),
               service_name: t('columns.service'),
+              tooth_number: t('columns.toothNumber'),
               quantity: t('columns.quantity'),
               unit_price: t('columns.unitPrice'),
               total: t('columns.total'),

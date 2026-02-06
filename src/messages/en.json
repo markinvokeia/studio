@@ -772,9 +772,10 @@
   "OrderItemsTable": {
     "title": "Order Items for #{id}",
     "filterPlaceholder": "Filter here...",
-    "columns": {
+"columns": {
       "id": "ID",
       "service": "Service",
+      "toothNumber": "Tooth Number",
       "quantity": "Quantity",
       "unitPrice": "Unit Price",
       "total": "Total",
@@ -935,6 +936,7 @@
       "exchangeRate": "Exchange Rate",
       "unitPrice": "Unit Price",
       "total": "Total",
+      "toothNumber": "Tooth Number",
       "createTitle": "Create Quote Item",
       "editTitle": "Edit Quote Item",
       "description": "Create a new quote item",
@@ -942,14 +944,18 @@
       "save": "Save",
       "actions": "Actions",
       "edit": "Edit",
-      "delete": "Delete"
+      "delete": "Delete",
+      "noServiceFound": "No service found",
+      "editSave": "Update"
     },
     "validation": {
       "userRequired": "An user is required",
       "serviceRequired": "A service is required",
       "totalPositive": "Total must be a positive number",
       "quantityMinOne": "Quantity must be at least 1",
-      "unitPricePositive": "Unit price must be positive"
+      "unitPricePositive": "Unit price must be positive",
+"toothNumberMin": "Tooth number must be at least 11",
+      "toothNumberMax": "Tooth number must be at most 85"
     },
     "deleteQuoteDialog": {
       "title": "Delete Quote",
@@ -992,7 +998,8 @@
       "total": "0.00",
       "exchangeRate": "1.00",
       "quantity": "1",
-      "unitPrice": "0.00"
+      "unitPrice": "0.00",
+      "toothNumber": "Tooth number"
     }
   },
   "InvoicesPage": {

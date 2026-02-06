@@ -45,13 +45,14 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
     try {
         const data = await api.get(API_ROUTES.SALES.ORDER_ITEMS, { order_id: orderId, is_sales: 'true' });
         const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
-        return itemsData.map((apiItem: any) => ({
+return itemsData.map((apiItem: any) => ({
             id: apiItem.order_item_id ? String(apiItem.order_item_id) : `oi_${Math.random().toString(36).substr(2, 9)}`,
             service_id: apiItem.service_id,
             service_name: apiItem.service_name || 'N/A',
             quantity: apiItem.quantity,
             unit_price: apiItem.unit_price,
             total: apiItem.total,
+            tooth_number: apiItem.tooth_number ? Number(apiItem.tooth_number) : undefined,
             status: apiItem.status || 'scheduled',
             scheduled_date: apiItem.scheduled_date,
             completed_date: apiItem.completed_date,

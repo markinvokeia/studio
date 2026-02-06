@@ -772,9 +772,10 @@
     "OrderItemsTable": {
         "title": "Ítems de la Orden para #{id}",
         "filterPlaceholder": "Filtrar aquí...",
-        "columns": {
+"columns": {
             "id": "ID",
             "service": "Servicio",
+            "toothNumber": "Número de Diente",
             "quantity": "Cantidad",
             "unitPrice": "Precio Unitario",
             "total": "Total",
@@ -782,7 +783,7 @@
             "scheduled": "Programado",
             "completed": "Completado",
             "invoiced": "Facturado"
-        },
+         },
         "status": {
             "completed": "Completado",
             "scheduled": "Programado",
@@ -935,6 +936,7 @@
             "exchangeRate": "Tasa de Cambio",
             "unitPrice": "Precio Unitario",
             "total": "Total",
+            "toothNumber": "Número de Diente",
             "createTitle": "Crear Artículo de Presupuesto",
             "editTitle": "Editar Artículo de Presupuesto",
             "description": "Crear un nuevo artículo de presupuesto",
@@ -942,14 +944,18 @@
             "save": "Guardar",
             "actions": "Acciones",
             "edit": "Editar",
-            "delete": "Eliminar"
+            "delete": "Eliminar",
+            "noServiceFound": "No se han encontrado servicios",
+            "editSave": "Actualizar"
         },
         "validation": {
             "userRequired": "Un usuario es obligatorio",
             "serviceRequired": "Un servicio es obligatorio",
             "totalPositive": "El total debe ser un número positivo",
             "quantityMinOne": "La cantidad debe ser al menos 1",
-            "unitPricePositive": "El precio unitario debe ser positivo"
+            "unitPricePositive": "El precio unitario debe ser positivo",
+"toothNumberMin": "El número de diente debe ser al menos 11",
+            "toothNumberMax": "El número de diente debe ser como máximo 85"
         },
         "deleteQuoteDialog": {
             "title": "Eliminar Presupuesto",
@@ -992,7 +998,8 @@
             "total": "0.00",
             "exchangeRate": "1.00",
             "quantity": "1",
-            "unitPrice": "0.00"
+            "unitPrice": "0.00",
+            "toothNumber": "Número de diente"
         }
     },
     "InvoicesPage": {

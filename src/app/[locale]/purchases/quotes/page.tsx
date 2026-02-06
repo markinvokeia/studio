@@ -67,6 +67,7 @@ const quoteItemFormSchema = (t: (key: string) => string) => z.object({
     unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')),
     total: z.coerce.number().min(0, t('validation.totalPositive')),
     exchange_rate: z.coerce.number().optional(),
+    tooth_number: z.coerce.number().int().min(11, t('validation.toothNumberMin')).max(85, t('validation.toothNumberMax')).optional().or(z.literal('')),
 });
 
 type QuoteItemFormValues = z.infer<ReturnType<typeof quoteItemFormSchema>>;
@@ -104,13 +105,14 @@ async function getQuoteItems(quoteId: string, t: (key: string) => string): Promi
         const normalized = normalizeApiResponse(data);
         const itemsData = normalized.items;
 
-        return itemsData.map((apiItem: any) => ({
+return itemsData.map((apiItem: any) => ({
             id: apiItem.id ? String(apiItem.id) : t('defaults.notAvailable'),
             service_id: apiItem.service_id || t('defaults.notAvailable'),
             service_name: apiItem.service_name || t('defaults.notAvailable'),
             unit_price: apiItem.unit_price || 0,
             quantity: apiItem.quantity || 0,
             total: apiItem.total || 0,
+            tooth_number: apiItem.tooth_number ? Number(apiItem.tooth_number) : undefined,
         }));
     } catch (error) {
         console.error("Failed to fetch quote items:", error);
@@ -175,13 +177,14 @@ async function getOrderItems(orderId: string, t: (key: string) => string): Promi
     try {
         const data = await api.get(API_ROUTES.PURCHASES.ORDER_ITEMS, { order_id: orderId, is_sales: 'false' });
         const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
-        return itemsData.map((apiItem: any) => ({
-            id: apiItem.order_item_id ? String(apiItem.order_item_id) : `oi_${Math.random().toString(36).substr(2, 9)}`,
+return itemsData.map((apiItem: any) => ({
+            id: apiItem.order_item_id ? String(apiItem.order_item_id) : 'N/A',
             service_id: apiItem.service_id,
-            service_name: apiItem.service_name || t('defaults.notAvailable'),
-            quantity: apiItem.quantity,
+            service_name: apiItem.service_name || 'N/A',
             unit_price: apiItem.unit_price,
+            quantity: apiItem.quantity,
             total: apiItem.total,
+            tooth_number: apiItem.tooth_number ? Number(apiItem.tooth_number) : undefined,
             status: apiItem.status || 'scheduled',
             scheduled_date: apiItem.scheduled_date,
             completed_date: apiItem.completed_date,
@@ -530,7 +533,7 @@ export default function QuotesPage() {
         try {
             const fetchedServices = await getServices();
             setAllServices(fetchedServices);
-            quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
+            quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' });
             setIsQuoteItemDialogOpen(true);
         } catch (error) {
             toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadServices') });
@@ -563,13 +566,14 @@ export default function QuotesPage() {
                 setOriginalServiceCurrency('');
             }
 
-            quoteItemForm.reset({
+quoteItemForm.reset({
                 id: item.id,
                 quote_id: selectedQuote.id,
                 service_id: String(item.service_id),
                 quantity: item.quantity,
                 unit_price: item.unit_price,
-                total: item.total
+                total: item.total,
+                tooth_number: item.tooth_number || ''
             });
 
             setIsQuoteItemDialogOpen(true);
@@ -984,7 +988,7 @@ export default function QuotesPage() {
                                     <AlertDescription>{quoteItemSubmissionError}</AlertDescription>
                                 </Alert>
                             )}
-                            <FormField
+<FormField
                                 control={quoteItemForm.control}
                                 name="service_id"
                                 render={({ field }) => (
@@ -1016,6 +1020,27 @@ export default function QuotesPage() {
                                                 </Command>
                                             </PopoverContent>
                                         </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={quoteItemForm.control}
+                                name="tooth_number"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('itemDialog.toothNumber')}</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                type="number" 
+                                                placeholder={t('placeholders.toothNumber')} 
+                                                {...field}
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    field.onChange(value === '' ? '' : Number(value));
+                                                }}
+                                            />
+                                        </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}

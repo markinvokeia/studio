@@ -93,6 +93,7 @@ export type QuoteItem = {
   unit_price: number;
   quantity: number;
   total: number;
+  tooth_number?: number;
 };
 
 export type Order = {
@@ -114,6 +115,7 @@ export type OrderItem = {
   quantity: number;
   unit_price: number;
   total: number;
+  tooth_number?: number;
   status: 'scheduled' | 'completed' | 'cancelled';
   scheduled_date?: string;
   completed_date?: string;

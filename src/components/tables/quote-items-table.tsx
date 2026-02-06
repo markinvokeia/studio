@@ -35,11 +35,21 @@ const getColumns = (
         <DataTableColumnHeader column={column} title={t('id')} />
       ),
     },
-    {
+{
       accessorKey: 'service_name',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('service')} />
       ),
+    },
+    {
+      accessorKey: 'tooth_number',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('toothNumber')} />
+      ),
+      cell: ({ row }) => {
+        const toothNumber = row.getValue('tooth_number') as number;
+        return toothNumber ? <div className="font-medium">{toothNumber}</div> : <div className="text-muted-foreground">-</div>;
+      },
     },
     {
       accessorKey: 'quantity',
@@ -135,9 +145,10 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
           onCreate={canEdit ? onCreate : undefined}
-          columnTranslations={{
+columnTranslations={{
             id: t('id'),
             service_name: t('service'),
+            tooth_number: t('toothNumber'),
             quantity: t('quantity'),
             unit_price: t('unitPrice'),
             total: t('total'),
