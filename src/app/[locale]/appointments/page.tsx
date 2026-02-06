@@ -286,20 +286,7 @@ export default function AppointmentsPage() {
     const [suggestedTimes, setSuggestedTimes] = React.useState<any[]>([]);
     const [currentView, setCurrentView] = React.useState('month');
 
-    React.useEffect(() => {
-        if (isCreateOpen && !editingAppointment) {
-            setNewAppointment({
-                user: null,
-                services: [],
-                doctor: null,
-                calendar: null,
-                date: format(new Date(), 'yyyy-MM-dd'),
-                time: format(new Date(), 'HH:mm'),
-                endTime: '',
-                description: '',
-            });
-        }
-    }, [isCreateOpen, editingAppointment]);
+
 
     const handleOpenChange = (open: boolean) => {
         if (!open) {
@@ -310,8 +297,33 @@ export default function AppointmentsPage() {
 
     const handleNewAppointmentClick = () => {
         setEditingAppointment(null);
+        setNewAppointment({
+            user: null,
+            services: [],
+            doctor: null,
+            calendar: null,
+            date: format(new Date(), 'yyyy-MM-dd'),
+            time: format(new Date(), 'HH:mm'),
+            endTime: '',
+            description: '',
+        });
         setCreateOpen(true);
     };
+
+    const handleSlotClick = React.useCallback((date: Date) => {
+        setEditingAppointment(null);
+        setNewAppointment({
+            user: null,
+            services: [],
+            doctor: null,
+            calendar: null,
+            date: format(date, 'yyyy-MM-dd'),
+            time: format(date, 'HH:mm'),
+            endTime: '',
+            description: '',
+        });
+        setCreateOpen(true);
+    }, []);
 
     React.useEffect(() => {
         if (selectedAssignees.length === 0) {
@@ -960,6 +972,7 @@ export default function AppointmentsPage() {
                     group={group}
                     onGroupChange={setGroup}
                     onViewChange={setCurrentView}
+                    onSlotClick={handleSlotClick}
                 >
                     <div className="flex items-center gap-2">
                         <TooltipProvider>
