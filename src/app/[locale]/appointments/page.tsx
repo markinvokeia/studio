@@ -277,6 +277,7 @@ export default function AppointmentsPage() {
         calendar: null as CalendarType | null,
         date: format(new Date(), 'yyyy-MM-dd'),
         time: format(new Date(), 'HH:mm'),
+        endTime: '',
         description: '',
     });
     const [originalCalendarId, setOriginalCalendarId] = React.useState<string | undefined>(undefined);
@@ -294,6 +295,7 @@ export default function AppointmentsPage() {
                 calendar: null,
                 date: format(new Date(), 'yyyy-MM-dd'),
                 time: format(new Date(), 'HH:mm'),
+                endTime: '',
                 description: '',
             });
         }
@@ -342,6 +344,7 @@ export default function AppointmentsPage() {
                 calendar: foundCalendar || null,
                 date: editingAppointment.date,
                 time: editingAppointment.time,
+                endTime: editingAppointment.end ? format(parseISO(editingAppointment.end.dateTime), 'HH:mm') : '',
                 description: editingAppointment.description || '',
             });
             setCreateOpen(true);
@@ -515,7 +518,7 @@ export default function AppointmentsPage() {
     }, [serviceSearchQuery, isServiceSearchOpen]);
 
     const checkAvailability = React.useCallback(async (appointmentData: typeof newAppointment) => {
-        const { date, time, services, user, doctor, calendar } = appointmentData;
+        const { date, time, services, user, doctor, calendar, endTime } = appointmentData;
         if (!date || !time || (!user && !editingAppointment) || services.length === 0) {
             return;
         }
@@ -530,20 +533,24 @@ export default function AppointmentsPage() {
 
         const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
 
-        let totalDuration = 0;
-        if (doctor && services.length > 0) {
-            const doctorServices = doctorServiceMap.get(doctor.id);
-            if (doctorServices) {
-                totalDuration = services.reduce((acc, service) => {
-                    const docService = doctorServices.find(ds => ds.id === service.id);
-                    return acc + (docService?.duration_minutes || service.duration_minutes || 0);
-                }, 0);
-            }
+        let endDateTime: Date;
+        if (endTime) {
+            endDateTime = parse(`${date} ${endTime}`, 'yyyy-MM-dd HH:mm', new Date());
         } else {
-            totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
+            let totalDuration = 0;
+            if (doctor && services.length > 0) {
+                const doctorServices = doctorServiceMap.get(doctor.id);
+                if (doctorServices) {
+                    totalDuration = services.reduce((acc, service) => {
+                        const docService = doctorServices.find(ds => ds.id === service.id);
+                        return acc + (docService?.duration_minutes || service.duration_minutes || 0);
+                    }, 0);
+                }
+            } else {
+                totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
+            }
+            endDateTime = addMinutes(startDateTime, totalDuration);
         }
-
-        const endDateTime = addMinutes(startDateTime, totalDuration);
 
         const attendeeEmails = [];
         if (user?.email) {
@@ -626,7 +633,7 @@ export default function AppointmentsPage() {
         if (date && time) {
             checkAvailability(newAppointment);
         }
-    }, [newAppointment.date, newAppointment.time, newAppointment.services, newAppointment.user, newAppointment.doctor, newAppointment.calendar, checkAvailability]);
+    }, [newAppointment.date, newAppointment.time, newAppointment.endTime, newAppointment.services, newAppointment.user, newAppointment.doctor, newAppointment.calendar, checkAvailability]);
 
 
     const handleSaveAppointment = async (appointmentDetails: Partial<Appointment> & { colorId?: string }) => {
@@ -658,25 +665,29 @@ export default function AppointmentsPage() {
         }
 
         const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
+        let endDateTime: Date;
 
-        let totalDuration = 0;
-        if (doctor && doctor.id && services.length > 0) {
-            const doctorServices = doctorServiceMap.get(doctor.id);
-            if (doctorServices) {
-                totalDuration = services.reduce((acc, service) => {
-                    const docService = doctorServices.find(ds => ds.id === service.id);
-                    return acc + (docService?.duration_minutes || service.duration_minutes || 0);
-                }, 0);
-            }
+        if (newAppointment.endTime) {
+            endDateTime = parse(`${date} ${newAppointment.endTime}`, 'yyyy-MM-dd HH:mm', new Date());
         } else {
-            totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
-        }
+            let totalDuration = 0;
+            if (doctor && doctor.id && services.length > 0) {
+                const doctorServices = doctorServiceMap.get(doctor.id);
+                if (doctorServices) {
+                    totalDuration = services.reduce((acc, service) => {
+                        const docService = doctorServices.find(ds => ds.id === service.id);
+                        return acc + (docService?.duration_minutes || service.duration_minutes || 0);
+                    }, 0);
+                }
+            } else {
+                totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
+            }
 
-        if (isEditing && totalDuration === 0) {
-            totalDuration = 30;
+            if (isEditing && totalDuration === 0) {
+                totalDuration = 30;
+            }
+            endDateTime = addMinutes(startDateTime, totalDuration);
         }
-
-        const endDateTime = addMinutes(startDateTime, totalDuration);
 
         payload = {
             startingDateAndTime: startDateTime.toISOString(),
@@ -886,7 +897,7 @@ export default function AppointmentsPage() {
         });
     }, []);
 
-    const appointmentEndTime = React.useMemo(() => {
+    const calculatedEndTime = React.useMemo(() => {
         const { date, time, doctor, services: selectedServices } = newAppointment;
         if (!date || !time) return null;
 
@@ -923,6 +934,12 @@ export default function AppointmentsPage() {
             return null;
         }
     }, [newAppointment.date, newAppointment.time, newAppointment.doctor, newAppointment.services, doctorServiceMap, editingAppointment]);
+
+    React.useEffect(() => {
+        if (calculatedEndTime && !editingAppointment) {
+            setNewAppointment(prev => ({ ...prev, endTime: calculatedEndTime }));
+        }
+    }, [calculatedEndTime, editingAppointment]);
 
     React.useEffect(() => {
         setAppointments([]);
@@ -1216,12 +1233,15 @@ export default function AppointmentsPage() {
                                 <Label htmlFor="time">{t('createDialog.time')}</Label>
                                 <Input id="time" type="time" value={newAppointment.time} onChange={e => setNewAppointment(prev => ({ ...prev, time: e.target.value }))} />
                             </div>
-                            {appointmentEndTime && (
-                                <div className="space-y-2">
-                                    <Label htmlFor="endTime">{t('createDialog.endTime')}</Label>
-                                    <Input id="endTime" type="time" value={appointmentEndTime} readOnly disabled />
-                                </div>
-                            )}
+                            <div className="space-y-2">
+                                <Label htmlFor="endTime">{t('createDialog.endTime')}</Label>
+                                <Input
+                                    id="endTime"
+                                    type="time"
+                                    value={newAppointment.endTime}
+                                    onChange={e => setNewAppointment(prev => ({ ...prev, endTime: e.target.value }))}
+                                />
+                            </div>
                             <div className="space-y-2">
                                 <Label htmlFor="description">{t('createDialog.descriptionLabel')}</Label>
                                 <Textarea id="description" value={newAppointment.description} onChange={e => setNewAppointment(prev => ({ ...prev, description: e.target.value }))} />
@@ -1285,6 +1305,7 @@ export default function AppointmentsPage() {
                             <div className='flex gap-2'><strong>{tColumns('doctor')}:</strong> {selectedAppointment.doctorName}</div>
                             <div className='flex gap-2'><strong>{tColumns('date')}:</strong> {selectedAppointment.date}</div>
                             <div className='flex gap-2'><strong>{tColumns('time')}:</strong> {selectedAppointment.time}</div>
+                            <div className='flex gap-2'><strong>{t('createDialog.endTime')}:</strong> {selectedAppointment.end?.dateTime ? format(parseISO(selectedAppointment.end.dateTime), 'HH:mm') : '-'}</div>
                             <div className='flex gap-2'><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>
                             <div className="flex items-center gap-2"><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></div>
                         </div>
