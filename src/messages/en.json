@@ -2288,7 +2288,8 @@
         "phoneInvalid": "Invalid phone number",
         "identityInvalid": "Identity document must be a number.",
         "identityMaxLength": "Identity document must be 10 characters or less."
-      }
+      },
+      "editSave": "Update"
     },
     "setInitialPassword": "Set Initial Password",
     "tabs": {

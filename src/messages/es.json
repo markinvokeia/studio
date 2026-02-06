@@ -2290,7 +2290,8 @@
                 "phoneInvalid": "Número de teléfono inválido",
                 "identityInvalid": "El documento de identidad debe ser un número.",
                 "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos."
-            }
+            },
+            "editSave": "Actualizar"
         },
         "setInitialPassword": "Establecer Contraseña Inicial",
         "tabs": {
