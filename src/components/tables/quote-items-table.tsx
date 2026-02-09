@@ -1,14 +1,14 @@
 
 'use client';
 
-import { ColumnDef } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { QuoteItem } from '@/lib/types';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
+import { QuoteItem } from '@/lib/types';
+import { ColumnDef } from '@tanstack/react-table';
 import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -35,7 +35,7 @@ const getColumns = (
         <DataTableColumnHeader column={column} title={t('id')} />
       ),
     },
-{
+    {
       accessorKey: 'service_name',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('service')} />
@@ -85,6 +85,7 @@ const getColumns = (
         return <div className="font-medium">{formatted}</div>;
       },
     },
+
     {
       id: 'actions',
       cell: ({ row }) => {
@@ -145,7 +146,7 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
           onCreate={canEdit ? onCreate : undefined}
-columnTranslations={{
+          columnTranslations={{
             id: t('id'),
             service_name: t('service'),
             tooth_number: t('toothNumber'),

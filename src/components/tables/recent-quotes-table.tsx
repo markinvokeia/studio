@@ -9,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   Dialog,
@@ -33,17 +32,17 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Quote } from '@/lib/types';
-import { api } from '@/services/api';
-import { ColumnDef, RowSelectionState, SortingState, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable } from '@tanstack/react-table';
 import { cn, formatDateTime } from '@/lib/utils';
+import { api } from '@/services/api';
+import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, RowSelectionState, SortingState, useReactTable } from '@tanstack/react-table';
 import { MoreHorizontal, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DocumentTextIcon } from '../icons/document-text-icon';
 import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { DataTablePagination } from '../ui/data-table-pagination';
 import { DataTableToolbar } from '../ui/data-table-toolbar';
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
 const getColumns = (
   t: (key: string) => string,
@@ -114,6 +113,16 @@ const getColumns = (
         <DataTableColumnHeader column={column} title={t('QuoteColumns.currency')} />
       ),
       cell: ({ row }) => row.original.currency || 'N/A',
+    },
+    {
+      accessorKey: 'exchange_rate',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('QuoteColumns.exchangeRate')} />
+      ),
+      cell: ({ row }) => {
+        const rate = row.original.exchange_rate;
+        return rate ? <div className="font-medium">{rate.toFixed(4)}</div> : <div className="text-muted-foreground">-</div>;
+      },
     },
     {
       accessorKey: 'status',
@@ -420,6 +429,7 @@ export function RecentQuotesTable({
     createdAt: t('QuoteColumns.createdAt'),
     total: t('QuoteColumns.total'),
     currency: t('QuoteColumns.currency'),
+    exchange_rate: t('QuoteColumns.exchangeRate'),
     status: t('UserColumns.status'),
     billing_status: t('QuoteColumns.billingStatus'),
     payment_status: t('Navigation.Payments'),

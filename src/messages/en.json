@@ -17,7 +17,7 @@
     "PurchasePayments": "Purchase Payments",
     "ProviderProducts": "Provider Products and Services",
     "Quotes": "Quotes",
-"Orders": "Orders",
+    "Orders": "Orders",
     "Invoices": "Invoices",
     "InvoiceAction": "Invoice",
     "Payments": "Payments",
@@ -725,6 +725,7 @@
     "billingStatus": "Billing Status",
     "createdAt": "Created At",
     "currency": "Currency",
+    "exchangeRate": "Exchange Rate",
     "quoteDocNo": "Quote Doc No."
   },
   "OrderColumns": {
@@ -854,6 +855,7 @@
       "searchUser": "Search User",
       "total": "Total",
       "currency": "Currency",
+      "exchangeRate": "Exchange Rate",
       "editSave": "Update",
       "noUserFound": "No users found.",
       "status": "Status",
@@ -984,7 +986,9 @@
       "failedToSaveQuoteItem": "Failed to save quote item.",
       "failedToDeleteQuoteItem": "Failed to delete quote item.",
       "failedToLoadServices": "Could not load services.",
-      "failedToLoadServiceData": "Could not load service data for editing."
+      "failedToLoadServiceData": "Could not load service data for editing.",
+      "cashSessionRequired": "Cash Session Required",
+      "cashSessionRequiredDetail": "You must have an active cash session with exchange rate configured to create quote items."
     },
     "common": {
       "closeDetails": "Close details"
@@ -1243,7 +1247,7 @@
       "exchangeRateTooltip": "Exchange Rate",
       "exchangeRate": "Exchange Rate",
       "currency": "Currency",
-      "openBy": "Open By",
+      "openBy": "Open By {user}",
       "openingAmount": "Opening Amount",
       "viewLog": "View Log"
     },

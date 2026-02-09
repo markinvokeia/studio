@@ -84,6 +84,9 @@ export type Quote = {
   userEmail?: string;
   createdAt: string;
   updatedAt?: string;
+  exchange_rate?: number;
+  created_by?: string;
+  updated_by?: string;
 };
 
 export type QuoteItem = {
@@ -94,6 +97,10 @@ export type QuoteItem = {
   quantity: number;
   total: number;
   tooth_number?: number;
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string;
+  updated_by?: string;
 };
 
 export type Order = {

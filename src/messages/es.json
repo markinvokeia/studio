@@ -17,7 +17,7 @@
         "PurchasePayments": "Pagos de Compra",
         "ProviderProducts": "Productos y Servicios de Proveedores",
         "Quotes": "Presupuestos",
-"Orders": "Órdenes",
+        "Orders": "Órdenes",
         "Invoices": "Facturas",
         "InvoiceAction": "Facturar",
         "Payments": "Pagos",
@@ -725,6 +725,7 @@
         "billingStatus": "Estado de Facturación",
         "createdAt": "Creado En",
         "currency": "Moneda",
+        "exchangeRate": "Tasa de Cambio",
         "quoteDocNo": "Presupuesto Doc No."
     },
     "OrderColumns": {
@@ -854,6 +855,7 @@
             "searchUser": "Buscar Usuario",
             "total": "Total",
             "currency": "Moneda",
+            "exchangeRate": "Tasa de Cambio",
             "editSave": "Actualizar",
             "noUserFound": "No se encontraron usuarios.",
             "status": "Estado",
@@ -984,7 +986,9 @@
             "failedToSaveQuoteItem": "Error al guardar artículo del presupuesto.",
             "failedToDeleteQuoteItem": "Error al eliminar artículo del presupuesto.",
             "failedToLoadServices": "No se pudieron cargar los servicios.",
-            "failedToLoadServiceData": "No se pudieron cargar los datos del servicio para editar."
+            "failedToLoadServiceData": "No se pudieron cargar los datos del servicio para editar.",
+            "cashSessionRequired": "Sesión de caja requerida",
+            "cashSessionRequiredDetail": "Debe tener una sesión de caja activa con tasa de cambio configurada para crear artículos de presupuesto."
         },
         "common": {
             "closeDetails": "Cerrar detalles"
@@ -1243,7 +1247,7 @@
             "exchangeRateTooltip": "Tipo de Cambio",
             "exchangeRate": "Tipo de Cambio",
             "currency": "Moneda",
-            "openBy": "Abierto Por",
+            "openBy": "Abierto por {user}",
             "openingAmount": "Monto de Apertura",
             "viewLog": "Ver Registro"
         },

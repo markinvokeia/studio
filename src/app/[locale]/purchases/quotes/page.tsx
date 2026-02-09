@@ -1,5 +1,6 @@
 'use client';
 
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
@@ -32,8 +33,9 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { API_ROUTES } from '@/constants/routes';
-import { normalizeApiResponse } from '@/lib/api-utils';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { normalizeApiResponse } from '@/lib/api-utils';
 import { Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -41,7 +43,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
 import { AlertTriangle, Check, ChevronsUpDown, RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -55,6 +56,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed']),
     payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid']),
     billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced']),
+    exchange_rate: z.coerce.number().optional(),
 });
 
 type QuoteFormValues = z.infer<ReturnType<typeof quoteFormSchema>>;
@@ -91,6 +93,7 @@ async function getQuotes(t: (key: string) => string): Promise<Quote[]> {
             user_name: apiQuote.user_name || t('defaults.noName'),
             userEmail: apiQuote.userEmail || t('defaults.noEmail'),
             createdAt: apiQuote.created_at || new Date().toISOString().split('T')[0],
+            exchange_rate: parseFloat(apiQuote.exchange_rate) || 1,
         }));
     } catch (error) {
         console.error("Failed to fetch quotes:", error);
@@ -105,7 +108,7 @@ async function getQuoteItems(quoteId: string, t: (key: string) => string): Promi
         const normalized = normalizeApiResponse(data);
         const itemsData = normalized.items;
 
-return itemsData.map((apiItem: any) => ({
+        return itemsData.map((apiItem: any) => ({
             id: apiItem.id ? String(apiItem.id) : t('defaults.notAvailable'),
             service_id: apiItem.service_id || t('defaults.notAvailable'),
             service_name: apiItem.service_name || t('defaults.notAvailable'),
@@ -177,7 +180,7 @@ async function getOrderItems(orderId: string, t: (key: string) => string): Promi
     try {
         const data = await api.get(API_ROUTES.PURCHASES.ORDER_ITEMS, { order_id: orderId, is_sales: 'false' });
         const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
-return itemsData.map((apiItem: any) => ({
+        return itemsData.map((apiItem: any) => ({
             id: apiItem.order_item_id ? String(apiItem.order_item_id) : 'N/A',
             service_id: apiItem.service_id,
             service_name: apiItem.service_name || 'N/A',
@@ -320,6 +323,7 @@ export default function QuotesPage() {
     const tRoot = useTranslations();
     const tVal = useTranslations('QuotesPage');
     const { toast } = useToast();
+    const { user, activeCashSession } = useAuth();
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
     const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
@@ -469,7 +473,8 @@ export default function QuotesPage() {
 
     const handleCreateQuote = async () => {
         setEditingQuote(null);
-        quoteForm.reset({ user_id: '', total: 0, currency: 'USD', status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced' });
+        const sessionRate = getSessionExchangeRate();
+        quoteForm.reset({ user_id: '', total: 0, currency: 'USD', status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: sessionRate });
         setQuoteSubmissionError(null);
         setAllUsers(await getUsers(t));
         setIsQuoteDialogOpen(true);
@@ -481,7 +486,8 @@ export default function QuotesPage() {
             return;
         }
         setEditingQuote(quote);
-        quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status as any, billing_status: quote.billing_status as any });
+        const sessionRate = getSessionExchangeRate();
+        quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status as any, billing_status: quote.billing_status as any, exchange_rate: quote.exchange_rate || sessionRate });
         setQuoteSubmissionError(null);
         setAllUsers(await getUsers(t));
         setIsQuoteDialogOpen(true);
@@ -522,14 +528,34 @@ export default function QuotesPage() {
         }
     };
 
+    const getSessionExchangeRate = React.useCallback(() => {
+        if (!activeCashSession?.data?.opening_details?.date_rate) {
+            return 1;
+        }
+        return activeCashSession.data.opening_details.date_rate;
+    }, [activeCashSession]);
+
     const handleCreateQuoteItem = async () => {
         if (!selectedQuote) return;
+
+        if (!activeCashSession?.data?.opening_details?.date_rate) {
+            toast({
+                variant: 'destructive',
+                title: t('errors.cashSessionRequired'),
+                description: t('errors.cashSessionRequiredDetail')
+            });
+            return;
+        }
+
         setEditingQuoteItem(null);
         setQuoteItemSubmissionError(null);
         setShowConversion(false);
         setOriginalServicePrice(null);
         setOriginalServiceCurrency('');
-        setExchangeRate(1);
+
+        const sessionRate = getSessionExchangeRate();
+        setExchangeRate(sessionRate);
+
         try {
             const fetchedServices = await getServices();
             setAllServices(fetchedServices);
@@ -566,7 +592,7 @@ export default function QuotesPage() {
                 setOriginalServiceCurrency('');
             }
 
-quoteItemForm.reset({
+            quoteItemForm.reset({
                 id: item.id,
                 quote_id: selectedQuote.id,
                 service_id: String(item.service_id),
@@ -652,6 +678,7 @@ quoteItemForm.reset({
 
     const watchedServiceId = quoteItemForm.watch('service_id');
     const watchedQuantity = quoteItemForm.watch('quantity');
+    const watchedQuoteExchangeRate = quoteForm.watch('exchange_rate');
 
     React.useEffect(() => {
         const service = allServices.find(s => String(s.id) === watchedServiceId);
@@ -669,6 +696,10 @@ quoteItemForm.reset({
 
             let newUnitPrice = servicePrice;
             if (conversionNeeded) {
+                const exchangeRate = Number(watchedQuoteExchangeRate) || getSessionExchangeRate();
+                setExchangeRate(exchangeRate);
+                quoteItemForm.setValue('exchange_rate', exchangeRate);
+
                 if (quoteCurrency === 'UYU' && serviceCurrency === 'USD') {
                     newUnitPrice = servicePrice * exchangeRate;
                 } else if (quoteCurrency === 'USD' && serviceCurrency === 'UYU') {
@@ -682,7 +713,7 @@ quoteItemForm.reset({
             quoteItemForm.setValue('unit_price', newUnitPrice);
             quoteItemForm.setValue('total', newUnitPrice * quantity);
         }
-    }, [watchedServiceId, watchedQuantity, allServices, selectedQuote, quoteItemForm, exchangeRate]);
+    }, [watchedServiceId, watchedQuantity, watchedQuoteExchangeRate, allServices, selectedQuote, quoteItemForm, getSessionExchangeRate]);
 
     return (
         <>
@@ -869,7 +900,7 @@ quoteItemForm.reset({
                                             <FormItem>
                                                 <FormLabel>{t('quoteDialog.total')}</FormLabel>
                                                 <FormControl>
-                                                    <Input type="number" placeholder={t('placeholders.total')} {...field} />
+                                                    <Input type="number" placeholder={t('placeholders.total')} {...field} disabled />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -894,6 +925,26 @@ quoteItemForm.reset({
                                     )}
                                 />
                             </div>
+                            {editingQuote && (
+                                <FormField
+                                    control={quoteForm.control}
+                                    name="exchange_rate"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('quoteDialog.exchangeRate')}</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    step="0.0001"
+                                                    placeholder={t('placeholders.exchangeRate')}
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
                             <FormField
                                 control={quoteForm.control}
                                 name="status"
@@ -988,7 +1039,7 @@ quoteItemForm.reset({
                                     <AlertDescription>{quoteItemSubmissionError}</AlertDescription>
                                 </Alert>
                             )}
-<FormField
+                            <FormField
                                 control={quoteItemForm.control}
                                 name="service_id"
                                 render={({ field }) => (
@@ -1031,9 +1082,9 @@ quoteItemForm.reset({
                                     <FormItem>
                                         <FormLabel>{t('itemDialog.toothNumber')}</FormLabel>
                                         <FormControl>
-                                            <Input 
-                                                type="number" 
-                                                placeholder={t('placeholders.toothNumber')} 
+                                            <Input
+                                                type="number"
+                                                placeholder={t('placeholders.toothNumber')}
                                                 {...field}
                                                 onChange={(e) => {
                                                     const value = e.target.value;
