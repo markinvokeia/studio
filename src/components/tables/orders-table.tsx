@@ -214,9 +214,9 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{tUserColumns('actions')}</DropdownMenuLabel>
+<DropdownMenuLabel>{tUserColumns('actions')}</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => handleInvoiceClick(order)}>
-                {t('Navigation.Invoices')}
+                {t('Navigation.InvoiceAction')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -17,8 +17,9 @@
     "PurchasePayments": "Purchase Payments",
     "ProviderProducts": "Provider Products and Services",
     "Quotes": "Quotes",
-    "Orders": "Orders",
+"Orders": "Orders",
     "Invoices": "Invoices",
+    "InvoiceAction": "Invoice",
     "Payments": "Payments",
     "PaymentMethods": "Payment Methods",
     "Services": "Services",
@@ -1058,7 +1059,8 @@
       "manualPayment": "Manual Payment",
       "totalPayment": "Total Payment",
       "noPayment": "No payment selected",
-      "overpayment": "The total payment exceeds the remaining amount of the invoice."
+      "overpayment": "The total payment exceeds the remaining amount of the invoice.",
+      "selectCurrency": "Select Currency"
     },
     "status": {
       "paid": "Paid",

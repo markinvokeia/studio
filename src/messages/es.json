@@ -17,8 +17,9 @@
         "PurchasePayments": "Pagos de Compra",
         "ProviderProducts": "Productos y Servicios de Proveedores",
         "Quotes": "Presupuestos",
-        "Orders": "Órdenes",
+"Orders": "Órdenes",
         "Invoices": "Facturas",
+        "InvoiceAction": "Facturar",
         "Payments": "Pagos",
         "PaymentMethods": "Métodos de Pago",
         "Services": "Servicios",
@@ -1058,7 +1059,8 @@
             "manualPayment": "Pago Manual",
             "totalPayment": "Pago Total",
             "noPayment": "Ningún pago seleccionado",
-            "overpayment": "El pago total excede el monto restante de la factura."
+            "overpayment": "El pago total excede el monto restante de la factura.",
+            "selectCurrency": "Seleccionar Moneda"
         },
         "status": {
             "paid": "Pagado",
