@@ -218,8 +218,8 @@ export function DataTableAdvancedToolbar<TData>({
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="outline" size={createButtonIconOnly ? "icon" : "sm"} className={createButtonIconOnly ? "h-9 w-9" : "h-9"} onClick={onCreate}>
-                                        <PlusCircle className={createButtonIconOnly ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+                                    <Button variant="default" size={createButtonIconOnly ? "icon" : "sm"} className={createButtonIconOnly ? "h-9 w-9" : "h-9"} onClick={onCreate}>
+                                        <PlusCircle className="h-4 w-4" />
                                         {createButtonIconOnly ? <span className="sr-only">{createButtonLabel || t('create')}</span> : (createButtonLabel || t('create'))}
                                     </Button>
                                 </TooltipTrigger>

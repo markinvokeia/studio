@@ -820,6 +820,7 @@
     }
   },
   "General": {
+    "create": "Create",
     "noResults": "No results.",
     "openMenu": "Open menu",
     "selectRow": "Select row",
