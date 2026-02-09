@@ -3379,5 +3379,14 @@
             "newPasswordNumber": "La nueva contraseña debe contener un número.",
             "passwordsMismatch": "Las contraseñas no coinciden."
         }
+    },
+    "cashSession": {
+        "errors": {
+            "userNotAuthenticated": "Usuario no autenticado. Por favor, inicie sesión.",
+            "noActiveSession": "No tiene una sesión de caja abierta. Por favor, abra una sesión de caja antes de continuar.",
+            "sessionCheckFailed": "No se pudo verificar el estado de la sesión de caja. Inténtelo nuevamente.",
+            "sessionValidationError": "Error al validar la sesión de caja. Contacte al administrador.",
+            "cashSessionRequired": "Sesión de Caja Requerida"
+        }
     }
 }

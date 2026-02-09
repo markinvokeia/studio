@@ -1,33 +1,32 @@
 
 'use client';
 
-import * as React from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Printer } from 'lucide-react';
-import { AlertTriangle, Box, DollarSign, TrendingDown, TrendingUp, ArrowRight, BookOpenCheck, Minus, Plus, RefreshCw, Info, Banknote, Coins, CreditCard, Upload } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { cn } from '@/lib/utils';
-import { CajaSesion, CajaMovimiento, CashPoint } from '@/lib/types';
-import { useTranslations } from 'next-intl';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DataTable } from '@/components/ui/data-table';
-import { ColumnDef } from '@tanstack/react-table';
-import { useAuth } from '@/context/AuthContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { CajaMovimiento, CajaSesion, CashPoint } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { api } from '@/services/api';
+import { ColumnDef } from '@tanstack/react-table';
+import { AlertTriangle, ArrowRight, Banknote, BookOpenCheck, Box, Coins, CreditCard, DollarSign, Info, Minus, Plus, Printer, RefreshCw, TrendingDown, TrendingUp, Upload } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import * as React from 'react';
 import { useCallback, useMemo } from 'react';
-import { api } from '@/services/api';
-import { API_ROUTES } from '@/constants/routes';
 
 const denominationsUYU = [3000, 2000, 1000, 500, 200, 100, 50, 20];
 const coinsUYU = [10, 5, 2, 1];
@@ -297,6 +296,7 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
             if (user) {
                 try {
                     const data = await api.get(API_ROUTES.CASHIER.SESSIONS_ACTIVE, { user_id: user.id });
+                    // The endpoint now always returns 200, and the actual session status is inside
                     setUserHasActiveSession(data.code === 200);
                 } catch (error) {
                     console.error("Error checking for active session:", error);
@@ -304,8 +304,6 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
                 } finally {
                     setIsLoading(false);
                 }
-            } else {
-                setIsLoading(false);
             }
         };
         checkSession();

@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
+import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
 import { Payment, PaymentMethod, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -127,6 +128,7 @@ export default function PaymentsPage() {
     const tValidation = useTranslations('InvoicesPage');
     const { toast } = useToast();
     const { user } = useAuth();
+    const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
     const [payments, setPayments] = React.useState<Payment[]>([]);
     const [isLoading, setIsLoading] = React.useState(false);
     const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
@@ -257,16 +259,17 @@ export default function PaymentsPage() {
         if (!prepaidData || !user) return;
 
         try {
-            const sessionData = await api.get(API_ROUTES.CASHIER.SESSIONS_ACTIVE, { user_id: user.id });
-            if (sessionData.code !== 200 || !sessionData.data?.id) {
-                throw new Error("No active cash session found. Please open a session first.");
+            const sessionValidation = await validateActiveSession();
+            if (!sessionValidation.isValid) {
+                showCashSessionError(sessionValidation.error);
+                return;
             }
 
             const selectedMethod = paymentMethods.find(pm => pm.id === prepaidData.payment_method_id);
             const clientUser = users.find(u => u.id === prepaidData.user_id);
 
             const payload = {
-                cash_session_id: sessionData.data.id,
+                cash_session_id: sessionValidation.sessionId,
                 user: user,
                 client_user: clientUser,
                 query: JSON.stringify({

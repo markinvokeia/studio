@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (currentUser && token) {
         try {
           const data = await api.get(API_ROUTES.CASHIER.SESSIONS_ACTIVE, { user_id: currentUser.id });
+          // The endpoint now always returns 200, and the actual session status is inside
           if (data.code === 200) {
             setActiveCashSession(data);
           } else if (data.code === 404) {
@@ -43,12 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setActiveCashSession(null);
           }
         } catch (error: any) {
-          if (error.response && error.response.status === 404) {
-            setActiveCashSession(null);
-          } else {
-            console.error("Failed to check active session:", error);
-            setActiveCashSession(null);
-          }
+          console.error("Failed to check active session:", error);
+          setActiveCashSession(null);
         }
       }
     } else {

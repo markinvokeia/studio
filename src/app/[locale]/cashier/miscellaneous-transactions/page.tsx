@@ -5,7 +5,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DataTable } from '@/components/ui/data-table';
@@ -31,11 +30,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
+import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
+import { normalizeApiResponse } from '@/lib/api-utils';
 import { MiscellaneousCategory, MiscellaneousTransaction, PaymentMethod, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
-import { normalizeApiResponse } from '@/lib/api-utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
@@ -225,6 +225,7 @@ export default function MiscellaneousTransactionsPage() {
     // const tValidation = useTranslations('MiscellaneousTransactionsPage.validation'); // No longer needed as separate namespace if accessing via full path or if t covers it
     const { toast } = useToast();
     const { user, activeCashSession } = useAuth();
+    const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
     const [transactions, setTransactions] = React.useState<MiscellaneousTransaction[]>([]);
     const [transactionCount, setTransactionCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -416,13 +417,9 @@ export default function MiscellaneousTransactionsPage() {
 
         try {
             // Check if there's an active cash session
-            if (!activeCashSession) {
-                setSubmissionError(t('validation.noActiveSession'));
-                toast({
-                    variant: 'destructive',
-                    title: t('toasts.errorTitle'),
-                    description: t('validation.noActiveSession'),
-                });
+            const sessionValidation = await validateActiveSession();
+            if (!sessionValidation.isValid) {
+                showCashSessionError(sessionValidation.error);
                 return;
             }
 

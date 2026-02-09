@@ -3379,5 +3379,14 @@
       "newPasswordNumber": "New password must contain a number.",
       "passwordsMismatch": "Passwords do not match."
     }
+  },
+  "cashSession": {
+    "errors": {
+      "userNotAuthenticated": "User not authenticated. Please log in.",
+      "noActiveSession": "You don't have an active cash session. Please open a cash session before continuing.",
+      "sessionCheckFailed": "Could not verify cash session status. Please try again.",
+      "sessionValidationError": "Error validating cash session. Please contact administrator.",
+      "cashSessionRequired": "Cash Session Required"
+    }
   }
 }

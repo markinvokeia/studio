@@ -134,13 +134,14 @@ export function Header() {
         try {
             const data = await api.get(API_ROUTES.CASHIER.SESSIONS_ACTIVE, { user_id: user.id });
 
+            // The endpoint now always returns 200, and the actual session status is inside
             if (data.code === 200) {
                 setIsLogoutAlertOpen(true);
             } else {
                 handleLogout();
             }
         } catch (error) {
-            console.error("Failed to check active session, logging out anyway:", error);
+            console.error('Failed to check active session:', error);
             handleLogout();
         }
     };

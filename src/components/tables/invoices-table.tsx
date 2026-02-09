@@ -17,6 +17,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
+import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
 import { Credit, Invoice, PaymentMethod, Service, User } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
@@ -24,16 +25,16 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowRight, Box, CalendarIcon, FileUp, Loader2, MoreHorizontal, Printer, RefreshCw, Send, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Box, CalendarIcon, FileUp, Loader2, MoreHorizontal, Printer, Send, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
-import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Calendar } from '../ui/calendar';
 import { Checkbox } from '../ui/checkbox';
+import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
@@ -322,6 +323,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const locale = useLocale();
 
   const { toast } = useToast();
+  const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
   const [isFormDialogOpen, setIsFormDialogOpen] = React.useState(false);
   const [editingInvoice, setEditingInvoice] = React.useState<Invoice | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
@@ -445,46 +447,37 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     if (!user) return;
 
     try {
-      const [sessionData, clinicData] = await Promise.all([
-        api.get(API_ROUTES.CASHIER.CASH_POINTS_STATUS, { user_id: user.id }),
-        api.get(API_ROUTES.CLINIC)
-      ]);
+      const sessionValidation = await validateActiveSession();
 
-      // Handle potential array response from n8n
-      const sessionDataNormalized = Array.isArray(sessionData) ? sessionData[0] : (sessionData || {});
-
-      console.log("Session Data:", sessionDataNormalized); // Debug log
-
-      if (sessionDataNormalized && sessionDataNormalized.active_session_id) {
-        setSelectedInvoiceForPayment(invoice);
-        setActiveCashSessionId(sessionDataNormalized.active_session_id);
-
-        // Set session exchange rate from opening_details if available, default to 1
-        const rate = sessionDataNormalized.opening_details?.date_rate ? Number(sessionDataNormalized.opening_details.date_rate) : 1;
-        setSessionExchangeRate(rate);
-
-        // Set company currency
-        const currency = clinicData.currency || 'USD';
-        setCompanyCurrency(currency);
-
-        fetchPaymentMethods();
-        fetchUserCredits(invoice.user_id);
-
-        form.reset({
-          amount: invoice.total - (invoice.paid_amount || 0),
-          method: '',
-          status: 'completed',
-          payment_date: new Date(),
-          invoice_currency: invoice.currency || 'USD',
-          payment_currency: invoice.currency || 'USD', // Default to invoice currency initially
-          exchange_rate: 1, // Will be updated by useEffect or manual input
-        });
-        setPaymentSubmissionError(null);
-        setAppliedCredits(new Map());
-        setIsPaymentDialogOpen(true);
-      } else {
-        setIsNoSessionAlertOpen(true);
+      if (!sessionValidation.isValid) {
+        showCashSessionError(sessionValidation.error);
+        return;
       }
+
+      const clinicData = await api.get(API_ROUTES.CLINIC);
+
+      setSelectedInvoiceForPayment(invoice);
+      setActiveCashSessionId(sessionValidation.sessionId!);
+
+      // Set company currency
+      const currency = clinicData.currency || 'USD';
+      setCompanyCurrency(currency);
+
+      fetchPaymentMethods();
+      fetchUserCredits(invoice.user_id);
+
+      form.reset({
+        amount: invoice.total - (invoice.paid_amount || 0),
+        method: '',
+        status: 'completed',
+        payment_date: new Date(),
+        invoice_currency: invoice.currency || 'USD',
+        payment_currency: invoice.currency || 'USD', // Default to invoice currency initially
+        exchange_rate: 1, // Will be updated by useEffect or manual input
+      });
+      setPaymentSubmissionError(null);
+      setAppliedCredits(new Map());
+      setIsPaymentDialogOpen(true);
     } catch (error) {
       console.error("Payment session check error:", error);
       toast({
