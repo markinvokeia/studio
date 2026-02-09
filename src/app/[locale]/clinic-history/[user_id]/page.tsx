@@ -1620,9 +1620,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                                 <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
                                                 <p className="mb-1 text-sm text-muted-foreground">
-                                                    <span className="font-semibold">Click to upload</span> or drag and drop
+                                                    <span className="font-semibold">{t('dragDropBold')}</span> {t('dragDropNormal')}
                                                 </p>
-                                                <p className="text-xs text-muted-foreground">PDF, PNG, JPG, etc.</p>
+                                                <p className="text-xs text-muted-foreground">{t('dragDropSubtext')}</p>
                                             </div>
                                             <Input
                                                 id="session-attachments"
@@ -1635,7 +1635,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                         <div className="mt-4 space-y-2">
                                             {existingAttachments.length > 0 && (
                                                 <div>
-                                                    <h4 className="font-semibold text-sm mb-2">Existing Files</h4>
+                                                    <h4 className="font-semibold text-sm mb-2">{t('existingFiles')}</h4>
                                                     <ScrollArea className="h-24 mt-1 border rounded-md p-2">
                                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                                                             {existingAttachments.map((file) => (
@@ -1658,7 +1658,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                             )}
                                             {newAttachments.length > 0 && (
                                                 <div>
-                                                    <h4 className="font-semibold text-sm mb-2">New Files</h4>
+                                                    <h4 className="font-semibold text-sm mb-2">{t('newFiles')}</h4>
                                                     <ScrollArea className="h-24 mt-1 border rounded-md p-2">
                                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                                                             {newAttachments.map((file, index) => (
@@ -1890,7 +1890,7 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
                     <h3 className="text-xl font-bold text-card-foreground">{t('images.title')}</h3>
                     <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline">
                         <Upload className="mr-2 h-4 w-4" />
-                        Upload Document
+                        {t('uploadDocument')}
                     </Button>
                 </div>
                 {isLoadingDocuments ? (
@@ -1959,8 +1959,10 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
                                 ) : (
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                         <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
-                                        <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                        <p className="text-xs text-muted-foreground">PDF, PNG, JPG or GIF (MAX. 10MB)</p>
+                                        <p className="mb-2 text-sm text-muted-foreground">
+                                            <span className="font-semibold">{t('documentDragDropBold')}</span> {t('documentDragDropNormal')}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">{t('documentDragDropSubtext')}</p>
                                     </div>
                                 )}
                                 <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
