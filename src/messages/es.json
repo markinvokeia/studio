@@ -2582,7 +2582,8 @@
                 "success": "Éxito",
                 "deleteSuccess": "Eliminado exitosamente"
             },
-            "nextSessionPlan": "Plan para la Próxima Sesión"
+            "nextSessionPlan": "Plan para la Próxima Sesión",
+            "addSession": "Agregar sesión"
         },
         "anamnesis": {
             "personalTitle": "Información Personal",

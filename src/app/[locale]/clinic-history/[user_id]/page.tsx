@@ -1328,7 +1328,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         diagnostico: session.diagnostico || '',
                         notas_clinicas: session.notas_clinicas || '',
                         plan_proxima_cita: session.plan_proxima_cita || '',
-treatments: (session.tratamientos || []).map(t => ({
+                        treatments: (session.tratamientos || []).map(t => ({
                             numero_diente: t.numero_diente ? String(t.numero_diente) : '',
                             descripcion: t.descripcion || ''
                         })),
@@ -2383,7 +2383,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                     <h3 className="text-xl font-bold text-card-foreground">{t('title')}</h3>
                     <Button onClick={() => onAction('add')}>
                         <Plus className="mr-2 h-4 w-4" />
-                        Add Session
+                        {t('addSession')}
                     </Button>
                 </div>
                 <div className="relative">
@@ -2398,7 +2398,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                         return (
                             <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
                                 <div className="absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-2 border-background shadow-md bg-card flex items-center justify-center">
-<TooltipProvider>
+                                    <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Icon className="h-4 w-4 text-primary" />
@@ -2416,7 +2416,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                                 <h4 className="font-semibold text-foreground">{session.procedimiento_realizado}</h4>
                                                 <p className="text-sm text-muted-foreground">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</p>
                                             </div>
-{session.tipo_sesion !== 'odontograma' ? (
+                                            {session.tipo_sesion !== 'odontograma' ? (
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
                                                         <Button variant="ghost" size="icon" className="h-8 w-8">
