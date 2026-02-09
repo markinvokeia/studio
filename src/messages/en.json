@@ -1675,7 +1675,10 @@
       "editSave": "Save Changes",
       "editTitle": "Edit Service",
       "selectCurrency": "Select Currency",
-      "color": "Color"
+      "color": "Color",
+      "activeLabel": "Active",
+      "activeDescription": "Set service active",
+      "colorLabel": "Color"
     },
     "deleteDialog": {
       "cancel": "Cancel",
@@ -3308,9 +3311,9 @@
       "endDate": "End Date",
       "dateRange": "Date Range",
       "applyFilters": "Apply Filters",
-"advancedFilters": "Advanced Filters",
-    "activeFilters": "Active filters",
-    "clearAll": "Clear all"
+      "advancedFilters": "Advanced Filters",
+      "activeFilters": "Active filters",
+      "clearAll": "Clear all"
     },
     "toast": {
       "createSuccessTitle": "Sequence Created",

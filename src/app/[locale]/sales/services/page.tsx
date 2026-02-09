@@ -13,12 +13,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { normalizeApiResponse } from '@/lib/api-utils';
 import { MiscellaneousCategory, Service } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,7 +29,6 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { normalizeApiResponse } from '@/lib/api-utils';
 import { ServicesColumnsWrapper } from './columns';
 
 console.log("Services Page Loaded. API_ROUTES.SERVICES:", API_ROUTES.SERVICES);
@@ -36,11 +37,14 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   name: z.string().min(1, t('nameRequired')),
   category_id: z.string().min(1, t('categoryRequired')),
+  category: z.string().optional(),
   price: z.coerce.number().positive(t('pricePositive')),
   currency: z.enum(['UYU', 'USD']).default('USD'),
   duration_minutes: z.coerce.number().int().positive(t('durationInteger')),
   description: z.string().optional(),
   indications: z.string().optional(),
+  color: z.string().optional(),
+  is_active: z.boolean().default(true),
 });
 
 type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
@@ -72,10 +76,8 @@ async function getServices(): Promise<Service[]> {
 
 async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
   try {
-    const data = await api.get(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_GET, { limit: '1000' });
-    console.log("FETCHED CATEGORIES DATA:", data);
+    const data = await api.get(API_ROUTES.PURCHASES.MISC_CATEGORIES, { limit: '1000' });
     const normalized = normalizeApiResponse(data);
-    console.log("NORMALIZED CATEGORIES:", normalized);
 
     const categories = normalized.items.map((c: any) => ({
       ...c,
@@ -89,9 +91,15 @@ async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
   }
 }
 
-async function upsertService(serviceData: ServiceFormValues) {
-  const responseData = await api.post(API_ROUTES.SERVICES_UPSERT, { ...serviceData, is_sales: true });
-  
+async function upsertService(serviceData: ServiceFormValues, categories: MiscellaneousCategory[]) {
+  // Find category name based on category_id for backend compatibility
+  const category = categories.find(cat => cat.id === serviceData.category_id)?.name || '';
+  const responseData = await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, { 
+    ...serviceData, 
+    category,
+    is_sales: true 
+  });
+
   // Check for error responses in array format
   if (Array.isArray(responseData) && responseData.length > 0) {
     const firstItem = responseData[0];
@@ -100,7 +108,7 @@ async function upsertService(serviceData: ServiceFormValues) {
       throw new Error(message);
     }
   }
-  
+
   // Check for error responses in object format
   if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
     if (responseData.error || responseData.code >= 400) {
@@ -108,13 +116,13 @@ async function upsertService(serviceData: ServiceFormValues) {
       throw new Error(message);
     }
   }
-  
+
   return responseData;
 }
 
 async function deleteService(id: string) {
   const responseData = await api.delete(API_ROUTES.SERVICES_DELETE, { id, is_sales: true });
-  
+
   // Check for error responses in array format
   if (Array.isArray(responseData) && responseData.length > 0) {
     const firstItem = responseData[0];
@@ -123,7 +131,7 @@ async function deleteService(id: string) {
       throw new Error(message);
     }
   }
-  
+
   // Check for error responses in object format
   if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
     if (responseData.error || responseData.code >= 400) {
@@ -131,7 +139,7 @@ async function deleteService(id: string) {
       throw new Error(message);
     }
   }
-  
+
   return responseData;
 }
 
@@ -171,7 +179,7 @@ export default function ServicesPage() {
     }
   }, [isDialogOpen]);
 
-  const handleCreate = () => {
+const handleCreate = () => {
     setEditingService(null);
     form.reset({
       name: '',
@@ -181,12 +189,14 @@ export default function ServicesPage() {
       duration_minutes: 60,
       description: '',
       indications: '',
+      color: '',
+      is_active: true,
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
   };
 
-  const handleEdit = (service: Service) => {
+const handleEdit = (service: Service) => {
     setEditingService(service);
     form.reset({
       id: service.id,
@@ -197,6 +207,8 @@ export default function ServicesPage() {
       duration_minutes: service.duration_minutes,
       description: service.description,
       indications: service.indications,
+      color: service.color || '',
+      is_active: service.is_active,
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -227,10 +239,10 @@ export default function ServicesPage() {
     }
   };
 
-  const onSubmit = async (values: ServiceFormValues) => {
+const onSubmit = async (values: ServiceFormValues) => {
     setSubmissionError(null);
     try {
-      await upsertService(values);
+      await upsertService(values, categories);
       toast({
         title: editingService ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'),
         description: t('toast.successDescription', { name: values.name }),
@@ -402,6 +414,51 @@ export default function ServicesPage() {
                       <Textarea placeholder={t('createDialog.indicationsPlaceholder')} {...field} />
                     </FormControl>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+<FormField
+                control={form.control}
+                name="color"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('createDialog.colorLabel')}</FormLabel>
+                    <FormControl>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          type="color"
+                          className="w-16 h-10 p-1 border rounded cursor-pointer"
+                          {...field}
+                        />
+                        <Input
+                          type="text"
+                          placeholder="#000000"
+                          className="flex-1"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="is_active"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">{t('createDialog.activeLabel')}</FormLabel>
+                      <FormDescription>
+                        {t('createDialog.activeDescription')}
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
                   </FormItem>
                 )}
               />

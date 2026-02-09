@@ -1675,7 +1675,10 @@
             "editSave": "Guardar Cambios",
             "editTitle": "Editar Servicio",
             "selectCurrency": "Seleccionar Moneda",
-            "color": "Color"
+            "color": "Color",
+            "activeLabel": "Activo",
+            "activeDescription": "Servicio activado",
+            "colorLabel": "Color"
         },
         "deleteDialog": {
             "cancel": "Cancelar",
@@ -3306,9 +3309,9 @@
             "endDate": "Fecha de Fin",
             "dateRange": "Rango de Fechas",
             "applyFilters": "Aplicar Filtros",
-"advancedFilters": "Filtros Avanzados",
-        "activeFilters": "Filtros activos",
-        "clearAll": "Limpiar todos"
+            "advancedFilters": "Filtros Avanzados",
+            "activeFilters": "Filtros activos",
+            "clearAll": "Limpiar todos"
         },
         "createNew": "Crear Nuevo",
         "refresh": "Actualizar",

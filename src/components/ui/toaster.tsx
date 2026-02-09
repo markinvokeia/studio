@@ -10,9 +10,19 @@ import {
   ToastViewport,
 } from "@/components/ui/toast"
 import { createPortal } from "react-dom"
+import { useEffect, useState } from "react"
 
 export function Toaster() {
   const { toasts } = useToast()
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  if (!isMounted) {
+    return null
+  }
 
   return createPortal(
     <ToastProvider>
