@@ -819,6 +819,7 @@
         }
     },
     "General": {
+        "create": "Crear",
         "noResults": "No hay resultados.",
         "openMenu": "Abrir menú",
         "selectRow": "Seleccionar fila",

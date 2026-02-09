@@ -755,7 +755,7 @@ const AnamnesisDashboard = ({
                             <User className="w-5 h-5 text-primary mr-2" />
                             <h3 className="text-lg font-bold text-card-foreground">{t('anamnesis.personalTitle')}</h3>
                         </div>
-                        <Button variant="outline" size="icon" onClick={handleAddPersonalClick}>
+                        <Button variant="default" size="icon" onClick={handleAddPersonalClick}>
                             <Plus className="h-4 w-4" />
                         </Button>
                     </div>
@@ -791,7 +791,7 @@ const AnamnesisDashboard = ({
                             <Heart className="w-5 h-5 text-red-500 mr-2" />
                             <h3 className="text-lg font-bold text-card-foreground">{t('anamnesis.familyTitle')}</h3>
                         </div>
-                        <Button variant="outline" size="icon" onClick={handleAddFamilyClick}>
+                        <Button variant="default" size="icon" onClick={handleAddFamilyClick}>
                             <Plus className="h-4 w-4" />
                         </Button>
                     </div>
@@ -827,7 +827,7 @@ const AnamnesisDashboard = ({
                             <Pill className="w-5 h-5 text-green-500 mr-2" />
                             <h3 className="text-lg font-bold text-card-foreground">{t('anamnesis.medicationsTitle')}</h3>
                         </div>
-                        <Button variant="outline" size="icon" onClick={handleAddMedicationClick}>
+                        <Button variant="default" size="icon" onClick={handleAddMedicationClick}>
                             <Plus className="h-4 w-4" />
                         </Button>
                     </div>
@@ -874,7 +874,7 @@ const AnamnesisDashboard = ({
                             <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
                             <h3 className="text-lg font-bold text-card-foreground">{t('anamnesis.allergiesTitle')}</h3>
                         </div>
-                        <Button variant="outline" size="icon" onClick={handleAddAllergyClick}>
+                        <Button variant="default" size="icon" onClick={handleAddAllergyClick}>
                             <Plus className="h-4 w-4" />
                         </Button>
                     </div>

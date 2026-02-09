@@ -382,7 +382,7 @@ export default function SequencesPage() {
                 {/* Buttons Section */}
                 <div className="flex items-center gap-2">
                   <Button onClick={handleCreate} className="h-9">
-                    <PlusCircle className="mr-2 h-4 w-4" />
+                    <PlusCircle className="h-4 w-4" />
                     {t('createNew')}
                   </Button>
                   <Button

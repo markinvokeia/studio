@@ -978,13 +978,13 @@ export default function AppointmentsPage() {
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="outline" size="icon" onClick={handleNewAppointmentClick}>
+                                    <Button variant="default" size="sm" className="h-9" onClick={handleNewAppointmentClick}>
                                         <PlusCircle className="h-4 w-4" />
-                                        <span className="sr-only">{t('newAppointment')}</span>
+                                        {tGeneral('create')}
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>{t('newAppointment')}</p>
+                                    <p>{tGeneral('create')}</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
