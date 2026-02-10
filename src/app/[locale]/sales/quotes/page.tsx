@@ -183,7 +183,7 @@ async function getOrderItems(orderId: string, t: (key: string) => string): Promi
         const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
         return itemsData.map((apiItem: any) => ({
             id: apiItem.order_item_id ? String(apiItem.order_item_id) : t('defaults.notAvailable'),
-            service_id: apiItem.service_id,
+            service_id: apiItem.service_id || apiItem.serviceId || apiItem.id,
             service_name: apiItem.service_name || t('defaults.notAvailable'),
             unit_price: apiItem.unit_price,
             quantity: apiItem.quantity,
@@ -787,7 +787,21 @@ export default function QuotesPage() {
                                                                 <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                                             </Button>
                                                         </div>
-                                                        <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedQuote.id} userId={selectedOrder.user_id} />
+                                                        <OrderItemsTable
+                                                            items={orderItems}
+                                                            isLoading={isLoadingOrderItems}
+                                                            onItemsUpdate={loadOrderItems}
+                                                            quoteId={selectedQuote.id}
+                                                            userId={selectedOrder.user_id}
+                                                            patient={{
+                                                                id: selectedQuote.user_id,
+                                                                name: selectedQuote.user_name || 'Patient',
+                                                                email: selectedQuote.userEmail || '',
+                                                                phone_number: '', // We don't have it here but ID and Name are enough for pre-selection
+                                                                is_active: true,
+                                                                avatar: ''
+                                                            }}
+                                                        />
                                                     </div>
                                                 )}
                                             </TabsContent>
@@ -917,7 +931,7 @@ export default function QuotesPage() {
                                         </FormItem>
                                     )}
                                 />
-</div>
+                            </div>
                             <FormField
                                 control={quoteForm.control}
                                 name="exchange_rate"

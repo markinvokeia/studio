@@ -183,12 +183,13 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
   }, [currentDate, view, dateLocale]);
 
   const EventComponent = ({ event }: { event: CalendarEvent }) => (
-    <ContextMenu onOpenChange={(open) => { if (!open) onEventClick(event.data); }}>
+    <ContextMenu>
       <ContextMenuTrigger>
         <div
           className="event"
           style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
           onClick={(e) => {
+            if (e.button !== 0) return;
             e.stopPropagation();
             onEventClick(event.data);
           }}
@@ -204,7 +205,10 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
               key={color.id}
               className="w-6 h-6 rounded-full cursor-pointer hover:opacity-80"
               style={{ backgroundColor: color.hex }}
-              onClick={() => onEventColorChange(event.data, color.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEventColorChange(event.data, color.id);
+              }}
             />
           ))}
         </div>
@@ -213,7 +217,7 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
   );
 
   const EventInDayViewComponent = ({ event, style }: { event: CalendarEvent; style: React.CSSProperties }) => (
-    <ContextMenu onOpenChange={(open) => { if (!open) onEventClick(event.data); }}>
+    <ContextMenu>
       <ContextMenuTrigger>
         <div
           className="event-in-day-view"
@@ -224,6 +228,7 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
             paddingRight: '4px', // Add some gap between events
           }}
           onClick={(e) => {
+            if (e.button !== 0) return;
             e.stopPropagation(); // prevent triggering other click listeners
             onEventClick(event.data);
           }}
@@ -238,7 +243,10 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
               key={color.id}
               className="w-6 h-6 rounded-full cursor-pointer hover:opacity-80"
               style={{ backgroundColor: color.hex }}
-              onClick={() => onEventColorChange(event.data, color.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEventColorChange(event.data, color.id);
+              }}
             />
           ))}
         </div>
@@ -399,6 +407,7 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
                   key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}
                   className="day-column"
                   onClick={(e) => {
+                    if (e.button !== 0) return; // Only left click
                     if (onSlotClick) {
                       const rect = e.currentTarget.getBoundingClientRect();
                       const y = e.clientY - rect.top;
@@ -420,6 +429,7 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
                 key={format(day, 'yyyy-MM-dd')}
                 className="day-column"
                 onClick={(e) => {
+                  if (e.button !== 0) return; // Only left click
                   if (onSlotClick) {
                     const rect = e.currentTarget.getBoundingClientRect();
                     const y = e.clientY - rect.top;
@@ -483,6 +493,7 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
             key={day}
             className="calendar-day"
             onClick={(e) => {
+              if (e.button !== 0) return; // Only left click
               if (onSlotClick) {
                 e.stopPropagation();
                 onSlotClick(date);
@@ -590,7 +601,15 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
             <h3 className="font-bold text-lg mb-2">{format(parseISO(date), 'EEEE, MMMM d, yyyy', { locale: dateLocale })}</h3>
             <div className="space-y-2">
               {groupedEvents[date].map(event => (
-                <div key={event.id} className="p-2 rounded-md flex items-center gap-4" style={{ backgroundColor: event.color ? `${event.color}20` : 'var(--muted)' }} onClick={() => onEventClick(event.data)}>
+                <div
+                  key={event.id}
+                  className="p-2 rounded-md flex items-center gap-4 cursor-pointer"
+                  style={{ backgroundColor: event.color ? `${event.color}20` : 'var(--muted)' }}
+                  onClick={(e) => {
+                    if (e.button !== 0) return;
+                    onEventClick(event.data);
+                  }}
+                >
                   <div className="flex items-center gap-2 w-28 text-sm font-semibold">
                     <div className="h-2 w-2 rounded-full" style={{ backgroundColor: event.color || 'hsl(var(--primary))' }} />
                     {format(typeof event.start === 'string' ? parseISO(event.start) : event.start, 'p', { locale: dateLocale })}
