@@ -828,6 +828,10 @@
         "unknown": "Desconocido",
         "notAvailable": "N/A"
     },
+    "status": {
+        "open": "ABIERTA",
+        "closed": "CERRADA"
+    },
     "UserMessages": {
         "noMessages": "No se encontraron mensajes para este usuario.",
         "userVia": "Usuario vía {channel}",
@@ -1370,7 +1374,8 @@
             "viewDetails": "Ver detalles",
             "closingAmount": "Monto Cierre",
             "print": "Imprimir",
-            "id": "ID"
+            "id": "ID",
+            "openMenu": "Abrir Menú"
         },
         "detailsTitle": "Detalles de Sesión de Caja",
         "detailsDescription": "Detalles de Sesión de Caja",

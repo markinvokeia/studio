@@ -1,9 +1,9 @@
 
 'use client';
 
-import { ColumnDef } from '@tanstack/react-table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { CajaSesion } from '@/lib/types';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -11,11 +11,11 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { MoreHorizontal } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { useTranslations } from 'next-intl';
+import { CajaSesion } from '@/lib/types';
+import { ColumnDef } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
+import { MoreHorizontal } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface CashSessionsColumnsProps {
     onView: (session: CajaSesion) => void;
@@ -38,6 +38,7 @@ const formatCurrency = (value?: number) => {
 
 export const CashSessionsColumnsWrapper = ({ onView, onPrint }: CashSessionsColumnsProps): ColumnDef<CajaSesion>[] => {
     const t = useTranslations('CashSessionsPage.columns');
+    const statusT = useTranslations('status');
 
     const columns: ColumnDef<CajaSesion>[] = [
         { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('id')} /> },
@@ -49,7 +50,8 @@ export const CashSessionsColumnsWrapper = ({ onView, onPrint }: CashSessionsColu
             cell: ({ row }) => {
                 const status = row.original.estado.toUpperCase();
                 const variant = status === 'OPEN' ? 'success' : 'destructive';
-                return <Badge variant={variant}>{status}</Badge>;
+                const statusText = status === 'OPEN' ? statusT('open') : statusT('closed');
+                return <Badge variant={variant}>{statusText}</Badge>;
             }
         },
         {

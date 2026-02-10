@@ -828,6 +828,10 @@
     "unknown": "Unknown",
     "notAvailable": "N/A"
   },
+  "status": {
+    "open": "OPEN",
+    "closed": "CLOSED"
+  },
   "UserMessages": {
     "noMessages": "No messages found for this user.",
     "userVia": "User via {channel}",
@@ -1370,7 +1374,8 @@
       "viewDetails": "View details",
       "closingAmount": "Closing Amount",
       "print": "Print",
-      "id": "ID"
+      "id": "ID",
+      "openMenu": "Open Menu"
     },
     "detailsTitle": "Cash Session Details",
     "detailsDescription": "Cash Session Details",
