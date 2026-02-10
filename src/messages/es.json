@@ -2571,7 +2571,7 @@
         "tabs": {
             "anamnesis": "Anamnesis",
             "timeline": "Línea de Tiempo",
-            "odontogram": "Odontogram",
+            "odontogram": "Odontograma",
             "images": "Imágenes",
             "documents": "Documentos"
         },
@@ -2790,7 +2790,8 @@
             "xrays": "Rayos X",
             "photos": "Fotos"
         },
-        "searching": "Buscando..."
+        "searching": "Buscando...",
+        "uploadDocument": "Subir Documento"
     },
     "UserQuotes": {
         "filterPlaceholder": "Filtrar aquí..."
@@ -3317,6 +3318,9 @@
             "cancel": "Cancelar",
             "confirm": "Eliminar"
         },
+        "active": "Activo",
+        "inactive": "Inactivo",
+        "openMenu": "Abrir menú",
         "documentTypes": {
             "invoice": "Factura",
             "quote": "Presupuesto",

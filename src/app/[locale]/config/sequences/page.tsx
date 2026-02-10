@@ -6,19 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { Sequence } from '@/lib/types';
+import { handleApiErrorEnhanced } from '@/lib/error-utils';
 import { SEQUENCE_VARIABLES, previewPattern, validatePattern } from '@/lib/sequence-utils';
+import { Sequence } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, Info, Search, Calendar, Filter, Check, CalendarIcon, PlusCircle, RefreshCw, X } from 'lucide-react';
+import { Check, Filter, Info, PlusCircle, RefreshCw, Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -113,19 +114,48 @@ async function getSequences(params?: {
 
 async function upsertSequence(sequenceData: SequenceFormValues) {
   const responseData = await api.post(API_ROUTES.CONFIG.SEQUENCES_UPSERT, sequenceData);
-  if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
-    const message = responseData[0]?.message ? responseData[0].message : 'Failed to save sequence';
-    throw new Error(message);
-  }
+
+  // Use enhanced error detection
+  handleApiErrorEnhanced(responseData);
+
   return responseData;
 }
 
 async function deleteSequence(id: number) {
   const responseData = await api.delete(API_ROUTES.CONFIG.SEQUENCES_DELETE, { id });
-  if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
-    const message = responseData[0]?.message ? responseData[0].message : 'Failed to delete sequence';
-    throw new Error(message);
+
+  // Handle various error response formats
+  if (responseData && typeof responseData === 'object') {
+    // Handle array-based error responses
+    if (Array.isArray(responseData)) {
+      const errorItem = responseData.find(item =>
+        item?.code >= 400 || item?.error || item?.message
+      );
+      if (errorItem) {
+        const message = errorItem.message || errorItem.error || 'Failed to delete sequence';
+        throw new Error(message);
+      }
+    }
+
+    // Handle object-based error responses
+    if ('error' in responseData) {
+      throw new Error(responseData.error || 'Failed to delete sequence');
+    }
+
+    if ('message' in responseData && typeof responseData.message === 'string') {
+      // Check if it's actually an error message by looking at context
+      const hasErrorIndicators =
+        responseData.message.toLowerCase().includes('error') ||
+        responseData.message.toLowerCase().includes('failed') ||
+        responseData.message.toLowerCase().includes('invalid') ||
+        responseData.status >= 400;
+
+      if (hasErrorIndicators) {
+        throw new Error(responseData.message);
+      }
+    }
   }
+
   return responseData;
 }
 

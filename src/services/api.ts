@@ -60,19 +60,56 @@ const apiRequest = async (
     try {
         const response = await fetch(url, config);
         if (!response.ok) {
-            // For 400 status codes, try to parse the error response and return it
+            // For 400 status codes, maintain backwards compatibility
+            // Return error data but add metadata for enhanced detection
             if (response.status === 400) {
                 const text = await response.text();
                 if (text.trim()) {
                     try {
-                        return JSON.parse(text);
+                        const errorData = JSON.parse(text);
+                        // Add metadata for enhanced error detection without breaking existing code
+                        if (Array.isArray(errorData)) {
+                            (errorData as any)._isError = true;
+                            (errorData as any)._status = response.status;
+                        } else if (typeof errorData === 'object' && errorData !== null) {
+                            (errorData as any)._isError = true;
+                            (errorData as any)._status = response.status;
+                        }
+                        return errorData;
                     } catch (jsonError) {
                         throw new Error('Bad request');
                     }
                 }
                 throw new Error('Bad request');
             }
-            throw new Error(`HTTP error! status: ${response.status}`);
+            // For other status codes (401, 403, 404, 500+), throw errors as before
+            const text = await response.text();
+            let errorData;
+            try {
+                errorData = text.trim() ? JSON.parse(text) : {};
+            } catch {
+                errorData = {};
+            }
+
+            // Create detailed error message
+            let errorMessage = `HTTP error! status: ${response.status}`;
+
+            // Extract error message from different response formats
+            if (errorData.message) {
+                errorMessage = errorData.message;
+            } else if (errorData.error) {
+                errorMessage = errorData.error;
+            } else if (Array.isArray(errorData) && errorData[0]?.message) {
+                errorMessage = errorData[0].message;
+            } else if (Array.isArray(errorData) && errorData[0]?.error) {
+                errorMessage = errorData[0].error;
+            }
+
+            // Create error object with additional context
+            const error = new Error(errorMessage);
+            (error as any).status = response.status;
+            (error as any).data = errorData;
+            throw error;
         }
         if (responseType === 'blob') {
             return await response.blob();

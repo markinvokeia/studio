@@ -2790,7 +2790,8 @@
       "xrays": "X-rays",
       "photos": "Photos"
     },
-    "searching": "Buscando..."
+    "searching": "Buscando...",
+    "uploadDocument": "Upload Document"
   },
   "UserQuotes": {
     "filterPlaceholder": "Filter quotes..."
@@ -3319,6 +3320,9 @@
       "cancel": "Cancel",
       "confirm": "Delete"
     },
+    "active": "Active",
+    "inactive": "Inactive",
+    "openMenu": "Open menu",
     "documentTypes": {
       "invoice": "Invoice",
       "quote": "Quote",
@@ -3386,7 +3390,9 @@
       "editErrorDescription": "Failed to update sequence. Please try again.",
       "deleteErrorDescription": "Failed to delete sequence. Please try again.",
       "genericError": "An unexpected error occurred. Please try again."
-    }
+    },
+    "createNew": "Create New",
+    "refresh": "Refresh"
   },
   "RoleColumns": {
     "roleId": "ID",

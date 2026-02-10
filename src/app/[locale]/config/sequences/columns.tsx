@@ -1,12 +1,20 @@
 'use client';
 
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Sequence } from '@/lib/types';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { generateSequenceNumber } from '@/lib/sequence-utils';
+import { Sequence } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
-import { Edit, Trash2 } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface SequencesColumnsProps {
@@ -44,7 +52,7 @@ export function SequencesColumnsWrapper({ onEdit, onDelete }: SequencesColumnsPr
       cell: ({ row }) => {
         const sequence = row.original;
         const pattern = row.getValue('pattern') as string || sequence.pattern;
-        
+
         if (!pattern) {
           return (
             <div className="max-w-xs">
@@ -54,7 +62,7 @@ export function SequencesColumnsWrapper({ onEdit, onDelete }: SequencesColumnsPr
             </div>
           );
         }
-        
+
         return (
           <div className="max-w-xs">
             <code className="text-xs bg-muted px-2 py-1 rounded">
@@ -96,11 +104,9 @@ export function SequencesColumnsWrapper({ onEdit, onDelete }: SequencesColumnsPr
         <DataTableColumnHeader column={column} title={t('columns.isActive')} />
       ),
       cell: ({ row }) => (
-        <Switch
-          checked={row.getValue('is_active')}
-          disabled
-          aria-label={t('columns.isActive')}
-        />
+        <Badge variant={row.getValue('is_active') ? 'default' : 'outline'}>
+          {row.getValue('is_active') ? t('active') : t('inactive')}
+        </Badge>
       ),
     },
     {
@@ -109,25 +115,28 @@ export function SequencesColumnsWrapper({ onEdit, onDelete }: SequencesColumnsPr
       cell: ({ row }) => {
         const sequence = row.original;
         return (
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit(sequence)}
-              className="h-8 w-8 p-0"
-            >
-              <Edit className="h-4 w-4" />
-              <span className="sr-only">{t('columns.edit')}</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDelete(sequence)}
-              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-              <span className="sr-only">{t('columns.delete')}</span>
-            </Button>
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">{t('openMenu')}</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => onEdit(sequence)}>
+                  {t('columns.edit')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => onDelete(sequence)}
+                  className="text-destructive"
+                >
+                  {t('columns.delete')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         );
       },
