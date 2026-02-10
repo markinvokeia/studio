@@ -63,6 +63,31 @@ export const ServicesColumnsWrapper = ({ onEdit, onDelete }: ServicesColumnsProp
       ),
     },
     {
+      accessorKey: 'color',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('color')} />
+      ),
+      cell: ({ row }) => {
+        const color = row.original.color;
+        if (color) {
+          return (
+            <div className="flex items-center justify-center">
+              <div 
+                className="w-6 h-6 rounded-md border-2 border-gray-200 shadow-sm" 
+                style={{ backgroundColor: color }}
+                title=""
+              />
+            </div>
+          );
+        }
+        return (
+          <div className="flex items-center justify-center">
+            <div className="w-6 h-6 rounded-md border-2 border-gray-200 bg-gray-100" />
+          </div>
+        );
+      },
+    },
+    {
       id: 'actions',
       cell: ({ row }) => {
         const service = row.original;
