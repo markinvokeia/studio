@@ -1127,7 +1127,8 @@
       "recipients": "Recipients",
       "placeholder": "email1@example.com, email2@example.com",
       "helperText": "Separate multiple emails with commas.",
-      "errorNoEmail": "Please enter at least one recipient email."
+      "errorNoEmail": "Please enter at least one recipient email.",
+      "send": "Send Email"
     },
     "importDialog": {
       "title": "Import Invoice",
@@ -1236,7 +1237,8 @@
         "service": "Service",
         "selectService": "Select a service",
         "quantity": "Quantity",
-        "unitPrice": "Unit Price"
+        "unitPrice": "Unit Price",
+        "notInList": "Not in list"
       }
     }
   },

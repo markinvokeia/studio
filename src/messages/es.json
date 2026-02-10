@@ -1127,7 +1127,8 @@
             "recipients": "Destinatarios",
             "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
             "helperText": "Separe múltiples correos con comas.",
-            "errorNoEmail": "Por favor, ingrese al menos un correo electrónico."
+            "errorNoEmail": "Por favor, ingrese al menos un correo electrónico.",
+            "send": "Enviar Correo"
         },
         "importDialog": {
             "title": "Importar Factura",
@@ -1236,7 +1237,8 @@
                 "service": "Servicio",
                 "selectService": "Seleccione un servicio",
                 "quantity": "Cantidad",
-                "unitPrice": "Precio Unitario"
+                "unitPrice": "Precio Unitario",
+                "notInList": "No está en la lista"
             }
         }
     },

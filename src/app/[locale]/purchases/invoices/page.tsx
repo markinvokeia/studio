@@ -337,7 +337,7 @@ export default function InvoicesPage() {
         try {
             await api.post(API_ROUTES.PURCHASES.API_INVOICE_IMPORT, formData);
 
-            toast({ title: 'Import Successful', description: 'The invoice has been created from the imported file.' });
+            toast({ title: t('importDialog.success'), description: t('importDialog.successDescription') });
             loadInvoices();
             setIsImportDialogOpen(false);
 
@@ -546,31 +546,31 @@ export default function InvoicesPage() {
             <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Send Invoice by Email</DialogTitle>
-                        <DialogDescription>Enter the recipient emails for invoice #{selectedInvoiceForEmail?.id}.</DialogDescription>
+                        <DialogTitle>{t('sendEmailDialog.title')}</DialogTitle>
+                        <DialogDescription>{t('sendEmailDialog.description', { id: selectedInvoiceForEmail?.id })}</DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
-                        <Label htmlFor="email-recipients">Recipients</Label>
+                        <Label htmlFor="email-recipients">{t('sendEmailDialog.recipients')}</Label>
                         <Input
                             id="email-recipients"
                             value={emailRecipients}
                             onChange={(e) => setEmailRecipients(e.target.value)}
-                            placeholder="email1@example.com, email2@example.com"
+                            placeholder={t('sendEmailDialog.placeholder')}
                         />
-                        <p className="text-sm text-muted-foreground mt-1">Separate multiple emails with commas.</p>
+                        <p className="text-sm text-muted-foreground mt-1">{t('sendEmailDialog.helperText')}</p>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>Cancel</Button>
-                        <Button onClick={handleConfirmSendEmail}>Send Email</Button>
+                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>{t('createDialog.cancel')}</Button>
+                        <Button onClick={handleConfirmSendEmail}>{t('sendEmailDialog.send')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
             <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Import Invoice</DialogTitle>
+                        <DialogTitle>{t('importDialog.title')}</DialogTitle>
                         <DialogDescription>
-                            Upload a PDF or image file to automatically create an invoice.
+                            {t('importDialog.description')}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4 space-y-4">
@@ -585,8 +585,8 @@ export default function InvoicesPage() {
                                 ) : (
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                         <FileUp className="w-8 h-8 mb-4 text-muted-foreground" />
-                                        <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                        <p className="text-xs text-muted-foreground">PDF, PNG, JPG or GIF (MAX. 10MB)</p>
+                                        <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">{t('importDialog.clickToUpload')}</span> {t('importDialog.dragAndDrop')}</p>
+                                        <p className="text-xs text-muted-foreground">{t('importDialog.fileTypes')}</p>
                                     </div>
                                 )}
                                 <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
@@ -594,15 +594,15 @@ export default function InvoicesPage() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isProcessingImport}>Cancel</Button>
+                        <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isProcessingImport}>{t('createDialog.cancel')}</Button>
                         <Button onClick={handleImportSubmit} disabled={!importFile || isProcessingImport}>
                             {isProcessingImport ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Processing...
+                                    {t('importDialog.processing')}
                                 </>
                             ) : (
-                                'Create Invoice'
+                                t('importDialog.createInvoice')
                             )}
                         </Button>
                     </DialogFooter>
