@@ -45,9 +45,9 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
     try {
         const data = await api.get(API_ROUTES.SALES.ORDER_ITEMS, { order_id: orderId, is_sales: 'true' });
         const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
-return itemsData.map((apiItem: any) => ({
+        return itemsData.map((apiItem: any) => ({
             id: apiItem.order_item_id ? String(apiItem.order_item_id) : `oi_${Math.random().toString(36).substr(2, 9)}`,
-            service_id: apiItem.service_id,
+            service_id: apiItem.service_id || apiItem.serviceId || apiItem.service_id_raw || apiItem.id,
             service_name: apiItem.service_name || 'N/A',
             quantity: apiItem.quantity,
             unit_price: apiItem.unit_price,
@@ -288,7 +288,21 @@ export default function OrdersPage() {
                                                     <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                                 </Button>
                                             </div>
-                                            <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedOrder.quote_id} userId={selectedOrder.user_id} />
+                                            <OrderItemsTable
+                                                items={orderItems}
+                                                isLoading={isLoadingOrderItems}
+                                                onItemsUpdate={loadOrderItems}
+                                                quoteId={selectedOrder.quote_id}
+                                                userId={selectedOrder.user_id}
+                                                patient={{
+                                                    id: selectedOrder.user_id,
+                                                    name: selectedOrder.user_name || 'Patient',
+                                                    email: '',
+                                                    phone_number: '',
+                                                    is_active: true,
+                                                    avatar: ''
+                                                }}
+                                            />
                                         </TabsContent>
                                         <TabsContent value="invoices" className="m-0 flex-1 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
                                             <div className="flex-1 min-h-[400px] flex flex-col">

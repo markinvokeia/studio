@@ -182,7 +182,7 @@ async function getOrderItems(orderId: string, t: (key: string) => string): Promi
         const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
         return itemsData.map((apiItem: any) => ({
             id: apiItem.order_item_id ? String(apiItem.order_item_id) : 'N/A',
-            service_id: apiItem.service_id,
+            service_id: apiItem.service_id || apiItem.serviceId || apiItem.id,
             service_name: apiItem.service_name || 'N/A',
             unit_price: apiItem.unit_price,
             quantity: apiItem.quantity,
@@ -793,7 +793,22 @@ export default function QuotesPage() {
                                                                 <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
                                                             </Button>
                                                         </div>
-                                                        <OrderItemsTable items={orderItems} isLoading={isLoadingOrderItems} onItemsUpdate={loadOrderItems} quoteId={selectedQuote.id} isSales={false} userId={selectedOrder.user_id} />
+                                                        <OrderItemsTable
+                                                            items={orderItems}
+                                                            isLoading={isLoadingOrderItems}
+                                                            onItemsUpdate={loadOrderItems}
+                                                            quoteId={selectedQuote.id}
+                                                            isSales={false}
+                                                            userId={selectedOrder.user_id}
+                                                            patient={{
+                                                                id: selectedQuote.user_id,
+                                                                name: selectedQuote.user_name || 'User',
+                                                                email: '',
+                                                                phone_number: '',
+                                                                is_active: true,
+                                                                avatar: ''
+                                                            }}
+                                                        />
                                                     </div>
                                                 )}
                                             </TabsContent>
