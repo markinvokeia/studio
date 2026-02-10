@@ -2347,7 +2347,36 @@
     "tabs": {
       "users": "Users",
       "permissions": "Permissions"
-    }
+    },
+    "validation": {
+      "nameRequired": "Name is required"
+    },
+    "deleteDialog": {
+      "title": "Delete role",
+      "description": "Delete a role",
+      "cancel": "Cancel",
+      "confirm": "Confirm"
+    },
+    "toast": {
+      "success": "Success",
+      "error": "Error",
+      "errorTitle": "Error",
+      "createSuccess": "Role created",
+      "editSuccess": "Role updated",
+      "successDescription": "Role created successfully",
+      "deleteSuccess": "Role deleted",
+      "deleteDescription": "Role deleted successfully",
+      "saveError": "Failed to save role",
+      "deleteError": "Failed to delete role"
+    },
+    "close": "Close"
+  },
+  "RolesColumns": {
+    "roleId": "ID",
+    "name": "Name",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
   },
   "PermissionsPage": {
     "title": "Permissions",
@@ -2394,6 +2423,18 @@
       "description": "Are you sure you want to delete this permission? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
+    },
+    "toast": {
+      "success": "Success",
+      "error": "Error",
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Permission Created",
+      "editSuccessTitle": "Permission Updated",
+      "deleteSuccess": "Permission Deleted",
+      "createSuccess": "Permission created successfully",
+      "successDescription": "Permission \"{name}\" has been saved successfully.",
+      "deleteSuccessDescription": "Permission deleted successfully"
     },
     "detailsFor": "Details for {name}",
     "tabs": {

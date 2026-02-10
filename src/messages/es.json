@@ -2349,7 +2349,36 @@
         "tabs": {
             "users": "Usuarios",
             "permissions": "Permisos"
-        }
+        },
+        "validation": {
+            "nameRequired": "El nombre es obligatorio"
+        },
+        "deleteDialog": {
+            "title": "Eliminar rol",
+            "description": "Eliminar un rol",
+            "cancel": "Cancelar",
+            "confirm": "Confirmar"
+        },
+        "toast": {
+            "success": "Éxito",
+            "error": "Error",
+            "errorTitle": "Error",
+            "createSuccess": "Rol creado",
+            "editSuccess": "Rol actualizado",
+            "successDescription": "Rol creado exitosamente",
+            "deleteSuccess": "Rol eliminado",
+            "deleteDescription": "Rol eliminado exitosamente",
+            "saveError": "Error al guardar rol",
+            "deleteError": "Error al eliminar rol"
+        },
+        "close": "Cerrar"
+    },
+    "RolesColumns": {
+        "roleId": "ID",
+        "name": "Nombre",
+        "actions": "Acciones",
+        "edit": "Editar",
+        "delete": "Eliminar"
     },
     "PermissionsPage": {
         "title": "Permisos",
@@ -2396,6 +2425,18 @@
             "description": "¿Está seguro de que desea eliminar este permiso? Esta acción no se puede deshacer.",
             "cancel": "Cancelar",
             "confirm": "Eliminar"
+        },
+        "toast": {
+            "success": "Éxito",
+            "error": "Error",
+            "errorTitle": "Error",
+            "genericError": "Ocurrió un error inesperado.",
+            "createSuccessTitle": "Permiso Creado",
+            "editSuccessTitle": "Permiso Actualizado",
+            "deleteSuccess": "Permiso eliminado",
+            "deleteSuccessDescription": "Permiso eliminado exitosamente",
+            "createSuccess": "Permiso creado exitosamente",
+            "successDescription": "El permiso \"{name}\" se ha guardado exitosamente."
         },
         "detailsFor": "Detalles para {name}",
         "tabs": {
