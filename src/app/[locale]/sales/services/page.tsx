@@ -65,6 +65,7 @@ async function getServices(): Promise<Service[]> {
       duration_minutes: apiService.duration_minutes || 0,
       description: apiService.description,
       indications: apiService.indications,
+      color: apiService.color || null,
       is_active: apiService.is_active,
     }));
     return services;
@@ -263,6 +264,7 @@ const onSubmit = async (values: ServiceFormValues) => {
     price: tColumns('price'),
     currency: tColumns('currency'),
     duration_minutes: tColumns('duration'),
+    color: tColumns('color'),
     actions: tColumns('actions'),
   };
 

@@ -1127,7 +1127,8 @@
       "recipients": "Recipients",
       "placeholder": "email1@example.com, email2@example.com",
       "helperText": "Separate multiple emails with commas.",
-      "errorNoEmail": "Please enter at least one recipient email."
+      "errorNoEmail": "Please enter at least one recipient email.",
+      "send": "Send Email"
     },
     "importDialog": {
       "title": "Import Invoice",
@@ -1236,7 +1237,8 @@
         "service": "Service",
         "selectService": "Select a service",
         "quantity": "Quantity",
-        "unitPrice": "Unit Price"
+        "unitPrice": "Unit Price",
+        "notInList": "Not in list"
       }
     }
   },
@@ -1488,6 +1490,12 @@
       "deleteConfirmation": "This will permanently delete transaction #{number}.",
       "deleteAction": "Delete"
     },
+    "statuses": {
+      "pending": "Pending",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "failed": "Failed"
+    },
     "toasts": {
       "createdTitle": "Transaction Created",
       "updatedTitle": "Transaction Updated",
@@ -1725,6 +1733,7 @@
     "price": "Price",
     "currency": "Currency",
     "duration": "Duration",
+    "color": "Color",
     "actions": "Actions",
     "edit": "Edit",
     "delete": "Delete"
@@ -2951,7 +2960,8 @@
       "pending": "Pending",
       "action_taken": "Action Taken",
       "completed": "Completed",
-      "ignored": "Ignored"
+      "ignored": "Ignored",
+      "snoozed": "Snoozed"
     },
     "actions": {
       "sendSms": "Send SMS",

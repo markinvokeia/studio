@@ -1127,7 +1127,8 @@
             "recipients": "Destinatarios",
             "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
             "helperText": "Separe múltiples correos con comas.",
-            "errorNoEmail": "Por favor, ingrese al menos un correo electrónico."
+            "errorNoEmail": "Por favor, ingrese al menos un correo electrónico.",
+            "send": "Enviar Correo"
         },
         "importDialog": {
             "title": "Importar Factura",
@@ -1236,7 +1237,8 @@
                 "service": "Servicio",
                 "selectService": "Seleccione un servicio",
                 "quantity": "Cantidad",
-                "unitPrice": "Precio Unitario"
+                "unitPrice": "Precio Unitario",
+                "notInList": "No está en la lista"
             }
         }
     },
@@ -1488,6 +1490,12 @@
             "deleteConfirmation": "Esto eliminará permanentemente la transacción N°{number}.",
             "deleteAction": "Eliminar"
         },
+        "statuses": {
+            "pending": "Pendiente",
+            "completed": "Completada",
+            "cancelled": "Cancelada",
+            "failed": "Fallida"
+        },
         "toasts": {
             "createdTitle": "Transacción Creada",
             "updatedTitle": "Transacción Actualizada",
@@ -1725,6 +1733,7 @@
         "price": "Precio",
         "currency": "Moneda",
         "duration": "Duración",
+        "color": "Color",
         "actions": "Acciones",
         "edit": "Editar",
         "delete": "Eliminar"
@@ -2951,7 +2960,8 @@
             "pending": "Pendiente",
             "action_taken": "Acción Tomada",
             "completed": "Completada",
-            "ignored": "Ignorada"
+            "ignored": "Ignorada",
+            "snoozed": "Pospuesta"
         },
         "actions": {
             "sendSms": "Enviar SMS",
@@ -3160,7 +3170,9 @@
             "variables": {
                 "title": "Variables",
                 "description": "Haga clic en una variable para insertarla en su plantilla."
-            }
+            },
+            "version": "Versión",
+            "defaultSender": "Enviador por defecto"
         },
         "deleteDialog": {
             "title": "Eliminar Plantilla",
