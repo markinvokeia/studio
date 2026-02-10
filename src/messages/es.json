@@ -1329,7 +1329,9 @@
                 "card": "Tarjeta",
                 "transfer": "Transferencia",
                 "bank_transfer": "Transferencia Bancaria",
-                "other": "Otro"
+                "other": "Otro",
+                "credit_card": "Tarjeta de Crédito",
+                "debit_card": "Tarjeta de Débito"
             },
             "systemTotal": "Total Sistema",
             "declared": "Declarado",
