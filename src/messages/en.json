@@ -2609,17 +2609,17 @@
       "saving": "Saving",
       "nextSessionPlan": "Next Session Plan",
       "attachments": "Attachments",
-      "addTreatment": "Add Treatment",
-      "newFiles": "New Files",
-      "existingFiles": "Existing Files",
-      "dragDropBold": "Click to upload",
-      "dragDropNormal": "or drag and drop",
-      "dragDropSubtext": "PDF, PNG, JPG, etc.",
-      "uploadDocument": "Upload Document",
-      "documentDragDropBold": "Click to upload",
-      "documentDragDropNormal": "or drag and drop",
-      "documentDragDropSubtext": "PDF, PNG, JPG or GIF (MAX. 10MB)"
+      "addTreatment": "Add Treatment"
     },
+    "newFiles": "New Files",
+    "existingFiles": "Existing Files",
+    "dragDropBold": "Click to upload",
+    "dragDropNormal": "or drag and drop",
+    "dragDropSubtext": "PDF, PNG, JPG, etc.",
+    "uploadDocument": "Upload Document",
+    "documentDragDropBold": "Click to upload",
+    "documentDragDropNormal": "or drag and drop",
+    "documentDragDropSubtext": "PDF, PNG, JPG or GIF (MAX. 10MB)",
     "timeline": {
       "deleteDialog": {
         "title": "Delete Session",

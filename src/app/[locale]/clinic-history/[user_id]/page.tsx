@@ -1288,6 +1288,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     onSave: () => void;
 }) => {
     const t = useTranslations('ClinicHistoryPage.sessionDialog');
+    const tPage = useTranslations('ClinicHistoryPage');
     const { toast } = useToast();
     const [doctors, setDoctors] = useState<UserType[]>([]);
     const [newAttachments, setNewAttachments] = useState<File[]>([]);
@@ -1620,9 +1621,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                                 <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
                                                 <p className="mb-1 text-sm text-muted-foreground">
-                                                    <span className="font-semibold">{t('dragDropBold')}</span> {t('dragDropNormal')}
+                                                    <span className="font-semibold">{tPage('dragDropBold')}</span> {tPage('dragDropNormal')}
                                                 </p>
-                                                <p className="text-xs text-muted-foreground">{t('dragDropSubtext')}</p>
+                                                <p className="text-xs text-muted-foreground">{tPage('dragDropSubtext')}</p>
                                             </div>
                                             <Input
                                                 id="session-attachments"
@@ -1635,7 +1636,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                         <div className="mt-4 space-y-2">
                                             {existingAttachments.length > 0 && (
                                                 <div>
-                                                    <h4 className="font-semibold text-sm mb-2">{t('existingFiles')}</h4>
+                                                    <h4 className="font-semibold text-sm mb-2">{tPage('existingFiles')}</h4>
                                                     <ScrollArea className="h-24 mt-1 border rounded-md p-2">
                                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                                                             {existingAttachments.map((file) => (
@@ -1658,7 +1659,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                             )}
                                             {newAttachments.length > 0 && (
                                                 <div>
-                                                    <h4 className="font-semibold text-sm mb-2">{t('newFiles')}</h4>
+                                                    <h4 className="font-semibold text-sm mb-2">{tPage('newFiles')}</h4>
                                                     <ScrollArea className="h-24 mt-1 border rounded-md p-2">
                                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                                                             {newAttachments.map((file, index) => (
@@ -1889,7 +1890,7 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-bold text-card-foreground">{t('images.title')}</h3>
                     <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline">
-                        <Upload className="mr-2 h-4 w-4" />
+                        <Upload className="h-4 w-4" />
                         {t('uploadDocument')}
                     </Button>
                 </div>
@@ -1945,7 +1946,7 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Upload Document</DialogTitle>
+                        <DialogTitle>{t('uploadDocument')}</DialogTitle>
                     </DialogHeader>
                     <div className="py-4 space-y-4">
                         <div className="flex items-center justify-center w-full">
@@ -1970,10 +1971,10 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)} disabled={isUploading}>Cancel</Button>
+                        <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)} disabled={isUploading}>{t('sessionDialog.cancel')}</Button>
                         <Button onClick={handleUpload} disabled={!uploadFile || isUploading}>
                             {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {isUploading ? 'Uploading...' : 'Upload'}
+                            {isUploading ? t('sessionDialog.saving') : t('uploadDocument')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -2384,7 +2385,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-bold text-card-foreground">{t('title')}</h3>
                     <Button onClick={() => onAction('add')}>
-                        <Plus className="mr-2 h-4 w-4" />
+                        <Plus className="h-4 w-4" />
                         {t('addSession')}
                     </Button>
                 </div>
