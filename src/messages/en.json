@@ -1490,6 +1490,12 @@
       "deleteConfirmation": "This will permanently delete transaction #{number}.",
       "deleteAction": "Delete"
     },
+    "statuses": {
+      "pending": "Pending",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "failed": "Failed"
+    },
     "toasts": {
       "createdTitle": "Transaction Created",
       "updatedTitle": "Transaction Updated",
@@ -2954,7 +2960,8 @@
       "pending": "Pending",
       "action_taken": "Action Taken",
       "completed": "Completed",
-      "ignored": "Ignored"
+      "ignored": "Ignored",
+      "snoozed": "Snoozed"
     },
     "actions": {
       "sendSms": "Send SMS",

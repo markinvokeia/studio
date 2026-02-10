@@ -369,7 +369,7 @@ export default function MiscellaneousTransactionsPage() {
             cell: ({ row }) => {
                 const status = row.original.status;
                 const variant = status === 'completed' ? 'success' : status === 'pending' ? 'info' : 'destructive';
-                return <Badge variant={variant} className="capitalize">{status}</Badge>
+                return <Badge variant={variant} className="capitalize">{t(`statuses.${status}`)}</Badge>
             }
         },
         {

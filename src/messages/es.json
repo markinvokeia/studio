@@ -1490,6 +1490,12 @@
             "deleteConfirmation": "Esto eliminará permanentemente la transacción N°{number}.",
             "deleteAction": "Eliminar"
         },
+        "statuses": {
+            "pending": "Pendiente",
+            "completed": "Completada",
+            "cancelled": "Cancelada",
+            "failed": "Fallida"
+        },
         "toasts": {
             "createdTitle": "Transacción Creada",
             "updatedTitle": "Transacción Actualizada",
@@ -2954,7 +2960,8 @@
             "pending": "Pendiente",
             "action_taken": "Acción Tomada",
             "completed": "Completada",
-            "ignored": "Ignorada"
+            "ignored": "Ignorada",
+            "snoozed": "Pospuesta"
         },
         "actions": {
             "sendSms": "Enviar SMS",
@@ -3163,7 +3170,9 @@
             "variables": {
                 "title": "Variables",
                 "description": "Haga clic en una variable para insertarla en su plantilla."
-            }
+            },
+            "version": "Versión",
+            "defaultSender": "Enviador por defecto"
         },
         "deleteDialog": {
             "title": "Eliminar Plantilla",
