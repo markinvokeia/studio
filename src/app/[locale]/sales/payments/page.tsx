@@ -2,6 +2,46 @@
 'use client';
 
 import { PaymentsTable } from '@/components/tables/payments-table';
+
+// Payment method mapping function to normalize different formats and languages
+function normalizePaymentMethod(method: string | undefined): string {
+    if (!method) return 'N/A';
+    
+    const lowerMethod = method.toLowerCase().trim();
+    
+    // Cash/Efectivo mappings
+    if (lowerMethod.includes('efectivo') || lowerMethod.includes('cash')) {
+        return 'efectivo'; // Translation key
+    }
+    
+    // Debit Card mappings
+    if (lowerMethod.includes('debit') || lowerMethod.includes('débito')) {
+        return 'tarjeta_de_debito'; // Translation key
+    }
+    
+    // Credit Card mappings
+    if (lowerMethod.includes('credit') && !lowerMethod.includes('debit')) {
+        return 'tarjeta_de_credito'; // Translation key
+    }
+    
+    // Transfer/Bank Transfer mappings
+    if (lowerMethod.includes('transfer') || lowerMethod.includes('banco')) {
+        return 'transferencia_bancaria'; // Translation key
+    }
+    
+    // Mercado Pago
+    if (lowerMethod.includes('mercado pago')) {
+        return 'mercado_pago'; // Translation key
+    }
+    
+    // Mobile Payment
+    if (lowerMethod.includes('mobile')) {
+        return 'pago_movil'; // Translation key
+    }
+    
+    // Return original if no mapping found
+    return method;
+}
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -45,30 +85,37 @@ async function getPayments(): Promise<Payment[]> {
     try {
         const data = await api.get(API_ROUTES.SALES.PAYMENTS_ALL, { is_sales: 'true' });
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
-        return paymentsData.map((apiPayment: any) => ({
-            id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
-            doc_no: apiPayment.doc_no || `PAY-${apiPayment.id}`,
-            order_id: apiPayment.order_id,
-            invoice_id: apiPayment.invoice_id,
-            quote_id: apiPayment.quote_id,
-            user_name: apiPayment.user_name || 'N/A',
-            userEmail: apiPayment.user_email,
-            amount: parseFloat(apiPayment.amount) || 0,
-            method: apiPayment.method || 'credit_card',
-            status: apiPayment.status || 'pending',
-            createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
-            updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
-            currency: apiPayment.currency || 'USD',
-            payment_date: apiPayment.created_at,
-            amount_applied: parseFloat(apiPayment.converted_amount) || 0,
-            source_amount: parseFloat(apiPayment.amount) || 0,
-            source_currency: apiPayment.currency || 'USD',
-            exchange_rate: parseFloat(apiPayment.exchange_rate) || 0,
-            payment_method: apiPayment.payment_method,
-            transaction_type: apiPayment.transaction_type,
-            transaction_id: apiPayment.transaction_id,
-            reference_doc_id: apiPayment.reference_doc_id,
-        }));
+        return paymentsData.map((apiPayment: any) => {
+            // Try both possible field names for payment method
+            const paymentMethodValue = apiPayment.payment_method || apiPayment.method;
+            
+            return {
+                id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
+                doc_no: apiPayment.doc_no || `PAY-${apiPayment.id}`,
+                order_id: apiPayment.order_id,
+                order_doc_no: apiPayment.order_doc_no,
+                invoice_doc_no: apiPayment.invoice_doc_no,
+                invoice_id: apiPayment.invoice_id,
+                quote_id: apiPayment.quote_id,
+                user_name: apiPayment.user_name || 'N/A',
+                userEmail: apiPayment.user_email,
+                amount: parseFloat(apiPayment.amount) || 0,
+                method: normalizePaymentMethod(paymentMethodValue),
+                status: apiPayment.status || 'pending',
+                createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
+                updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
+                currency: apiPayment.currency || 'USD',
+                payment_date: apiPayment.created_at,
+                amount_applied: parseFloat(apiPayment.converted_amount) || 0,
+                source_amount: parseFloat(apiPayment.amount) || 0,
+                source_currency: apiPayment.currency || 'USD',
+                exchange_rate: parseFloat(apiPayment.exchange_rate) || 0,
+                payment_method: paymentMethodValue,
+                transaction_type: apiPayment.transaction_type,
+                transaction_id: apiPayment.transaction_id,
+                reference_doc_id: apiPayment.reference_doc_id,
+            };
+        });
     } catch (error) {
         console.error("Failed to fetch payments:", error);
         return [];

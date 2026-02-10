@@ -1036,7 +1036,10 @@
       "invoiceRef": "Invoice Reference",
       "docNo": "Doc No.",
       "orderDocNo": "Order Doc No.",
-      "quoteDocNo": "Quote Doc No."
+      "quoteDocNo": "Quote Doc No.",
+      "isCreditNote": "Credit Note",
+      "creditNote": "Credit Note",
+      "invoice": "Invoice"
     },
     "paymentDialog": {
       "add": "Add Payment",
@@ -1581,7 +1584,19 @@
       "exchange_rate": "Exchange Rate",
       "transaction_type": "Transaction Type",
       "reference_doc_id": "Reference Document ID",
-      "order_doc_no": "Order Doc No."
+      "invoice_doc_no": "Invoice Doc No.",
+      "order_doc_no": "Order Doc No.",
+      "is_credit_note": "Credit Note",
+      "credit_note": "Credit Note",
+      "invoice": "Invoice",
+      "paymentMethods": {
+        "efectivo": "Cash",
+        "tarjeta_de_debito": "Debit Card",
+        "tarjeta_de_credito": "Credit Card",
+        "transferencia_bancaria": "Bank Transfer",
+        "mercado_pago": "Mercado Pago",
+        "pago_movil": "Mobile Payment"
+      }
     },
     "transactionType": {
       "payment_allocation": "Payment Allocation",

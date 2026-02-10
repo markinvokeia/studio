@@ -156,11 +156,6 @@ const getColumns = (
       header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.user_name || "User"} />,
     },
     {
-      accessorKey: 'order_doc_no',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.order_id || "Order Doc No"} />,
-    },
-
-    {
       accessorKey: 'total',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={columnTranslations.total || "Total"} />
@@ -708,7 +703,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 columnTranslations={{
                   doc_no: "Doc. No",
                   user_name: t('columns.userName'),
-                  order_doc_no: t('columns.orderId'),
                   total: t('columns.total'),
                   currency: t('columns.currency'),
                   status: t('columns.status'),
@@ -731,7 +725,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             columnTranslations={{
               doc_no: "Doc. No",
               user_name: t('columns.userName'),
-              order_doc_no: t('columns.orderId'),
               total: t('columns.total'),
               currency: t('columns.currency'),
               status: t('columns.status'),

@@ -1036,7 +1036,10 @@
             "invoiceRef": "Referencia de Factura",
             "docNo": "Doc No.",
             "orderDocNo": "Orden Doc No.",
-            "quoteDocNo": "Quote Doc No."
+            "quoteDocNo": "Quote Doc No.",
+            "isCreditNote": "Nota de Crédito",
+            "creditNote": "Nota de Crédito",
+            "invoice": "Factura"
         },
         "paymentDialog": {
             "add": "Agregar Pago",
@@ -1581,7 +1584,19 @@
             "exchange_rate": "Tipo de Cambio",
             "transaction_type": "Tipo de Transacción",
             "reference_doc_id": "ID Doc. de Referencia",
-            "order_doc_no": "Orden Doc No."
+            "invoice_doc_no": "Factura Doc No.",
+            "order_doc_no": "Orden Doc No.",
+            "is_credit_note": "Nota de Crédito",
+            "credit_note": "Nota de Crédito",
+            "invoice": "Factura",
+            "paymentMethods": {
+                "efectivo": "Efectivo",
+                "tarjeta_de_debito": "Tarjeta de Débito",
+                "tarjeta_de_credito": "Tarjeta de Crédito",
+                "transferencia_bancaria": "Transferencia Bancaria",
+                "mercado_pago": "Mercado Pago",
+                "pago_movil": "Pago Móvil"
+            }
         },
         "transactionType": {
             "payment_allocation": "Asignación de Pago",

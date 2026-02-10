@@ -42,10 +42,28 @@ const getColumns = (
       ),
     },
     {
-      accessorKey: 'order_doc_no',
+      accessorKey: 'invoice_doc_no',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('order_doc_no')} />
+        <DataTableColumnHeader column={column} title={t('invoice_doc_no')} />
       ),
+      cell: ({ row }) => {
+        const isCreditNote = row.original.invoice_id === null;
+        return isCreditNote ? 'N/A' : (row.getValue('invoice_doc_no') as string) || 'N/A';
+      },
+    },
+    {
+      accessorKey: 'is_credit_note',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('is_credit_note')} />
+      ),
+      cell: ({ row }) => {
+        const isCreditNote = row.original.invoice_id === null;
+        return (
+          <Badge variant={isCreditNote ? 'secondary' : 'outline'}>
+            {isCreditNote ? t('credit_note') : t('invoice')}
+          </Badge>
+        );
+      },
     },
 
     {
@@ -102,8 +120,16 @@ const getColumns = (
         <DataTableColumnHeader column={column} title={t('method')} />
       ),
       cell: ({ row }) => {
-        const method = row.getValue('method') as string;
-        return <div className="capitalize">{method || 'N/A'}</div>;
+        const methodKey = row.getValue('method') as string;
+        const t = useTranslations('PaymentsPage.columns');
+        
+        if (!methodKey || methodKey === 'N/A') {
+          return <div>N/A</div>;
+        }
+        
+        // Try to get translated payment method, fallback to original value
+        const translatedMethod = t(`paymentMethods.${methodKey}`) || methodKey;
+        return <div className="capitalize">{translatedMethod}</div>;
       },
     },
     {
@@ -202,7 +228,8 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           columnTranslations={{
             doc_no: t('doc_no'),
             user_name: t('user'),
-            order_doc_no: t('order_doc_no'),
+            invoice_doc_no: t('invoice_doc_no'),
+            is_credit_note: t('is_credit_note'),
             payment_date: t('date'),
             amount_applied: t('amount_applied'),
             source_amount: t('source_amount'),

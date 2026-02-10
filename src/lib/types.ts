@@ -135,6 +135,7 @@ export type Invoice = {
   doc_no?: string;
   order_id: string;
   order_doc_no?: string;
+  invoice_doc_no?: string;
   quote_id: string;
   user_name: string;
   userEmail?: string;
@@ -145,6 +146,7 @@ export type Invoice = {
   payment_status: 'unpaid' | 'paid' | 'partial' | 'partially_paid';
   paid_amount?: number;
   type?: string;
+  invoice_id?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -163,6 +165,7 @@ export type Payment = {
   doc_no?: string;
   order_id: string;
   order_doc_no?: string;
+  invoice_doc_no?: string;
   invoice_id: string;
   quote_id: string;
   user_name: string;
