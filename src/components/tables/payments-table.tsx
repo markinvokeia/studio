@@ -129,20 +129,21 @@ const getColumns = (
       }
     },
     {
-      accessorKey: 'method',
+      accessorKey: 'payment_method_code',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('method')} />
       ),
       cell: ({ row }) => {
-        const methodKey = row.getValue('method') as string;
+        const payment = row.original;
+        const methodCode = payment.payment_method_code || payment.method;
         const t = useTranslations('PaymentsPage.columns');
 
-        if (!methodKey || methodKey === 'N/A') {
+        if (!methodCode || methodCode === 'N/A') {
           return <div>N/A</div>;
         }
 
         // Try to get translated payment method, fallback to original value
-        const translatedMethod = t(`paymentMethods.${methodKey}`) || methodKey;
+        const translatedMethod = t(`paymentMethods.${methodCode}`) || methodCode;
         return <div className="capitalize">{translatedMethod}</div>;
       },
     },
@@ -253,6 +254,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
             source_amount: t('source_amount'),
             source_currency: t('source_currency'),
             exchange_rate: t('exchange_rate'),
+            payment_method_code: t('method'),
             method: t('method'),
             transaction_type: t('transaction_type'),
           }}

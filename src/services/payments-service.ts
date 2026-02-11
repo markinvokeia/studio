@@ -82,6 +82,7 @@ function mapApiPaymentToPayment(apiPayment: any): Payment {
     source_currency: apiPayment.currency,
     exchange_rate: parseFloat(apiPayment.exchange_rate),
     payment_method: apiPayment.method,
+    payment_method_code: apiPayment.payment_method_code,
     transaction_type: apiPayment.transaction_type,
     transaction_id: apiPayment.transaction_id,
     reference_doc_id: apiPayment.reference_doc_id,

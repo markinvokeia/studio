@@ -176,6 +176,7 @@ export type Payment = {
   source_currency: 'UYU' | 'USD';
   exchange_rate?: number;
   payment_method: string;
+  payment_method_code?: string;
   transaction_type: 'direct_payment' | 'credit_note_allocation' | 'payment_allocation';
   transaction_id: string | null;
   reference_doc_id?: string;

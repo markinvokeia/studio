@@ -1610,7 +1610,7 @@
             },
             "credit_note": "Nota de Crédito",
             "invoice": "Factura",
-            "paymentMethods": {
+"paymentMethods": {
                 "efectivo": "Efectivo",
                 "tarjeta_de_debito": "Tarjeta de Débito",
                 "tarjeta_de_credito": "Tarjeta de Crédito",
@@ -1618,7 +1618,14 @@
                 "mercado_pago": "Mercado Pago",
                 "pago_movil": "Pago Móvil",
                 "Pago en especies": "Pago en especies",
-                "Debit Card": "Tarjeta de Débito"
+                "Debit Card": "Tarjeta de Débito",
+                "CASH": "Efectivo",
+                "BANK_TRANSFER": "Transferencia Bancaria",
+                "CREDIT_CARD": "Tarjeta de Crédito",
+                "DEBIT_CARD": "Tarjeta de Débito",
+                "MOBILE_PAYMENT": "Pago Móvil",
+                "MERCADO_PAGO": "Mercado Pago",
+                "PE": "Pago en especies"
             }
         },
         "transactionType": {
