@@ -69,7 +69,6 @@ const quoteItemFormSchema = (t: (key: string) => string) => z.object({
     unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')),
     total: z.coerce.number().min(0, t('validation.totalPositive')),
     exchange_rate: z.coerce.number().optional(),
-    tooth_number: z.coerce.number().int().min(11, t('validation.toothNumberMin')).max(85, t('validation.toothNumberMax')).optional().or(z.literal('')),
 });
 
 type QuoteItemFormValues = z.infer<ReturnType<typeof quoteItemFormSchema>>;
@@ -136,7 +135,7 @@ async function getServices(): Promise<Service[]> {
 }
 
 async function upsertQuoteItem(itemData: QuoteItemFormValues, t: (key: string) => string) {
-    const responseData = await api.post(API_ROUTES.PURCHASES.QUOTES_LINES_UPSERT, { ...itemData, is_sales: false });
+    const responseData = await api.post(API_ROUTES.PURCHASES.QUOTES_LINES_UPSERT, { ...itemData, tooth_number: null, is_sales: false });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         const message = responseData[0]?.message ? responseData[0].message : t('errors.failedToSaveQuoteItem');
         throw new Error(message);
@@ -559,7 +558,7 @@ export default function QuotesPage() {
         try {
             const fetchedServices = await getServices();
             setAllServices(fetchedServices);
-            quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' });
+            quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
             setIsQuoteItemDialogOpen(true);
         } catch (error) {
             toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadServices') });
@@ -587,22 +586,37 @@ export default function QuotesPage() {
                 const conversionNeeded = quoteCurrency !== serviceCurrency;
                 setShowConversion(conversionNeeded);
                 setExchangeRate(1);
+
+                quoteItemForm.reset({
+                    id: item.id,
+                    quote_id: selectedQuote.id,
+                    service_id: String(item.service_id),
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    total: item.total,
+                });
+
+                setIsQuoteItemDialogOpen(true);
             } else {
                 setOriginalServicePrice(null);
                 setOriginalServiceCurrency('');
+
+                quoteItemForm.reset({
+                    id: item.id,
+                    quote_id: selectedQuote.id,
+                    service_id: String(item.service_id),
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    total: item.total,
+                });
+
+                setIsQuoteItemDialogOpen(true);
+                toast({
+                    variant: 'default',
+                    title: 'Service Not Found',
+                    description: 'The service for this item could not be found. You can still edit the item manually.'
+                });
             }
-
-            quoteItemForm.reset({
-                id: item.id,
-                quote_id: selectedQuote.id,
-                service_id: String(item.service_id),
-                quantity: item.quantity,
-                unit_price: item.unit_price,
-                total: item.total,
-                tooth_number: item.tooth_number || ''
-            });
-
-            setIsQuoteItemDialogOpen(true);
         } catch (error) {
             toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadServiceData') });
         }
@@ -771,6 +785,7 @@ export default function QuotesPage() {
                                                     onCreate={handleCreateQuoteItem}
                                                     onEdit={handleEditQuoteItem}
                                                     onDelete={handleCreateQuoteItem}
+                                                    showToothNumber={false}
                                                 />
                                             </TabsContent>
                                             <TabsContent value="orders" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
@@ -1090,27 +1105,7 @@ export default function QuotesPage() {
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={quoteItemForm.control}
-                                name="tooth_number"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('itemDialog.toothNumber')}</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                placeholder={t('placeholders.toothNumber')}
-                                                {...field}
-                                                onChange={(e) => {
-                                                    const value = e.target.value;
-                                                    field.onChange(value === '' ? '' : Number(value));
-                                                }}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+
                             {showConversion && (
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormItem>

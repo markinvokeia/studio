@@ -765,6 +765,7 @@ export default function QuotesPage() {
                                                     onCreate={handleCreateQuoteItem}
                                                     onEdit={handleEditQuoteItem}
                                                     onDelete={handleDeleteQuoteItem}
+                                                    showToothNumber={true}
                                                 />
                                             </TabsContent>
                                             <TabsContent value="orders" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">

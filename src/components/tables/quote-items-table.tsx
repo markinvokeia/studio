@@ -21,14 +21,17 @@ interface QuoteItemsTableProps {
   onCreate: () => void;
   onEdit: (item: QuoteItem) => void;
   onDelete: (item: QuoteItem) => void;
+  showToothNumber?: boolean;
 }
 
 const getColumns = (
   t: (key: string) => string,
   onEdit: (item: QuoteItem) => void,
   onDelete: (item: QuoteItem) => void,
-  canEdit: boolean
-): ColumnDef<QuoteItem>[] => [
+  canEdit: boolean,
+  showToothNumber: boolean = true
+): ColumnDef<QuoteItem>[] => {
+  const baseColumns: ColumnDef<QuoteItem>[] = [
     {
       accessorKey: 'id',
       header: ({ column }) => (
@@ -40,16 +43,6 @@ const getColumns = (
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('service')} />
       ),
-    },
-    {
-      accessorKey: 'tooth_number',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('toothNumber')} />
-      ),
-      cell: ({ row }) => {
-        const toothNumber = row.getValue('tooth_number') as number;
-        return toothNumber ? <div className="font-medium">{toothNumber}</div> : <div className="text-muted-foreground">-</div>;
-      },
     },
     {
       accessorKey: 'quantity',
@@ -85,7 +78,6 @@ const getColumns = (
         return <div className="font-medium">{formatted}</div>;
       },
     },
-
     {
       id: 'actions',
       cell: ({ row }) => {
@@ -109,7 +101,25 @@ const getColumns = (
     },
   ];
 
-export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete }: QuoteItemsTableProps) {
+  // Insert tooth_number column after service_name if needed
+  if (showToothNumber) {
+    const toothNumberColumn: ColumnDef<QuoteItem> = {
+      accessorKey: 'tooth_number',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('toothNumber')} />
+      ),
+      cell: ({ row }) => {
+        const toothNumber = row.getValue('tooth_number') as number;
+        return toothNumber ? <div className="font-medium">{toothNumber}</div> : <div className="text-muted-foreground">-</div>;
+      },
+    };
+    baseColumns.splice(2, 0, toothNumberColumn); // Insert at index 2 (after service_name)
+  }
+
+  return baseColumns;
+};
+
+export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true }: QuoteItemsTableProps) {
   const t = useTranslations('QuotesPage.itemDialog');
   const tShared = useTranslations('UserColumns');
   const columns = getColumns(
@@ -122,7 +132,8 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
     },
     onEdit,
     onDelete,
-    canEdit
+    canEdit,
+    showToothNumber
   );
 
   if (isLoading) {
@@ -149,7 +160,7 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
           columnTranslations={{
             id: t('id'),
             service_name: t('service'),
-            tooth_number: t('toothNumber'),
+            ...(showToothNumber && { tooth_number: t('toothNumber') }),
             quantity: t('quantity'),
             unit_price: t('unitPrice'),
             total: t('total'),
