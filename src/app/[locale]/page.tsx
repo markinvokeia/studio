@@ -8,8 +8,9 @@ import { InvoiceStatusChart } from '@/components/charts/invoice-status-chart';
 import { ReportFilters } from '@/components/dashboard/report-filters';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
 import { RecentOrdersTable } from '@/components/tables/recent-orders-table';
-import { NewUsersTable } from '@/components/tables/new-users-table';
+import { NewPatientsTable } from '@/components/tables/new-patients-table';
 import { Quote, Order, User, Stat, SalesChartData, SalesByServiceChartData, InvoiceStatusData, AverageBilling, AppointmentAttendanceRate, PatientDemographics, CajaSesion } from '@/lib/types';
+import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { subMonths, format } from 'date-fns';
@@ -234,12 +235,13 @@ async function getQuotes(): Promise<Quote[]> {
 
         return quotesData.map((apiQuote: any) => ({
             id: apiQuote.id ? String(apiQuote.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
+            doc_no: apiQuote.doc_no || 'N/A',
             user_id: apiQuote.user_id || 'N/A',
             total: apiQuote.total || 0,
             status: apiQuote.status || 'draft',
             payment_status: apiQuote.payment_status || 'unpaid',
             billing_status: apiQuote.billing_status || 'not invoiced',
-            userName: apiQuote.user_name || 'No Name',
+            user_name: apiQuote.user_name || 'No Name',
             userEmail: apiQuote.userEmail || 'no-email@example.com',
             createdAt: apiQuote.createdAt || new Date().toISOString().split('T')[0],
         }));
@@ -255,9 +257,12 @@ async function getOrders(): Promise<Order[]> {
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
         return ordersData.map((apiOrder: any) => ({
             id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
+            doc_no: apiOrder.doc_no || 'N/A',
             user_id: apiOrder.user_id,
+            user_name: apiOrder.user_name || 'No Name',
             status: apiOrder.status,
             createdAt: apiOrder.createdAt || new Date().toISOString().split('T')[0],
+            currency: apiOrder.currency || 'N/A',
         }));
     } catch (error) {
         console.error("Failed to fetch orders:", error);
@@ -265,14 +270,20 @@ async function getOrders(): Promise<Order[]> {
     }
 }
 
-async function getUsers(): Promise<User[]> {
+async function getPatientsData(pagination: PaginationState, columnFilters: ColumnFiltersState): Promise<{ patients: User[], total: number }> {
     try {
-        const responseData = await api.get(API_ROUTES.USERS);
+        const searchQuery = (columnFilters.find(f => f.id === 'name')?.value as string) || '';
+        const responseData = await api.get(API_ROUTES.USERS, {
+            page: (pagination.pageIndex + 1).toString(),
+            limit: pagination.pageSize.toString(),
+            search: searchQuery,
+            filter_type: 'PACIENTE',
+            only_debtors: 'false',
+            only_active: 'true'
+        });
         const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
-
         const usersData = Array.isArray(data.data) ? data.data : [];
-
-        return usersData.map((apiUser: any) => ({
+        const patients = usersData.map((apiUser: any) => ({
             id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
             name: apiUser.name || 'No Name',
             email: apiUser.email || 'no-email@example.com',
@@ -280,15 +291,20 @@ async function getUsers(): Promise<User[]> {
             is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
             avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
         }));
+
+        const total = Number(data.total) || patients.length;
+
+        return { patients, total };
     } catch (error) {
-        console.error("Failed to fetch users:", error);
-        return [];
+        console.error("Failed to fetch patients:", error);
+        return { patients: [], total: 0 };
     }
 }
 
 export default function DashboardPage() {
     const tStats = useTranslations('Stats');
     const tKpi = useTranslations('KpiRow');
+    const t = useTranslations();
 
     const [stats, setStats] = React.useState<Stat[]>([]);
     const [salesTrend, setSalesTrend] = React.useState(0);
@@ -306,7 +322,14 @@ export default function DashboardPage() {
 
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [orders, setOrders] = React.useState<Order[]>([]);
-    const [users, setUsers] = React.useState<User[]>([]);
+
+    const [patients, setPatients] = React.useState<User[]>([]);
+    const [patientTotal, setPatientTotal] = React.useState(0);
+    const [patientPagination, setPatientPagination] = React.useState<PaginationState>({
+        pageIndex: 0,
+        pageSize: 10,
+    });
+    const [patientColumnFilters, setPatientColumnFilters] = React.useState<ColumnFiltersState>([]);
 
     const [date, setDate] = React.useState<DateRange | undefined>({
         from: subMonths(new Date(), 1),
@@ -347,14 +370,30 @@ export default function DashboardPage() {
 
     }, [date, tStats, tKpi]);
 
+    const [isRefreshingPatients, setIsRefreshingPatients] = React.useState(false);
+
+    const loadPatients = React.useCallback(async () => {
+        setIsRefreshingPatients(true);
+        const { patients: fetchedPatients, total } = await getPatientsData(patientPagination, patientColumnFilters);
+        setPatients(fetchedPatients || []);
+        setPatientTotal(total);
+        setIsRefreshingPatients(false);
+    }, [patientPagination, patientColumnFilters]);
+
     React.useEffect(() => {
         getQuotes().then(setQuotes);
         getOrders().then(setOrders);
-        getUsers().then(setUsers);
     }, []);
 
+    React.useEffect(() => {
+        const debounce = setTimeout(() => {
+            loadPatients();
+        }, 500);
+        return () => clearTimeout(debounce);
+    }, [loadPatients]);
+
     return (
-        <div className="flex-1 overflow-y-auto pr-2 space-y-4 min-h-0">
+        <div className="flex-1 overflow-y-auto p-4 pr-2 space-y-4 min-h-0">
             <ReportFilters date={date} setDate={setDate} />
             <Stats data={stats} />
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -375,13 +414,25 @@ export default function DashboardPage() {
                 patientDemographicsData={patientDemographics}
                 isLoading={isKpiLoading}
             />
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <RecentQuotesTable quotes={quotes} />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:h-[500px]">
+                <RecentQuotesTable
+                    quotes={quotes}
+                    title={t('RecentQuotesTable.title')}
+                    description={t('RecentQuotesTable.description')}
+                />
                 <RecentOrdersTable orders={orders} />
             </div>
-            <NewUsersTable users={users} />
+            <NewPatientsTable
+                patients={patients}
+                onRefresh={loadPatients}
+                isRefreshing={isRefreshingPatients}
+                pageCount={Math.ceil(patientTotal / patientPagination.pageSize)}
+                pagination={patientPagination}
+                onPaginationChange={setPatientPagination}
+                columnFilters={patientColumnFilters}
+                onColumnFiltersChange={setPatientColumnFilters}
+                className="lg:h-[500px]"
+            />
         </div>
     );
 }
-
-

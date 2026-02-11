@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useTranslations } from 'next-intl';
 import React from 'react';
-import { formatDateTime } from '@/lib/utils';
+import { formatDateTime, cn } from '@/lib/utils';
+import { DocumentCheckIcon } from '../icons/document-check-icon';
 
 const getColumns = (
   t: (key: string) => string
@@ -18,6 +19,12 @@ const getColumns = (
       accessorKey: 'doc_no',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />
+      ),
+    },
+    {
+      accessorKey: 'user_name',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('UserColumns.name')} />
       ),
     },
     {
@@ -61,20 +68,24 @@ interface RecentOrdersTableProps {
   orders: Order[];
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  className?: string;
 }
 
-export function RecentOrdersTable({ orders, onRefresh, isRefreshing }: RecentOrdersTableProps) {
+export function RecentOrdersTable({ orders, onRefresh, isRefreshing, className }: RecentOrdersTableProps) {
   const t = useTranslations();
   console.log('Translations for RecentOrdersTable loaded.');
   const columns = React.useMemo(() => getColumns(t), [t]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('RecentOrdersTable.title')}</CardTitle>
-        <CardDescription>{t('RecentOrdersTable.description')}</CardDescription>
+    <Card className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
+      <CardHeader className="flex-none p-6 pb-0">
+        <div className="flex items-center gap-2">
+          <DocumentCheckIcon className="h-6 w-6 text-blue-500" />
+          <CardTitle className="text-lg lg:text-xl">{t('RecentOrdersTable.title')}</CardTitle>
+        </div>
+        <CardDescription className="text-xs">{t('RecentOrdersTable.description')}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pt-4">
         <DataTable
           columns={columns}
           data={orders}

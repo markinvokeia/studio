@@ -2,10 +2,10 @@
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
-import Image from 'next/image';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { User } from '@/lib/types';
+import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import {
   Card,
   CardContent,
@@ -14,8 +14,10 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import React from 'react';
 import { useTranslations } from 'next-intl';
+import { UserPlusIcon } from '../icons/user-plus-icon';
 
 const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
   {
@@ -48,31 +50,55 @@ const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
   },
 ];
 
-interface NewUsersTableProps {
-  users: User[];
+interface NewPatientsTableProps {
+  patients: User[];
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  pageCount?: number;
+  pagination?: PaginationState;
+  onPaginationChange?: React.Dispatch<React.SetStateAction<PaginationState>>;
+  columnFilters?: ColumnFiltersState;
+  onColumnFiltersChange?: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
+  className?: string;
 }
 
-export function NewUsersTable({ users, onRefresh, isRefreshing }: NewUsersTableProps) {
+export function NewPatientsTable({
+  patients,
+  onRefresh,
+  isRefreshing,
+  pageCount,
+  pagination,
+  onPaginationChange,
+  columnFilters,
+  onColumnFiltersChange,
+  className,
+}: NewPatientsTableProps) {
   const t = useTranslations();
-  console.log('Translations for NewUsersTable loaded.');
   const columns = React.useMemo(() => getColumns(t), [t]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('NewUsersTable.title')}</CardTitle>
-        <CardDescription>{t('NewUsersTable.description')}</CardDescription>
+    <Card className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
+      <CardHeader className="flex-none p-6 pb-0">
+        <div className="flex items-center gap-2">
+          <UserPlusIcon className="h-6 w-6 text-emerald-500" />
+          <CardTitle className="text-lg lg:text-xl">{t('NewPatientsTable.title')}</CardTitle>
+        </div>
+        <CardDescription className="text-xs">{t('NewPatientsTable.description')}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pt-4">
         <DataTable
           columns={columns}
-          data={users}
+          data={patients}
           filterColumnId="name"
-          filterPlaceholder={t('NewUsersTable.filterPlaceholder')}
+          filterPlaceholder={t('NewPatientsTable.filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
+          pageCount={pageCount}
+          pagination={pagination}
+          onPaginationChange={onPaginationChange}
+          columnFilters={columnFilters}
+          onColumnFiltersChange={onColumnFiltersChange}
+          manualPagination={true}
         />
       </CardContent>
     </Card>

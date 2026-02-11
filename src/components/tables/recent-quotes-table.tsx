@@ -53,6 +53,13 @@ const getColumns = (
   onSendEmail: (quote: Quote) => void
 ): ColumnDef<Quote>[] => [
     {
+      accessorKey: 'doc_no',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />
+      ),
+      size: 50,
+    },
+    {
       id: 'select',
       header: () => null,
       cell: ({ row, table }) => {
@@ -72,13 +79,6 @@ const getColumns = (
       enableSorting: false,
       enableHiding: false,
       size: 20,
-    },
-    {
-      accessorKey: 'doc_no',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('QuoteColumns.quoteId')} />
-      ),
-      size: 50,
     },
     {
       accessorKey: 'user_name',
@@ -439,7 +439,7 @@ export function RecentQuotesTable({
     <>
       <Card className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
         {title && (
-          <CardHeader className="flex-none p-4 pb-0">
+          <CardHeader className="flex-none p-6 pb-0">
             <div className="flex items-center gap-2">
               <DocumentTextIcon className="h-6 w-6 text-amber-500" />
               <CardTitle className="text-lg lg:text-xl">{title}</CardTitle>
@@ -447,7 +447,7 @@ export function RecentQuotesTable({
             {description && <CardDescription className="text-xs">{description}</CardDescription>}
           </CardHeader>
         )}
-        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pt-4">
           <div className="flex flex-col flex-1 min-h-0 space-y-4 overflow-hidden">
             {standalone ? (
               <DataTableAdvancedToolbar
