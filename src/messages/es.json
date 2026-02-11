@@ -1347,6 +1347,9 @@
             "toast": {
                 "closeSuccessTitle": "Sesión Cerrada",
                 "closeSuccessDescription": "La sesión de caja se ha cerrado exitosamente."
+            },
+            "wizard": {
+                "back": "Atrás"
             }
         },
         "report": {

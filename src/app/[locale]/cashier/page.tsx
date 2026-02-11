@@ -1094,7 +1094,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                 </div>
             </CardContent>
             <CardFooter className='justify-between mt-4'>
-                <Button variant="outline" onClick={onBack}>Back</Button>
+                <Button variant="outline" onClick={onBack}>{t('wizard.back')}</Button>
                 <Button className="w-full md:w-auto" onClick={handleCloseSession}>
                     {t('closeSessionButton')}
                     <ArrowRight className="ml-2 h-4 w-4" />

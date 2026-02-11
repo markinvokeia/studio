@@ -1347,6 +1347,9 @@
       "toast": {
         "closeSuccessTitle": "Session Closed",
         "closeSuccessDescription": "The cash session has been successfully closed."
+      },
+      "wizard": {
+        "back": "Back"
       }
     },
     "report": {
