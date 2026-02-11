@@ -798,7 +798,9 @@
             "openMenu": "Abrir menú",
             "title": "Acciones",
             "schedule": "Programar",
-            "complete": "Completar"
+            "complete": "Completar",
+            "cancel": "Cancelar",
+            "save": "Guardar"
         },
         "dateDialog": {
             "title": {
@@ -818,6 +820,10 @@
             "updateSuccess": "Ítem actualizado exitosamente.",
             "error": "Error",
             "updateError": "Error al actualizar el ítem."
+        },
+        "dialog": {
+            "completeTitle": "Completar artículo",
+            "completeDescription": "Selecciona la fecha de completación del artículo"
         }
     },
     "General": {
@@ -1606,7 +1612,8 @@
                 "transferencia_bancaria": "Transferencia Bancaria",
                 "mercado_pago": "Mercado Pago",
                 "pago_movil": "Pago Móvil",
-                "Pago en especies": "Pago en especies"
+                "Pago en especies": "Pago en especies",
+                "Debit Card": "Tarjeta de Débito"
             }
         },
         "transactionType": {
