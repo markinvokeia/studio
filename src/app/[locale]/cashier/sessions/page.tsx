@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { normalizePaymentMethodCode } from '@/lib/payment-methods';
 import { CajaMovimiento, CajaSesion } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -84,7 +85,7 @@ async function getSessionMovements(sessionId: string): Promise<CajaMovimiento[]>
             descripcion: mov.description,
             fecha: mov.created_at,
             usuarioId: mov.registered_by_user,
-            metodoPago: (mov.payment_method_name || 'otro').toUpperCase() as any,
+            metodoPago: normalizePaymentMethodCode(mov.payment_method_code),
             currency: mov.currency,
         }));
     } catch (error) {

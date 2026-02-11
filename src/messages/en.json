@@ -1095,13 +1095,15 @@
       "booked": "Booked"
     },
     "methods": {
+      "cash": "Cash",
       "bank_transfer": "Bank Transfer",
       "credit_card": "Credit Card",
-      "cash": "Cash",
-      "debit": "Debit",
-      "credit": "Credit",
+      "debit_card": "Debit Card",
+      "mobile_payment": "Mobile Payment",
       "mercado_pago": "Mercado Pago",
-      "debit_card": "Debit Card"
+      "pe": "PE",
+      "debit": "Debit",
+      "credit": "Credit"
     },
     "validation": {
       "amountPositive": "Amount must be a positive number.",
@@ -1339,12 +1341,15 @@
       "description": "Declare Cashup",
       "methods": {
         "cash": "Cash",
+        "bank_transfer": "Bank Transfer",
+        "credit_card": "Credit Card",
+        "debit_card": "Debit Card",
+        "mobile_payment": "Mobile Payment",
+        "mercado_pago": "Mercado Pago",
+        "pe": "PE",
         "card": "Card",
         "transfer": "Transfer",
-        "bank_transfer": "Bank Transfer",
-        "other": "Other",
-        "credit_card": "Credit Card",
-        "debit_card": "Debit Card"
+        "other": "Other"
       },
       "systemTotal": "System Total",
       "declared": "Declared",
@@ -3201,7 +3206,7 @@
       "preview": {
         "title": "Preview"
       },
-"variables": {
+      "variables": {
         "title": "Variables",
         "description": "Click a variable to insert it into your template.",
         "patient": "Patient",

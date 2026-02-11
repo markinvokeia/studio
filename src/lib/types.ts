@@ -519,7 +519,7 @@ export type CajaMovimiento = {
   id: string;
   cajaSesionId: string;
   tipo: 'INGRESO' | 'EGRESO';
-  metodoPago: 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'OTRO';
+  metodoPago: 'CASH' | 'BANK_TRANSFER' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'MOBILE_PAYMENT' | 'MERCADO_PAGO' | 'PE';
   monto: number;
   descripcion: string;
   fecha: string;

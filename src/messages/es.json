@@ -1095,13 +1095,15 @@
             "booked": "Contabilizado"
         },
         "methods": {
+            "cash": "Efectivo",
             "bank_transfer": "Transferencia Bancaria",
             "credit_card": "Tarjeta de Crédito",
-            "cash": "Efectivo",
-            "debit": "Débito",
-            "credit": "Crédito",
+            "debit_card": "Tarjeta de Débito",
+            "mobile_payment": "Pago Móvil",
             "mercado_pago": "Mercado Pago",
-            "debit_card": "Tarjeta de Débito"
+            "pe": "PE",
+            "debit": "Débito",
+            "credit": "Crédito"
         },
         "validation": {
             "amountPositive": "El monto debe ser un número positivo.",
@@ -1339,12 +1341,15 @@
             "description": "Declarar Arqueo",
             "methods": {
                 "cash": "Efectivo",
+                "bank_transfer": "Transferencia Bancaria",
+                "credit_card": "Tarjeta de Crédito",
+                "debit_card": "Tarjeta de Débito",
+                "mobile_payment": "Pago Móvil",
+                "mercado_pago": "Mercado Pago",
+                "pe": "PE",
                 "card": "Tarjeta",
                 "transfer": "Transferencia",
-                "bank_transfer": "Transferencia Bancaria",
-                "other": "Otro",
-                "credit_card": "Tarjeta de Crédito",
-                "debit_card": "Tarjeta de Débito"
+                "other": "Otro"
             },
             "systemTotal": "Total Sistema",
             "declared": "Declarado",

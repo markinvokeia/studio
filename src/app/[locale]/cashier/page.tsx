@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { normalizePaymentMethodCode } from '@/lib/payment-methods';
 import { CajaMovimiento, CajaSesion, CashPoint } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -157,7 +158,7 @@ export default function CashierPage() {
                 descripcion: mov.description,
                 fecha: mov.created_at,
                 usuarioId: mov.registered_by_user,
-                metodoPago: (mov.payment_method_name || 'otro').toUpperCase() as any,
+                metodoPago: normalizePaymentMethodCode(mov.payment_method_code),
             })));
         } catch (error) {
             console.error(error);
@@ -394,7 +395,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         const income: { UYU: number; USD: number } = { UYU: openingDetails.totalUYU, USD: openingDetails.totalUSD };
         movements.forEach(mov => {
             const currency = mov.currency as ('UYU' | 'USD');
-            if ((mov.metodoPago === 'EFECTIVO' || mov.metodoPago === 'CASH') && income[currency] !== undefined) {
+            if (mov.metodoPago === 'CASH' && income[currency] !== undefined) {
                 if (mov.tipo === 'INGRESO') {
                     income[currency] += mov.monto;
                 } else {
@@ -1059,13 +1060,14 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                 </div>
 
                 {currencyData?.desglose_detallado?.map((detail: any) => {
-                    if (detail.metodo.toLowerCase() === 'apertura caja' || detail.metodo.toLowerCase() === 'cash') return null;
+                    const methodCode = normalizePaymentMethodCode(detail.codigo);
+                    if (methodCode === 'CASH') return null;
 
                     return (
-                        <div key={detail.metodo} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                        <div key={detail.codigo} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                             <Label className="flex items-center gap-2 font-semibold">
                                 <CreditCard className="h-5 w-5 text-muted-foreground" />
-                                {t(`methods.${detail.metodo.toLowerCase().replace(/ /g, '_')}`, { defaultMessage: detail.metodo })}
+                                {t(`methods.${methodCode.toLowerCase()}`, { defaultMessage: detail.codigo })}
                             </Label>
                             <div className="text-center md:col-span-3"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">${parseFloat(detail.monto).toFixed(2)}</div></div>
                         </div>
