@@ -2,118 +2,39 @@
 'use client';
 
 import { PaymentsTable } from '@/components/tables/payments-table';
-
-// Payment method mapping function to normalize different formats and languages
-function normalizePaymentMethod(method: string | undefined): string {
-    if (!method) return 'N/A';
-    
-    const lowerMethod = method.toLowerCase().trim();
-    
-    // Cash/Efectivo mappings
-    if (lowerMethod.includes('efectivo') || lowerMethod.includes('cash')) {
-        return 'efectivo'; // Translation key
-    }
-    
-    // Debit Card mappings
-    if (lowerMethod.includes('debit') || lowerMethod.includes('débito')) {
-        return 'tarjeta_de_debito'; // Translation key
-    }
-    
-    // Credit Card mappings
-    if (lowerMethod.includes('credit') && !lowerMethod.includes('debit')) {
-        return 'tarjeta_de_credito'; // Translation key
-    }
-    
-    // Transfer/Bank Transfer mappings
-    if (lowerMethod.includes('transfer') || lowerMethod.includes('banco')) {
-        return 'transferencia_bancaria'; // Translation key
-    }
-    
-    // Mercado Pago
-    if (lowerMethod.includes('mercado pago')) {
-        return 'mercado_pago'; // Translation key
-    }
-    
-    // Mobile Payment
-    if (lowerMethod.includes('mobile')) {
-        return 'pago_movil'; // Translation key
-    }
-    
-    // Return original if no mapping found
-    return method;
-}
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { API_ROUTES } from '@/constants/routes';
+import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
-import { Payment } from '@/lib/types';
 import { api } from '@/services/api';
+import { getPurchasePayments, Payment } from '@/services/payments-service';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
-async function getPayments(): Promise<Payment[]> {
-    try {
-        const data = await api.get(API_ROUTES.PURCHASES.PAYMENTS_ALL, { is_sales: 'false' });
-        const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
-        return paymentsData.map((apiPayment: any) => {
-            // Try both possible field names for payment method
-            const paymentMethodValue = apiPayment.payment_method || apiPayment.method;
-            
-            return {
-                id: apiPayment.id ? String(apiPayment.id) : `pay_${Math.random().toString(36).substr(2, 9)}`,
-                doc_no: apiPayment.doc_no || `PAY-${apiPayment.id}`,
-                order_id: apiPayment.order_id,
-                order_doc_no: apiPayment.order_doc_no,
-                invoice_doc_no: apiPayment.invoice_doc_no,
-                invoice_id: apiPayment.invoice_id,
-                quote_id: apiPayment.quote_id,
-                user_name: apiPayment.user_name || 'N/A',
-                userEmail: apiPayment.user_email,
-                amount: parseFloat(apiPayment.amount) || 0,
-                method: normalizePaymentMethod(paymentMethodValue),
-                status: apiPayment.status || 'pending',
-                createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
-                updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
-                currency: apiPayment.currency || 'USD',
-                payment_date: apiPayment.created_at,
-                amount_applied: parseFloat(apiPayment.converted_amount) || 0,
-                source_amount: parseFloat(apiPayment.amount) || 0,
-                source_currency: apiPayment.currency || 'USD',
-                exchange_rate: parseFloat(apiPayment.exchange_rate) || 0,
-                payment_method: paymentMethodValue,
-                transaction_type: apiPayment.transaction_type,
-                transaction_id: apiPayment.transaction_id,
-                reference_doc_id: apiPayment.reference_doc_id,
-            };
-        });
-    } catch (error) {
-        console.error("Failed to fetch payments:", error);
-        return [];
-    }
-}
 
 export default function PaymentsPage() {
     const t = useTranslations('PaymentsPage');
     const { toast } = useToast();
-    const [payments, setPayments] = React.useState<Payment[]>([]);
-    const [isLoading, setIsLoading] = React.useState(false);
+    const {
+        payments,
+        isLoading,
+        pagination,
+        totalPages,
+        handlePaginationChange,
+        refreshPayments
+    } = usePaymentsPagination({
+        fetchFunction: getPurchasePayments,
+        initialPageSize: 50
+    });
     const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
     const [selectedPaymentForEmail, setSelectedPaymentForEmail] = React.useState<Payment | null>(null);
     const [emailRecipients, setEmailRecipients] = React.useState('');
 
-    const loadPayments = React.useCallback(async () => {
-        setIsLoading(true);
-        const fetchedPayments = await getPayments();
-        setPayments(fetchedPayments);
-        setIsLoading(false);
-    }, []);
 
-    React.useEffect(() => {
-        loadPayments();
-    }, [loadPayments]);
 
     const handlePrintPayment = async (payment: Payment) => {
         toast({
@@ -203,10 +124,14 @@ export default function PaymentsPage() {
                     <PaymentsTable
                         payments={payments}
                         isLoading={isLoading}
-                        onRefresh={loadPayments}
+                        onRefresh={refreshPayments}
                         isRefreshing={isLoading}
                         onPrint={handlePrintPayment}
                         onSendEmail={handleSendEmailClick}
+                        pagination={pagination}
+                        onPaginationChange={handlePaginationChange}
+                        pageCount={totalPages}
+                        manualPagination={true}
                     />
                 </CardContent>
             </Card>

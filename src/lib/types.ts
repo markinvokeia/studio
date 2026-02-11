@@ -166,8 +166,8 @@ export type Payment = {
   order_id: string;
   order_doc_no?: string;
   invoice_doc_no?: string;
-  invoice_id: string;
-  quote_id: string;
+  invoice_id: string | null;
+  quote_id: string | null;
   user_name: string;
   userEmail?: string;
   payment_date: string;
@@ -177,7 +177,7 @@ export type Payment = {
   exchange_rate?: number;
   payment_method: string;
   transaction_type: 'direct_payment' | 'credit_note_allocation' | 'payment_allocation';
-  transaction_id: string;
+  transaction_id: string | null;
   reference_doc_id?: string;
   status: 'pending' | 'completed' | 'failed';
   createdAt: string;
@@ -185,6 +185,7 @@ export type Payment = {
   amount: number;
   method: string;
   currency?: 'UYU' | 'USD';
+  type: 'invoice' | 'credit_note' | null;
 };
 
 export type PaymentMethod = {

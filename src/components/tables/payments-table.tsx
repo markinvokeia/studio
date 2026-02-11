@@ -1,19 +1,19 @@
 
 'use client';
 
-import { ColumnDef } from '@tanstack/react-table';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Payment } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '../ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import React from 'react';
-import { useTranslations } from 'next-intl';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { Button } from '../ui/button';
+import { ColumnDef, PaginationState } from '@tanstack/react-table';
 import { MoreHorizontal, Printer, Send } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import React from 'react';
+import { Button } from '../ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { Skeleton } from '../ui/skeleton';
 
 const getColumns = (
   t: (key: string) => string,
@@ -52,15 +52,29 @@ const getColumns = (
       },
     },
     {
-      accessorKey: 'is_credit_note',
+      accessorKey: 'type',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('is_credit_note')} />
+        <DataTableColumnHeader column={column} title={t('type')} />
       ),
       cell: ({ row }) => {
-        const isCreditNote = row.original.invoice_id === null;
+        const payment = row.original;
+        let paymentType: 'payment' | 'prepaid' | 'credit_note';
+        let variant: 'default' | 'secondary' | 'outline';
+
+        if (payment.invoice_id && payment.type === 'credit_note') {
+          paymentType = 'credit_note';
+          variant = 'secondary';
+        } else if (!payment.invoice_id) {
+          paymentType = 'prepaid';
+          variant = 'outline';
+        } else {
+          paymentType = 'payment';
+          variant = 'default';
+        }
+
         return (
-          <Badge variant={isCreditNote ? 'secondary' : 'outline'}>
-            {isCreditNote ? t('credit_note') : t('invoice')}
+          <Badge variant={variant}>
+            {t(`paymentTypes.${paymentType}`)}
           </Badge>
         );
       },
@@ -122,11 +136,11 @@ const getColumns = (
       cell: ({ row }) => {
         const methodKey = row.getValue('method') as string;
         const t = useTranslations('PaymentsPage.columns');
-        
+
         if (!methodKey || methodKey === 'N/A') {
           return <div>N/A</div>;
         }
-        
+
         // Try to get translated payment method, fallback to original value
         const translatedMethod = t(`paymentMethods.${methodKey}`) || methodKey;
         return <div className="capitalize">{translatedMethod}</div>;
@@ -192,9 +206,13 @@ interface PaymentsTableProps {
   onSendEmail?: (payment: Payment) => void;
   onCreate?: () => void;
   className?: string;
+  pagination?: PaginationState;
+  onPaginationChange?: React.Dispatch<React.SetStateAction<PaginationState>>;
+  pageCount?: number;
+  manualPagination?: boolean;
 }
 
-export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onCreate, className }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false }: PaymentsTableProps) {
   const t = useTranslations('PaymentsPage.columns');
   const tPage = useTranslations('PaymentsPage');
   const tTransactionType = useTranslations('PaymentsPage.transactionType');
@@ -229,7 +247,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
             doc_no: t('doc_no'),
             user_name: t('user'),
             invoice_doc_no: t('invoice_doc_no'),
-            is_credit_note: t('is_credit_note'),
+            type: t('type'),
             payment_date: t('date'),
             amount_applied: t('amount_applied'),
             source_amount: t('source_amount'),
@@ -238,6 +256,10 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
             method: t('method'),
             transaction_type: t('transaction_type'),
           }}
+          pagination={pagination}
+          onPaginationChange={onPaginationChange}
+          pageCount={pageCount}
+          manualPagination={manualPagination}
         />
       </CardContent>
     </Card>

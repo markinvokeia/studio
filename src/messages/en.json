@@ -1072,7 +1072,8 @@
       "totalPayment": "Total Payment",
       "noPayment": "No payment selected",
       "overpayment": "The total payment exceeds the remaining amount of the invoice.",
-      "selectCurrency": "Select Currency"
+      "selectCurrency": "Select Currency",
+      "paymentRef": "Payment REF"
     },
     "status": {
       "paid": "Paid",
@@ -1188,7 +1189,8 @@
       },
       "type": "Type",
       "parentInvoice": "Parent Invoice",
-      "save": "Save"
+      "save": "Save",
+      "selectParentInvoice": "Select Parent Invoice"
     },
     "actions": {
       "openMenu": "Open menu",
@@ -1589,7 +1591,12 @@
       "reference_doc_id": "Reference Document ID",
       "invoice_doc_no": "Invoice Doc No.",
       "order_doc_no": "Order Doc No.",
-      "is_credit_note": "Credit Note",
+      "type": "Type",
+      "paymentTypes": {
+        "payment": "Payment",
+        "prepaid": "Prepaid",
+        "credit_note": "Credit Note"
+      },
       "credit_note": "Credit Note",
       "invoice": "Invoice",
       "paymentMethods": {
@@ -1598,7 +1605,8 @@
         "tarjeta_de_credito": "Credit Card",
         "transferencia_bancaria": "Bank Transfer",
         "mercado_pago": "Mercado Pago",
-        "pago_movil": "Mobile Payment"
+        "pago_movil": "Mobile Payment",
+        "Pago en especies": "Non-cash"
       }
     },
     "transactionType": {

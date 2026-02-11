@@ -1072,7 +1072,8 @@
             "totalPayment": "Pago Total",
             "noPayment": "Ningún pago seleccionado",
             "overpayment": "El pago total excede el monto restante de la factura.",
-            "selectCurrency": "Seleccionar Moneda"
+            "selectCurrency": "Seleccionar Moneda",
+            "paymentRef": "Ref Pago"
         },
         "status": {
             "paid": "Pagado",
@@ -1188,7 +1189,8 @@
                 "credit_note": "Nota de Crédito"
             },
             "type": "Tipo",
-            "parentInvoice": "Factura Padre"
+            "parentInvoice": "Factura Padre",
+            "selectParentInvoice": "Seleccionar Factura Padre"
         },
         "actions": {
             "openMenu": "Abrir menú",
@@ -1589,7 +1591,12 @@
             "reference_doc_id": "ID Doc. de Referencia",
             "invoice_doc_no": "Factura Doc No.",
             "order_doc_no": "Orden Doc No.",
-            "is_credit_note": "Nota de Crédito",
+            "type": "Tipo",
+            "paymentTypes": {
+                "payment": "Pago",
+                "prepaid": "Prepago",
+                "credit_note": "Nota de Crédito"
+            },
             "credit_note": "Nota de Crédito",
             "invoice": "Factura",
             "paymentMethods": {
@@ -1598,7 +1605,8 @@
                 "tarjeta_de_credito": "Tarjeta de Crédito",
                 "transferencia_bancaria": "Transferencia Bancaria",
                 "mercado_pago": "Mercado Pago",
-                "pago_movil": "Pago Móvil"
+                "pago_movil": "Pago Móvil",
+                "Pago en especies": "Pago en especies"
             }
         },
         "transactionType": {
