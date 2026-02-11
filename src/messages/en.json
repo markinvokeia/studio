@@ -215,9 +215,9 @@
     "description": "An overview of the latest orders.",
     "filterPlaceholder": "Filter by order ID..."
   },
-  "NewUsersTable": {
-    "title": "New Users",
-    "description": "A list of the newest users.",
+  "NewPatientsTable": {
+    "title": "New Patients",
+    "description": "A list of the newest patients.",
     "filterPlaceholder": "Filter by name..."
   },
   "AppointmentsPage": {
