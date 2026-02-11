@@ -3200,9 +3200,21 @@
             "preview": {
                 "title": "Vista Previa"
             },
-            "variables": {
+"variables": {
                 "title": "Variables",
-                "description": "Haga clic en una variable para insertarla en su plantilla."
+                "description": "Haga clic en una variable para insertarla en su plantilla.",
+                "patient": "Paciente",
+                "clinic": "Clínica",
+                "data": "Datos de la tabla",
+                "fields": {
+                    "full_name": "Nombre completo",
+                    "email": "Email",
+                    "phone": "Teléfono",
+                    "document_id": "Documento de identidad",
+                    "name": "Nombre",
+                    "address": "Dirección",
+                    "custom_field": "Campo personalizado (según tabla)"
+                }
             },
             "version": "Versión",
             "defaultSender": "Enviador por defecto"

@@ -115,14 +115,23 @@ async function getCategories(params: { search?: string; is_active?: boolean; pag
     }
 };
 
-const availableVariables = {
-    'patient': ['full_name', 'first_name', 'last_name', 'email', 'phone', 'document_id'],
-    'appointment': ['date', 'time', 'doctor_name', 'specialty', 'location'],
-    'invoice': ['number', 'total', 'due_date', 'balance'],
-    'payment': ['amount'],
-    'clinic': ['name', 'phone', 'address', 'email'],
-    'system': ['current_date'],
-};
+const getAvailableVariables = (t: (key: string) => string) => ({
+    'patient': {
+        'full_name': { label: t('dialog.variables.fields.full_name'), value: 'full_name' },
+        'email': { label: t('dialog.variables.fields.email'), value: 'email' },
+        'phone': { label: t('dialog.variables.fields.phone'), value: 'phone' },
+        'document_id': { label: t('dialog.variables.fields.document_id'), value: 'document_id' },
+    },
+    'clinic': {
+        'name': { label: t('dialog.variables.fields.name'), value: 'name' },
+        'address': { label: t('dialog.variables.fields.address'), value: 'address' },
+        'phone': { label: t('dialog.variables.fields.phone'), value: 'phone' },
+        'email': { label: t('dialog.variables.fields.email'), value: 'email' },
+    },
+    'data': {
+        'custom_field': { label: t('dialog.variables.fields.custom_field'), value: 'custom_field' },
+    },
+});
 
 export default function CommunicationTemplatesPage() {
     const t = useTranslations('CommunicationTemplatesPage');
@@ -390,13 +399,15 @@ export default function CommunicationTemplatesPage() {
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="outline" size="sm"><Code2 className="mr-2 h-4 w-4" /> {t('dialog.variables.title')}</Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent>
-                                                {Object.entries(availableVariables).map(([group, vars]) => (
+<DropdownMenuContent>
+                                                {Object.entries(getAvailableVariables(t)).map(([group, vars]) => (
                                                     <React.Fragment key={group}>
-                                                        <DropdownMenuLabel className="capitalize">{group}</DropdownMenuLabel>
-                                                        {vars.map(variable => (
-                                                            <DropdownMenuItem key={variable} onSelect={() => insertText(`{{${group}.${variable}}}`)}>
-                                                                {`{{${group}.${variable}}}`}
+                                                        <DropdownMenuLabel className="capitalize">
+                                                            {t(`dialog.variables.${group}`)}
+                                                        </DropdownMenuLabel>
+                                                        {Object.entries(vars).map(([key, variable]) => (
+                                                            <DropdownMenuItem key={key} onSelect={() => insertText(`{{${group}.${variable.value}}}`)}>
+                                                                {variable.label}
                                                             </DropdownMenuItem>
                                                         ))}
                                                         <DropdownMenuSeparator />

@@ -3201,9 +3201,21 @@
       "preview": {
         "title": "Preview"
       },
-      "variables": {
+"variables": {
         "title": "Variables",
-        "description": "Click a variable to insert it into your template."
+        "description": "Click a variable to insert it into your template.",
+        "patient": "Patient",
+        "clinic": "Clinic",
+        "data": "Table Data",
+        "fields": {
+          "full_name": "Full Name",
+          "email": "Email",
+          "phone": "Phone",
+          "document_id": "Document ID",
+          "name": "Name",
+          "address": "Address",
+          "custom_field": "Custom Field (from table)"
+        }
       },
       "defaultSender": "Default Sender"
     },
