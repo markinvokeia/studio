@@ -593,7 +593,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
       toast({
         title: t('paymentDialog.success'),
-        description: t('paymentDialog.successDescription', { invoiceId: selectedInvoiceForPayment.id }),
+        description: t('paymentDialog.successDescription', { invoiceId: selectedInvoiceForPayment.doc_no || selectedInvoiceForPayment.id }),
       });
 
       if (onRefresh) {
@@ -745,7 +745,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           <DialogHeader>
             <DialogTitle>{t('paymentDialog.title')}</DialogTitle>
             <DialogDescription>
-              {t('paymentDialog.description', { invoiceId: selectedInvoiceForPayment?.id })}
+              {t('paymentDialog.description', { invoiceId: selectedInvoiceForPayment?.doc_no || selectedInvoiceForPayment?.id })}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
