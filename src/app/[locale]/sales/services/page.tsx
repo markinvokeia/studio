@@ -77,7 +77,7 @@ async function getServices(): Promise<Service[]> {
 
 async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
   try {
-    const data = await api.get(API_ROUTES.PURCHASES.MISC_CATEGORIES, { limit: '1000' });
+    const data = await api.get(API_ROUTES.PURCHASES.MISC_CATEGORIES, { limit: '1000', type: 'income' });
     const normalized = normalizeApiResponse(data);
 
     const categories = normalized.items.map((c: any) => ({
