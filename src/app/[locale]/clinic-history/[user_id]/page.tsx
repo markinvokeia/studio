@@ -1141,20 +1141,22 @@ const AnamnesisDashboard = ({
                                         <CommandList>
                                             <CommandEmpty>{t('anamnesis.dialogs.medication.noMedicationFound')}</CommandEmpty>
                                             <CommandGroup>
-                                                {medicationsCatalog.map((med) => (
-                                                    <CommandItem
-                                                        key={med.id}
-                                                        value={med.id}
-                                                        onSelect={() => {
-                                                            const displayName = med.nombre_comercial ? `${med.nombre_generico} - ${med.nombre_comercial}` : med.nombre_generico;
-                                                            setSelectedMedication({ id: med.id, name: displayName });
-                                                            setIsMedicationComboboxOpen(false);
-                                                        }}
-                                                    >
-                                                        <Check className={cn("mr-2 h-4 w-4", selectedMedication?.id === med.id ? "opacity-100" : "opacity-0")} />
-                                                        {med.nombre_generico}{med.nombre_comercial ? ` - ${med.nombre_comercial}` : ''}
-                                                    </CommandItem>
-                                                ))}
+                                                {medicationsCatalog.map((med) => {
+                                                    const displayName = med.nombre_comercial ? `${med.nombre_generico} - ${med.nombre_comercial}` : med.nombre_generico;
+                                                    return (
+                                                        <CommandItem
+                                                            key={med.id}
+                                                            value={displayName}
+                                                            onSelect={() => {
+                                                                setSelectedMedication({ id: med.id, name: displayName });
+                                                                setIsMedicationComboboxOpen(false);
+                                                            }}
+                                                        >
+                                                            <Check className={cn("mr-2 h-4 w-4", selectedMedication?.id === med.id ? "opacity-100" : "opacity-0")} />
+                                                            {displayName}
+                                                        </CommandItem>
+                                                    );
+                                                })}
                                             </CommandGroup>
                                         </CommandList>
                                     </Command>
