@@ -871,7 +871,7 @@ export default function QuotesPage() {
             </div>
 
             <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
-                <DialogContent>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{editingQuote ? t('quoteDialog.editTitle') : t('quoteDialog.createTitle')}</DialogTitle>
                         <DialogDescription>
@@ -1041,7 +1041,7 @@ export default function QuotesPage() {
                 </DialogContent>
             </Dialog>
             <AlertDialog open={isDeleteQuoteDialogOpen} onOpenChange={setIsDeleteQuoteDialogOpen}>
-                <AlertDialogContent>
+                <AlertDialogContent className="max-w-md">
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('deleteQuoteDialog.title')}</AlertDialogTitle>
                         <AlertDialogDescription>
@@ -1057,7 +1057,7 @@ export default function QuotesPage() {
 
             {/* Quote Item Dialog */}
             <Dialog open={isQuoteItemDialogOpen} onOpenChange={setIsQuoteItemDialogOpen}>
-                <DialogContent>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{editingQuoteItem ? t('itemDialog.editTitle') : t('itemDialog.createTitle')}</DialogTitle>
                         <DialogDescription>{t('itemDialog.description')}</DialogDescription>
@@ -1164,7 +1164,7 @@ export default function QuotesPage() {
                 </DialogContent>
             </Dialog>
             <AlertDialog open={isDeleteQuoteItemDialogOpen} onOpenChange={setIsDeleteQuoteItemDialogOpen}>
-                <AlertDialogContent>
+                <AlertDialogContent className="max-w-md">
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('deleteItemDialog.title')}</AlertDialogTitle>
                         <AlertDialogDescription>{t('deleteItemDialog.description')}</AlertDialogDescription>
