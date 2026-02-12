@@ -578,6 +578,7 @@
         "identityRequired": "Identity document is required",
         "identityInvalid": "Identity document must be a number.",
         "identityMaxLength": "Identity document must be 10 characters or less.",
+        "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
         "genericError": "An unexpected error occurred. Please try again.",
         "serverError": "Server error, please try again later.",
         "uniqueConflict": "The following fields are already registered: {fields}",
@@ -1801,7 +1802,15 @@
       "identity_document_placeholder": "e.g. 1234567890",
       "isActive": "Is Active?",
       "cancel": "Cancel",
-      "save": "Create"
+      "save": "Create",
+      "validation": {
+        "nameRequired": "Name is required",
+        "emailInvalid": "Invalid email address",
+        "phoneInvalid": "Invalid phone number",
+        "identityInvalid": "Identity document must be a number.",
+        "identityMaxLength": "Identity document must be 10 characters or less.",
+        "emailOrPhoneRequired": "You must provide at least an email address or a phone number."
+      }
     },
     "detailsFor": "Details for {name}",
     "tabs": {
@@ -2079,7 +2088,8 @@
         "emailInvalid": "Invalid email.",
         "phoneInvalid": "Invalid phone number.",
         "identityInvalid": "Invalid identity document.",
-        "identityMaxLength": "Identity document must be at most 10 characters long."
+        "identityMaxLength": "Identity document must be at most 10 characters long.",
+        "emailOrPhoneRequired": "You must provide at least an email address or a phone number."
       }
     },
     "filters": {
@@ -2363,9 +2373,14 @@
         "emailInvalid": "Invalid email address",
         "phoneInvalid": "Invalid phone number",
         "identityInvalid": "Identity document must be a number.",
-        "identityMaxLength": "Identity document must be 10 characters or less."
+        "identityMaxLength": "Identity document must be 10 characters or less.",
+        "emailOrPhoneRequired": "You must provide at least an email address or a phone number."
       },
-      "editSave": "Update"
+      "editSave": "Update",
+      "serverError": "Server error, please try again later.",
+      "errorTitle": "Error",
+      "createSuccessTitle": "User created",
+      "createSuccessDescription": "The user has been created successfully"
     },
     "setInitialPassword": "Set Initial Password",
     "tabs": {

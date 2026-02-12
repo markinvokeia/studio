@@ -1,11 +1,13 @@
 
 'use client';
 
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
+import { DataTableAdvancedToolbar, FilterOption } from '@/components/ui/data-table-advanced-toolbar';
 import {
   Dialog,
   DialogContent,
@@ -23,7 +25,6 @@ import { UserServices } from '@/components/users/user-services';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { User, UserRole } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
@@ -34,20 +35,46 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { DoctorsColumnsWrapper } from './columns';
-import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
-import { DataTableAdvancedToolbar, FilterOption } from '@/components/ui/data-table-advanced-toolbar';
 
 
 const doctorFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   name: z.string().min(1, { message: t('DoctorsPage.createDialog.validation.nameRequired') }),
-  email: z.string().email({ message: t('DoctorsPage.createDialog.validation.emailInvalid') }),
-  phone: z.string().refine(isValidPhoneNumber, { message: t('DoctorsPage.createDialog.validation.phoneInvalid') }),
+  email: z.string().optional(),
+  phone: z.string().optional(),
   identity_document: z.string()
     .regex(/^\d+$/, { message: t('DoctorsPage.createDialog.validation.identityInvalid') })
     .max(10, { message: t('DoctorsPage.createDialog.validation.identityMaxLength') }),
   is_active: z.boolean().default(false),
   color: z.string().optional(),
+}).refine((data) => {
+  // At least one of email or phone must be provided
+  const hasEmail = data.email && data.email.trim() !== '';
+  const hasPhone = data.phone && data.phone.trim() !== '';
+
+  if (!hasEmail && !hasPhone) {
+    return false;
+  }
+
+  // If email is provided, it must be valid
+  if (hasEmail) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.email!)) {
+      return false;
+    }
+  }
+
+  // If phone is provided, it must be valid
+  if (hasPhone) {
+    if (!isValidPhoneNumber(data.phone!)) {
+      return false;
+    }
+  }
+
+  return true;
+}, {
+  message: t('DoctorsPage.createDialog.validation.emailOrPhoneRequired'),
+  path: ['email'],
 });
 
 type DoctorFormValues = z.infer<ReturnType<typeof doctorFormSchema>>;
@@ -86,10 +113,10 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyAc
 
 
     const mappedUsers = usersData.map((apiUser: any) => ({
-      id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
-      name: apiUser.name || 'No Name',
-      email: apiUser.email || 'no-email@example.com',
-      phone_number: apiUser.phone_number || '000-000-0000',
+      id: String(apiUser.id),
+      name: apiUser.name || '',
+      email: apiUser.email || '',
+      phone_number: apiUser.phone_number || '',
       is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
       identity_document: apiUser.identity_document,
       avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
@@ -252,7 +279,7 @@ export default function DoctorsPage() {
     setRowSelection({});
   };
 
-const filtersOptionList: FilterOption[] = [
+  const filtersOptionList: FilterOption[] = [
     {
       value: 'active',
       label: t('DoctorsPage.filters.showOnlyActive'),
@@ -321,7 +348,7 @@ const filtersOptionList: FilterOption[] = [
               <CardDescription>{t('DoctorsPage.description')}</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
-<DataTable
+              <DataTable
                 columns={userColumns}
                 data={users}
                 filterColumnId="email"

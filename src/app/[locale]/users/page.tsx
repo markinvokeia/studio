@@ -1,11 +1,12 @@
 
 'use client';
 
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableAdvancedToolbar } from '@/components/ui/data-table-advanced-toolbar';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -16,16 +17,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
-import { Textarea } from '@/components/ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { MedicalHistory } from '@/components/users/medical-history';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserInvoices } from '@/components/users/user-invoices';
@@ -37,34 +34,60 @@ import { UserQuotes } from '@/components/users/user-quotes';
 import { UserServices } from '@/components/users/user-services';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { User, UserRole, Quote } from '@/lib/types';
+import { Quote, User, UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { endOfDay, endOfMonth, endOfWeek, format, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
+import { endOfDay, endOfMonth, endOfWeek, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Banknote, Check, ChevronDown, ChevronUp, CreditCard, DollarSign, Filter, KeyRound, Receipt, X } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { AlertTriangle, Banknote, ChevronDown, ChevronUp, CreditCard, DollarSign, KeyRound, Receipt, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { UserColumnsWrapper } from './columns';
-import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 
 const userFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   name: z.string().min(1, { message: t('UsersPage.createDialog.validation.nameRequired') }),
-  email: z.string().email({ message: t('UsersPage.createDialog.validation.emailInvalid') }),
-  phone: z.string().refine(isValidPhoneNumber, { message: t('UsersPage.createDialog.validation.phoneInvalid') }),
+  email: z.string().optional(),
+  phone: z.string().optional(),
   identity_document: z.string()
     .regex(/^\d+$/, { message: t('UsersPage.createDialog.validation.identityInvalid') })
     .max(10, { message: t('UsersPage.createDialog.validation.identityMaxLength') }),
   birth_date: z.string().optional(),
   notes: z.string().optional(),
   is_active: z.boolean().default(false),
+}).refine((data) => {
+  // At least one of email or phone must be provided
+  const hasEmail = data.email && data.email.trim() !== '';
+  const hasPhone = data.phone && data.phone.trim() !== '';
+
+  if (!hasEmail && !hasPhone) {
+    return false;
+  }
+
+  // If email is provided, it must be valid
+  if (hasEmail) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.email!)) {
+      return false;
+    }
+  }
+
+  // If phone is provided, it must be valid
+  if (hasPhone) {
+    if (!isValidPhoneNumber(data.phone!)) {
+      return false;
+    }
+  }
+
+  return true;
+}, {
+  message: t('UsersPage.createDialog.validation.emailOrPhoneRequired'),
+  path: ['email'],
 });
 
 type UserFormValues = z.infer<ReturnType<typeof userFormSchema>>;
@@ -238,10 +261,10 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
     }
 
     const mappedUsers = usersData.map((apiUser: any) => ({
-      id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
-      name: apiUser.name || 'No Name',
-      email: apiUser.email || 'no-email@example.com',
-      phone_number: apiUser.phone_number || '000-000-0000',
+      id: String(apiUser.id),
+      name: apiUser.name || '',
+      email: apiUser.email || '',
+      phone_number: apiUser.phone_number || '',
       is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
       identity_document: apiUser.identity_document,
       birth_date: formatBirthDate(apiUser.birth_date || apiUser.birthday),
@@ -737,7 +760,7 @@ export default function UsersPage() {
   // When 'date' changes manually (via calendar), we might lose the preset label unless we track it.
   // But for now, we rely on 'datePreset' state for the chip labels.
 
-const handleClearFilters = () => {
+  const handleClearFilters = () => {
     setDatePreset('allTime');
     setDate(undefined);
     setShowDebtors(false);
@@ -784,7 +807,7 @@ const handleClearFilters = () => {
     // The requirement asks for "Date Range" filters. 
     // Let's keep the predefined ranges first.
 
-{
+    {
       value: 'debtors',
       label: t('UsersPage.filters.showOnlyDebtors'),
       group: 'Status', // Or translate "Status"

@@ -45,12 +45,40 @@ import { DataTableAdvancedToolbar, FilterOption } from '@/components/ui/data-tab
 const userFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   name: z.string().min(1, { message: t('SystemUsersPage.createDialog.validation.nameRequired') }),
-  email: z.string().email({ message: t('SystemUsersPage.createDialog.validation.emailInvalid') }),
-  phone: z.string().refine(isValidPhoneNumber, { message: t('SystemUsersPage.createDialog.validation.phoneInvalid') }),
+  email: z.string().optional(),
+  phone: z.string().optional(),
   identity_document: z.string()
     .regex(/^\d+$/, { message: t('SystemUsersPage.createDialog.validation.identityInvalid') })
     .max(10, { message: t('SystemUsersPage.createDialog.validation.identityMaxLength') }),
   is_active: z.boolean().default(false),
+}).refine((data) => {
+  // At least one of email or phone must be provided
+  const hasEmail = data.email && data.email.trim() !== '';
+  const hasPhone = data.phone && data.phone.trim() !== '';
+
+  if (!hasEmail && !hasPhone) {
+    return false;
+  }
+
+  // If email is provided, it must be valid
+  if (hasEmail) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.email!)) {
+      return false;
+    }
+  }
+
+  // If phone is provided, it must be valid
+  if (hasPhone) {
+    if (!isValidPhoneNumber(data.phone!)) {
+      return false;
+    }
+  }
+
+  return true;
+}, {
+  message: t('SystemUsersPage.createDialog.validation.emailOrPhoneRequired'),
+  path: ['email'],
 });
 
 type UserFormValues = z.infer<ReturnType<typeof userFormSchema>>;
@@ -88,10 +116,10 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyAc
 
 
     const mappedUsers = usersData.map((apiUser: any) => ({
-      id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
-      name: apiUser.name || 'No Name',
-      email: apiUser.email || 'no-email@example.com',
-      phone_number: apiUser.phone_number || '000-000-0000',
+      id: String(apiUser.id),
+      name: apiUser.name || '',
+      email: apiUser.email || '',
+      phone_number: apiUser.phone_number || '',
       is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
       identity_document: apiUser.identity_document,
       avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
@@ -106,7 +134,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyAc
 }
 
 async function upsertUser(userData: UserFormValues) {
-  const responseData = await api.post(API_ROUTES.USERS_UPSERT, userData);
+  const responseData = await api.post(API_ROUTES.USERS_UPSERT, { ...userData, is_sales: true });
 
   if (responseData.error && (responseData.error.error || responseData.code > 200)) {
     const error = new Error('API Error') as any;
@@ -340,7 +368,7 @@ export default function SystemUsersPage() {
     }
   };
 
-const filtersOptionList: FilterOption[] = [
+  const filtersOptionList: FilterOption[] = [
     {
       value: 'active',
       label: t('SystemUsersPage.filters.showOnlyActive'),
@@ -440,11 +468,11 @@ const filtersOptionList: FilterOption[] = [
                 </CardHeader>
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
                   <Tabs defaultValue="roles" className="w-full flex-1 flex flex-col min-h-0">
-<TabsList className="h-auto items-center justify-start flex-wrap flex-none">
+                    <TabsList className="h-auto items-center justify-start flex-wrap flex-none">
                       <TabsTrigger value="roles">{t('SystemUsersPage.tabs.roles')}</TabsTrigger>
                       <TabsTrigger value="logs">{t('SystemUsersPage.tabs.logs')}</TabsTrigger>
                     </TabsList>
-<div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-4">
+                    <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-4">
                       <TabsContent value="roles" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                         <UserRoles
                           userId={selectedUser.id}

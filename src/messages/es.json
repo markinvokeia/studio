@@ -578,6 +578,7 @@
                 "identityRequired": "El documento de identidad es obligatorio",
                 "identityInvalid": "El documento de identidad debe ser un número.",
                 "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
+                "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
                 "genericError": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
                 "serverError": "Error del servidor, por favor inténtelo más tarde.",
                 "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
@@ -1801,7 +1802,15 @@
             "identity_document_placeholder": "ej. 1234567890",
             "isActive": "¿Está Activo?",
             "cancel": "Cancelar",
-            "save": "Crear"
+            "save": "Crear",
+            "validation": {
+                "nameRequired": "El nombre es obligatorio",
+                "emailInvalid": "Correo electrónico inválido",
+                "phoneInvalid": "Número de teléfono inválido",
+                "identityInvalid": "El documento de identidad debe ser un número.",
+                "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
+                "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono."
+            }
         },
         "detailsFor": "Detalles para {name}",
         "tabs": {
@@ -2081,7 +2090,8 @@
                 "emailInvalid": "Correo electrónico inválido.",
                 "phoneInvalid": "Número de teléfono inválido.",
                 "identityInvalid": "Documento de identidad inválido.",
-                "identityMaxLength": "Documento de identidad debe tener como máximo 10 caracteres."
+                "identityMaxLength": "Documento de identidad debe tener como máximo 10 caracteres.",
+                "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono."
             }
         },
         "filters": {
@@ -2365,9 +2375,14 @@
                 "emailInvalid": "Correo electrónico inválido",
                 "phoneInvalid": "Número de teléfono inválido",
                 "identityInvalid": "El documento de identidad debe ser un número.",
-                "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos."
+                "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
+                "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono."
             },
-            "editSave": "Actualizar"
+            "editSave": "Actualizar",
+            "serverError": "Error del servidor, por favor inténtelo más tarde.",
+            "errorTitle": "Error",
+            "createSuccessTitle": "Usuario creado",
+            "createSuccessDescription": "El usuario se ha creado exitosamente"
         },
         "setInitialPassword": "Establecer Contraseña Inicial",
         "tabs": {

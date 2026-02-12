@@ -37,12 +37,40 @@ import { ProviderColumnsWrapper } from './columns';
 const providerFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   name: z.string().min(1, { message: t('ProvidersPage.createDialog.validation.nameRequired') }),
-  email: z.string().email({ message: t('ProvidersPage.createDialog.validation.emailInvalid') }),
-  phone: z.string().refine(isValidPhoneNumber, { message: t('ProvidersPage.createDialog.validation.phoneInvalid') }),
+  email: z.string().optional(),
+  phone: z.string().optional(),
   identity_document: z.string()
     .regex(/^\d+$/, { message: t('ProvidersPage.createDialog.validation.identityInvalid') })
     .max(10, { message: t('ProvidersPage.createDialog.validation.identityMaxLength') }),
   is_active: z.boolean().default(false),
+}).refine((data) => {
+  // At least one of email or phone must be provided
+  const hasEmail = data.email && data.email.trim() !== '';
+  const hasPhone = data.phone && data.phone.trim() !== '';
+
+  if (!hasEmail && !hasPhone) {
+    return false;
+  }
+
+  // If email is provided, it must be valid
+  if (hasEmail) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.email!)) {
+      return false;
+    }
+  }
+
+  // If phone is provided, it must be valid
+  if (hasPhone) {
+    if (!isValidPhoneNumber(data.phone!)) {
+      return false;
+    }
+  }
+
+  return true;
+}, {
+  message: t('ProvidersPage.createDialog.validation.emailOrPhoneRequired'),
+  path: ['email'],
 });
 
 type ProviderFormValues = z.infer<ReturnType<typeof providerFormSchema>>;
@@ -80,10 +108,10 @@ async function getProviders(pagination: PaginationState, searchQuery: string): P
     }
 
     const mappedUsers = usersData.map((apiUser: any) => ({
-      id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
-      name: apiUser.name || 'No Name',
-      email: apiUser.email || 'no-email@example.com',
-      phone_number: apiUser.phone_number || '000-000-0000',
+      id: String(apiUser.id),
+      name: apiUser.name || '',
+      email: apiUser.email || '',
+      phone_number: apiUser.phone_number || '',
       is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
       identity_document: apiUser.identity_document,
       avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
