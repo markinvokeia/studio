@@ -7,12 +7,12 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
 import { Quote } from '@/lib/types';
+import { formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Badge } from '../ui/badge';
-import { formatDateTime } from '@/lib/utils';
 
 const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
   {
@@ -24,10 +24,11 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.total')} />,
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue('total'));
+      const roundedAmount = Math.round(amount * 100) / 100;
       const formatted = new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'USD',
-      }).format(amount);
+      }).format(roundedAmount);
       return <div className="font-medium">{formatted}</div>;
     }
   },

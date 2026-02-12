@@ -100,10 +100,11 @@ const getColumns = (
       ),
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('total'));
+        const roundedAmount = Math.round(amount * 100) / 100;
         const formatted = new Intl.NumberFormat('en-US', {
           style: 'currency',
           currency: row.original.currency || 'USD',
-        }).format(amount);
+        }).format(roundedAmount);
         return <div className="font-medium">{formatted}</div>;
       },
     },

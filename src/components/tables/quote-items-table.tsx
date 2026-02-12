@@ -57,10 +57,11 @@ const getColumns = (
       ),
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('unit_price'));
+        const roundedAmount = Math.round(amount * 100) / 100;
         const formatted = new Intl.NumberFormat('en-US', {
           style: 'currency',
           currency: 'USD',
-        }).format(amount);
+        }).format(roundedAmount);
         return <div className="font-medium">{formatted}</div>;
       },
     },
@@ -71,10 +72,11 @@ const getColumns = (
       ),
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('total'));
+        const roundedAmount = Math.round(amount * 100) / 100;
         const formatted = new Intl.NumberFormat('en-US', {
           style: 'currency',
           currency: 'USD',
-        }).format(amount);
+        }).format(roundedAmount);
         return <div className="font-medium">{formatted}</div>;
       },
     },

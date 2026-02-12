@@ -726,8 +726,10 @@ export default function QuotesPage() {
             }
 
             const quantity = Number(watchedQuantity) || 0;
-            quoteItemForm.setValue('unit_price', newUnitPrice);
-            quoteItemForm.setValue('total', newUnitPrice * quantity);
+            const roundedUnitPrice = Math.round(newUnitPrice * 100) / 100;
+            const roundedTotal = Math.round((roundedUnitPrice * quantity) * 100) / 100;
+            quoteItemForm.setValue('unit_price', roundedUnitPrice);
+            quoteItemForm.setValue('total', roundedTotal);
         }
     }, [watchedServiceId, watchedQuantity, watchedQuoteExchangeRate, allServices, selectedQuote, quoteItemForm, getSessionExchangeRate]);
 
@@ -1126,8 +1128,12 @@ export default function QuotesPage() {
                                                 <FormLabel>{t('itemDialog.exchangeRate')}</FormLabel>
                                                 <Input
                                                     type="number"
+                                                    step="0.0001"
                                                     value={exchangeRate}
-                                                    onChange={(e) => setExchangeRate(Number(e.target.value) || 1)}
+                                                    onChange={(e) => {
+                                                        const value = Number(e.target.value) || 1;
+                                                        setExchangeRate(Math.round(value * 10000) / 10000);
+                                                    }}
                                                 />
                                             </FormItem>
                                         )}
@@ -1137,14 +1143,57 @@ export default function QuotesPage() {
                             <FormField control={quoteItemForm.control} name="quantity" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{t('itemDialog.quantity')}</FormLabel>
-                                    <FormControl><Input type="number" {...field} /></FormControl>
+                                    <FormControl>
+                                        <Input 
+                                            type="number" 
+                                            {...field}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                field.onChange(value === '' ? '' : Number(value));
+                                            }}
+                                            onBlur={(e) => {
+                                                const value = e.target.value;
+                                                if (value !== '') {
+                                                    const quantity = Number(value);
+                                                    const unitPrice = quoteItemForm.getValues('unit_price') || 0;
+                                                    const newTotal = Math.round((unitPrice * quantity) * 100) / 100;
+                                                    quoteItemForm.setValue('total', newTotal);
+                                                }
+                                            }}
+                                        />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
                             <FormField control={quoteItemForm.control} name="unit_price" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{t('itemDialog.unitPrice')} ({selectedQuote?.currency})</FormLabel>
-                                    <FormControl><Input type="number" {...field} /></FormControl>
+                                    <FormControl>
+                                        <Input 
+                                            type="number" 
+                                            {...field}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                if (value === '') {
+                                                    field.onChange('');
+                                                } else {
+                                                    const numValue = Number(value);
+                                                    field.onChange(Math.round(numValue * 100) / 100);
+                                                }
+                                            }}
+                                            onBlur={(e) => {
+                                                const value = e.target.value;
+                                                if (value !== '') {
+                                                    const numValue = Number(value);
+                                                    field.onChange(Math.round(numValue * 100) / 100);
+                                                    // Recalculate total
+                                                    const quantity = quoteItemForm.getValues('quantity') || 0;
+                                                    const newTotal = Math.round((numValue * quantity) * 100) / 100;
+                                                    quoteItemForm.setValue('total', newTotal);
+                                                }
+                                            }}
+                                        />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
