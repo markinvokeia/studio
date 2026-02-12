@@ -251,26 +251,28 @@ async function getPayments(quoteId: string, t: (key: string) => string): Promise
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
         return paymentsData.map((apiPayment: any) => ({
             id: apiPayment.id ? String(apiPayment.id) : t('defaults.notAvailable'),
-            doc_no: apiPayment.doc_no || `PAY-${apiPayment.id}`,
-            invoice_id: apiPayment.invoice_id,
+            doc_no: apiPayment.doc_no,
+            invoice_id: apiPayment.invoice_id || '',
+            invoice_doc_no: apiPayment.invoice_doc_no || 'N/A',
             amount: parseFloat(apiPayment.amount) || 0,
             amount_applied: parseFloat(apiPayment.amount) || 0,
             source_amount: parseFloat(apiPayment.amount) || 0,
             source_currency: apiPayment.currency as 'UYU' | 'USD' || 'UYU',
-            method: apiPayment.method || 'credit_card',
-            payment_method: apiPayment.method || 'credit_card',
-            status: apiPayment.status || 'pending',
-            createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
-            payment_date: apiPayment.created_at || new Date().toISOString().split('T')[0],
-            currency: apiPayment.currency || 'UYU',
+            method: apiPayment.method,
+            payment_method: apiPayment.method,
+            payment_method_code: apiPayment.payment_method_code,
+            status: apiPayment.status,
+            createdAt: apiPayment.created_at,
+            payment_date: apiPayment.created_at,
+            currency: apiPayment.currency,
             order_id: apiPayment.order_id || '',
-            order_doc_no: apiPayment.order_doc_no || (apiPayment.order_id ? `ORD-${apiPayment.order_id}` : ''),
-            quote_id: apiPayment.quote_id,
+            order_doc_no: apiPayment.order_doc_no || 'N/A',
+            quote_id: apiPayment.quote_id || '',
             user_name: apiPayment.user_name || t('defaults.notAvailable'),
             exchange_rate: parseFloat(apiPayment.exchange_rate) || 1,
-            transaction_type: apiPayment.transaction_type || 'direct_payment',
+            transaction_type: apiPayment.transaction_type,
             transaction_id: String(apiPayment.id),
-            updatedAt: apiPayment.updated_at || new Date().toISOString().split('T')[0]
+            updatedAt: apiPayment.updated_at || apiPayment.created_at
         }));
     } catch (error) {
         console.error("Failed to fetch payments:", error);

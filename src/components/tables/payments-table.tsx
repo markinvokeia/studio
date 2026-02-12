@@ -19,6 +19,7 @@ const getColumns = (
   t: (key: string) => string,
   tTransactionType: (key: string) => string,
   tActions: (key: string) => string,
+  tPaymentMethods: (key: string) => string,
   onPrint?: (payment: Payment) => void,
   onSendEmail?: (payment: Payment) => void
 ): ColumnDef<Payment>[] => {
@@ -136,14 +137,13 @@ const getColumns = (
       cell: ({ row }) => {
         const payment = row.original;
         const methodCode = payment.payment_method_code || payment.method;
-        const t = useTranslations('PaymentsPage.columns');
 
         if (!methodCode || methodCode === 'N/A') {
           return <div>N/A</div>;
         }
 
         // Try to get translated payment method, fallback to original value
-        const translatedMethod = t(`paymentMethods.${methodCode}`) || methodCode;
+        const translatedMethod = tPaymentMethods(methodCode) || methodCode;
         return <div className="capitalize">{translatedMethod}</div>;
       },
     },
@@ -218,7 +218,8 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
   const tPage = useTranslations('PaymentsPage');
   const tTransactionType = useTranslations('PaymentsPage.transactionType');
   const tActions = useTranslations('PaymentsPage.actions');
-  const columns = React.useMemo(() => getColumns(t, tTransactionType, tActions, onPrint, onSendEmail), [t, tTransactionType, tActions, onPrint, onSendEmail]);
+  const tPaymentMethods = useTranslations('PaymentsPage.columns.paymentMethods');
+  const columns = React.useMemo(() => getColumns(t, tTransactionType, tActions, tPaymentMethods, onPrint, onSendEmail), [t, tTransactionType, tActions, tPaymentMethods, onPrint, onSendEmail]);
 
   if (isLoading) {
     return (

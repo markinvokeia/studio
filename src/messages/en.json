@@ -1610,7 +1610,7 @@
       },
       "credit_note": "Credit Note",
       "invoice": "Invoice",
-"paymentMethods": {
+      "paymentMethods": {
         "efectivo": "Cash",
         "tarjeta_de_debito": "Debit Card",
         "tarjeta_de_credito": "Credit Card",
@@ -1625,7 +1625,8 @@
         "DEBIT_CARD": "Debit Card",
         "MOBILE_PAYMENT": "Mobile Payment",
         "MERCADO_PAGO": "Mercado Pago",
-        "PE": "Non-cash"
+        "PE": "Non-cash",
+        "Cash": "Cash"
       }
     },
     "transactionType": {

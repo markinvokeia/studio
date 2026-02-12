@@ -1610,7 +1610,7 @@
             },
             "credit_note": "Nota de Crédito",
             "invoice": "Factura",
-"paymentMethods": {
+            "paymentMethods": {
                 "efectivo": "Efectivo",
                 "tarjeta_de_debito": "Tarjeta de Débito",
                 "tarjeta_de_credito": "Tarjeta de Crédito",
@@ -1625,7 +1625,8 @@
                 "DEBIT_CARD": "Tarjeta de Débito",
                 "MOBILE_PAYMENT": "Pago Móvil",
                 "MERCADO_PAGO": "Mercado Pago",
-                "PE": "Pago en especies"
+                "PE": "Pago en especies",
+                "Cash": "Efectivo"
             }
         },
         "transactionType": {
@@ -3212,7 +3213,7 @@
             "preview": {
                 "title": "Vista Previa"
             },
-"variables": {
+            "variables": {
                 "title": "Variables",
                 "description": "Haga clic en una variable para insertarla en su plantilla.",
                 "patient": "Paciente",
