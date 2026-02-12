@@ -172,14 +172,7 @@ export default function HolidaysPage() {
     const onSubmit = async (values: HolidayFormValues) => {
         setSubmissionError(null);
         try {
-            // Set default times if not provided
-            const processedValues = {
-                ...values,
-                start_time: values.start_time || '00:00',
-                end_time: values.end_time || '12:00',
-            };
-
-            await upsertHoliday(processedValues);
+            await upsertHoliday(values);
             toast({
                 title: editingHoliday ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'),
                 description: t('toast.successDescription'),
