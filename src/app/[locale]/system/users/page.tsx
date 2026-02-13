@@ -1,11 +1,13 @@
 
 'use client';
 
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
+import { DataTableAdvancedToolbar, FilterOption } from '@/components/ui/data-table-advanced-toolbar';
 import {
   Dialog,
   DialogContent,
@@ -17,17 +19,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MedicalHistory } from '@/components/users/medical-history';
-import { UserAppointments } from '@/components/users/user-appointments';
 import { UserLogs } from '@/components/users/user-logs';
-import { UserMessages } from '@/components/users/user-messages';
-import { UserQuotes } from '@/components/users/user-quotes';
 import { UserRoles } from '@/components/users/user-roles';
-import { UserServices } from '@/components/users/user-services';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { User, UserRole } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
@@ -38,8 +34,6 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { SystemUserColumnsWrapper } from './columns';
-import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
-import { DataTableAdvancedToolbar, FilterOption } from '@/components/ui/data-table-advanced-toolbar';
 
 
 const userFormSchema = (t: (key: string) => string) => z.object({
@@ -48,8 +42,10 @@ const userFormSchema = (t: (key: string) => string) => z.object({
   email: z.string().optional(),
   phone: z.string().optional(),
   identity_document: z.string()
-    .regex(/^\d+$/, { message: t('SystemUsersPage.createDialog.validation.identityInvalid') })
-    .max(10, { message: t('SystemUsersPage.createDialog.validation.identityMaxLength') }),
+    .regex(/^\d*$/, { message: t('SystemUsersPage.createDialog.validation.identityInvalid') })
+    .max(10, { message: t('SystemUsersPage.createDialog.validation.identityMaxLength') })
+    .optional()
+    .or(z.literal('')),
   is_active: z.boolean().default(false),
 }).refine((data) => {
   // At least one of email or phone must be provided
@@ -265,7 +261,7 @@ export default function SystemUsersPage() {
       name: user.name,
       email: user.email,
       phone: user.phone_number,
-      identity_document: user.identity_document,
+      identity_document: user.identity_document || '',
       is_active: user.is_active,
     });
     setSubmissionError(null);

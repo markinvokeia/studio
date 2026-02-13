@@ -55,8 +55,10 @@ const userFormSchema = (t: (key: string) => string) => z.object({
   email: z.string().optional(),
   phone: z.string().optional(),
   identity_document: z.string()
-    .regex(/^\d+$/, { message: t('UsersPage.createDialog.validation.identityInvalid') })
-    .max(10, { message: t('UsersPage.createDialog.validation.identityMaxLength') }),
+    .regex(/^\d*$/, { message: t('UsersPage.createDialog.validation.identityInvalid') })
+    .max(10, { message: t('UsersPage.createDialog.validation.identityMaxLength') })
+    .optional()
+    .or(z.literal('')),
   birth_date: z.string().optional(),
   notes: z.string().optional(),
   is_active: z.boolean().default(false),
@@ -535,7 +537,7 @@ export default function UsersPage() {
       name: user.name,
       email: user.email,
       phone: user.phone_number,
-      identity_document: user.identity_document,
+      identity_document: user.identity_document || '',
       birth_date: user.birth_date || '',
       notes: user.notes || '',
       is_active: user.is_active,

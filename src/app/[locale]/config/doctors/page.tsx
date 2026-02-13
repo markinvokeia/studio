@@ -43,8 +43,10 @@ const doctorFormSchema = (t: (key: string) => string) => z.object({
   email: z.string().optional(),
   phone: z.string().optional(),
   identity_document: z.string()
-    .regex(/^\d+$/, { message: t('DoctorsPage.createDialog.validation.identityInvalid') })
-    .max(10, { message: t('DoctorsPage.createDialog.validation.identityMaxLength') }),
+    .regex(/^\d*$/, { message: t('DoctorsPage.createDialog.validation.identityInvalid') })
+    .max(10, { message: t('DoctorsPage.createDialog.validation.identityMaxLength') })
+    .optional()
+    .or(z.literal('')),
   is_active: z.boolean().default(false),
   color: z.string().optional(),
 }).refine((data) => {
@@ -256,7 +258,7 @@ export default function DoctorsPage() {
       name: user.name,
       email: user.email,
       phone: user.phone_number,
-      identity_document: user.identity_document,
+      identity_document: user.identity_document || '',
       is_active: user.is_active,
       color: user.color || '',
     });
