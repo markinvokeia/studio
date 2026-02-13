@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -95,10 +95,10 @@ async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
 async function upsertService(serviceData: ServiceFormValues, categories: MiscellaneousCategory[]) {
   // Find category name based on category_id for backend compatibility
   const category = categories.find(cat => cat.id === serviceData.category_id)?.name || '';
-  const responseData = await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, { 
-    ...serviceData, 
+  const responseData = await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, {
+    ...serviceData,
     category,
-    is_sales: false 
+    is_sales: false
   });
 
   // Check for error responses in array format
@@ -181,7 +181,7 @@ export default function ServicesPage() {
     }
   }, [isDialogOpen]);
 
-const handleCreate = () => {
+  const handleCreate = () => {
     setEditingService(null);
     form.reset({
       name: '',
@@ -196,7 +196,7 @@ const handleCreate = () => {
     setIsDialogOpen(true);
   };
 
-const handleEdit = (service: Service) => {
+  const handleEdit = (service: Service) => {
     setEditingService(service);
     form.reset({
       id: service.id,
@@ -237,7 +237,7 @@ const handleEdit = (service: Service) => {
     }
   };
 
-const onSubmit = async (values: ServiceFormValues) => {
+  const onSubmit = async (values: ServiceFormValues) => {
     setSubmissionError(null);
     try {
       await upsertService(values, categories);
@@ -260,8 +260,8 @@ const onSubmit = async (values: ServiceFormValues) => {
     category: tColumns('category'),
     price: tColumns('price'),
     currency: tColumns('currency'),
-    duration_minutes: tColumns('duration'),
     color: tColumns('color'),
+    is_active: tColumns('isActive'),
     actions: tColumns('actions'),
   };
 
@@ -296,7 +296,7 @@ const onSubmit = async (values: ServiceFormValues) => {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 py-2">
               {submissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
@@ -304,44 +304,46 @@ const onSubmit = async (values: ServiceFormValues) => {
                   <AlertDescription>{submissionError}</AlertDescription>
                 </Alert>
               )}
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('createDialog.name')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="category_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('createDialog.category')}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('createDialog.name')}</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('createDialog.categoryPlaceholder')} />
-                        </SelectTrigger>
+                        <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
                       </FormControl>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="category_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('createDialog.category')}</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('createDialog.categoryPlaceholder')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
                 <FormField
                   control={form.control}
                   name="price"
@@ -376,40 +378,32 @@ const onSubmit = async (values: ServiceFormValues) => {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="color"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('createDialog.colorLabel')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="color"
+                          className="h-10 w-full cursor-pointer"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-<FormField
+              <FormField
                 control={form.control}
                 name="description"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('createDialog.descriptionLabel')}</FormLabel>
                     <FormControl>
-                      <Textarea placeholder={t('createDialog.descriptionPlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="color"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('createDialog.colorLabel')}</FormLabel>
-                    <FormControl>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type="color"
-                          className="w-16 h-10 p-1 border rounded cursor-pointer"
-                          {...field}
-                        />
-                        <Input
-                          type="text"
-                          placeholder="#000000"
-                          className="flex-1"
-                          {...field}
-                        />
-                      </div>
+                      <Textarea placeholder={t('createDialog.descriptionPlaceholder')} className="resize-none" rows={2} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -419,12 +413,9 @@ const onSubmit = async (values: ServiceFormValues) => {
                 control={form.control}
                 name="is_active"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">{t('createDialog.activeLabel')}</FormLabel>
-                      <FormDescription>
-                        {t('createDialog.activeDescription')}
-                      </FormDescription>
                     </div>
                     <FormControl>
                       <Switch

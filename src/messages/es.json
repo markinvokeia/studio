@@ -1782,6 +1782,9 @@
         "currency": "Moneda",
         "duration": "Duración",
         "color": "Color",
+        "isActive": "Estado",
+        "active": "Activo",
+        "inactive": "Inactivo",
         "actions": "Acciones",
         "edit": "Editar",
         "delete": "Eliminar"

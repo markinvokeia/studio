@@ -1,9 +1,9 @@
 
 'use client';
 
-import { ColumnDef } from '@tanstack/react-table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import type { Service } from '@/lib/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,9 +11,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
+import type { Service } from '@/lib/types';
+import { ColumnDef } from '@tanstack/react-table';
 import { MoreHorizontal } from 'lucide-react';
-import React from 'react';
 import { useTranslations } from 'next-intl';
 
 
@@ -57,12 +57,6 @@ export const ServicesColumnsWrapper = ({ onEdit, onDelete }: ServicesColumnsProp
       ),
     },
     {
-      accessorKey: 'duration_minutes',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('duration')} />
-      ),
-    },
-    {
       accessorKey: 'color',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('color')} />
@@ -72,8 +66,8 @@ export const ServicesColumnsWrapper = ({ onEdit, onDelete }: ServicesColumnsProp
         if (color) {
           return (
             <div className="flex items-center justify-center">
-              <div 
-                className="w-6 h-6 rounded-md border-2 border-gray-200 shadow-sm" 
+              <div
+                className="w-6 h-6 rounded-md border-2 border-gray-200 shadow-sm"
                 style={{ backgroundColor: color }}
                 title=""
               />
@@ -84,6 +78,20 @@ export const ServicesColumnsWrapper = ({ onEdit, onDelete }: ServicesColumnsProp
           <div className="flex items-center justify-center">
             <div className="w-6 h-6 rounded-md border-2 border-gray-200 bg-gray-100" />
           </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'is_active',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('isActive')} />
+      ),
+      cell: ({ row }) => {
+        const isActive = row.original.is_active;
+        return (
+          <Badge variant={isActive ? 'success' : 'outline'}>
+            {isActive ? t('active') : t('inactive')}
+          </Badge>
         );
       },
     },
