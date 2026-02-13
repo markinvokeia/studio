@@ -2764,7 +2764,8 @@
           "endDate": "End Date (Optional)",
           "reason": "Reason (Optional)",
           "searchMedication": "Search Medication",
-          "noMedicationFound": "No medication found"
+          "noMedicationFound": "No medication found",
+          "typeToSearch": "Type to search medications"
         },
         "allergy": {
           "addTitle": "Add Allergy",

@@ -2766,7 +2766,8 @@
                     "endDate": "Fecha Fin (Opcional)",
                     "reason": "Razón (Opcional)",
                     "searchMedication": "Buscar Medicamento",
-                    "noMedicationFound": "No se encontró el medicamento"
+                    "noMedicationFound": "No se encontró el medicamento",
+                    "typeToSearch": "Escriba para buscar medicamentos"
                 },
                 "allergy": {
                     "addTitle": "Agregar Alergia",

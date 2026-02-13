@@ -299,6 +299,7 @@ const AnamnesisDashboard = ({
     // Medication state
     const [isMedicationComboboxOpen, setIsMedicationComboboxOpen] = useState(false);
     const [selectedMedication, setSelectedMedication] = useState<{ id: string, name: string } | null>(null);
+    const [medicationSearchTerm, setMedicationSearchTerm] = useState('');
     const [isSubmittingMedication, setIsSubmittingMedication] = useState(false);
     const [medicationSubmissionError, setMedicationSubmissionError] = useState<string | null>(null);
     const [medicationData, setMedicationData] = useState({ dosis: '', frecuencia: '', fecha_inicio: '', fecha_fin: '', motivo: '' });
@@ -322,7 +323,10 @@ const AnamnesisDashboard = ({
         const fetchMedications = async () => {
             if (isMedicationDialogOpen) {
                 try {
-                    const data = await api.get(API_ROUTES.CLINIC_HISTORY.MEDICATIONS_CATALOG);
+                    const url = medicationSearchTerm 
+                        ? `${API_ROUTES.CLINIC_HISTORY.MEDICATIONS_CATALOG}?search=${encodeURIComponent(medicationSearchTerm)}`
+                        : API_ROUTES.CLINIC_HISTORY.MEDICATIONS_CATALOG;
+                    const data = await api.get(url);
                     const medicationsData = Array.isArray(data) ? data : (data.catalogo_medicamentos || data.data || data.result || []);
                     setMedicationsCatalog(medicationsData.map((m: any) => ({
                         ...m,
@@ -335,8 +339,13 @@ const AnamnesisDashboard = ({
                 }
             }
         };
-        fetchMedications();
-    }, [isMedicationDialogOpen]);
+
+        const debounceTimer = setTimeout(() => {
+            fetchMedications();
+        }, 300);
+
+        return () => clearTimeout(debounceTimer);
+    }, [isMedicationDialogOpen, medicationSearchTerm]);
 
     useEffect(() => {
         if (isPersonalHistoryDialogOpen) {
@@ -415,6 +424,8 @@ const AnamnesisDashboard = ({
             setMedicationSubmissionError(null);
         } else {
             setEditingMedication(null);
+            setMedicationSearchTerm('');
+            setMedicationsCatalog([]);
         }
     }, [isMedicationDialogOpen, editingMedication]);
 
@@ -1135,29 +1146,40 @@ const AnamnesisDashboard = ({
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-full p-0">
+                                <PopoverContent className="w-full p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
                                     <Command>
-                                        <CommandInput placeholder={t('anamnesis.dialogs.medication.searchMedication')} />
+                                        <CommandInput 
+                                            placeholder={t('anamnesis.dialogs.medication.searchMedication')} 
+                                            value={medicationSearchTerm}
+                                            onValueChange={setMedicationSearchTerm}
+                                        />
                                         <CommandList>
-                                            <CommandEmpty>{t('anamnesis.dialogs.medication.noMedicationFound')}</CommandEmpty>
-                                            <CommandGroup>
-                                                {medicationsCatalog.map((med) => {
-                                                    const displayName = med.nombre_comercial ? `${med.nombre_generico} - ${med.nombre_comercial}` : med.nombre_generico;
-                                                    return (
-                                                        <CommandItem
-                                                            key={med.id}
-                                                            value={displayName}
-                                                            onSelect={() => {
-                                                                setSelectedMedication({ id: med.id, name: displayName });
-                                                                setIsMedicationComboboxOpen(false);
-                                                            }}
-                                                        >
-                                                            <Check className={cn("mr-2 h-4 w-4", selectedMedication?.id === med.id ? "opacity-100" : "opacity-0")} />
-                                                            {displayName}
-                                                        </CommandItem>
-                                                    );
-                                                })}
-                                            </CommandGroup>
+                                            {!medicationSearchTerm ? (
+                                                <div className="py-6 text-center text-sm text-muted-foreground">
+                                                    {t('anamnesis.dialogs.medication.typeToSearch')}
+                                                </div>
+                                            ) : medicationsCatalog.length === 0 ? (
+                                                <CommandEmpty>{t('anamnesis.dialogs.medication.noMedicationFound')}</CommandEmpty>
+                                            ) : (
+                                                <CommandGroup>
+                                                    {medicationsCatalog.map((med) => {
+                                                        const displayName = med.nombre_comercial ? `${med.nombre_generico} - ${med.nombre_comercial}` : med.nombre_generico;
+                                                        return (
+                                                            <CommandItem
+                                                                key={med.id}
+                                                                value={displayName}
+                                                                onSelect={() => {
+                                                                    setSelectedMedication({ id: med.id, name: displayName });
+                                                                    setIsMedicationComboboxOpen(false);
+                                                                }}
+                                                            >
+                                                                <Check className={cn("mr-2 h-4 w-4", selectedMedication?.id === med.id ? "opacity-100" : "opacity-0")} />
+                                                                {displayName}
+                                                            </CommandItem>
+                                                        );
+                                                    })}
+                                                </CommandGroup>
+                                            )}
                                         </CommandList>
                                     </Command>
                                 </PopoverContent>
