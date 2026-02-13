@@ -971,7 +971,8 @@
       "quantityMinOne": "Quantity must be at least 1",
       "unitPricePositive": "Unit price must be positive",
       "toothNumberMin": "Tooth number must be at least 11",
-      "toothNumberMax": "Tooth number must be at most 85"
+      "toothNumberMax": "Tooth number must be at most 85",
+      "exchangeRatePositive": "Exchange rate must be greater than 0"
     },
     "deleteQuoteDialog": {
       "title": "Delete Quote",
@@ -981,7 +982,7 @@
     },
     "deleteItemDialog": {
       "title": "Delete item",
-      "description": "Delete an item",
+      "description": "Are you sure you want to delete this item?",
       "cancel": "Cancel",
       "confirm": "Confirm"
     },

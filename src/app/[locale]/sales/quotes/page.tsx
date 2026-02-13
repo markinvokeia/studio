@@ -57,7 +57,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed']),
     payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid']),
     billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced']),
-    exchange_rate: z.coerce.number().optional(),
+    exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
 });
 
 type QuoteFormValues = z.infer<ReturnType<typeof quoteFormSchema>>;
@@ -374,8 +374,8 @@ export default function QuotesPage() {
     const [originalServiceCurrency, setOriginalServiceCurrency] = React.useState('');
 
 
-    const quoteForm = useForm<QuoteFormValues>({ resolver: zodResolver(quoteFormSchema(tVal)) });
-    const quoteItemForm = useForm<QuoteItemFormValues>({ resolver: zodResolver(quoteItemFormSchema(tVal)) });
+    const quoteForm = useForm<QuoteFormValues>({ resolver: zodResolver(quoteFormSchema(tVal)), mode: 'onBlur' });
+    const quoteItemForm = useForm<QuoteItemFormValues>({ resolver: zodResolver(quoteItemFormSchema(tVal)), mode: 'onBlur' });
 
     const watchedQuoteStatus = quoteForm.watch("status");
     const isStatusDraft = watchedQuoteStatus === 'draft';
@@ -1112,7 +1112,7 @@ export default function QuotesPage() {
                                     <FormItem>
                                         <FormLabel>{t('itemDialog.originalPrice')} ({originalServiceCurrency})</FormLabel>
                                         <Input
-                                            value={originalServicePrice !== null ? Number(originalServicePrice).toFixed(2) : ''}
+                                            value={originalServicePrice !== null && !isNaN(Number(originalServicePrice)) ? Number(originalServicePrice).toFixed(2) : ''}
                                             readOnly
                                             disabled
                                         />
@@ -1124,15 +1124,16 @@ export default function QuotesPage() {
                                 <FormItem>
                                     <FormLabel>{t('itemDialog.quantity')}</FormLabel>
                                     <FormControl>
-                                        <Input 
-                                            type="number" 
-                                            placeholder={t('placeholders.quantity')} 
+                                        <Input
+                                            type="number"
+                                            placeholder={t('placeholders.quantity')}
                                             {...field}
                                             onChange={(e) => {
                                                 const value = e.target.value;
                                                 field.onChange(value === '' ? '' : Number(value));
                                             }}
-                                            onBlur={(e) => {
+                                            onBlur={async (e) => {
+                                                field.onBlur();
                                                 const value = e.target.value;
                                                 if (value !== '') {
                                                     const quantity = Number(value);
@@ -1140,6 +1141,7 @@ export default function QuotesPage() {
                                                     const newTotal = Math.round((unitPrice * quantity) * 100) / 100;
                                                     quoteItemForm.setValue('total', newTotal);
                                                 }
+                                                await quoteItemForm.trigger('quantity');
                                             }}
                                         />
                                     </FormControl>
@@ -1150,10 +1152,10 @@ export default function QuotesPage() {
                                 <FormItem>
                                     <FormLabel>{t('itemDialog.unitPrice')} ({selectedQuote?.currency})</FormLabel>
                                     <FormControl>
-                                        <Input 
-                                            type="number" 
-                                            placeholder={t('placeholders.unitPrice')} 
-                                            {...field}
+                                        <Input
+                                            type="number"
+                                            placeholder={t('placeholders.unitPrice')}
+                                            value={typeof field.value === 'number' && !isNaN(field.value) ? field.value.toFixed(2) : ''}
                                             onChange={(e) => {
                                                 const value = e.target.value;
                                                 if (value === '') {
@@ -1182,7 +1184,7 @@ export default function QuotesPage() {
                             <FormField control={quoteItemForm.control} name="total" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{t('itemDialog.total')}</FormLabel>
-                                    <FormControl><Input type="number" placeholder={t('placeholders.total')} readOnly disabled {...field} /></FormControl>
+                                    <FormControl><Input type="number" placeholder={t('placeholders.total')} readOnly disabled value={typeof field.value === 'number' && !isNaN(field.value) ? field.value.toFixed(2) : ''} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />

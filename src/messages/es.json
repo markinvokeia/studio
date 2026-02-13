@@ -971,7 +971,8 @@
             "quantityMinOne": "La cantidad debe ser al menos 1",
             "unitPricePositive": "El precio unitario debe ser positivo",
             "toothNumberMin": "El número de diente debe ser al menos 11",
-            "toothNumberMax": "El número de diente debe ser como máximo 85"
+            "toothNumberMax": "El número de diente debe ser como máximo 85",
+            "exchangeRatePositive": "La tasa de cambio debe ser mayor a 0"
         },
         "deleteQuoteDialog": {
             "title": "Eliminar Presupuesto",
@@ -981,7 +982,7 @@
         },
         "deleteItemDialog": {
             "title": "Eliminar artículo",
-            "description": "Eliminar un artículo",
+            "description": "¿Está seguro de que desea eliminar este artículo?",
             "cancel": "Cancelar",
             "confirm": "Confirmar"
         },

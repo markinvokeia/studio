@@ -56,7 +56,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed']),
     payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid']),
     billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced']),
-    exchange_rate: z.coerce.number().optional(),
+    exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
 });
 
 type QuoteFormValues = z.infer<ReturnType<typeof quoteFormSchema>>;
@@ -68,7 +68,7 @@ const quoteItemFormSchema = (t: (key: string) => string) => z.object({
     quantity: z.coerce.number().min(1, t('validation.quantityMinOne')),
     unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')),
     total: z.coerce.number().min(0, t('validation.totalPositive')),
-    exchange_rate: z.coerce.number().optional(),
+    exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
 });
 
 type QuoteItemFormValues = z.infer<ReturnType<typeof quoteItemFormSchema>>;
@@ -372,8 +372,8 @@ export default function QuotesPage() {
     const [originalServiceCurrency, setOriginalServiceCurrency] = React.useState('');
 
 
-    const quoteForm = useForm<QuoteFormValues>({ resolver: zodResolver(quoteFormSchema(tVal)) });
-    const quoteItemForm = useForm<QuoteItemFormValues>({ resolver: zodResolver(quoteItemFormSchema(tVal)) });
+    const quoteForm = useForm<QuoteFormValues>({ resolver: zodResolver(quoteFormSchema(tVal)), mode: 'onBlur' });
+    const quoteItemForm = useForm<QuoteItemFormValues>({ resolver: zodResolver(quoteItemFormSchema(tVal)), mode: 'onBlur' });
 
     const watchedQuoteStatus = quoteForm.watch("status");
     const isStatusDraft = watchedQuoteStatus === 'draft';
@@ -788,7 +788,7 @@ export default function QuotesPage() {
                                                     canEdit={canEditQuote}
                                                     onCreate={handleCreateQuoteItem}
                                                     onEdit={handleEditQuoteItem}
-                                                    onDelete={handleCreateQuoteItem}
+                                                    onDelete={handleDeleteQuoteItem}
                                                     showToothNumber={false}
                                                 />
                                             </TabsContent>
@@ -1115,7 +1115,7 @@ export default function QuotesPage() {
                                     <FormItem>
                                         <FormLabel>{t('itemDialog.originalPrice')} ({originalServiceCurrency})</FormLabel>
                                         <Input
-                                            value={originalServicePrice !== null ? Number(originalServicePrice).toFixed(2) : ''}
+                                            value={originalServicePrice !== null && !isNaN(Number(originalServicePrice)) ? Number(originalServicePrice).toFixed(2) : ''}
                                             readOnly
                                             disabled
                                         />
@@ -1129,12 +1129,20 @@ export default function QuotesPage() {
                                                 <Input
                                                     type="number"
                                                     step="0.0001"
-                                                    value={exchangeRate}
+                                                    {...field}
+                                                    value={field.value ?? exchangeRate}
                                                     onChange={(e) => {
                                                         const value = Number(e.target.value) || 1;
-                                                        setExchangeRate(Math.round(value * 10000) / 10000);
+                                                        const roundedValue = Math.round(value * 10000) / 10000;
+                                                        setExchangeRate(roundedValue);
+                                                        field.onChange(roundedValue);
+                                                    }}
+                                                    onBlur={async () => {
+                                                        field.onBlur();
+                                                        await quoteItemForm.trigger('exchange_rate');
                                                     }}
                                                 />
+                                                <FormMessage />
                                             </FormItem>
                                         )}
                                     />
@@ -1144,14 +1152,15 @@ export default function QuotesPage() {
                                 <FormItem>
                                     <FormLabel>{t('itemDialog.quantity')}</FormLabel>
                                     <FormControl>
-                                        <Input 
-                                            type="number" 
+                                        <Input
+                                            type="number"
                                             {...field}
                                             onChange={(e) => {
                                                 const value = e.target.value;
                                                 field.onChange(value === '' ? '' : Number(value));
                                             }}
-                                            onBlur={(e) => {
+                                            onBlur={async (e) => {
+                                                field.onBlur();
                                                 const value = e.target.value;
                                                 if (value !== '') {
                                                     const quantity = Number(value);
@@ -1159,6 +1168,7 @@ export default function QuotesPage() {
                                                     const newTotal = Math.round((unitPrice * quantity) * 100) / 100;
                                                     quoteItemForm.setValue('total', newTotal);
                                                 }
+                                                await quoteItemForm.trigger('quantity');
                                             }}
                                         />
                                     </FormControl>
@@ -1169,9 +1179,9 @@ export default function QuotesPage() {
                                 <FormItem>
                                     <FormLabel>{t('itemDialog.unitPrice')} ({selectedQuote?.currency})</FormLabel>
                                     <FormControl>
-                                        <Input 
-                                            type="number" 
-                                            {...field}
+                                        <Input
+                                            type="number"
+                                            value={typeof field.value === 'number' && !isNaN(field.value) ? field.value.toFixed(2) : ''}
                                             onChange={(e) => {
                                                 const value = e.target.value;
                                                 if (value === '') {
@@ -1200,7 +1210,7 @@ export default function QuotesPage() {
                             <FormField control={quoteItemForm.control} name="total" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{t('itemDialog.total')}</FormLabel>
-                                    <FormControl><Input type="number" readOnly disabled {...field} /></FormControl>
+                                    <FormControl><Input type="number" readOnly disabled value={typeof field.value === 'number' && !isNaN(field.value) ? field.value.toFixed(2) : ''} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
