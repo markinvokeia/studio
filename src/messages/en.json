@@ -3081,6 +3081,19 @@
       "placeholder": "Enter reason...",
       "submit": "Ignore"
     },
+    "registerCall": {
+      "title": "Register Call",
+      "date": "Date and Time",
+      "notes": "Notes",
+      "notesPlaceholder": "Enter notes about the call...",
+      "submit": "Register"
+    },
+    "addNote": {
+      "title": "Add Note",
+      "note": "Note",
+      "notePlaceholder": "Write the note...",
+      "submit": "Add"
+    },
     "bulkActions": {
       "title": "Bulk Actions",
       "alertsSelected": "alert(s) selected",
@@ -3114,7 +3127,15 @@
       "whatsappSent": "WhatsApp Sent",
       "whatsappSentDescription": "WhatsApp message sent to {count} alert(s).",
       "whatsappSendFailed": "Failed to send WhatsApp",
-      "whatsappSendFailedDescription": "An error occurred while sending WhatsApp message. Please try again."
+      "whatsappSendFailedDescription": "An error occurred while sending WhatsApp message. Please try again.",
+      "callRegistered": "Call Registered",
+      "callRegisteredDescription": "Call registered for {count} alert(s).",
+      "callRegisterFailed": "Failed to register call",
+      "callRegisterFailedDescription": "An error occurred while registering the call. Please try again.",
+      "noteAdded": "Note Added",
+      "noteAddedDescription": "Note added to {count} alert(s).",
+      "addNoteFailed": "Failed to add note",
+      "addNoteFailedDescription": "An error occurred while adding the note. Please try again."
     },
     "noAlerts": "No alerts available."
   },

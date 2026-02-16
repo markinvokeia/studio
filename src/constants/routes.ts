@@ -246,6 +246,8 @@ export const API_ROUTES = {
         ALERT_INSTANCES_SEND_SMS: '/system/alert-instances/send-sms',
         ALERT_INSTANCES_SEND_WHATSAPP: '/system/alert-instances/send-whatsapp',
         ALERT_INSTANCES_SNOOZE: '/system/alert-instances/snooze',
+        ALERT_INSTANCES_CALL_REGISTER: '/system/alert-instances/call-register',
+        ALERT_INSTANCES_NOTES: '/system/alert-instances/notes',
         ALERT_RULES: '/system/alert-rules',
         ALERTS_CONFIG: '/system/alerts-config',
         AUDIT: '/system/audit',

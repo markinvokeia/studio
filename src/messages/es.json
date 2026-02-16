@@ -3081,6 +3081,19 @@
             "placeholder": "Ingrese razón...",
             "submit": "Ignorar"
         },
+        "registerCall": {
+            "title": "Registrar Llamada",
+            "date": "Fecha y Hora",
+            "notes": "Notas",
+            "notesPlaceholder": "Ingrese notas sobre la llamada...",
+            "submit": "Registrar"
+        },
+        "addNote": {
+            "title": "Agregar Nota",
+            "note": "Nota",
+            "notePlaceholder": "Escriba la nota...",
+            "submit": "Agregar"
+        },
         "bulkActions": {
             "title": "Acciones en Masa",
             "alertsSelected": "alerta(s) seleccionada(s)",
@@ -3114,7 +3127,15 @@
             "whatsappSent": "WhatsApp Enviado",
             "whatsappSentDescription": "Mensaje de WhatsApp enviado a {count} alerta(s).",
             "whatsappSendFailed": "Error al enviar WhatsApp",
-            "whatsappSendFailedDescription": "Ocurrió un error al enviar el mensaje de WhatsApp. Por favor, inténtelo de nuevo."
+            "whatsappSendFailedDescription": "Ocurrió un error al enviar el mensaje de WhatsApp. Por favor, inténtelo de nuevo.",
+            "callRegistered": "Llamada Registrada",
+            "callRegisteredDescription": "Llamada registrada para {count} alerta(s).",
+            "callRegisterFailed": "Error al registrar llamada",
+            "callRegisterFailedDescription": "Ocurrió un error al registrar la llamada. Por favor, inténtelo de nuevo.",
+            "noteAdded": "Nota Agregada",
+            "noteAddedDescription": "Nota agregada a {count} alerta(s).",
+            "addNoteFailed": "Error al agregar nota",
+            "addNoteFailedDescription": "Ocurrió un error al agregar la nota. Por favor, inténtelo de nuevo."
         },
         "noAlerts": "No hay alertas disponibles."
     },

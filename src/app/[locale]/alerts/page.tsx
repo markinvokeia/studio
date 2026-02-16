@@ -142,6 +142,13 @@ function AlertsCenterPageContent() {
     const [limit, setLimit] = React.useState<number>(50);
     const [bulkActionLoading, setBulkActionLoading] = React.useState<'complete' | 'email' | 'sms' | 'whatsapp' | 'ignore' | 'snooze' | null>(null);
     const [totalPages, setTotalPages] = React.useState<number>(1);
+    const [registerCallDialogOpen, setRegisterCallDialogOpen] = React.useState(false);
+    const [registerCallDate, setRegisterCallDate] = React.useState<string>('');
+    const [registerCallNotes, setRegisterCallNotes] = React.useState<string>('');
+    const [alertsToRegisterCall, setAlertsToRegisterCall] = React.useState<string[]>([]);
+    const [addNoteDialogOpen, setAddNoteDialogOpen] = React.useState(false);
+    const [noteContent, setNoteContent] = React.useState<string>('');
+    const [alertsForNote, setAlertsForNote] = React.useState<string[]>([]);
 
 
     const loadAlerts = async () => {
@@ -260,6 +267,30 @@ function AlertsCenterPageContent() {
             toast({ title: t('toast.smsSendFailed'), description: t('toast.smsSendFailedDescription'), variant: 'destructive' });
         } finally {
             setBulkActionLoading(null);
+        }
+    };
+
+    const registerCall = async (alertIds: string[], scheduledAt: string, reason: string) => {
+        try {
+            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_CALL_REGISTER, { 
+                ids: alertIds, 
+                details_json: { scheduled_at: scheduledAt },
+                reason 
+            });
+            toast({ title: t('toast.callRegistered'), description: t('toast.callRegisteredDescription', { count: alertIds.length }) });
+        } catch (error) {
+            console.error('Failed to register call:', error);
+            toast({ title: t('toast.callRegisterFailed'), description: t('toast.callRegisterFailedDescription'), variant: 'destructive' });
+        }
+    };
+
+    const addNote = async (alertIds: string[], reason: string) => {
+        try {
+            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_NOTES, { ids: alertIds, reason });
+            toast({ title: t('toast.noteAdded'), description: t('toast.noteAddedDescription', { count: alertIds.length }) });
+        } catch (error) {
+            console.error('Failed to add note:', error);
+            toast({ title: t('toast.addNoteFailed'), description: t('toast.addNoteFailedDescription'), variant: 'destructive' });
         }
     };
 
@@ -448,18 +479,15 @@ function AlertsCenterPageContent() {
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent>
                                                                 <DropdownMenuLabel>{t('actionsGroups.communication')}</DropdownMenuLabel>
-                                                                <DropdownMenuItem onClick={() => sendSms([alert.id])}><MessageSquare className="mr-2 h-4 w-4" />{t('actions.sendSms')}</DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => sendWhatsApp([alert.id])}><MessageCircle className="mr-2 h-4 w-4" />{t('actions.sendWhatsApp')}</DropdownMenuItem>
-                                                                <DropdownMenuItem><Phone className="mr-2 h-4 w-4" />{t('actions.registerCall')}</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => sendWhatsApp([alert.id])} disabled><MessageCircle className="mr-2 h-4 w-4" />{t('actions.sendWhatsApp')}</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => { setAlertsToRegisterCall([alert.id]); setRegisterCallDialogOpen(true); }}><Phone className="mr-2 h-4 w-4" />{t('actions.registerCall')}</DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuLabel>{t('actionsGroups.management')}</DropdownMenuLabel>
                                                                 <DropdownMenuItem onClick={() => { setAlertsToSnooze([alert.id]); setSnoozeDialogOpen(true); }}><Clock className="mr-2 h-4 w-4" />{t('actions.snooze')}</DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => { setAlertsToIgnore([alert.id]); setIgnoreDialogOpen(true); }}><XCircle className="mr-2 h-4 w-4" />{t('actions.ignore')}</DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuLabel>{t('actionsGroups.other')}</DropdownMenuLabel>
-                                                                <DropdownMenuItem><Printer className="mr-2 h-4 w-4" />{t('actions.print')}</DropdownMenuItem>
-                                                                <DropdownMenuItem><UserPlus className="mr-2 h-4 w-4" />{t('actions.assign')}</DropdownMenuItem>
-                                                                <DropdownMenuItem><FileText className="mr-2 h-4 w-4" />{t('actions.addNote')}</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => { setAlertsForNote([alert.id]); setAddNoteDialogOpen(true); }}><FileText className="mr-2 h-4 w-4" />{t('actions.addNote')}</DropdownMenuItem>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
                                                     </div>
@@ -549,6 +577,80 @@ function AlertsCenterPageContent() {
                             disabled={!snoozeDate}
                         >
                             {t('snoozeAlert.submit')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={registerCallDialogOpen} onOpenChange={setRegisterCallDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('registerCall.title')}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div>
+                            <Label htmlFor="registerCallDate">{t('registerCall.date')}</Label>
+                            <Input
+                                type="datetime-local"
+                                id="registerCallDate"
+                                value={registerCallDate}
+                                onChange={(e) => setRegisterCallDate(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="registerCallNotes">{t('registerCall.notes')}</Label>
+                            <Textarea
+                                id="registerCallNotes"
+                                value={registerCallNotes}
+                                onChange={(e) => setRegisterCallNotes(e.target.value)}
+                                placeholder={t('registerCall.notesPlaceholder')}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            onClick={() => {
+                                registerCall(alertsToRegisterCall, registerCallDate, registerCallNotes);
+                                setRegisterCallDialogOpen(false);
+                                setRegisterCallDate('');
+                                setRegisterCallNotes('');
+                                setAlertsToRegisterCall([]);
+                            }}
+                            disabled={!registerCallDate}
+                        >
+                            {t('registerCall.submit')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={addNoteDialogOpen} onOpenChange={setAddNoteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('addNote.title')}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div>
+                            <Label htmlFor="noteContent">{t('addNote.note')}</Label>
+                            <Textarea
+                                id="noteContent"
+                                value={noteContent}
+                                onChange={(e) => setNoteContent(e.target.value)}
+                                placeholder={t('addNote.notePlaceholder')}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            onClick={() => {
+                                addNote(alertsForNote, noteContent);
+                                setAddNoteDialogOpen(false);
+                                setNoteContent('');
+                                setAlertsForNote([]);
+                            }}
+                            disabled={!noteContent}
+                        >
+                            {t('addNote.submit')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

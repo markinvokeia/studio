@@ -116,34 +116,13 @@ export function BulkActionsFloatingBar({
                 </Button>
                 
                 <Button
-                    variant={loadingAction === 'sms' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={onSendSms}
-                    disabled={loadingAction !== null}
-                    title="Enviar SMS"
-                    className={cn(
-                        "h-9 w-9 p-0 transition-all duration-200",
-                        loadingAction === 'sms' 
-                            ? "bg-purple-500 hover:bg-purple-600 text-white animate-pulse" 
-                            : "hover:bg-purple-100 hover:text-purple-700 dark:hover:bg-purple-900/20 dark:hover:text-purple-400",
-                        loadingAction && loadingAction !== 'sms' ? "opacity-50 cursor-not-allowed" : ""
-                    )}
-                >
-                    {loadingAction === 'sms' ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                        <MessageSquare className="h-4 w-4" />
-                    )}
-                </Button>
-                
-<Button
                     variant={loadingAction === 'whatsapp' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={onSendWhatsApp}
-                    disabled={loadingAction !== null}
-                    title="Enviar WhatsApp"
+                    disabled={true}
+                    title="Enviar WhatsApp (deshabilitado)"
                     className={cn(
-                        "h-9 w-9 p-0 transition-all duration-200",
+                        "h-9 w-9 p-0 transition-all duration-200 opacity-50 cursor-not-allowed",
                         loadingAction === 'whatsapp' 
                             ? "bg-green-500 hover:bg-green-600 text-white animate-pulse" 
                             : "hover:bg-green-100 hover:text-green-700 dark:hover:bg-green-900/20 dark:hover:text-green-400",
