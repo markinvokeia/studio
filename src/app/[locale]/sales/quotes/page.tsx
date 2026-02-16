@@ -566,15 +566,6 @@ export default function QuotesPage() {
     const handleCreateQuoteItem = async () => {
         if (!selectedQuote) return;
 
-        if (!activeCashSession?.data?.opening_details?.date_rate) {
-            toast({
-                variant: 'destructive',
-                title: t('errors.cashSessionRequired'),
-                description: t('errors.cashSessionRequiredDetail')
-            });
-            return;
-        }
-
         setEditingQuoteItem(null);
         setQuoteItemSubmissionError(null);
         setShowConversion(false);
