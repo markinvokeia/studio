@@ -1628,12 +1628,14 @@
         "MOBILE_PAYMENT": "Mobile Payment",
         "MERCADO_PAGO": "Mercado Pago",
         "PE": "Non-cash",
-        "Cash": "Cash"
+        "Cash": "Cash",
+        "CN": "Credit Note"
       }
     },
     "transactionType": {
       "payment_allocation": "Payment Allocation",
       "direct_payment": "Direct Payment",
+      "credit_note_allocation": "Credit Note Allocation",
       "payment": "Payment",
       "credit_note": "Credit Note",
       "deposit_at_bank": "Deposit at Bank",

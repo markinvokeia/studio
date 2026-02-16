@@ -244,35 +244,60 @@ async function getInvoiceItems(invoiceId: string, t: (key: string) => string): P
 }
 
 
+function hasValidPayments(paymentsData: any[]): boolean {
+    if (!Array.isArray(paymentsData) || paymentsData.length === 0) {
+        return false;
+    }
+    
+    const firstItem = paymentsData[0];
+    
+    if (!firstItem || typeof firstItem !== 'object') {
+        return false;
+    }
+
+    const isNewFormat = firstItem.amount_applied !== undefined && typeof firstItem.amount_applied === 'string';
+    const isOldFormat = firstItem.amount !== undefined || firstItem.converted_amount !== undefined;
+
+    return isNewFormat || isOldFormat;
+}
+
+
 async function getPayments(quoteId: string, t: (key: string) => string): Promise<Payment[]> {
     if (!quoteId) return [];
     try {
         const data = await api.get(API_ROUTES.PURCHASES.QUOTES_PAYMENTS, { quote_id: quoteId, is_sales: 'false' });
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
+        
+        if (!hasValidPayments(paymentsData)) {
+            return [];
+        }
+        
+        const isNewFormat = paymentsData[0].amount_applied !== undefined && typeof paymentsData[0].amount_applied === 'string';
+
         return paymentsData.map((apiPayment: any) => ({
-            id: apiPayment.id ? String(apiPayment.id) : t('defaults.notAvailable'),
-            doc_no: apiPayment.doc_no,
+            id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : (apiPayment.id ? String(apiPayment.id) : t('defaults.notAvailable')),
+            doc_no: apiPayment.doc_no || (apiPayment.transaction_doc_no ? String(apiPayment.transaction_doc_no) : 'N/A'),
             invoice_id: apiPayment.invoice_id || '',
             invoice_doc_no: apiPayment.invoice_doc_no || 'N/A',
-            amount: parseFloat(apiPayment.amount) || 0,
-            amount_applied: parseFloat(apiPayment.amount) || 0,
-            source_amount: parseFloat(apiPayment.amount) || 0,
-            source_currency: apiPayment.currency as 'UYU' | 'USD' || 'UYU',
-            method: apiPayment.method,
-            payment_method: apiPayment.method,
+            amount: isNewFormat ? parseFloat(apiPayment.amount_applied) : (parseFloat(apiPayment.amount) || 0),
+            amount_applied: isNewFormat ? parseFloat(apiPayment.amount_applied) : (parseFloat(apiPayment.amount) || 0),
+            source_amount: isNewFormat ? parseFloat(apiPayment.source_amount) : (parseFloat(apiPayment.amount) || 0),
+            source_currency: (isNewFormat ? apiPayment.source_currency : apiPayment.currency) as 'UYU' | 'USD' || 'UYU',
+            method: apiPayment.payment_method_name || apiPayment.method,
+            payment_method: apiPayment.payment_method_name || apiPayment.method,
             payment_method_code: apiPayment.payment_method_code,
-            status: apiPayment.status,
-            createdAt: apiPayment.created_at,
-            payment_date: apiPayment.created_at,
-            currency: apiPayment.currency,
+            status: apiPayment.status || 'completed',
+            createdAt: apiPayment.payment_date || apiPayment.created_at,
+            payment_date: apiPayment.payment_date || apiPayment.created_at,
+            currency: isNewFormat ? apiPayment.invoice_currency : apiPayment.currency,
             order_id: apiPayment.order_id || '',
             order_doc_no: apiPayment.order_doc_no || 'N/A',
             quote_id: apiPayment.quote_id || '',
             user_name: apiPayment.user_name || t('defaults.notAvailable'),
-            exchange_rate: parseFloat(apiPayment.exchange_rate) || 1,
-            transaction_type: apiPayment.transaction_type,
-            transaction_id: String(apiPayment.id),
-            updatedAt: apiPayment.updated_at || apiPayment.created_at
+            exchange_rate: isNewFormat ? parseFloat(apiPayment.exchange_rate) : (parseFloat(apiPayment.exchange_rate) || 1),
+            transaction_type: apiPayment.transaction_type || 'direct_payment',
+            transaction_id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : String(apiPayment.id),
+            updatedAt: apiPayment.payment_date || apiPayment.updated_at || apiPayment.created_at
         }));
     } catch (error) {
         console.error("Failed to fetch payments:", error);

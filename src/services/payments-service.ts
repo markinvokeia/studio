@@ -15,6 +15,23 @@ export interface PaymentSearchParams {
   search?: string;
 }
 
+function hasValidPayments(paymentsData: any[]): boolean {
+  if (!Array.isArray(paymentsData) || paymentsData.length === 0) {
+    return false;
+  }
+  
+  const firstItem = paymentsData[0];
+  
+  if (!firstItem || typeof firstItem !== 'object') {
+    return false;
+  }
+
+  const isNewFormat = firstItem.amount_applied !== undefined && typeof firstItem.amount_applied === 'string';
+  const isOldFormat = firstItem.amount !== undefined || firstItem.converted_amount !== undefined;
+
+  return isNewFormat || isOldFormat;
+}
+
 export function normalizePaymentMethod(method: string | undefined): string {
   if (!method) return 'N/A';
 
@@ -60,31 +77,33 @@ function mapApiPaymentToPayment(apiPayment: any): Payment {
     paymentType = 'invoice';
   }
 
+  const isNewFormat = apiPayment.amount_applied !== undefined && typeof apiPayment.amount_applied === 'string';
+
   return {
-    id: String(apiPayment.id),
-    doc_no: apiPayment.doc_no,
-    order_id: apiPayment.order_id,
-    order_doc_no: apiPayment.order_doc_no,
-    invoice_doc_no: apiPayment.invoice_doc_no,
-    invoice_id: apiPayment.invoice_id,
-    quote_id: apiPayment.quote_id,
-    user_name: apiPayment.user_name,
-    userEmail: apiPayment.user_email,
-    amount: parseFloat(apiPayment.amount),
-    method: normalizePaymentMethod(apiPayment.method),
-    status: apiPayment.status,
-    createdAt: apiPayment.created_at,
-    updatedAt: apiPayment.created_at,
-    currency: apiPayment.currency,
-    payment_date: apiPayment.created_at,
-    amount_applied: parseFloat(apiPayment.converted_amount),
-    source_amount: parseFloat(apiPayment.amount),
-    source_currency: apiPayment.currency,
-    exchange_rate: parseFloat(apiPayment.exchange_rate),
-    payment_method: apiPayment.method,
+    id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : 'N/A',
+    doc_no: apiPayment.doc_no || (apiPayment.transaction_doc_no ? String(apiPayment.transaction_doc_no) : 'N/A'),
+    order_id: apiPayment.order_id || '',
+    order_doc_no: apiPayment.order_doc_no || 'N/A',
+    invoice_doc_no: apiPayment.invoice_doc_no || 'N/A',
+    invoice_id: apiPayment.invoice_id || null,
+    quote_id: apiPayment.quote_id || '',
+    user_name: apiPayment.user_name || 'N/A',
+    userEmail: apiPayment.user_email || '',
+    amount: isNewFormat ? parseFloat(apiPayment.amount_applied) : parseFloat(apiPayment.amount),
+    method: apiPayment.payment_method_name || normalizePaymentMethod(apiPayment.method),
+    status: apiPayment.status || 'completed',
+    createdAt: apiPayment.payment_date || apiPayment.created_at,
+    updatedAt: apiPayment.payment_date || apiPayment.created_at,
+    currency: apiPayment.invoice_currency || apiPayment.source_currency || apiPayment.currency || 'USD',
+    payment_date: apiPayment.payment_date || apiPayment.created_at,
+    amount_applied: isNewFormat ? parseFloat(apiPayment.amount_applied) : parseFloat(apiPayment.converted_amount || apiPayment.amount_applied),
+    source_amount: isNewFormat ? parseFloat(apiPayment.source_amount) : parseFloat(apiPayment.amount),
+    source_currency: apiPayment.source_currency || apiPayment.currency || 'USD',
+    exchange_rate: isNewFormat ? parseFloat(apiPayment.exchange_rate) : parseFloat(apiPayment.exchange_rate || '1'),
+    payment_method: apiPayment.payment_method_name || apiPayment.payment_method || apiPayment.method || 'N/A',
     payment_method_code: apiPayment.payment_method_code,
-    transaction_type: apiPayment.transaction_type,
-    transaction_id: apiPayment.transaction_id,
+    transaction_type: apiPayment.transaction_type || 'direct_payment',
+    transaction_id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : 'N/A',
     reference_doc_id: apiPayment.reference_doc_id,
     type: paymentType,
   };
@@ -106,6 +125,10 @@ export async function getSalesPayments(params: PaymentSearchParams = {}): Promis
     const paginationData = Array.isArray(data) && data.length > 0 ? data[0] : data;
     const paymentsData = paginationData.data || [];
     const totalPages = paginationData.pages || Math.ceil((paginationData.total || paymentsData.length) / limit);
+
+    if (!hasValidPayments(paymentsData)) {
+      return { payments: [], totalPages: 0 };
+    }
 
     return {
       payments: paymentsData.map(mapApiPaymentToPayment),
@@ -133,6 +156,10 @@ export async function getPurchasePayments(params: PaymentSearchParams = {}): Pro
     const paginationData = Array.isArray(data) && data.length > 0 ? data[0] : data;
     const paymentsData = paginationData.data || [];
     const totalPages = paginationData.pages || Math.ceil((paginationData.total || paymentsData.length) / limit);
+
+    if (!hasValidPayments(paymentsData)) {
+      return { payments: [], totalPages: 0 };
+    }
 
     return {
       payments: paymentsData.map(mapApiPaymentToPayment),

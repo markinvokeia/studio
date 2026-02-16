@@ -285,7 +285,6 @@ export default function PaymentsPage() {
                         onPrint={handlePrintPayment}
                         onSendEmail={handleSendEmailClick}
                         onCreate={handleCreatePrepaid}
-                        columnsToHide={['transaction_type']}
                         pagination={pagination}
                         onPaginationChange={handlePaginationChange}
                         pageCount={totalPages}

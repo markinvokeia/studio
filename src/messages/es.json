@@ -1628,12 +1628,14 @@
                 "MOBILE_PAYMENT": "Pago Móvil",
                 "MERCADO_PAGO": "Mercado Pago",
                 "PE": "Pago en especies",
-                "Cash": "Efectivo"
+                "Cash": "Efectivo",
+                "CN": "Nota de crédito"
             }
         },
         "transactionType": {
             "payment_allocation": "Asignación de Pago",
             "direct_payment": "Pago Directo",
+            "credit_note_allocation": "Asignación de Nota de Crédito",
             "payment": "Pago",
             "credit_note": "Nota de Crédito",
             "deposit_at_bank": "Depósito en Banco",

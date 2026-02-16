@@ -1,6 +1,7 @@
 
 'use client';
 
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
@@ -16,13 +17,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Invoice, InvoiceItem, Payment, Service } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { CheckCircle, File, FileUp, Loader2, PlusCircle, RefreshCw, X } from 'lucide-react';
+import { File, FileUp, Loader2, PlusCircle, RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -111,35 +110,60 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
     }
 }
 
+function hasValidPayments(paymentsData: any[]): boolean {
+    if (!Array.isArray(paymentsData) || paymentsData.length === 0) {
+        return false;
+    }
+
+    const firstItem = paymentsData[0];
+
+    if (!firstItem || typeof firstItem !== 'object') {
+        return false;
+    }
+
+    const isNewFormat = firstItem.amount_applied !== undefined && typeof firstItem.amount_applied === 'string';
+    const isOldFormat = firstItem.amount !== undefined || firstItem.converted_amount !== undefined;
+
+    return isNewFormat || isOldFormat;
+}
+
 async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
     if (!invoiceId) return [];
     try {
         const data = await api.get(API_ROUTES.PURCHASES.INVOICE_PAYMENTS, { invoice_id: invoiceId, is_sales: 'false' });
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
+
+        if (!hasValidPayments(paymentsData)) {
+            return [];
+        }
+
+        const isNewFormat = paymentsData[0].amount_applied !== undefined && typeof paymentsData[0].amount_applied === 'string';
+
         return paymentsData.map((apiPayment: any) => ({
             id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : 'N/A',
-            doc_no: apiPayment.doc_no || 'N/A',
-            order_id: apiPayment.order_id,
+            doc_no: apiPayment.doc_no || (apiPayment.transaction_doc_no ? String(apiPayment.transaction_doc_no) : 'N/A'),
+            order_id: apiPayment.order_id || '',
             order_doc_no: apiPayment.order_doc_no || 'N/A',
-            invoice_id: apiPayment.invoice_id,
+            invoice_id: apiPayment.invoice_id || '',
             invoice_doc_no: apiPayment.invoice_doc_no || 'N/A',
-            quote_id: apiPayment.quote_id,
+            quote_id: apiPayment.quote_id || '',
             quote_doc_no: apiPayment.quote_doc_no || 'N/A',
             user_name: apiPayment.user_name || 'N/A',
-            amount: apiPayment.amount_applied || 0,
-            method: apiPayment.payment_method || 'credit_card',
-            status: apiPayment.status || 'pending',
-            createdAt: apiPayment.created_at || new Date().toISOString().split('T')[0],
-            updatedAt: apiPayment.updatedAt || new Date().toISOString().split('T')[0],
-            currency: apiPayment.source_currency || 'USD',
+            amount: isNewFormat ? parseFloat(apiPayment.amount_applied) : (parseFloat(apiPayment.amount_applied) || 0),
+            method: apiPayment.payment_method_name || apiPayment.payment_method || 'credit_card',
+            status: apiPayment.status || 'completed',
+            createdAt: apiPayment.payment_date || apiPayment.created_at || new Date().toISOString().split('T')[0],
+            updatedAt: apiPayment.payment_date || apiPayment.updatedAt || new Date().toISOString().split('T')[0],
+            currency: isNewFormat ? apiPayment.invoice_currency : (apiPayment.source_currency || 'USD'),
             payment_date: apiPayment.payment_date,
-            amount_applied: apiPayment.amount_applied,
-            source_amount: apiPayment.source_amount,
-            source_currency: apiPayment.source_currency,
-            exchange_rate: apiPayment.exchange_rate ? parseFloat(String(apiPayment.exchange_rate)) : 1,
-            payment_method: apiPayment.payment_method,
-            transaction_type: apiPayment.transaction_type,
-            transaction_id: apiPayment.transaction_id,
+            amount_applied: isNewFormat ? parseFloat(apiPayment.amount_applied) : (parseFloat(apiPayment.amount_applied) || 0),
+            source_amount: isNewFormat ? parseFloat(apiPayment.source_amount) : (parseFloat(apiPayment.source_amount) || 0),
+            source_currency: apiPayment.source_currency || 'USD',
+            exchange_rate: isNewFormat ? parseFloat(apiPayment.exchange_rate) : (apiPayment.exchange_rate ? parseFloat(String(apiPayment.exchange_rate)) : 1),
+            payment_method: apiPayment.payment_method_name || apiPayment.payment_method,
+            payment_method_code: apiPayment.payment_method_code,
+            transaction_type: apiPayment.transaction_type || 'direct_payment',
+            transaction_id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : apiPayment.transaction_id,
             reference_doc_id: apiPayment.reference_doc_id
         }));
     } catch (error) {
