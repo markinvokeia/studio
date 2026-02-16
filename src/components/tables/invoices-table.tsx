@@ -87,7 +87,7 @@ const createInvoiceFormSchema = z.object({
     quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
     unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
     total: z.coerce.number().optional(),
-  })).min(1, 'At least one item is required.'),
+  })),
   type: z.enum(['invoice', 'credit_note']),
   parent_id: z.string().optional(),
 });
@@ -1162,11 +1162,50 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
     }
   }, [isOpen, isSales, invoice, form]);
 
+  const parentId = form.watch('parent_id');
 
-  const onSubmit = async (values: CreateInvoiceFormValues) => {
+  React.useEffect(() => {
+    if (invoiceType === 'credit_note' && parentId && bookedInvoices.length > 0) {
+      const parentInvoice = bookedInvoices.find(inv => String(inv.id) === parentId);
+      if (parentInvoice) {
+        form.setValue('user_id', String(parentInvoice.user_id));
+        const fetchParentItems = async () => {
+          try {
+            const itemsEndpoint = isSales ? API_ROUTES.SALES.INVOICE_ITEMS : API_ROUTES.PURCHASES.INVOICE_ITEMS;
+            const itemsData = await api.get(itemsEndpoint, { invoice_id: parentId, is_sales: isSales ? 'true' : 'false' });
+            const itemsNormalized = Array.isArray(itemsData) ? itemsData : (itemsData.invoice_items || itemsData.data || itemsData.result || []);
+            const mappedItems = itemsNormalized.map((item: any) => {
+              const rawServiceId = item.service_id || item.product_id;
+              const serviceId = Array.isArray(rawServiceId) ? String(rawServiceId[0]) : String(rawServiceId || '');
+              return {
+                id: item.id ? String(item.id) : undefined,
+                service_id: serviceId,
+                quantity: Number(item.quantity || item.product_uom_qty || 1),
+                unit_price: Number(item.unit_price || item.price_unit || 0),
+                total: Number(item.total || item.price_total || 0),
+              };
+            });
+            form.setValue('items', mappedItems);
+          } catch (error) {
+            console.error('Failed to fetch parent invoice items', error);
+          }
+        };
+        fetchParentItems();
+      }
+    }
+  }, [parentId, invoiceType, bookedInvoices, isSales, form]);
+
+const onSubmit = async (values: CreateInvoiceFormValues) => {
     setSubmissionError(null);
     setIsSubmitting(true);
     try {
+      if (values.type === 'invoice' && (!values.items || values.items.length === 0)) {
+        throw new Error(t('atLeastOneItem') || 'Debe agregar al menos un artículo.');
+      }
+      if (values.type === 'credit_note' && (!values.items || values.items.length === 0)) {
+        throw new Error(t('atLeastOneItem') || 'Debe agregar al menos un artículo.');
+      }
+      
       const endpoint = isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT;
       const payload = isEditing && invoice
         ? { ...values, id: invoice.id, is_sales: isSales }
@@ -1196,6 +1235,10 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
   };
 
   const handleRemoveItem = (index: number) => {
+    if (invoiceType === 'credit_note' && items.length <= 1) {
+      toast({ variant: 'destructive', title: t('validation.errorTitle') || 'Error', description: t('atLeastOneItem') || 'Debe agregar al menos un artículo.' });
+      return;
+    }
     form.setValue('items', items.filter((_, i) => i !== index));
   };
 
@@ -1270,7 +1313,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                       <SelectContent>
                         {bookedInvoices.map(inv => (
                           <SelectItem key={inv.id} value={String(inv.id)}>
-                            Invoice #{inv.id} - {inv.user_name} - ${inv.total}
+                            {inv.doc_no} - {inv.user_name} - ${inv.total}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1283,7 +1326,11 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="user_id" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('user')}</FormLabel>
+                  <FormLabel>
+                    {invoiceType === 'credit_note' 
+                      ? (isSales ? t('client') : t('provider')) 
+                      : t('user')}
+                  </FormLabel>
                   <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder={t('selectUser')} /></SelectTrigger></FormControl>
                     <SelectContent>{users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
@@ -1294,11 +1341,13 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
 
             </div>
 
-            <Card>
+<Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle>{t('items.title')}</CardTitle>
-                  <Button type="button" size="sm" variant="outline" onClick={handleAddItem}>{t('addItem')}</Button>
+                  {invoiceType !== 'credit_note' && (
+                    <Button type="button" size="sm" variant="outline" onClick={handleAddItem}>{t('addItem')}</Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -1325,6 +1374,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                               }
                             }}
                             value={field.value}
+                            disabled={invoiceType === 'credit_note'}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -1339,17 +1389,21 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                         </FormItem>
                       )} />
                       <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
-                        <FormItem className="w-full md:w-20"><FormControl><Input type="number" {...field} onChange={(e) => {
-                          field.onChange(e);
-                          const price = form.getValues(`items.${index}.unit_price`) || 0;
-                          form.setValue(`items.${index}.total`, price * Number(e.target.value));
+                        <FormItem className="w-full md:w-20"><FormControl><Input type="number" {...field} readOnly={invoiceType === 'credit_note'} onChange={(e) => {
+                          if (invoiceType !== 'credit_note') {
+                            field.onChange(e);
+                            const price = form.getValues(`items.${index}.unit_price`) || 0;
+                            form.setValue(`items.${index}.total`, price * Number(e.target.value));
+                          }
                         }} /></FormControl><FormMessage /></FormItem>
                       )} />
                       <FormField control={form.control} name={`items.${index}.unit_price`} render={({ field }) => (
-                        <FormItem className="w-full md:w-28"><FormControl><Input type="number" {...field} onChange={(e) => {
-                          field.onChange(e);
-                          const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                          form.setValue(`items.${index}.total`, quantity * Number(e.target.value));
+                        <FormItem className="w-full md:w-28"><FormControl><Input type="number" {...field} readOnly={invoiceType === 'credit_note'} onChange={(e) => {
+                          if (invoiceType !== 'credit_note') {
+                            field.onChange(e);
+                            const quantity = form.getValues(`items.${index}.quantity`) || 1;
+                            form.setValue(`items.${index}.total`, quantity * Number(e.target.value));
+                          }
                         }} /></FormControl><FormMessage /></FormItem>
                       )} />
                       <FormField control={form.control} name={`items.${index}.total`} render={({ field }) => (

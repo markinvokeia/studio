@@ -1200,7 +1200,10 @@
       "type": "Type",
       "parentInvoice": "Parent Invoice",
       "save": "Save",
-      "selectParentInvoice": "Select Parent Invoice"
+"selectParentInvoice": "Select Parent Invoice",
+      "client": "Client",
+      "provider": "Provider",
+      "atLeastOneItem": "You must add at least one item."
     },
     "actions": {
       "openMenu": "Open menu",
