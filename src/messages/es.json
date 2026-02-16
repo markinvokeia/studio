@@ -99,7 +99,7 @@
             "title": "Sesión de Caja Activa",
             "description": "Tiene una sesión de caja abierta. Por favor, ciérrela antes de cerrar sesión.",
             "goToCashier": "Ir a Cerrar Sesión",
-            "logoutAnyway": "Cerrar Sesión de Todos Modos",
+            "logoutAnyway": "Cerrar de Todos Modos",
             "cancel": "Cancelar"
         },
         "changePasswordDialog": {

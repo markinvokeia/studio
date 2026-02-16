@@ -282,7 +282,7 @@ export function Header() {
                 </div>
             </header>
             <AlertDialog open={isLogoutAlertOpen} onOpenChange={setIsLogoutAlertOpen}>
-                <AlertDialogContent>
+                <AlertDialogContent className="max-w-xl">
                     <AlertDialogHeader>
                         <AlertDialogTitle className="flex items-center gap-2">
                             <AlertTriangle className="h-6 w-6 text-yellow-500" />
