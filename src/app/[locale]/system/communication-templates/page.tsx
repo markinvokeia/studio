@@ -149,6 +149,9 @@ export default function CommunicationTemplatesPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingTemplate, setDeletingTemplate] = React.useState<CommunicationTemplate | null>(null);
 
+    const [isPreviewDialogOpen, setIsPreviewDialogOpen] = React.useState(false);
+    const [previewingTemplate, setPreviewingTemplate] = React.useState<CommunicationTemplate | null>(null);
+
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [showPreview, setShowPreview] = React.useState(false);
 
@@ -267,6 +270,11 @@ export default function CommunicationTemplatesPage() {
         setIsDialogOpen(true);
     };
 
+    const handlePreview = (template: CommunicationTemplate) => {
+        setPreviewingTemplate(template);
+        setIsPreviewDialogOpen(true);
+    };
+
     const confirmDelete = async () => {
         if (!deletingTemplate?.id) return;
         try {
@@ -327,8 +335,8 @@ export default function CommunicationTemplatesPage() {
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => handleEdit(template)}>{t('columns.edit')}</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDuplicate(template)}>{t('columns.duplicate')}</DropdownMenuItem>
-                            <DropdownMenuItem>{t('columns.preview')}</DropdownMenuItem>
-                            <DropdownMenuItem>{t('columns.history')}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handlePreview(template)}>{t('columns.preview')}</DropdownMenuItem>
+                            {/* <DropdownMenuItem>{t('columns.history')}</DropdownMenuItem> */}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => handleDelete(template)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>
                         </DropdownMenuContent>
@@ -453,6 +461,44 @@ export default function CommunicationTemplatesPage() {
                             </DialogFooter>
                         </form>
                     </Form>
+                </DialogContent>
+            </Dialog>
+            <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+                    <DialogHeader>
+                        <div className="flex items-center gap-3">
+                            <DialogTitle>{previewingTemplate?.name}</DialogTitle>
+                            <Badge variant="secondary">{previewingTemplate?.type}</Badge>
+                        </div>
+                    </DialogHeader>
+                    <div className="flex-1 overflow-y-auto space-y-4">
+                        {previewingTemplate?.type === 'EMAIL' && previewingTemplate.subject && (
+                            <div className="space-y-1">
+                                <Label className="text-muted-foreground">{t('dialog.subject')}</Label>
+                                <div 
+                                    className="p-3 bg-background border rounded-md text-foreground"
+                                    dangerouslySetInnerHTML={{ 
+                                        __html: previewingTemplate.subject.replace(/{{(.*?)}}/g, (match, p1) => `<span class="bg-primary/20 text-primary-foreground rounded px-1">${p1.trim()}</span>`)
+                                    }}
+                                />
+                            </div>
+                        )}
+                        <div className="space-y-1">
+                            <Label className="text-muted-foreground">{t('dialog.body')}</Label>
+                            <div 
+                                className="p-4 bg-background border rounded-md min-h-[200px] text-foreground"
+                                dangerouslySetInnerHTML={{ 
+                                    __html: previewingTemplate?.body_html?.replace(
+                                        /{{(.*?)}}/g, 
+                                        (match, p1) => `<span class="bg-primary/20 text-primary-foreground rounded px-1">${p1.trim()}</span>`
+                                    ) || '' 
+                                }} 
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsPreviewDialogOpen(false)}>{t('dialog.close')}</Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

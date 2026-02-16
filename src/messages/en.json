@@ -3232,6 +3232,7 @@
       "name": "Name",
       "type": "Type",
       "version": "Version",
+      "defaultSender": "Default Sender",
       "category": "Category",
       "isActive": "Active",
       "yes": "Yes",
@@ -3278,7 +3279,8 @@
           "custom_field": "Custom Field (from table)"
         }
       },
-      "defaultSender": "Default Sender"
+      "defaultSender": "Default Sender",
+      "close": "Close"
     },
     "deleteDialog": {
       "title": "Delete Template",

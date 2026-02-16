@@ -3278,7 +3278,8 @@
                 }
             },
             "version": "Versión",
-            "defaultSender": "Enviador por defecto"
+            "defaultSender": "Enviador por defecto",
+            "close": "Cerrar"
         },
         "deleteDialog": {
             "title": "Eliminar Plantilla",
