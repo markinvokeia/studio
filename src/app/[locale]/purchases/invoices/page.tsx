@@ -467,6 +467,7 @@ export default function InvoicesPage() {
         order_doc_no: t('columns.orderDocNo'),
         quote_doc_no: t('columns.quoteDocNo'),
         total: t('columns.total'),
+        currency: t('columns.currency'),
         status: t('columns.status'),
         type: t('columns.type'),
         payment_status: t('columns.payment'),
