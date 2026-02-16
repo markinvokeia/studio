@@ -824,7 +824,9 @@
     },
     "dialog": {
       "completeTitle": "Complete item",
-      "completeDescription": "Select date for completion"
+      "completeDescription": "Select date for completion",
+      "scheduleTitle": "Schedule item",
+      "scheduleDescription": "Select date for schedule"
     }
   },
   "General": {
@@ -1200,7 +1202,7 @@
       "type": "Type",
       "parentInvoice": "Parent Invoice",
       "save": "Save",
-"selectParentInvoice": "Select Parent Invoice",
+      "selectParentInvoice": "Select Parent Invoice",
       "client": "Client",
       "provider": "Provider",
       "atLeastOneItem": "You must add at least one item."

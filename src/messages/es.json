@@ -824,7 +824,9 @@
         },
         "dialog": {
             "completeTitle": "Completar artículo",
-            "completeDescription": "Selecciona la fecha de completación del artículo"
+            "completeDescription": "Selecciona la fecha de completación del artículo",
+            "scheduleTitle": "Agendar artítculo",
+            "scheduleDescription": "Selecciona la fecha para agendar el artículo"
         }
     },
     "General": {
@@ -1200,7 +1202,7 @@
             },
             "type": "Tipo",
             "parentInvoice": "Factura Padre",
-"selectParentInvoice": "Seleccionar Factura Padre",
+            "selectParentInvoice": "Seleccionar Factura Padre",
             "client": "Cliente",
             "provider": "Proveedor",
             "atLeastOneItem": "Debe agregar al menos un artículo."
