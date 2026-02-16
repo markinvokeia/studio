@@ -77,17 +77,25 @@ async function getSessionMovements(sessionId: string): Promise<CajaMovimiento[]>
         } else if (data && data.data) {
             movementsData = data.data;
         }
-        return movementsData.map((mov: any): CajaMovimiento => ({
-            id: String(mov.movement_id),
-            cajaSesionId: sessionId,
-            tipo: mov.type === 'INFLOW' ? 'INGRESO' : 'EGRESO',
-            monto: parseFloat(mov.amount),
-            descripcion: mov.description,
-            fecha: mov.created_at,
-            usuarioId: mov.registered_by_user,
-            metodoPago: normalizePaymentMethodCode(mov.payment_method_code),
-            currency: mov.currency,
-        }));
+        return movementsData.map((mov: any): CajaMovimiento => {
+            const amount = parseFloat(mov.amount);
+            const isSales = mov.is_sales === true || mov.is_sales === 'true';
+            const tipo = isSales
+                ? (amount >= 0 ? 'INGRESO' : 'EGRESO')
+                : (amount >= 0 ? 'EGRESO' : 'INGRESO');
+            return {
+                id: String(mov.movement_id),
+                cajaSesionId: sessionId,
+                tipo,
+                monto: Math.abs(amount),
+                descripcion: mov.description,
+                fecha: mov.created_at,
+                usuarioId: mov.registered_by_user,
+                metodoPago: normalizePaymentMethodCode(mov.payment_method_code),
+                currency: mov.currency,
+                isSales,
+            };
+        });
     } catch (error) {
         console.error("Failed to fetch session movements:", error);
         return [];
@@ -97,6 +105,7 @@ async function getSessionMovements(sessionId: string): Promise<CajaMovimiento[]>
 const SessionDetails = ({ session, movements }: { session: CajaSesion, movements: CajaMovimiento[] }) => {
     const t = useTranslations('CashSessionsPage');
     const tMovementColumns = useTranslations('CashierPage.activeSession.columns');
+    const tPaymentMethods = useTranslations('PaymentsPage.columns.paymentMethods');
 
     const formatCurrency = (value: number | null | undefined, currency: string) => {
         if (value === null || value === undefined) return `${currency} 0.00`;
@@ -179,8 +188,26 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
 
     const movementColumns: ColumnDef<CajaMovimiento>[] = [
         { accessorKey: 'descripcion', header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('description')} /> },
-        { accessorKey: 'monto', header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('amount')} />, cell: ({ row }) => `${row.original.currency} ${row.original.monto.toFixed(2)}` },
-        { accessorKey: 'metodoPago', header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('method')} /> },
+        { 
+            accessorKey: 'monto', 
+            header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('amount')} />, 
+            cell: ({ row }) => {
+                const isExpense = row.original.tipo === 'EGRESO';
+                return (
+                    <span className={cn(isExpense && 'text-red-500')}>
+                        {isExpense ? '-' : ''}{row.original.currency} {row.original.monto.toFixed(2)}
+                    </span>
+                );
+            }
+        },
+        { 
+            accessorKey: 'metodoPago', 
+            header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('method')} />,
+            cell: ({ row }) => {
+                const methodCode = normalizePaymentMethodCode(row.original.metodoPago);
+                return tPaymentMethods(methodCode) || methodCode;
+            }
+        },
         { accessorKey: 'fecha', header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('date')} />, cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
     ];
 

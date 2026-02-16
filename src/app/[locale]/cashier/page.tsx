@@ -149,17 +149,25 @@ export default function CashierPage() {
                 movementsData = data.data;
             }
 
-            setSessionMovements(movementsData.map((mov: any): CajaMovimiento => ({
-                id: String(mov.movement_id),
-                cajaSesionId: sessionId,
-                tipo: mov.type.toLowerCase() === 'inflow' ? 'INGRESO' : 'EGRESO',
-                monto: parseFloat(mov.amount),
-                currency: mov.currency,
-                descripcion: mov.description,
-                fecha: mov.created_at,
-                usuarioId: mov.registered_by_user,
-                metodoPago: normalizePaymentMethodCode(mov.payment_method_code),
-            })));
+            setSessionMovements(movementsData.map((mov: any): CajaMovimiento => {
+                const amount = parseFloat(mov.amount);
+                const isSales = mov.is_sales === true || mov.is_sales === 'true';
+                const tipo = isSales
+                    ? (amount >= 0 ? 'INGRESO' : 'EGRESO')
+                    : (amount >= 0 ? 'EGRESO' : 'INGRESO');
+                return {
+                    id: String(mov.movement_id),
+                    cajaSesionId: sessionId,
+                    tipo,
+                    monto: Math.abs(amount),
+                    currency: mov.currency,
+                    descripcion: mov.description,
+                    fecha: mov.created_at,
+                    usuarioId: mov.registered_by_user,
+                    metodoPago: normalizePaymentMethodCode(mov.payment_method_code),
+                    isSales,
+                };
+            }));
         } catch (error) {
             console.error(error);
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch session movements.' });
@@ -455,6 +463,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     };
 
     const tColumns = useTranslations('CashierPage.activeSession.columns');
+    const tPaymentMethods = useTranslations('PaymentsPage.columns.paymentMethods');
     const movementColumns: ColumnDef<CajaMovimiento>[] = [
         { accessorKey: 'descripcion', header: tColumns('description') },
         {
@@ -469,7 +478,14 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 );
             }
         },
-        { accessorKey: 'metodoPago', header: tColumns('method') },
+        { 
+            accessorKey: 'metodoPago', 
+            header: tColumns('method'),
+            cell: ({ row }) => {
+                const methodCode = normalizePaymentMethodCode(row.original.metodoPago);
+                return tPaymentMethods(methodCode) || methodCode;
+            }
+        },
         { accessorKey: 'fecha', header: tColumns('date'), cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
     ];
 
