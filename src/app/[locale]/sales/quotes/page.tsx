@@ -972,61 +972,6 @@ export default function QuotesPage() {
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={quoteForm.control}
-                                name="status"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('quoteDialog.status')}</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectStatus')} /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="draft">{t('quoteDialog.draft')}</SelectItem>
-                                                <SelectItem value="pending">{t('quoteDialog.pending')}</SelectItem>
-                                                <SelectItem value="confirmed">{t('quoteDialog.confirmed')}</SelectItem>
-                                                <SelectItem value="rejected">{t('quoteDialog.rejected')}</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={quoteForm.control}
-                                name="payment_status"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('quoteDialog.paymentStatus')}</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={isStatusDraft}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectPaymentStatus')} /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="unpaid">{t('quoteDialog.unpaid')}</SelectItem>
-                                                <SelectItem value="partially_paid">{t('quoteDialog.partiallyPaid')}</SelectItem>
-                                                <SelectItem value="paid">{t('quoteDialog.paid')}</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={quoteForm.control}
-                                name="billing_status"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('quoteDialog.billingStatus')}</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={isStatusDraft}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectBillingStatus')} /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="not invoiced">{t('quoteDialog.notInvoiced')}</SelectItem>
-                                                <SelectItem value="partially invoiced">{t('quoteDialog.partiallyInvoiced')}</SelectItem>
-                                                <SelectItem value="invoiced">{t('quoteDialog.invoiced')}</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>{t('quoteDialog.cancel')}</Button>
                                 <Button type="submit">{editingQuote ? t('quoteDialog.editSave') : t('quoteDialog.save')}</Button>
