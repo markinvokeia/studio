@@ -91,7 +91,7 @@ export const dateVariableProcessor: DateVariableProcessor = {
    * Checks if a value is a valid date variable
    */
   isValidDateVariable(value: string): boolean {
-    const dateVariableRegex = /^((TODAY|YESTERDAY|TOMORROW|WEEK_START|WEEK_END|MONTH_START|MONTH_END|YEAR_START|YEAR_END)([+-]\d+)?|\d{4}-\d{2}-\d{2})$/;
+    const dateVariableRegex = /^((TODAY_NO_YEAR|TODAY|YESTERDAY|TOMORROW|WEEK_START|WEEK_END|MONTH_START|MONTH_END|YEAR_START|YEAR_END|DOW)([+-]\d+)?|\d{4}-\d{2}-\d{2})$/;
     return dateVariableRegex.test(value);
   }
 };
@@ -100,8 +100,8 @@ export const dateVariableProcessor: DateVariableProcessor = {
  * Utility function to replace date variables in SQL conditions
  */
 export function replaceDateVariablesInCondition(condition: string): string {
-  const variableRegex = /\b((TODAY|YESTERDAY|TOMORROW|WEEK_START|WEEK_END|MONTH_START|MONTH_END|YEAR_START|YEAR_END)([+-]\d+)?)\b/g;
-  
+  const variableRegex = /\b((TODAY_NO_YEAR|TODAY|YESTERDAY|TOMORROW|WEEK_START|WEEK_END|MONTH_START|MONTH_END|YEAR_START|YEAR_END|DOW)([+-]\d+)?)\b/g;
+
   return condition.replace(variableRegex, (match) => {
     try {
       return `'${dateVariableProcessor.processDateVariable(match)}'`;
@@ -118,7 +118,7 @@ export function replaceDateVariablesInCondition(condition: string): string {
 export function parseDateExpression(expression: string): string[] {
   // Handle cases like "TODAY AND TODAY+7" or "2024-01-01, TODAY, WEEK_START"
   const parts = expression.split(/,|\s+AND\s+/i).map(part => part.trim()).filter(part => part);
-  
+
   return parts.map(part => {
     if (dateVariableProcessor.isValidDateVariable(part)) {
       try {

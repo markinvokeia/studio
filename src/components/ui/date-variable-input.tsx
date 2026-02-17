@@ -37,6 +37,8 @@ const DATE_VARIABLES: DateVariable[] = [
   { id: 'MONTH_END', label: 'Month End', value: '{{MONTH_END}}', description: 'End of current month' },
   { id: 'YEAR_START', label: 'Year Start', value: '{{YEAR_START}}', description: 'Start of current year' },
   { id: 'YEAR_END', label: 'Year End', value: '{{YEAR_END}}', description: 'End of current year' },
+  { id: 'TODAY_NO_YEAR', label: 'Day & Month Only', value: '{{TODAY_NO_YEAR}}', description: 'Compare day and month only (anniversaries/birthdays)' },
+  { id: 'DOW', label: 'Day of Week', value: '{{DOW}}', description: 'Compare day of the week only (1=Monday-7=Sunday)' },
 ];
 
 export const DateVariableInput: React.FC<DateVariableInputProps> = ({
@@ -52,7 +54,9 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
            val.startsWith('{{TODAY') ||
            val.startsWith('{{WEEK_') ||
            val.startsWith('{{MONTH_') ||
-           val.startsWith('{{YEAR_');
+           val.startsWith('{{YEAR_') ||
+           val.startsWith('{{TODAY_NO_YEAR') ||
+           val.startsWith('{{DOW');
   };
 
   const getInitialTab = () => {
@@ -83,7 +87,8 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(() => {
     if (value && !value.match(/\{\{.*\}\}/) &&
         !value.startsWith('{{TODAY') && !value.startsWith('{{WEEK_') &&
-        !value.startsWith('{{MONTH_') && !value.startsWith('{{YEAR_')) {
+        !value.startsWith('{{MONTH_') && !value.startsWith('{{YEAR_') &&
+        !value.startsWith('{{TODAY_NO_YEAR') && !value.startsWith('{{DOW')) {
       const date = new Date(value);
       return isNaN(date.getTime()) ? undefined : date;
     }
