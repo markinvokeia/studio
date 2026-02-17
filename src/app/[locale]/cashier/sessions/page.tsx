@@ -79,10 +79,7 @@ async function getSessionMovements(sessionId: string): Promise<CajaMovimiento[]>
         }
         return movementsData.map((mov: any): CajaMovimiento => {
             const amount = parseFloat(mov.amount);
-            const isSales = mov.is_sales === true || mov.is_sales === 'true';
-            const tipo = isSales
-                ? (amount >= 0 ? 'INGRESO' : 'EGRESO')
-                : (amount >= 0 ? 'EGRESO' : 'INGRESO');
+            const tipo = amount >= 0 ? 'INGRESO' : 'EGRESO';
             return {
                 id: String(mov.movement_id),
                 cajaSesionId: sessionId,
@@ -93,7 +90,6 @@ async function getSessionMovements(sessionId: string): Promise<CajaMovimiento[]>
                 usuarioId: mov.registered_by_user,
                 metodoPago: normalizePaymentMethodCode(mov.payment_method_code),
                 currency: mov.currency,
-                isSales,
             };
         });
     } catch (error) {
@@ -194,7 +190,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
             cell: ({ row }) => {
                 const isExpense = row.original.tipo === 'EGRESO';
                 return (
-                    <span className={cn(isExpense && 'text-red-500')}>
+                    <span className={cn(isExpense ? 'text-red-500' : 'text-green-500')}>
                         {isExpense ? '-' : ''}{row.original.currency} {row.original.monto.toFixed(2)}
                     </span>
                 );

@@ -151,10 +151,7 @@ export default function CashierPage() {
 
             setSessionMovements(movementsData.map((mov: any): CajaMovimiento => {
                 const amount = parseFloat(mov.amount);
-                const isSales = mov.is_sales === true || mov.is_sales === 'true';
-                const tipo = isSales
-                    ? (amount >= 0 ? 'INGRESO' : 'EGRESO')
-                    : (amount >= 0 ? 'EGRESO' : 'INGRESO');
+                const tipo = amount >= 0 ? 'INGRESO' : 'EGRESO';
                 return {
                     id: String(mov.movement_id),
                     cajaSesionId: sessionId,
@@ -165,7 +162,6 @@ export default function CashierPage() {
                     fecha: mov.created_at,
                     usuarioId: mov.registered_by_user,
                     metodoPago: normalizePaymentMethodCode(mov.payment_method_code),
-                    isSales,
                 };
             }));
         } catch (error) {
@@ -472,7 +468,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
             cell: ({ row }) => {
                 const isExpense = row.original.tipo === 'EGRESO';
                 return (
-                    <span className={cn(isExpense && 'text-red-500')}>
+                    <span className={cn(isExpense ? 'text-red-500' : 'text-green-500')}>
                         {isExpense ? '-' : ''}${row.original.monto.toFixed(2)} {row.original.currency}
                     </span>
                 );
