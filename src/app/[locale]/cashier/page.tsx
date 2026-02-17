@@ -162,6 +162,7 @@ export default function CashierPage() {
                     fecha: mov.created_at,
                     usuarioId: mov.registered_by_user,
                     metodoPago: normalizePaymentMethodCode(mov.payment_method_code),
+                    documentNumber: mov.document_number,
                 };
             }));
         } catch (error) {
@@ -461,6 +462,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     const tColumns = useTranslations('CashierPage.activeSession.columns');
     const tPaymentMethods = useTranslations('PaymentsPage.columns.paymentMethods');
     const movementColumns: ColumnDef<CajaMovimiento>[] = [
+        { accessorKey: 'documentNumber', header: tColumns('documentNumber') },
         { accessorKey: 'descripcion', header: tColumns('description') },
         {
             accessorKey: 'monto',
@@ -474,8 +476,8 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 );
             }
         },
-        { 
-            accessorKey: 'metodoPago', 
+        {
+            accessorKey: 'metodoPago',
             header: tColumns('method'),
             cell: ({ row }) => {
                 const methodCode = normalizePaymentMethodCode(row.original.metodoPago);

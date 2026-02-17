@@ -1315,6 +1315,7 @@
         },
         "activeSession": {
             "columns": {
+                "documentNumber": "Nro. Documento",
                 "description": "Descripción",
                 "amount": "Monto",
                 "method": "Método",
@@ -1821,7 +1822,10 @@
                 "identityInvalid": "El documento de identidad debe ser un número.",
                 "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
                 "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono."
-            }
+            },
+            "editTitle": "Editar Proveedor",
+            "editDescription": "Edita un proveedor",
+            "editSave": "Actualizar"
         },
         "detailsFor": "Detalles para {name}",
         "tabs": {

@@ -1315,6 +1315,7 @@
     },
     "activeSession": {
       "columns": {
+        "documentNumber": "Doc. Number",
         "description": "Description",
         "amount": "Amount",
         "method": "Method",
@@ -1821,7 +1822,10 @@
         "identityInvalid": "Identity document must be a number.",
         "identityMaxLength": "Identity document must be 10 characters or less.",
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number."
-      }
+      },
+      "editTitle": "Edit Provider",
+      "editDescription": "Edit a provider",
+      "editSave": "Update"
     },
     "detailsFor": "Details for {name}",
     "tabs": {
