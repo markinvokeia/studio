@@ -76,13 +76,15 @@ async function getInvoicesForOrder(orderId: string): Promise<Invoice[]> {
             order_id: apiInvoice.order_id,
             order_doc_no: apiInvoice.order_doc_no || `ORD-${apiInvoice.order_id}`,
             quote_id: apiInvoice.quote_id,
-            user_name: apiInvoice.user_name || 'N/A',
-            total: apiInvoice.total || 0,
+            user_name: apiInvoice.user_name || apiInvoice.name || 'N/A',
+            total: parseFloat(apiInvoice.total) || 0,
             status: apiInvoice.status || 'draft',
-            payment_status: apiInvoice.payment_status || 'unpaid',
-            createdAt: apiInvoice.createdAt || new Date().toISOString().split('T')[0],
-            updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
-            currency: apiInvoice.currency || 'URU',
+            payment_status: apiInvoice.payment_state || apiInvoice.payment_status || 'unpaid',
+            paid_amount: parseFloat(apiInvoice.paid_amount) || 0,
+            type: apiInvoice.type || 'invoice',
+            createdAt: apiInvoice.created_at || apiInvoice.createdAt || new Date().toISOString(),
+            updatedAt: apiInvoice.updated_at || apiInvoice.updatedAt || new Date().toISOString(),
+            currency: apiInvoice.currency || 'USD',
         }));
     } catch (error) {
         console.error("Failed to fetch invoices for order:", error);
@@ -175,6 +177,7 @@ export default function OrdersPage() {
     const tQuotes = useTranslations('QuotesPage');
     const tOrderItems = useTranslations('OrderItemsTable');
     const tInvoiceItems = useTranslations('InvoicesPage.InvoiceItemsTable');
+    const tInvoices = useTranslations('InvoicesPage');
     const [orders, setOrders] = React.useState<Order[]>([]);
     const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -344,6 +347,17 @@ export default function OrdersPage() {
                                                     onRefresh={loadInvoices}
                                                     isRefreshing={isLoadingInvoices}
                                                     isCompact={true}
+                                                    columnTranslations={{
+                                                        doc_no: tInvoices('columns.docNo'),
+                                                        user_name: tInvoices('columns.userName'),
+                                                        total: tInvoices('columns.total'),
+                                                        currency: tInvoices('columns.currency'),
+                                                        status: tInvoices('columns.status'),
+                                                        type: tInvoices('columns.type'),
+                                                        payment_status: tInvoices('columns.paymentStatus'),
+                                                        paid_amount: tInvoices('columns.paidAmount'),
+                                                        createdAt: tInvoices('columns.createdAt'),
+                                                    }}
                                                 />
                                             </div>
                                             {selectedInvoice && (

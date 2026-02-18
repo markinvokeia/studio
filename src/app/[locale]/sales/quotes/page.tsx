@@ -211,14 +211,16 @@ async function getInvoices(quoteId: string, t: (key: string) => string): Promise
             doc_no: apiInvoice.doc_no || `INV-${apiInvoice.id}`,
             order_doc_no: apiInvoice.order_doc_no || t('defaults.notAvailable'),
             quote_id: apiInvoice.quote_id,
-            total: apiInvoice.total || 0,
+            total: parseFloat(apiInvoice.total) || 0,
             status: apiInvoice.status || 'draft',
-            createdAt: apiInvoice.createdAt || new Date().toISOString().split('T')[0],
-            currency: apiInvoice.currency || 'UYU',
+            createdAt: apiInvoice.created_at || apiInvoice.createdAt || new Date().toISOString(),
+            currency: apiInvoice.currency || 'USD',
             order_id: apiInvoice.order_id,
-            user_name: apiInvoice.user_name || t('defaults.notAvailable'),
-            payment_status: apiInvoice.payment_status || 'unpaid',
-            updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0]
+            user_name: apiInvoice.user_name || apiInvoice.name || t('defaults.notAvailable'),
+            payment_status: apiInvoice.payment_state || apiInvoice.payment_status || 'unpaid',
+            paid_amount: parseFloat(apiInvoice.paid_amount) || 0,
+            type: apiInvoice.type || 'invoice',
+            updatedAt: apiInvoice.updated_at || apiInvoice.updatedAt || new Date().toISOString()
         }));
     } catch (error) {
         console.error("Failed to fetch invoices:", error);
@@ -835,6 +837,17 @@ export default function QuotesPage() {
                                                         onRefresh={loadInvoices}
                                                         isRefreshing={isLoadingInvoices}
                                                         isCompact={true}
+                                                        columnTranslations={{
+                                                            doc_no: tRoot('InvoicesPage.columns.docNo'),
+                                                            user_name: tRoot('InvoicesPage.columns.userName'),
+                                                            total: tRoot('InvoicesPage.columns.total'),
+                                                            currency: tRoot('InvoicesPage.columns.currency'),
+                                                            status: tRoot('InvoicesPage.columns.status'),
+                                                            type: tRoot('InvoicesPage.columns.type'),
+                                                            payment_status: tRoot('InvoicesPage.columns.paymentStatus'),
+                                                            paid_amount: tRoot('InvoicesPage.columns.paidAmount'),
+                                                            createdAt: tRoot('InvoicesPage.columns.createdAt'),
+                                                        }}
                                                     />
                                                 </div>
                                                 {selectedInvoice && (
