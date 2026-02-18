@@ -57,7 +57,7 @@ const transactionFormSchema = (t: (key: string) => string) => z.object({
     exchange_rate: z.coerce.number().optional().default(1),
     external_reference: z.string().optional(),
     tags: z.string().optional(),
-    payment_method_id: z.string().optional(),
+    payment_method_id: z.string().min(1, t('validation.paymentMethodRequired')),
 });
 
 type TransactionFormValues = z.infer<ReturnType<typeof transactionFormSchema>>;
@@ -303,7 +303,6 @@ export default function MiscellaneousTransactionsPage() {
                     amount: 0,
                     tags: '',
                     external_reference: '',
-                    payment_method_id: '',
                 });
             }
         }
