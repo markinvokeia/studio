@@ -224,7 +224,7 @@ export default function MiscellaneousTransactionsPage() {
     const t = useTranslations('MiscellaneousTransactionsPage');
     // const tValidation = useTranslations('MiscellaneousTransactionsPage.validation'); // No longer needed as separate namespace if accessing via full path or if t covers it
     const { toast } = useToast();
-    const { user, activeCashSession } = useAuth();
+    const { user, activeCashSession, checkActiveSession } = useAuth();
     const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
     const [transactions, setTransactions] = React.useState<MiscellaneousTransaction[]>([]);
     const [transactionCount, setTransactionCount] = React.useState(0);
@@ -427,6 +427,7 @@ export default function MiscellaneousTransactionsPage() {
             toast({ title: editingTransaction ? t('toasts.updatedTitle') : t('toasts.createdTitle'), description: t('toasts.savedDesc') });
             setIsDialogOpen(false);
             loadTransactions();
+            await checkActiveSession();
         } catch (error) {
             setSubmissionError(error instanceof Error ? error.message : t('toasts.genericError'));
         }

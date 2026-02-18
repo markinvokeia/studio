@@ -96,7 +96,7 @@ export default function PaymentsPage() {
     const t = useTranslations('PaymentsPage');
     const tValidation = useTranslations('InvoicesPage');
     const { toast } = useToast();
-    const { user } = useAuth();
+    const { user, checkActiveSession } = useAuth();
     const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
     const {
         payments,
@@ -260,6 +260,7 @@ export default function PaymentsPage() {
             await api.post(API_ROUTES.SALES.INVOICE_PAYMENT, payload);
 
             toast({ title: t('prepaidDialog.toasts.successTitle'), description: t('prepaidDialog.toasts.successDescription') });
+            await checkActiveSession();
             setIsPrepaidDialogOpen(false);
             setIsConfirmPrepaidOpen(false);
             refreshPayments();

@@ -230,6 +230,7 @@ export default function CashierPage() {
                         setUsdDenominations={setUsdDenominations}
                         closedSessionReport={closedSessionReport}
                         setClosedSessionReport={setClosedSessionReport}
+                        checkActiveSession={checkActiveSession}
                     />
                 ) : (
                     <ActiveSessionDashboard
@@ -645,7 +646,8 @@ function CloseSessionWizard({
     usdDenominations,
     setUsdDenominations,
     closedSessionReport,
-    setClosedSessionReport
+    setClosedSessionReport,
+    checkActiveSession
 }: {
     currentStep: string;
     setCurrentStep: React.Dispatch<React.SetStateAction<string>>;
@@ -658,6 +660,7 @@ function CloseSessionWizard({
     setUsdDenominations: (denominations: Record<string, number>) => void;
     closedSessionReport: any | null;
     setClosedSessionReport: (report: any | null) => void;
+    checkActiveSession: () => Promise<void>;
 }) {
     const t = useTranslations('CashierPage');
     const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
@@ -802,6 +805,7 @@ function CloseSessionWizard({
                             bankDepositUyu={bankDepositUyuDenominations}
                             bankDepositUsd={bankDepositUsdDenominations}
                             bankDepositFiles={bankDepositFiles}
+                            checkActiveSession={checkActiveSession}
                             onSessionClosed={(reportData) => {
                                 setClosedSessionReport(reportData);
                                 setCurrentStep('REPORT');
@@ -981,7 +985,7 @@ const CashCounter = ({ currency, denominations, coins, quantities, onQuantitiesC
 
 
 
-const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominations, usdDenominations, bankDepositUyu, bankDepositUsd, bankDepositFiles, onSessionClosed, onBack }: {
+const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominations, usdDenominations, bankDepositUyu, bankDepositUsd, bankDepositFiles, onSessionClosed, onBack, checkActiveSession }: {
     activeSession: CajaSesion;
     declaredUyu: number;
     declaredUsd: number;
@@ -992,6 +996,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
     bankDepositFiles: File[];
     onSessionClosed: (reportData: any) => void;
     onBack: () => void;
+    checkActiveSession: () => Promise<void>;
 }) => {
     const t = useTranslations('CashierPage.declareCashup');
     const { toast } = useToast();
@@ -1050,6 +1055,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                 title: t('toast.closeSuccessTitle'),
                 description: t('toast.closeSuccessDescription'),
             });
+            await checkActiveSession();
             onSessionClosed(responseData);
         } catch (error) {
             toast({
@@ -1380,6 +1386,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             };
 
             toast({ title: t('toast.openSuccessTitle'), description: t('toast.openSuccessDescription') });
+            await checkActiveSession();
             onExitWizard(fullSessionData);
 
         } catch (error) {

@@ -314,7 +314,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
-  const { user } = useAuth();
+  const { user, checkActiveSession } = useAuth();
   const locale = useLocale();
 
   const { toast } = useToast();
@@ -595,6 +595,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         title: t('paymentDialog.success'),
         description: t('paymentDialog.successDescription', { invoiceId: selectedInvoiceForPayment.doc_no || selectedInvoiceForPayment.id }),
       });
+
+      await checkActiveSession();
 
       if (onRefresh) {
         onRefresh();
