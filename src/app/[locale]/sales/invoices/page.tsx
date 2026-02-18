@@ -492,12 +492,7 @@ export default function InvoicesPage() {
                             onRefresh={loadInvoices}
                             onPrint={handlePrintInvoice}
                             onSendEmail={handleSendEmailClick}
-                            onImport={() => {
-                                setImportFile(null);
-                                setIsProcessingImport(false);
-                                setIsImportDialogOpen(true);
-                            }}
-                            onConfirm={handleConfirmInvoiceClick}
+                        onConfirm={handleConfirmInvoiceClick}
                             isRefreshing={isLoadingInvoices}
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}

@@ -184,6 +184,8 @@ export default function InvoicesPage() {
     const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
     const [importFile, setImportFile] = React.useState<File | null>(null);
     const [isProcessingImport, setIsProcessingImport] = React.useState(false);
+    const [isDragging, setIsDragging] = React.useState(false);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
     const [payments, setPayments] = React.useState<Payment[]>([]);
@@ -345,6 +347,28 @@ export default function InvoicesPage() {
         const file = event.target.files?.[0];
         if (file) {
             setImportFile(file);
+        }
+    };
+
+    const handleDragOver = (event: React.DragEvent) => {
+        event.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (event: React.DragEvent) => {
+        event.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (event: React.DragEvent) => {
+        event.preventDefault();
+        setIsDragging(false);
+        const file = event.dataTransfer.files?.[0];
+        if (file) {
+            setImportFile(file);
+        }
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
         }
     };
 
@@ -602,7 +626,13 @@ export default function InvoicesPage() {
                     </DialogHeader>
                     <div className="py-4 space-y-4">
                         <div className="flex items-center justify-center w-full">
-                            <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
+                            <label 
+                                htmlFor="dropzone-file" 
+                                className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50 transition-colors ${isDragging ? 'border-primary bg-primary/10' : ''}`}
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                            >
                                 {importFile ? (
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                         <File className="w-8 h-8 mb-4 text-primary" />
@@ -616,7 +646,7 @@ export default function InvoicesPage() {
                                         <p className="text-xs text-muted-foreground">{t('importDialog.fileTypes')}</p>
                                     </div>
                                 )}
-                                <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
+                                <Input id="dropzone-file" ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} />
                             </label>
                         </div>
                     </div>
