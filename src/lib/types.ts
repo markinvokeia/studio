@@ -529,6 +529,7 @@ export type CajaMovimiento = {
   currency: 'UYU' | 'USD';
   isSales?: boolean;
   documentNumber?: string;
+  registeredUserName?: string;
 };
 
 export type CashPoint = {

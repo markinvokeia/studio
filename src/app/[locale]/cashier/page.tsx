@@ -163,6 +163,7 @@ export default function CashierPage() {
                     usuarioId: mov.registered_by_user,
                     metodoPago: normalizePaymentMethodCode(mov.payment_method_code),
                     documentNumber: mov.document_number,
+                    registeredUserName: mov.client,
                 };
             }));
         } catch (error) {
@@ -475,6 +476,10 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                     </span>
                 );
             }
+        },
+        {
+            accessorKey: 'registeredUserName',
+            header: tColumns('registeredUser'),
         },
         {
             accessorKey: 'metodoPago',

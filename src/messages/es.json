@@ -1318,6 +1318,7 @@
                 "documentNumber": "Nro. Documento",
                 "description": "Descripción",
                 "amount": "Monto",
+                "registeredUser": "Usuario",
                 "method": "Método",
                 "date": "Fecha"
             },
