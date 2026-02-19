@@ -1827,11 +1827,16 @@
           "identity_document": "Identity Document"
         },
         "uniqueConflict": "The following fields are already registered: {fields}",
-        "errorTitle": "Error Updating Details"
+        "errorTitle": "Error Updating Details",
+        "serverError": "Server error, please try again later."
       },
       "editTitle": "Edit Provider",
       "editDescription": "Edit a provider",
-      "editSave": "Update"
+      "editSave": "Update",
+      "editSuccessTitle": "Provider edited",
+      "editSuccessDescription": "The provider has been updated successfully",
+      "createSuccessTitle": "Provider created",
+      "createSuccessDescription": "The provider has been created successfully"
     },
     "detailsFor": "Details for {name}",
     "tabs": {

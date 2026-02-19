@@ -1827,11 +1827,16 @@
                     "identity_document": "Documento de Identidad"
                 },
                 "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
-                "errorTitle": "Error Actualizando Detalles"
+                "errorTitle": "Error Actualizando Detalles",
+                "serverError": "Error del servidor, por favor inténtelo más tarde."
             },
             "editTitle": "Editar Proveedor",
             "editDescription": "Edita un proveedor",
-            "editSave": "Actualizar"
+            "editSave": "Actualizar",
+            "editSuccessTitle": "Proveedor actualizado",
+            "editSuccessDescription": "El proveedor ha sido actualizado exitosamente.",
+            "createSuccessTitle": "Proveedor creado",
+            "createSuccessDescription": "El proveedor ha sido creado exitosamente."
         },
         "detailsFor": "Detalles para {name}",
         "tabs": {
