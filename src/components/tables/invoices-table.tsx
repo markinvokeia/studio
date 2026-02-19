@@ -368,13 +368,64 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   }, [showExchangeRate, sessionExchangeRate, form]);
 
+  // Calculate total credits in invoice currency
+  const creditsTotalInInvoiceCurrency = React.useMemo(() => {
+    if (!selectedInvoiceForPayment) return 0;
+    const invoiceCurrency = selectedInvoiceForPayment.currency || 'USD';
+    
+    return Array.from(appliedCredits.entries()).reduce((sum, [creditId, amount]) => {
+      const credit = userCredits.find(c => c.source_id === creditId);
+      if (!credit) return sum;
+
+      let creditAmountConverted = amount;
+      if (credit.currency !== invoiceCurrency) {
+        if (invoiceCurrency === 'USD' && credit.currency === 'UYU') {
+          creditAmountConverted = amount / sessionExchangeRate;
+        } else if (invoiceCurrency === 'UYU' && credit.currency === 'USD') {
+          creditAmountConverted = amount * sessionExchangeRate;
+        }
+      }
+      return sum + creditAmountConverted;
+    }, 0);
+  }, [appliedCredits, userCredits, selectedInvoiceForPayment, sessionExchangeRate]);
+
+  // Auto-update manual payment amount when credits change
+  React.useEffect(() => {
+    if (!selectedInvoiceForPayment) return;
+    
+    const invoiceTotal = selectedInvoiceForPayment.total || 0;
+    const paidAmount = selectedInvoiceForPayment.paid_amount || 0;
+    const invoiceCurrency = selectedInvoiceForPayment.currency || 'USD';
+    const remainingBalance = Math.max(0, invoiceTotal - paidAmount - creditsTotalInInvoiceCurrency);
+    
+    // Only update if the current amount is different from the remaining balance
+    // and we have credits applied (to avoid overriding user's manual input when no credits)
+    const currentAmount = form.getValues('amount') || 0;
+    const paymentCurrency = form.getValues('payment_currency') || invoiceCurrency;
+    
+    if (appliedCredits.size > 0 || currentAmount > remainingBalance) {
+      // Convert remaining balance to payment currency if needed
+      let amountToSet = remainingBalance;
+      if (paymentCurrency !== invoiceCurrency && sessionExchangeRate > 0) {
+        if (invoiceCurrency === 'USD' && paymentCurrency === 'UYU') {
+          amountToSet = remainingBalance * sessionExchangeRate;
+        } else if (invoiceCurrency === 'UYU' && paymentCurrency === 'USD') {
+          amountToSet = remainingBalance / sessionExchangeRate;
+        }
+      }
+      
+      // Round to 2 decimal places
+      amountToSet = Math.round(amountToSet * 100) / 100;
+      form.setValue('amount', amountToSet);
+    }
+  }, [creditsTotalInInvoiceCurrency, selectedInvoiceForPayment, form, sessionExchangeRate, appliedCredits.size]);
+
   const remainingAmountToPay = React.useMemo(() => {
     if (!selectedInvoiceForPayment) return 0;
     const invoiceTotal = selectedInvoiceForPayment.total || 0;
     const paidAmount = selectedInvoiceForPayment.paid_amount || 0;
-    const invoiceCurrency = selectedInvoiceForPayment.currency || 'USD';
 
-    // 1. Convert Manual Payment Amount to Invoice Currency
+    // Convert Manual Payment Amount to Invoice Currency
     let paymentAmountInInvoiceCurrency = 0;
     if (watchedAmount) {
       if (showExchangeRate && equivalentAmount) {
@@ -384,30 +435,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       }
     }
 
-    // 2. Convert Credits to Invoice Currency
-    const creditsTotalInInvoiceCurrency = Array.from(appliedCredits.entries()).reduce((sum, [creditId, amount]) => {
-      const credit = userCredits.find(c => c.source_id === creditId);
-      if (!credit) return sum;
-
-      let creditAmountConverted = amount;
-
-      // If credit currency differs from invoice currency, convert it
-      if (credit.currency !== invoiceCurrency) {
-        // Assuming sessionExchangeRate is always UYU per USD (or Local per Base)
-        // If Invoice is USD and Credit is UYU: Divide by rate
-        if (invoiceCurrency === 'USD' && credit.currency === 'UYU') {
-          creditAmountConverted = amount / sessionExchangeRate;
-        }
-        // If Invoice is UYU and Credit is USD: Multiply by rate
-        else if (invoiceCurrency === 'UYU' && credit.currency === 'USD') {
-          creditAmountConverted = amount * sessionExchangeRate;
-        }
-      }
-      return sum + creditAmountConverted;
-    }, 0);
-
-    return Math.max(0, invoiceTotal - paidAmount - paymentAmountInInvoiceCurrency - creditsTotalInInvoiceCurrency);
-  }, [selectedInvoiceForPayment, watchedAmount, showExchangeRate, equivalentAmount, appliedCredits, userCredits, sessionExchangeRate]);
+    return invoiceTotal - paidAmount - paymentAmountInInvoiceCurrency - creditsTotalInInvoiceCurrency;
+  }, [selectedInvoiceForPayment, watchedAmount, showExchangeRate, equivalentAmount, creditsTotalInInvoiceCurrency]);
 
   const fetchPaymentMethods = async () => {
     try {
@@ -624,7 +653,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       setEditingInvoice(invoice);
       setIsFormDialogOpen(true);
     }
-  ), [t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail, onConfirm]);
+  ), [t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail, onConfirm, handleAddPaymentClick]);
 
   if (isLoading) {
     return (
@@ -999,22 +1028,12 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                   <span>
                     {(() => {
                       const invoiceCurrency = selectedInvoiceForPayment?.currency || 'USD';
-                      let total = 0;
+                      let total = creditsTotalInInvoiceCurrency;
                       // Manual
                       if (watchedAmount) {
                         const amountVal = Number(watchedAmount);
                         total += (showExchangeRate && equivalentAmount) ? equivalentAmount : amountVal;
                       }
-                      // Credits
-                      Array.from(appliedCredits.entries()).forEach(([id, amount]) => {
-                        const credit = userCredits.find(c => c.source_id === id);
-                        let converted = amount;
-                        if (credit && credit.currency !== invoiceCurrency) {
-                          if (invoiceCurrency === 'USD' && credit.currency === 'UYU') converted = amount / sessionExchangeRate;
-                          else if (invoiceCurrency === 'UYU' && credit.currency === 'USD') converted = amount * sessionExchangeRate;
-                        }
-                        total += converted;
-                      });
                       return new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceCurrency }).format(total);
                     })()}
                   </span>

@@ -217,6 +217,7 @@ async function getInvoices(quoteId: string, t: (key: string) => string): Promise
             currency: apiInvoice.currency || 'USD',
             order_id: apiInvoice.order_id,
             user_name: apiInvoice.user_name || apiInvoice.name || t('defaults.notAvailable'),
+            user_id: apiInvoice.user_id,
             payment_status: apiInvoice.payment_state || apiInvoice.payment_status || 'unpaid',
             paid_amount: parseFloat(apiInvoice.paid_amount) || 0,
             type: apiInvoice.type || 'invoice',

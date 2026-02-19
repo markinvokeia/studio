@@ -76,6 +76,7 @@ async function getInvoicesForOrder(orderId: string): Promise<Invoice[]> {
             order_doc_no: apiInvoice.order_doc_no || `ORD-${apiInvoice.order_id}`,
             quote_id: apiInvoice.quote_id,
             user_name: apiInvoice.user_name || apiInvoice.name || 'N/A',
+            user_id: apiInvoice.user_id,
             total: parseFloat(apiInvoice.total) || 0,
             status: apiInvoice.status || 'draft',
             payment_status: apiInvoice.payment_state || apiInvoice.payment_status || 'unpaid',
