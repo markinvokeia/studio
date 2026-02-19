@@ -1318,7 +1318,7 @@
         "documentNumber": "Doc. Number",
         "description": "Description",
         "amount": "Amount",
-        "registeredUser": "User",
+        "registeredUser": "Entity/Third Party",
         "method": "Method",
         "date": "Date"
       },
