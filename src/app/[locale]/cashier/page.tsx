@@ -29,13 +29,12 @@ import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { useCallback, useMemo } from 'react';
 
-const denominationsUYU = [3000, 2000, 1000, 500, 200, 100, 50, 20];
+const denominationsUYU = [2000, 1000, 500, 200, 100, 50, 20];
 const coinsUYU = [10, 5, 2, 1];
 const denominationsUSD = [100, 50, 20, 10, 5, 1];
 const coinsUSD: number[] = [];
 
 const UYU_IMAGES: Record<number, string> = {
-    3000: '/billetes/billete_3000.svg',
     2000: '/billetes/billete_2000.svg',
     1000: '/billetes/billete_1000.svg',
     500: '/billetes/billete_500.svg',
