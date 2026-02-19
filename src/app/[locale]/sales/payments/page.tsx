@@ -142,7 +142,7 @@ export default function PaymentsPage() {
         });
 
         try {
-            const blob = await api.getBlob(API_ROUTES.SALES.API_PAYMENT_PRINT, { paymentId: payment.id });
+            const blob = await api.getBlob(API_ROUTES.SALES.API_PAYMENT_PRINT, { transaction_id: payment.transaction_id || payment.id, transaction_type: payment.transaction_type });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
