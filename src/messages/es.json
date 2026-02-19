@@ -1822,7 +1822,12 @@
                 "phoneInvalid": "Número de teléfono inválido",
                 "identityInvalid": "El documento de identidad debe ser un número.",
                 "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
-                "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono."
+                "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
+                "fields": {
+                    "identity_document": "Documento de Identidad"
+                },
+                "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
+                "errorTitle": "Error Actualizando Detalles"
             },
             "editTitle": "Editar Proveedor",
             "editDescription": "Edita un proveedor",

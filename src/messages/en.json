@@ -1822,7 +1822,12 @@
         "phoneInvalid": "Invalid phone number",
         "identityInvalid": "Identity document must be a number.",
         "identityMaxLength": "Identity document must be 10 characters or less.",
-        "emailOrPhoneRequired": "You must provide at least an email address or a phone number."
+        "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
+        "fields": {
+          "identity_document": "Identity Document"
+        },
+        "uniqueConflict": "The following fields are already registered: {fields}",
+        "errorTitle": "Error Updating Details"
       },
       "editTitle": "Edit Provider",
       "editDescription": "Edit a provider",
