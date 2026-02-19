@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Invoice, InvoiceItem, Payment, Service } from '@/lib/types';
+import { getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
@@ -267,9 +268,10 @@ export default function InvoicesPage() {
     };
 
     const handlePrintInvoice = async (invoice: Invoice) => {
+        const fileName = getDocumentFileName(invoice, 'invoice');
         toast({
             title: "Generating PDF",
-            description: `Preparing PDF for Invoice #${invoice.id}...`,
+            description: `Preparing PDF for Invoice #${fileName}...`,
         });
 
         try {
@@ -277,7 +279,7 @@ export default function InvoicesPage() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Invoice-${invoice.id}.pdf`;
+            a.download = `${fileName}.pdf`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
@@ -285,7 +287,7 @@ export default function InvoicesPage() {
 
             toast({
                 title: t('toast.downloadStarted'),
-                description: t('toast.downloadSuccess', { id: invoice.id }),
+                description: t('toast.downloadSuccess', { id: fileName }),
             });
 
         } catch (error) {

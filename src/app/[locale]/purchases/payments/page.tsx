@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { API_ROUTES } from '@/constants/routes';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
+import { getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchasePayments, Payment } from '@/services/payments-service';
 import { useTranslations } from 'next-intl';
@@ -37,9 +38,10 @@ export default function PaymentsPage() {
 
 
     const handlePrintPayment = async (payment: Payment) => {
+        const fileName = getDocumentFileName(payment, 'payment');
         toast({
             title: "Generating PDF",
-            description: `Preparing PDF for Payment #${payment.id}...`,
+            description: `Preparing PDF for Payment #${fileName}...`,
         });
 
         try {
@@ -47,7 +49,7 @@ export default function PaymentsPage() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Payment-${payment.id}.pdf`;
+            a.download = `${fileName}.pdf`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
@@ -55,7 +57,7 @@ export default function PaymentsPage() {
 
             toast({
                 title: "Download Started",
-                description: `Your PDF for Payment #${payment.id} is downloading.`,
+                description: `Your PDF for Payment #${fileName} is downloading.`,
             });
 
         } catch (error) {

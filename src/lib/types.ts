@@ -74,6 +74,7 @@ export type UserClinic = {
 export type Quote = {
   id: string;
   doc_no?: string;
+  quote_doc_no?: string;
   user_id: string;
   total: number;
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'pending' | 'confirmed';
@@ -163,6 +164,7 @@ export type InvoiceItem = {
 export type Payment = {
   id: string;
   doc_no?: string;
+  payment_doc_no?: string;
   order_id: string;
   order_doc_no?: string;
   invoice_doc_no?: string;

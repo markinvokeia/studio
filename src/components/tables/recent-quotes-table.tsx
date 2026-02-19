@@ -32,7 +32,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Quote } from '@/lib/types';
-import { cn, formatDateTime } from '@/lib/utils';
+import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, RowSelectionState, SortingState, useReactTable } from '@tanstack/react-table';
 import { MoreHorizontal, Printer, Send } from 'lucide-react';
@@ -317,10 +317,10 @@ export function RecentQuotesTable({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
   const handlePrintQuote = async (quote: Quote) => {
-    const displayId = quote.doc_no || quote.id;
+    const fileName = getDocumentFileName(quote, 'quote');
     toast({
       title: t('QuotesPage.generatingPdf'),
-      description: t('QuotesPage.pleaseWait', { id: displayId }),
+      description: t('QuotesPage.pleaseWait', { id: fileName }),
     });
 
     try {
@@ -328,7 +328,7 @@ export function RecentQuotesTable({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Quote-${displayId}.pdf`;
+      a.download = `${fileName}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -336,7 +336,7 @@ export function RecentQuotesTable({
 
       toast({
         title: t('QuotesPage.downloadStarted'),
-        description: t('QuotesPage.pdfDownloading', { id: displayId }),
+        description: t('QuotesPage.pdfDownloading', { id: fileName }),
       });
 
     } catch (error) {

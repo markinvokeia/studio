@@ -61,3 +61,21 @@ export function formatHolidayDate(date: string | Date | null | undefined): strin
     return 'Invalid Date';
   }
 }
+
+type DocumentWithDocNo = {
+  doc_no?: string;
+  invoice_doc_no?: string;
+  quote_doc_no?: string;
+  payment_doc_no?: string;
+  id: string;
+};
+
+type DocumentType = 'invoice' | 'quote' | 'payment';
+
+export function getDocumentFileName(doc: DocumentWithDocNo, type: DocumentType): string {
+  if (doc.doc_no) return doc.doc_no;
+  if (type === 'invoice' && doc.invoice_doc_no) return doc.invoice_doc_no;
+  if (type === 'quote' && doc.quote_doc_no) return doc.quote_doc_no;
+  if (type === 'payment' && doc.payment_doc_no) return doc.payment_doc_no;
+  return doc.id;
+}

@@ -20,7 +20,7 @@ import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
 import { Payment, PaymentMethod, User } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, getDocumentFileName } from '@/lib/utils';
 import api from '@/services/api';
 import { getSalesPayments } from '@/services/payments-service';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -135,9 +135,10 @@ export default function PaymentsPage() {
 
 
     const handlePrintPayment = async (payment: Payment) => {
+        const fileName = getDocumentFileName(payment, 'payment');
         toast({
             title: "Generating PDF",
-            description: `Preparing PDF for Payment #${payment.id}...`,
+            description: `Preparing PDF for Payment #${fileName}...`,
         });
 
         try {
@@ -145,7 +146,7 @@ export default function PaymentsPage() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Payment-${payment.id}.pdf`;
+            a.download = `${fileName}.pdf`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
@@ -153,7 +154,7 @@ export default function PaymentsPage() {
 
             toast({
                 title: "Download Started",
-                description: `Your PDF for Payment #${payment.id} is downloading.`,
+                description: `Your PDF for Payment #${fileName} is downloading.`,
             });
 
         } catch (error) {
