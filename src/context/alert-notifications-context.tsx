@@ -123,7 +123,7 @@ const response = await api.get(API_ROUTES.SYSTEM.ALERT_INSTANCES, { status: 'PEN
       }
 
       fetchAlerts()
-      interval = setInterval(fetchAlerts, 60000)
+      interval = setInterval(fetchAlerts, 600000)
     }
 
     // Initial setup
