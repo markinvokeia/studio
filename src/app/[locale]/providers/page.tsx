@@ -40,10 +40,9 @@ const providerFormSchema = (t: (key: string) => string) => z.object({
   email: z.string().optional(),
   phone: z.string().optional(),
   identity_document: z.string()
+    .min(1, { message: t('ProvidersPage.createDialog.validation.identityRequired') })
     .regex(/^\d*$/, { message: t('ProvidersPage.createDialog.validation.identityInvalid') })
-    .max(10, { message: t('ProvidersPage.createDialog.validation.identityMaxLength') })
-    .optional()
-    .or(z.literal('')),
+    .max(10, { message: t('ProvidersPage.createDialog.validation.identityMaxLength') }),
   is_active: z.boolean().default(false),
 }).refine((data) => {
   // At least one of email or phone must be provided

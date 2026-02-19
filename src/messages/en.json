@@ -1828,7 +1828,8 @@
         },
         "uniqueConflict": "The following fields are already registered: {fields}",
         "errorTitle": "Error Updating Details",
-        "serverError": "Server error, please try again later."
+        "serverError": "Server error, please try again later.",
+        "identityRequired": "Identity document is required"
       },
       "editTitle": "Edit Provider",
       "editDescription": "Edit a provider",
@@ -1842,7 +1843,8 @@
     "tabs": {
       "roles": "Roles"
     },
-    "setInitialPassword": "Set Initial Password"
+    "setInitialPassword": "Set Initial Password",
+    "close": "Close details"
   },
   "ProviderColumns": {
     "name": "Name",

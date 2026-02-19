@@ -1828,7 +1828,8 @@
                 },
                 "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
                 "errorTitle": "Error Actualizando Detalles",
-                "serverError": "Error del servidor, por favor inténtelo más tarde."
+                "serverError": "Error del servidor, por favor inténtelo más tarde.",
+                "identityRequired": "El documento de identidad es obligatorio"
             },
             "editTitle": "Editar Proveedor",
             "editDescription": "Edita un proveedor",
@@ -1842,7 +1843,8 @@
         "tabs": {
             "roles": "Roles"
         },
-        "setInitialPassword": "Establecer Contraseña Inicial"
+        "setInitialPassword": "Establecer Contraseña Inicial",
+        "close": "Cerrar detalles"
     },
     "ProviderColumns": {
         "name": "Nombre",
