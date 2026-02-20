@@ -41,7 +41,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { endOfDay, endOfMonth, endOfWeek, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Banknote, ChevronDown, ChevronUp, CreditCard, DollarSign, KeyRound, Receipt, X } from 'lucide-react';
+import { AlertTriangle, Banknote, ChevronDown, ChevronUp, CreditCard, DollarSign, Receipt, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
@@ -441,7 +441,6 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-  const [canSetFirstPassword, setCanSetFirstPassword] = React.useState(false);
 
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -608,33 +607,10 @@ export default function UsersPage() {
   };
 
   React.useEffect(() => {
-    const checkFirstPasswordRequirements = async () => {
-      if (!selectedUser) {
-        setCanSetFirstPassword(false);
-        return;
-      }
-
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setCanSetFirstPassword(false);
-        return;
-      }
-
-      try {
-        await api.get(API_ROUTES.SYSTEM.API_AUTH_CHECK_FIRST_PASSWORD, { user_id: selectedUser.id });
-        setCanSetFirstPassword(true);
-      } catch (error) {
-        console.error("Failed to check first password requirements:", error);
-        setCanSetFirstPassword(false);
-      }
-    };
-
     if (selectedUser) {
       loadUserRoles(selectedUser.id);
-      checkFirstPasswordRequirements();
     } else {
       setSelectedUserRoles([]);
-      setCanSetFirstPassword(false);
     }
   }, [selectedUser, loadUserRoles]);
 
@@ -719,16 +695,6 @@ export default function UsersPage() {
         const errorMessage = typeof error.data === 'string' ? error.data : errorData?.message || (error instanceof Error ? error.message : t('UsersPage.createDialog.validation.genericError'));
         setSubmissionError(errorMessage);
       }
-    }
-  };
-
-  const handleSendInitialPassword = async () => {
-    if (!selectedUser) return;
-    try {
-      const responseData = await api.post(API_ROUTES.SYSTEM.API_AUTH_FIRST_TIME_PASSWORD_TOKEN, { user_id: selectedUser.id });
-      toast({ title: 'Email Sent', description: responseData.message });
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'An unexpected error occurred.' });
     }
   };
 
@@ -911,12 +877,6 @@ export default function UsersPage() {
                     </CardTitle>
                   </div>
                   <div className="flex items-center gap-1 ml-2">
-                    {canSetFirstPassword && (
-                      <Button variant="outline" size="sm" className="hidden sm:flex h-8 px-2" onClick={handleSendInitialPassword}>
-                        <KeyRound className="mr-2 h-3.5 w-3.5" />
-                        <span className="text-xs">{t('UsersPage.setInitialPassword')}</span>
-                      </Button>
-                    )}
                     <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors" onClick={handleCloseDetails}>
                       <X className="h-5 w-5" />
                       <span className="sr-only">{t('UsersPage.close')}</span>

@@ -27,7 +27,7 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, KeyRound, X } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -169,7 +169,6 @@ export default function ProvidersPage() {
   const [editingProvider, setEditingProvider] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-  const [canSetFirstPassword, setCanSetFirstPassword] = React.useState(false);
 
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -272,27 +271,10 @@ export default function ProvidersPage() {
   };
 
   React.useEffect(() => {
-    const checkFirstPasswordRequirements = async () => {
-      if (!selectedProvider) {
-        setCanSetFirstPassword(false);
-        return;
-      }
-
-      try {
-        await api.get(API_ROUTES.SYSTEM.API_AUTH_CHECK_FIRST_PASSWORD, { user_id: selectedProvider.id });
-        setCanSetFirstPassword(true);
-      } catch (error) {
-        console.error("Failed to check first password requirements:", error);
-        setCanSetFirstPassword(false);
-      }
-    };
-
     if (selectedProvider) {
       loadProviderRoles(selectedProvider.id);
-      checkFirstPasswordRequirements();
     } else {
       setSelectedProviderRoles([]);
-      setCanSetFirstPassword(false);
     }
   }, [selectedProvider, loadProviderRoles]);
 
@@ -344,16 +326,6 @@ export default function ProvidersPage() {
     }
   };
 
-  const handleSendInitialPassword = async () => {
-    if (!selectedProvider) return;
-    try {
-      const responseData = await api.post(API_ROUTES.SYSTEM.API_AUTH_FIRST_TIME_PASSWORD_TOKEN, { user_id: selectedProvider.id });
-      toast({ title: 'Email Sent', description: responseData.message });
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'An unexpected error occurred.' });
-    }
-  };
-
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <div className={cn("grid grid-cols-1 gap-4 flex-1 min-h-0 overflow-hidden", selectedProvider ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
@@ -395,12 +367,6 @@ export default function ProvidersPage() {
                   <CardTitle>{t('ProvidersPage.detailsFor', { name: selectedProvider.name })}</CardTitle>
                 </div>
                 <div className="flex items-center gap-2">
-                  {canSetFirstPassword && (
-                    <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
-                      <KeyRound className="mr-2 h-4 w-4" />
-                      {t('ProvidersPage.setInitialPassword')}
-                    </Button>
-                  )}
                   <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
                     <X className="h-5 w-5" />
                     <span className="sr-only">{t('ProvidersPage.close')}</span>
