@@ -855,7 +855,8 @@
             "description": "Ingrese los correos de los destinatarios para el presupuesto #{id}.",
             "recipients": "Destinatarios",
             "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
-            "helperText": "Separe múltiples correos con comas."
+            "helperText": "Separe múltiples correos con comas.",
+            "sending": "Enviando..."
         },
         "quoteDialog": {
             "cancel": "Cancelar",
@@ -1144,7 +1145,8 @@
             "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
             "helperText": "Separe múltiples correos con comas.",
             "errorNoEmail": "Por favor, ingrese al menos un correo electrónico.",
-            "send": "Enviar Correo"
+            "send": "Enviar Correo",
+            "sending": "Enviando..."
         },
         "importDialog": {
             "title": "Importar Factura",

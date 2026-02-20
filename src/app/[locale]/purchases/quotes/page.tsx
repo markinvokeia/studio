@@ -391,6 +391,7 @@ export default function QuotesPage() {
     const [isServiceSearchOpen, setServiceSearchOpen] = React.useState(false);
 
     const [isRefreshing, setIsRefreshing] = React.useState(false);
+    const [isSendingEmail, setIsSendingEmail] = React.useState(false);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
     const [exchangeRate, setExchangeRate] = React.useState<number>(1);
@@ -773,6 +774,8 @@ export default function QuotesPage() {
                             title={t('title')}
                             description={t('description')}
                             className="h-full"
+                            isSendingEmail={isSendingEmail}
+                            setIsSendingEmail={setIsSendingEmail}
                         />
                     }
                     rightPanel={

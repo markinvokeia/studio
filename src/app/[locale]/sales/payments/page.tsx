@@ -25,7 +25,7 @@ import api from '@/services/api';
 import { getSalesPayments } from '@/services/payments-service';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
-import { AlertTriangle, CalendarIcon, Check, ChevronsUpDown } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -113,6 +113,7 @@ export default function PaymentsPage() {
     const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
     const [selectedPaymentForEmail, setSelectedPaymentForEmail] = React.useState<Payment | null>(null);
     const [emailRecipients, setEmailRecipients] = React.useState('');
+    const [isSendingEmail, setIsSendingEmail] = React.useState(false);
     const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
     const [isConfirmPrepaidOpen, setIsConfirmPrepaidOpen] = React.useState(false);
     const [prepaidData, setPrepaidData] = React.useState<PrepaidFormValues | null>(null);
@@ -193,6 +194,7 @@ export default function PaymentsPage() {
             return;
         }
 
+        setIsSendingEmail(true);
         try {
             await api.post(API_ROUTES.SALES.API_PAYMENT_SEND, { paymentId: selectedPaymentForEmail.id, emails });
 
@@ -209,6 +211,8 @@ export default function PaymentsPage() {
                 title: 'Error',
                 description: error instanceof Error ? error.message : 'An unexpected error occurred.',
             });
+        } finally {
+            setIsSendingEmail(false);
         }
     };
 
@@ -312,8 +316,17 @@ export default function PaymentsPage() {
                         <p className="text-sm text-muted-foreground mt-1">Separate multiple emails with commas.</p>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>Cancel</Button>
-                        <Button onClick={handleConfirmSendEmail}>Send Email</Button>
+                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>Cancel</Button>
+                        <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
+                            {isSendingEmail ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Sending...
+                                </>
+                            ) : (
+                                'Send Email'
+                            )}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

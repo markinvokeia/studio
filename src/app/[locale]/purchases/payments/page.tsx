@@ -14,6 +14,7 @@ import { getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchasePayments, Payment } from '@/services/payments-service';
 import { useTranslations } from 'next-intl';
+import { Loader2 } from 'lucide-react';
 import * as React from 'react';
 
 
@@ -34,6 +35,7 @@ export default function PaymentsPage() {
     const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
     const [selectedPaymentForEmail, setSelectedPaymentForEmail] = React.useState<Payment | null>(null);
     const [emailRecipients, setEmailRecipients] = React.useState('');
+    const [isSendingEmail, setIsSendingEmail] = React.useState(false);
 
 
 
@@ -96,6 +98,7 @@ export default function PaymentsPage() {
             return;
         }
 
+        setIsSendingEmail(true);
         try {
             await api.post(API_ROUTES.PURCHASES.API_PAYMENT_SEND, { paymentId: selectedPaymentForEmail.id, emails });
 
@@ -112,6 +115,8 @@ export default function PaymentsPage() {
                 title: 'Error',
                 description: error instanceof Error ? error.message : 'An unexpected error occurred.',
             });
+        } finally {
+            setIsSendingEmail(false);
         }
     };
 
@@ -155,8 +160,17 @@ export default function PaymentsPage() {
                         <p className="text-sm text-muted-foreground mt-1">Separate multiple emails with commas.</p>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>Cancel</Button>
-                        <Button onClick={handleConfirmSendEmail}>Send Email</Button>
+                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>Cancel</Button>
+                        <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
+                            {isSendingEmail ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Sending...
+                                </>
+                            ) : (
+                                'Send Email'
+                            )}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

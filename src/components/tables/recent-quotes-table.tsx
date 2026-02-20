@@ -35,7 +35,7 @@ import { Quote } from '@/lib/types';
 import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, RowSelectionState, SortingState, useReactTable } from '@tanstack/react-table';
-import { MoreHorizontal, Printer, Send } from 'lucide-react';
+import { Loader2, MoreHorizontal, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DocumentTextIcon } from '../icons/document-text-icon';
@@ -288,6 +288,8 @@ interface RecentQuotesTableProps {
   title?: string;
   description?: string;
   standalone?: boolean;
+  isSendingEmail?: boolean;
+  setIsSendingEmail?: (sending: boolean) => void;
 }
 
 export function RecentQuotesTable({
@@ -306,6 +308,8 @@ export function RecentQuotesTable({
   title,
   description,
   standalone = false,
+  isSendingEmail = false,
+  setIsSendingEmail,
 }: RecentQuotesTableProps) {
   const t = useTranslations();
   const { toast } = useToast();
@@ -375,7 +379,13 @@ export function RecentQuotesTable({
       return;
     }
 
+    const handleSetSending = (sending: boolean) => {
+      if (setIsSendingEmail) {
+        setIsSendingEmail(sending);
+      }
+    };
 
+    handleSetSending(true);
     try {
       await api.post(API_ROUTES.PURCHASES.QUOTES_SEND, { quoteId: selectedQuoteForEmail.id, emails });
 
@@ -392,6 +402,8 @@ export function RecentQuotesTable({
         title: t('QuotesPage.emailError'),
         description: error instanceof Error ? error.message : t('QuotesPage.unexpectedError'),
       });
+    } finally {
+      handleSetSending(false);
     }
   };
 
@@ -562,8 +574,17 @@ export function RecentQuotesTable({
             <p className="text-sm text-muted-foreground mt-1">{t('QuotesPage.sendEmailDialog.helperText')}</p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>{t('QuotesPage.quoteDialog.cancel')}</Button>
-            <Button onClick={handleConfirmSendEmail}>{t('QuotesPage.sendEmail')}</Button>
+            <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>{t('QuotesPage.quoteDialog.cancel')}</Button>
+            <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
+              {isSendingEmail ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t('QuotesPage.sendEmailDialog.sending')}
+                </>
+              ) : (
+                t('QuotesPage.sendEmail')
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -855,7 +855,8 @@
       "description": "Enter the recipient emails for quote #{id}.",
       "recipients": "Recipients",
       "placeholder": "email1@example.com, email2@example.com",
-      "helperText": "Separate multiple emails with commas."
+      "helperText": "Separate multiple emails with commas.",
+      "sending": "Sending..."
     },
     "quoteDialog": {
       "cancel": "Cancel",
@@ -1144,7 +1145,8 @@
       "placeholder": "email1@example.com, email2@example.com",
       "helperText": "Separate multiple emails with commas.",
       "errorNoEmail": "Please enter at least one recipient email.",
-      "send": "Send Email"
+      "send": "Send Email",
+      "sending": "Sending..."
     },
     "importDialog": {
       "title": "Import Invoice",

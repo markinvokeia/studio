@@ -182,6 +182,7 @@ export default function InvoicesPage() {
     const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
     const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = React.useState<Invoice | null>(null);
     const [emailRecipients, setEmailRecipients] = React.useState('');
+    const [isSendingEmail, setIsSendingEmail] = React.useState(false);
     const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
     const [importFile, setImportFile] = React.useState<File | null>(null);
     const [isProcessingImport, setIsProcessingImport] = React.useState(false);
@@ -326,6 +327,7 @@ export default function InvoicesPage() {
             return;
         }
 
+        setIsSendingEmail(true);
         try {
             await api.post(API_ROUTES.PURCHASES.API_INVOICE_SEND, { invoiceId: selectedInvoiceForEmail.id, emails });
 
@@ -342,6 +344,8 @@ export default function InvoicesPage() {
                 title: 'Error',
                 description: error instanceof Error ? error.message : 'An unexpected error occurred.',
             });
+        } finally {
+            setIsSendingEmail(false);
         }
     };
 
@@ -613,8 +617,17 @@ export default function InvoicesPage() {
                         <p className="text-sm text-muted-foreground mt-1">{t('sendEmailDialog.helperText')}</p>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>{t('createDialog.cancel')}</Button>
-                        <Button onClick={handleConfirmSendEmail}>{t('sendEmailDialog.send')}</Button>
+                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>{t('createDialog.cancel')}</Button>
+                        <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
+                            {isSendingEmail ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    {t('sendEmailDialog.sending')}
+                                </>
+                            ) : (
+                                t('sendEmailDialog.send')
+                            )}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
