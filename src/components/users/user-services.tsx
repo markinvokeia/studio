@@ -225,6 +225,7 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
         filterColumnId='name'
         filterPlaceholder={t('ServicesPage.filterPlaceholder')}
         onCreate={handleAddService}
+        createButtonLabel={t('UserServices.addServices')}
         columnTranslations={{
           name: t('ServicesColumns.name'),
           category: t('ServicesColumns.category'),

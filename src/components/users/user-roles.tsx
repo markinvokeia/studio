@@ -138,6 +138,7 @@ export function UserRoles({ userId, initialUserRoles, isLoading, onRolesChange }
         filterColumnId="name"
         filterPlaceholder={t('filterPlaceholder')}
         onCreate={handleAddRole}
+        createButtonLabel={t('addRoles')}
         columnFilters={columnFilters}
         onColumnFiltersChange={setColumnFilters}
       />

@@ -660,6 +660,7 @@
         "openMenu": "Abrir menú"
     },
     "UserRoles": {
+        "addRoles": "Asignar Roles",
         "columns": {
             "role": "Rol",
             "status": "Estado"
@@ -702,6 +703,7 @@
         }
     },
     "UserServices": {
+        "addServices": "Asignar Servicios",
         "dialog": {
             "title": "Agregar Servicios al Usuario",
             "description": "Seleccione los servicios para asignar a este usuario.",
