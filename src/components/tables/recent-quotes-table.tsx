@@ -53,13 +53,6 @@ const getColumns = (
   onSendEmail: (quote: Quote) => void
 ): ColumnDef<Quote>[] => [
     {
-      accessorKey: 'doc_no',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />
-      ),
-      size: 50,
-    },
-    {
       id: 'select',
       header: () => null,
       cell: ({ row, table }) => {
@@ -79,6 +72,13 @@ const getColumns = (
       enableSorting: false,
       enableHiding: false,
       size: 20,
+    },
+    {
+      accessorKey: 'doc_no',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('OrderColumns.orderId')} />
+      ),
+      size: 50,
     },
     {
       accessorKey: 'user_name',
