@@ -20,20 +20,6 @@ This file contains guidelines and conventions for agentic coding agents working 
 - `npm run lint` - Run ESLint for code linting (Next.js built-in)
 - `npm run typecheck` - Run TypeScript type checking without emitting files
 
-### Testing
-
-**Note:** No testing framework is currently configured. When adding tests:
-
-1. Set up Jest or Vitest with React Testing Library
-2. Add test scripts to package.json:
-   - `npm run test` - Run all tests
-   - `npm run test:watch` - Run tests in watch mode
-   - `npm run test:coverage` - Run tests with coverage report
-3. For running a single test file: `npm run test -- path/to/test.spec.ts`
-4. For running a specific test pattern: `npm run test -- --testNamePattern="test name"`
-5. For running tests in a directory: `npm run test -- src/components/ui/`
-6. Test files should be named `*.test.ts`, `*.spec.ts`, or `*.test.tsx` and placed next to the component they test
-
 ## Tech Stack & Architecture
 
 **Framework:** Next.js 15 with App Router, TypeScript (strict mode), Tailwind CSS with Shadcn/ui

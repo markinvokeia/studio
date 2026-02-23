@@ -3,6 +3,7 @@
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,13 +15,17 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { MedicalHistory } from '@/components/users/medical-history';
@@ -34,14 +39,14 @@ import { UserQuotes } from '@/components/users/user-quotes';
 import { UserServices } from '@/components/users/user-services';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { Quote, User, UserRole } from '@/lib/types';
+import { PatientDischarge, Quote, User, UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { endOfDay, endOfMonth, endOfWeek, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
+import { endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek, addMonths } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Banknote, ChevronDown, ChevronUp, CreditCard, DollarSign, Receipt, X } from 'lucide-react';
+import { AlertTriangle, Banknote, CalendarIcon, CheckCircle, ChevronDown, ChevronUp, CreditCard, DollarSign, Loader2, Receipt, X, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
@@ -441,6 +446,10 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+  const [isDischargeDialogOpen, setIsDischargeDialogOpen] = React.useState(false);
+  const [dischargeDate, setDischargeDate] = React.useState<Date | null>(null);
+  const [currentDischarge, setCurrentDischarge] = React.useState<PatientDischarge | null>(null);
+  const [isSubmittingDischarge, setIsSubmittingDischarge] = React.useState(false);
 
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -483,6 +492,82 @@ export default function UsersPage() {
     setSelectedUserRoles(roles);
     setIsRolesLoading(false);
   }, []);
+
+  const fetchPatientDischarge = React.useCallback(async (userId: string) => {
+    try {
+      const data = await api.get(API_ROUTES.PATIENT_DISCHARGE, { id: userId });
+      if (data && data.appointment_date) {
+        setCurrentDischarge({
+          id: data.id,
+          user_id: userId,
+          appointment_date: data.appointment_date,
+          created_at: data.created_at
+        });
+      } else {
+        setCurrentDischarge(null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch patient discharge:", error);
+      setCurrentDischarge(null);
+    }
+  }, []);
+
+  const handleSaveDischarge = async () => {
+    if (!selectedUser || !dischargeDate) return;
+    
+    setIsSubmittingDischarge(true);
+    try {
+      const payload = {
+        id: selectedUser.id,
+        appointment_date: format(dischargeDate, 'yyyy-MM-dd')
+      };
+      await api.post(API_ROUTES.PATIENT_DISCHARGE, payload);
+      
+      toast({
+        title: t('ClinicHistoryPage.discharge.toast.success'),
+      });
+      
+      setIsDischargeDialogOpen(false);
+      setDischargeDate(null);
+      fetchPatientDischarge(selectedUser.id);
+    } catch (error: any) {
+      console.error("Error saving discharge:", error);
+      toast({
+        variant: 'destructive',
+        title: t('ClinicHistoryPage.discharge.toast.error'),
+        description: error.message || ''
+      });
+    } finally {
+      setIsSubmittingDischarge(false);
+    }
+  };
+
+  const handleCancelDischarge = async () => {
+    if (!selectedUser) return;
+    
+    setIsSubmittingDischarge(true);
+    try {
+      const payload = {
+        id: selectedUser.id
+      };
+      await api.post(API_ROUTES.PATIENT_DISCHARGE_CANCEL, payload);
+      
+      toast({
+        title: t('ClinicHistoryPage.discharge.toast.cancelSuccess'),
+      });
+      
+      setCurrentDischarge(null);
+    } catch (error: any) {
+      console.error("Error cancelling discharge:", error);
+      toast({
+        variant: 'destructive',
+        title: t('ClinicHistoryPage.discharge.toast.cancelError'),
+        description: error.message || ''
+      });
+    } finally {
+      setIsSubmittingDischarge(false);
+    }
+  };
 
   React.useEffect(() => {
     const debounce = setTimeout(() => {
@@ -609,10 +694,12 @@ export default function UsersPage() {
   React.useEffect(() => {
     if (selectedUser) {
       loadUserRoles(selectedUser.id);
+      fetchPatientDischarge(selectedUser.id);
     } else {
       setSelectedUserRoles([]);
+      setCurrentDischarge(null);
     }
-  }, [selectedUser, loadUserRoles]);
+  }, [selectedUser, loadUserRoles, fetchPatientDischarge]);
 
   const handleCloseDetails = () => {
     setSelectedUser(null);
@@ -877,6 +964,32 @@ export default function UsersPage() {
                     </CardTitle>
                   </div>
                   <div className="flex items-center gap-1 ml-2">
+                    {currentDischarge ? (
+                      <>
+                        <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          {t('ClinicHistoryPage.discharge.dischargedBadge')} {format(parseISO(currentDischarge.appointment_date), 'dd/MM/yyyy')}
+                        </Badge>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handleCancelDischarge}
+                          disabled={isSubmittingDischarge}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          {t('ClinicHistoryPage.discharge.cancelDischarge')}
+                        </Button>
+                      </>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setIsDischargeDialogOpen(true)}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        {t('ClinicHistoryPage.discharge.buttonText')}
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors" onClick={handleCloseDetails}>
                       <X className="h-5 w-5" />
                       <span className="sr-only">{t('UsersPage.close')}</span>
@@ -1069,9 +1182,96 @@ export default function UsersPage() {
                 <Button type="submit">{editingUser ? t('UsersPage.createDialog.editSave') : t('UsersPage.createDialog.save')}</Button>
               </div>
             </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+            </Form>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isDischargeDialogOpen} onOpenChange={setIsDischargeDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>{t('ClinicHistoryPage.discharge.dialogTitle')}</DialogTitle>
+              <DialogDescription>
+                {t('ClinicHistoryPage.discharge.dialogDescription')}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>{t('ClinicHistoryPage.discharge.optionsLabel')}</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setDischargeDate(addMonths(new Date(), 1))}
+                  >
+                    {t('ClinicHistoryPage.discharge.option1Month')}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setDischargeDate(addMonths(new Date(), 3))}
+                  >
+                    {t('ClinicHistoryPage.discharge.option3Months')}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setDischargeDate(addMonths(new Date(), 6))}
+                  >
+                    {t('ClinicHistoryPage.discharge.option6Months')}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setDischargeDate(addMonths(new Date(), 12))}
+                  >
+                    {t('ClinicHistoryPage.discharge.option1Year')}
+                  </Button>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>{t('ClinicHistoryPage.discharge.dateLabel')}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !dischargeDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dischargeDate ? format(dischargeDate, 'dd/MM/yyyy') : t('ClinicHistoryPage.discharge.datePlaceholder')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dischargeDate || undefined}
+                      onSelect={(date) => setDischargeDate(date || null)}
+                      initialFocus
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setIsDischargeDialogOpen(false);
+                setDischargeDate(null);
+              }}>
+                {t('ClinicHistoryPage.discharge.cancelButton')}
+              </Button>
+              <Button 
+                onClick={handleSaveDischarge} 
+                disabled={!dischargeDate || isSubmittingDischarge}
+              >
+                {isSubmittingDischarge ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {t('ClinicHistoryPage.discharge.saveButton')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </>
   );
 }

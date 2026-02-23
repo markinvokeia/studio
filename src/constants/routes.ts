@@ -93,6 +93,8 @@ export const API_ROUTES = {
         USERS_DOCUMENT: '/api/users/document',
         USERS_IMPORT: '/api/users/import',
     },
+    PATIENT_DISCHARGE: '/patient/discharge',
+    PATIENT_DISCHARGE_CANCEL: '/patient/discharge/cancel',
     CLINIC: '/clinic',
     CLINIC_UPDATE: '/clinic/update',
     AVAILABILITY_EXCEPTIONS_SEARCH: '/availability_exceptions/search',

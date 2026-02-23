@@ -18,6 +18,13 @@ export type User = {
   notes?: string;
 };
 
+export type PatientDischarge = {
+  id: string;
+  user_id: string;
+  appointment_date: string;
+  created_at?: string;
+};
+
 export type Debtor = {
   user_id: string;
   patient_name: string;

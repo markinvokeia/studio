@@ -2686,6 +2686,29 @@
     "selectPatientDescription": "Please select a patient to view their medical history",
     "noPatientsFound": "No patients found",
     "title": "Clinic History",
+    "discharge": {
+      "buttonText": "Discharge",
+      "dialogTitle": "Discharge Patient",
+      "dialogDescription": "Set next review date",
+      "dateLabel": "Discharge Date",
+      "datePlaceholder": "Select date",
+      "optionsLabel": "Quick options",
+      "option1Month": "1 month",
+      "option3Months": "3 months",
+      "option6Months": "6 months",
+      "option1Year": "1 year",
+      "cancelButton": "Cancel",
+      "saveButton": "Save",
+      "currentStatus": "Patient discharged until",
+      "cancelDischarge": "Cancel Discharge",
+      "dischargedBadge": "Discharged",
+      "toast": {
+        "success": "Patient discharged successfully",
+        "error": "Error discharging patient",
+        "cancelSuccess": "Discharge cancelled successfully",
+        "cancelError": "Error cancelling discharge"
+      }
+    },
     "sessionDialog": {
       "createTitle": "Create Session",
       "date": "Date",
