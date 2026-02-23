@@ -64,6 +64,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
+  useEffect(() => {
+    const handleFocus = () => {
+      checkActiveSession();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
   const login = async (email: string, password: string) => {
     try {
       const data = await api.post(API_ROUTES.LOGIN, { email, password });
