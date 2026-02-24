@@ -25,7 +25,7 @@ import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Calendar } from '@/components/ui/calendar';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { MedicalHistory } from '@/components/users/medical-history';
@@ -1249,12 +1249,12 @@ export default function UsersPage() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
+                    <DatePicker
                       mode="single"
                       selected={dischargeDate || undefined}
-                      onSelect={(date) => setDischargeDate(date || null)}
+                      onSelect={(date: Date | undefined) => setDischargeDate(date || null)}
                       initialFocus
-                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      disabled={(date: Date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                     />
                   </PopoverContent>
                 </Popover>

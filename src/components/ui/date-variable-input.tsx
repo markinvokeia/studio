@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { format, addDays, subDays } from 'date-fns';
 import { CalendarIcon, Plus, Minus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface DateVariableInputProps {
   value: string;
@@ -101,6 +102,8 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
     setSelectedBase(custom.base);
     setCustomDays(custom.days);
   }, [value]);
+
+  const t = useTranslations('DateVariableInput');
 
   // Don't show input for IS NULL and IS NOT NULL operators
   if (operator === 'IS NULL' || operator === 'IS NOT NULL') {
@@ -207,13 +210,13 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
         <TabsList className="grid w-full grid-cols-2 h-9">
           <TabsTrigger value="date" className="flex items-center gap-1 text-xs">
             <CalendarIcon className="h-3 w-3" />
-            Date
+            {t('date')}
           </TabsTrigger>
-          <TabsTrigger value="variable" className="text-xs">Variables</TabsTrigger>
+          <TabsTrigger value="variable" className="text-xs">{t('variables')}</TabsTrigger>
         </TabsList>
         <TabsContent value="date" className="mt-2">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-700">Select a specific date</label>
+            <label className="text-xs font-medium text-gray-700">{t('selectSpecificDate')}</label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -225,11 +228,11 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
                   )}
                 >
                   <CalendarIcon className="mr-2 h-3 w-3" />
-                  <span className="truncate">{selectedDate && !isNaN(selectedDate.getTime()) ? format(selectedDate, 'PPP') : placeholder || 'Pick a date'}</span>
+                  <span className="truncate">{selectedDate && !isNaN(selectedDate.getTime()) ? format(selectedDate, 'PPP') : placeholder || t('pickDate')}</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
+                <DatePicker
                   mode="single"
                   selected={selectedDate}
                   onSelect={handleDateSelect}
@@ -242,7 +245,7 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
         <TabsContent value="variable" className="mt-2">
           <div className="space-y-2">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-700">Choose a date variable</label>
+              <label className="text-xs font-medium text-gray-700">{t('chooseDateVariable')}</label>
               <Select value={(() => {
               if (value && isVariableValue(value)) {
                 const match = value.match(/\{\{([^+]+)([+-]\d+)?\}\}/);
@@ -253,12 +256,12 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
               return '';
             })()} onValueChange={handleVariableSelect}>
                 <SelectTrigger className="w-full h-9">
-                  <SelectValue placeholder="Choose variable" className="text-sm">
+                  <SelectValue placeholder={t('chooseVariable')} className="text-sm">
                   {value && isVariableValue(value) && (
                     <div className="flex items-center gap-1 min-w-0">
                       <span className="font-medium truncate text-sm">{getDisplayValue()}</span>
                       <Badge variant="secondary" className="text-xs px-1 py-0">
-                        Var
+                        {t('var')}
                       </Badge>
                     </div>
                   )}

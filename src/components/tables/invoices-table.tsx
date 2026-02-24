@@ -32,7 +32,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { Calendar } from '../ui/calendar';
+import { DatePicker } from '../ui/date-picker';
 import { Checkbox } from '../ui/checkbox';
 import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
@@ -891,11 +891,11 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
+                            <DatePicker
                               mode="single"
                               selected={field.value}
                               onSelect={field.onChange}
-                              disabled={(date) =>
+                              disabled={(date: Date) =>
                                 date > new Date() || date < new Date("1900-01-01")
                               }
                               initialFocus

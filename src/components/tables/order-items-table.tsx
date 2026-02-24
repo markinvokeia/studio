@@ -3,7 +3,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -439,7 +439,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-center py-4">
-            <Calendar
+            <DatePicker
               mode="single"
               selected={selectedDate}
               onSelect={setSelectedDate}

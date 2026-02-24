@@ -163,6 +163,25 @@
     "goToNext": "Go to next page",
     "goToLast": "Go to last page"
   },
+  "DatePicker": {
+    "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    "weekdays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    "weekdaysLong": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    "labelPrevious": "Go to previous month",
+    "labelNext": "Go to next month",
+    "labelMonthDropdown": "Choose the month",
+    "labelYearDropdown": "Choose the year",
+    "labelToday": "Go to today",
+    "pickDate": "Pick a date"
+  },
+  "DateVariableInput": {
+    "date": "Date",
+    "variables": "Variables",
+    "selectSpecificDate": "Select a specific date",
+    "chooseDateVariable": "Choose a date variable",
+    "chooseVariable": "Choose variable",
+    "var": "Var"
+  },
   "ReportFilters": {
     "apply": "Apply Filters",
     "filterBy": "Filter by...",

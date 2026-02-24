@@ -28,7 +28,7 @@ import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { Calendar } from '../ui/calendar';
+import { DatePicker } from '../ui/date-picker';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
@@ -323,7 +323,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             </Alert>
           )}
           <div className="flex justify-center py-4">
-            <Calendar
+            <DatePicker
               mode="single"
               selected={invoiceDate}
               onSelect={setInvoiceDate}

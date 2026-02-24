@@ -9,7 +9,7 @@ import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   Popover,
   PopoverContent,
@@ -59,12 +59,12 @@ export function ReportFilters({ date, setDate }: ReportFiltersProps) {
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
+          <DatePicker
             initialFocus
             mode="range"
             defaultMonth={date?.from}
             selected={date}
-            onSelect={setDate}
+            onSelect={setDate as any}
             numberOfMonths={2}
           />
         </PopoverContent>
