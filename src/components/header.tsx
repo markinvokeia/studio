@@ -272,6 +272,13 @@ export function Header() {
                                     <KeyRound className="mr-2 h-4 w-4" />
                                     <span>{t('changePassword')}</span>
                                 </DropdownMenuItem>
+                                <Link href={`/${locale}/preferences`} passHref>
+                                    <DropdownMenuItem>
+                                        <Bell className="mr-2 h-4 w-4" />
+                                        <span>{t('communicationPreferences')}</span>
+                                    </DropdownMenuItem>
+                                </Link>
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={handleLogoutClick}>
                                     <LogOut className="mr-2 h-4 w-4" />
                                     <span>{t('logout')}</span>

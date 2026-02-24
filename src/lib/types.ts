@@ -763,6 +763,24 @@ export type SequencePatternValidation = {
   preview: string;
 };
 
+export type NotificationPlatform = {
+  platform_id: number;
+  platform_name: string;
+  is_active: boolean;
+};
+
+export type NotificationCategory = {
+  slug: string;
+  name: string;
+  is_critical: boolean;
+};
+
+export type GlobalNotificationSetting = {
+  channel_slug: string;
+  category_slug: string;
+  is_enabled: boolean;
+};
+
 export type Cotizacion = {
   venta: number;
   codigo: string;
@@ -790,4 +808,17 @@ export type ExchangeRateHistoryMetadata = {
 export type ExchangeRateHistoryResponse = {
   metadata: ExchangeRateHistoryMetadata;
   data: ExchangeRateHistoryItem[];
+};
+
+export type UserCommunicationPreference = {
+  id?: string;
+  user_id: string;
+  category_slug: string;
+  channel_slug: string;
+  is_enabled: boolean;
+};
+
+export type UserCommunicationPreferences = {
+  user_id: string;
+  preferences: UserCommunicationPreference[];
 };

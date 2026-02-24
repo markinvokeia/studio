@@ -48,6 +48,7 @@
         "Roles": "Roles",
         "Permissions": "Permisos",
         "Configurations": "Configuraciones",
+        "NotificationSettings": "Notificaciones",
         "AuditLog": "Registro de Auditoría",
         "AccessLog": "Registro de Acceso",
         "ErrorLog": "Registro de Errores",
@@ -90,6 +91,7 @@
         "logout": "Cerrar Sesión",
         "commandPlaceholder": "Escriba un comando...",
         "changePassword": "Cambiar Contraseña",
+        "communicationPreferences": "Preferencias",
         "alerts": "Alertas",
         "toggleTheme": "Cambiar tema",
         "light": "Claro",
@@ -541,6 +543,7 @@
             "quotes": "Presupuestos",
             "appointments": "Citas",
             "messages": "Mensajes",
+            "preferences": "Preferencias",
             "logs": "Registros",
             "history": "Historia Clínica",
             "orders": "Órdenes",
@@ -3608,6 +3611,57 @@
             "sessionCheckFailed": "No se pudo verificar el estado de la sesión de caja. Inténtelo nuevamente.",
             "sessionValidationError": "Error al validar la sesión de caja. Contacte al administrador.",
             "cashSessionRequired": "Sesión de Caja Requerida"
+        }
+    },
+    "NotificationSettingsPage": {
+        "title": "Configuración de Notificaciones",
+        "description": "Administrar los canales y categorías de notificaciones del sistema",
+        "masterSwitch": {
+            "title": "Habilitar/Deshabilitar Todas las Notificaciones",
+            "description": "Control maestro para activar o desactivar todos los correos del sistema",
+            "enabled": "Habilitado",
+            "disabled": "Deshabilitado"
+        },
+        "table": {
+            "category": "Categoría",
+            "allPlatforms": "Todas las Plataformas"
+        },
+        "categories": {
+            "transactional": "Transaccional",
+            "clinical": "Clínico",
+            "security": "Seguridad",
+            "marketing": "Marketing"
+        },
+        "critical": "Crítico",
+        "save": "Guardar Cambios",
+        "saving": "Guardando...",
+        "toast": {
+            "errorTitle": "Error",
+            "loadErrorDescription": "Error al cargar la configuración de notificaciones.",
+            "successTitle": "Éxito",
+            "saveSuccessDescription": "Configuración de notificaciones guardada exitosamente.",
+            "saveErrorDescription": "Error al guardar la configuración de notificaciones."
+        }
+    },
+    "UserCommunicationPreferences": {
+        "title": "Preferencias",
+        "description": "Selecciona cómo deseas recibir comunicaciones",
+        "table": {
+            "category": "Categoría",
+            "allCategories": "Todas las Categorías"
+        },
+        "categories": {
+            "appointments": "Recordatorios de Citas",
+            "invoices": "Facturas y Presupuestos",
+            "marketing": "Comunicaciones Generales"
+        },
+        "save": "Guardar",
+        "saving": "Guardando...",
+        "toast": {
+            "successTitle": "Éxito",
+            "saveSuccessDescription": "Preferencias guardadas exitosamente.",
+            "errorTitle": "Error",
+            "saveErrorDescription": "Error al guardar las preferencias."
         }
     }
 }

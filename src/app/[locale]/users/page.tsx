@@ -30,6 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { MedicalHistory } from '@/components/users/medical-history';
 import { UserAppointments } from '@/components/users/user-appointments';
+import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
 import { UserInvoices } from '@/components/users/user-invoices';
 import { UserLogs } from '@/components/users/user-logs';
 import { UserMessages } from '@/components/users/user-messages';
@@ -1010,6 +1011,7 @@ export default function UsersPage() {
                       <TabsTrigger value="payments" className="text-xs px-2 py-1">{t('UsersPage.tabs.payments')}</TabsTrigger>
                       <TabsTrigger value="appointments" className="text-xs px-2 py-1">{t('UsersPage.tabs.appointments')}</TabsTrigger>
                       <TabsTrigger value="messages" className="text-xs px-2 py-1">{t('UsersPage.tabs.messages')}</TabsTrigger>
+                      <TabsTrigger value="preferences" className="text-xs px-2 py-1">{t('UsersPage.tabs.preferences')}</TabsTrigger>
                       <TabsTrigger value="logs" className="text-xs px-2 py-1">{t('UsersPage.tabs.logs')}</TabsTrigger>
                       <TabsTrigger value="notes" className="text-xs px-2 py-1">{t('UsersPage.tabs.notes')}</TabsTrigger>
                     </TabsList>
@@ -1039,6 +1041,9 @@ export default function UsersPage() {
                       </TabsContent>
                       <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                         <UserMessages userId={selectedUser.id} />
+                      </TabsContent>
+                      <TabsContent value="preferences" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                        <UserCommunicationPreferences user={selectedUser} />
                       </TabsContent>
                       <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                         <UserLogs userId={selectedUser.id} />

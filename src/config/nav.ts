@@ -163,6 +163,7 @@ export const navItems: NavItem[] = [
       { title: 'AlertExecutions', href: '/system/execution-history', icon: FileClock, isChidren: true },
       { title: '', href: '', icon: Shield, isChidren: false, isSeparator: true },
       { title: 'Configurations', href: '/system/config', icon: Settings, isChidren: true },
+      { title: 'NotificationSettings', href: '/system/notification-settings', icon: Mails, isChidren: true },
       { title: 'AuditLog', href: '/system/audit', icon: BarChart, isChidren: true },
       { title: 'AccessLog', href: '/system/access', icon: UserCheck, isChidren: true },
       { title: 'ErrorLog', href: '/system/errors', icon: FileWarning, isChidren: true },

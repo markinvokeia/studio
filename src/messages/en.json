@@ -48,6 +48,7 @@
     "Roles": "Roles",
     "Permissions": "Permissions",
     "Configurations": "Configurations",
+    "NotificationSettings": "Notifications",
     "AuditLog": "Audit Log",
     "AccessLog": "Access Log",
     "ErrorLog": "Error Log",
@@ -90,6 +91,7 @@
     "logout": "Logout",
     "commandPlaceholder": "Enter a command...",
     "changePassword": "Change Password",
+    "communicationPreferences": "Preferences",
     "alerts": "Alerts",
     "toggleTheme": "Toggle theme",
     "light": "Light",
@@ -541,6 +543,7 @@
       "quotes": "Quotes",
       "appointments": "Appointments",
       "messages": "Messages",
+      "preferences": "Preferences",
       "logs": "Logs",
       "history": "Clinic History",
       "orders": "Orders",
@@ -3609,6 +3612,57 @@
       "sessionCheckFailed": "Could not verify cash session status. Please try again.",
       "sessionValidationError": "Error validating cash session. Please contact administrator.",
       "cashSessionRequired": "Cash Session Required"
+    }
+  },
+  "NotificationSettingsPage": {
+    "title": "Notification Settings",
+    "description": "Manage system notification channels and categories",
+    "masterSwitch": {
+      "title": "Enable/Disable All Notifications",
+      "description": "Master control to activate or deactivate all system emails",
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
+    "table": {
+      "category": "Category",
+      "allPlatforms": "All Platforms"
+    },
+    "categories": {
+      "transactional": "Transactional",
+      "clinical": "Clinical",
+      "security": "Security",
+      "marketing": "Marketing"
+    },
+    "critical": "Critical",
+    "save": "Save Changes",
+    "saving": "Saving...",
+    "toast": {
+      "errorTitle": "Error",
+      "loadErrorDescription": "Error loading notification settings.",
+      "successTitle": "Success",
+      "saveSuccessDescription": "Notification settings saved successfully.",
+      "saveErrorDescription": "Error saving notification settings."
+    }
+  },
+  "UserCommunicationPreferences": {
+    "title": "Preferences",
+    "description": "Select how you want to receive communications",
+    "table": {
+      "category": "Category",
+      "allCategories": "All Categories"
+    },
+    "categories": {
+      "appointments": "Appointment Reminders",
+      "invoices": "Invoices and Quotes",
+      "marketing": "General Communications"
+    },
+    "save": "Save",
+    "saving": "Saving...",
+    "toast": {
+      "successTitle": "Success",
+      "saveSuccessDescription": "Preferences saved successfully.",
+      "errorTitle": "Error",
+      "saveErrorDescription": "Error saving preferences."
     }
   }
 }
