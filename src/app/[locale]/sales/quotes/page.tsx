@@ -37,7 +37,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeApiResponse } from '@/lib/api-utils';
-import { Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
+import { Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User, Clinic } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -348,6 +348,26 @@ async function deleteQuote(id: string, t: (key: string) => string) {
     return responseData;
 }
 
+async function getClinic(): Promise<Clinic | null> {
+    try {
+        const data = await api.get(API_ROUTES.CLINIC);
+        const clinicsData = Array.isArray(data) ? data : (data.clinics || data.data || data.result || []);
+        if (clinicsData.length === 0) return null;
+        const apiClinic = clinicsData[0];
+        return {
+            id: apiClinic.id ? String(apiClinic.id) : '',
+            name: apiClinic.name || '',
+            location: apiClinic.address || '',
+            contact_email: apiClinic.email || '',
+            phone_number: apiClinic.phone || '',
+            currency: apiClinic.currency || 'UYU',
+        };
+    } catch (error) {
+        console.error("Failed to fetch clinic:", error);
+        return null;
+    }
+}
+
 
 export default function QuotesPage() {
     const t = useTranslations('QuotesPage');
@@ -367,7 +387,9 @@ export default function QuotesPage() {
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
 
-    const [payments, setPayments] = React.useState<Payment[]>([]);
+const [payments, setPayments] = React.useState<Payment[]>([]);
+
+    const [clinic, setClinic] = React.useState<Clinic | null>(null);
 
     const [isLoadingItems, setIsLoadingItems] = React.useState(false);
     const [isLoadingOrders, setIsLoadingOrders] = React.useState(false);
@@ -425,9 +447,13 @@ export default function QuotesPage() {
         setIsRefreshing(false);
     }, [t]);
 
-    React.useEffect(() => {
+React.useEffect(() => {
         loadQuotes();
     }, [loadQuotes]);
+
+    React.useEffect(() => {
+        getClinic().then(setClinic);
+    }, []);
 
     const loadQuoteItems = React.useCallback(async () => {
         if (!selectedQuote) return;
@@ -503,10 +529,11 @@ export default function QuotesPage() {
         }
     }, [selectedInvoice, loadInvoiceItems]);
 
-    const handleCreateQuote = async () => {
+const handleCreateQuote = async () => {
         setEditingQuote(null);
         const sessionRate = getSessionExchangeRate();
-        quoteForm.reset({ user_id: '', total: 0, currency: 'USD', status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: sessionRate });
+        const defaultCurrency = clinic?.currency || 'UYU';
+        quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: sessionRate });
         setQuoteSubmissionError(null);
         setAllUsers(await getUsers(t));
         setIsQuoteDialogOpen(true);

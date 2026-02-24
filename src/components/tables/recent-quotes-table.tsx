@@ -122,7 +122,7 @@ const getColumns = (
       ),
       cell: ({ row }) => {
         const rate = row.original.exchange_rate;
-        return rate ? <div className="font-medium">{rate.toFixed(4)}</div> : <div className="text-muted-foreground">-</div>;
+        return rate ? <div className="font-medium">{rate.toFixed(2)}</div> : <div className="text-muted-foreground">-</div>;
       },
     },
     {
@@ -234,34 +234,34 @@ const getColumns = (
 
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
+<DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
                 <span className="sr-only">Open menu</span>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+<DropdownMenuContent align="end">
               <DropdownMenuLabel>{tQuotes('itemDialog.actions')}</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => onPrint(quote)}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPrint(quote); }}>
                 <Printer className="mr-2 h-4 w-4" />
                 <span>{tQuotes('print')}</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onSendEmail(quote)}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSendEmail(quote); }}>
                 <Send className="mr-2 h-4 w-4" />
                 <span>{tQuotes('sendEmail')}</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onEdit(quote)} disabled={!isDraft}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(quote); }} disabled={!isDraft}>
                 {tQuotes('edit')}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDelete(quote)} className="text-destructive" disabled={!isDraft}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(quote); }} className="text-destructive" disabled={!isDraft}>
                 {tQuotes('delete')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onQuoteAction(quote, 'confirm')} disabled={!isDraft && !isPending}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onQuoteAction(quote, 'confirm'); }} disabled={!isDraft && !isPending}>
                 {tQuotes('confirm')}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onQuoteAction(quote, 'reject')} className="text-destructive" disabled={!isDraft && !isPending}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onQuoteAction(quote, 'reject'); }} className="text-destructive" disabled={!isDraft && !isPending}>
                 {tQuotes('reject')}
               </DropdownMenuItem>
             </DropdownMenuContent>
