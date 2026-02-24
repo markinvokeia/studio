@@ -308,9 +308,10 @@ interface InvoicesTableProps {
   title?: string;
   description?: string;
   standalone?: boolean;
+  canCreate?: boolean;
 }
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, onEdit, isSales = true, isCompact = false, className, title, description, standalone = false }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, onEdit, isSales = true, isCompact = false, className, title, description, standalone = false, canCreate = true }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
@@ -694,10 +695,10 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             enableSingleRowSelection={!!onRowSelectionChange}
             onRefresh={onRefresh}
             isRefreshing={isRefreshing}
-            onCreate={() => {
+            onCreate={canCreate ? () => {
               setEditingInvoice(null);
               setIsFormDialogOpen(true);
-            }}
+            } : undefined}
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
             customToolbar={standalone ? (table) => (
@@ -715,10 +716,10 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                     return newFilters;
                   });
                 }}
-                onCreate={() => {
+                onCreate={canCreate ? () => {
                   setEditingInvoice(null);
                   setIsFormDialogOpen(true);
-                }}
+                } : undefined}
                 onRefresh={onRefresh}
                 isRefreshing={isRefreshing}
                 filters={[

@@ -868,6 +868,7 @@ const handleCreateQuote = async () => {
                                                         onRefresh={loadInvoices}
                                                         isRefreshing={isLoadingInvoices}
                                                         isCompact={true}
+                                                        canCreate={false}
                                                         columnTranslations={{
                                                             doc_no: tRoot('InvoicesPage.columns.docNo'),
                                                             user_name: tRoot('InvoicesPage.columns.userName'),
