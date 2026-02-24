@@ -533,7 +533,8 @@ const handleCreateQuote = async () => {
         setEditingQuote(null);
         const sessionRate = getSessionExchangeRate();
         const defaultCurrency = clinic?.currency || 'UYU';
-        quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: sessionRate });
+        const exchangeRate = defaultCurrency === clinic?.currency ? 1 : sessionRate;
+        quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: exchangeRate });
         setQuoteSubmissionError(null);
         setAllUsers(await getUsers(t));
         setIsQuoteDialogOpen(true);
@@ -546,7 +547,8 @@ const handleCreateQuote = async () => {
         }
         setEditingQuote(quote);
         const sessionRate = getSessionExchangeRate();
-        quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status as any, billing_status: quote.billing_status as any, exchange_rate: quote.exchange_rate || sessionRate });
+        const exchangeRate = quote.currency === clinic?.currency ? 1 : (quote.exchange_rate || sessionRate);
+        quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status as any, billing_status: quote.billing_status as any, exchange_rate: exchangeRate });
         setQuoteSubmissionError(null);
         setAllUsers(await getUsers(t));
         setIsQuoteDialogOpen(true);
@@ -725,6 +727,21 @@ const handleCreateQuote = async () => {
     const watchedServiceId = quoteItemForm.watch('service_id');
     const watchedQuantity = quoteItemForm.watch('quantity');
     const watchedQuoteExchangeRate = quoteForm.watch('exchange_rate');
+    const watchedQuoteCurrency = quoteForm.watch('currency');
+    const isClinicCurrency = watchedQuoteCurrency === (clinic?.currency || 'UYU');
+
+    React.useEffect(() => {
+        if (isClinicCurrency) {
+            if (watchedQuoteExchangeRate !== 1) {
+                quoteForm.setValue('exchange_rate', 1);
+            }
+        } else {
+            const sessionRate = getSessionExchangeRate();
+            if (watchedQuoteExchangeRate === 1 || !watchedQuoteExchangeRate) {
+                quoteForm.setValue('exchange_rate', sessionRate);
+            }
+        }
+    }, [isClinicCurrency, watchedQuoteExchangeRate, quoteForm, getSessionExchangeRate]);
 
     React.useEffect(() => {
         const service = allServices.find(s => String(s.id) === watchedServiceId);
@@ -1007,10 +1024,18 @@ const handleCreateQuote = async () => {
                                         <FormControl>
                                             <Input
                                                 type="number"
-                                                step="0.0001"
+                                                step="0.01"
                                                 placeholder={t('placeholders.exchangeRate')}
                                                 {...field}
-                                                value={field.value || ''}
+                                                value={field.value ? Number(field.value).toFixed(2) : ''}
+                                                disabled={isClinicCurrency}
+                                                onChange={(e) => {
+                                                    if (isClinicCurrency) {
+                                                        field.onChange(1);
+                                                    } else {
+                                                        field.onChange(e.target.value);
+                                                    }
+                                                }}
                                             />
                                         </FormControl>
                                         <FormMessage />

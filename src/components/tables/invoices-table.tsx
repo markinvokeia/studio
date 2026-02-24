@@ -364,10 +364,13 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
   // Update exchange rate when currencies change or session rate is loaded
   React.useEffect(() => {
-    if (showExchangeRate) {
-      form.setValue('exchange_rate', sessionExchangeRate);
+    const isSameAsClinicCurrency = watchedInvoiceCurrency === companyCurrency;
+    if (showExchangeRate && watchedInvoiceCurrency !== watchedPaymentCurrency) {
+      form.setValue('exchange_rate', isSameAsClinicCurrency ? 1 : sessionExchangeRate);
+    } else if (!showExchangeRate) {
+      form.setValue('exchange_rate', 1);
     }
-  }, [showExchangeRate, sessionExchangeRate, form]);
+  }, [showExchangeRate, sessionExchangeRate, form, watchedInvoiceCurrency, watchedPaymentCurrency, companyCurrency]);
 
   // Calculate total credits in invoice currency
   const creditsTotalInInvoiceCurrency = React.useMemo(() => {
@@ -491,14 +494,17 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       fetchPaymentMethods();
       fetchUserCredits(invoice.user_id);
 
+      const invoiceCurrency = invoice.currency || 'USD';
+      const initialExchangeRate = invoiceCurrency === currency ? 1 : sessionExchangeRate;
+
       form.reset({
         amount: invoice.total - (invoice.paid_amount || 0),
         method: '',
         status: 'completed',
         payment_date: new Date(),
-        invoice_currency: invoice.currency || 'USD',
-        payment_currency: invoice.currency || 'USD', // Default to invoice currency initially
-        exchange_rate: 1, // Will be updated by useEffect or manual input
+        invoice_currency: invoiceCurrency,
+        payment_currency: invoiceCurrency,
+        exchange_rate: initialExchangeRate,
       });
       setPaymentSubmissionError(null);
       setAppliedCredits(new Map());
