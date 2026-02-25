@@ -372,6 +372,7 @@ export default function AlertRulesPage() {
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isDeleting, setIsDeleting] = React.useState(false);
+    const [isTesting, setIsTesting] = React.useState(false);
 
     const form = useForm<RuleFormValues>({
         resolver: zodResolver(ruleFormSchema(tValidation)),
@@ -494,6 +495,19 @@ export default function AlertRulesPage() {
         }
     };
 
+    const handleTest = async (rule: AlertRule) => {
+        setIsTesting(true);
+        try {
+            await api.post(API_ROUTES.SYSTEM.ALERT_RULES_TEST, { id: rule.id });
+            toast({ title: t('toast.testSuccessTitle'), description: t('toast.testSuccessDescription', { name: rule.name }) });
+        } catch (error) {
+            console.error('Error testing rule:', error);
+            toast({ title: t('toast.errorTitle'), description: t('toast.testErrorDescription'), variant: 'destructive' });
+        } finally {
+            setIsTesting(false);
+        }
+    };
+
     const onSubmit = async (values: RuleFormValues) => {
         setSubmissionError(null);
         setIsSubmitting(true);
@@ -581,7 +595,7 @@ export default function AlertRulesPage() {
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => handleEdit(rule)}>{t('columns.edit')}</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDuplicate(rule)}>{t('columns.duplicate')}</DropdownMenuItem>
-                            <DropdownMenuItem>{t('columns.test')}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleTest(rule)} disabled={isTesting}>{t('columns.test')}</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDelete(rule)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>

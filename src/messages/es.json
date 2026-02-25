@@ -3272,7 +3272,10 @@
             "editSuccessTitle": "Regla Actualizada",
             "successDescription": "La regla \"{name}\" se ha guardado exitosamente.",
             "deleteSuccessTitle": "Regla Eliminada",
-            "deleteSuccessDescription": "La regla \"{name}\" ha sido eliminada."
+            "deleteSuccessDescription": "La regla \"{name}\" ha sido eliminada.",
+            "testSuccessTitle": "Prueba Iniciada",
+            "testSuccessDescription": "La prueba de la regla \"{name}\" ha sido iniciada.",
+            "testErrorDescription": "Error al ejecutar la prueba de la regla."
         },
         "validation": {
             "categoryRequired": "La categoría es obligatoria.",

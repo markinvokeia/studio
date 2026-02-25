@@ -3272,7 +3272,10 @@
       "editSuccessTitle": "Rule Updated",
       "successDescription": "Rule \"{name}\" has been saved successfully.",
       "deleteSuccessTitle": "Rule Deleted",
-      "deleteSuccessDescription": "Rule \"{name}\" has been deleted."
+      "deleteSuccessDescription": "Rule \"{name}\" has been deleted.",
+      "testSuccessTitle": "Test Started",
+      "testSuccessDescription": "Test for rule \"{name}\" has been started.",
+      "testErrorDescription": "Error executing the rule test."
     },
     "validation": {
       "categoryRequired": "Category is required.",
