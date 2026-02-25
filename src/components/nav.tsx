@@ -45,7 +45,7 @@ export function Nav({ items }: NavProps) {
       const activeItemIndex = items.findIndex(item => 
         item.items?.some(subItem => {
           if (subItem.href === '/') return effectivePathname === '/';
-          return effectivePathname.startsWith(subItem.href);
+          return effectivePathname === subItem.href;
         })
       );
       if (activeItemIndex !== -1) {
@@ -73,7 +73,9 @@ export function Nav({ items }: NavProps) {
     
     const isActive = item.href === '/' 
       ? effectivePathname === '/' 
-      : effectivePathname.startsWith(item.href);
+      : (item.href === '/cashier'
+          ? effectivePathname === item.href
+          : effectivePathname === item.href || effectivePathname.startsWith(item.href + '/'));
 
     const linkClasses = cn(
       'flex items-center gap-3 rounded-lg px-4 py-2 transition-all font-semibold',
@@ -105,7 +107,7 @@ export function Nav({ items }: NavProps) {
     
     const isActive = item.items?.some(subItem => {
         if (subItem.href === '/') return effectivePathname === '/';
-        return effectivePathname.startsWith(subItem.href);
+        return effectivePathname === subItem.href;
     });
 
     return (

@@ -48,8 +48,10 @@ const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
                     <nav className="flex flex-col items-center gap-0.5 sm:py-2">
                         {navItems.map(item => {
                             const isActive = item.items
-                                ? item.items.some(subItem => subItem.href !== '' && effectivePathname.startsWith(subItem.href))
-                                : (item.href === '/' ? effectivePathname === '/' : effectivePathname.startsWith(item.href));
+                                ? (item.href === '/cashier' 
+                                    ? item.items.some(subItem => subItem.href !== '' && effectivePathname === subItem.href)
+                                    : item.items.some(subItem => subItem.href !== '' && effectivePathname === subItem.href) || effectivePathname.startsWith(item.href + '/'))
+                                : (item.href === '/' ? effectivePathname === '/' : effectivePathname === item.href || effectivePathname.startsWith(item.href + '/'));
 
                             let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
                             if (item.href.includes('/clinic-history')) {

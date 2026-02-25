@@ -41,9 +41,9 @@ export function HorizontalNav({ items }: HorizontalNavProps) {
         {items.map((item) => {
           const effectivePathname = getEffectivePathname(pathname, locale);
           if (item.items) {
-            const isParentActive = item.items.some(subItem => 
-              subItem.href !== '/' && effectivePathname.startsWith(subItem.href)
-            );
+            const isParentActive = item.href === '/cashier'
+              ? item.items.some(subItem => subItem.href !== '' && effectivePathname === subItem.href)
+              : item.items.some(subItem => subItem.href !== '' && effectivePathname.startsWith(subItem.href)) || effectivePathname.startsWith(item.href + '/');
 
             return (
               <NavigationMenuItem key={String(item.title)}>
@@ -73,7 +73,7 @@ export function HorizontalNav({ items }: HorizontalNavProps) {
                         key={String(subItem.title)}
                         title={t(subItem.title as any)}
                         href={`/${locale}${subItem.href}`}
-                        className={effectivePathname.startsWith(subItem.href) ? 'bg-accent/50' : ''}
+                        className={effectivePathname === subItem.href || effectivePathname.startsWith(subItem.href + '/') ? 'bg-accent/50' : ''}
                       />
                     ))}
                   </ul>
@@ -88,7 +88,9 @@ export function HorizontalNav({ items }: HorizontalNavProps) {
 
             const isActive = item.href === '/' 
               ? effectivePathname === '/' 
-              : effectivePathname.startsWith(item.href);
+              : (item.href === '/cashier'
+                  ? effectivePathname === item.href
+                  : effectivePathname.startsWith(item.href + '/'));
 
             return (
               <NavigationMenuItem key={String(item.title)}>
