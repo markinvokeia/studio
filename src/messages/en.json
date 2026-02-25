@@ -682,7 +682,7 @@
     "openMenu": "Open menu"
   },
   "UserRoles": {
-    "addRoles": "Assign Roles",
+    "addRoles": "Mark/Unmark Roles",
     "columns": {
       "role": "Role",
       "status": "Status"
@@ -725,7 +725,7 @@
     }
   },
   "UserServices": {
-    "addServices": "Assign Services",
+    "addServices": "Mark/Unmark Services",
     "dialog": {
       "title": "Add Services to User",
       "description": "Select the services to assign to this user.",
