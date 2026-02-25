@@ -969,7 +969,7 @@ export default function UsersPage() {
                       <>
                         <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100">
                           <CheckCircle className="h-3 w-3 mr-1" />
-                          {t('ClinicHistoryPage.discharge.dischargedBadge')} {format(parseISO(currentDischarge.appointment_date), 'dd/MM/yyyy')}
+                          {t('ClinicHistoryPage.discharge.dischargedBadge', { date: format(parseISO(currentDischarge.appointment_date), 'dd/MM/yyyy') })}
                         </Badge>
                         <Button 
                           variant="outline" 

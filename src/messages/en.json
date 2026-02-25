@@ -2723,7 +2723,7 @@
       "saveButton": "Save",
       "currentStatus": "Patient discharged until",
       "cancelDischarge": "Cancel Discharge",
-      "dischargedBadge": "Discharged",
+      "dischargedBadge": "Discharged until {date}",
       "toast": {
         "success": "Patient discharged successfully",
         "error": "Error discharging patient",

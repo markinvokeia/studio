@@ -2725,7 +2725,7 @@
             "saveButton": "Guardar",
             "currentStatus": "Paciente de alta hasta",
             "cancelDischarge": "Cancelar Alta",
-            "dischargedBadge": "De Alta",
+            "dischargedBadge": "De alta hasta {date}",
             "toast": {
                 "success": "Paciente dado de alta exitosamente",
                 "error": "Error al dar de alta al paciente",
