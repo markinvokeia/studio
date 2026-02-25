@@ -13,7 +13,6 @@ import { Clinic } from '@/lib/types';
 import { api } from '@/services/api';
 import { RefreshCw, UploadCloud } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 import * as React from 'react';
 
 async function getClinic(): Promise<Clinic | null> {
@@ -27,18 +26,29 @@ async function getClinic(): Promise<Clinic | null> {
 
         const apiClinic = clinicsData[0];
 
-return {
+        return {
             id: apiClinic.id ? String(apiClinic.id) : `cli_${Math.random().toString(36).substr(2, 9)}`,
             name: apiClinic.name || 'No Name',
             location: apiClinic.address || 'No Location',
             contact_email: apiClinic.email || 'no-email@example.com',
             phone_number: apiClinic.phone || '000-000-0000',
-            logo_base64: apiClinic.logo_base64,
             currency: apiClinic.currency || 'USD',
-            thumbnail_link: apiClinic.thumbnail_link,
         };
     } catch (error) {
         console.error("Failed to fetch clinics:", error);
+        return null;
+    }
+}
+
+async function getClinicLogo(): Promise<string | null> {
+    try {
+        const blob = await api.getBlob(API_ROUTES.CLINIC_LOGO) as unknown as Blob;
+        if (blob && blob.size > 0) {
+            return URL.createObjectURL(blob);
+        }
+        return null;
+    } catch (error) {
+        console.error("Failed to fetch clinic logo:", error);
         return null;
     }
 }
@@ -55,14 +65,13 @@ export default function ClinicsPage() {
 
 const loadClinic = React.useCallback(async () => {
         setIsLoading(true);
-        const fetchedClinic = await getClinic();
+        const [fetchedClinic, logoUrl] = await Promise.all([
+            getClinic(),
+            getClinicLogo()
+        ]);
         setClinic(fetchedClinic);
-        if (fetchedClinic?.thumbnail_link) {
-            // Use thumbnail link from API response
-            setLogoPreview(fetchedClinic.thumbnail_link);
-        } else if (fetchedClinic?.logo_base64) {
-            // Fallback to base64 data
-            setLogoPreview(fetchedClinic.logo_base64);
+        if (logoUrl) {
+            setLogoPreview(logoUrl);
         }
         setIsLoading(false);
     }, []);
@@ -227,7 +236,8 @@ try {
                             <div className="flex items-center gap-4">
                                 <div className="relative h-24 w-24 rounded-md border-2 border-dashed border-muted-foreground/50 flex items-center justify-center">
                                     {logoPreview ? (
-                                        <Image src={logoPreview} alt="Logo Preview" layout="fill" className="object-contain rounded-md" />
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={logoPreview} alt="Logo Preview" className="h-full w-full object-contain rounded-md" />
                                     ) : (
                                         <UploadCloud className="h-8 w-8 text-muted-foreground" />
                                     )}
