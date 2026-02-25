@@ -187,9 +187,9 @@ function AlertsCenterPageContent() {
         setBulkActionLoading('complete');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_COMPLETE, { ids: alertIds });
-            setAlerts(prev => prev.map(a => alertIds.includes(a.id) ? { ...a, status: 'COMPLETED' } : a));
             setSelectedAlerts([]);
             refreshAlerts();
+            await loadAlerts();
             toast({ title: t('toast.alertsUpdated'), description: t('toast.alertsMarkedCompleted', { count: alertIds.length }) });
         } catch (error) {
             console.error('Failed to mark alerts as completed:', error);
@@ -203,9 +203,9 @@ function AlertsCenterPageContent() {
         setBulkActionLoading('ignore');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_IGNORE, { ids: alertIds, reason });
-            setAlerts(prev => prev.map(a => alertIds.includes(a.id) ? { ...a, status: 'IGNORED' } : a));
             setSelectedAlerts([]);
             refreshAlerts();
+            await loadAlerts();
             toast({ title: t('toast.alertsUpdated'), description: t('toast.alertsMarkedIgnored', { count: alertIds.length }) });
         } catch (error) {
             console.error('Failed to mark alerts as ignored:', error);
@@ -219,9 +219,9 @@ function AlertsCenterPageContent() {
         setBulkActionLoading('snooze');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SNOOZE, { ids: alertIds, snooze_until: snoozeUntil, reason });
-            setAlerts(prev => prev.map(a => alertIds.includes(a.id) ? { ...a, status: 'SNOOZED' } : a));
             setSelectedAlerts([]);
             refreshAlerts();
+            await loadAlerts();
             toast({ title: t('toast.alertsUpdated'), description: t('toast.alertsSnoozed', { count: alertIds.length }) });
         } catch (error) {
             console.error('Failed to snooze alerts:', error);
@@ -235,6 +235,8 @@ function AlertsCenterPageContent() {
         setBulkActionLoading('email');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SEND_EMAIL, { ids: alertIds });
+            refreshAlerts();
+            await loadAlerts();
             toast({ title: t('toast.emailSent'), description: t('toast.emailSentDescription', { count: alertIds.length }) });
         } catch (error) {
             console.error('Failed to send email:', error);
@@ -248,6 +250,8 @@ function AlertsCenterPageContent() {
         setBulkActionLoading('whatsapp');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SEND_WHATSAPP, { ids: alertIds });
+            refreshAlerts();
+            await loadAlerts();
             toast({ title: t('toast.whatsappSent'), description: t('toast.whatsappSentDescription', { count: alertIds.length }) });
         } catch (error) {
             console.error('Failed to send WhatsApp message:', error);
@@ -261,6 +265,8 @@ function AlertsCenterPageContent() {
         setBulkActionLoading('sms');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SEND_SMS, { ids: alertIds });
+            refreshAlerts();
+            await loadAlerts();
             toast({ title: t('toast.smsSent'), description: t('toast.smsSentDescription', { count: alertIds.length }) });
         } catch (error) {
             console.error('Failed to send SMS:', error);
@@ -277,6 +283,8 @@ function AlertsCenterPageContent() {
                 details_json: { scheduled_at: scheduledAt },
                 reason 
             });
+            refreshAlerts();
+            await loadAlerts();
             toast({ title: t('toast.callRegistered'), description: t('toast.callRegisteredDescription', { count: alertIds.length }) });
         } catch (error) {
             console.error('Failed to register call:', error);
@@ -287,6 +295,8 @@ function AlertsCenterPageContent() {
     const addNote = async (alertIds: string[], reason: string) => {
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_NOTES, { ids: alertIds, reason });
+            refreshAlerts();
+            await loadAlerts();
             toast({ title: t('toast.noteAdded'), description: t('toast.noteAddedDescription', { count: alertIds.length }) });
         } catch (error) {
             console.error('Failed to add note:', error);
