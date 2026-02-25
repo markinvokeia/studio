@@ -60,27 +60,19 @@ const apiRequest = async (
     try {
         const response = await fetch(url, config);
         if (!response.ok) {
-            // For 400 status codes, maintain backwards compatibility
-            // Return error data but add metadata for enhanced detection
+            // For 400 status codes, throw error with data for proper handling
             if (response.status === 400) {
                 const text = await response.text();
-                if (text.trim()) {
-                    try {
-                        const errorData = JSON.parse(text);
-                        // Add metadata for enhanced error detection without breaking existing code
-                        if (Array.isArray(errorData)) {
-                            (errorData as any)._isError = true;
-                            (errorData as any)._status = response.status;
-                        } else if (typeof errorData === 'object' && errorData !== null) {
-                            (errorData as any)._isError = true;
-                            (errorData as any)._status = response.status;
-                        }
-                        return errorData;
-                    } catch (jsonError) {
-                        throw new Error('Bad request');
-                    }
+                let errorData;
+                try {
+                    errorData = text.trim() ? JSON.parse(text) : {};
+                } catch {
+                    errorData = {};
                 }
-                throw new Error('Bad request');
+                const error = new Error(errorData?.message || errorData?.error || 'Validation error');
+                (error as any).status = response.status;
+                (error as any).data = errorData;
+                throw error;
             }
             // For other status codes (401, 403, 404, 500+), throw errors as before
             const text = await response.text();

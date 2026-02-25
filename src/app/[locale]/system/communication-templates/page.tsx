@@ -263,6 +263,7 @@ export default function CommunicationTemplatesPage() {
         form.reset({
             ...template,
             id: undefined,
+            code: template.code + '_COPY',
             version: 1,
             name: template.name + ' (Copy)',
         });
@@ -295,8 +296,18 @@ export default function CommunicationTemplatesPage() {
             toast({ title: editingTemplate ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'), description: t('toast.successDescription', { name: values.name }) });
             setIsDialogOpen(false);
             loadData();
-        } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : 'An error occurred');
+        } catch (error: any) {
+            const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
+            if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
+                const fields = errorData.conflictedFields.map((f: string) => t(`validation.uniqueConflictFields.${f}`)).join(', ');
+                setSubmissionError(t('validation.uniqueConflict', { fields }));
+            } else if (error.status === 400) {
+                setSubmissionError(t('validation.badRequest'));
+            } else if ((error.status === 409) && errorData?.message) {
+                setSubmissionError(errorData.message);
+            } else {
+                setSubmissionError(error instanceof Error ? error.message : 'An error occurred');
+            }
         }
     };
 
@@ -454,13 +465,12 @@ export default function CommunicationTemplatesPage() {
                             </div>
 
                             <FormField control={form.control} name="is_active" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>{t('dialog.isActive')}</FormLabel></FormItem>)} />
-
-                            <DialogFooter className="sticky bottom-0 bg-background pt-4">
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
-                                <Button type="submit">{editingTemplate ? t('dialog.save') : t('dialog.create')}</Button>
-                            </DialogFooter>
                         </form>
                     </Form>
+                    <DialogFooter className="mt-4">
+                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                        <Button type="button" onClick={() => form.handleSubmit(onSubmit)()}>{editingTemplate ? t('dialog.save') : t('dialog.create')}</Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
             <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>

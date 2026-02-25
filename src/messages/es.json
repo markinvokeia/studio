@@ -3366,7 +3366,13 @@
         },
         "validation": {
             "codeRequired": "El código es obligatorio.",
-            "nameRequired": "El nombre es obligatorio."
+            "nameRequired": "El nombre es obligatorio.",
+            "uniqueConflict": "Ya existe un registro con los siguientes campos duplicados: {fields}",
+            "uniqueConflictFields": {
+                "code": "Código",
+                "name": "Nombre"
+            },
+            "badRequest": "Error de validación. Por favor verifique los datos ingresados."
         }
     },
     "CommunicationHistoryPage": {

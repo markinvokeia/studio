@@ -3367,7 +3367,13 @@
     },
     "validation": {
       "codeRequired": "Code is required.",
-      "nameRequired": "Name is required."
+      "nameRequired": "Name is required.",
+      "uniqueConflict": "A record already exists with the following duplicate fields: {fields}",
+      "uniqueConflictFields": {
+        "code": "Code",
+        "name": "Name"
+      },
+      "badRequest": "Validation error. Please check the entered data."
     }
   },
   "CommunicationHistoryPage": {
