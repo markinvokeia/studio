@@ -214,7 +214,7 @@ export default function AlertRulesPage() {
             .filter(col => {
                 const colName = col.name.toLowerCase();
                 const colType = col.type.toLowerCase();
-                
+
                 // Look for common user ID field patterns
                 return (
                     colName.includes('user_id') ||
@@ -225,7 +225,7 @@ export default function AlertRulesPage() {
                     colName.includes('patient_id') ||
                     colName.includes('owner_id') ||
                     colName.includes('created_by') ||
-                    colName.includes('id') && 
+                    colName.includes('id') &&
                     (colType.includes('int') || colType.includes('bigint') || colType.includes('varchar'))
                 );
             })
@@ -256,26 +256,26 @@ export default function AlertRulesPage() {
     // Helper to calculate priority for user ID field suggestions
     const calculateFieldPriority = (fieldName: string): number => {
         const name = fieldName.toLowerCase();
-        
+
         // Highest priority: explicit user_id fields
         if (name === 'user_id' || name === 'userid') return 1;
         if (name.includes('user_id') || name.includes('userid')) return 2;
-        
+
         // High priority: other user-related fields
         if (name === 'customer_id' || name === 'client_id' || name === 'patient_id') return 3;
         if (name.includes('customer_id') || name.includes('client_id') || name.includes('patient_id')) return 4;
-        
+
         // Medium priority: created_by fields
         if (name === 'created_by') return 5;
         if (name.includes('created_by')) return 6;
-        
+
         // Low priority: generic id fields
         if (name === 'id') return 10;
         if (name.includes('id')) return 15;
-        
+
         // Lowest: other fields with user in name
         if (name.includes('user')) return 20;
-        
+
         return 100;
     };
 
@@ -626,12 +626,12 @@ export default function AlertRulesPage() {
                 </Card>
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-2xl">
+                <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
                     <DialogHeader>
                         <DialogTitle>{editingRule ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto space-y-4 py-4 pr-2">
                             {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
@@ -644,40 +644,40 @@ export default function AlertRulesPage() {
                             <FormField control={form.control} name="category_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.category')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectCategory')} /></SelectTrigger></FormControl><SelectContent>{categories.map(c => <SelectItem key={String(c.id)} value={String(c.id)}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>{t('dialog.description')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="priority" render={({ field }) => (<FormItem><FormLabel>{t('dialog.priority')}</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectPriority')} /></SelectTrigger></FormControl><SelectContent><SelectItem value="LOW">{t('priorities.low')}</SelectItem><SelectItem value="MEDIUM">{t('priorities.medium')}</SelectItem><SelectItem value="HIGH">{t('priorities.high')}</SelectItem><SelectItem value="CRITICAL">{t('priorities.critical')}</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                             <FormField control={form.control} name="source_table" render={({ field }) => (<FormItem><FormLabel>{t('dialog.sourceTable')}</FormLabel><Select onValueChange={(value) => { field.onChange(value); setSelectedTable(value); }} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectSourceTable')} /></SelectTrigger></FormControl><SelectContent>{Object.keys(tablesAndColumns).map(table => <SelectItem key={table} value={table}>{table}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                             <FormField control={form.control} name="table_id_field" render={({ field }) => (
-                                 <FormItem>
-                                     <FormLabel>{t('dialog.tableIdField')}</FormLabel>
-                                     <Select onValueChange={field.onChange} value={field.value}>
-                                         <FormControl>
-                                             <SelectTrigger>
-                                                 <SelectValue placeholder={t('dialog.selectTableIdField')} />
-                                             </SelectTrigger>
-                                         </FormControl>
-                                         <SelectContent>
-                                             {selectedTable && getPotentialTableIdFields(selectedTable).map(col => (
-                                                 <SelectItem key={col.name} value={col.name}>
-                                                     <div className="flex flex-col items-start">
-                                                         <div className="flex items-center gap-2">
-                                                             <span>{col.name}</span>
-                                                             <Badge variant="outline" className="text-xs">
-                                                                 {col.type}
-                                                             </Badge>
-                                                         </div>
-                                                         {col.priority <= 2 && (
-                                                             <span className="text-xs text-green-600">
-                                                                 {col.priority === 1 ? 'Recommended (primary key)' : 'Likely table ID'}
-                                                             </span>
-                                                         )}
-                                                     </div>
-                                                 </SelectItem>
-                                             ))}
-                                         </SelectContent>
-                                     </Select>
-                                     <FormMessage />
-                                 </FormItem>
-                             )} />
-                             <FormField control={form.control} name="user_id_field" render={({ field }) => (
+                            <FormField control={form.control} name="source_table" render={({ field }) => (<FormItem><FormLabel>{t('dialog.sourceTable')}</FormLabel><Select onValueChange={(value) => { field.onChange(value); setSelectedTable(value); }} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectSourceTable')} /></SelectTrigger></FormControl><SelectContent>{Object.keys(tablesAndColumns).map(table => <SelectItem key={table} value={table}>{table}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="table_id_field" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('dialog.tableIdField')}</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={t('dialog.selectTableIdField')} />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {selectedTable && getPotentialTableIdFields(selectedTable).map(col => (
+                                                <SelectItem key={col.name} value={col.name}>
+                                                    <div className="flex flex-col items-start">
+                                                        <div className="flex items-center gap-2">
+                                                            <span>{col.name}</span>
+                                                            <Badge variant="outline" className="text-xs">
+                                                                {col.type}
+                                                            </Badge>
+                                                        </div>
+                                                        {col.priority <= 2 && (
+                                                            <span className="text-xs text-green-600">
+                                                                {col.priority === 1 ? 'Recommended (primary key)' : 'Likely table ID'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="user_id_field" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{t('dialog.userIdField')}</FormLabel>
                                     <Select onValueChange={(value) => field.onChange(value === 'none' ? '' : value)} value={field.value === undefined || field.value === '' ? 'none' : field.value}>
@@ -737,14 +737,14 @@ export default function AlertRulesPage() {
                                             <SelectTrigger className={index === 0 ? "w-1/3" : "w-1/4"}>
                                                 <SelectValue placeholder="Column" />
                                             </SelectTrigger>
-                                             <SelectContent>
-                                                 {(tablesAndColumns[selectedTable] || []).map(col => <SelectItem key={col.name} value={col.name}>
-                                                     <div className="flex items-center gap-2">
-                                                         <span>{col.name}</span>
-                                                         <Badge variant="outline" className="text-xs">{col.type}</Badge>
-                                                     </div>
-                                                 </SelectItem>)}
-                                             </SelectContent>
+                                            <SelectContent>
+                                                {(tablesAndColumns[selectedTable] || []).map(col => <SelectItem key={col.name} value={col.name}>
+                                                    <div className="flex items-center gap-2">
+                                                        <span>{col.name}</span>
+                                                        <Badge variant="outline" className="text-xs">{col.type}</Badge>
+                                                    </div>
+                                                </SelectItem>)}
+                                            </SelectContent>
                                         </Select>
                                         <Select value={cond.operator} onValueChange={(value) => {
                                             const newConds = [...conditions];
@@ -793,13 +793,12 @@ export default function AlertRulesPage() {
                                 <FormField control={form.control} name="auto_send_sms" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>{t('dialog.autoSendSms')}</FormLabel></FormItem>)} />
                                 <FormField control={form.control} name="is_active" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>{t('dialog.isActive')}</FormLabel></FormItem>)} />
                             </div>
-
-                            <DialogFooter className="sticky bottom-0 bg-background pt-4">
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>{t('dialog.cancel')}</Button>
-                                <Button type="submit" disabled={isSubmitting}>{isSubmitting ? t('dialog.saving') : (editingRule ? t('dialog.save') : t('dialog.create'))}</Button>
-                            </DialogFooter>
                         </form>
                     </Form>
+                    <DialogFooter className="pt-4">
+                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>{t('dialog.cancel')}</Button>
+                        <Button type="button" disabled={isSubmitting} onClick={() => form.handleSubmit(onSubmit)()}>{isSubmitting ? t('dialog.saving') : (editingRule ? t('dialog.save') : t('dialog.create'))}</Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
