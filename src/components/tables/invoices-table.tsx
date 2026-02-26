@@ -484,6 +484,11 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
       const clinicData = await api.get(API_ROUTES.CLINIC);
 
+      // Set session exchange rate from validation response
+      if (sessionValidation.exchangeRate) {
+        setSessionExchangeRate(sessionValidation.exchangeRate);
+      }
+
       setSelectedInvoiceForPayment(invoice);
       setActiveCashSessionId(sessionValidation.sessionId!);
 
@@ -495,7 +500,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       fetchUserCredits(invoice.user_id);
 
       const invoiceCurrency = invoice.currency || 'USD';
-      const initialExchangeRate = invoiceCurrency === currency ? 1 : sessionExchangeRate;
+      const exchangeRateFromSession = sessionValidation.exchangeRate || 1;
+      const initialExchangeRate = invoiceCurrency === currency ? 1 : exchangeRateFromSession;
 
       form.reset({
         amount: invoice.total - (invoice.paid_amount || 0),
@@ -920,7 +926,13 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                       <FormItem>
                         <FormLabel>{t('paymentDialog.amount')} ({watchedPaymentCurrency})</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" {...field} />
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            {...field}
+                            value={field.value ? Number(field.value).toFixed(2) : ''}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -959,7 +971,13 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                       <FormItem>
                         <FormLabel>{t('paymentDialog.exchangeRate')}</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" {...field} />
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            {...field}
+                            value={field.value ? Number(field.value).toFixed(2) : ''}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -981,7 +999,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 {showExchangeRate && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{t('paymentDialog.exchangeRateApplied')}:</span>
-                    <span>{sessionExchangeRate}</span>
+                    <span>{Number(sessionExchangeRate).toFixed(2)}</span>
                   </div>
                 )}
 

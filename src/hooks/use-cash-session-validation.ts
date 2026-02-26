@@ -7,7 +7,7 @@ import api from '@/services/api'
 import { useTranslations } from 'next-intl'
 
 interface UseCashSessionValidationReturn {
-  validateActiveSession: () => Promise<{ isValid: boolean; sessionId?: string; error?: string }>
+  validateActiveSession: () => Promise<{ isValid: boolean; sessionId?: string; exchangeRate?: number; error?: string }>
   showCashSessionError: (error?: string) => void
 }
 
@@ -16,7 +16,7 @@ export function useCashSessionValidation(): UseCashSessionValidationReturn {
   const { user } = useAuth()
   const t = useTranslations('cashSession')
 
-  const validateActiveSession = async (): Promise<{ isValid: boolean; sessionId?: string; error?: string }> => {
+  const validateActiveSession = async (): Promise<{ isValid: boolean; sessionId?: string; exchangeRate?: number; error?: string }> => {
     if (!user) {
       return { isValid: false, error: t('errors.userNotAuthenticated') }
     }
@@ -26,7 +26,8 @@ export function useCashSessionValidation(): UseCashSessionValidationReturn {
 
       // The endpoint now always returns 200, and the actual session status is inside
       if (sessionData.code === 200 && sessionData.data?.id) {
-        return { isValid: true, sessionId: sessionData.data.id }
+        const exchangeRate = sessionData.data?.opening_details?.date_rate || 1
+        return { isValid: true, sessionId: sessionData.data.id, exchangeRate }
       } else if (sessionData.code === 404) {
         return { isValid: false, error: t('errors.noActiveSession') }
       } else {

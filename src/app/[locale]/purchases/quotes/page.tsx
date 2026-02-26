@@ -1048,14 +1048,13 @@ const handleCreateQuote = async () => {
                                                     type="number"
                                                     step="0.01"
                                                     placeholder={t('placeholders.exchangeRate')}
-                                                    {...field}
                                                     value={field.value ? Number(field.value).toFixed(2) : ''}
                                                     disabled={isClinicCurrency}
                                                     onChange={(e) => {
                                                         if (isClinicCurrency) {
                                                             field.onChange(1);
                                                         } else {
-                                                            field.onChange(e.target.value);
+                                                            field.onChange(parseFloat(e.target.value) || 0);
                                                         }
                                                     }}
                                                 />
