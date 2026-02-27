@@ -113,11 +113,13 @@ const getCategoryFromRule = (ruleName: string) => {
 };
 
 const SummaryCard = ({ title, count, color }: { title: string, count: number, color: string }) => (
-    <Card className={`bg-opacity-10 border-l-4 ${color}`}>
-        <CardHeader className="p-4">
-            <CardTitle className="text-sm font-medium">{title}</CardTitle>
-            <p className="text-2xl font-bold">{count}</p>
+    <Card className={`bg-opacity-10 border-l-4 ${color} shadow-sm`}>
+        <CardHeader className="p-4 bg-primary text-primary-foreground">
+            <CardTitle className="text-sm font-bold uppercase tracking-wider">{title}</CardTitle>
         </CardHeader>
+        <CardContent className="p-4 pt-6">
+            <p className="text-3xl font-black text-foreground">{count}</p>
+        </CardContent>
     </Card>
 );
 
@@ -391,12 +393,12 @@ function AlertsCenterPageContent() {
 
     return (
         <div className="flex-1 overflow-y-auto pr-2 space-y-4 pb-24 min-h-0">
-            <Card>
-                <CardHeader>
+            <Card className="shadow-sm border-0">
+                <CardHeader className="bg-primary text-primary-foreground">
                     <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
+                    <CardDescription className="text-primary-foreground/70">{t('description')}</CardDescription>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-background">
                     <SummaryCard title={t('summary.total')} count={summaryCounts.total} color="border-primary" />
                     <SummaryCard title={t('summary.critical')} count={summaryCounts.critical} color="border-red-500" />
                     <SummaryCard title={t('summary.high')} count={summaryCounts.high} color="border-orange-500" />
@@ -404,18 +406,18 @@ function AlertsCenterPageContent() {
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
+            <Card className="shadow-sm border-0">
+                <CardHeader className="bg-primary text-primary-foreground">
                     <div className="flex items-center justify-between">
                         <CardTitle>{t('dailyAlerts')}</CardTitle>
                         <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" onClick={() => loadAlerts()} disabled={loading}>
+                            <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20" onClick={() => loadAlerts()} disabled={loading}>
                                 <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                                 {t('reload')}
                             </Button>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="sm"><Filter className="mr-2 h-4 w-4" /> {t('filters.title')}</Button>
+                                    <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20"><Filter className="mr-2 h-4 w-4" /> {t('filters.title')}</Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent className="w-80">
                                     <div className="space-y-4 p-4">
@@ -456,7 +458,7 @@ function AlertsCenterPageContent() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 p-6 bg-background">
                     {Object.entries(groupedAlerts).map(([category, categoryAlerts]) => {
                         const allInCategorySelected = categoryAlerts.every(a => selectedAlerts.includes(a.id));
                         const someInCategorySelected = categoryAlerts.some(a => selectedAlerts.includes(a.id));
@@ -473,7 +475,9 @@ function AlertsCenterPageContent() {
                                         onCheckedChange={(checked) => handleSelectCategory(categoryAlerts, !!checked)}
                                     />
                                     <CollapsibleTrigger className="flex items-center gap-3 flex-1">
-                                        {categoryIcons[category as keyof typeof categoryIcons] || categoryIcons.DEFAULT}
+                                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary">
+                                            {categoryIcons[category as keyof typeof categoryIcons] || categoryIcons.DEFAULT}
+                                        </div>
                                         <span>{t(`categories.${category.toLowerCase()}` as any)}</span>
                                         <Badge className="ml-auto">{categoryAlerts.length}</Badge>
                                         <ChevronDown className={`h-5 w-5 transition-transform ${openCategories.includes(category) ? 'rotate-180' : ''}`} />
@@ -555,7 +559,7 @@ function AlertsCenterPageContent() {
                     <DialogHeader>
                         <DialogTitle>{t('ignoreAlert.title')}</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4">
+                    <div className="space-y-4 px-6 py-4">
                         <Label htmlFor="reason">{t('ignoreAlert.reason')}</Label>
                         <Textarea
                             id="reason"
@@ -584,7 +588,7 @@ function AlertsCenterPageContent() {
                     <DialogHeader>
                         <DialogTitle>{t('snoozeAlert.title')}</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4">
+                    <div className="space-y-4 px-6 py-4">
                         <div>
                             <Label htmlFor="snoozeDate">{t('snoozeAlert.date')}</Label>
                             <Input
@@ -634,7 +638,7 @@ function AlertsCenterPageContent() {
                     <DialogHeader>
                         <DialogTitle>{t('registerCall.title')}</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4">
+                    <div className="space-y-4 px-6 py-4">
                         <div>
                             <Label htmlFor="registerCallDate">{t('registerCall.date')}</Label>
                             <Input
@@ -676,7 +680,7 @@ function AlertsCenterPageContent() {
                     <DialogHeader>
                         <DialogTitle>{t('addNote.title')}</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4">
+                    <div className="space-y-4 px-6 py-4">
                         <div>
                             <Label htmlFor="noteContent">{t('addNote.note')}</Label>
                             <Textarea

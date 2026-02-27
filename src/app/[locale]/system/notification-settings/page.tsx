@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -271,17 +272,19 @@ export default function NotificationSettingsPage() {
 
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden gap-4">
-            <Card>
-                <CardHeader>
+            <Card className="shadow-sm border-0">
+                <CardHeader className="bg-primary text-primary-foreground">
                     <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
+                    <CardDescription className="text-primary-foreground/70">{t('description')}</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6 bg-background">
                     <div className="flex items-center justify-between mb-6 p-4 bg-muted/50 rounded-lg">
                         <div className="flex items-center gap-3">
-                            <Mail className="h-5 w-5" />
+                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary">
+                                <Mail className="h-5 w-5" />
+                            </div>
                             <div>
-                                <p className="font-medium">{t('masterSwitch.title')}</p>
+                                <p className="font-bold text-foreground">{t('masterSwitch.title')}</p>
                                 <p className="text-sm text-muted-foreground">{t('masterSwitch.description')}</p>
                             </div>
                         </div>
@@ -297,16 +300,18 @@ export default function NotificationSettingsPage() {
                         <table className="w-full border-collapse">
                             <thead>
                                 <tr>
-                                    <th className="text-left p-3 border-b font-medium text-muted-foreground min-w-[200px]">
+                                    <th className="text-left p-3 border-b font-bold text-muted-foreground min-w-[200px] uppercase text-xs tracking-wider">
                                         {t('table.category')}
                                     </th>
                                     {platforms.map(platform => {
                                         const Icon = platformIcons[platform.platform_name] || Mail;
                                         return (
-                                            <th key={platform.platform_name} className="text-center p-3 border-b font-medium text-muted-foreground">
+                                            <th key={platform.platform_name} className="text-center p-3 border-b font-bold text-muted-foreground uppercase text-xs tracking-wider">
                                                 <div className="flex flex-col items-center gap-1">
-                                                    <Icon className="h-5 w-5" />
-                                                    <span className="text-xs">{platform.platform_name}</span>
+                                                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-muted-foreground mb-1">
+                                                        <Icon className="h-4 w-4" />
+                                                    </div>
+                                                    <span>{platform.platform_name}</span>
                                                 </div>
                                             </th>
                                         );
@@ -315,17 +320,17 @@ export default function NotificationSettingsPage() {
                             </thead>
                             <tbody>
                                 {categories.map(category => (
-                                    <tr key={category.slug} className="hover:bg-muted/30">
+                                    <tr key={category.slug} className="hover:bg-muted/30 transition-colors">
                                         <td className="p-3 border-b">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-3">
                                                 <Checkbox
                                                     checked={getCategoryEnabled(category.slug)}
                                                     onCheckedChange={() => handleCategoryToggle(category.slug)}
                                                 />
                                                 <div>
-                                                    <p className="font-medium">{category.name}</p>
+                                                    <p className="font-bold text-foreground text-sm">{category.name}</p>
                                                     {category.is_critical && (
-                                                        <Badge variant="destructive" className="text-xs">
+                                                        <Badge variant="destructive" className="text-[10px] uppercase py-0 px-1 mt-1">
                                                             {t('critical')}
                                                         </Badge>
                                                     )}
@@ -346,8 +351,8 @@ export default function NotificationSettingsPage() {
                             </tbody>
                             <tfoot>
                                 <tr className="bg-muted/30">
-                                    <td className="p-3 border-b font-medium">
-                                        <div className="flex items-center gap-2">
+                                    <td className="p-3 border-b font-bold text-sm">
+                                        <div className="flex items-center gap-3">
                                             <Checkbox
                                                 checked={platforms.every(p => getPlatformEnabled(p.platform_name))}
                                                 onCheckedChange={() => {
@@ -380,7 +385,7 @@ export default function NotificationSettingsPage() {
                     </div>
 
                     <div className="flex justify-end mt-6">
-                        <Button onClick={handleSave} disabled={isSaving}>
+                        <Button onClick={handleSave} disabled={isSaving} className="font-bold uppercase tracking-wider">
                             {isSaving ? t('saving') : t('save')}
                         </Button>
                     </div>

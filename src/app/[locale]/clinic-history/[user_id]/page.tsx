@@ -162,7 +162,7 @@ const HabitCard = ({ userId, fetchPatientHabits, habits, isLoading }: { userId: 
     };
 
     return (
-        <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
+        <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
                     <User className="w-5 h-5 text-primary mr-2" />
@@ -760,7 +760,7 @@ const AnamnesisDashboard = ({
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-6">
-                <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
+                <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center">
                             <User className="w-5 h-5 text-primary mr-2" />
@@ -796,7 +796,7 @@ const AnamnesisDashboard = ({
                     </div>
                 </div>
 
-                <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
+                <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center">
                             <Heart className="w-5 h-5 text-red-500 mr-2" />
@@ -832,7 +832,7 @@ const AnamnesisDashboard = ({
                         )}
                     </div>
                 </div>
-                <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
+                <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center">
                             <Pill className="w-5 h-5 text-green-500 mr-2" />
@@ -852,7 +852,7 @@ const AnamnesisDashboard = ({
                                         <div className="col-span-2">
                                             <div className="font-semibold text-foreground">{item.medicamento_nombre}</div>
                                             <div className="text-sm text-muted-foreground mt-1">
-                                                {formatDate(item.fecha_inicio)} - {item.fecha_fin ? formatDate(item.fecha_fin) : t('anamnesis.present')}
+                                                {formatDate(item.since)} - {item.endDate ? formatDate(item.endDate) : t('anamnesis.present')}
                                             </div>
                                             <div className="text-sm text-muted-foreground mt-1">{item.motivo}</div>
                                         </div>
@@ -879,7 +879,7 @@ const AnamnesisDashboard = ({
             </div>
 
             <div className="space-y-6">
-                <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
+                <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center">
                             <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
@@ -930,7 +930,7 @@ const AnamnesisDashboard = ({
                             {editingPersonalHistory ? t('anamnesis.dialogs.personal.editDescription') : t('anamnesis.dialogs.personal.addDescription')}
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSubmitPersonalHistory} className="space-y-4">
+                    <form onSubmit={handleSubmitPersonalHistory} className="space-y-4 px-6 py-4">
                         <div>
                             <Label htmlFor="personal-ailment">{t('anamnesis.dialogs.ailment')}</Label>
                             <Popover open={isPersonalHistoryComboboxOpen} onOpenChange={setIsPersonalHistoryComboboxOpen}>
@@ -1004,7 +1004,7 @@ const AnamnesisDashboard = ({
                             {editingFamilyHistory ? t('anamnesis.dialogs.family.editDescription') : t('anamnesis.dialogs.family.addDescription')}
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSubmitFamilyHistory} className="space-y-4">
+                    <form onSubmit={handleSubmitFamilyHistory} className="space-y-4 px-6 py-4">
                         <div>
                             <Label htmlFor="family-ailment">{t('anamnesis.dialogs.ailment')}</Label>
                             <Popover open={isFamilyHistoryComboboxOpen} onOpenChange={setIsFamilyHistoryComboboxOpen}>
@@ -1087,7 +1087,7 @@ const AnamnesisDashboard = ({
                             {editingAllergy ? t('anamnesis.dialogs.allergy.editDescription') : t('anamnesis.dialogs.allergy.addDescription')}
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSubmitAllergy} className="space-y-4">
+                    <form onSubmit={handleSubmitAllergy} className="space-y-4 px-6 py-4">
                         <div>
                             <Label htmlFor="allergen">{t('anamnesis.dialogs.allergy.allergen')}</Label>
                             <Input
@@ -1136,7 +1136,7 @@ const AnamnesisDashboard = ({
                             {editingMedication ? t('anamnesis.dialogs.medication.editDescription') : t('anamnesis.dialogs.medication.addDescription')}
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSubmitMedication} className="space-y-4">
+                    <form onSubmit={handleSubmitMedication} className="space-y-4 px-6 py-4">
                         <div>
                             <Label htmlFor="medication">{t('anamnesis.dialogs.medication.name')}</Label>
                             <Popover open={isMedicationComboboxOpen} onOpenChange={setIsMedicationComboboxOpen}>
@@ -1515,7 +1515,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                     <DialogTitle>{session ? t('editTitle') : t('createTitle')}</DialogTitle>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4 px-6 py-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
                             <div className="space-y-4">
                                 <FormField control={form.control} name="fecha_sesion" render={({ field }) => (
@@ -1910,7 +1910,7 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
 
     return (
         <div className="space-y-6">
-            <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6">
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-bold text-card-foreground">{t('images.title')}</h3>
                     <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline">
@@ -1972,7 +1972,7 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
                     <DialogHeader>
                         <DialogTitle>{t('uploadDocument')}</DialogTitle>
                     </DialogHeader>
-                    <div className="py-4 space-y-4">
+                    <div className="py-4 px-6 space-y-4">
                         <div className="flex items-center justify-center w-full">
                             <label htmlFor="dropzone-file" className={cn("flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50", isDragging && "border-primary bg-primary/10")} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
                                 {uploadFile ? (
@@ -2387,7 +2387,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
 
         if (isLoadingPatientSessions) {
             return (
-                <div className="bg-card rounded-xl shadow-lg p-6">
+                <div className="bg-card rounded-xl shadow-sm p-6 border-0">
                     <h3 className="text-xl font-bold text-card-foreground mb-6">{t('title')}</h3>
                     <div className="space-y-4">
                         {[...Array(3)].map((_, i) => (
@@ -2405,7 +2405,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         }
 
         return (
-            <div className="bg-card rounded-xl shadow-lg p-6">
+            <div className="bg-card rounded-xl shadow-sm p-6 border-0">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-bold text-card-foreground">{t('title')}</h3>
                     <Button onClick={() => onAction('add')}>

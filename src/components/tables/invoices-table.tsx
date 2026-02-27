@@ -8,12 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
@@ -35,11 +36,12 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { DatePicker } from '../ui/date-picker';
 import { Checkbox } from '../ui/checkbox';
 import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { DialogDescription } from '../ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { ScrollArea } from '../ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Skeleton } from '../ui/skeleton';
@@ -693,12 +695,12 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       />
       <Card className={cn("h-full flex-1 flex flex-col min-h-0 border-0 lg:border shadow-none lg:shadow-sm", className)}>
         {title && (
-          <CardHeader className="flex-none p-4 pb-0">
+          <CardHeader className="bg-primary text-primary-foreground flex-none p-4">
             <CardTitle className="text-lg lg:text-xl">{title}</CardTitle>
-            {description && <CardDescription className="text-xs">{description}</CardDescription>}
+            {description && <CardDescription className="text-primary-foreground/70 text-xs">{description}</CardDescription>}
           </CardHeader>
         )}
-        <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden">
+        <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden bg-background">
           <DataTable
             columns={columns}
             data={invoices}
@@ -793,7 +795,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handlePaymentSubmit)} className="space-y-4 py-4">
+            <form onSubmit={form.handleSubmit(handlePaymentSubmit)} className="space-y-4 px-6 py-4">
               {paymentSubmissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
@@ -1300,7 +1302,7 @@ const onSubmit = async (values: CreateInvoiceFormValues) => {
           <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
             console.error('Validation errors:', errors);
             toast({ variant: 'destructive', title: t('validation.errorTitle') || 'Submission Error', description: t('validation.checkFields') || 'Please check the form for errors.' });
-          })} className="space-y-4 py-4">
+          })} className="space-y-4 py-4 px-6">
             {submissionError && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />

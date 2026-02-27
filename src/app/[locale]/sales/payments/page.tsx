@@ -303,12 +303,12 @@ export default function PaymentsPage() {
 
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden pr-2 pb-4">
-            <Card className="flex-1 flex flex-col min-h-0">
-                <CardHeader className="flex-none">
+            <Card className="flex-1 flex flex-col min-h-0 shadow-sm border-0">
+                <CardHeader className="bg-primary text-primary-foreground flex-none">
                     <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
+                    <CardDescription className="text-primary-foreground/70">{t('description')}</CardDescription>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-background">
                     <PaymentsTable
                         payments={payments}
                         isLoading={isLoading}
@@ -331,7 +331,7 @@ export default function PaymentsPage() {
                         <DialogTitle>Send Payment Receipt by Email</DialogTitle>
                         <DialogDescription>Enter the recipient emails for payment #{selectedPaymentForEmail?.id}.</DialogDescription>
                     </DialogHeader>
-                    <div className="py-4">
+                    <div className="py-4 px-6">
                         <Label htmlFor="email-recipients">Recipients</Label>
                         <Input
                             id="email-recipients"
@@ -370,7 +370,7 @@ export default function PaymentsPage() {
                         <DialogTitle>{t('prepaidDialog.title')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onPrepaidSubmit)} className="space-y-4">
+                        <form onSubmit={form.handleSubmit(onPrepaidSubmit)} className="space-y-4 px-6 py-4">
                             {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />

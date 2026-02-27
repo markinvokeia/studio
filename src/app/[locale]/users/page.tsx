@@ -1,3 +1,4 @@
+
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -46,7 +47,6 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek, addMonths } from 'date-fns';
-import { isValidPhoneNumber } from 'libphonenumber-js';
 import { AlertTriangle, Banknote, CalendarIcon, CheckCircle, ChevronDown, ChevronUp, CreditCard, DollarSign, Loader2, Receipt, X, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -358,11 +358,11 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
   };
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full flex flex-col shadow-none border-0">
       <CardHeader className="flex flex-row items-center justify-between flex-none p-4 pb-2">
         <div className="min-w-0 flex-1">
-          <CardTitle className="text-lg">{t('UsersPage.notes.title')}</CardTitle>
-          <CardDescription className="text-sm">
+          <CardTitle className="text-lg text-foreground font-bold">{t('UsersPage.notes.title')}</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">
             {t('UsersPage.notes.description')}
           </CardDescription>
         </div>
@@ -799,34 +799,12 @@ export default function UsersPage() {
     }
   };
 
-  const handleDateChange = (newDate: DateRange | undefined) => {
-    if (newDate?.from && newDate?.to) {
-      setDate({ from: startOfDay(newDate.from), to: endOfDay(newDate.to) });
-    } else {
-      setDate(newDate);
-    }
-    setDatePreset(null); // Custom range
-  };
-
-  /* 
-   * NEW FILTER API LOGIC 
-   */
-
-  // Helper to sync 'date' state with 'datePreset' label for the filter chips
-  // When 'date' changes manually (via calendar), we might lose the preset label unless we track it.
-  // But for now, we rely on 'datePreset' state for the chip labels.
-
   const handleClearFilters = () => {
     setDatePreset('allTime');
     setDate(undefined);
     setShowDebtors(false);
     setShowOnlyActive(true);
-    setColumnFilters((prev) => prev.filter(f => f.id !== 'email')); // Clear search too if desired, or keep it separate.
-    // Usually "Clear Filters" implies clearing the dropdown filters, not necessarily the text search.
-    // If we want to clear text search, we can do that too. 
-    // Let's clear search too for a full reset? Or maybe just the "advanced" filters.
-    // The UI shows "My Pipeline" with an X, and search text separate.
-    // For now, let's clear the toggleable filters. 
+    setColumnFilters((prev) => prev.filter(f => f.id !== 'email')); 
   };
 
   const filtersOptionList = [
@@ -858,15 +836,10 @@ export default function UsersPage() {
       isActive: datePreset === 'month',
       onSelect: () => handleDatePreset('month'),
     },
-    // Custom range is tricky as a simple toggle, usually involves a dialog. 
-    // For now, we can keep the DatePicker popover separate OR integrate it.
-    // The requirement asks for "Date Range" filters. 
-    // Let's keep the predefined ranges first.
-
     {
       value: 'debtors',
       label: t('UsersPage.filters.showOnlyDebtors'),
-      group: 'Status', // Or translate "Status"
+      group: 'Status',
       isActive: showDebtors,
       onSelect: () => setShowDebtors(!showDebtors),
     },
@@ -887,11 +860,11 @@ export default function UsersPage() {
           isRightPanelOpen={!!selectedUser}
           leftPanel={
             <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-              <CardHeader className="flex-none p-4 pb-2">
+              <CardHeader className="bg-primary text-primary-foreground flex-none p-4">
                 <CardTitle className="text-lg lg:text-xl">{t('UsersPage.title')}</CardTitle>
-                <CardDescription className="text-xs">{t('UsersPage.description')}</CardDescription>
+                <CardDescription className="text-primary-foreground/70 text-xs">{t('UsersPage.description')}</CardDescription>
               </CardHeader>
-              <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
+              <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-background">
                 <DataTable
                   columns={showDebtors ? debtorColumns : userColumns}
                   data={users}
@@ -960,7 +933,7 @@ export default function UsersPage() {
               <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between flex-none p-4 pb-2">
                   <div className="min-w-0 flex-1">
-                    <CardTitle className="text-lg lg:text-xl truncate">
+                    <CardTitle className="text-lg lg:text-xl truncate text-foreground font-bold">
                       {t('UsersPage.detailsFor', { name: selectedUser.name })}
                     </CardTitle>
                   </div>

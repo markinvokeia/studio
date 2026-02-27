@@ -1,3 +1,4 @@
+
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -311,7 +312,7 @@ export default function OrdersPage() {
                                         <TabsTrigger value="payments" className="text-xs">{tQuotes('tabs.payments')}</TabsTrigger>
                                     </TabsList>
                                     <div className="flex-1 min-h-0 mt-3 flex flex-col overflow-hidden">
-                                        <TabsContent value="items" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                                        <TabsContent value="items" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col px-6 py-4">
                                             <div className="flex items-center justify-between mb-2 flex-none">
                                                 <h4 className="text-sm font-semibold">{tOrderItems('title', { id: selectedOrder.doc_no || selectedOrder.id })}</h4>
                                                 <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
@@ -334,7 +335,7 @@ export default function OrdersPage() {
                                                 }}
                                             />
                                         </TabsContent>
-                                        <TabsContent value="invoices" className="m-0 flex-1 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
+                                        <TabsContent value="invoices" className="m-0 flex-1 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2 px-6 py-4">
                                             <div className="flex-1 min-h-[400px] flex flex-col">
                                                 <InvoicesTable
                                                     invoices={invoices}
@@ -368,7 +369,7 @@ export default function OrdersPage() {
                                                 </div>
                                             )}
                                         </TabsContent>
-                                        <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                                        <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col px-6 py-4">
                                             <PaymentsTable
                                                 payments={payments}
                                                 isLoading={isLoadingPayments}

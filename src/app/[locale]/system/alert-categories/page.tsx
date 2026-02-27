@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
+import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { useToast } from '@/hooks/use-toast';
 import { AlertCategory, NotificationCategory } from '@/lib/types';
 import { api } from '@/services/api';
@@ -361,12 +362,12 @@ export default function AlertCategoriesPage() {
 
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <CardHeader className="flex-none">
+            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden shadow-sm border-0">
+                <CardHeader className="bg-primary text-primary-foreground flex-none">
                     <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
+                    <CardDescription className="text-primary-foreground/70">{t('description')}</CardDescription>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-background">
                     <DataTable
                         columns={columns}
                         data={categories}
@@ -392,7 +393,7 @@ export default function AlertCategoriesPage() {
                         <DialogDescription>{editingCategory ? t('dialog.editDescription') : t('dialog.createDescription')}</DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6 max-h-[70vh] overflow-y-auto">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4 max-h-[70vh] overflow-y-auto">
                             {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />

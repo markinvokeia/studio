@@ -1,3 +1,4 @@
+
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -936,7 +937,7 @@ const handleCreateQuote = async () => {
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...quoteForm}>
-                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="space-y-4 py-4 px-6">
+                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="space-y-4 px-6 py-4">
                             {quoteSubmissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
@@ -1049,7 +1050,7 @@ const handleCreateQuote = async () => {
                 </DialogContent>
             </Dialog>
             <AlertDialog open={isDeleteQuoteDialogOpen} onOpenChange={setIsDeleteQuoteDialogOpen}>
-                <AlertDialogContent className="max-w-md">
+                <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('deleteQuoteDialog.title')}</AlertDialogTitle>
                         <AlertDialogDescription>
@@ -1167,8 +1168,8 @@ const handleCreateQuote = async () => {
                                                 if (value !== '') {
                                                     const quantity = Number(value);
                                                     const unitPrice = quoteItemForm.getValues('unit_price') || 0;
-                                                    const newTotal = Math.round((unitPrice * quantity) * 100) / 100;
-                                                    quoteItemForm.setValue('total', newTotal);
+                                                    const nameTotal = Math.round((unitPrice * quantity) * 100) / 100;
+                                                    quoteItemForm.setValue('total', nameTotal);
                                                 }
                                                 await quoteItemForm.trigger('quantity');
                                             }}

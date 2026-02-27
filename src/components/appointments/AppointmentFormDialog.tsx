@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -17,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTranslations } from 'next-intl';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
@@ -455,7 +456,7 @@ export function AppointmentFormDialog({
                     <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
                     <DialogDescription>{t('createDialog.description')}</DialogDescription>
                 </DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-6 py-4">
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <Label>{t('createDialog.userName')}</Label>
@@ -612,7 +613,7 @@ export function AppointmentFormDialog({
                     </div>
                 </div>
                 {!editingAppointment && (availabilityStatus === 'unavailable' || availabilityStatus === 'checking') && (
-                    <div className="border-t pt-4">
+                    <div className="border-t pt-4 px-6">
                         <h3 className="text-lg font-medium mb-4 text-center">{t('createDialog.suggestedTimes')}</h3>
                         <ScrollArea className="h-48">
                             {availabilityStatus === 'checking' ? <p>{t('checking')}</p> : (

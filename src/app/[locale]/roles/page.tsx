@@ -1,3 +1,4 @@
+
 'use client';
 
 import { RolePermissions } from '@/components/roles/role-permissions';
@@ -167,12 +168,12 @@ export default function RolesPage() {
       <TwoPanelLayout
         isRightPanelOpen={!!selectedRole}
         leftPanel={
-          <Card className="h-full flex flex-col">
-            <CardHeader className="flex-none">
+          <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="bg-primary text-primary-foreground flex-none">
               <CardTitle>{t('title')}</CardTitle>
-              <CardDescription>{t('description')}</CardDescription>
+              <CardDescription className="text-primary-foreground/70">{t('description')}</CardDescription>
             </CardHeader>
-            <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
+            <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-background">
               <DataTable
                 columns={rolesColumns}
                 data={roles}
@@ -191,18 +192,18 @@ export default function RolesPage() {
         }
         rightPanel={
           selectedRole && (
-            <Card className="h-full flex flex-col">
-              <CardHeader className="flex flex-row items-start justify-between flex-none">
+            <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+              <CardHeader className="flex flex-row items-start justify-between flex-none p-4 pb-2">
                 <div>
-                  <CardTitle>{t('detailsFor', { name: selectedRole.name })}</CardTitle>
-                  <CardDescription>Role ID: {selectedRole.id}</CardDescription>
+                  <CardTitle className="text-lg lg:text-xl truncate">{t('detailsFor', { name: selectedRole.name })}</CardTitle>
+                  <CardDescription className="text-xs">Role ID: {selectedRole.id}</CardDescription>
                 </div>
-                <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors" onClick={handleCloseDetails}>
                   <X className="h-5 w-5" />
                   <span className="sr-only">{t('close')}</span>
                 </Button>
               </CardHeader>
-              <CardContent className="flex-1 overflow-auto">
+              <CardContent className="flex-1 overflow-auto p-4 pt-0">
                 <Tabs defaultValue="users" className="w-full h-full flex flex-col">
                   <TabsList>
                     <TabsTrigger value="users">{t('tabs.users')}</TabsTrigger>
@@ -232,7 +233,7 @@ export default function RolesPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
               {submissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />

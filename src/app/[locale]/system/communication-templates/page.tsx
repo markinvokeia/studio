@@ -361,12 +361,12 @@ export default function CommunicationTemplatesPage() {
     return (
         <>
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                    <CardHeader className="flex-none">
+                <Card className="flex-1 flex flex-col min-h-0 overflow-hidden shadow-sm border-0">
+                    <CardHeader className="bg-primary text-primary-foreground flex-none">
                         <CardTitle>{t('title')}</CardTitle>
-                        <CardDescription>{t('description')}</CardDescription>
+                        <CardDescription className="text-primary-foreground/70">{t('description')}</CardDescription>
                     </CardHeader>
-                    <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                    <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-background">
                         <DataTable
                             columns={columns}
                             data={templates}
@@ -465,7 +465,12 @@ export default function CommunicationTemplatesPage() {
                                 )}
                             </div>
 
-                            <FormField control={form.control} name="is_active" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>{t('dialog.isActive')}</FormLabel></FormItem>)} />
+                            <FormField control={form.control} name="is_active" render={({ field }) => (
+                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2">
+                                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                    <FormLabel>{t('dialog.isActive')}</FormLabel>
+                                </FormItem>
+                            )} />
                         </form>
                     </Form>
                     <DialogFooter className="mt-4 px-6">
