@@ -1,4 +1,3 @@
-
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -22,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserLogs } from '@/components/users/user-logs';
 import { UserRoles } from '@/components/users/user-roles';
 import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { User, UserRole } from '@/lib/types';
 import { api } from '@/services/api';
@@ -464,7 +464,7 @@ export default function SystemUsersPage() {
                 </CardHeader>
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
                   <Tabs defaultValue="roles" className="w-full flex-1 flex flex-col min-h-0">
-                    <TabsList className="h-auto items-center justify-start flex-wrap flex-none">
+                    <TabsList>
                       <TabsTrigger value="roles">{t('SystemUsersPage.tabs.roles')}</TabsTrigger>
                       <TabsTrigger value="logs">{t('SystemUsersPage.tabs.logs')}</TabsTrigger>
                     </TabsList>

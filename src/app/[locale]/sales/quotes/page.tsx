@@ -1,4 +1,3 @@
-
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -333,7 +332,7 @@ async function getUsers(t: (key: string) => string): Promise<User[]> {
 async function upsertQuote(quoteData: QuoteFormValues, t: (key: string) => string) {
     const responseData = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, { ...quoteData, is_sales: true });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
-        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : t('errors.failedToSaveQuote');
+        const message = responseData[0]?.message ? responseData[0].message : t('errors.failedToSaveQuote');
         throw new Error(message);
     }
     return responseData;
@@ -342,7 +341,7 @@ async function upsertQuote(quoteData: QuoteFormValues, t: (key: string) => strin
 async function deleteQuote(id: string, t: (key: string) => string) {
     const responseData = await api.delete(API_ROUTES.SALES.QUOTE_DELETE, { id, is_sales: true });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
-        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : t('errors.failedToDeleteQuote');
+        const message = responseData[0]?.message ? responseData[0].message : t('errors.failedToDeleteQuote');
         throw new Error(message);
     }
     return responseData;
@@ -694,7 +693,7 @@ const handleCreateQuote = async () => {
             const endpoint = action === 'confirm' ? API_ROUTES.SALES.QUOTE_CONFIRM : API_ROUTES.SALES.QUOTE_REJECT;
             const responseData = await api.post(endpoint, payload);
             if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
-                const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : t('toast.quoteActionError', { action: action });
+                const message = responseData[0]?.message ? responseData[0].message : t('toast.quoteActionError', { action: action });
                 throw new Error(message);
             }
             toast({ title: action === 'confirm' ? t('toast.quoteConfirmed') : t('toast.quoteRejected'), description: t(action === 'confirm' ? 'toast.quoteConfirmSuccess' : 'toast.quoteRejectSuccess', { id: quote.doc_no || quote.id }) });
@@ -813,12 +812,12 @@ const handleCreateQuote = async () => {
                                     </div>
                                     <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                                         <X className="h-5 w-5" />
-                                        <span className="sr-only">{t('close')}</span>
+                                        <span className="sr-only">{t('common.closeDetails')}</span>
                                     </Button>
                                 </CardHeader>
                                 <CardContent className="flex-1 flex flex-col overflow-hidden p-4 pt-0 min-h-0">
                                     <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
-                                        <TabsList className="h-auto items-center justify-start flex-wrap flex-none bg-muted/50 p-1">
+                                        <TabsList>
                                             <TabsTrigger value="items" className="text-xs">{t('tabs.items')}</TabsTrigger>
                                             <TabsTrigger value="orders" className="text-xs">{t('tabs.orders')}</TabsTrigger>
                                             <TabsTrigger value="invoices" className="text-xs">{t('tabs.invoices')}</TabsTrigger>

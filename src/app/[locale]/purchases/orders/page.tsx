@@ -1,4 +1,3 @@
-
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -307,7 +306,7 @@ export default function OrdersPage() {
                             </CardHeader>
                             <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 pt-0">
                                 <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
-                                    <TabsList className="h-auto items-center justify-start flex-wrap flex-none bg-muted/50 p-1">
+                                    <TabsList>
                                         <TabsTrigger value="items" className="text-xs">{tQuotes('tabs.items')}</TabsTrigger>
                                         <TabsTrigger value="invoices" className="text-xs">{tQuotes('tabs.invoices')}</TabsTrigger>
                                         <TabsTrigger value="payments" className="text-xs">{tQuotes('tabs.payments')}</TabsTrigger>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -1000,7 +999,7 @@ export default function UsersPage() {
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   <UserStats user={selectedUser} t={t} />
                   <Tabs defaultValue="history" className="w-full flex-1 flex flex-col min-h-0">
-                    <TabsList className="h-auto items-center justify-start flex-wrap flex-none bg-muted/50 p-1 gap-1">
+                    <TabsList className="gap-1">
                       <TabsTrigger value="history" className="text-xs px-2 py-1">{t('UsersPage.tabs.history')}</TabsTrigger>
                       {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
                         <TabsTrigger value="services" className="text-xs px-2 py-1">{t('UsersPage.tabs.services')}</TabsTrigger>

@@ -837,7 +837,7 @@ const handleCreateQuote = async () => {
                                 </CardHeader>
                                 <CardContent className="flex-1 flex flex-col overflow-hidden p-4 pt-0 min-h-0">
                                     <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
-                                        <TabsList className="h-auto items-center justify-start flex-wrap flex-none bg-muted/50 p-1">
+                                        <TabsList>
                                             <TabsTrigger value="items" className="text-xs">{t('tabs.items')}</TabsTrigger>
                                             <TabsTrigger value="orders" className="text-xs">{t('tabs.orders')}</TabsTrigger>
                                             <TabsTrigger value="invoices" className="text-xs">{t('tabs.invoices')}</TabsTrigger>
@@ -885,8 +885,8 @@ const handleCreateQuote = async () => {
                                                             isSales={false}
                                                             userId={selectedOrder.user_id}
                                                             patient={{
-                                                                id: selectedQuote.user_id,
-                                                                name: selectedQuote.user_name || 'User',
+                                                                id: selectedOrder.user_id,
+                                                                name: selectedOrder.user_name || 'User',
                                                                 email: '',
                                                                 phone_number: '',
                                                                 is_active: true,
@@ -1195,8 +1195,8 @@ const handleCreateQuote = async () => {
                                                 if (value !== '') {
                                                     const quantity = Number(value);
                                                     const unitPrice = quoteItemForm.getValues('unit_price') || 0;
-                                                    const newTotal = Math.round((unitPrice * quantity) * 100) / 100;
-                                                    quoteItemForm.setValue('total', newTotal);
+                                                    const nameTotal = Math.round((unitPrice * quantity) * 100) / 100;
+                                                    quoteItemForm.setValue('total', nameTotal);
                                                 }
                                                 await quoteItemForm.trigger('quantity');
                                             }}

@@ -475,7 +475,7 @@ export default function AlertRulesPage() {
 
     const handleDelete = (rule: AlertRule) => {
         setDeletingRule(rule);
-        setIsDeleteDialogOpen(true);
+        setIsDialogOpen(true);
     };
 
     const confirmDelete = async () => {

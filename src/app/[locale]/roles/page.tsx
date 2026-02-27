@@ -204,7 +204,7 @@ export default function RolesPage() {
               </CardHeader>
               <CardContent className="flex-1 overflow-auto">
                 <Tabs defaultValue="users" className="w-full h-full flex flex-col">
-                  <TabsList className="h-auto items-center justify-start flex-wrap flex-none">
+                  <TabsList>
                     <TabsTrigger value="users">{t('tabs.users')}</TabsTrigger>
                     <TabsTrigger value="permissions">{t('tabs.permissions')}</TabsTrigger>
                   </TabsList>
