@@ -172,7 +172,7 @@ export function Header() {
 
     return (
         <>
-            <header className="sticky top-0 z-30 w-full bg-gradient-to-r from-[#7c3aed] via-[#5b21b6] to-[#4c1d95] text-white shadow-[0_4px_20px_rgba(0,0,0,0.3)] border-none">
+            <header className="sticky top-0 z-30 w-full bg-[var(--header-gradient)] text-white shadow-[0_4px_20px_rgba(0,0,0,0.3)] border-none">
                 <div className="flex h-14 items-center justify-between px-4 lg:h-[60px] lg:px-6">
                     <div className="flex items-center gap-4">
                         <OpenCashSessionWidget />
@@ -254,10 +254,10 @@ export function Header() {
                                         {theme === 'dark' && <Check className="h-4 w-4 ml-2 text-primary" />}
                                     </span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTheme('system')}>
+                                <DropdownMenuItem onClick={() => setTheme('claro')}>
                                     <span className="flex items-center justify-between w-full font-medium">
                                         <span>{t('system')}</span>
-                                        {theme === 'system' && <Check className="h-4 w-4 ml-2 text-primary" />}
+                                        {theme === 'claro' && <Check className="h-4 w-4 ml-2 text-primary" />}
                                     </span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>

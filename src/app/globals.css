@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -46,6 +47,8 @@
     --chart-4: 300 70% 50%;
     --chart-5: 240 60% 70%;
     --radius: 0.75rem;
+    --header-gradient: linear-gradient(to right, #7c3aed, #5b21b6, #4c1d95);
+    --sidebar-gradient: linear-gradient(to bottom, #7c3aed, #5b21b6, #4c1d95);
   }
   .dark {
     --background: 260 60% 3%;
@@ -72,6 +75,37 @@
     --chart-3: 280 50% 55%;
     --chart-4: 300 70% 50%;
     --chart-5: 240 60% 70%;
+    --header-gradient: linear-gradient(to right, #1a0b2e, #130a24);
+    --sidebar-gradient: linear-gradient(to bottom, #1a0b2e, #130a24);
+  }
+  /* NEW: Claro theme (Grayscale) */
+  .claro {
+    --background: 0 0% 98%;
+    --foreground: 0 0% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --primary: 0 0% 20%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 20%;
+    --muted: 0 0% 92%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 0 0% 20%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 0% 30%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 0 0% 20%;
+    --chart-1: 0 0% 20%;
+    --chart-2: 0 0% 40%;
+    --chart-3: 0 0% 60%;
+    --chart-4: 0 0% 80%;
+    --chart-5: 0 0% 90%;
+    --header-gradient: linear-gradient(to right, #444, #333, #222);
+    --sidebar-gradient: linear-gradient(to bottom, #444, #333, #222);
   }
 }
 

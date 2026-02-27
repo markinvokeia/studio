@@ -1,3 +1,4 @@
+
 {
     "Navigation": {
         "Dashboard": "Panel de Control",
@@ -94,9 +95,9 @@
         "communicationPreferences": "Preferencias",
         "alerts": "Alertas",
         "toggleTheme": "Cambiar tema",
-        "light": "Claro",
+        "light": "Invoke",
         "dark": "Oscuro",
-        "system": "Sistema",
+        "system": "Claro",
         "logoutConfirmation": {
             "title": "Sesión de Caja Activa",
             "description": "Tiene una sesión de caja abierta. Por favor, ciérrela antes de cerrar sesión.",
@@ -514,7 +515,7 @@
         },
         "deleteDialog": {
             "title": "¿Está seguro?",
-            "description": "Esto eliminará permanentemente la superficie \"{name}\". Esta acción no se puede deshacer.",
+            "description": "Esta acción no se puede deshacer. Esto eliminará permanentemente la superficie \"{name}\".",
             "cancel": "Cancelar",
             "confirm": "Eliminar"
         },
@@ -1177,7 +1178,7 @@
             "description": "Suba un archivo PDF o imagen para crear automáticamente una factura.",
             "clickToUpload": "Haga clic para subir",
             "dragAndDrop": "o arrastre y suelte",
-            "fileTypes": "PDF, PNG, JPG o GIF (MAX. 10MB)",
+            "fileTypes": "PDF, PNG, JPG o GIF (MÁX. 10MB)",
             "processing": "Procesando...",
             "createInvoice": "Crear Factura",
             "success": "Importación Exitosa",
@@ -2282,7 +2283,7 @@
         },
         "deleteDialog": {
             "title": "Eliminar Excepción",
-            "description": "¿Está seguro que desea eliminar esta excepción? Esta acción no se puede deshacer.",
+            "description": "¿Está seguro de que desea eliminar esta excepción? Esta acción no se puede deshacer.",
             "cancel": "Cancelar",
             "confirm": "Eliminar"
         },

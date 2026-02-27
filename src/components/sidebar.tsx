@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -33,8 +34,8 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
     const effectivePathname = getEffectivePathname(pathname, locale);
 
     return (
-        <aside className="fixed inset-y-0 left-0 z-50 flex h-screen w-20 flex-col bg-gradient-to-b from-[#7c3aed] via-[#5b21b6] to-[#4c1d95] shadow-[4px_0_20px_rgba(0,0,0,0.4)] transition-all">
-            <div className="flex h-14 items-center justify-center mb-4 mt-2">
+        <aside className="fixed inset-y-0 left-0 z-50 flex h-screen w-20 flex-col bg-[var(--sidebar-gradient)] shadow-[4px_0_20px_rgba(0,0,0,0.4)] transition-all">
+            <div className="flex h-14 items-center justify-center mb-4 mt-2 shrink-0">
                 <Link href={`/${locale}`} className="transition-transform hover:scale-110">
                     <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={48} height={48} alt="InvokeIA Logo" priority />
                 </Link>
@@ -67,14 +68,14 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                                 href={linkHref}
                                                 className={cn(
                                                     "flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-xl transition-all duration-300 relative group",
-                                                    isActive || isHovered 
+                                                    (isActive || isHovered) 
                                                         ? 'bg-primary text-white shadow-[0_0_15px_rgba(124,58,237,0.4)]' 
                                                         : 'text-white/70 hover:bg-white/10 hover:text-white',
                                                     isExpanded && "w-20 rounded-r-none z-[61]"
                                                 )}
                                                 onMouseEnter={() => onHover(item)}
                                             >
-                                                <div className="flex flex-col items-center justify-center gap-1 w-16">
+                                                <div className="flex flex-col items-center justify-center gap-1 w-16 static">
                                                     <div className="relative">
                                                         <item.icon className={cn("h-6 w-6 transition-transform group-hover:scale-110", (isActive || isHovered) ? "text-white" : "")} />
                                                         {item.title === 'AlertsCenter' && pendingCount > 0 && (

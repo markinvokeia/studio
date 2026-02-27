@@ -1,3 +1,4 @@
+
 {
   "Navigation": {
     "Dashboard": "Dashboard",
@@ -31,7 +32,7 @@
     "Cashier": "Cashier",
     "MiscellaneousTransactions": "Miscellaneous Transactions",
     "MiscellaneousCategories": "Product and Services Categories",
-    "CashSessions": "Cash Sessions",
+    "CashSessions": "Sessions",
     "PhysicalCashRegisters": "Physical Cash Registers",
     "BusinessSetup": "Business Setup",
     "ClinicDetails": "Clinic Details",
@@ -94,9 +95,9 @@
     "communicationPreferences": "Preferences",
     "alerts": "Alerts",
     "toggleTheme": "Toggle theme",
-    "light": "Light",
+    "light": "Invoke",
     "dark": "Dark",
-    "system": "System",
+    "system": "Claro",
     "logoutConfirmation": {
       "title": "Active Cash Session",
       "description": "You have an open cash session. Please close it before logging out.",
@@ -2078,7 +2079,7 @@
       "genericError": "An unexpected error occurred."
     },
     "deleteDialog": {
-      "title": "Are you sure?",
+      "title": "¿Está seguro?",
       "description": "This will permanently delete the calendar \"{name}\". This action cannot be undone.",
       "cancel": "Cancel",
       "delete": "Delete"
@@ -2893,7 +2894,7 @@
       "title": "Habits",
       "smoking": "Smoking",
       "alcohol": "Alcohol",
-      "bruxism": "Bruxism",
+      "bruxism": "Bruxismo",
       "cancel": "Cancel",
       "save": "Save",
       "smokingPlaceholder": "",
@@ -3090,9 +3091,9 @@
       },
       "priorityOptions": {
         "low": "Low",
-        "medium": "Medium",
-        "high": "High",
-        "critical": "Critical"
+        "medium": "Media",
+        "high": "Alta",
+        "critical": "Crítica"
       }
     },
     "categories": {
