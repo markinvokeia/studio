@@ -144,11 +144,7 @@ export function Sidebar() {
         if (leaveTimeout.current) {
             clearTimeout(leaveTimeout.current);
         }
-        if (item.items) {
-            setHoveredItem(item);
-        } else {
-            setHoveredItem(null);
-        }
+        setHoveredItem(item);
     };
 
     const handleLeave = () => {
