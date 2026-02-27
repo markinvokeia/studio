@@ -62,30 +62,34 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                             return (
                                 <Tooltip key={String(item.title)}>
                                     <TooltipTrigger asChild>
-                                        <Link
-                                            href={linkHref}
-                                            className={cn(
-                                                "flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-xl transition-all duration-300 relative group mx-auto",
-                                                isActive || isHovered 
-                                                    ? 'bg-primary text-white shadow-[0_0_15px_rgba(233,30,99,0.4)]' 
-                                                    : 'text-white/70 hover:bg-white/10 hover:text-white',
-                                                isExpanded && "w-20 rounded-r-none z-[61] mx-0"
-                                            )}
-                                            onMouseEnter={() => onHover(item)}
-                                        >
-                                            <div className="relative">
-                                                <item.icon className={cn("h-6 w-6 transition-transform group-hover:scale-110", (isActive || isHovered) ? "text-white" : "")} />
-                                                {item.title === 'AlertsCenter' && pendingCount > 0 && (
-                                                    <Badge
-                                                        variant="destructive"
-                                                        className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-[10px] p-0 border-2 border-[#1a0b2e] animate-pulse"
-                                                    >
-                                                        {pendingCount > 99 ? '99+' : pendingCount}
-                                                    </Badge>
+                                        <div className="relative mx-auto">
+                                            <Link
+                                                href={linkHref}
+                                                className={cn(
+                                                    "flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-xl transition-all duration-300 relative group",
+                                                    isActive || isHovered 
+                                                        ? 'bg-primary text-white shadow-[0_0_15px_rgba(124,58,237,0.4)]' 
+                                                        : 'text-white/70 hover:bg-white/10 hover:text-white',
+                                                    isExpanded && "w-20 rounded-r-none z-[61]"
                                                 )}
-                                            </div>
-                                            <span className="block w-full text-center text-[9px] font-bold uppercase tracking-tight leading-tight line-clamp-1 opacity-80">{t(item.title as any)}</span>
-                                        </Link>
+                                                onMouseEnter={() => onHover(item)}
+                                            >
+                                                <div className="flex flex-col items-center justify-center gap-1 w-16">
+                                                    <div className="relative">
+                                                        <item.icon className={cn("h-6 w-6 transition-transform group-hover:scale-110", (isActive || isHovered) ? "text-white" : "")} />
+                                                        {item.title === 'AlertsCenter' && pendingCount > 0 && (
+                                                            <Badge
+                                                                variant="destructive"
+                                                                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-[10px] p-0 border-2 border-[#1a0b2e] animate-pulse"
+                                                            >
+                                                                {pendingCount > 99 ? '99+' : pendingCount}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                    <span className="block w-full text-center text-[9px] font-bold uppercase tracking-tight leading-tight line-clamp-1 opacity-80">{t(item.title as any)}</span>
+                                                </div>
+                                            </Link>
+                                        </div>
                                     </TooltipTrigger>
                                     <TooltipContent side="right" className="bg-primary text-white border-none font-bold">
                                         {t(item.title as any)}
