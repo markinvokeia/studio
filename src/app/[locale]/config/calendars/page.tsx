@@ -69,7 +69,7 @@ async function upsertCalendar(calendarData: CalendarFormValues) {
 async function deleteCalendar(id: string, googleCalendarId: string) {
     const responseData = await api.delete(API_ROUTES.CALENDARS_DELETE, { id, google_calendar_id: googleCalendarId });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
-        const message = Array.isArray(responseData) && responseData[0]?.message ? responseData[0].message : 'Failed to delete calendar';
+        const message = responseData[0]?.message ? responseData[0].message : 'Failed to delete calendar';
         throw new Error(message);
     }
     return responseData;
@@ -202,7 +202,7 @@ export default function CalendarsPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
                             {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
@@ -272,7 +272,7 @@ export default function CalendarsPage() {
                     </Form>
                 </DialogContent>
             </Dialog>
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDialogOpen}>
                 <AlertDialogContent className="max-w-[400px]">
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>

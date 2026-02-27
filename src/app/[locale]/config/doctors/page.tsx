@@ -454,7 +454,7 @@ export default function DoctorsPage() {
             <DialogDescription>{editingUser ? t('DoctorsPage.createDialog.editDescription') : t('DoctorsPage.createDialog.createDescription')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
               {submissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
@@ -559,4 +559,3 @@ export default function DoctorsPage() {
     </div>
   );
 }
-

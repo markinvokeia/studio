@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -178,7 +179,7 @@ export default function AvailabilityExceptionsPage() {
 
     const handleDelete = (exception: AvailabilityException) => {
         setDeletingException(exception);
-        setIsDeleteDialogOpen(true);
+        setIsDialogOpen(true);
     };
 
     const confirmDelete = async () => {
@@ -253,7 +254,7 @@ export default function AvailabilityExceptionsPage() {
                         <DialogTitle>{editingException ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
                             {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />

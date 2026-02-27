@@ -130,7 +130,7 @@ export default function SchedulesPage() {
 
     const handleDelete = (schedule: ClinicSchedule) => {
         setDeletingSchedule(schedule);
-        setIsDeleteDialogOpen(true);
+        setIsDialogOpen(true);
     };
 
     const confirmDelete = async () => {
@@ -207,7 +207,7 @@ export default function SchedulesPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
                             {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />

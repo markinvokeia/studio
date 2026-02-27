@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -255,7 +256,7 @@ export default function CommunicationTemplatesPage() {
 
     const handleDelete = (template: CommunicationTemplate) => {
         setDeletingTemplate(template);
-        setIsDeleteDialogOpen(true);
+        setIsDialogOpen(true);
     };
 
     const handleDuplicate = (template: CommunicationTemplate) => {
@@ -390,7 +391,7 @@ export default function CommunicationTemplatesPage() {
                         <DialogTitle>{editingTemplate ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6 max-h-[70vh] overflow-y-auto">
                             {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
@@ -404,8 +405,8 @@ export default function CommunicationTemplatesPage() {
                                 <FormField control={form.control} name="version" render={({ field }) => (<FormItem><FormLabel>{t('dialog.version')}</FormLabel><FormControl><Input {...field} value={field.value || (editingTemplate ? (editingTemplate.version || 1) + 1 : 1)} readOnly className="bg-muted" /></FormControl><FormMessage /></FormItem>)} />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField control={form.control} name="type" render={({ field }) => (<FormItem><FormLabel>{t('dialog.type')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectType')} /></SelectTrigger></FormControl><SelectContent><SelectItem value="EMAIL">Email</SelectItem><SelectItem value="SMS">SMS</SelectItem><SelectItem value="DOCUMENT">Document</SelectItem><SelectItem value="WHATSAPP">WhatsApp</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="category_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.category')}</FormLabel><Select onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} value={field.value?.toString()}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectCategory')} /></SelectTrigger></FormControl><SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="type" render={({ field }) => (<FormItem><FormLabel>{t('dialog.type')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectType')} /></SelectTrigger></FormControl><SelectContent><SelectItem value="EMAIL">Email</SelectItem><SelectItem value="SMS">SMS</SelectItem><SelectItem value="DOCUMENT">Document</SelectItem><SelectItem value="WHATSAPP">WhatsApp</SelectItem></Select><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="category_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.category')}</FormLabel><Select onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} value={field.value?.toString()}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectCategory')} /></SelectTrigger></FormControl><SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}</Select><FormMessage /></FormItem>)} />
                             </div>
                             <FormField control={form.control} name="subject" render={({ field }) => (<FormItem><FormLabel>{t('dialog.subject')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="default_sender" render={({ field }) => (<FormItem><FormLabel>{t('dialog.defaultSender')}</FormLabel><FormControl><Input {...field} placeholder="sender@example.com" /></FormControl><FormMessage /></FormItem>)} />
@@ -467,7 +468,7 @@ export default function CommunicationTemplatesPage() {
                             <FormField control={form.control} name="is_active" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>{t('dialog.isActive')}</FormLabel></FormItem>)} />
                         </form>
                     </Form>
-                    <DialogFooter className="mt-4">
+                    <DialogFooter className="mt-4 px-6">
                         <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                         <Button type="button" onClick={() => form.handleSubmit(onSubmit)()}>{editingTemplate ? t('dialog.save') : t('dialog.create')}</Button>
                     </DialogFooter>
@@ -481,7 +482,7 @@ export default function CommunicationTemplatesPage() {
                             <Badge variant="secondary">{previewingTemplate?.type}</Badge>
                         </div>
                     </DialogHeader>
-                    <div className="flex-1 overflow-y-auto space-y-4">
+                    <div className="flex-1 overflow-y-auto space-y-4 px-6 py-4">
                         {previewingTemplate?.type === 'EMAIL' && previewingTemplate.subject && (
                             <div className="space-y-1">
                                 <Label className="text-muted-foreground">{t('dialog.subject')}</Label>

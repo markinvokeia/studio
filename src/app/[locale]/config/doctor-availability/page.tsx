@@ -137,7 +137,7 @@ export default function DoctorAvailabilityPage() {
     const form = useForm<AvailabilityFormValues>({
         resolver: zodResolver(availabilityFormSchema(tValidation)),
     });
-    const [isDoctorComboboxOpen, setIsDoctorComboboxOpen] = React.useState(false);
+    const [isDoctorComboboxOpen, React.useState(false);
     const watchedRecurrence = form.watch("recurrence");
 
     React.useEffect(() => {
@@ -274,7 +274,7 @@ export default function DoctorAvailabilityPage() {
                         <DialogTitle>{editingRule ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
                             {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
@@ -398,4 +398,3 @@ export default function DoctorAvailabilityPage() {
         </div>
     );
 }
-

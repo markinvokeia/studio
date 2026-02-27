@@ -1,3 +1,4 @@
+
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -445,7 +446,7 @@ export default function SystemUsersPage() {
           rightPanel={
             selectedUser && (
               <Card className="h-full flex flex-col">
-                <CardHeader className="flex flex-row items-start justify-between flex-none">
+                <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
                   <div>
                     <CardTitle>{t('SystemUsersPage.detailsFor', { name: selectedUser.name })}</CardTitle>
                   </div>
@@ -496,7 +497,7 @@ export default function SystemUsersPage() {
             <DialogDescription>{editingUser ? t('SystemUsersPage.createDialog.editDescription') : t('SystemUsersPage.createDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
               {submissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -631,7 +632,7 @@ export default function AlertRulesPage() {
                         <DialogTitle>{editingRule ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto space-y-4 py-4 pr-2">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto space-y-4 py-4 px-6">
                             {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
@@ -779,10 +780,10 @@ export default function AlertRulesPage() {
                                 ))}
                                 <Button type="button" variant="outline" onClick={() => setConditions([...conditions, { id: `cond-${Date.now()}`, column: '', operator: '=', value: '', ...(conditions.length > 0 ? { logic: 'AND' } : {}) }])}>Add Condition</Button>
                             </div>
-                            <FormField control={form.control} name="recurrence_type" render={({ field }) => (<FormItem><FormLabel>{t('dialog.recurrenceType')}</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectRecurrenceType')} /></SelectTrigger></FormControl><SelectContent><SelectItem value="ONCE">Once</SelectItem><SelectItem value="DAILY">Daily</SelectItem><SelectItem value="WEEKLY">Weekly</SelectItem><SelectItem value="MONTHLY">Monthly</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="recurrence_type" render={({ field }) => (<FormItem><FormLabel>{t('dialog.recurrenceType')}</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectRecurrenceType')} /></SelectTrigger></FormControl><SelectContent><SelectItem value="ONCE">Once</SelectItem><SelectItem value="DAILY">Daily</SelectItem><SelectItem value="WEEKLY">Weekly</SelectItem><SelectItem value="MONTHLY">Monthly</SelectItem></Select><FormMessage /></FormItem>)} />
                             <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="email_template_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.emailTemplate')}</FormLabel><Select onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} value={field.value?.toString()}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectEmailTemplate')} /></SelectTrigger></FormControl><SelectContent>{emailTemplates.filter(t => t.id).map(t => <SelectItem key={t.id.toString()} value={t.id.toString()}>{t.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="sms_template_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.smsTemplate')}</FormLabel><Select onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} value={field.value?.toString()}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectSmsTemplate')} /></SelectTrigger></FormControl><SelectContent>{smsTemplates.filter(t => t.id).map(t => <SelectItem key={t.id.toString()} value={t.id.toString()}>{t.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="email_template_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.emailTemplate')}</FormLabel><Select onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} value={field.value?.toString()}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectEmailTemplate')} /></SelectTrigger></FormControl><SelectContent>{emailTemplates.filter(t => t.id).map(t => <SelectItem key={t.id.toString()} value={t.id.toString()}>{t.name}</SelectItem>)}</Select><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="sms_template_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.smsTemplate')}</FormLabel><Select onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} value={field.value?.toString()}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectSmsTemplate')} /></SelectTrigger></FormControl><SelectContent>{smsTemplates.filter(t => t.id).map(t => <SelectItem key={t.id.toString()} value={t.id.toString()}>{t.name}</SelectItem>)}</Select><FormMessage /></FormItem>)} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField control={form.control} name="days_before" render={({ field }) => (<FormItem><FormLabel>{t('dialog.daysBefore')}</FormLabel><FormControl><Input type="number" value={field.value ?? ''} onChange={field.onChange} onBlur={field.onBlur} name={field.name} ref={field.ref} /></FormControl><FormMessage /></FormItem>)} />
@@ -795,7 +796,7 @@ export default function AlertRulesPage() {
                             </div>
                         </form>
                     </Form>
-                    <DialogFooter className="pt-4">
+                    <DialogFooter className="pt-4 px-6">
                         <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>{t('dialog.cancel')}</Button>
                         <Button type="button" disabled={isSubmitting} onClick={() => form.handleSubmit(onSubmit)()}>{isSubmitting ? t('dialog.saving') : (editingRule ? t('dialog.save') : t('dialog.create'))}</Button>
                     </DialogFooter>
