@@ -44,8 +44,8 @@
     --chart-1: 263 67% 35%;
     --chart-2: 341 90% 60%;
     --radius: 0.75rem;
-    --header-gradient: linear-gradient(to right, #2e1065, #4c1d95);
-    --sidebar-gradient: linear-gradient(to bottom, #2e1065, #4c1d95);
+    --header-gradient: linear-gradient(to right, #4c1d95, #4c1d95); /* Solid Violet for Invoke */
+    --sidebar-gradient: linear-gradient(to bottom, #4c1d95, #4c1d95); /* Solid Violet for Invoke */
     --bar-icons-bg: rgb(255 255 255 / 0.15);
   }
 
