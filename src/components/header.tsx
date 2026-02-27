@@ -1,4 +1,3 @@
-
 'use client';
 
 import { OpenCashSessionWidget } from '@/components/cash-session-widget';
@@ -187,14 +186,14 @@ export function Header() {
                                     "relative rounded-full transition-all duration-300",
                                     "border-white/20 bg-white/10 text-white",
                                     "hover:bg-white/20 hover:border-white/40",
-                                    pendingCount > 0 && "border-pink-500/50 bg-pink-500/20 shadow-[0_0_15px_rgba(236,72,153,0.3)]"
+                                    pendingCount > 0 && "border-primary/50 bg-primary/20 shadow-[0_0_15px_rgba(124,58,237,0.3)]"
                                 )}
                             >
                                 <div className={cn(pendingCount > 0 && 'animate-bell-ring')}>
                                     <Bell className="h-5 w-5" />
                                 </div>
                                 {pendingCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-pink-500 ring-2 ring-[#5b21b6]">
+                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-primary ring-2 ring-[#1a0b2e]">
                                         {pendingCount}
                                     </span>
                                 )}
@@ -244,20 +243,20 @@ export function Header() {
                             <DropdownMenuContent align="end" className="rounded-xl">
                                 <DropdownMenuItem onClick={() => setTheme('light')}>
                                     <span className="flex items-center justify-between w-full font-medium">
-                                        <span>{t('light')}</span>
+                                        <span>Invoke</span>
                                         {theme === 'light' && <Check className="h-4 w-4 ml-2 text-primary" />}
-                                    </span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTheme('dark')}>
-                                    <span className="flex items-center justify-between w-full font-medium">
-                                        <span>{t('dark')}</span>
-                                        {theme === 'dark' && <Check className="h-4 w-4 ml-2 text-primary" />}
                                     </span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setTheme('claro')}>
                                     <span className="flex items-center justify-between w-full font-medium">
-                                        <span>{t('system')}</span>
+                                        <span>Claro</span>
                                         {theme === 'claro' && <Check className="h-4 w-4 ml-2 text-primary" />}
+                                    </span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setTheme('dark')}>
+                                    <span className="flex items-center justify-between w-full font-medium">
+                                        <span>Oscuro</span>
+                                        {theme === 'dark' && <Check className="h-4 w-4 ml-2 text-primary" />}
                                     </span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -265,7 +264,7 @@ export function Header() {
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full ring-2 ring-primary/20 hover:ring-primary/40 transition-all overflow-hidden">
+                                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full ring-2 ring-white/20 hover:ring-white/40 transition-all overflow-hidden">
                                     <Image src="https://picsum.photos/seed/user/36/36" width={36} height={36} alt="Avatar" className="object-cover" />
                                 </Button>
                             </DropdownMenuTrigger>
@@ -297,7 +296,7 @@ export function Header() {
             <AlertDialog open={isLogoutAlertOpen} onOpenChange={setIsLogoutAlertOpen}>
                 <AlertDialogContent className="max-w-xl">
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2">
+                        <AlertDialogTitle className="flex items-center gap-2 text-foreground">
                             <AlertTriangle className="h-6 w-6 text-yellow-500" />
                             {t('logoutConfirmation.title')}
                         </AlertDialogTitle>
@@ -337,7 +336,7 @@ export function Header() {
                                 name="old_password"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>{t('changePasswordDialog.oldPassword')}</FormLabel>
+                                        <FormLabel className="text-foreground">{t('changePasswordDialog.oldPassword')}</FormLabel>
                                         <FormControl>
                                             <Input type="password" {...field} />
                                         </FormControl>
@@ -350,7 +349,7 @@ export function Header() {
                                 name="new_password"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>{t('changePasswordDialog.newPassword')}</FormLabel>
+                                        <FormLabel className="text-foreground">{t('changePasswordDialog.newPassword')}</FormLabel>
                                         <FormControl>
                                             <Input type="password" {...field} />
                                         </FormControl>
@@ -363,7 +362,7 @@ export function Header() {
                                 name="confirm_password"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>{t('changePasswordDialog.confirmPassword')}</FormLabel>
+                                        <FormLabel className="text-foreground">{t('changePasswordDialog.confirmPassword')}</FormLabel>
                                         <FormControl>
                                             <Input type="password" {...field} />
                                         </FormControl>

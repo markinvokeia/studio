@@ -40,7 +40,7 @@ export default function LoginPage() {
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const locale = useLocale();
   const pathname = usePathname();
-  const { setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const t = useTranslations('Header');
   const tLogin = useTranslations('LoginPage');
 
@@ -167,9 +167,24 @@ export default function LoginPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setTheme('light')}>Light</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme('dark')}>Dark</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme('system')}>System</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme('light')}>
+              <span className="flex items-center justify-between w-full">
+                <span>Invoke</span>
+                {theme === 'light' && <Check className="h-4 w-4 ml-2 text-primary" />}
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme('claro')}>
+              <span className="flex items-center justify-between w-full">
+                <span>Claro</span>
+                {theme === 'claro' && <Check className="h-4 w-4 ml-2 text-primary" />}
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme('dark')}>
+              <span className="flex items-center justify-between w-full">
+                <span>Oscuro</span>
+                {theme === 'dark' && <Check className="h-4 w-4 ml-2 text-primary" />}
+              </span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -198,7 +213,7 @@ export default function LoginPage() {
             {view === 'login' ? (
               <form onSubmit={handleLoginSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">{tLogin('email')}</Label>
+                  <Label htmlFor="email" className="text-foreground">{tLogin('email')}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -209,7 +224,7 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">{tLogin('password')}</Label>
+                  <Label htmlFor="password" className="text-foreground">{tLogin('password')}</Label>
                   <Input
                     id="password"
                     type="password"
@@ -230,7 +245,7 @@ export default function LoginPage() {
             ) : (
               <form onSubmit={handleRecoverySubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="recovery-email">{tLogin('email')}</Label>
+                  <Label htmlFor="recovery-email" className="text-foreground">{tLogin('email')}</Label>
                   <Input
                     id="recovery-email"
                     type="email"

@@ -43,7 +43,7 @@ export default function ResetPasswordPage() {
     const pathname = usePathname();
     const t = useTranslations('ResetPasswordPage');
     const tHeader = useTranslations('Header');
-    const { setTheme } = useTheme();
+    const { theme, setTheme } = useTheme();
 
     const [token, setToken] = useState<string | null>(null);
     const [error, setError] = useState('');
@@ -149,9 +149,24 @@ export default function ResetPasswordPage() {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setTheme('light')}>Light</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setTheme('dark')}>Dark</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setTheme('system')}>System</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme('light')}>
+                            <span className="flex items-center justify-between w-full">
+                                <span>Invoke</span>
+                                {theme === 'light' && <Check className="h-4 w-4 ml-2 text-primary" />}
+                            </span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme('claro')}>
+                            <span className="flex items-center justify-between w-full">
+                                <span>Claro</span>
+                                {theme === 'claro' && <Check className="h-4 w-4 ml-2 text-primary" />}
+                            </span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme('dark')}>
+                            <span className="flex items-center justify-between w-full">
+                                <span>Oscuro</span>
+                                {theme === 'dark' && <Check className="h-4 w-4 ml-2 text-primary" />}
+                            </span>
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
@@ -182,7 +197,7 @@ export default function ResetPasswordPage() {
                                 name="new_password"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <Label htmlFor="new_password">{t('newPassword')}</Label>
+                                        <Label htmlFor="new_password" className="text-foreground">{t('newPassword')}</Label>
                                         <FormControl>
                                             <Input id="new_password" type="password" {...field} />
                                         </FormControl>
@@ -195,7 +210,7 @@ export default function ResetPasswordPage() {
                                 name="confirm_password"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <Label htmlFor="confirm_password">{t('confirmPassword')}</Label>
+                                        <Label htmlFor="confirm_password" className="text-foreground">{t('confirmPassword')}</Label>
                                         <FormControl>
                                             <Input id="confirm_password" type="password" {...field} />
                                         </FormControl>
