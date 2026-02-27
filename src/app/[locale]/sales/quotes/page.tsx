@@ -936,7 +936,7 @@ const handleCreateQuote = async () => {
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...quoteForm}>
-                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="space-y-4 py-4">
+                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="space-y-4 py-4 px-6">
                             {quoteSubmissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
@@ -1071,7 +1071,7 @@ const handleCreateQuote = async () => {
                         <DialogDescription>{t('itemDialog.description')}</DialogDescription>
                     </DialogHeader>
                     <Form {...quoteItemForm}>
-                        <form onSubmit={quoteItemForm.handleSubmit(onQuoteItemSubmit)} className="space-y-4 py-4">
+                        <form onSubmit={quoteItemForm.handleSubmit(onQuoteItemSubmit)} className="space-y-4 py-4 px-6">
                             {quoteItemSubmissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />

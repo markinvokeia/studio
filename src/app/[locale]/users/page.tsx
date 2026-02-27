@@ -38,6 +38,7 @@ import { UserPayments } from '@/components/users/user-payments';
 import { UserQuotes } from '@/components/users/user-quotes';
 import { UserServices } from '@/components/users/user-services';
 import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { PatientDischarge, Quote, User, UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -1066,7 +1067,7 @@ export default function UsersPage() {
             <DialogDescription>{editingUser ? t('UsersPage.createDialog.editDescription') : t('UsersPage.createDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
               {submissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
@@ -1198,7 +1199,7 @@ export default function UsersPage() {
                 {t('ClinicHistoryPage.discharge.dialogDescription')}
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-4 py-4 px-6">
               <div className="grid gap-2">
                 <Label>{t('ClinicHistoryPage.discharge.optionsLabel')}</Label>
                 <div className="flex flex-wrap gap-2">
