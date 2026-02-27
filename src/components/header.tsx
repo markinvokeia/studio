@@ -1,4 +1,3 @@
-
 'use client';
 
 import { OpenCashSessionWidget } from '@/components/cash-session-widget';
@@ -90,19 +89,9 @@ export function Header() {
 
     const { pendingCount, highestPriority } = useAlertNotifications();
 
-    const alertBadgeColor = {
-        CRITICAL: 'bg-red-500',
-        HIGH: 'bg-orange-500',
-        MEDIUM: 'bg-blue-500',
-        LOW: 'bg-gray-500'
-    }[highestPriority];
-
-
     const form = useForm<PasswordFormValues>({
         resolver: zodResolver(passwordFormSchema(t)),
     });
-
-
 
     React.useEffect(() => {
         if (isChangePasswordOpen) {
@@ -133,8 +122,6 @@ export function Header() {
         }
         try {
             const data = await api.get(API_ROUTES.CASHIER.SESSIONS_ACTIVE, { user_id: user.id });
-
-            // The endpoint now always returns 200, and the actual session status is inside
             if (data.code === 200) {
                 setIsLogoutAlertOpen(true);
             } else {
@@ -183,103 +170,111 @@ export function Header() {
 
     return (
         <>
-            <header className="sticky top-0 z-20 w-full border-b bg-background/95 backdrop-blur-sm">
+            <header className="sticky top-0 z-30 w-full bg-background shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
                 <div className="flex h-14 items-center justify-between px-4 lg:h-[60px] lg:px-6">
-                    <OpenCashSessionWidget />
+                    <div className="flex items-center gap-4">
+                        <OpenCashSessionWidget />
+                    </div>
 
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-3">
                         <Link href={`/${locale}/alerts`} passHref>
-                            <Button variant="outline" size="icon" className="relative">
-                                <div className={`h-[1.2rem] w-[1.2rem] flex items-center justify-center ${pendingCount > 0 ? 'animate-bell-ring' : ''}`}>
-                                    <Bell className="h-[1.2rem] w-[1.2rem]" />
+                            <Button variant="ghost" size="icon" className={cn("relative rounded-full hover:bg-primary/10 transition-colors", pendingCount > 0 && "text-primary")}>
+                                <div className={cn(pendingCount > 0 && 'animate-bell-ring')}>
+                                    <Bell className="h-5 w-5" />
                                 </div>
                                 {pendingCount > 0 && (
-                                    <span className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-xs text-white bg-red-500`}>
+                                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-primary ring-2 ring-background">
                                         {pendingCount}
                                     </span>
                                 )}
                                 <span className="sr-only">{t('alerts')}</span>
                             </Button>
                         </Link>
+                        
                         {activeCashSession && <ExchangeRate activeCashSession={activeCashSession} />}
+                        
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="icon">
-                                    <Globe className="h-[1.2rem] w-[1.2rem]" />
+                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10">
+                                    <Globe className="h-5 w-5" />
                                     <span className="sr-only">{t('toggleLanguage')}</span>
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent align="end" className="rounded-xl">
                                 <DropdownMenuItem onSelect={() => onSelectLocale('es')} disabled={locale === 'es'}>
-                                    <span className="flex items-center justify-between w-full">
+                                    <span className="flex items-center justify-between w-full font-medium">
                                         <div className="flex items-center gap-2">
                                             <UyFlagIcon className="h-4 w-4" />
                                             {t('spanish')}
                                         </div>
-                                        {locale === 'es' && <Check className="h-4 w-4 ml-2" />}
+                                        {locale === 'es' && <Check className="h-4 w-4 ml-2 text-primary" />}
                                     </span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => onSelectLocale('en')} disabled={locale === 'en'}>
-                                    <span className="flex items-center justify-between w-full">
+                                    <span className="flex items-center justify-between w-full font-medium">
                                         <div className="flex items-center gap-2">
                                             <UsFlagIcon className="h-4 w-4" />
                                             {t('english')}
                                         </div>
-                                        {locale === 'en' && <Check className="h-4 w-4 ml-2" />}
+                                        {locale === 'en' && <Check className="h-4 w-4 ml-2 text-primary" />}
                                     </span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
+
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="icon">
-                                    <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                                    <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10">
+                                    <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                                    <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                                     <span className="sr-only">{t('toggleTheme')}</span>
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => setTheme('light')} disabled={theme === 'light'}>
-                                    <span className="flex items-center justify-between w-full">
+                            <DropdownMenuContent align="end" className="rounded-xl">
+                                <DropdownMenuItem onClick={() => setTheme('light')}>
+                                    <span className="flex items-center justify-between w-full font-medium">
                                         <span>{t('light')}</span>
-                                        {theme === 'light' && <Check className="h-4 w-4 ml-2" />}
+                                        {theme === 'light' && <Check className="h-4 w-4 ml-2 text-primary" />}
                                     </span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTheme('dark')} disabled={theme === 'dark'}>
-                                    <span className="flex items-center justify-between w-full">
+                                <DropdownMenuItem onClick={() => setTheme('dark')}>
+                                    <span className="flex items-center justify-between w-full font-medium">
                                         <span>{t('dark')}</span>
-                                        {theme === 'dark' && <Check className="h-4 w-4 ml-2" />}
+                                        {theme === 'dark' && <Check className="h-4 w-4 ml-2 text-primary" />}
                                     </span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTheme('system')} disabled={theme === 'system'}>
-                                    <span className="flex items-center justify-between w-full">
+                                <DropdownMenuItem onClick={() => setTheme('system')}>
+                                    <span className="flex items-center justify-between w-full font-medium">
                                         <span>{t('system')}</span>
-                                        {theme === 'system' && <Check className="h-4 w-4 ml-2" />}
+                                        {theme === 'system' && <Check className="h-4 w-4 ml-2 text-primary" />}
                                     </span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
+
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="overflow-hidden rounded-full">
-                                    <Image src="https://picsum.photos/36/36" width={36} height={36} alt="Avatar" className="overflow-hidden rounded-full" data-ai-hint="user avatar" />
+                                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full ring-2 ring-primary/20 hover:ring-primary/40 transition-all overflow-hidden">
+                                    <Image src="https://picsum.photos/seed/user/36/36" width={36} height={36} alt="Avatar" className="object-cover" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>{user?.name || t('myAccount')}</DropdownMenuLabel>
+                            <DropdownMenuContent align="end" className="w-56 rounded-xl p-2">
+                                <DropdownMenuLabel className="px-2 py-1.5 text-sm font-bold text-primary truncate">
+                                    {user?.name || t('myAccount')}
+                                </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => setIsChangePasswordOpen(true)}>
+                                <DropdownMenuItem onClick={() => setIsChangePasswordOpen(true)} className="rounded-lg font-medium">
                                     <KeyRound className="mr-2 h-4 w-4" />
                                     <span>{t('changePassword')}</span>
                                 </DropdownMenuItem>
                                 <Link href={`/${locale}/preferences`} passHref>
-                                    <DropdownMenuItem>
+                                    <DropdownMenuItem className="rounded-lg font-medium">
                                         <Bell className="mr-2 h-4 w-4" />
                                         <span>{t('communicationPreferences')}</span>
                                     </DropdownMenuItem>
                                 </Link>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={handleLogoutClick}>
+                                <DropdownMenuItem onClick={handleLogoutClick} className="rounded-lg font-medium text-destructive focus:text-destructive">
                                     <LogOut className="mr-2 h-4 w-4" />
                                     <span>{t('logout')}</span>
                                 </DropdownMenuItem>

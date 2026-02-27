@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -18,7 +17,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
 
-const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
+const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; activeItem: any }) => {
     const pathname = usePathname();
     const t = useTranslations('Navigation');
     const locale = useLocale();
@@ -34,24 +33,24 @@ const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
 
     const effectivePathname = getEffectivePathname(pathname, locale);
 
-
-
     return (
-        <aside className="fixed inset-y-0 left-0 z-40 flex h-screen w-20 flex-col border-r bg-card">
-            <div className="flex h-14 items-center justify-center border-b px-2 lg:h-[60px]">
-                <Link href={`/${locale}`} className="flex items-center gap-2 font-semibold text-foreground">
-                    <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={56} height={56} alt="InvokeIA Logo" />
+        <aside className="fixed inset-y-0 left-0 z-50 flex h-screen w-20 flex-col bg-[#1a0b2e] dark:bg-[#0d051a] shadow-[4px_0_24px_rgba(0,0,0,0.3)]">
+            <div className="flex h-14 items-center justify-center mb-4 mt-2">
+                <Link href={`/${locale}`} className="transition-transform hover:scale-110">
+                    <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={48} height={48} alt="InvokeIA Logo" priority />
                 </Link>
             </div>
             <TooltipProvider>
                 <div className="flex-1 min-h-0 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                    <nav className="flex flex-col items-center gap-0.5 sm:py-2">
+                    <nav className="flex flex-col items-center gap-2 px-2">
                         {navItems.map(item => {
                             const isActive = item.items
                                 ? (item.href === '/cashier' 
                                     ? item.items.some(subItem => subItem.href !== '' && effectivePathname === subItem.href)
                                     : item.items.some(subItem => subItem.href !== '' && effectivePathname === subItem.href) || effectivePathname.startsWith(item.href + '/'))
                                 : (item.href === '/' ? effectivePathname === '/' : effectivePathname === item.href || effectivePathname.startsWith(item.href + '/'));
+
+                            const isHovered = activeItem?.title === item.title;
 
                             let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
                             if (item.href.includes('/clinic-history')) {
@@ -66,32 +65,29 @@ const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
                                         <Link
                                             href={linkHref}
                                             className={cn(
-                                                "flex h-auto w-full flex-col items-center justify-center gap-1 rounded-none p-2 transition-colors relative",
-                                                isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                                                "flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-xl transition-all duration-300 relative group",
+                                                isActive || isHovered 
+                                                    ? 'bg-primary text-white shadow-[0_0_15px_rgba(233,30,99,0.4)]' 
+                                                    : 'text-gray-400 hover:bg-white/10 hover:text-white'
                                             )}
                                             onMouseEnter={() => onHover(item)}
                                         >
                                             <div className="relative">
-                                                <item.icon className="h-6 w-6" />
+                                                <item.icon className={cn("h-6 w-6 transition-transform group-hover:scale-110", (isActive || isHovered) ? "text-white" : "")} />
                                                 {item.title === 'AlertsCenter' && pendingCount > 0 && (
                                                     <Badge
                                                         variant="destructive"
-                                                        className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs p-0"
+                                                        className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-[10px] p-0 border-2 border-[#1a0b2e] animate-pulse"
                                                     >
                                                         {pendingCount > 99 ? '99+' : pendingCount}
                                                     </Badge>
                                                 )}
                                             </div>
-                                            <span className="block w-full text-center text-[10px] font-medium leading-tight line-clamp-2">{t(item.title as any)}</span>
+                                            <span className="block w-full text-center text-[9px] font-bold uppercase tracking-tight leading-tight line-clamp-1 opacity-80">{t(item.title as any)}</span>
                                         </Link>
                                     </TooltipTrigger>
-                                    <TooltipContent side="right">
+                                    <TooltipContent side="right" className="bg-primary text-white border-none font-bold">
                                         {t(item.title as any)}
-                                        {item.title === 'AlertsCenter' && pendingCount > 0 && (
-                                            <span className="ml-2 text-xs text-muted-foreground">
-                                                ({pendingCount > 99 ? '99+' : pendingCount} pendientes)
-                                            </span>
-                                        )}
                                     </TooltipContent>
                                 </Tooltip>
                             )
@@ -105,20 +101,31 @@ const MainSidebar = ({ onHover }: { onHover: (item: any) => void; }) => {
 
 const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void }) => {
     const t = useTranslations('Navigation');
-    if (!item || !item.items) {
-        return null;
-    }
+    const locale = useLocale();
+    if (!item || !item.items) return null;
 
     return (
         <div
-            className="fixed inset-y-0 left-20 z-30 hidden h-screen w-64 flex-col border-r bg-card md:flex"
+            className="fixed left-20 z-40 hidden md:flex flex-col bg-primary text-white shadow-[8px_0_24px_rgba(0,0,0,0.2)] rounded-r-2xl overflow-hidden animate-in fade-in slide-in-from-left-4 duration-300 h-auto max-h-[90vh] my-auto top-0 bottom-0"
             onMouseLeave={onLeave}
+            style={{ width: '240px' }}
         >
-            <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                <h2 className="text-lg font-semibold">{t(item.title as any)}</h2>
+            <div className="flex h-12 items-center px-6 border-b border-white/10 bg-white/5">
+                <h2 className="text-xs font-black uppercase tracking-widest">{t(item.title as any)}</h2>
             </div>
-            <div className="flex-1 overflow-y-auto">
-                <Nav items={item.items} />
+            <div className="flex-1 overflow-y-auto py-2">
+                <nav className="grid gap-1 px-2">
+                    {item.items.map((subItem: any, index: number) => (
+                        <Link
+                            key={index}
+                            href={`/${locale}${subItem.href}`}
+                            className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold transition-colors hover:bg-white/20 active:scale-95"
+                        >
+                            <subItem.icon className="h-4 w-4 opacity-80" />
+                            <span>{t(subItem.title as any)}</span>
+                        </Link>
+                    ))}
+                </nav>
             </div>
         </div>
     );
@@ -153,8 +160,12 @@ export function Sidebar() {
 
     return (
         <div onMouseLeave={handleLeave}>
-            <MainSidebar onHover={handleHover} />
-            {hoveredItem && <div onMouseEnter={handleSecondaryEnter}><SecondarySidebar item={hoveredItem} onLeave={handleLeave} /></div>}
+            <MainSidebar onHover={handleHover} activeItem={hoveredItem} />
+            {hoveredItem && (
+                <div onMouseEnter={handleSecondaryEnter}>
+                    <SecondarySidebar item={hoveredItem} onLeave={handleLeave} />
+                </div>
+            )}
         </div>
     );
 }
