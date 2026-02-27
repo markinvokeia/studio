@@ -215,7 +215,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                     <div><span className="font-semibold">{t('columns.user')}:</span> {session.user_name}</div>
                     <div><span className="font-semibold">{t('columns.cashPoint')}:</span> {session.cash_point_name}</div>
                     <div><span className="font-semibold">{t('columns.openDate')}:</span> {format(parseISO(session.fechaApertura), 'Pp')}</div>
-                    <div><span className="font-semibold">{t('columns.closeDate')}:</span> {session.fechaCierre ? format(parseISO(session.fechaCierre), 'Pp') : 'N/A'}</div>
+                    <div><span className="font-semibold">{t('columns.closeDate')}:</span> {session.fechaCierre ? new Date(session.fechaCierre).toLocaleString('en-US', { timeZone: 'UTC' }) : 'N/A'}</div>
                 </div>
             </div>
 

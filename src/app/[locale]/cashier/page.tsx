@@ -1220,7 +1220,7 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
                     {renderReportSection('USD')}
                 </div>
                 <div className="mt-4">
-                    <p><strong>{t('closingTime')}</strong> {session.closed_at ? new Date(session.closed_at).toLocaleString() : 'N/A'}</p>
+                    <p><strong>{t('closingTime')}</strong> {session.closed_at ? new Date(session.closed_at).toLocaleString('en-US', { timeZone: 'UTC' }) : 'N/A'}</p>
                     {session.closing_notes && <p><strong>{t('notes')}</strong> {session.closing_notes}</p>}
                 </div>
             </CardContent>

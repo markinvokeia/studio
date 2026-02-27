@@ -25,7 +25,7 @@ interface CashSessionsColumnsProps {
 const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     try {
-        return format(parseISO(dateString), 'yyyy-MM-dd HH:mm');
+        return new Date(dateString).toLocaleString('en-US', { timeZone: 'UTC' });
     } catch (error) {
         return dateString;
     }

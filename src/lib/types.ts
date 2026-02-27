@@ -507,6 +507,7 @@ export type CajaSesion = {
   estado: 'OPEN' | 'CLOSE' | 'ABIERTA' | 'CERRADA';
   fechaApertura: string;
   fechaCierre?: string | null;
+  closed_at?: string;
   montoApertura: number;
   opening_details?: object | string;
   closing_details?: object | string | null;
