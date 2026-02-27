@@ -236,13 +236,13 @@ const getColumns = (
 
         return (
           <DropdownMenu>
-<DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
                 <span className="sr-only">Open menu</span>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-<DropdownMenuContent align="end">
+            <DropdownMenuContent align="end">
               <DropdownMenuLabel>{tQuotes('itemDialog.actions')}</DropdownMenuLabel>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPrint(quote); }}>
                 <Printer className="mr-2 h-4 w-4" />
@@ -478,9 +478,11 @@ export function RecentQuotesTable({
     <>
       <Card className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
         {title && (
-          <CardHeader className="flex-none p-6 pb-0">
-            <div className="flex items-center gap-2">
-              <DocumentTextIcon className="h-6 w-6 text-amber-500" />
+          <CardHeader className="flex-none p-6 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="header-icon-circle">
+                <DocumentTextIcon className="h-6 w-6" />
+              </div>
               <CardTitle className="text-lg lg:text-xl">{title}</CardTitle>
             </div>
             {description && <CardDescription className="text-xs">{description}</CardDescription>}
@@ -589,7 +591,7 @@ export function RecentQuotesTable({
             <DialogTitle>{t('QuotesPage.sendEmailDialog.title')}</DialogTitle>
             <DialogDescription>{t('QuotesPage.sendEmailDialog.description', { id: selectedQuoteForEmail?.doc_no || selectedQuoteForEmail?.id })}</DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 px-6">
             <Label htmlFor="email-recipients">{t('QuotesPage.sendEmailDialog.recipients')}</Label>
             <Input
               id="email-recipients"

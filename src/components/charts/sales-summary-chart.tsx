@@ -1,4 +1,3 @@
-
 'use client';
 
 import { TrendingUp, TrendingDown } from 'lucide-react';
@@ -26,7 +25,7 @@ import { useTranslations } from 'next-intl';
 const chartConfig = {
   revenue: {
     label: 'Revenue',
-    color: 'hsl(var(--chart-1))',
+    color: 'hsl(var(--primary-foreground))',
   },
 };
 
@@ -39,7 +38,6 @@ interface SalesSummaryChartProps {
 
 export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }: SalesSummaryChartProps) {
   const t = useTranslations('SalesSummaryChart');
-  console.log('Translations for SalesSummaryChart loaded.');
   const isTrendingUp = salesTrend >= 0;
 
   const formatDateRange = (dateRange: DateRange | undefined) => {
@@ -65,15 +63,17 @@ export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }
   return (
     <Card className="h-full">
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <ChartBarSquareIcon className="h-6 w-6 text-blue-500" />
+        <div className="flex items-center gap-3">
+          <div className="header-icon-circle">
+            <ChartBarSquareIcon className="h-6 w-6" />
+          </div>
           <CardTitle>{t('title')}</CardTitle>
         </div>
         <CardDescription>
           {t('description')}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         {isLoading ? (
           <div className="h-[250px] w-full flex items-center justify-center">
             <Skeleton className="h-full w-full" />
@@ -89,7 +89,7 @@ export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }
                 bottom: 10
               }}
             >
-              <CartesianGrid vertical={false} />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
               <XAxis
                 dataKey="month"
                 tickLine={false}
@@ -104,22 +104,23 @@ export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }
               <Line
                 dataKey="revenue"
                 type="monotone"
-                stroke="var(--color-revenue)"
-                strokeWidth={2}
-                dot={false}
+                stroke="hsl(var(--primary))"
+                strokeWidth={3}
+                dot={{ fill: 'hsl(var(--primary))', r: 4 }}
+                activeDot={{ r: 6 }}
               />
             </LineChart>
           </ChartContainer>
         )}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="bg-muted/5 py-4">
         <div className="flex w-full items-start gap-2 text-sm">
-          <div className="grid gap-2">
-            <div className="flex items-center gap-2 font-medium leading-none">
+          <div className="grid gap-1">
+            <div className={cn("flex items-center gap-2 font-bold leading-none", isTrendingUp ? "text-green-500" : "text-red-500")}>
               {t(isTrendingUp ? 'trendingUp' : 'trendingDown', { trend: Math.abs(salesTrend).toFixed(1) })}
               {isTrendingUp ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
             </div>
-            <div className="flex items-center gap-2 leading-none text-muted-foreground">
+            <div className="flex items-center gap-2 leading-none text-muted-foreground font-medium">
               {footerDateText}
             </div>
           </div>

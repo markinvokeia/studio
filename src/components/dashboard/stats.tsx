@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -17,10 +16,10 @@ import { cn } from '@/lib/utils';
 
 
 const iconMap: { [key: string]: { component: React.ElementType, className: string } } = {
-  'currency-dollar': { component: CurrencyDollarIcon, className: 'text-emerald-500 bg-emerald-500/10' },
-  'user-plus': { component: UserPlusIcon, className: 'text-violet-500 bg-violet-500/10' },
-  'arrow-trending-up': { component: ArrowTrendingUpIcon, className: 'text-blue-500 bg-blue-500/10' },
-  'chart-pie': { component: ChartPieIcon, className: 'text-amber-500 bg-amber-500/10' },
+  'currency-dollar': { component: CurrencyDollarIcon, className: 'bg-white/20 text-white' },
+  'user-plus': { component: UserPlusIcon, className: 'bg-white/20 text-white' },
+  'arrow-trending-up': { component: ArrowTrendingUpIcon, className: 'bg-white/20 text-white' },
+  'chart-pie': { component: ChartPieIcon, className: 'bg-white/20 text-white' },
 };
 
 interface StatsProps {
@@ -54,7 +53,7 @@ export function Stats({ data }: StatsProps) {
         const changeColor = {
             positive: 'text-green-500',
             negative: 'text-destructive',
-            neutral: 'text-muted-foreground'
+            neutral: 'text-white/60'
         }[stat.changeType];
 
         return (
@@ -62,14 +61,14 @@ export function Stats({ data }: StatsProps) {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
               {Icon && (
-                <div className={cn("rounded-lg p-2", IconInfo.className)}>
+                <div className={cn("header-icon-circle", IconInfo.className)}>
                     <Icon className="h-6 w-6" />
                 </div>
               )}
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className={cn("text-xs", changeColor)}>{stat.change}</p>
+            <CardContent className="pt-2 pb-4">
+              <div className="text-2xl font-bold text-white">{stat.value}</div>
+              <p className={cn("text-xs font-medium", changeColor)}>{stat.change}</p>
             </CardContent>
           </Card>
         );

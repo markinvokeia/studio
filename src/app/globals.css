@@ -21,7 +21,7 @@
 
 @layer base {
   :root {
-    --background: 260 60% 98%;
+    --background: 260 60% 98.5%;
     --foreground: 260 60% 5%;
     --card: 0 0% 100%;
     --card-foreground: 260 60% 5%;
@@ -82,4 +82,8 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.header-icon-circle {
+  @apply flex items-center justify-center w-10 h-10 rounded-full bg-white/20 text-white shrink-0;
 }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
@@ -73,14 +72,15 @@ interface RecentOrdersTableProps {
 
 export function RecentOrdersTable({ orders, onRefresh, isRefreshing, className }: RecentOrdersTableProps) {
   const t = useTranslations();
-  console.log('Translations for RecentOrdersTable loaded.');
   const columns = React.useMemo(() => getColumns(t), [t]);
 
   return (
     <Card className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
-      <CardHeader className="flex-none p-6 pb-0">
-        <div className="flex items-center gap-2">
-          <DocumentCheckIcon className="h-6 w-6 text-blue-500" />
+      <CardHeader className="flex-none p-6 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="header-icon-circle">
+            <DocumentCheckIcon className="h-6 w-6" />
+          </div>
           <CardTitle className="text-lg lg:text-xl">{t('RecentOrdersTable.title')}</CardTitle>
         </div>
         <CardDescription className="text-xs">{t('RecentOrdersTable.description')}</CardDescription>

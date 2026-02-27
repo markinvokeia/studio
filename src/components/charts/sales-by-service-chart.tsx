@@ -1,4 +1,3 @@
-
 'use client';
 
 import { SalesByServiceChartData } from '@/lib/types';
@@ -21,7 +20,6 @@ interface SalesByServiceChartProps {
 
 export function SalesByServiceChart({ chartData, isLoading }: SalesByServiceChartProps) {
   const t = useTranslations('SalesByServiceChart');
-  console.log('Translations for SalesByServiceChart loaded.');
   if (isLoading) {
     return (
         <Card className='lg:col-span-1'>
@@ -42,25 +40,27 @@ export function SalesByServiceChart({ chartData, isLoading }: SalesByServiceChar
   return (
     <Card className='lg:col-span-1'>
       <CardHeader>
-        <div className="flex items-center gap-2">
-            <TagIcon className="h-6 w-6 text-violet-500" />
+        <div className="flex items-center gap-3">
+            <div className="header-icon-circle">
+                <TagIcon className="h-6 w-6" />
+            </div>
             <CardTitle>{t('title')}</CardTitle>
         </div>
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-6">
         {chartData.length > 0 ? chartData.map((service) => (
-            <div key={service.name} className="space-y-1">
-                <div className="flex justify-between items-center text-sm font-medium">
-                    <span>{service.name}</span>
+            <div key={service.name} className="space-y-1.5">
+                <div className="flex justify-between items-center text-sm font-bold">
+                    <span className="text-foreground/80">{service.name}</span>
                     <span>{service.percentage.toFixed(0)}%</span>
                 </div>
-                <Progress value={service.percentage} className="h-2" style={{
+                <Progress value={service.percentage} className="h-2 bg-muted" style={{
                     '--progress-color': service.color
                 } as React.CSSProperties} />
             </div>
         )) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
+            <div className="flex items-center justify-center h-full text-muted-foreground py-10">
                 {t('noData')}
             </div>
         )}

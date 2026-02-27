@@ -1,4 +1,3 @@
-
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
@@ -78,9 +77,11 @@ export function NewPatientsTable({
 
   return (
     <Card className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
-      <CardHeader className="flex-none p-6 pb-0">
-        <div className="flex items-center gap-2">
-          <UserPlusIcon className="h-6 w-6 text-emerald-500" />
+      <CardHeader className="flex-none p-6 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="header-icon-circle">
+            <UserPlusIcon className="h-6 w-6" />
+          </div>
           <CardTitle className="text-lg lg:text-xl">{t('NewPatientsTable.title')}</CardTitle>
         </div>
         <CardDescription className="text-xs">{t('NewPatientsTable.description')}</CardDescription>

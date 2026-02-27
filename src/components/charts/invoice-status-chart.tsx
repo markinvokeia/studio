@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -57,7 +56,6 @@ interface InvoiceStatusChartProps {
 
 export function InvoiceStatusChart({ chartData, isLoading }: InvoiceStatusChartProps) {
   const t = useTranslations('InvoiceStatusChart');
-  console.log('Translations for InvoiceStatusChart loaded.');
   const totalValue = React.useMemo(() => {
     return chartData.reduce((acc, curr) => acc + curr.value, 0);
   }, [chartData]);
@@ -82,13 +80,15 @@ export function InvoiceStatusChart({ chartData, isLoading }: InvoiceStatusChartP
   return (
     <Card className="flex h-full flex-col lg:col-span-1">
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <DocumentCheckIcon className="h-6 w-6 text-emerald-500" />
+        <div className="flex items-center gap-3">
+          <div className="header-icon-circle">
+            <DocumentCheckIcon className="h-6 w-6" />
+          </div>
           <CardTitle>{t('title')}</CardTitle>
         </div>
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 pb-0">
+      <CardContent className="flex-1 pb-0 pt-6">
         <ChartContainer
           config={chartConfig}
           className="mx-auto aspect-square max-h-[250px]"
@@ -116,8 +116,8 @@ export function InvoiceStatusChart({ chartData, isLoading }: InvoiceStatusChartP
           </PieChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col gap-1.5 pb-6 pt-4">
-        <div className="flex items-center justify-center text-xs text-muted-foreground">
+      <CardFooter className="flex-col gap-1.5 pb-6 pt-4 bg-muted/5">
+        <div className="flex items-center justify-center text-xs text-muted-foreground font-bold">
           {t('totalInvoices', {total: totalValue})}
         </div>
       </CardFooter>
