@@ -171,7 +171,7 @@ export function Header() {
 
     return (
         <>
-            <header className="sticky top-0 z-30 w-full bg-[#1a0b2e] dark:bg-[#0d051a] text-white shadow-[0_4px_20px_rgba(0,0,0,0.2)] border-none">
+            <header className="sticky top-0 z-30 w-full bg-gradient-to-r from-[#7c3aed] via-[#5b21b6] to-[#4c1d95] text-white shadow-[0_4px_20px_rgba(0,0,0,0.3)] border-none">
                 <div className="flex h-14 items-center justify-between px-4 lg:h-[60px] lg:px-6">
                     <div className="flex items-center gap-4">
                         <OpenCashSessionWidget />
@@ -184,7 +184,7 @@ export function Header() {
                                     <Bell className="h-5 w-5" />
                                 </div>
                                 {pendingCount > 0 && (
-                                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-primary ring-2 ring-[#1a0b2e]">
+                                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-primary ring-2 ring-[#5b21b6]">
                                         {pendingCount}
                                     </span>
                                 )}
