@@ -50,6 +50,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                 : (item.href === '/' ? effectivePathname === '/' : effectivePathname === item.href || effectivePathname.startsWith(item.href + '/'));
 
                             const isHovered = activeItem?.title === item.title;
+                            const isExpanded = isHovered && item.items;
 
                             let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
                             if (item.href.includes('/clinic-history')) {
@@ -68,7 +69,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                                 isActive || isHovered 
                                                     ? 'bg-primary text-white shadow-[0_0_15px_rgba(233,30,99,0.4)]' 
                                                     : 'text-gray-400 hover:bg-white/10 hover:text-white',
-                                                (isHovered && item.items) && "w-[72px] rounded-r-none z-[51] ml-2 mr-0"
+                                                isExpanded && "w-20 rounded-r-none z-[61] mx-0 self-end pr-4"
                                             )}
                                             onMouseEnter={() => onHover(item)}
                                         >
@@ -106,9 +107,9 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
 
     return (
         <div
-            className="fixed left-20 z-40 hidden md:flex flex-col bg-primary text-white shadow-[8px_8px_20px_rgba(0,0,0,0.3)] rounded-r-2xl overflow-hidden animate-in fade-in slide-in-from-left-2 duration-200 h-auto max-h-[85vh] my-auto top-0 bottom-0"
+            className="fixed left-20 z-[60] hidden md:flex flex-col bg-primary text-white shadow-[8px_8px_20px_rgba(0,0,0,0.3)] rounded-r-2xl overflow-hidden animate-in fade-in slide-in-from-left-2 duration-200 h-auto max-h-[85vh] my-auto top-0 bottom-0"
             onMouseLeave={onLeave}
-            style={{ width: '240px' }}
+            style={{ width: '200px' }}
         >
             <div className="flex h-12 items-center px-6 border-b border-white/10 bg-white/5">
                 <h2 className="text-xs font-black uppercase tracking-widest">{t(item.title as any)}</h2>
