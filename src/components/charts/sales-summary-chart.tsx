@@ -21,6 +21,7 @@ import { SalesChartData } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { ChartBarSquareIcon } from '../icons/chart-bar-square-icon';
 import { useTranslations } from 'next-intl';
+import { cn } from '@/lib/utils';
 
 const chartConfig = {
   revenue: {
