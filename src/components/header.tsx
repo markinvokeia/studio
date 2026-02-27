@@ -171,7 +171,7 @@ export function Header() {
 
     return (
         <>
-            <header className="sticky top-0 z-30 w-full bg-[var(--header-gradient)] text-white shadow-[0_4px_20px_rgba(0,0,0,0.3)] border-none">
+            <header className="sticky top-0 z-[70] w-full bg-[var(--header-gradient)] text-primary-foreground shadow-[0_4px_20px_rgba(0,0,0,0.1)] border-none transition-colors duration-300">
                 <div className="flex h-14 items-center justify-between px-4 lg:h-[60px] lg:px-6">
                     <div className="flex items-center gap-4">
                         <OpenCashSessionWidget />
@@ -184,8 +184,8 @@ export function Header() {
                                 size="icon" 
                                 className={cn(
                                     "relative rounded-full transition-all duration-300",
-                                    "border-white/20 bg-white/10 text-white",
-                                    "hover:bg-white/20 hover:border-white/40",
+                                    "border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground",
+                                    "hover:bg-primary-foreground/20 hover:border-primary-foreground/40",
                                     pendingCount > 0 && "border-primary/50 bg-primary/20 shadow-[0_0_15px_rgba(124,58,237,0.3)]"
                                 )}
                             >
@@ -193,7 +193,7 @@ export function Header() {
                                     <Bell className="h-5 w-5" />
                                 </div>
                                 {pendingCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-primary ring-2 ring-[#1a0b2e]">
+                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-primary ring-2 ring-background">
                                         {pendingCount}
                                     </span>
                                 )}
@@ -205,7 +205,7 @@ export function Header() {
                         
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 text-white">
+                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary-foreground/10 text-primary-foreground">
                                     <Globe className="h-5 w-5" />
                                     <span className="sr-only">{t('toggleLanguage')}</span>
                                 </Button>
@@ -234,7 +234,7 @@ export function Header() {
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 text-white">
+                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary-foreground/10 text-primary-foreground">
                                     <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                                     <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                                     <span className="sr-only">{t('toggleTheme')}</span>
@@ -264,7 +264,7 @@ export function Header() {
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full ring-2 ring-white/20 hover:ring-white/40 transition-all overflow-hidden">
+                                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full ring-2 ring-primary-foreground/20 hover:ring-primary-foreground/40 transition-all overflow-hidden">
                                     <Image src="https://picsum.photos/seed/user/36/36" width={36} height={36} alt="Avatar" className="object-cover" />
                                 </Button>
                             </DropdownMenuTrigger>

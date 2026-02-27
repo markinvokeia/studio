@@ -22,7 +22,7 @@
 @layer base {
   /* TEMA INVOKE (Por defecto / Light) - Paleta Violeta */
   :root {
-    --background: 0 0% 100%; /* Fondo de contenido Blanco */
+    --background: 260 30% 98%; /* Casi blanco, no puro */
     --foreground: 260 60% 5%;
     --card: 0 0% 100%;
     --card-foreground: 260 60% 5%;
@@ -44,42 +44,42 @@
     --chart-1: 260 60% 45%;
     --chart-2: 262 83% 58%;
     --radius: 0.75rem;
-    /* Violeta Oscuro solicitado para Sidebar/Header */
     --header-gradient: linear-gradient(to right, #1a0b2e, #2d1b4d);
     --sidebar-gradient: linear-gradient(to bottom, #1a0b2e, #2d1b4d);
+    --bar-icons-bg: rgb(255 255 255 / 0.1);
   }
 
-  /* TEMA CLARO - Paleta Grises */
+  /* TEMA CLARO - Paleta Grises Suaves */
   .claro {
-    --background: 0 0% 100%; /* Fondo de contenido Blanco */
+    --background: 0 0% 98%;
     --foreground: 0 0% 10%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 10%;
-    --primary: 0 0% 20%; /* Gris oscuro solicitado */
-    --primary-foreground: 0 0% 100%;
+    --primary: 0 0% 92%; /* Gris muy claro para headers */
+    --primary-foreground: 0 0% 20%; /* Gris oscuro para textos en headers */
     --secondary: 0 0% 94%;
     --secondary-foreground: 0 0% 20%;
     --muted: 0 0% 92%;
     --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 20%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 0 0% 85%;
+    --accent-foreground: 0 0% 10%;
     --destructive: 0 0% 30%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 88%;
     --input: 0 0% 88%;
     --ring: 0 0% 20%;
-    /* Gris Oscuro solicitado para Sidebar/Header */
-    --header-gradient: linear-gradient(to right, #222, #333);
-    --sidebar-gradient: linear-gradient(to bottom, #222, #333);
+    --header-gradient: linear-gradient(to right, #f3f4f6, #e5e7eb);
+    --sidebar-gradient: linear-gradient(to bottom, #f3f4f6, #e5e7eb);
+    --bar-icons-bg: rgb(0 0 0 / 0.05);
   }
 
   /* TEMA OSCURO - Paleta Negros */
   .dark {
-    --background: 0 0% 0%; /* Negro puro */
+    --background: 0 0% 0%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 5%; /* Negro suave */
+    --card: 0 0% 5%;
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 7%;
     --popover-foreground: 0 0% 98%;
@@ -96,9 +96,9 @@
     --border: 0 0% 15%;
     --input: 0 0% 15%;
     --ring: 262 83% 58%;
-    /* Negro profundo para Sidebar/Header */
     --header-gradient: linear-gradient(to right, #000, #111);
     --sidebar-gradient: linear-gradient(to bottom, #000, #111);
+    --bar-icons-bg: rgb(255 255 255 / 0.1);
   }
 }
 
@@ -112,5 +112,7 @@
 }
 
 .header-icon-circle {
-  @apply flex items-center justify-center w-10 h-10 rounded-full bg-white/10 text-white shrink-0;
+  @apply flex items-center justify-center w-10 h-10 rounded-full shrink-0;
+  background-color: var(--bar-icons-bg);
+  color: var(--primary-foreground);
 }
