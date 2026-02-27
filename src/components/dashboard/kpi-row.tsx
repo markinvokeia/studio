@@ -64,7 +64,7 @@ export function AverageBillingCard({ data, isLoading }: AverageBillingCardProps)
       <Card>
         <CardHeader className="flex flex-row items-center justify-between py-4">
           <CardTitle>{t('avgBilling')}</CardTitle>
-          <div className="header-icon-circle bg-white/20 text-white">
+          <div className="header-icon-circle">
             <DollarSign className="h-5 w-5" />
           </div>
         </CardHeader>
@@ -105,7 +105,7 @@ export function PatientDemographicsCard({ data, isLoading }: PatientDemographics
         <Card className="flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-4">
                 <CardTitle>{t('newVsRecurring')}</CardTitle>
-                <div className="header-icon-circle bg-white/20 text-white">
+                <div className="header-icon-circle">
                     <Users className="h-5 w-5" />
                 </div>
             </CardHeader>
@@ -167,7 +167,7 @@ export function AppointmentAttendanceCard({ data, isLoading }: AppointmentAttend
       <Card>
         <CardHeader className="flex flex-row items-center justify-between py-4">
           <CardTitle>{t('attendanceRate')}</CardTitle>
-          <div className="header-icon-circle bg-white/20 text-white">
+          <div className="header-icon-circle">
             <CalendarCheck className="h-5 w-5" />
           </div>
         </CardHeader>

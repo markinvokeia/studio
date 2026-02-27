@@ -16,10 +16,10 @@ import { cn } from '@/lib/utils';
 
 
 const iconMap: { [key: string]: { component: React.ElementType, className: string } } = {
-  'currency-dollar': { component: CurrencyDollarIcon, className: 'bg-white/20 text-white' },
-  'user-plus': { component: UserPlusIcon, className: 'bg-white/20 text-white' },
-  'arrow-trending-up': { component: ArrowTrendingUpIcon, className: 'bg-white/20 text-white' },
-  'chart-pie': { component: ChartPieIcon, className: 'bg-white/20 text-white' },
+  'currency-dollar': { component: CurrencyDollarIcon, className: '' },
+  'user-plus': { component: UserPlusIcon, className: '' },
+  'arrow-trending-up': { component: ArrowTrendingUpIcon, className: '' },
+  'chart-pie': { component: ChartPieIcon, className: '' },
 };
 
 interface StatsProps {
@@ -66,7 +66,7 @@ export function Stats({ data }: StatsProps) {
                 </div>
               )}
             </CardHeader>
-            <CardContent className="pt-4 pb-4 bg-card">
+            <CardContent className="pt-4 pb-4">
               <div className="text-2xl font-black text-foreground">{stat.value}</div>
               <p className={cn("text-xs font-bold mt-1", changeColor)}>{stat.change}</p>
             </CardContent>

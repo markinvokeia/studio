@@ -22,7 +22,7 @@
 @layer base {
   /* TEMA INVOKE (Por defecto / Light) - Paleta Violeta */
   :root {
-    --background: 260 30% 98%; /* Casi blanco, no puro */
+    --background: 0 0% 100%; /* Blanco puro para contenidos */
     --foreground: 260 60% 5%;
     --card: 0 0% 100%;
     --card-foreground: 260 60% 5%;
@@ -44,21 +44,21 @@
     --chart-1: 260 60% 45%;
     --chart-2: 262 83% 58%;
     --radius: 0.75rem;
-    --header-gradient: linear-gradient(to right, #1a0b2e, #2d1b4d);
-    --sidebar-gradient: linear-gradient(to bottom, #1a0b2e, #2d1b4d);
-    --bar-icons-bg: rgb(255 255 255 / 0.1);
+    --header-gradient: linear-gradient(to right, #7c3aed, #4c1d95);
+    --sidebar-gradient: linear-gradient(to bottom, #7c3aed, #4c1d95);
+    --bar-icons-bg: rgb(255 255 255 / 0.15);
   }
 
   /* TEMA CLARO - Paleta Grises Suaves */
   .claro {
-    --background: 0 0% 98%;
+    --background: 0 0% 100%; /* Blanco puro para contenidos */
     --foreground: 0 0% 10%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 10%;
-    --primary: 0 0% 92%; /* Gris muy claro para headers */
-    --primary-foreground: 0 0% 20%; /* Gris oscuro para textos en headers */
+    --primary: 0 0% 92%;
+    --primary-foreground: 0 0% 20%;
     --secondary: 0 0% 94%;
     --secondary-foreground: 0 0% 20%;
     --muted: 0 0% 92%;
@@ -75,30 +75,30 @@
     --bar-icons-bg: rgb(0 0 0 / 0.05);
   }
 
-  /* TEMA OSCURO - Paleta Negros */
+  /* TEMA OSCURO - Paleta Negros Violáceos */
   .dark {
-    --background: 0 0% 0%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 5%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 262 83% 58%;
+    --background: 260 40% 2%; /* Negro profundo con matiz violeta */
+    --foreground: 260 10% 98%;
+    --card: 260 45% 4%; /* Violeta muy oscuro casi negro */
+    --card-foreground: 260 10% 98%;
+    --popover: 260 45% 5%;
+    --popover-foreground: 260 10% 98%;
+    --primary: 260 45% 8%; /* Headers y Hovers en violeta muy oscuro */
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 10%;
-    --muted-foreground: 0 0% 65%;
+    --secondary: 260 30% 12%;
+    --secondary-foreground: 260 10% 98%;
+    --muted: 260 30% 10%;
+    --muted-foreground: 260 10% 65%;
     --accent: 262 83% 58%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
+    --border: 260 30% 15%;
+    --input: 260 30% 15%;
     --ring: 262 83% 58%;
-    --header-gradient: linear-gradient(to right, #000, #111);
-    --sidebar-gradient: linear-gradient(to bottom, #000, #111);
-    --bar-icons-bg: rgb(255 255 255 / 0.1);
+    --header-gradient: linear-gradient(to right, #0a0514, #120a24);
+    --sidebar-gradient: linear-gradient(to bottom, #0a0514, #120a24);
+    --bar-icons-bg: rgba(255, 255, 255, 0.05);
   }
 }
 
