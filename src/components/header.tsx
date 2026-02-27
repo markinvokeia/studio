@@ -193,7 +193,7 @@ export function Header() {
                                     <Bell className="h-5 w-5" />
                                 </div>
                                 {pendingCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-primary ring-2 ring-background">
+                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-red-600 ring-2 ring-background">
                                         {pendingCount}
                                     </span>
                                 )}

@@ -78,12 +78,9 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                                     <div className="relative">
                                                         <item.icon className={cn("h-6 w-6 transition-transform group-hover:scale-110", (isActive || isHovered) ? "text-primary-foreground" : "")} />
                                                         {item.title === 'AlertsCenter' && pendingCount > 0 && (
-                                                            <Badge
-                                                                variant="destructive"
-                                                                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-[10px] p-0 border-2 border-background animate-pulse"
-                                                            >
+                                                            <span className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center rounded-full text-[10px] font-bold text-white bg-red-600 border-2 border-background animate-pulse">
                                                                 {pendingCount > 99 ? '99+' : pendingCount}
-                                                            </Badge>
+                                                            </span>
                                                         )}
                                                     </div>
                                                     <span className="block w-full text-center text-[9px] font-bold uppercase tracking-tight leading-tight line-clamp-1 opacity-80">{t(item.title as any)}</span>
