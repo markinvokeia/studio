@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -28,9 +27,7 @@ export function ExchangeRate({ activeCashSession, onRateChange }: ExchangeRatePr
 
   React.useEffect(() => {
     if (rate && onRateChange) {
-      // Assuming onRateChange expects ExchangeRateData, but now we have a single rate
-      // You might need to adjust this if onRateChange is used elsewhere
-      onRateChange({ buy: rate, sell: rate }); // Or adjust as needed
+      onRateChange({ buy: rate, sell: rate });
     }
   }, [rate, onRateChange]);
 
@@ -42,7 +39,7 @@ export function ExchangeRate({ activeCashSession, onRateChange }: ExchangeRatePr
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex h-10 w-auto items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium">
+          <div className="flex h-10 w-auto items-center justify-center gap-2 rounded-md border border-white/20 bg-white/10 px-3 text-sm font-medium text-white">
             <Image src="https://www.brou.com.uy/brou-tmf-portlet/images/USD.png" width={20} height={20} alt="USD Flag" />
             <div className="flex items-baseline">
               <span className="font-semibold">{rate.toFixed(2)}</span>

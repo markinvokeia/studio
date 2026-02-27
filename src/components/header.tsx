@@ -32,6 +32,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -170,7 +171,7 @@ export function Header() {
 
     return (
         <>
-            <header className="sticky top-0 z-30 w-full bg-background shadow-[0_4px_12px_rgba(0,0,0,0.05)] border-none">
+            <header className="sticky top-0 z-30 w-full bg-[#1a0b2e] dark:bg-[#0d051a] text-white shadow-[0_4px_20px_rgba(0,0,0,0.2)] border-none">
                 <div className="flex h-14 items-center justify-between px-4 lg:h-[60px] lg:px-6">
                     <div className="flex items-center gap-4">
                         <OpenCashSessionWidget />
@@ -178,12 +179,12 @@ export function Header() {
 
                     <div className="flex items-center justify-end gap-3">
                         <Link href={`/${locale}/alerts`} passHref>
-                            <Button variant="ghost" size="icon" className={cn("relative rounded-full hover:bg-primary/10 transition-colors", pendingCount > 0 && "text-primary")}>
+                            <Button variant="ghost" size="icon" className={cn("relative rounded-full hover:bg-white/10 transition-colors text-white", pendingCount > 0 && "text-primary")}>
                                 <div className={cn(pendingCount > 0 && 'animate-bell-ring')}>
                                     <Bell className="h-5 w-5" />
                                 </div>
                                 {pendingCount > 0 && (
-                                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-primary ring-2 ring-background">
+                                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-primary ring-2 ring-[#1a0b2e]">
                                         {pendingCount}
                                     </span>
                                 )}
@@ -195,7 +196,7 @@ export function Header() {
                         
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10">
+                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 text-white">
                                     <Globe className="h-5 w-5" />
                                     <span className="sr-only">{t('toggleLanguage')}</span>
                                 </Button>
@@ -224,7 +225,7 @@ export function Header() {
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10">
+                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 text-white">
                                     <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                                     <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                                     <span className="sr-only">{t('toggleTheme')}</span>

@@ -67,7 +67,8 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                                 "flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-xl transition-all duration-300 relative group",
                                                 isActive || isHovered 
                                                     ? 'bg-primary text-white shadow-[0_0_15px_rgba(233,30,99,0.4)]' 
-                                                    : 'text-gray-400 hover:bg-white/10 hover:text-white'
+                                                    : 'text-gray-400 hover:bg-white/10 hover:text-white',
+                                                (isHovered && item.items) && "rounded-r-none z-[51]"
                                             )}
                                             onMouseEnter={() => onHover(item)}
                                         >
