@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -23,7 +22,7 @@
 @layer base {
   /* TEMA INVOKE (Por defecto / Light) - Paleta Violeta y Rosa */
   :root {
-    --background: 0 0% 100%; /* Blanco puro para contenidos */
+    --background: 260 30% 98%; /* Casi blanco con matiz violeta */
     --foreground: 260 60% 5%;
     --card: 0 0% 100%;
     --card-foreground: 260 60% 5%;
@@ -35,7 +34,7 @@
     --secondary-foreground: 0 0% 100%;
     --muted: 260 30% 95%;
     --muted-foreground: 260 10% 40%;
-    --accent: 341 90% 60%; /* Usamos rosa para acentos en Invoke */
+    --accent: 263 67% 35%; 
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
@@ -45,21 +44,21 @@
     --chart-1: 263 67% 35%;
     --chart-2: 341 90% 60%;
     --radius: 0.75rem;
-    --header-gradient: linear-gradient(to right, #4c1d95, #6d28d9);
-    --sidebar-gradient: linear-gradient(to bottom, #4c1d95, #6d28d9);
+    --header-gradient: linear-gradient(to right, #2e1065, #4c1d95);
+    --sidebar-gradient: linear-gradient(to bottom, #2e1065, #4c1d95);
     --bar-icons-bg: rgb(255 255 255 / 0.15);
   }
 
   /* TEMA CLARO - Paleta Grises Suaves */
   .claro {
-    --background: 0 0% 100%; /* Blanco puro para contenidos */
+    --background: 0 0% 98%;
     --foreground: 0 0% 10%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 10%;
-    --primary: 0 0% 92%; /* Gris muy claro #f3f4f6 */
-    --primary-foreground: 0 0% 20%; /* Gris oscuro */
+    --primary: 0 0% 92%; 
+    --primary-foreground: 0 0% 20%; 
     --secondary: 0 0% 94%;
     --secondary-foreground: 0 0% 20%;
     --muted: 0 0% 92%;
@@ -78,13 +77,13 @@
 
   /* TEMA OSCURO - Paleta Negros Violáceos */
   .dark {
-    --background: 260 45% 2%; /* Negro profundo con matiz violeta */
+    --background: 260 45% 2%; 
     --foreground: 260 10% 98%;
-    --card: 260 45% 4%; /* Violeta muy oscuro casi negro */
+    --card: 260 45% 4%; 
     --card-foreground: 260 10% 98%;
     --popover: 260 45% 5%;
     --popover-foreground: 260 10% 98%;
-    --primary: 260 45% 8%; /* Violeta muy oscuro base */
+    --primary: 260 45% 8%; 
     --primary-foreground: 0 0% 100%;
     --secondary: 260 30% 12%;
     --secondary-foreground: 260 10% 98%;
