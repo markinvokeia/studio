@@ -41,7 +41,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
             </div>
             <TooltipProvider>
                 <div className="flex-1 min-h-0 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                    <nav className="flex flex-col items-center gap-2 px-2">
+                    <nav className="flex flex-col items-center gap-2">
                         {navItems.map(item => {
                             const isActive = item.items
                                 ? (item.href === '/cashier' 
@@ -64,11 +64,11 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                         <Link
                                             href={linkHref}
                                             className={cn(
-                                                "flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-xl transition-all duration-300 relative group",
+                                                "flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-xl transition-all duration-300 relative group mx-auto",
                                                 isActive || isHovered 
                                                     ? 'bg-primary text-white shadow-[0_0_15px_rgba(233,30,99,0.4)]' 
                                                     : 'text-gray-400 hover:bg-white/10 hover:text-white',
-                                                (isHovered && item.items) && "rounded-r-none z-[51]"
+                                                (isHovered && item.items) && "w-[72px] rounded-r-none z-[51] ml-2 mr-0"
                                             )}
                                             onMouseEnter={() => onHover(item)}
                                         >
@@ -114,12 +114,12 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
                 <h2 className="text-xs font-black uppercase tracking-widest">{t(item.title as any)}</h2>
             </div>
             <div className="flex-1 overflow-y-auto py-2">
-                <nav className="grid gap-1 px-2">
+                <nav className="grid gap-1 pl-2 pr-0">
                     {item.items.map((subItem: any, index: number) => (
                         <Link
                             key={index}
                             href={`/${locale}${subItem.href}`}
-                            className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold transition-all hover:bg-white/20 active:scale-95"
+                            className="flex items-center gap-3 px-4 py-2.5 rounded-l-lg rounded-r-none text-sm font-bold transition-all hover:bg-white/20 active:scale-95"
                         >
                             <subItem.icon className="h-4 w-4 opacity-80" />
                             <span>{t(subItem.title as any)}</span>
