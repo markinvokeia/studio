@@ -21,7 +21,7 @@
 }
 
 @layer base {
-  /* TEMA INVOKE (Por defecto / Light) - Paleta Violeta Oscura */
+  /* TEMA INVOKE (Por defecto / Light) - Paleta Violeta y Rosa */
   :root {
     --background: 0 0% 100%; /* Blanco puro para contenidos */
     --foreground: 260 60% 5%;
@@ -31,23 +31,23 @@
     --popover-foreground: 260 60% 5%;
     --primary: 263 67% 35%; /* Violeta Oscuro #4c1d95 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 260 40% 96%;
-    --secondary-foreground: 260 60% 20%;
+    --secondary: 341 90% 60%; /* Rosa brillante #f43f5e */
+    --secondary-foreground: 0 0% 100%;
     --muted: 260 30% 95%;
     --muted-foreground: 260 10% 40%;
-    --accent: 263 67% 35%;
+    --accent: 341 90% 60%; /* Usamos rosa para acentos en Invoke */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 260 20% 90%;
     --input: 260 20% 90%;
     --ring: 263 67% 35%;
-    --chart-1: 260 60% 45%;
-    --chart-2: 262 83% 58%;
+    --chart-1: 263 67% 35%;
+    --chart-2: 341 90% 60%;
     --radius: 0.75rem;
-    --header-gradient: linear-gradient(to right, #4c1d95, #2e1065);
-    --sidebar-gradient: linear-gradient(to bottom, #4c1d95, #2e1065);
-    --bar-icons-bg: rgb(255 255 255 / 0.1);
+    --header-gradient: linear-gradient(to right, #4c1d95, #6d28d9);
+    --sidebar-gradient: linear-gradient(to bottom, #4c1d95, #6d28d9);
+    --bar-icons-bg: rgb(255 255 255 / 0.15);
   }
 
   /* TEMA CLARO - Paleta Grises Suaves */
