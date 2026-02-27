@@ -57,20 +57,20 @@ export function AverageBillingCard({ data, isLoading }: AverageBillingCardProps)
     }
     const { value, change, changeType } = data;
     const isPositive = changeType === 'positive';
-    const trendColor = isPositive ? 'text-green-400' : 'text-red-400';
+    const trendColor = isPositive ? 'text-green-600' : 'text-red-600';
     const TrendIcon = isPositive ? TrendingUpIcon : TrendingDownIcon;
   
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between py-4">
           <CardTitle>{t('avgBilling')}</CardTitle>
-          <div className="header-icon-circle">
+          <div className="header-icon-circle bg-white/20 text-white">
             <DollarSign className="h-5 w-5" />
           </div>
         </CardHeader>
-        <CardContent className="py-4">
-          <div className="text-4xl font-bold text-white">${value.toFixed(2)}</div>
-          <div className={cn("text-xs flex items-center mt-2 font-medium", trendColor)}>
+        <CardContent className="py-6">
+          <div className="text-4xl font-black text-foreground">${value.toFixed(2)}</div>
+          <div className={cn("text-xs flex items-center mt-2 font-bold", trendColor)}>
             <TrendIcon className="h-4 w-4 mr-1" />
             {change.toFixed(1)}% {t('vsPreviousPeriod')}
           </div>
@@ -105,11 +105,11 @@ export function PatientDemographicsCard({ data, isLoading }: PatientDemographics
         <Card className="flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-4">
                 <CardTitle>{t('newVsRecurring')}</CardTitle>
-                <div className="header-icon-circle">
+                <div className="header-icon-circle bg-white/20 text-white">
                     <Users className="h-5 w-5" />
                 </div>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col items-center justify-center py-2">
+            <CardContent className="flex-1 flex flex-col items-center justify-center py-4">
                 <ChartContainer
                     config={chartConfig}
                     className="mx-auto aspect-square h-[120px]"
@@ -123,19 +123,19 @@ export function PatientDemographicsCard({ data, isLoading }: PatientDemographics
                     </Pie>
                 </PieChart>
                 </ChartContainer>
-            </CardContent>
-            <div className="flex flex-col items-center justify-center p-4 pt-2">
-                 <div className="text-4xl font-bold text-white">{total}</div>
-                <p className="text-xs text-white/60 font-medium">{t('activePatients')}</p>
-                <div className="w-full flex justify-center gap-4 mt-2 text-xs">
+                <div className="flex flex-col items-center justify-center mt-2">
+                    <div className="text-4xl font-black text-foreground">{total}</div>
+                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-tight">{t('activePatients')}</p>
+                </div>
+                <div className="w-full flex justify-center gap-4 mt-4 text-xs">
                     {chartData.map((entry) => (
-                        <div key={entry.type} className="flex items-center gap-1.5 text-white/80">
+                        <div key={entry.type} className="flex items-center gap-1.5 text-foreground/80 font-medium">
                             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.fill }}></span>
-                            <span>{entry.type}: {entry.count}</span>
+                            <span>{entry.type === 'New' ? t('new') : t('recurrent')}: {entry.count}</span>
                         </div>
                     ))}
                 </div>
-            </div>
+            </CardContent>
         </Card>
     );
 }
@@ -160,20 +160,20 @@ export function AppointmentAttendanceCard({ data, isLoading }: AppointmentAttend
     }
     const { value, change, changeType } = data;
     const isPositive = changeType === 'positive';
-    const trendColor = isPositive ? 'text-green-400' : 'text-red-400';
+    const trendColor = isPositive ? 'text-green-600' : 'text-red-600';
     const TrendIcon = isPositive ? TrendingUpIcon : TrendingDownIcon;
   
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between py-4">
           <CardTitle>{t('attendanceRate')}</CardTitle>
-          <div className="header-icon-circle">
+          <div className="header-icon-circle bg-white/20 text-white">
             <CalendarCheck className="h-5 w-5" />
           </div>
         </CardHeader>
-        <CardContent className="py-4">
-          <div className="text-4xl font-bold text-white">{value.toFixed(2)}%</div>
-          <div className={cn("text-xs flex items-center mt-2 font-medium", trendColor)}>
+        <CardContent className="py-6">
+          <div className="text-4xl font-black text-foreground">{value.toFixed(2)}%</div>
+          <div className={cn("text-xs flex items-center mt-2 font-bold", trendColor)}>
             <TrendIcon className="h-4 w-4 mr-1" />
             {change.toFixed(1)}% {t('vsPreviousPeriod')}
           </div>

@@ -32,7 +32,7 @@ export function Stats({ data }: StatsProps) {
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
            <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
               <Skeleton className="h-5 w-2/3" />
             </CardHeader>
             <CardContent>
@@ -51,24 +51,24 @@ export function Stats({ data }: StatsProps) {
         const IconInfo = iconMap[stat.icon];
         const Icon = IconInfo ? IconInfo.component : null;
         const changeColor = {
-            positive: 'text-green-500',
+            positive: 'text-green-600',
             negative: 'text-destructive',
-            neutral: 'text-white/60'
+            neutral: 'text-muted-foreground'
         }[stat.changeType];
 
         return (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+          <Card key={index} className="flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
+              <CardTitle className="text-sm font-bold uppercase tracking-wider">{stat.title}</CardTitle>
               {Icon && (
                 <div className={cn("header-icon-circle", IconInfo.className)}>
-                    <Icon className="h-6 w-6" />
+                    <Icon className="h-5 w-5" />
                 </div>
               )}
             </CardHeader>
-            <CardContent className="pt-2 pb-4">
-              <div className="text-2xl font-bold text-white">{stat.value}</div>
-              <p className={cn("text-xs font-medium", changeColor)}>{stat.change}</p>
+            <CardContent className="pt-4 pb-4 bg-card">
+              <div className="text-2xl font-black text-foreground">{stat.value}</div>
+              <p className={cn("text-xs font-bold mt-1", changeColor)}>{stat.change}</p>
             </CardContent>
           </Card>
         );
