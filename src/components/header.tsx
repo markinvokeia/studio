@@ -1,3 +1,4 @@
+
 'use client';
 
 import { OpenCashSessionWidget } from '@/components/cash-session-widget';
@@ -179,12 +180,21 @@ export function Header() {
 
                     <div className="flex items-center justify-end gap-3">
                         <Link href={`/${locale}/alerts`} passHref>
-                            <Button variant="ghost" size="icon" className={cn("relative rounded-full hover:bg-white/10 transition-colors text-white", pendingCount > 0 && "text-primary")}>
+                            <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className={cn(
+                                    "relative rounded-full transition-all duration-300",
+                                    "border-white/20 bg-white/10 text-white",
+                                    "hover:bg-white/20 hover:border-white/40",
+                                    pendingCount > 0 && "border-pink-500/50 bg-pink-500/20 shadow-[0_0_15px_rgba(236,72,153,0.3)]"
+                                )}
+                            >
                                 <div className={cn(pendingCount > 0 && 'animate-bell-ring')}>
                                     <Bell className="h-5 w-5" />
                                 </div>
                                 {pendingCount > 0 && (
-                                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-primary ring-2 ring-[#5b21b6]">
+                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-pink-500 ring-2 ring-[#5b21b6]">
                                         {pendingCount}
                                     </span>
                                 )}
