@@ -33,14 +33,14 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
     const effectivePathname = getEffectivePathname(pathname, locale);
 
     return (
-        <aside className="fixed inset-y-0 left-0 z-50 flex h-screen w-20 flex-col bg-[#1a0b2e] dark:bg-[#0d051a] shadow-[4px_0_20px_rgba(0,0,0,0.4)] transition-all">
+        <aside className="fixed inset-y-0 left-0 z-50 flex h-screen w-20 flex-col bg-gradient-to-b from-[#7c3aed] via-[#5b21b6] to-[#4c1d95] shadow-[4px_0_20px_rgba(0,0,0,0.4)] transition-all">
             <div className="flex h-14 items-center justify-center mb-4 mt-2">
                 <Link href={`/${locale}`} className="transition-transform hover:scale-110">
                     <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={48} height={48} alt="InvokeIA Logo" priority />
                 </Link>
             </div>
             <TooltipProvider>
-                <div className="flex-1 min-h-0 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex-1 min-0 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                     <nav className="flex flex-col items-center gap-2">
                         {navItems.map(item => {
                             const isActive = item.items
@@ -68,8 +68,8 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                                 "flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-xl transition-all duration-300 relative group mx-auto",
                                                 isActive || isHovered 
                                                     ? 'bg-primary text-white shadow-[0_0_15px_rgba(233,30,99,0.4)]' 
-                                                    : 'text-gray-400 hover:bg-white/10 hover:text-white',
-                                                isExpanded && "w-20 rounded-r-none z-[61] mx-0 self-end pr-4"
+                                                    : 'text-white/70 hover:bg-white/10 hover:text-white',
+                                                isExpanded && "w-20 rounded-r-none z-[61] mx-0"
                                             )}
                                             onMouseEnter={() => onHover(item)}
                                         >
