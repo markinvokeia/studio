@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -43,12 +44,12 @@ export const OpenCashSessionWidget = () => {
                                 variant="outline" 
                                 className={cn(
                                     "h-auto py-1.5 px-3 flex items-center gap-3",
-                                    "border-green-500/50 bg-green-500/10 text-green-400",
-                                    "hover:bg-green-500/20 hover:border-green-400 hover:text-green-300",
-                                    "transition-all duration-200"
+                                    "border-none bg-primary-foreground/15 text-primary-foreground",
+                                    "hover:bg-primary-foreground/25",
+                                    "transition-all duration-200 shadow-none"
                                 )}
                             >
-                                <Banknote className="h-4 w-4 opacity-70" />
+                                <Banknote className="h-4 w-4 opacity-80" />
                                 
                                 <div className="flex flex-col items-end text-xs">
                                     <div className="flex items-center gap-1.5">
@@ -61,7 +62,7 @@ export const OpenCashSessionWidget = () => {
                                     </div>
                                 </div>
 
-                                <div className="pl-1 border-l border-green-600/20">
+                                <div className="pl-1 border-l border-primary-foreground/20">
                                     <ArrowRight className="h-4 w-4" />
                                 </div>
                             </Button>
@@ -84,13 +85,12 @@ export const OpenCashSessionWidget = () => {
                             variant="outline" 
                             size="sm" 
                             className={cn(
-                                "h-9 border-dashed",
-                                "border-yellow-500/60 text-yellow-400 bg-yellow-500/10",
-                                "hover:border-yellow-500 hover:bg-yellow-500/20 hover:text-yellow-300",
+                                "h-9 border-none bg-primary-foreground/15 text-primary-foreground",
+                                "hover:bg-primary-foreground/25 shadow-none",
                                 "transition-all"
                             )}
                         >
-                            <Box className="mr-2 h-4 w-4" />
+                            <Box className="mr-2 h-4 w-4 opacity-80" />
                             {t('button')}
                         </Button>
                     </Link>

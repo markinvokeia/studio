@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -33,7 +34,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
     const effectivePathname = getEffectivePathname(pathname, locale);
 
     return (
-        <aside className="fixed inset-y-0 left-0 z-50 flex h-screen w-20 flex-col bg-[var(--sidebar-gradient)] shadow-[4px_0_20px_rgba(0,0,0,0.1)] transition-all">
+        <aside className="fixed inset-y-0 left-0 z-[20] flex h-screen w-20 flex-col bg-[var(--sidebar-gradient)] shadow-[4px_0_20px_rgba(0,0,0,0.1)] transition-all">
             <div className="flex h-14 items-center justify-center mb-4 mt-2 shrink-0">
                 <Link href={`/${locale}`} className="transition-transform hover:scale-110">
                     <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={48} height={48} alt="InvokeIA Logo" priority />
@@ -70,7 +71,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                                     (isActive || isHovered) 
                                                         ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(0,0,0,0.1)]' 
                                                         : 'text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground',
-                                                    isExpanded && "w-20 rounded-r-none z-[61]"
+                                                    isExpanded && "w-20 rounded-r-none z-[31]"
                                                 )}
                                                 onMouseEnter={() => onHover(item)}
                                             >
@@ -108,7 +109,7 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
 
     return (
         <div
-            className="fixed left-20 z-[60] hidden md:flex flex-col bg-primary text-primary-foreground shadow-[8px_8px_20px_rgba(0,0,0,0.1)] rounded-r-2xl overflow-hidden animate-in fade-in slide-in-from-left-2 duration-200 h-auto max-h-[85vh] my-auto top-0 bottom-0"
+            className="fixed left-20 z-[30] hidden md:flex flex-col bg-primary text-primary-foreground shadow-[8px_8px_20px_rgba(0,0,0,0.1)] rounded-r-2xl overflow-hidden animate-in fade-in slide-in-from-left-2 duration-200 h-auto max-h-[85vh] my-auto top-0 bottom-0"
             onMouseLeave={onLeave}
             style={{ width: '200px' }}
         >

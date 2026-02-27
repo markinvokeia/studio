@@ -1,3 +1,4 @@
+
 'use client';
 
 import { OpenCashSessionWidget } from '@/components/cash-session-widget';
@@ -171,7 +172,7 @@ export function Header() {
 
     return (
         <>
-            <header className="sticky top-0 z-[70] w-full bg-[var(--header-gradient)] text-primary-foreground shadow-[0_4px_20px_rgba(0,0,0,0.1)] border-none transition-colors duration-300">
+            <header className="sticky top-0 z-[40] w-full bg-[var(--header-gradient)] text-primary-foreground shadow-[0_4px_20px_rgba(0,0,0,0.1)] border-none transition-colors duration-300">
                 <div className="flex h-14 items-center justify-between px-4 lg:h-[60px] lg:px-6">
                     <div className="flex items-center gap-4">
                         <OpenCashSessionWidget />
