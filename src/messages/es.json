@@ -3699,5 +3699,11 @@
             "errorTitle": "Error",
             "saveErrorDescription": "Error al guardar las preferencias."
         }
+    },
+    "CommunicationWarningDialog": {
+        "title": "Canal de Email No Habilitado",
+        "description": "Las siguientes direcciones de correo electrónico no tienen el canal de email habilitado en sus preferencias de comunicación. Es posible que no reciban este mensaje:",
+        "cancel": "Cancelar",
+        "continueAnyway": "Enviar de Todos Modos"
     }
 }

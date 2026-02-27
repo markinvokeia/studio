@@ -4,6 +4,7 @@
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +20,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
+import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { Payment, PaymentMethod, User } from '@/lib/types';
 import { cn, getDocumentFileName } from '@/lib/utils';
 import api from '@/services/api';
@@ -114,6 +116,8 @@ export default function PaymentsPage() {
     const [selectedPaymentForEmail, setSelectedPaymentForEmail] = React.useState<Payment | null>(null);
     const [emailRecipients, setEmailRecipients] = React.useState('');
     const [isSendingEmail, setIsSendingEmail] = React.useState(false);
+    const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
+    const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
     const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
     const [isConfirmPrepaidOpen, setIsConfirmPrepaidOpen] = React.useState(false);
     const [prepaidData, setPrepaidData] = React.useState<PrepaidFormValues | null>(null);
@@ -194,6 +198,21 @@ export default function PaymentsPage() {
             return;
         }
 
+        const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
+        const disabled = getDisabledEmails(preferences);
+
+        if (disabled.length > 0) {
+            setDisabledEmails(disabled);
+            setIsWarningDialogOpen(true);
+            return;
+        }
+
+        await sendEmail(emails);
+    };
+
+    const sendEmail = async (emails: string[]) => {
+        if (!selectedPaymentForEmail) return;
+
         setIsSendingEmail(true);
         try {
             await api.post(API_ROUTES.SALES.API_PAYMENT_SEND, { paymentId: selectedPaymentForEmail.id, emails });
@@ -214,6 +233,13 @@ export default function PaymentsPage() {
         } finally {
             setIsSendingEmail(false);
         }
+    };
+
+    const handleWarningConfirm = async () => {
+        if (!selectedPaymentForEmail) return;
+        const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
+        await sendEmail(emails);
+        setIsWarningDialogOpen(false);
     };
 
     const handleCreatePrepaid = async () => {
@@ -330,6 +356,13 @@ export default function PaymentsPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <CommunicationWarningDialog
+                open={isWarningDialogOpen}
+                onOpenChange={setIsWarningDialogOpen}
+                disabledItems={disabledEmails}
+                onConfirm={handleWarningConfirm}
+            />
 
             <Dialog open={isPrepaidDialogOpen} onOpenChange={setIsPrepaidDialogOpen}>
                 <DialogContent>

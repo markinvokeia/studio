@@ -3700,5 +3700,11 @@
       "errorTitle": "Error",
       "saveErrorDescription": "Error saving preferences."
     }
+  },
+  "CommunicationWarningDialog": {
+    "title": "Email Channel Not Enabled",
+    "description": "The following email addresses do not have the email channel enabled in their communication preferences. They may not receive this message:",
+    "cancel": "Cancel",
+    "continueAnyway": "Send Anyway"
   }
 }

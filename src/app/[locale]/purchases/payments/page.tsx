@@ -10,9 +10,11 @@ import { Label } from '@/components/ui/label';
 import { API_ROUTES } from '@/constants/routes';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
+import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchasePayments, Payment } from '@/services/payments-service';
+import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { useTranslations } from 'next-intl';
 import { Loader2 } from 'lucide-react';
 import * as React from 'react';
@@ -36,6 +38,8 @@ export default function PaymentsPage() {
     const [selectedPaymentForEmail, setSelectedPaymentForEmail] = React.useState<Payment | null>(null);
     const [emailRecipients, setEmailRecipients] = React.useState('');
     const [isSendingEmail, setIsSendingEmail] = React.useState(false);
+    const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
+    const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
 
 
 
@@ -98,6 +102,21 @@ export default function PaymentsPage() {
             return;
         }
 
+        const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
+        const disabled = getDisabledEmails(preferences);
+
+        if (disabled.length > 0) {
+            setDisabledEmails(disabled);
+            setIsWarningDialogOpen(true);
+            return;
+        }
+
+        await sendEmail(emails);
+    };
+
+    const sendEmail = async (emails: string[]) => {
+        if (!selectedPaymentForEmail) return;
+
         setIsSendingEmail(true);
         try {
             await api.post(API_ROUTES.PURCHASES.API_PAYMENT_SEND, { paymentId: selectedPaymentForEmail.id, emails });
@@ -118,6 +137,13 @@ export default function PaymentsPage() {
         } finally {
             setIsSendingEmail(false);
         }
+    };
+
+    const handleWarningConfirm = async () => {
+        if (!selectedPaymentForEmail) return;
+        const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
+        await sendEmail(emails);
+        setIsWarningDialogOpen(false);
     };
 
     return (
@@ -174,6 +200,13 @@ export default function PaymentsPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <CommunicationWarningDialog
+                open={isWarningDialogOpen}
+                onOpenChange={setIsWarningDialogOpen}
+                disabledItems={disabledEmails}
+                onConfirm={handleWarningConfirm}
+            />
         </div>
     );
 }

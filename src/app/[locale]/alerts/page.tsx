@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAlertNotifications, AlertNotificationsProvider } from '@/context/alert-notifications-context';
 import { API_ROUTES } from '@/constants/routes';
 import { toast } from '@/hooks/use-toast';
+import { checkPreferencesByUserId } from '@/hooks/use-communication-preferences';
 import { AlertInstance, AlertAction, AlertCategory } from '@/lib/types';
 import { api } from '@/services/api';
 import { BulkActionsFloatingBar } from '@/components/alerts/bulk-actions-floating-bar';
@@ -149,6 +151,9 @@ function AlertsCenterPageContent() {
     const [addNoteDialogOpen, setAddNoteDialogOpen] = React.useState(false);
     const [noteContent, setNoteContent] = React.useState<string>('');
     const [alertsForNote, setAlertsForNote] = React.useState<string[]>([]);
+    const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
+    const [disabledItems, setDisabledItems] = React.useState<string[]>([]);
+    const [pendingAlertIds, setPendingAlertIds] = React.useState<string[]>([]);
 
 
     const loadAlerts = async () => {
@@ -232,6 +237,32 @@ function AlertsCenterPageContent() {
     };
 
     const sendEmail = React.useCallback(async (alertIds: string[]) => {
+        const alertsToCheck = alerts.filter(a => alertIds.includes(a.id));
+        const userIds = alertsToCheck.map(a => a.patient_id).filter(Boolean) as string[];
+        
+        const uniqueUserIds = [...new Set(userIds)];
+        
+        if (uniqueUserIds.length > 0) {
+            const disabledIds: string[] = [];
+            for (const userId of uniqueUserIds) {
+                const hasEnabled = await checkPreferencesByUserId(userId, 'email', 'billing');
+                if (!hasEnabled) {
+                    disabledIds.push(userId);
+                }
+            }
+
+            if (disabledIds.length > 0) {
+                setDisabledItems(disabledIds);
+                setPendingAlertIds(alertIds);
+                setIsWarningDialogOpen(true);
+                return;
+            }
+        }
+
+        await doSendEmail(alertIds);
+    }, [alerts]);
+
+    const doSendEmail = async (alertIds: string[]) => {
         setBulkActionLoading('email');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SEND_EMAIL, { ids: alertIds });
@@ -244,7 +275,12 @@ function AlertsCenterPageContent() {
         } finally {
             setBulkActionLoading(null);
         }
-    }, []);
+    };
+
+    const handleWarningConfirm = async () => {
+        await doSendEmail(pendingAlertIds);
+        setIsWarningDialogOpen(false);
+    };
 
     const sendWhatsApp = async (alertIds: string[]) => {
         setBulkActionLoading('whatsapp');
@@ -666,6 +702,15 @@ function AlertsCenterPageContent() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Communication Warning Dialog */}
+            <CommunicationWarningDialog
+                open={isWarningDialogOpen}
+                onOpenChange={setIsWarningDialogOpen}
+                disabledItems={disabledItems}
+                itemLabel="User ID"
+                onConfirm={handleWarningConfirm}
+            />
 
             {/* Floating Bulk Actions Bar */}
             <BulkActionsFloatingBar

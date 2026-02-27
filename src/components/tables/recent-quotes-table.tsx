@@ -31,6 +31,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { Quote } from '@/lib/types';
 import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -43,6 +44,7 @@ import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { DataTablePagination } from '../ui/data-table-pagination';
 import { DataTableToolbar } from '../ui/data-table-toolbar';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 
 const getColumns = (
   t: (key: string) => string,
@@ -316,6 +318,8 @@ export function RecentQuotesTable({
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
   const [selectedQuoteForEmail, setSelectedQuoteForEmail] = React.useState<Quote | null>(null);
   const [emailRecipients, setEmailRecipients] = React.useState('');
+  const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
+  const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -379,6 +383,21 @@ export function RecentQuotesTable({
       return;
     }
 
+    const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
+    const disabled = getDisabledEmails(preferences);
+
+    if (disabled.length > 0) {
+      setDisabledEmails(disabled);
+      setIsWarningDialogOpen(true);
+      return;
+    }
+
+    await sendEmail(emails);
+  };
+
+  const sendEmail = async (emails: string[]) => {
+    if (!selectedQuoteForEmail) return;
+
     const handleSetSending = (sending: boolean) => {
       if (setIsSendingEmail) {
         setIsSendingEmail(sending);
@@ -405,6 +424,13 @@ export function RecentQuotesTable({
     } finally {
       handleSetSending(false);
     }
+  };
+
+  const handleWarningConfirm = async () => {
+    if (!selectedQuoteForEmail) return;
+    const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
+    await sendEmail(emails);
+    setIsWarningDialogOpen(false);
   };
 
   const columns = React.useMemo(() => getColumns(t, onEdit, onDelete, onQuoteAction, handlePrintQuote, handleSendEmailClick), [t, onEdit, onDelete, onQuoteAction]);
@@ -588,6 +614,13 @@ export function RecentQuotesTable({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CommunicationWarningDialog
+        open={isWarningDialogOpen}
+        onOpenChange={setIsWarningDialogOpen}
+        disabledItems={disabledEmails}
+        onConfirm={handleWarningConfirm}
+      />
     </>
   );
 }

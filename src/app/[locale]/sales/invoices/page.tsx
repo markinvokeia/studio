@@ -6,6 +6,7 @@ import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -16,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { Invoice, InvoiceItem, Payment, Service } from '@/lib/types';
 import { getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -184,6 +186,8 @@ export default function InvoicesPage() {
     const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = React.useState<Invoice | null>(null);
     const [emailRecipients, setEmailRecipients] = React.useState('');
     const [isSendingEmail, setIsSendingEmail] = React.useState(false);
+    const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
+    const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
     const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
     const [importFile, setImportFile] = React.useState<File | null>(null);
     const [isProcessingImport, setIsProcessingImport] = React.useState(false);
@@ -327,6 +331,21 @@ export default function InvoicesPage() {
             return;
         }
 
+        const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
+        const disabled = getDisabledEmails(preferences);
+
+        if (disabled.length > 0) {
+            setDisabledEmails(disabled);
+            setIsWarningDialogOpen(true);
+            return;
+        }
+
+        await sendEmail(emails);
+    };
+
+    const sendEmail = async (emails: string[]) => {
+        if (!selectedInvoiceForEmail) return;
+        
         setIsSendingEmail(true);
         try {
             await api.post(API_ROUTES.SALES.API_INVOICE_SEND, { invoiceId: selectedInvoiceForEmail.id, emails });
@@ -347,6 +366,13 @@ export default function InvoicesPage() {
         } finally {
             setIsSendingEmail(false);
         }
+    };
+
+    const handleWarningConfirm = async () => {
+        if (!selectedInvoiceForEmail) return;
+        const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
+        await sendEmail(emails);
+        setIsWarningDialogOpen(false);
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -597,6 +623,14 @@ export default function InvoicesPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <CommunicationWarningDialog
+                open={isWarningDialogOpen}
+                onOpenChange={setIsWarningDialogOpen}
+                disabledItems={disabledEmails}
+                onConfirm={handleWarningConfirm}
+            />
+
             <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
