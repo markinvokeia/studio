@@ -87,7 +87,7 @@ export function Header() {
     const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
     const [passwordChangeError, setPasswordChangeError] = React.useState<string | null>(null);
 
-    const { pendingCount, highestPriority } = useAlertNotifications();
+    const { pendingCount } = useAlertNotifications();
 
     const form = useForm<PasswordFormValues>({
         resolver: zodResolver(passwordFormSchema(t)),
@@ -170,7 +170,7 @@ export function Header() {
 
     return (
         <>
-            <header className="sticky top-0 z-30 w-full bg-background shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
+            <header className="sticky top-0 z-30 w-full bg-background shadow-[0_4px_12px_rgba(0,0,0,0.05)] border-none">
                 <div className="flex h-14 items-center justify-between px-4 lg:h-[60px] lg:px-6">
                     <div className="flex items-center gap-4">
                         <OpenCashSessionWidget />

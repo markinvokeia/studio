@@ -3,7 +3,6 @@
 import * as React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Nav } from '@/components/nav';
 import { navItems } from '@/config/nav';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
@@ -34,7 +33,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
     const effectivePathname = getEffectivePathname(pathname, locale);
 
     return (
-        <aside className="fixed inset-y-0 left-0 z-50 flex h-screen w-20 flex-col bg-[#1a0b2e] dark:bg-[#0d051a] shadow-[4px_0_24px_rgba(0,0,0,0.3)]">
+        <aside className="fixed inset-y-0 left-0 z-50 flex h-screen w-20 flex-col bg-[#1a0b2e] dark:bg-[#0d051a] shadow-[4px_0_20px_rgba(0,0,0,0.4)] transition-all">
             <div className="flex h-14 items-center justify-center mb-4 mt-2">
                 <Link href={`/${locale}`} className="transition-transform hover:scale-110">
                     <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={48} height={48} alt="InvokeIA Logo" priority />
@@ -106,7 +105,7 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
 
     return (
         <div
-            className="fixed left-20 z-40 hidden md:flex flex-col bg-primary text-white shadow-[8px_0_24px_rgba(0,0,0,0.2)] rounded-r-2xl overflow-hidden animate-in fade-in slide-in-from-left-4 duration-300 h-auto max-h-[90vh] my-auto top-0 bottom-0"
+            className="fixed left-20 z-40 hidden md:flex flex-col bg-primary text-white shadow-[8px_8px_20px_rgba(0,0,0,0.3)] rounded-r-2xl overflow-hidden animate-in fade-in slide-in-from-left-2 duration-200 h-auto max-h-[85vh] my-auto top-0 bottom-0"
             onMouseLeave={onLeave}
             style={{ width: '240px' }}
         >
@@ -119,7 +118,7 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
                         <Link
                             key={index}
                             href={`/${locale}${subItem.href}`}
-                            className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold transition-colors hover:bg-white/20 active:scale-95"
+                            className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold transition-all hover:bg-white/20 active:scale-95"
                         >
                             <subItem.icon className="h-4 w-4 opacity-80" />
                             <span>{t(subItem.title as any)}</span>
@@ -160,7 +159,7 @@ export function Sidebar() {
 
     return (
         <div onMouseLeave={handleLeave}>
-            <MainSidebar onHover={handleHover} activeItem={hoveredItem} />
+            <MainSidebar handleHover={handleHover} onHover={handleHover} activeItem={hoveredItem} />
             {hoveredItem && (
                 <div onMouseEnter={handleSecondaryEnter}>
                     <SecondarySidebar item={hoveredItem} onLeave={handleLeave} />
