@@ -5,9 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { User, UserCommunicationPreference } from '@/lib/types';
+import { NotificationCategory, NotificationPlatform, User } from '@/lib/types';
 import { api } from '@/services/api';
-import { Mail, MessageSquare, Phone, Save, Send } from 'lucide-react';
+import { Mail, MessageSquare, Phone, Save } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -21,17 +21,32 @@ interface PreferenceState {
     is_enabled: boolean;
 }
 
-const CHANNELS = [
-    { slug: 'email', name: 'Email', icon: Mail },
-    { slug: 'sms', name: 'SMS', icon: MessageSquare },
-    { slug: 'whatsapp', name: 'WhatsApp', icon: Phone },
-];
+const platformIcons: Record<string, React.ComponentType<any>> = {
+    email: Mail,
+    sms: MessageSquare,
+    whatsapp: Phone,
+};
 
-const CATEGORIES = [
-    { slug: 'appointments', key: 'appointments' },
-    { slug: 'invoices', key: 'invoices' },
-    { slug: 'marketing', key: 'marketing' },
-];
+async function getPlatforms(): Promise<NotificationPlatform[]> {
+    try {
+        const response = await api.get(API_ROUTES.SYSTEM.NOTIFICATION_PLATFORMS);
+        const platforms = Array.isArray(response) ? response : [];
+        return platforms.filter((p: NotificationPlatform) => p.is_active);
+    } catch (error) {
+        console.error('Failed to fetch platforms:', error);
+        return [];
+    }
+}
+
+async function getCategories(): Promise<NotificationCategory[]> {
+    try {
+        const response = await api.get(API_ROUTES.SYSTEM.NOTIFICATION_CATEGORIES);
+        return Array.isArray(response) ? response : [];
+    } catch (error) {
+        console.error('Failed to fetch categories:', error);
+        return [];
+    }
+}
 
 async function getUserPreferences(userId: string): Promise<PreferenceState[]> {
     try {
@@ -60,23 +75,32 @@ async function saveUserPreferences(userId: string, preferences: PreferenceState[
 export function UserCommunicationPreferences({ user }: UserCommunicationPreferencesProps) {
     const t = useTranslations('UserCommunicationPreferences');
     const { toast } = useToast();
+    const [platforms, setPlatforms] = React.useState<NotificationPlatform[]>([]);
+    const [categories, setCategories] = React.useState<NotificationCategory[]>([]);
     const [preferences, setPreferences] = React.useState<PreferenceState[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [isSaving, setIsSaving] = React.useState(false);
 
-    const loadPreferences = React.useCallback(async () => {
+    const loadData = React.useCallback(async () => {
         setIsLoading(true);
         try {
-            const data = await getUserPreferences(user.id);
-            
+            const [platformsData, categoriesData, preferencesData] = await Promise.all([
+                getPlatforms(),
+                getCategories(),
+                getUserPreferences(user.id),
+            ]);
+
+            setPlatforms(platformsData);
+            setCategories(categoriesData);
+
             const allCombinations: PreferenceState[] = [];
-            CHANNELS.forEach(channel => {
-                CATEGORIES.forEach(category => {
-                    const existing = data.find(
-                        p => p.channel_slug === channel.slug && p.category_slug === category.slug
+            platformsData.forEach((platform: NotificationPlatform) => {
+                categoriesData.forEach((category: NotificationCategory) => {
+                    const existing = preferencesData.find(
+                        p => p.channel_slug === platform.platform_name && p.category_slug === category.slug
                     );
                     allCombinations.push({
-                        channel_slug: channel.slug,
+                        channel_slug: platform.platform_name,
                         category_slug: category.slug,
                         is_enabled: existing ? existing.is_enabled : true,
                     });
@@ -84,15 +108,15 @@ export function UserCommunicationPreferences({ user }: UserCommunicationPreferen
             });
             setPreferences(allCombinations);
         } catch (error) {
-            console.error('Failed to load preferences:', error);
+            console.error('Failed to load data:', error);
         } finally {
             setIsLoading(false);
         }
     }, [user.id]);
 
     React.useEffect(() => {
-        loadPreferences();
-    }, [loadPreferences]);
+        loadData();
+    }, [loadData]);
 
     const isPreferenceEnabled = (categorySlug: string, channelSlug: string): boolean => {
         const pref = preferences.find(
@@ -197,13 +221,13 @@ export function UserCommunicationPreferences({ user }: UserCommunicationPreferen
                                 <th className="text-left p-2 border-b font-medium text-muted-foreground text-sm">
                                     {t('table.category')}
                                 </th>
-                                {CHANNELS.map(channel => {
-                                    const Icon = channel.icon;
+                                {platforms.map((platform) => {
+                                    const Icon = platformIcons[platform.platform_name] || Mail;
                                     return (
-                                        <th key={channel.slug} className="text-center p-2 border-b font-medium text-muted-foreground text-sm">
+                                        <th key={platform.platform_name} className="text-center p-2 border-b font-medium text-muted-foreground text-sm">
                                             <div className="flex flex-col items-center gap-1">
                                                 <Icon className="h-4 w-4" />
-                                                <span className="text-xs">{channel.name}</span>
+                                                <span className="text-xs">{platform.platform_name}</span>
                                             </div>
                                         </th>
                                     );
@@ -211,7 +235,7 @@ export function UserCommunicationPreferences({ user }: UserCommunicationPreferen
                             </tr>
                         </thead>
                         <tbody>
-                            {CATEGORIES.map(category => (
+                            {categories.map((category) => (
                                 <tr key={category.slug} className="hover:bg-muted/30">
                                     <td className="p-2 border-b">
                                         <div className="flex items-center gap-2">
@@ -219,14 +243,14 @@ export function UserCommunicationPreferences({ user }: UserCommunicationPreferen
                                                 checked={isCategoryEnabled(category.slug)}
                                                 onCheckedChange={(checked) => handleCategoryToggle(category.slug, !!checked)}
                                             />
-                                            <span className="text-sm">{t(`categories.${category.key}`)}</span>
+                                            <span className="text-sm">{category.name}</span>
                                         </div>
                                     </td>
-                                    {CHANNELS.map(channel => (
-                                        <td key={`${category.slug}-${channel.slug}`} className="text-center p-2 border-b">
+                                    {platforms.map((platform) => (
+                                        <td key={`${category.slug}-${platform.platform_name}`} className="text-center p-2 border-b">
                                             <Checkbox
-                                                checked={isPreferenceEnabled(category.slug, channel.slug)}
-                                                onCheckedChange={() => handleToggle(category.slug, channel.slug)}
+                                                checked={isPreferenceEnabled(category.slug, platform.platform_name)}
+                                                onCheckedChange={() => handleToggle(category.slug, platform.platform_name)}
                                             />
                                         </td>
                                     ))}
@@ -238,21 +262,21 @@ export function UserCommunicationPreferences({ user }: UserCommunicationPreferen
                                 <td className="p-2 border-b font-medium text-sm">
                                     <div className="flex items-center gap-2">
                                         <Checkbox
-                                            checked={CHANNELS.every(c => isChannelEnabled(c.slug))}
+                                            checked={platforms.every(p => isChannelEnabled(p.platform_name))}
                                             onCheckedChange={(checked) => {
-                                                CHANNELS.forEach(c => handleChannelToggle(c.slug, !!checked));
+                                                platforms.forEach(p => handleChannelToggle(p.platform_name, !!checked));
                                             }}
                                         />
                                         <span>{t('table.allCategories')}</span>
                                     </div>
                                 </td>
-                                {CHANNELS.map(channel => {
-                                    const Icon = channel.icon;
+                                {platforms.map((platform) => {
+                                    const Icon = platformIcons[platform.platform_name] || Mail;
                                     return (
-                                        <td key={channel.slug} className="text-center p-2 border-b">
+                                        <td key={platform.platform_name} className="text-center p-2 border-b">
                                             <Checkbox
-                                                checked={isChannelEnabled(channel.slug)}
-                                                onCheckedChange={(checked) => handleChannelToggle(channel.slug, !!checked)}
+                                                checked={isChannelEnabled(platform.platform_name)}
+                                                onCheckedChange={(checked) => handleChannelToggle(platform.platform_name, !!checked)}
                                             />
                                         </td>
                                     );

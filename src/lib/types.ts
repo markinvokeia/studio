@@ -609,6 +609,9 @@ export type AlertCategory = {
   sort_order?: number;
   is_active: boolean;
   rules_count?: number;
+  internal_category_id?: string;
+  internal_category_name?: string;
+  notification_category_slug?: string;
 };
 
 export type AlertRule = {
@@ -772,7 +775,9 @@ export type NotificationPlatform = {
 export type NotificationCategory = {
   slug: string;
   name: string;
+  description?: string;
   is_critical: boolean;
+  is_active?: boolean;
 };
 
 export type GlobalNotificationSetting = {

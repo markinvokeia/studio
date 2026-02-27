@@ -2993,6 +2993,7 @@
       "icon": "Icon",
       "name": "Name",
       "code": "Code",
+      "internalCategory": "Internal Category",
       "rulesCount": "Rules",
       "isActive": "Active",
       "yes": "Yes",
@@ -3003,13 +3004,18 @@
     },
     "dialog": {
       "createTitle": "Create Alert Category",
+      "createDescription": "Enter the details to create a new alert category.",
       "editTitle": "Edit Alert Category",
+      "editDescription": "Modify the alert category details.",
       "name": "Name",
       "namePlaceholder": "e.g., Billing",
       "code": "Code",
       "codePlaceholder": "e.g., BILLING",
       "description": "Description",
       "descriptionPlaceholder": "Alerts related to invoices and payments",
+      "internalCategory": "Internal Category",
+      "internalCategoryPlaceholder": "Select internal category",
+      "noInternalCategory": "No internal category",
       "icon": "Icon",
       "iconPlaceholder": "Enter a Lucide icon name (e.g., DollarSign)",
       "color": "Color",
@@ -3079,7 +3085,8 @@
         "pending": "Pending",
         "completed": "Completed",
         "actionTaken": "Action Taken",
-        "ignored": "Ignored"
+        "ignored": "Ignored",
+        "suppressed": "Suppressed"
       },
       "priorityOptions": {
         "low": "Low",
@@ -3100,7 +3107,8 @@
       "action_taken": "Action Taken",
       "completed": "Completed",
       "ignored": "Ignored",
-      "snoozed": "Snoozed"
+      "snoozed": "Snoozed",
+      "suppressed": "Suppressed"
     },
     "actions": {
       "sendSms": "Send SMS",

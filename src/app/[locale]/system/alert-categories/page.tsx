@@ -12,6 +12,7 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle
@@ -19,10 +20,11 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { AlertCategory } from '@/lib/types';
+import { AlertCategory, NotificationCategory } from '@/lib/types';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState } from '@tanstack/react-table';
@@ -44,6 +46,7 @@ const categoryFormSchema = (t: (key: string) => string) => z.object({
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/, t('validation.colorInvalid')).optional(),
     sort_order: z.coerce.number().optional(),
     is_active: z.boolean().default(true),
+    internal_category_id: z.string().optional(),
 });
 
 type CategoryFormValues = z.infer<ReturnType<typeof categoryFormSchema>>;
@@ -58,7 +61,7 @@ interface PaginatedResponse<T> {
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 100;
 
-async function getCategories(search?: string, is_active?: boolean, page: number = DEFAULT_PAGE, limit: number = DEFAULT_LIMIT): Promise<PaginatedResponse<AlertCategory>> {
+async function getCategories(search?: string, is_active?: boolean, page: number = DEFAULT_PAGE, limit: number = DEFAULT_LIMIT, internalCategories: NotificationCategory[] = []): Promise<PaginatedResponse<AlertCategory>> {
     try {
         const query: Record<string, string> = {
             page: page.toString(),
@@ -68,8 +71,8 @@ async function getCategories(search?: string, is_active?: boolean, page: number 
         if (search) query.search = search;
         if (is_active !== undefined) query.is_active = is_active.toString();
 
-const response = await api.get(API_ROUTES.SYSTEM.ALERT_CATEGORIES, query);
-        
+        const response = await api.get(API_ROUTES.SYSTEM.ALERT_CATEGORIES, query);
+
         // Check if no data: array with one empty object
         if (response.length === 1 && Object.keys(response[0]).length === 0) {
             return {
@@ -79,9 +82,16 @@ const response = await api.get(API_ROUTES.SYSTEM.ALERT_CATEGORIES, query);
                 limit: limit
             };
         }
-        
+
+        const categoryMap = new Map(internalCategories.map(cat => [cat.slug, cat.name]));
+
         return {
-            data: response.map((cat: any) => ({ ...cat, rules_count: cat.rules_count || 0 })),
+            data: response.map((cat: any) => ({ 
+                ...cat, 
+                rules_count: cat.rules_count || 0,
+                internal_category_id: cat.notification_category_slug || undefined,
+                internal_category_name: cat.notification_category_slug ? categoryMap.get(cat.notification_category_slug) : undefined
+            })),
             total: response.length,
             page: page,
             limit: limit
@@ -95,7 +105,7 @@ const response = await api.get(API_ROUTES.SYSTEM.ALERT_CATEGORIES, query);
 async function upsertCategory(category: Partial<CategoryFormValues>): Promise<AlertCategory> {
     try {
         const response = await api.post(API_ROUTES.SYSTEM.ALERT_CATEGORY, category);
-        
+
         // Check for error responses in array format
         if (Array.isArray(response) && response.length > 0) {
             const firstItem = response[0];
@@ -104,7 +114,7 @@ async function upsertCategory(category: Partial<CategoryFormValues>): Promise<Al
                 throw new Error(message);
             }
         }
-        
+
         // Check for error responses in object format
         if (response && typeof response === 'object' && !Array.isArray(response)) {
             if (response.error || response.code >= 400) {
@@ -112,7 +122,7 @@ async function upsertCategory(category: Partial<CategoryFormValues>): Promise<Al
                 throw new Error(message);
             }
         }
-        
+
         return response;
     } catch (error) {
         console.error('Failed to upsert alert category:', error);
@@ -126,6 +136,19 @@ async function deleteCategory(id: string): Promise<void> {
     } catch (error) {
         console.error('Failed to delete alert category:', error);
         throw error;
+    }
+}
+
+async function getInternalCategories(): Promise<NotificationCategory[]> {
+    try {
+        const response = await api.get(API_ROUTES.SYSTEM.NOTIFICATION_CATEGORIES);
+        if (Array.isArray(response)) {
+            return response;
+        }
+        return [];
+    } catch (error) {
+        console.error('Failed to fetch internal categories:', error);
+        return [];
     }
 }
 
@@ -148,6 +171,7 @@ export default function AlertCategoriesPage() {
 
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [internalCategories, setInternalCategories] = React.useState<NotificationCategory[]>([]);
 
     const form = useForm<CategoryFormValues>({
         resolver: zodResolver(categoryFormSchema(tValidation)),
@@ -162,7 +186,7 @@ export default function AlertCategoriesPage() {
             const isActiveFilterObj = filters.find(f => f.id === 'is_active');
             const isActiveValue = isActiveFilterObj?.value as boolean | undefined;
 
-            const result = await getCategories(searchValue, isActiveValue, page, limit);
+            const result = await getCategories(searchValue, isActiveValue, page, limit, internalCategories);
             setCategories(result.data);
             setTotal(result.total);
             setCurrentPage(result.page);
@@ -177,20 +201,28 @@ export default function AlertCategoriesPage() {
         } finally {
             setIsRefreshing(false);
         }
-    }, [t, toast]);
+    }, [t, toast, internalCategories]);
 
     React.useEffect(() => {
         loadCategories(columnFilters, currentPage, pageSize);
     }, [loadCategories, columnFilters, currentPage, pageSize]);
 
-const handleColumnFiltersChange = React.useCallback((filters: ColumnFiltersState | ((prev: ColumnFiltersState) => ColumnFiltersState)) => {
+    React.useEffect(() => {
+        getInternalCategories().then(setInternalCategories);
+    }, []);
+
+    React.useEffect(() => {
+        loadCategories(columnFilters, currentPage, pageSize);
+    }, [internalCategories]);
+
+    const handleColumnFiltersChange = React.useCallback((filters: ColumnFiltersState | ((prev: ColumnFiltersState) => ColumnFiltersState)) => {
         setColumnFilters(filters);
         setCurrentPage(DEFAULT_PAGE);
     }, []);
 
     const handleCreate = () => {
         setEditingCategory(null);
-        form.reset({ code: '', name: '', description: '', icon: 'AlertCircle', color: '#888888', sort_order: 0, is_active: true });
+        form.reset({ code: '', name: '', description: '', icon: 'AlertCircle', color: '#888888', sort_order: 0, is_active: true, internal_category_id: undefined });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -199,7 +231,8 @@ const handleColumnFiltersChange = React.useCallback((filters: ColumnFiltersState
         setEditingCategory(category);
         form.reset({
             ...category,
-            sort_order: category.sort_order || 0
+            sort_order: category.sort_order || 0,
+            internal_category_id: category.internal_category_id || undefined
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -288,6 +321,11 @@ const handleColumnFiltersChange = React.useCallback((filters: ColumnFiltersState
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.code')} />
         },
         {
+            accessorKey: 'internal_category_name',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.internalCategory')} />,
+            cell: ({ row }) => row.original.internal_category_name ? <Badge variant="outline">{row.original.internal_category_name}</Badge> : <span className="text-muted-foreground">-</span>
+        },
+        {
             accessorKey: 'rules_count',
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.rulesCount')} />,
             cell: ({ row }) => <Badge variant="secondary">{row.original.rules_count || 0}</Badge>
@@ -351,6 +389,7 @@ const handleColumnFiltersChange = React.useCallback((filters: ColumnFiltersState
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>{editingCategory ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
+                        <DialogDescription>{editingCategory ? t('dialog.editDescription') : t('dialog.createDescription')}</DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
@@ -392,6 +431,25 @@ const handleColumnFiltersChange = React.useCallback((filters: ColumnFiltersState
                                             <FormControl>
                                                 <Textarea placeholder={t('dialog.descriptionPlaceholder')} {...field} />
                                             </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="internal_category_id" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.internalCategory')}</FormLabel>
+                                            <Select onValueChange={(val) => field.onChange(val === '__none__' ? undefined : val)} value={field.value || '__none__'} defaultValue={field.value || '__none__'}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('dialog.internalCategoryPlaceholder')} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="__none__">{t('dialog.noInternalCategory')}</SelectItem>
+                                                    {internalCategories.filter(cat => cat.slug).map((cat) => (
+                                                        <SelectItem key={cat.slug} value={cat.slug}>{cat.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -441,16 +499,16 @@ const handleColumnFiltersChange = React.useCallback((filters: ColumnFiltersState
                                     )} />
                                 </div>
                             </div>
-                            <DialogFooter className="sticky bottom-0 bg-background pt-4">
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                                    {t('dialog.cancel')}
-                                </Button>
-                                <Button type="submit" disabled={isSubmitting}>
-                                    {isSubmitting ? t('dialog.saving') : editingCategory ? t('dialog.save') : t('dialog.create')}
-                                </Button>
-                            </DialogFooter>
                         </form>
                     </Form>
+                    <DialogFooter className="bottom-0 bg-background pt-4">
+                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                            {t('dialog.cancel')}
+                        </Button>
+                        <Button disabled={isSubmitting} onClick={form.handleSubmit(onSubmit)}>
+                            {isSubmitting ? t('dialog.saving') : editingCategory ? t('dialog.save') : t('dialog.create')}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

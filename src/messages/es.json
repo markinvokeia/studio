@@ -2993,6 +2993,7 @@
             "icon": "Icono",
             "name": "Nombre",
             "code": "Código",
+            "internalCategory": "Categoría Interna",
             "rulesCount": "Reglas",
             "isActive": "Activo",
             "yes": "Sí",
@@ -3003,13 +3004,18 @@
         },
         "dialog": {
             "createTitle": "Crear Categoría de Alerta",
+            "createDescription": "Ingrese los datos para crear una nueva categoría de alerta.",
             "editTitle": "Editar Categoría de Alerta",
+            "editDescription": "Modifique los datos de la categoría de alerta.",
             "name": "Nombre",
             "namePlaceholder": "ej., Facturación",
             "code": "Código",
             "codePlaceholder": "ej., FACTURACION",
             "description": "Descripción",
             "descriptionPlaceholder": "Alertas relacionadas con facturas y pagos",
+            "internalCategory": "Categoría Interna",
+            "internalCategoryPlaceholder": "Seleccionar categoría interna",
+            "noInternalCategory": "Sin categoría interna",
             "icon": "Icono",
             "iconPlaceholder": "Ingrese nombre de icono de Lucide (ej., DollarSign)",
             "color": "Color",
@@ -3079,7 +3085,8 @@
                 "pending": "Pendiente",
                 "completed": "Completada",
                 "actionTaken": "Acción Tomada",
-                "ignored": "Ignorada"
+                "ignored": "Ignorada",
+                "suppressed": "Suprimida"
             },
             "priorityOptions": {
                 "low": "Baja",
@@ -3100,7 +3107,8 @@
             "action_taken": "Acción Tomada",
             "completed": "Completada",
             "ignored": "Ignorada",
-            "snoozed": "Pospuesta"
+            "snoozed": "Pospuesta",
+            "suppressed": "Suprimida"
         },
         "actions": {
             "sendSms": "Enviar SMS",

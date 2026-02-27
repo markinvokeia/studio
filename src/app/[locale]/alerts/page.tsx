@@ -395,6 +395,7 @@ function AlertsCenterPageContent() {
                                                     <SelectItem value="COMPLETED">{t('filters.statusOptions.completed')}</SelectItem>
                                                     <SelectItem value="ACTION_TAKEN">{t('filters.statusOptions.actionTaken')}</SelectItem>
                                                     <SelectItem value="IGNORED">{t('filters.statusOptions.ignored')}</SelectItem>
+                                                    <SelectItem value="SUPPRESSED">{t('filters.statusOptions.suppressed')}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
