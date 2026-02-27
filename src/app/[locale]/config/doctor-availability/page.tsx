@@ -84,7 +84,7 @@ async function getAvailabilityRules(pagination: PaginationState, searchQuery: st
 
 async function getDoctors(): Promise<User[]> {
     try {
-        const data = await api.get(API_ROUTES.USERS_DOCTORS);
+        const data = await api.get(API_ROUTES.USERS, { filter_type: 'DOCTOR' });
         const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || []);
         return doctorsData.map((doc: any) => ({ ...doc, id: String(doc.id) }));
     } catch (error) {
@@ -137,7 +137,7 @@ export default function DoctorAvailabilityPage() {
     const form = useForm<AvailabilityFormValues>({
         resolver: zodResolver(availabilityFormSchema(tValidation)),
     });
-    const [isDoctorComboboxOpen, React.useState(false);
+    const [isDoctorComboboxOpen, setIsDoctorComboboxOpen] = React.useState(false);
     const watchedRecurrence = form.watch("recurrence");
 
     React.useEffect(() => {

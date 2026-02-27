@@ -37,38 +37,23 @@ import { ProviderColumnsWrapper } from './columns';
 const providerFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   name: z.string().min(1, { message: t('ProvidersPage.createDialog.validation.nameRequired') }),
-  email: z.string().optional(),
-  phone: z.string().optional(),
+  email: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+  }, { message: t('ProvidersPage.createDialog.validation.emailInvalid') }),
+  phone: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    return isValidPhoneNumber(val);
+  }, { message: t('ProvidersPage.createDialog.validation.phoneInvalid') }),
   identity_document: z.string()
     .min(1, { message: t('ProvidersPage.createDialog.validation.identityRequired') })
     .regex(/^\d*$/, { message: t('ProvidersPage.createDialog.validation.identityInvalid') })
     .max(10, { message: t('ProvidersPage.createDialog.validation.identityMaxLength') }),
   is_active: z.boolean().default(false),
 }).refine((data) => {
-  // At least one of email or phone must be provided
   const hasEmail = data.email && data.email.trim() !== '';
   const hasPhone = data.phone && data.phone.trim() !== '';
-
-  if (!hasEmail && !hasPhone) {
-    return false;
-  }
-
-  // If email is provided, it must be valid
-  if (hasEmail) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(data.email!)) {
-      return false;
-    }
-  }
-
-  // If phone is provided, it must be valid
-  if (hasPhone) {
-    if (!isValidPhoneNumber(data.phone!)) {
-      return false;
-    }
-  }
-
-  return true;
+  return hasEmail || hasPhone;
 }, {
   message: t('ProvidersPage.createDialog.validation.emailOrPhoneRequired'),
   path: ['email'],
@@ -406,7 +391,7 @@ export default function ProvidersPage() {
             <DialogDescription>{editingProvider ? t('ProvidersPage.createDialog.editDescription') : t('ProvidersPage.createDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
               {submissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
@@ -495,4 +480,3 @@ export default function ProvidersPage() {
     </div>
   );
 }
-

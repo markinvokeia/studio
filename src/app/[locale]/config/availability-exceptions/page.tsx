@@ -179,7 +179,7 @@ export default function AvailabilityExceptionsPage() {
 
     const handleDelete = (exception: AvailabilityException) => {
         setDeletingException(exception);
-        setIsDialogOpen(true);
+        setIsDeleteDialogOpen(true);
     };
 
     const confirmDelete = async () => {

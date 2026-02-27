@@ -40,40 +40,24 @@ import { DoctorsColumnsWrapper } from './columns';
 const doctorFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   name: z.string().min(1, { message: t('DoctorsPage.createDialog.validation.nameRequired') }),
-  email: z.string().optional(),
-  phone: z.string().optional(),
+  email: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+  }, { message: t('DoctorsPage.createDialog.validation.emailInvalid') }),
+  phone: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    return isValidPhoneNumber(val);
+  }, { message: t('DoctorsPage.createDialog.validation.phoneInvalid') }),
   identity_document: z.string()
+    .min(1, { message: t('DoctorsPage.createDialog.validation.identityRequired') })
     .regex(/^\d*$/, { message: t('DoctorsPage.createDialog.validation.identityInvalid') })
-    .max(10, { message: t('DoctorsPage.createDialog.validation.identityMaxLength') })
-    .optional()
-    .or(z.literal('')),
+    .max(10, { message: t('DoctorsPage.createDialog.validation.identityMaxLength') }),
   is_active: z.boolean().default(false),
   color: z.string().optional(),
 }).refine((data) => {
-  // At least one of email or phone must be provided
   const hasEmail = data.email && data.email.trim() !== '';
   const hasPhone = data.phone && data.phone.trim() !== '';
-
-  if (!hasEmail && !hasPhone) {
-    return false;
-  }
-
-  // If email is provided, it must be valid
-  if (hasEmail) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(data.email!)) {
-      return false;
-    }
-  }
-
-  // If phone is provided, it must be valid
-  if (hasPhone) {
-    if (!isValidPhoneNumber(data.phone!)) {
-      return false;
-    }
-  }
-
-  return true;
+  return hasEmail || hasPhone;
 }, {
   message: t('DoctorsPage.createDialog.validation.emailOrPhoneRequired'),
   path: ['email'],
@@ -174,7 +158,6 @@ export default function DoctorsPage() {
   const [editingUser, setEditingUser] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-  const [canSetFirstPassword, setCanSetFirstPassword] = React.useState(false);
 
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);

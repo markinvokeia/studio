@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
@@ -48,6 +48,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek, addMonths } from 'date-fns';
 import { AlertTriangle, Banknote, CalendarIcon, CheckCircle, ChevronDown, ChevronUp, CreditCard, DollarSign, Loader2, Receipt, X, XCircle } from 'lucide-react';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
@@ -58,41 +59,25 @@ import { UserColumnsWrapper } from './columns';
 const userFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   name: z.string().min(1, { message: t('UsersPage.createDialog.validation.nameRequired') }),
-  email: z.string().optional(),
-  phone: z.string().optional(),
+  email: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+  }, { message: t('UsersPage.createDialog.validation.emailInvalid') }),
+  phone: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    return isValidPhoneNumber(val);
+  }, { message: t('UsersPage.createDialog.validation.phoneInvalid') }),
   identity_document: z.string()
+    .min(1, { message: t('UsersPage.createDialog.validation.identityRequired') })
     .regex(/^\d*$/, { message: t('UsersPage.createDialog.validation.identityInvalid') })
-    .max(10, { message: t('UsersPage.createDialog.validation.identityMaxLength') })
-    .optional()
-    .or(z.literal('')),
+    .max(10, { message: t('UsersPage.createDialog.validation.identityMaxLength') }),
   birth_date: z.string().optional(),
   notes: z.string().optional(),
   is_active: z.boolean().default(false),
 }).refine((data) => {
-  // At least one of email or phone must be provided
   const hasEmail = data.email && data.email.trim() !== '';
   const hasPhone = data.phone && data.phone.trim() !== '';
-
-  if (!hasEmail && !hasPhone) {
-    return false;
-  }
-
-  // If email is provided, it must be valid
-  if (hasEmail) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(data.email!)) {
-      return false;
-    }
-  }
-
-  // If phone is provided, it must be valid
-  if (hasPhone) {
-    if (!isValidPhoneNumber(data.phone!)) {
-      return false;
-    }
-  }
-
-  return true;
+  return hasEmail || hasPhone;
 }, {
   message: t('UsersPage.createDialog.validation.emailOrPhoneRequired'),
   path: ['email'],
