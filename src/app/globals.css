@@ -22,7 +22,7 @@
 @layer base {
   /* TEMA INVOKE (Por defecto / Light) - Paleta Violeta y Rosa */
   :root {
-    --background: 260 30% 98%; /* Casi blanco con matiz violeta */
+    --background: 260 30% 98%; 
     --foreground: 260 60% 5%;
     --card: 0 0% 100%;
     --card-foreground: 260 60% 5%;
@@ -44,48 +44,48 @@
     --chart-1: 263 67% 35%;
     --chart-2: 341 90% 60%;
     --radius: 0.75rem;
-    --header-gradient: linear-gradient(to right, #4c1d95, #4c1d95); /* Solid Violet for Invoke */
-    --sidebar-gradient: linear-gradient(to bottom, #4c1d95, #4c1d95); /* Solid Violet for Invoke */
+    --header-gradient: #4c1d95;
+    --sidebar-gradient: #4c1d95;
     --bar-icons-bg: rgb(255 255 255 / 0.15);
   }
 
-  /* TEMA CLARO - Paleta Grises Suaves */
+  /* TEMA CLARO - Paleta Grises con jerarquía */
   .claro {
-    --background: 0 0% 98%;
+    --background: 0 0% 100%;
     --foreground: 0 0% 10%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 10%;
-    --primary: 0 0% 92%; 
+    --primary: 0 0% 85%; /* Gris medio para headers */
     --primary-foreground: 0 0% 20%; 
-    --secondary: 0 0% 94%;
+    --secondary: 0 0% 90%;
     --secondary-foreground: 0 0% 20%;
-    --muted: 0 0% 92%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 85%;
+    --muted: 0 0% 96%; /* Gris muy claro para submenus */
+    --muted-foreground: 0 0% 40%;
+    --accent: 0 0% 80%;
     --accent-foreground: 0 0% 10%;
     --destructive: 0 0% 30%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 88%;
     --input: 0 0% 88%;
     --ring: 0 0% 20%;
-    --header-gradient: linear-gradient(to right, #f3f4f6, #e5e7eb);
-    --sidebar-gradient: linear-gradient(to bottom, #f3f4f6, #e5e7eb);
-    --bar-icons-bg: rgb(0 0 0 / 0.05);
+    --header-gradient: #d1d5db; /* Gris más oscuro que el fondo del submenu */
+    --sidebar-gradient: #d1d5db;
+    --bar-icons-bg: rgb(0 0 0 / 0.08);
   }
 
-  /* TEMA OSCURO - Paleta Negros Violáceos */
+  /* TEMA OSCURO - Contraste Negro y Violeta Profundo */
   .dark {
-    --background: 260 45% 2%; 
+    --background: 0 0% 0%; /* Negro Puro para el fondo */
     --foreground: 260 10% 98%;
-    --card: 260 45% 4%; 
+    --card: 260 45% 6%; /* Violeta muy oscuro para el cuerpo de cards */
     --card-foreground: 260 10% 98%;
-    --popover: 260 45% 5%;
+    --popover: 260 45% 8%;
     --popover-foreground: 260 10% 98%;
-    --primary: 260 45% 8%; 
+    --primary: 260 50% 12%; /* Violeta oscuro para headers */
     --primary-foreground: 0 0% 100%;
-    --secondary: 260 30% 12%;
+    --secondary: 260 30% 15%;
     --secondary-foreground: 260 10% 98%;
     --muted: 260 30% 10%;
     --muted-foreground: 260 10% 65%;
@@ -93,11 +93,11 @@
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 260 30% 15%;
-    --input: 260 30% 15%;
+    --border: 260 30% 18%;
+    --input: 260 30% 18%;
     --ring: 262 83% 58%;
-    --header-gradient: linear-gradient(to right, #0a0514, #120a24);
-    --sidebar-gradient: linear-gradient(to bottom, #0a0514, #120a24);
+    --header-gradient: #0f0a1e; /* Violeta casi negro para la barra superior */
+    --sidebar-gradient: #0f0a1e;
     --bar-icons-bg: rgba(255, 255, 255, 0.05);
   }
 }
