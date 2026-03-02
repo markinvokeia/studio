@@ -43,25 +43,25 @@ export const OpenCashSessionWidget = () => {
                                 variant="outline" 
                                 className={cn(
                                     "h-auto py-1.5 px-3 flex items-center gap-3",
-                                    "border-none bg-black/10 text-[var(--nav-foreground)]",
-                                    "hover:bg-black/20",
-                                    "transition-all duration-200 shadow-none"
+                                    "border-none bg-emerald-600 text-white",
+                                    "hover:bg-emerald-700",
+                                    "transition-all duration-200 shadow-sm rounded-lg"
                                 )}
                             >
-                                <Banknote className="h-4 w-4 opacity-80" />
+                                <Banknote className="h-4 w-4" />
                                 
                                 <div className="flex flex-col items-end text-xs">
                                     <div className="flex items-center gap-1.5">
                                         <span className="font-bold">{uyuAmount.toFixed(2)}</span>
-                                        <span className='opacity-80 text-[10px]'>UYU</span>
+                                        <span className='opacity-90 text-[10px]'>UYU</span>
                                     </div>
                                     <div className="flex items-center gap-1.5">
                                         <span className="font-bold">{usdAmount.toFixed(2)}</span>
-                                        <span className='opacity-80 text-[10px]'>USD</span>
+                                        <span className='opacity-90 text-[10px]'>USD</span>
                                     </div>
                                 </div>
 
-                                <div className="pl-1 border-l border-[var(--nav-foreground)]/20">
+                                <div className="pl-1 border-l border-white/20">
                                     <ArrowRight className="h-4 w-4" />
                                 </div>
                             </Button>
@@ -84,12 +84,12 @@ export const OpenCashSessionWidget = () => {
                             variant="outline" 
                             size="sm" 
                             className={cn(
-                                "h-9 border-none bg-black/10 text-[var(--nav-foreground)]",
-                                "hover:bg-black/20 shadow-none",
+                                "h-9 border-none bg-orange-500 text-white",
+                                "hover:bg-orange-600 shadow-sm rounded-lg",
                                 "transition-all"
                             )}
                         >
-                            <Box className="mr-2 h-4 w-4 opacity-80" />
+                            <Box className="mr-2 h-4 w-4" />
                             {t('button')}
                         </Button>
                     </Link>

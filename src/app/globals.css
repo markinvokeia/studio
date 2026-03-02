@@ -20,7 +20,7 @@
 }
 
 @layer base {
-  /* TEMA INVOKE (Violeta) */
+  /* TEMA INVOKE (Violeta) - Configuración Base */
   :root {
     --background: 260 30% 98%; 
     --foreground: 260 60% 5%;
@@ -28,13 +28,13 @@
     --card-foreground: 260 60% 5%;
     --popover: 0 0% 100%;
     --popover-foreground: 260 60% 5%;
-    --primary: 263 67% 35%; /* Violeta Base */
+    --primary: 263 67% 35%; /* Violeta Profundo */
     --primary-foreground: 0 0% 100%;
     --secondary: 341 90% 60%; /* Rosa brillante */
     --secondary-foreground: 0 0% 100%;
-    --muted: 263 67% 42%; /* Fondo Submenu */
-    --muted-foreground: 260 10% 40%;
-    --accent: 263 67% 45%; /* Hover/Selected (Violeta claro) */
+    --muted: 263 67% 45%; /* Fondo Submenu Sólido (Violeta más claro) */
+    --muted-foreground: 260 10% 95%;
+    --accent: 263 67% 50%; /* Hover/Selected */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
@@ -46,62 +46,62 @@
     /* Semantic Nav Tokens */
     --nav-bg: #2e1065;
     --nav-foreground: #ffffff;
-    --header-bg: #4c1d95;
+    --header-bg: #2e1065;
     --header-foreground: #ffffff;
   }
 
-  /* TEMA CLARO (Gris) */
+  /* TEMA CLARO (Gris muy claro / Casi blanco) */
   .claro {
     --background: 0 0% 100%;
-    --foreground: 215 25% 27%;
+    --foreground: 240 10% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 215 25% 27%;
+    --card-foreground: 240 10% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 27%;
+    --popover-foreground: 240 10% 10%;
     --primary: 221 83% 33%; /* Azul oscuro para botones */
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 20% 90%;
-    --secondary-foreground: 215 25% 27%;
-    --muted: 210 20% 98%; /* Fondo Submenu (Casi blanco) */
-    --muted-foreground: 215 16% 47%;
-    --accent: 210 20% 94%; /* Hover/Selected (Gris muy claro) */
-    --accent-foreground: 215 25% 27%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 240 10% 10%;
+    --muted: 0 0% 100%; /* Fondo Submenu Sólido (Blanco) */
+    --muted-foreground: 240 10% 40%;
+    --accent: 240 5% 96%; /* Hover/Selected (Gris casi imperceptible) */
+    --accent-foreground: 240 10% 10%;
+    --border: 240 5% 94%;
+    --input: 240 5% 94%;
     --ring: 221 83% 33%;
     
     /* Semantic Nav Tokens */
-    --nav-bg: #f3f4f6;
-    --nav-foreground: #374151;
-    --header-bg: #e5e7eb;
-    --header-foreground: #374151;
+    --nav-bg: #f9fafb; /* Gris ultra claro */
+    --nav-foreground: #111827; /* Texto oscuro para barra superior */
+    --header-bg: #f9fafb;
+    --header-foreground: #111827;
   }
 
-  /* TEMA OSCURO (Negro/Gris Pálido) */
+  /* TEMA OSCURO (Gris Pálido / Casi Negro) */
   .dark {
-    --background: 240 10% 4%; /* Negro pálido */
-    --foreground: 240 5% 90%;
-    --card: 240 10% 8%;
-    --card-foreground: 240 5% 90%;
-    --popover: 240 10% 8%;
-    --popover-foreground: 240 5% 90%;
-    --primary: 263 30% 45%; /* Violeta pálido */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 10% 15%;
-    --secondary-foreground: 240 5% 90%;
-    --muted: 240 10% 12%;
-    --muted-foreground: 240 5% 65%;
-    --accent: 240 10% 18%; /* Hover un poco más claro */
+    --background: 240 10% 2%; /* Negro puro */
+    --foreground: 240 5% 85%;
+    --card: 240 10% 6%; /* Gris oscuro pálido */
+    --card-foreground: 240 5% 85%;
+    --popover: 240 10% 6%;
+    --popover-foreground: 240 5% 85%;
+    --primary: 263 30% 40%; /* Violeta pálido grisáceo */
+    --primary-foreground: 0 0% 95%;
+    --secondary: 240 10% 12%;
+    --secondary-foreground: 240 5% 85%;
+    --muted: 240 10% 10%; /* Fondo Submenu Sólido */
+    --muted-foreground: 240 5% 60%;
+    --accent: 240 10% 15%; /* Hover */
     --accent-foreground: 240 5% 95%;
-    --border: 240 10% 15%;
-    --input: 240 10% 15%;
-    --ring: 263 30% 45%;
+    --border: 240 10% 12%;
+    --input: 240 10% 12%;
+    --ring: 263 30% 40%;
     
     /* Semantic Nav Tokens */
     --nav-bg: #0a0a0a;
-    --nav-foreground: #e5e7eb;
-    --header-bg: #1a1a1a;
-    --header-foreground: #e5e7eb;
+    --nav-foreground: #d1d5db;
+    --header-bg: #0a0a0a;
+    --header-foreground: #d1d5db;
   }
 }
 
@@ -116,6 +116,10 @@
 
 .header-icon-circle {
   @apply flex items-center justify-center w-10 h-10 rounded-full shrink-0;
-  background-color: var(--bar-icons-bg, rgba(255, 255, 255, 0.1));
+  background-color: var(--bar-icons-bg, rgba(0, 0, 0, 0.05));
   color: var(--header-foreground);
+}
+
+.dark .header-icon-circle {
+  background-color: rgba(255, 255, 255, 0.05);
 }
