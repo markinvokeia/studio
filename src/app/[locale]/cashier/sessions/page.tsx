@@ -90,6 +90,7 @@ async function getSessionMovements(sessionId: string): Promise<CajaMovimiento[]>
                 usuarioId: mov.registered_by_user,
                 metodoPago: normalizePaymentMethodCode(mov.payment_method_code),
                 currency: mov.currency,
+                documentNumber: mov.document_number,
             };
         });
     } catch (error) {
@@ -183,10 +184,11 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
     );
 
     const movementColumns: ColumnDef<CajaMovimiento>[] = [
+        { accessorKey: 'documentNumber', header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('documentNumber')} /> },
         { accessorKey: 'descripcion', header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('description')} /> },
-        { 
-            accessorKey: 'monto', 
-            header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('amount')} />, 
+        {
+            accessorKey: 'monto',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('amount')} />,
             cell: ({ row }) => {
                 const isExpense = row.original.tipo === 'EGRESO';
                 return (
@@ -196,8 +198,8 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                 );
             }
         },
-        { 
-            accessorKey: 'metodoPago', 
+        {
+            accessorKey: 'metodoPago',
             header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('method')} />,
             cell: ({ row }) => {
                 const methodCode = normalizePaymentMethodCode(row.original.metodoPago);
