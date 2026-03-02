@@ -33,7 +33,7 @@
     --secondary: 341 90% 60%; /* Rosa brillante */
     --secondary-foreground: 0 0% 100%;
     --muted: 260 20% 95%; 
-    --muted-foreground: 0 0% 0%; /* Negro para visibilidad en fondos claros */
+    --muted-foreground: 240 5% 45%; /* Gris para cabeceras y elementos secundarios */
     --accent: 263 67% 45%; 
     --accent-foreground: 0 0% 100%;
     --border: 260 20% 90%;
@@ -72,7 +72,7 @@
     --secondary: 210 20% 96%;
     --secondary-foreground: 240 10% 10%;
     --muted: 240 5% 96%; 
-    --muted-foreground: 0 0% 0%; /* Negro sólido para placeholders y headers */
+    --muted-foreground: 240 5% 45%; /* Gris para cabeceras y elementos secundarios */
     --accent: 240 5% 96%; 
     --accent-foreground: 240 10% 10%;
     --border: 240 5% 94%;
@@ -88,7 +88,7 @@
     --card-header-bg: 240 5% 96%;
     --card-header-foreground: 0 0% 0%;
 
-    /* Dashboard Chart Colors - Constant across themes for data semantics */
+    /* Dashboard Chart Colors */
     --chart-1: 0 84% 60%;
     --chart-2: 142 76% 36%;
     --chart-3: 217 91% 60%;
@@ -146,15 +146,15 @@
 .header-icon-circle {
   @apply flex items-center justify-center w-10 h-10 rounded-full shrink-0;
   background-color: var(--bar-icons-bg, rgba(0, 0, 0, 0.05));
-  color: var(--card-header-foreground); /* Color dinámico según el tema del card header */
+  color: var(--card-header-foreground); 
 }
 
 .dark .header-icon-circle {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Forzar color de placeholders en temas claros */
+/* Forzar color de placeholders con opacidad reducida para mayor sutileza */
 input::placeholder, textarea::placeholder {
-  opacity: 1 !important;
+  opacity: 0.5 !important;
   color: hsl(var(--muted-foreground)) !important;
 }
