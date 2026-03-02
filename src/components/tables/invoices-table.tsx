@@ -287,6 +287,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const [editingInvoice, setEditingInvoice] = React.useState<Invoice | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
   const [isNoSessionAlertOpen, setIsNoSessionAlertOpen] = React.useState(false);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = React.useState(false);
+  const [confirmingInvoice, setConfirmingInvoice] = React.useState<Invoice | null>(null);
   const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = React.useState<Invoice | null>(null);
   const [activeCashSessionId, setActiveCashSessionId] = React.useState<string | null>(null);
   const [paymentSubmissionError, setPaymentSubmissionError] = React.useState<string | null>(null);
@@ -474,6 +476,26 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   };
 
+  const handleConfirmInvoiceInternal = async () => {
+    if (!confirmingInvoice) return;
+    try {
+      await api.post(isSales ? API_ROUTES.SALES.INVOICES_CONFIRM : API_ROUTES.PURCHASES.INVOICES_CONFIRM, { id: parseInt(confirmingInvoice.id, 10) });
+      toast({
+        title: 'Invoice Confirmed',
+        description: `Invoice #${confirmingInvoice.id} has been confirmed.`,
+      });
+      setIsConfirmDialogOpen(false);
+      setConfirmingInvoice(null);
+      if (onRefresh) onRefresh();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+      });
+    }
+  };
+
   const handlePaymentSubmit = async (values: PaymentFormValues) => {
     if (!selectedInvoiceForPayment || !activeCashSessionId) return;
 
@@ -605,12 +627,12 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     onPrint,
     onSendEmail,
     handleAddPaymentClick,
-    onConfirm,
+    (inv) => { setConfirmingInvoice(inv); setIsConfirmDialogOpen(true); },
     (invoice) => {
       setEditingInvoice(invoice);
       setIsFormDialogOpen(true);
     }
-  ), [t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail, onConfirm, handleAddPaymentClick]);
+  ), [t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail, handleAddPaymentClick]);
 
   if (isLoading) {
     return (
@@ -1148,7 +1170,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('confirmInvoiceDialog.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmInvoice}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmInvoiceInternal}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

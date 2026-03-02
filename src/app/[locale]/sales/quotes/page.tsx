@@ -1,4 +1,3 @@
-
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -42,7 +41,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Check, ChevronsUpDown, FileText, RefreshCw, X, ShoppingCart, Receipt } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, FileText, RefreshCw, X, ShoppingCart, Receipt, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';

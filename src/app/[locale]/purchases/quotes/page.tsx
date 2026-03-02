@@ -1,4 +1,3 @@
-
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -42,7 +41,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Check, ChevronsUpDown, FileText, RefreshCw, X, ShoppingCart } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, FileText, RefreshCw, X, ShoppingCart, Receipt, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -217,6 +216,7 @@ async function getInvoices(quoteId: string, t: (key: string) => string): Promise
             currency: apiInvoice.currency || 'USD',
             order_id: apiInvoice.order_id,
             user_name: apiInvoice.user_name || apiInvoice.name || t('defaults.notAvailable'),
+            user_id: apiInvoice.user_id,
             payment_status: apiInvoice.payment_state || apiInvoice.payment_status || 'unpaid',
             paid_amount: parseFloat(apiInvoice.paid_amount) || 0,
             type: apiInvoice.type || 'invoice',
@@ -912,7 +912,7 @@ const handleCreateQuote = async () => {
                                                 )}
                                             </TabsContent>
                                             <TabsContent value="invoices" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
-                                                <div className="flex-1 min-h-[400px]">
+                                                <div className="flex-1 min-h-[400px] flex flex-col">
                                                     <div className="flex items-center justify-between mb-2 flex-none">
                                                         <h4 className="text-sm font-semibold flex items-center gap-2">
                                                             <Receipt className="h-4 w-4" />
@@ -927,7 +927,6 @@ const handleCreateQuote = async () => {
                                                             onRefresh={loadInvoices}
                                                             isRefreshing={isLoadingInvoices}
                                                             isCompact={true}
-                                                            canCreate={false}
                                                             columnTranslations={{
                                                                 doc_no: tRoot('InvoicesPage.columns.docNo'),
                                                                 user_name: tRoot('InvoicesPage.columns.userName'),
@@ -945,7 +944,7 @@ const handleCreateQuote = async () => {
                                                 {selectedInvoice && (
                                                     <div className="mt-4 border-t pt-4 flex-1 flex flex-col min-h-[400px]">
                                                         <div className="flex items-center justify-between mb-2">
-                                                            <h4 className="text-sm font-semibold">{tRoot('InvoicesPage.InvoiceItemsTable.titleWithId', { id: selectedInvoice.doc_no || selectedInvoice.id })}</h4>
+                                                            <h4 className="text-sm font-semibold">{tInvoiceItems('titleWithId', { id: selectedInvoice.doc_no || selectedInvoice.id })}</h4>
                                                             <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
                                                                 <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
                                                             </Button>
@@ -981,7 +980,7 @@ const handleCreateQuote = async () => {
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...quoteForm}>
-                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="space-y-4 py-4">
+                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="space-y-4 py-4 px-6">
                             {quoteSubmissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
@@ -1118,7 +1117,7 @@ const handleCreateQuote = async () => {
                         <DialogDescription>{t('itemDialog.description')}</DialogDescription>
                     </DialogHeader>
                     <Form {...quoteItemForm}>
-                        <form onSubmit={quoteItemForm.handleSubmit(onQuoteItemSubmit)} className="space-y-4 py-4">
+                        <form onSubmit={quoteItemForm.handleSubmit(onQuoteItemSubmit)} className="space-y-4 py-4 px-6">
                             {quoteItemSubmissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
