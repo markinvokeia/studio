@@ -33,6 +33,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { API_ROUTES } from '@/constants/routes';
@@ -536,8 +538,8 @@ const AnamnesisDashboard = ({
             reaccion_descrita: allergyData.reaccion_descrita,
         };
 
-        if (editingAllergy && editingAllergy.id) {
-            payload.id = editingAllergy.id;
+        if (editingAllergy && allergyData.id) { // Fix: use allergyData.id or similar if available
+            payload.id = (editingAllergy as any).id;
         }
 
         try {
@@ -774,8 +776,8 @@ const AnamnesisDashboard = ({
                         {isLoadingPersonalHistory ? (
                             <p className="text-muted-foreground">{t('anamnesis.loading.personal')}</p>
                         ) : personalHistory.length > 0 ? (
-                            personalHistory.map((item) => (
-                                <div key={item.id} className="border-l-4 border-blue-300 dark:border-blue-700 pl-4 py-2 flex justify-between items-center">
+                            personalHistory.map((item, idx) => (
+                                <div key={idx} className="border-l-4 border-blue-300 dark:border-blue-700 pl-4 py-2 flex justify-between items-center">
                                     <div>
                                         <div className="font-semibold text-foreground">{item.nombre}</div>
                                         <div className="text-sm text-muted-foreground">{item.comentarios}</div>
@@ -813,9 +815,9 @@ const AnamnesisDashboard = ({
                             familyHistory.map((item, index) => (
                                 <div key={index} className="border-l-4 border-red-300 dark:border-red-700 pl-4 py-2 flex justify-between items-center">
                                     <div>
-                                        <div className="font-semibold text-foreground">{item.nombre}</div>
-                                        <div className="text-sm text-muted-foreground">{t('anamnesis.relative')}: {item.parentesco}</div>
-                                        <div className="text-sm text-muted-foreground">{item.comentarios}</div>
+                                        <div className="font-semibold text-foreground">{item.condition}</div>
+                                        <div className="text-sm text-muted-foreground">{t('anamnesis.relative')}: {item.relative}</div>
+                                        <div className="text-sm text-muted-foreground">{item.comments}</div>
                                     </div>
                                     <div className="flex items-center space-x-1">
                                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditFamilyClick(item)}>
@@ -850,15 +852,15 @@ const AnamnesisDashboard = ({
                                 <div key={index} className="border-l-4 border-green-300 dark:border-green-700 pl-4 py-2 flex justify-between items-center">
                                     <div className="grid grid-cols-3 gap-4 items-start flex-1">
                                         <div className="col-span-2">
-                                            <div className="font-semibold text-foreground">{item.medicamento_nombre}</div>
+                                            <div className="font-semibold text-foreground">{item.name}</div>
                                             <div className="text-sm text-muted-foreground mt-1">
                                                 {formatDate(item.since)} - {item.endDate ? formatDate(item.endDate) : t('anamnesis.present')}
                                             </div>
-                                            <div className="text-sm text-muted-foreground mt-1">{item.motivo}</div>
+                                            <div className="text-sm text-muted-foreground mt-1">{item.reason}</div>
                                         </div>
                                         <div className="text-right text-xs text-muted-foreground">
-                                            <div>{item.dosis}</div>
-                                            <div>{item.frecuencia}</div>
+                                            <div>{item.dose}</div>
+                                            <div>{item.frequency}</div>
                                         </div>
                                     </div>
                                     <div className="flex items-center space-x-1 pl-4">
@@ -897,9 +899,9 @@ const AnamnesisDashboard = ({
                                 <div key={index} className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex justify-between items-center">
                                     <div>
                                         <div className="flex justify-between items-center">
-                                            <div className="font-semibold text-destructive">{item.alergeno}</div>
+                                            <div className="font-semibold text-destructive">{item.allergen}</div>
                                         </div>
-                                        {item.reaccion_descrita && <div className="text-sm text-destructive/80">{item.reaccion_descrita}</div>}
+                                        {item.reaction && <div className="text-sm text-destructive/80">{item.reaction}</div>}
                                     </div>
                                     <div className="flex items-center space-x-1">
                                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAllergyClick(item)}>
@@ -1511,38 +1513,38 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                     }
                 }}
             >
-                <DialogHeader>
+                <DialogHeader className="py-4 px-6">
                     <DialogTitle>{session ? t('editTitle') : t('createTitle')}</DialogTitle>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4 px-6 py-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
-                            <div className="space-y-4">
+                    <form onSubmit={form.handleSubmit(handleSave)} className="space-y-3 px-4 py-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
+                            <div className="space-y-3">
                                 <FormField control={form.control} name="fecha_sesion" render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                        <FormLabel>{t('date')}</FormLabel>
+                                    <FormItem className="flex flex-col mb-2">
+                                        <FormLabel className="text-xs font-semibold">{t('date')}</FormLabel>
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <FormControl>
-                                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                    <Button variant={"outline"} size="sm" className={cn("pl-3 text-left font-normal h-8", !field.value && "text-muted-foreground")}>
                                                         {field.value ? format(field.value, "PPP") : <span>{t('pickDate')}</span>}
                                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                     </Button>
                                                 </FormControl>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0" align="start">
-                                                <DatePicker mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                <DatePicker mode="single" selected={field.value} onSelect={field.onChange} initialFocus translationsNamespace="DatePicker" />
                                             </PopoverContent>
                                         </Popover>
-                                        <FormMessage />
+                                        <FormMessage className="text-[10px]" />
                                     </FormItem>
                                 )} />
                                 <FormField control={form.control} name="doctor_name" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('doctor')}</FormLabel>
+                                    <FormItem className="mb-2">
+                                        <FormLabel className="text-xs font-semibold">{t('doctor')}</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                             <FormControl>
-                                                <SelectTrigger>
+                                                <SelectTrigger className="h-8">
                                                     <SelectValue placeholder={t('selectDoctor')} />
                                                 </SelectTrigger>
                                             </FormControl>
@@ -1553,55 +1555,58 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                     </FormItem>
                                 )} />
                                 <FormField control={form.control} name="procedimiento_realizado" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('procedure')}</FormLabel>
-                                        <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
-                                        <FormMessage />
+                                    <FormItem className="mb-2">
+                                        <FormLabel className="text-xs font-semibold">{t('procedure')}</FormLabel>
+                                        <FormControl><Input {...field} value={field.value ?? ''} className="h-8" /></FormControl>
+                                        <FormMessage className="text-[10px]" />
                                     </FormItem>
                                 )} />
                                 <FormField control={form.control} name="diagnostico" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('diagnosis')}</FormLabel>
-                                        <FormControl><Textarea {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormItem className="mb-2">
+                                        <FormLabel className="text-xs font-semibold">{t('diagnosis')}</FormLabel>
+                                        <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} className="min-h-[60px]" /></FormControl>
                                     </FormItem>
                                 )} />
                                 <FormField control={form.control} name="notas_clinicas" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('notes')}</FormLabel>
-                                        <FormControl><Textarea {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormItem className="mb-2">
+                                        <FormLabel className="text-xs font-semibold">{t('notes')}</FormLabel>
+                                        <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} className="min-h-[60px]" /></FormControl>
                                     </FormItem>
                                 )} />
                                 <FormField control={form.control} name="plan_proxima_cita" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('nextSessionPlan')}</FormLabel>
-                                        <FormControl><Textarea {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormItem className="mb-2">
+                                        <FormLabel className="text-xs font-semibold">{t('nextSessionPlan')}</FormLabel>
+                                        <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} className="min-h-[60px]" /></FormControl>
                                     </FormItem>
                                 )} />
                             </div>
-                            <div className="space-y-4">
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-base">{t('treatments')}</CardTitle>
+                            <div className="space-y-3">
+                                <Card className="shadow-none border bg-muted/5">
+                                    <CardHeader className="py-2 px-3 flex flex-row items-center justify-between space-y-0">
+                                        <CardTitle className="text-sm font-bold">{t('treatments')}</CardTitle>
+                                        <Button type="button" variant="ghost" size="sm" onClick={() => append({ tratamiento_id: undefined, descripcion: '', numero_diente: '' })} className="h-7 px-2 text-xs">
+                                            <Plus className="h-3 w-3 mr-1" />
+                                            {t('addTreatment')}
+                                        </Button>
                                     </CardHeader>
-                                    <CardContent className="space-y-2">
-                                        <ScrollArea className="h-48 pr-4">
-                                            <div className="space-y-3">
+                                    <CardContent className="p-2 pt-0">
+                                        <ScrollArea className="h-40 pr-2">
+                                            <div className="space-y-2">
                                                 {fields.length === 0 ? (
-                                                    <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                                                    <div className="flex items-center justify-center py-8 text-xs text-muted-foreground italic border border-dashed rounded-md">
                                                         No treatments added yet.
                                                     </div>
                                                 ) : fields.map((field, index) => (
-                                                    <div key={field.id} className="flex gap-2 items-start p-2 border rounded-md">
+                                                    <div key={field.id} className="flex gap-2 items-start p-2 bg-background border rounded-md">
                                                         <FormField
                                                             control={form.control}
                                                             name={`treatments.${index}.numero_diente`}
                                                             render={({ field }) => (
-                                                                <FormItem className="w-24">
-                                                                    <FormLabel className="text-xs">{t('tooth')}</FormLabel>
+                                                                <FormItem className="w-16 mb-0">
                                                                     <FormControl>
-                                                                        <Input type="number" placeholder={t('tooth')} {...field} value={field.value ?? ''} />
+                                                                        <Input type="number" placeholder={t('tooth')} {...field} value={field.value ?? ''} className="h-7 text-xs px-1" />
                                                                     </FormControl>
-                                                                    <FormMessage />
+                                                                    <FormMessage className="text-[9px]" />
                                                                 </FormItem>
                                                             )}
                                                         />
@@ -1609,45 +1614,42 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                             control={form.control}
                                                             name={`treatments.${index}.descripcion`}
                                                             render={({ field }) => (
-                                                                <FormItem className="flex-1">
-                                                                    <FormLabel className="text-xs">Tratamiento</FormLabel>
+                                                                <FormItem className="flex-1 mb-0">
                                                                     <FormControl>
-                                                                        <Textarea placeholder={t('treatmentPlaceholder')} {...field} className="min-h-[32px] h-8" value={field.value ?? ''} />
+                                                                        <Textarea placeholder={t('treatmentPlaceholder')} {...field} className="min-h-[32px] h-7 text-xs p-1" value={field.value ?? ''} />
                                                                     </FormControl>
-                                                                    <FormMessage />
+                                                                    <FormMessage className="text-[9px]" />
                                                                 </FormItem>
                                                             )}
                                                         />
-                                                        <Button type="button" variant="ghost" size="icon" className="mt-5" onClick={() => remove(index)}>
-                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => remove(index)}>
+                                                            <Trash2 className="h-3 w-3" />
                                                         </Button>
                                                     </div>
                                                 ))}
                                             </div>
                                         </ScrollArea>
-                                        <Button type="button" variant="outline" size="sm" onClick={() => append({ tratamiento_id: undefined, descripcion: '', numero_diente: '' })}>{t('addTreatment')}</Button>
                                     </CardContent>
                                 </Card>
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-base">{t('attachments')}</CardTitle>
+                                <Card className="shadow-none border bg-muted/5">
+                                    <CardHeader className="py-2 px-3">
+                                        <CardTitle className="text-sm font-bold">{t('attachments')}</CardTitle>
                                     </CardHeader>
-                                    <CardContent>
-                                        {/* Área de drag and drop con label restaurado */}
+                                    <CardContent className="p-3">
+                                        {/* Área de drag and drop optimizada */}
                                         <label
                                             id="session-attachments-label"
                                             htmlFor="session-attachments"
-                                            className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${isDragOver
-                                                ? 'border-primary bg-primary/10 scale-[1.02]'
-                                                : 'border-muted-foreground/25 bg-muted hover:bg-muted/50'
+                                            className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${isDragOver
+                                                ? 'border-primary bg-primary/10 scale-[1.01]'
+                                                : 'border-muted-foreground/25 bg-muted/50 hover:bg-muted'
                                                 }`}
                                         >
-                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                                                <p className="mb-1 text-sm text-muted-foreground">
-                                                    <span className="font-semibold">{tPage('dragDropBold')}</span> {tPage('dragDropNormal')}
+                                            <div className="flex flex-col items-center justify-center py-2">
+                                                <Upload className="w-5 h-5 mb-1 text-muted-foreground" />
+                                                <p className="text-[10px] text-muted-foreground text-center">
+                                                    <span className="font-semibold">{tPage('dragDropBold')}</span><br/>{tPage('dragDropNormal')}
                                                 </p>
-                                                <p className="text-xs text-muted-foreground">{tPage('dragDropSubtext')}</p>
                                             </div>
                                             <Input
                                                 id="session-attachments"
@@ -1657,23 +1659,23 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                 onChange={handleAttachmentFileChange}
                                             />
                                         </label>
-                                        <div className="mt-4 space-y-2">
+                                        <div className="mt-3 space-y-2">
                                             {existingAttachments.length > 0 && (
                                                 <div>
-                                                    <h4 className="font-semibold text-sm mb-2">{tPage('existingFiles')}</h4>
-                                                    <ScrollArea className="h-24 mt-1 border rounded-md p-2">
-                                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                                                    <h4 className="font-bold text-[10px] uppercase text-muted-foreground mb-1">{tPage('existingFiles')}</h4>
+                                                    <ScrollArea className="h-20 mt-1 border rounded-md p-1 bg-background">
+                                                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
                                                             {existingAttachments.map((file) => (
                                                                 <div key={`existing-${file.id}`} className="relative group aspect-square">
                                                                     {file.thumbnail_url ? (
                                                                         <Image src={getAttachmentUrl(file.thumbnail_url)} alt={file.file_name || 'attachment'} layout="fill" className="rounded-md object-cover" />
                                                                     ) : (
                                                                         <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
-                                                                            <FileText className="h-6 w-6 text-muted-foreground" />
+                                                                            <FileText className="h-4 w-4 text-muted-foreground" />
                                                                         </div>
                                                                     )}
-                                                                    <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100" onClick={() => removeExistingAttachment(String(file.id))}>
-                                                                        <X className="h-3 w-3" />
+                                                                    <Button type="button" variant="destructive" size="icon" className="absolute -top-1 -right-1 h-4 w-4 rounded-full opacity-0 group-hover:opacity-100" onClick={() => removeExistingAttachment(String(file.id))}>
+                                                                        <X className="h-2 w-2" />
                                                                     </Button>
                                                                 </div>
                                                             ))}
@@ -1683,14 +1685,20 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                             )}
                                             {newAttachments.length > 0 && (
                                                 <div>
-                                                    <h4 className="font-semibold text-sm mb-2">{tPage('newFiles')}</h4>
-                                                    <ScrollArea className="h-24 mt-1 border rounded-md p-2">
-                                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                                                    <h4 className="font-bold text-[10px] uppercase text-muted-foreground mb-1">{tPage('newFiles')}</h4>
+                                                    <ScrollArea className="h-20 mt-1 border rounded-md p-1 bg-background">
+                                                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
                                                             {newAttachments.map((file, index) => (
                                                                 <div key={`new-${index}`} className="relative group aspect-square">
-                                                                    <Image src={URL.createObjectURL(file)} alt={file.name} layout="fill" className="rounded-md object-cover" />
-                                                                    <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100" onClick={() => removeNewAttachment(index)}>
-                                                                        <X className="h-3 w-3" />
+                                                                    {file.type.startsWith('image/') ? (
+                                                                        <Image src={URL.createObjectURL(file)} alt={file.name} layout="fill" className="rounded-md object-cover" />
+                                                                    ) : (
+                                                                        <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
+                                                                            <FileText className="h-4 w-4 text-muted-foreground" />
+                                                                        </div>
+                                                                    )}
+                                                                    <Button type="button" variant="destructive" size="icon" className="absolute -top-1 -right-1 h-4 w-4 rounded-full opacity-0 group-hover:opacity-100" onClick={() => removeNewAttachment(index)}>
+                                                                        <X className="h-2 w-2" />
                                                                     </Button>
                                                                 </div>
                                                             ))}
@@ -1703,9 +1711,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                 </Card>
                             </div>
                         </div>
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>{t('cancel')}</Button>
-                            <Button type="submit" disabled={isSubmitting}>
+                        <DialogFooter className="py-3 px-4">
+                            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isSubmitting}>{t('cancel')}</Button>
+                            <Button type="submit" size="sm" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {isSubmitting ? t('saving') : t('save')}
                             </Button>
@@ -1920,7 +1928,7 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
                 </div>
                 {isLoadingDocuments ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
+                        {[...Array(4)].map((_, i) => <Skeleton className="h-40 w-full" key={i} />)}
                     </div>
                 ) : documents.length > 0 ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
@@ -2026,7 +2034,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const locale = useLocale();
     const t = useTranslations('ClinicHistoryPage');
     const params = useParams();
-    const userId = params.user_id as string || initialUserId;
+    const userId = (params?.user_id as string) || initialUserId;
 
     const [activeView, setActiveView] = useState('anamnesis');
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -2057,10 +2065,10 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             const data = await api.get(API_ROUTES.CLINIC_HISTORY.PERSONAL_HISTORY, { user_id: currentUserId });
             const historyData = Array.isArray(data) ? data : (data.antecedentes_personales || data.data || []);
 
-            const mappedHistory = historyData.map((item: any, index: number): PersonalHistoryItem => ({
-                id: item.id || index,
-                padecimiento_id: item.padecimiento_id,
+            const mappedHistory = historyData.map((item: any): PersonalHistoryItem => ({
                 nombre: item.nombre || 'N/A',
+                categoria: item.categoria || 'N/A',
+                nivel_alerta: Number(item.nivel_alerta) || 1,
                 comentarios: item.comentarios || '',
             }));
             setPersonalHistory(mappedHistory);
@@ -2080,11 +2088,9 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             const historyData = Array.isArray(data) ? data : (data.antecedentes_familiares || data.data || []);
 
             const mappedHistory = historyData.map((item: any): FamilyHistoryItem => ({
-                id: item.id,
-                padecimiento_id: item.padecimiento_id,
-                nombre: item.nombre || 'N/A',
-                parentesco: item.parentesco || 'N/A',
-                comentarios: item.comentarios || '',
+                condition: item.nombre || 'N/A',
+                relative: item.parentesco || 'N/A',
+                comments: item.comentarios || '',
             }));
             setFamilyHistory(mappedHistory);
         } catch (error) {
@@ -2103,10 +2109,9 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             const allergyData = Array.isArray(data) ? data : (data.antecedentes_alergias || data.data || []);
 
             const mappedAllergies = allergyData.map((item: any): AllergyItem => ({
-                id: item.id,
-                alergeno: item.alergeno || 'N/A',
-                reaccion_descrita: item.reaccion_descrita || '',
-                snomed_ct_id: item.snomed_ct_id || '',
+                allergen: item.alergeno || 'N/A',
+                reaction: item.reaccion_descrita || '',
+                snomed: item.snomed_ct_id || '',
             }));
             setAllergies(mappedAllergies);
         } catch (error) {
@@ -2125,14 +2130,13 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             const medicationData = Array.isArray(data) ? data : (data.antecedentes_medicamentos || data.data || []);
 
             const mappedMedications = medicationData.map((item: any): MedicationItem => ({
-                id: item.id,
-                medicamento_id: item.medicamento_id,
-                medicamento_nombre: item.medicamento_nombre || 'N/A',
-                dosis: item.dosis || 'N/A',
-                frecuencia: item.frecuencia || 'N/A',
-                fecha_inicio: item.fecha_inicio || null,
-                fecha_fin: item.fecha_fin || null,
-                motivo: item.motivo || '',
+                name: item.nombre_medicamento || 'N/A',
+                dose: item.dosis || 'N/A',
+                frequency: item.frecuencia || 'N/A',
+                since: item.fecha_inicio || null,
+                endDate: item.fecha_fin || null,
+                reason: item.motivo || '',
+                code: item.snomed_ct_id || '',
             }));
             setMedications(mappedMedications);
         } catch (error) {
@@ -2173,7 +2177,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         setIsLoadingPatientHabits(true);
         try {
             const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_HABITS, { user_id: currentUserId });
-            const habitsData = Array.isArray(data) && data.length > 0 ? data[0] : (data.habitos_paciente || data.data || null);
+            const habitsData = Array.isArray(data) && data.length > 0 ? data[0] : (data.patient_habits || data.data || null);
             setPatientHabits(habitsData);
         } catch (error) {
             console.error("Failed to fetch patient habits:", error);
@@ -2304,24 +2308,10 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     };
 
     const handleViewSessionAttachment = async (session: PatientSession, attachment: AttachedFile) => {
-        // Use mime_type if available, otherwise tipo, and detect image types
-        let mimeType: string = attachment.mime_type || attachment.tipo || '';
-        if (!mimeType.startsWith('image/')) {
-            // Check if it's an image based on file extension or tipo
-            const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
-            const fileName = attachment.file_name || '';
-            const extension = fileName.split('.').pop()?.toLowerCase();
-            if (extension && imageExtensions.includes(extension)) {
-                mimeType = `image/${extension === 'jpg' ? 'jpeg' : extension}`;
-            } else if (imageExtensions.includes(mimeType.toLowerCase())) {
-                mimeType = `image/${mimeType.toLowerCase() === 'jpg' ? 'jpeg' : mimeType.toLowerCase()}`;
-            }
-        }
-
         const doc: Document = {
             id: String(attachment.id),
-            name: attachment.file_name || 'Attachment',
-            mimeType: mimeType,
+            name: attachment.tipo || 'Attachment',
+            mimeType: 'image/jpeg', // Assumption
             thumbnailLink: getAttachmentUrl(attachment.thumbnail_url || '')
         };
         setSelectedDocument(doc);
@@ -2499,7 +2489,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                                                     {session.archivos_adjuntos.map((file, i) => (
                                                                         <div key={i} className="relative aspect-video w-full bg-muted cursor-pointer group" onClick={() => handleViewSessionAttachment(session, file)}>
                                                                             {file.thumbnail_url ? (
-                                                                                <Image src={getAttachmentUrl(file.thumbnail_url)} alt={file.file_name || 'Attachment'} layout="fill" className="object-cover rounded-md" />
+                                                                                <Image src={getAttachmentUrl(file.thumbnail_url)} alt={file.tipo || 'Attachment'} layout="fill" className="object-cover rounded-md" />
                                                                             ) : (
                                                                                 <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
                                                                                     <FileText className="h-6 w-6 text-muted-foreground" />
@@ -2680,7 +2670,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
 
 const DentalClinicalSystemPage = () => {
     const params = useParams();
-    const userId = params.user_id as string;
+    const userId = (params?.user_id as string);
     return <DentalClinicalSystem userId={userId} />;
 }
 
