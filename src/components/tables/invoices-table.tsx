@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,13 +42,13 @@ import { Label } from '../ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { ScrollArea } from '../ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '../ui/skeleton';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
   amount: z.coerce.number().min(0, t('validation.amountPositive')),
-  method: z.string().optional(), // Optional
+  method: z.string().optional(),
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
     required_error: t('validation.dateRequired'),
@@ -58,7 +58,7 @@ const paymentFormSchema = (t: (key: string) => string) => z.object({
   exchange_rate: z.coerce.number().optional(),
 }).refine(data => {
   if (data.amount > 0 && !data.method) {
-    return false; // Method required if paying cash
+    return false;
   }
   return true;
 }, {
@@ -324,7 +324,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const [isFormDialogOpen, setIsFormDialogOpen] = React.useState(false);
   const [editingInvoice, setEditingInvoice] = React.useState<Invoice | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
-  const [isNoSessionAlertOpen, setIsNoSessionAlertOpen] = React.useState(false);
   const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = React.useState<Invoice | null>(null);
   const [activeCashSessionId, setActiveCashSessionId] = React.useState<string | null>(null);
   const [paymentSubmissionError, setPaymentSubmissionError] = React.useState<string | null>(null);
@@ -348,10 +347,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
   const showExchangeRate = watchedInvoiceCurrency && watchedPaymentCurrency && watchedInvoiceCurrency !== watchedPaymentCurrency;
 
-  const totalAppliedCredits = React.useMemo(() => {
-    return Array.from(appliedCredits.values()).reduce((sum, amount) => sum + amount, 0);
-  }, [appliedCredits]);
-
   const equivalentAmount = React.useMemo(() => {
     if (!showExchangeRate || !watchedAmount || !watchedExchangeRate) return null;
     if (watchedInvoiceCurrency === 'USD' && watchedPaymentCurrency === 'UYU') {
@@ -363,7 +358,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     return null;
   }, [showExchangeRate, watchedAmount, watchedExchangeRate, watchedInvoiceCurrency, watchedPaymentCurrency]);
 
-  // Update exchange rate when currencies change or session rate is loaded
   React.useEffect(() => {
     const isSameAsClinicCurrency = watchedInvoiceCurrency === companyCurrency;
     if (showExchangeRate && watchedInvoiceCurrency !== watchedPaymentCurrency) {
@@ -373,7 +367,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   }, [showExchangeRate, sessionExchangeRate, form, watchedInvoiceCurrency, watchedPaymentCurrency, companyCurrency]);
 
-  // Calculate total credits in invoice currency
   const creditsTotalInInvoiceCurrency = React.useMemo(() => {
     if (!selectedInvoiceForPayment) return 0;
     const invoiceCurrency = selectedInvoiceForPayment.currency || 'USD';
@@ -394,7 +387,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }, 0);
   }, [appliedCredits, userCredits, selectedInvoiceForPayment, sessionExchangeRate]);
 
-  // Auto-update manual payment amount when credits change
   React.useEffect(() => {
     if (!selectedInvoiceForPayment) return;
     
@@ -403,13 +395,10 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     const invoiceCurrency = selectedInvoiceForPayment.currency || 'USD';
     const remainingBalance = Math.max(0, invoiceTotal - paidAmount - creditsTotalInInvoiceCurrency);
     
-    // Only update if the current amount is different from the remaining balance
-    // and we have credits applied (to avoid overriding user's manual input when no credits)
     const currentAmount = form.getValues('amount') || 0;
     const paymentCurrency = form.getValues('payment_currency') || invoiceCurrency;
     
     if (appliedCredits.size > 0 || currentAmount > remainingBalance) {
-      // Convert remaining balance to payment currency if needed
       let amountToSet = remainingBalance;
       if (paymentCurrency !== invoiceCurrency && sessionExchangeRate > 0) {
         if (invoiceCurrency === 'USD' && paymentCurrency === 'UYU') {
@@ -419,7 +408,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         }
       }
       
-      // Round to 2 decimal places
       amountToSet = Math.round(amountToSet * 100) / 100;
       form.setValue('amount', amountToSet);
     }
@@ -430,7 +418,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     const invoiceTotal = selectedInvoiceForPayment.total || 0;
     const paidAmount = selectedInvoiceForPayment.paid_amount || 0;
 
-    // Convert Manual Payment Amount to Invoice Currency
     let paymentAmountInInvoiceCurrency = 0;
     if (watchedAmount) {
       if (showExchangeRate && equivalentAmount) {
@@ -485,7 +472,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
       const clinicData = await api.get(API_ROUTES.CLINIC);
 
-      // Set session exchange rate from validation response
       if (sessionValidation.exchangeRate) {
         setSessionExchangeRate(sessionValidation.exchangeRate);
       }
@@ -493,7 +479,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       setSelectedInvoiceForPayment(invoice);
       setActiveCashSessionId(sessionValidation.sessionId!);
 
-      // Set company currency
       const currency = clinicData.currency || 'USD';
       setCompanyCurrency(currency);
 
@@ -529,14 +514,12 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const handlePaymentSubmit = async (values: PaymentFormValues) => {
     if (!selectedInvoiceForPayment || !activeCashSessionId) return;
 
-    // Validate that we are paying SOMETHING
     const totalCredits = Array.from(appliedCredits.values()).reduce((a, b) => a + b, 0);
     if (values.amount <= 0 && totalCredits <= 0) {
       setPaymentSubmissionError(t('validation.noPaymentAmount'));
       return;
     }
 
-    // Validate Overpayment
     const invoiceTotal = selectedInvoiceForPayment.total || 0;
     const paidAmount = selectedInvoiceForPayment.paid_amount || 0;
     const invoiceCurrency = selectedInvoiceForPayment.currency || 'USD';
@@ -569,14 +552,11 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     const totalAttemptedPayment = paymentAmountInInvoiceCurrency + creditsTotalInInvoiceCurrency;
     const remainingBalance = invoiceTotal - paidAmount;
 
-    // 1. Validate that the credit portion does not exceed the remaining balance
     if (creditsTotalInInvoiceCurrency > remainingBalance + 0.01) {
       setPaymentSubmissionError(t('validation.overpayment'));
       return;
     }
 
-    // 2. Validate that credit-only payments do not exceed the balance
-    // (If values.amount is 0 or less, totalAttemptedPayment must be <= remaining balance)
     if (values.amount <= 0 && totalAttemptedPayment > remainingBalance + 0.01) {
       setPaymentSubmissionError(t('validation.overpayment'));
       return;
@@ -614,7 +594,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           payment_date: values.payment_date.toISOString(),
           amount: values.amount,
           converted_amount: convertedAmount,
-          method: selectedMethod?.name || 'Credit', // Fallback name if only credit
+          method: selectedMethod?.name || 'Credit',
           payment_method_id: values.method,
           status: values.status,
           user_id: selectedInvoiceForPayment.user_id,
@@ -801,7 +781,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
+            <form onSubmit={form.handleSubmit(handlePaymentSubmit)} className="space-y-4 px-6 py-4">
               {paymentSubmissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
@@ -930,7 +910,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                   <FormField
                     control={form.control}
                     name="amount"
-                    render={({ field: { onChange, value }, fieldState }) => {
+                    render={({ field: { onChange, value } }) => {
                       const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
 
                       React.useEffect(() => {
@@ -1128,7 +1108,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                     {(() => {
                       const invoiceCurrency = selectedInvoiceForPayment?.currency || 'USD';
                       let total = creditsTotalInInvoiceCurrency;
-                      // Manual
                       if (watchedAmount) {
                         const amountVal = Number(watchedAmount);
                         total += (showExchangeRate && equivalentAmount) ? equivalentAmount : amountVal;
@@ -1153,29 +1132,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           </Form>
         </DialogContent>
       </Dialog>
-      <AlertDialog open={isNoSessionAlertOpen} onOpenChange={setIsNoSessionAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-6 w-6 text-yellow-500" />
-              {t('noSessionDialog.title')}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('noSessionDialog.description')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('paymentDialog.cancel')}</AlertDialogCancel>
-            <Link href={`/${locale}/cashier`} passHref>
-              <Button>
-                <Box className="mr-2 h-4 w-4" />
-                {t('noSessionDialog.openCashSession')}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
@@ -1241,7 +1197,6 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
           setBookedInvoices(invoicesDataNormalized);
 
           if (invoice) {
-            // Load items for the invoice
             const itemsEndpoint = isSales ? API_ROUTES.SALES.INVOICE_ITEMS : API_ROUTES.PURCHASES.INVOICE_ITEMS;
             const itemsData = await api.get(itemsEndpoint, { invoice_id: invoice.id, is_sales: isSales ? 'true' : 'false' });
             const itemsNormalized = Array.isArray(itemsData) ? itemsData : (itemsData.invoice_items || itemsData.data || itemsData.result || []);
@@ -1315,7 +1270,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
     }
   }, [parentId, invoiceType, bookedInvoices, isSales, form]);
 
-const onSubmit = async (values: CreateInvoiceFormValues) => {
+  const onSubmit = async (values: CreateInvoiceFormValues) => {
     setSubmissionError(null);
     setIsSubmitting(true);
     try {
@@ -1371,10 +1326,7 @@ const onSubmit = async (values: CreateInvoiceFormValues) => {
           <DialogDescription>{isEditing ? tRoot('editDialog.description') || 'Change invoice details and lines.' : t('description')}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
-            console.error('Validation errors:', errors);
-            toast({ variant: 'destructive', title: t('validation.errorTitle') || 'Submission Error', description: t('validation.checkFields') || 'Please check the form for errors.' });
-          })} className="space-y-4 py-4 px-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
             {submissionError && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
@@ -1461,7 +1413,7 @@ const onSubmit = async (values: CreateInvoiceFormValues) => {
 
             </div>
 
-<Card>
+            <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle>{t('items.title')}</CardTitle>
