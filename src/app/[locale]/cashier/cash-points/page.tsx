@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -154,7 +153,7 @@ export default function CashPointsPage() {
             await deleteCashPoint(deletingCashPoint.id);
             toast({ title: t('toast.deleteTitle'), description: t('toast.deleteDescription', { name: deletingCashPoint.name }) });
             setIsDeleteDialogOpen(false);
-            setDeletingCashPoint(null);
+            setDeletingPoint(null);
             loadCashPoints();
         } catch (error) {
             toast({
@@ -193,7 +192,7 @@ export default function CashPointsPage() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-background">
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
                     <DataTable
                         columns={columns}
                         data={cashPoints}

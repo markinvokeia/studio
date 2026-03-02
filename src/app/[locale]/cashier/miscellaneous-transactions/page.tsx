@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -39,7 +38,7 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { AlertTriangle, Check, ChevronsUpDown, MoreHorizontal } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, MoreHorizontal, Coins } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
@@ -442,23 +441,30 @@ export default function MiscellaneousTransactionsPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 flex-none">
                 <Card>
                     <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t('dashboard.totalIncome')}</CardTitle></CardHeader>
-                    <CardContent><p className="text-2xl font-bold text-green-600">${totalIncome.toFixed(2)}</p></CardContent>
+                    <CardContent className="bg-card"><p className="text-2xl font-bold text-green-600">${totalIncome.toFixed(2)}</p></CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t('dashboard.totalExpense')}</CardTitle></CardHeader>
-                    <CardContent><p className="text-2xl font-bold text-red-600">${totalExpense.toFixed(2)}</p></CardContent>
+                    <CardContent className="bg-card"><p className="text-2xl font-bold text-red-600">${totalExpense.toFixed(2)}</p></CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t('dashboard.balance')}</CardTitle></CardHeader>
-                    <CardContent><p className="text-2xl font-bold text-blue-600">${(totalIncome - totalExpense).toFixed(2)}</p></CardContent>
+                    <CardContent className="bg-card"><p className="text-2xl font-bold text-blue-600">${(totalIncome - totalExpense).toFixed(2)}</p></CardContent>
                 </Card>
             </div>
             <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <CardHeader className="flex-none">
-                    <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
+                <CardHeader className="flex-none p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <Coins className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col text-left">
+                            <CardTitle className="text-lg">{t('title')}</CardTitle>
+                            <CardDescription className="text-xs">{t('description')}</CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
 
                     <DataTable
                         columns={columns}
@@ -491,7 +497,14 @@ export default function MiscellaneousTransactionsPage() {
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="sm:max-w-xl">
                     <DialogHeader>
-                        <DialogTitle>{editingTransaction ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
+                        <div className="flex items-start gap-3">
+                            <div className="header-icon-circle mt-0.5">
+                                <Coins className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col text-left">
+                                <DialogTitle>{editingTransaction ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
+                            </div>
+                        </div>
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">

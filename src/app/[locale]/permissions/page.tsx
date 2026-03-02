@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PermissionUsers } from '@/components/permissions/permission-users';
@@ -190,7 +189,7 @@ export default function PermissionsPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-background">
+            <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-card">
               <DataTable
                 columns={permissionsColumns}
                 data={permissions}
@@ -211,9 +210,14 @@ export default function PermissionsPage() {
           selectedPermission && (
             <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
               <CardHeader className="flex flex-row items-start justify-between flex-none p-4 pb-2">
-                <div>
-                  <CardTitle className="text-lg lg:text-xl truncate">{t('detailsFor', { name: selectedPermission.name })}</CardTitle>
-                  <CardDescription className="text-xs">{t('permissionId')}: {selectedPermission.id}</CardDescription>
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className="header-icon-circle mt-0.5">
+                    <Shield className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1 flex flex-col text-left">
+                    <CardTitle className="text-lg lg:text-xl truncate">{t('detailsFor', { name: selectedPermission.name })}</CardTitle>
+                    <CardDescription className="text-xs">{t('permissionId')}: {selectedPermission.id}</CardDescription>
+                  </div>
                 </div>
                 <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors" onClick={handleCloseDetails}>
                   <X className="h-5 w-5" />

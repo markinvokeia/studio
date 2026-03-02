@@ -235,7 +235,7 @@ export default function MiscellaneousCategoriesPage() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-background">
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
                     <DataTable
                         columns={columns}
                         data={categories}

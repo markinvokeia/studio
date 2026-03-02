@@ -1,4 +1,3 @@
-
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -408,7 +407,7 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
           )}
         </div>
       </CardHeader>
-      <CardContent className="flex-1 overflow-auto p-4 pt-2">
+      <CardContent className="flex-1 overflow-auto p-4 pt-2 bg-card">
         {isEditing ? (
           <div className="h-full flex flex-col">
             <Textarea
@@ -808,7 +807,7 @@ export default function UsersPage() {
             }
           });
         } else {
-          setSubmissionError(errorData?.message || t('UsersPage.createDialog.validation.genericError'));
+          setSubmissionError(errorData?.message || t('SystemUsersPage.createDialog.validation.genericError'));
         }
       } else if (error.status >= 500) {
         setSubmissionError(t('UsersPage.createDialog.validation.serverError'));
@@ -898,13 +897,13 @@ export default function UsersPage() {
                   <div className="header-icon-circle mt-0.5">
                     <Users className="h-5 w-5" />
                   </div>
-                  <div className="flex flex-col">
+                  <div className="flex flex-col text-left">
                     <CardTitle className="text-lg">{t('UsersPage.title')}</CardTitle>
                     <CardDescription className="text-xs">{t('UsersPage.description')}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-background">
+              <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-card">
                 <DataTable
                   columns={showDebtors ? debtorColumns : userColumns}
                   data={users}
@@ -972,10 +971,15 @@ export default function UsersPage() {
             selectedUser && (
               <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between flex-none p-4 pb-2">
-                  <div className="min-w-0 flex-1">
-                    <CardTitle className="text-lg lg:text-xl truncate text-foreground font-bold">
-                      {t('UsersPage.detailsFor', { name: selectedUser.name })}
-                    </CardTitle>
+                  <div className="min-w-0 flex-1 flex items-start gap-3">
+                    <div className="header-icon-circle mt-0.5">
+                      <Users className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1 flex flex-col text-left">
+                      <CardTitle className="text-lg lg:text-xl truncate text-foreground font-bold">
+                        {t('UsersPage.detailsFor', { name: selectedUser.name })}
+                      </CardTitle>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1 ml-2">
                     {currentDischarge ? (

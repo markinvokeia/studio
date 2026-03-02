@@ -127,7 +127,7 @@ async function deleteService(id: string) {
   // Check for error responses in array format
   if (Array.isArray(responseData) && responseData.length > 0) {
     const firstItem = responseData[0];
-    if (firstItem && (firstItem.code >= 400 || firstItem.error)) {
+    if (firstItem && (firstElement.code >= 400 || firstItem.error)) {
       const message = firstItem.message || firstItem.error || 'Failed to delete service';
       throw new Error(message);
     }
@@ -189,7 +189,6 @@ export default function ServicesPage() {
       currency: 'USD',
       duration_minutes: 60,
       description: '',
-      indications: '',
       color: '',
       is_active: true,
     });
@@ -284,7 +283,7 @@ export default function ServicesPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-background">
+        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
           <DataTable
             columns={servicesColumns}
             data={services}

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -29,7 +28,7 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, KeyRound, X } from 'lucide-react';
+import { AlertTriangle, KeyRound, X, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -386,12 +385,19 @@ export default function SystemUsersPage() {
         <TwoPanelLayout
           isRightPanelOpen={!!selectedUser}
           leftPanel={
-            <Card className="h-full flex flex-col">
-              <CardHeader className="flex-none">
-                <CardTitle>{t('SystemUsersPage.title')}</CardTitle>
-                <CardDescription>{t('SystemUsersPage.description')}</CardDescription>
+            <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+              <CardHeader className="flex-none p-4">
+                <div className="flex items-start gap-3">
+                  <div className="header-icon-circle mt-0.5">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <CardTitle className="text-lg">{t('SystemUsersPage.title')}</CardTitle>
+                    <CardDescription className="text-xs">{t('SystemUsersPage.description')}</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
+              <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-card">
                 <DataTable
                   columns={userColumns}
                   data={users}
@@ -445,10 +451,15 @@ export default function SystemUsersPage() {
           }
           rightPanel={
             selectedUser && (
-              <Card className="h-full flex flex-col">
+              <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
                 <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
-                  <div>
-                    <CardTitle>{t('SystemUsersPage.detailsFor', { name: selectedUser.name })}</CardTitle>
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="header-icon-circle mt-0.5">
+                      <Users className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1 flex flex-col text-left">
+                      <CardTitle className="truncate">{t('SystemUsersPage.detailsFor', { name: selectedUser.name })}</CardTitle>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {canSetFirstPassword && (
@@ -463,7 +474,7 @@ export default function SystemUsersPage() {
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
+                <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   <Tabs defaultValue="roles" className="w-full flex-1 flex flex-col min-h-0">
                     <TabsList>
                       <TabsTrigger value="roles">{t('SystemUsersPage.tabs.roles')}</TabsTrigger>

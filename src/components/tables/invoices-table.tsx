@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -26,7 +25,7 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowRight, Box, CalendarIcon, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2, CreditCard } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Box, CalendarIcon, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2, CreditCard, Check } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
@@ -643,14 +642,14 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
               <div className="header-icon-circle mt-0.5">
                 <Receipt className="h-5 w-5" />
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col text-left">
                 <CardTitle className="text-lg">{title}</CardTitle>
                 {description && <CardDescription className="text-xs">{description}</CardDescription>}
               </div>
             </div>
           </CardHeader>
         )}
-        <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden bg-background">
+        <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden bg-card">
           <DataTable
             columns={columns}
             data={invoices}
@@ -1450,7 +1449,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                   )}
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="bg-card">
                 <div className="space-y-4">
                   <div className="hidden md:flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                     <div className="flex-1">{t('items.service')}</div>

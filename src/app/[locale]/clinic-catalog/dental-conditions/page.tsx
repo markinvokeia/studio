@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -123,7 +122,7 @@ export default function DentalConditionsPage() {
 
     const handleDelete = (condition: DentalCondition) => {
         setDeletingCondition(condition);
-        setIsDeleteDialogOpen(true);
+        setIsDialogOpen(true);
     };
 
     const confirmDelete = async () => {
@@ -178,7 +177,7 @@ export default function DentalConditionsPage() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-background">
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
                     <DataTable
                         columns={dentalConditionsColumns}
                         data={conditions}

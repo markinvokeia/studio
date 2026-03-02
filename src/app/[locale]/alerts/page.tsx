@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Badge } from '@/components/ui/badge';
@@ -406,7 +405,7 @@ function AlertsCenterPageContent() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-background">
+                <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-card">
                     <SummaryCard title={t('summary.total')} count={summaryCounts.total} color="border-primary" />
                     <SummaryCard title={t('summary.critical')} count={summaryCounts.critical} color="border-red-500" />
                     <SummaryCard title={t('summary.high')} count={summaryCounts.high} color="border-orange-500" />
@@ -473,7 +472,7 @@ function AlertsCenterPageContent() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-4 p-6 bg-background">
+                <CardContent className="space-y-4 p-6 bg-card">
                     {Object.entries(groupedAlerts).map(([category, categoryAlerts]) => {
                         const allInCategorySelected = categoryAlerts.every(a => selectedAlerts.includes(a.id));
                         const someInCategorySelected = categoryAlerts.some(a => selectedAlerts.includes(a.id));

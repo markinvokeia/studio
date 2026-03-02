@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -249,7 +248,7 @@ export default function AlertCategoriesPage() {
             return;
         }
         setDeletingCategory(category);
-        setIsDeleteDialogOpen(true);
+        setIsDialogOpen(true);
     };
 
     const confirmDelete = async () => {
@@ -260,7 +259,7 @@ export default function AlertCategoriesPage() {
                 title: t('toast.deleteSuccessTitle'),
                 description: t('toast.deleteSuccessDescription', { name: deletingCategory.name })
             });
-            setIsDeleteDialogOpen(false);
+            setIsDialogOpen(false);
             setDeletingCategory(null);
             loadCategories(columnFilters, currentPage, pageSize);
         } catch (error) {
@@ -368,13 +367,13 @@ export default function AlertCategoriesPage() {
                         <div className="header-icon-circle mt-0.5">
                             <Layers className="h-5 w-5" />
                         </div>
-                        <div className="flex flex-col">
+                        <div className="flex flex-col text-left">
                             <CardTitle className="text-lg">{t('title')}</CardTitle>
                             <CardDescription className="text-xs">{t('description')}</CardDescription>
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-background">
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
                     <DataTable
                         columns={columns}
                         data={categories}
@@ -400,7 +399,7 @@ export default function AlertCategoriesPage() {
                         <DialogDescription>{editingCategory ? t('dialog.editDescription') : t('dialog.createDescription')}</DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4 max-h-[70vh] overflow-y-auto">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6 max-h-[70vh] overflow-y-auto">
                             {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />

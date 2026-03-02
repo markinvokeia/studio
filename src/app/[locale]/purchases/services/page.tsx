@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -25,7 +24,7 @@ import { normalizeApiResponse } from '@/lib/api-utils';
 import { MiscellaneousCategory, Service } from '@/lib/types';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Briefcase } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -268,12 +267,19 @@ export default function ServicesPage() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <CardHeader className="flex-none">
-          <CardTitle>{tNav('ProviderProducts')}</CardTitle>
-          <CardDescription>{t('description')}</CardDescription>
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-0 lg:border shadow-none lg:shadow-sm">
+        <CardHeader className="flex-none p-4">
+          <div className="flex items-start gap-3">
+            <div className="header-icon-circle mt-0.5">
+              <Briefcase className="h-5 w-5" />
+            </div>
+            <div className="flex flex-col text-left">
+              <CardTitle className="text-lg">{tNav('ProviderProducts')}</CardTitle>
+              <CardDescription className="text-xs">{t('description')}</CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
           <DataTable
             columns={servicesColumns}
             data={services}
