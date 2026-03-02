@@ -549,7 +549,8 @@
       "totalInvoiced": "Total Invoiced",
       "totalPaid": "Total Paid",
       "currentDebt": "Current Debt",
-      "availableBalance": "Available Balance"
+      "availableBalance": "Available Balance",
+      "printFinancialSummary": "Print Financial Summary"
     },
     "description": "Manage all patients in the system.",
     "filterPlaceholder": "Filter patients by email...",

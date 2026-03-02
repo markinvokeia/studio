@@ -47,7 +47,7 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek, addMonths } from 'date-fns';
-import { AlertTriangle, Banknote, CalendarIcon, CheckCircle, ChevronDown, ChevronUp, CreditCard, DollarSign, Loader2, Receipt, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Banknote, CalendarIcon, CheckCircle, ChevronDown, ChevronUp, CreditCard, DollarSign, Loader2, Printer, Receipt, X, XCircle } from 'lucide-react';
 import { isValidPhoneNumber } from 'libphonenumber-js';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -90,8 +90,19 @@ type GetUsersResponse = {
   total: number;
 };
 
-const UserStats = ({ user, t }: { user: User, t: (key: string) => string }) => {
+const UserStats = ({ user, t, onPrint }: { user: User, t: (key: string) => string, onPrint?: () => void }) => {
   const [isOpen, setIsOpen] = React.useState(true);
+  const [isPrinting, setIsPrinting] = React.useState(false);
+
+  const handlePrint = async () => {
+    if (!onPrint || isPrinting) return;
+    setIsPrinting(true);
+    try {
+      await onPrint();
+    } finally {
+      setIsPrinting(false);
+    }
+  };
 
   const formatCurrency = (value: any, currency: 'USD' | 'UYU') => {
     const symbol = currency === 'USD' ? 'U$S' : '$U';
@@ -158,12 +169,27 @@ const UserStats = ({ user, t }: { user: User, t: (key: string) => string }) => {
         <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
           {t('UsersPage.stats.title') || 'Resumen Financiero'}
         </h4>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-accent/50">
-            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            <span className="sr-only">Toggle stats</span>
-          </Button>
-        </CollapsibleTrigger>
+        <div className="flex items-center gap-1">
+          {onPrint && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 w-6 p-0 hover:bg-accent/50" 
+              onClick={handlePrint}
+              disabled={isPrinting}
+              title={t('UsersPage.stats.printFinancialSummary')}
+            >
+              {isPrinting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Printer className="h-3 w-3" />}
+              <span className="sr-only">{t('UsersPage.stats.printFinancialSummary')}</span>
+            </Button>
+          )}
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-accent/50">
+              {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              <span className="sr-only">Toggle stats</span>
+            </Button>
+          </CollapsibleTrigger>
+        </div>
       </div>
       <CollapsibleContent className="transition-all">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -585,6 +611,28 @@ export default function UsersPage() {
     }
   };
 
+  const handlePrintFinancialSummary = async () => {
+    if (!selectedUser) return;
+    try {
+      const blob = await api.getBlob(API_ROUTES.USER_FINANCIAL_SUMMARY_PRINT, { user_id: selectedUser.id });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `resumen_financiero_${selectedUser.name.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not print the financial summary.',
+      });
+      console.error(error);
+    }
+  };
+
   const handleCreate = () => {
     setEditingUser(null);
     form.reset({
@@ -956,7 +1004,7 @@ export default function UsersPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
-                  <UserStats user={selectedUser} t={t} />
+                  <UserStats user={selectedUser} t={t} onPrint={handlePrintFinancialSummary} />
                   <Tabs defaultValue="history" className="w-full flex-1 flex flex-col min-h-0">
                     <TabsList className="gap-1">
                       <TabsTrigger value="history" className="text-xs px-2 py-1">{t('UsersPage.tabs.history')}</TabsTrigger>

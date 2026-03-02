@@ -549,7 +549,8 @@
             "totalInvoiced": "Total Facturado",
             "totalPaid": "Total Pagado",
             "currentDebt": "Deuda Actual",
-            "availableBalance": "Saldo Disponible"
+            "availableBalance": "Saldo Disponible",
+            "printFinancialSummary": "Imprimir Resumen Financiero"
         },
         "description": "Gestionar todos los pacientes en el sistema.",
         "filterPlaceholder": "Filtrar pacientes por correo...",
