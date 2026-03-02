@@ -32,9 +32,9 @@
     --primary-foreground: 0 0% 100%;
     --secondary: 341 90% 60%; /* Rosa brillante */
     --secondary-foreground: 0 0% 100%;
-    --muted: 263 67% 50%; /* Color del Submenu (Mismo que accent) */
-    --muted-foreground: 260 10% 95%;
-    --accent: 263 67% 50%; /* Hover/Selected */
+    --muted: 263 67% 45%; /* Tono más claro sólido para submenús */
+    --muted-foreground: 0 0% 100%;
+    --accent: 263 67% 45%; /* Mismo que muted para coherencia */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
@@ -62,9 +62,9 @@
     --primary-foreground: 0 0% 100%;
     --secondary: 210 20% 96%;
     --secondary-foreground: 240 10% 10%;
-    --muted: 0 0% 100%; /* Submenu blanco sólido */
+    --muted: 0 0% 100%; /* Blanco puro sólido */
     --muted-foreground: 240 10% 40%;
-    --accent: 240 5% 96%; /* Casi blanco */
+    --accent: 240 5% 96%; /* Casi blanco sólido */
     --accent-foreground: 240 10% 10%;
     --border: 240 5% 94%;
     --input: 240 5% 94%;
@@ -79,23 +79,23 @@
 
   /* TEMA OSCURO (Gris Pálido / Casi Negro) */
   .dark {
-    --background: 0 0% 0%; /* Negro puro */
+    --background: 240 10% 4%; /* Fondo casi negro */
     --foreground: 240 5% 85%;
-    --card: 263 30% 10%; /* Violeta muy oscuro */
+    --card: 240 10% 10%; /* Gris muy oscuro sólido */
     --card-foreground: 240 5% 85%;
     --popover: 240 10% 6%;
     --popover-foreground: 240 5% 85%;
-    --primary: 263 30% 40%;
+    --primary: 263 30% 45%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 10% 12%;
+    --secondary: 240 10% 15%;
     --secondary-foreground: 240 5% 85%;
-    --muted: 240 10% 15%; /* Submenu del color del accent */
-    --muted-foreground: 240 5% 60%;
-    --accent: 240 10% 15%;
+    --muted: 240 10% 18%; /* Gris un poco más claro sólido */
+    --muted-foreground: 0 0% 100%;
+    --accent: 240 10% 18%;
     --accent-foreground: 0 0% 100%;
-    --border: 240 10% 12%;
-    --input: 240 10% 12%;
-    --ring: 263 30% 40%;
+    --border: 240 10% 15%;
+    --input: 240 10% 15%;
+    --ring: 263 30% 45%;
     
     /* Semantic Nav Tokens */
     --nav-bg: #0a0a0a;
@@ -120,6 +120,7 @@
   color: var(--header-foreground);
 }
 
-.dark .header-icon-circle {
-  background-color: rgba(255, 255, 255, 0.05);
+.dark .header-icon-circle,
+.root:not(.claro) .header-icon-circle {
+  background-color: rgba(255, 255, 255, 0.1);
 }

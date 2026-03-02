@@ -13,7 +13,6 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Badge } from '@/components/ui/badge';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
 
 const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; activeItem: any }) => {
@@ -69,7 +68,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                                     "flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-xl transition-all duration-300 relative group",
                                                     (isActive || isHovered) 
                                                         ? 'bg-accent text-accent-foreground shadow-[0_0_15px_rgba(0,0,0,0.1)]' 
-                                                        : 'text-[var(--nav-foreground)]/70 hover:bg-accent/50 hover:text-[var(--nav-foreground)]',
+                                                        : 'text-[var(--nav-foreground)] hover:bg-accent/50 hover:text-[var(--nav-foreground)] opacity-80 hover:opacity-100',
                                                     isExpanded && "w-20 rounded-r-none z-[31]"
                                                 )}
                                                 onMouseEnter={() => onHover(item)}
@@ -83,7 +82,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <span className="block w-full text-center text-[9px] font-bold uppercase tracking-tight leading-tight line-clamp-1 opacity-80">{t(item.title as any)}</span>
+                                                    <span className="block w-full text-center text-[9px] font-bold uppercase tracking-tight leading-tight line-clamp-1">{t(item.title as any)}</span>
                                                 </div>
                                             </Link>
                                         </div>
@@ -108,11 +107,11 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
 
     return (
         <div
-            className="fixed left-20 z-[30] hidden md:flex flex-col bg-[var(--muted)] text-[var(--nav-foreground)] shadow-[8px_8px_20px_rgba(0,0,0,0.1)] rounded-r-2xl overflow-hidden animate-in fade-in slide-in-from-left-2 duration-200 h-auto max-h-[85vh] my-auto top-0 bottom-0 border-l border-white/10"
+            className="fixed left-20 z-[30] hidden md:flex flex-col bg-accent text-accent-foreground shadow-[8px_8px_20px_rgba(0,0,0,0.1)] rounded-r-2xl overflow-hidden animate-in fade-in slide-in-from-left-2 duration-200 h-auto max-h-[85vh] my-auto top-0 bottom-0 border-l border-white/10"
             onMouseLeave={onLeave}
             style={{ width: '200px' }}
         >
-            <div className="flex h-12 items-center px-6 border-b border-[var(--nav-foreground)]/10">
+            <div className="flex h-12 items-center px-6 border-b border-white/10">
                 <h2 className="text-xs font-black uppercase tracking-widest">{t(item.title as any)}</h2>
             </div>
             <div className="flex-1 overflow-y-auto py-2">
@@ -123,7 +122,7 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
                             href={`/${locale}${subItem.href}`}
                             className="flex items-center gap-3 px-4 py-2.5 rounded-l-lg rounded-r-none text-sm font-bold transition-all hover:bg-white/10 active:scale-95"
                         >
-                            <subItem.icon className="h-4 w-4 opacity-80" />
+                            <subItem.icon className="h-4 w-4 opacity-90" />
                             <span>{t(subItem.title as any)}</span>
                         </Link>
                     ))}
