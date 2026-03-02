@@ -449,11 +449,10 @@ export default function AppointmentsPage() {
 
         // Persist change to backend
         const payload = {
-            appointmentId: appointment.id,
-            googleEventId: appointment.googleEventId,
+            appointment_id: appointment.id,
+            google_event_id: appointment.googleEventId,
             google_calendar_id: appointment.google_calendar_id || appointment.calendar_id,
-            calendarId: appointment.google_calendar_id || appointment.calendar_id, // compatibility
-            colorId: colorId
+            color_id: colorId
         };
 
         try {
@@ -482,10 +481,9 @@ export default function AppointmentsPage() {
         if (!deletingAppointment) return;
         try {
             const responseData = await api.delete(API_ROUTES.APPOINTMENTS_DELETE, {
-                appointmentId: deletingAppointment.id,
-                googleEventId: deletingAppointment.googleEventId,
+                appointment_id: deletingAppointment.id,
+                google_event_id: deletingAppointment.googleEventId,
                 google_calendar_id: deletingAppointment.google_calendar_id || deletingAppointment.calendar_id,
-                calendarId: deletingAppointment.google_calendar_id || deletingAppointment.calendar_id // compatibility
             });
             const result = Array.isArray(responseData) ? responseData[0] : responseData;
 
