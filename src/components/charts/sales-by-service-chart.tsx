@@ -49,14 +49,14 @@ export function SalesByServiceChart({ chartData, isLoading }: SalesByServiceChar
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 pt-6">
-        {chartData.length > 0 ? chartData.map((service) => (
+        {chartData.length > 0 ? chartData.map((service, index) => (
             <div key={service.name} className="space-y-1.5">
                 <div className="flex justify-between items-center text-sm font-bold">
                     <span className="text-foreground/80">{service.name}</span>
                     <span>{service.percentage.toFixed(0)}%</span>
                 </div>
                 <Progress value={service.percentage} className="h-2 bg-muted" style={{
-                    '--progress-color': service.color
+                    '--progress-color': service.color || `hsl(var(--chart-${(index % 3) + 1}))`
                 } as React.CSSProperties} />
             </div>
         )) : (

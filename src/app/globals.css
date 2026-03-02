@@ -32,9 +32,9 @@
     --primary-foreground: 0 0% 100%;
     --secondary: 341 90% 60%; /* Rosa brillante */
     --secondary-foreground: 0 0% 100%;
-    --muted: 263 67% 45%; /* Tono más claro sólido para submenús */
+    --muted: 263 67% 45%; 
     --muted-foreground: 0 0% 100%;
-    --accent: 263 67% 45%; /* Mismo que muted para coherencia */
+    --accent: 263 67% 35%; 
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
@@ -48,11 +48,22 @@
     --nav-foreground: #ffffff;
     --header-bg: #2e1065;
     --header-foreground: #ffffff;
+
+    /* Card Header for Invoke - matches Claro for better visibility in content area */
+    --card-header-bg: 260 30% 96%;
+    --card-header-foreground: 260 60% 5%;
+
+    /* Dashboard Chart Colors */
+    --chart-1: 0 84% 60%;   /* Rojo */
+    --chart-2: 142 76% 36%; /* Verde */
+    --chart-3: 217 91% 60%; /* Azul */
+    --chart-4: 47 95% 55%;  /* Amarillo/Naranja */
+    --chart-5: 262 83% 58%; /* Púrpura */
   }
 
-  /* TEMA CLARO (Gris ultra claro) */
+  /* TEMA CLARO */
   .claro {
-    --background: 0 0% 100%;
+    --background: 240 10% 98%;
     --foreground: 240 10% 10%;
     --card: 0 0% 100%;
     --card-foreground: 240 10% 10%;
@@ -62,9 +73,9 @@
     --primary-foreground: 0 0% 100%;
     --secondary: 210 20% 96%;
     --secondary-foreground: 240 10% 10%;
-    --muted: 0 0% 100%; /* Blanco puro sólido */
+    --muted: 0 0% 100%; 
     --muted-foreground: 240 10% 40%;
-    --accent: 240 5% 96%; /* Casi blanco sólido */
+    --accent: 240 10% 94%; 
     --accent-foreground: 240 10% 10%;
     --border: 240 5% 94%;
     --input: 240 5% 94%;
@@ -75,13 +86,23 @@
     --nav-foreground: #111827;
     --header-bg: #f9fafb;
     --header-foreground: #111827;
+
+    --card-header-bg: 240 5% 96%;
+    --card-header-foreground: 240 10% 10%;
+
+    /* Dashboard Chart Colors - Constant across themes for data semantics */
+    --chart-1: 0 84% 60%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 217 91% 60%;
+    --chart-4: 47 95% 55%;
+    --chart-5: 262 83% 58%;
   }
 
-  /* TEMA OSCURO (Gris Pálido / Casi Negro) */
+  /* TEMA OSCURO */
   .dark {
-    --background: 240 10% 4%; /* Fondo casi negro */
+    --background: 240 10% 4%; 
     --foreground: 240 5% 85%;
-    --card: 240 10% 10%; /* Gris muy oscuro sólido */
+    --card: 240 10% 8%; 
     --card-foreground: 240 5% 85%;
     --popover: 240 10% 6%;
     --popover-foreground: 240 5% 85%;
@@ -89,9 +110,9 @@
     --primary-foreground: 0 0% 100%;
     --secondary: 240 10% 15%;
     --secondary-foreground: 240 5% 85%;
-    --muted: 240 10% 18%; /* Gris un poco más claro sólido */
-    --muted-foreground: 0 0% 100%;
-    --accent: 240 10% 18%;
+    --muted: 240 10% 12%; 
+    --muted-foreground: 240 5% 65%;
+    --accent: 240 10% 15%;
     --accent-foreground: 0 0% 100%;
     --border: 240 10% 15%;
     --input: 240 10% 15%;
@@ -102,6 +123,16 @@
     --nav-foreground: #ffffff;
     --header-bg: #0a0a0a;
     --header-foreground: #ffffff;
+
+    --card-header-bg: 240 10% 12%;
+    --card-header-foreground: 240 5% 85%;
+
+    /* Dashboard Chart Colors */
+    --chart-1: 0 84% 60%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 217 91% 60%;
+    --chart-4: 47 95% 55%;
+    --chart-5: 262 83% 58%;
   }
 }
 

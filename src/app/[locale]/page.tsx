@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Stats } from '@/components/dashboard/stats';
@@ -27,11 +26,11 @@ type DashboardSummary = {
 }
 
 const INVOICE_CHART_COLORS: { [key: string]: string } = {
-    Paid: 'hsl(var(--chart-1))',
-    Overdue: 'hsl(var(--destructive))',
+    Paid: 'hsl(var(--chart-2))',    // Verde
+    Overdue: 'hsl(var(--chart-1))', // Rojo
     Draft: 'hsl(var(--muted-foreground))',
-    Sent: 'hsl(var(--chart-2))',
-    Pending: 'hsl(var(--chart-2))',
+    Sent: 'hsl(var(--chart-3))',    // Azul
+    Pending: 'hsl(var(--chart-3))', // Azul
 };
 
 async function getDashboardData(dateRange: DateRange | undefined, t: (key: string) => string): Promise<DashboardSummary> {
@@ -139,11 +138,11 @@ async function getSalesSummaryChartData(dateRange: DateRange | undefined): Promi
 }
 
 const CHART_COLORS = [
-    'hsl(var(--chart-1))',
-    'hsl(var(--chart-2))',
-    'hsl(var(--chart-3))',
-    'hsl(var(--chart-4))',
-    'hsl(var(--chart-5))',
+    'hsl(var(--chart-3))', // Azul
+    'hsl(var(--chart-2))', // Verde
+    'hsl(var(--chart-1))', // Rojo
+    'hsl(var(--chart-4))', // Amarillo
+    'hsl(var(--chart-5))', // Púrpura
 ];
 
 async function getSalesByServiceChartData(dateRange: DateRange | undefined): Promise<SalesByServiceChartData[]> {
@@ -217,8 +216,8 @@ async function getPatientDemographicsData(dateRange: DateRange | undefined, t: (
         return {
             total: newPatients + recurringPatients,
             data: [
-                { type: 'New', count: newPatients, fill: 'hsl(var(--chart-1))' },
-                { type: 'Recurrent', count: recurringPatients, fill: 'hsl(var(--chart-2))' },
+                { type: 'New', count: newPatients, fill: 'hsl(var(--chart-3))' }, // Azul
+                { type: 'Recurrent', count: recurringPatients, fill: 'hsl(var(--chart-2))' }, // Verde
             ]
         };
     } catch (error) {

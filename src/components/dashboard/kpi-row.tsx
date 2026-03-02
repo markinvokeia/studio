@@ -64,7 +64,7 @@ export function AverageBillingCard({ data, isLoading }: AverageBillingCardProps)
       <Card>
         <CardHeader className="flex flex-row items-center justify-between py-4">
           <CardTitle>{t('avgBilling')}</CardTitle>
-          <div className="header-icon-circle">
+          <div className="header-icon-circle bg-emerald-100 text-emerald-600">
             <DollarSign className="h-5 w-5" />
           </div>
         </CardHeader>
@@ -98,14 +98,14 @@ export function PatientDemographicsCard({ data, isLoading }: PatientDemographics
 
     const { total, data: chartData } = data;
     const chartConfig = {
-        New: { label: t('new'), color: 'hsl(var(--chart-1))' },
-        Recurrent: { label: t('recurrent'), color: 'hsl(var(--chart-2))' },
+        New: { label: t('new'), color: 'hsl(var(--chart-3))' }, // Azul
+        Recurrent: { label: t('recurrent'), color: 'hsl(var(--chart-2))' }, // Verde
     };
     return (
         <Card className="flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-4">
                 <CardTitle>{t('newVsRecurring')}</CardTitle>
-                <div className="header-icon-circle">
+                <div className="header-icon-circle bg-blue-100 text-blue-600">
                     <Users className="h-5 w-5" />
                 </div>
             </CardHeader>
@@ -167,7 +167,7 @@ export function AppointmentAttendanceCard({ data, isLoading }: AppointmentAttend
       <Card>
         <CardHeader className="flex flex-row items-center justify-between py-4">
           <CardTitle>{t('attendanceRate')}</CardTitle>
-          <div className="header-icon-circle">
+          <div className="header-icon-circle bg-orange-100 text-orange-600">
             <CalendarCheck className="h-5 w-5" />
           </div>
         </CardHeader>
