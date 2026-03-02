@@ -347,6 +347,7 @@ export default function OrdersPage() {
                                                     onRefresh={loadInvoices}
                                                     isRefreshing={isLoadingInvoices}
                                                     isCompact={true}
+                                                    canCreate={false}
                                                     columnTranslations={{
                                                         doc_no: tInvoices('columns.docNo'),
                                                         user_name: tInvoices('columns.userName'),
