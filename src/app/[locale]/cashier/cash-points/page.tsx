@@ -22,7 +22,7 @@ import { CashPoint } from '@/lib/types';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Archive } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -69,7 +69,7 @@ async function getCashPoints(pagination: PaginationState, searchQuery: string): 
 async function upsertCashPoint(cashPointData: CashPointFormValues) {
     const response = await api.post(API_ROUTES.CASHIER.CASH_POINTS_UPSERT, cashPointData);
     if (Array.isArray(response) && response[0]?.code >= 400) {
-        const message = response[0]?.message || 'Failed to save cash point'; // This might come from backend, leaving as is or could be a generic error key
+        const message = response[0]?.message || 'Failed to save cash point'; 
         throw new Error(message);
     }
     if (response.error) {
@@ -181,12 +181,19 @@ export default function CashPointsPage() {
 
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <Card className="flex-1 flex flex-col min-h-0">
-                <CardHeader className="flex-none">
-                    <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
+            <Card className="flex-1 flex flex-col min-h-0 border-0 lg:border shadow-none lg:shadow-sm">
+                <CardHeader className="flex-none p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <Archive className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col text-left">
+                            <CardTitle className="text-lg">{t('title')}</CardTitle>
+                            <CardDescription className="text-xs">{t('description')}</CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-background">
                     <DataTable
                         columns={columns}
                         data={cashPoints}
@@ -207,7 +214,14 @@ export default function CashPointsPage() {
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editingCashPoint ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
+                        <div className="flex items-start gap-3">
+                            <div className="header-icon-circle mt-0.5">
+                                <Archive className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col text-left">
+                                <DialogTitle>{editingCashPoint ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
+                            </div>
+                        </div>
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
@@ -254,8 +268,15 @@ export default function CashPointsPage() {
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('deleteDialog.description', { name: deletingCashPoint?.name })}</AlertDialogDescription>
+                        <div className="flex items-start gap-3">
+                            <div className="header-icon-circle mt-0.5">
+                                <AlertTriangle className="h-5 w-5 text-destructive" />
+                            </div>
+                            <div className="flex flex-col text-left">
+                                <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
+                                <AlertDialogDescription>{t('deleteDialog.description', { name: deletingCashPoint?.name })}</AlertDialogDescription>
+                            </div>
+                        </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
