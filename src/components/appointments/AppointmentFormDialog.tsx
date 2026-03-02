@@ -38,12 +38,15 @@ interface AppointmentFormDialogProps {
         doctor?: UserType | null;
         date?: string;
         time?: string;
+        summary?: string;
         description?: string;
     };
     onSaveSuccess?: (savedAppointment: any, selectedDate: Date) => void;
     calendars: CalendarType[];
     doctors: UserType[];
     doctorServiceMap: Map<string, Service[]>;
+    checkCalendarAvailability: boolean;
+    checkDoctorAvailability: boolean;
 }
 
 export function AppointmentFormDialog({
@@ -55,6 +58,8 @@ export function AppointmentFormDialog({
     calendars,
     doctors: allDoctors,
     doctorServiceMap,
+    checkCalendarAvailability,
+    checkDoctorAvailability,
 }: AppointmentFormDialogProps) {
     const t = useTranslations('AppointmentsPage');
     const tColumns = useTranslations('AppointmentsColumns');
@@ -104,16 +109,37 @@ export function AppointmentFormDialog({
                 }
 
                 setAppointment({
-                    user: { id: '', name: editingAppointment.patientName, email: editingAppointment.patientEmail || '', phone_number: editingAppointment.patientPhone || '', is_active: true, avatar: '' },
-                    services: [{ id: '', name: editingAppointment.service_name, category: '', price: 0, duration_minutes: 30, is_active: true }],
-                    doctor: editingAppointment.doctorEmail ? { id: '', name: editingAppointment.doctorName || '', email: editingAppointment.doctorEmail, phone_number: '', is_active: true, avatar: '' } : null,
+                    user: {
+                        id: editingAppointment.patientId || '',
+                        name: editingAppointment.patientName,
+                        email: editingAppointment.patientEmail || '',
+                        phone_number: editingAppointment.patientPhone || '',
+                        is_active: true, avatar: ''
+                    },
+                    services: (editingAppointment.services && editingAppointment.services.length > 0)
+                        ? editingAppointment.services
+                        : [{
+                            id: '',
+                            name: editingAppointment.summary || editingAppointment.service_name || '',
+                            category: '',
+                            price: 0,
+                            duration_minutes: 30,
+                            is_active: true
+                        }],
+                    doctor: editingAppointment.doctorId ? {
+                        id: editingAppointment.doctorId,
+                        name: editingAppointment.doctorName || '',
+                        email: editingAppointment.doctorEmail || '',
+                        phone_number: '',
+                        is_active: true, avatar: ''
+                    } : null,
                     calendar: foundCalendar || null,
-                    date: editingAppointment.date,
-                    time: editingAppointment.time,
+                    date: editingAppointment.date || '',
+                    time: editingAppointment.time || '',
                     endTime: editingAppointment.end ? format(parseISO(editingAppointment.end.dateTime), 'HH:mm') : '',
                     description: editingAppointment.description || '',
                 });
-                setOriginalCalendarId(editingAppointment.calendar_id);
+                setOriginalCalendarId(editingAppointment.google_calendar_id || editingAppointment.calendar_id);
             } else if (initialData) {
                 setAppointment({
                     user: initialData.user || null,
@@ -215,6 +241,12 @@ export function AppointmentFormDialog({
     }, [serviceSearchQuery, isServiceSearchOpen]);
 
     const checkAvailability = React.useCallback(async (formData: typeof appointment) => {
+        console.log(`Evaluating availability check. CHECK_CALENDAR_AVAILABILITY is: ${checkCalendarAvailability}`);
+        if (!checkCalendarAvailability) {
+            setAvailabilityStatus('available');
+            return;
+        }
+
         const { date, time, services, user, doctor, calendar, endTime } = formData;
         if (!date || !time || (!user && !editingAppointment) || services.length === 0) {
             return;
@@ -260,6 +292,8 @@ export function AppointmentFormDialog({
             startingDateAndTime: startDateTime.toISOString(),
             endingDateAndTime: endDateTime.toISOString(),
             mode: 'checkAvailability',
+            doctorId: doctor?.id || editingAppointment?.doctorId || '',
+            patientId: user?.id || editingAppointment?.patientId || '',
         };
 
         if (doctor?.email) params.doctorEmail = doctor.email;
@@ -297,7 +331,7 @@ export function AppointmentFormDialog({
             console.error("Failed to check availability:", error);
             setAvailabilityStatus('idle');
         }
-    }, [editingAppointment, doctorServiceMap]);
+    }, [editingAppointment, doctorServiceMap, checkCalendarAvailability]);
 
     React.useEffect(() => {
         if (appointment.date && appointment.time) {
@@ -387,42 +421,56 @@ export function AppointmentFormDialog({
         }
 
         const payload: any = {
-            startingDateAndTime: startDateTime.toISOString(),
-            endingDateAndTime: endDateTime.toISOString(),
+            start: startDateTime.toISOString(),
+            end: endDateTime.toISOString(),
             mode: isEditing ? 'update' : 'create',
         };
 
         if (isEditing) {
-            payload.eventId = editingAppointment!.id;
-            if (originalCalendarId) payload.oldCalendarId = originalCalendarId;
-            payload.doctorId = doctor?.id || '';
-            payload.doctorEmail = doctor?.email || editingAppointment!.doctorEmail;
-            payload.userId = user?.id || '';
-            payload.userEmail = user?.email || editingAppointment!.patientEmail;
-            payload.userName = user?.name || editingAppointment!.patientName;
-            payload.serviceName = services.length > 0 ? services.map(s => s.name).join(', ') : editingAppointment!.service_name;
+            payload.appointment_id = editingAppointment!.id;
+            payload.google_event_id = editingAppointment!.googleEventId;
+            if (originalCalendarId) payload.old_calendar_id = originalCalendarId;
+            payload.doctor_id = doctor?.id || editingAppointment!.doctorId;
+            payload.doctor_name = doctor?.name || editingAppointment!.doctorName;
+            payload.doctor_email = doctor?.email || editingAppointment!.doctorEmail;
+            payload.patient_id = user?.id || editingAppointment!.patientId;
+            payload.patient_name = user?.name || editingAppointment!.patientName;
+            payload.patient_email = user?.email || editingAppointment!.patientEmail;
+            payload.patient_phone = user?.phone_number || editingAppointment!.patientPhone;
+            const patientNameBase = user?.name || editingAppointment!.patientName;
+            payload.summary = services.length > 0 ? `${patientNameBase} - ${services.map(s => s.name).join(', ')}` : editingAppointment!.summary;
+            payload.service_ids = services.filter(s => s.id).map(s => s.id);
+            payload.service_names = services.map(s => s.name).join(', ');
             payload.description = description || editingAppointment!.description || services.map(s => s.name).join(', ');
-            payload.calendarId = calendar?.google_calendar_id || originalCalendarId;
+            payload.google_calendar_id = calendar?.google_calendar_id || originalCalendarId;
         } else {
             if (!user || services.length === 0) {
                 toast({ variant: "destructive", title: tToasts('missingInfoTitle'), description: tToasts('fillRequired') });
                 return;
             }
-            payload.doctorId = doctor?.id || '';
-            payload.doctorEmail = doctor?.email || '';
-            payload.userId = user.id;
-            payload.userEmail = user.email;
-            payload.userName = user.name;
-            payload.serviceName = services.map(s => s.name).join(', ');
+            payload.doctor_id = doctor?.id || '';
+            payload.doctor_name = doctor?.name || '';
+            payload.doctor_email = doctor?.email || '';
+            payload.patient_id = user.id;
+            payload.patient_name = user.name;
+            payload.patient_email = user.email;
+            payload.patient_phone = user.phone_number;
+            payload.summary = `${user.name} - ${services.map(s => s.name).join(', ')}`;
+            payload.service_ids = services.filter(s => s.id).map(s => s.id);
+            payload.service_names = services.map(s => s.name).join(', ');
             payload.description = description || services.map(s => s.name).join(', ');
-            if (calendar?.google_calendar_id) payload.calendarId = calendar.google_calendar_id;
+            payload.google_calendar_id = calendar?.google_calendar_id || '';
         }
 
         try {
             const responseData = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload);
             const result = Array.isArray(responseData) ? responseData[0] : responseData;
 
-            if (result.code === 200 || result.status === 'success') {
+            // Since api.ts already throws for non-2xx codes, a successful return is a success
+            // unless it explicitly contains an error field.
+            const isSuccess = !result.error && (result.code === 200 || result.status === 'success' || result.message || result.id || result.appointment_id || result.appointmentId);
+
+            if (isSuccess) {
                 toast({ title: isEditing ? tToasts('appointmentUpdated') : tToasts('appointmentCreated') });
                 onOpenChange(false);
                 if (onSaveSuccess) onSaveSuccess(result, startDateTime);
@@ -441,13 +489,17 @@ export function AppointmentFormDialog({
     };
 
     const filteredDoctors = React.useMemo(() => {
+        console.log(`Evaluating doctor filtering. CHECK_DOCTOR_AVAILABILITY is: ${checkDoctorAvailability}`);
+        if (!checkDoctorAvailability) {
+            return allDoctors;
+        }
         if (appointment.services.length === 0) return allDoctors;
         const selectedServiceIds = new Set(appointment.services.map(s => s.id));
         return allDoctors.filter(doctor => {
             const docServices = doctorServiceMap.get(doctor.id);
             return docServices && Array.from(selectedServiceIds).some(sid => docServices.some(ds => String(ds.id) === String(sid)));
         });
-    }, [allDoctors, appointment.services, doctorServiceMap]);
+    }, [allDoctors, appointment.services, doctorServiceMap, checkDoctorAvailability]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

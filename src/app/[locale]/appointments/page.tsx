@@ -120,40 +120,77 @@ async function getAppointments(
         }
 
         return appointmentsData.map((apiAppt: any) => {
-            const appointmentDateTimeStr = apiAppt.start_time || (apiAppt.start && apiAppt.start.dateTime);
-            if (!appointmentDateTimeStr) return null;
+            // Handle both structure where start is an object or a direct string
+            const startNode = apiAppt.start_time || apiAppt.start;
+            const appointmentDateTimeStr = typeof startNode === 'string' ? startNode : (startNode?.dateTime);
+
+            if (!appointmentDateTimeStr) {
+                console.warn("Appointment missing start time:", apiAppt);
+                return null;
+            }
 
             const appointmentDateTime = parseISO(appointmentDateTimeStr);
-            if (isNaN(appointmentDateTime.getTime())) return null;
+            if (isNaN(appointmentDateTime.getTime())) {
+                console.error("Invalid appointment date:", appointmentDateTimeStr, apiAppt);
+                return null;
+            }
 
-            const calendarId = apiAppt.organizer?.email;
-            const calendar = calendars.find(c => c.google_calendar_id === calendarId);
+            // Normalize fields prioritizing snake_case from backend
+            const calendarId = apiAppt.google_calendar_id || apiAppt.calendar_id || apiAppt.calendarId || apiAppt.organizer?.email;
+            const calendar = calendars.find(c => c.google_calendar_id === calendarId || c.id === calendarId);
 
-            const appointmentColorId = apiAppt.colorId;
-            const service = services.find(s => s.name === apiAppt.summary);
-            const doctor = doctors.find(d => d.email === apiAppt.doctorEmail);
+            const appointmentColorId = apiAppt.color_id || apiAppt.colorId || apiAppt.colorid;
 
-            let finalColor = colorMap.get(appointmentColorId) || service?.color || doctor?.color || calendar?.color;
+            const doctorId = apiAppt.doctor_id || apiAppt.doctorId || apiAppt.doctorid;
+            const doctor = doctors.find(d => String(d.id) === String(doctorId) || (apiAppt.doctor_email && d.email === apiAppt.doctor_email) || (apiAppt.doctorEmail && d.email === apiAppt.doctorEmail) || (apiAppt.doctoremail && d.email === apiAppt.doctoremail));
 
-            return {
-                id: apiAppt.id,
-                patientName: apiAppt.patientName || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a: any) => a.email).join(', ') : 'N/A'),
-                patientEmail: apiAppt.patientEmail,
-                doctorEmail: apiAppt.doctorEmail,
+            const service = services.find(s => s.name === apiAppt.summary || String(s.id) === String(apiAppt.service_id));
+
+            let finalColor = apiAppt.color || colorMap.get(appointmentColorId) || service?.color || doctor?.color || calendar?.color;
+
+            const patientId = apiAppt.patient_id || apiAppt.patientId || apiAppt.patientid;
+            const patientName = apiAppt.patient_name || apiAppt.patientName || apiAppt.patientname || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a: any) => a.email).join(', ') : 'N/A');
+            const doctorName = apiAppt.doctor_name || apiAppt.doctorName || apiAppt.doctorname || doctor?.name || 'Doctor';
+
+            const endNode = apiAppt.end_time || apiAppt.end;
+            const endDateTimeStr = typeof endNode === 'string' ? endNode : (endNode?.dateTime);
+
+            const appointment: Appointment = {
+                id: String(apiAppt.appointment_id || apiAppt.appointmentId || apiAppt.appointmentid || apiAppt.id || ''),
+                patientId: String(patientId || ''),
+                patientName: patientName,
+                patientEmail: apiAppt.patient_email || apiAppt.patientEmail || apiAppt.patientemail,
+                patientPhone: apiAppt.patient_phone || apiAppt.patientPhone || apiAppt.patientphone,
+                doctorId: String(doctorId || ''),
+                doctorName: doctorName,
+                doctorEmail: apiAppt.doctor_email || apiAppt.doctorEmail || apiAppt.doctoremail || doctor?.email || '',
+                summary: apiAppt.summary || t('createDialog.none'),
                 service_name: apiAppt.summary || t('createDialog.none'),
                 description: apiAppt.description || '',
                 date: format(appointmentDateTime, 'yyyy-MM-dd'),
                 time: format(appointmentDateTime, 'HH:mm'),
                 status: apiAppt.status || 'confirmed',
-                patientPhone: apiAppt.patientPhone,
-                doctorName: apiAppt.doctorName,
-                calendar_id: calendarId,
-                calendar_name: apiAppt.organizer?.displayName,
+                created_at: apiAppt.created_at || apiAppt.createdat,
+                google_calendar_id: calendarId || '',
+                googleEventId: apiAppt.google_event_id || apiAppt.googleEventId || apiAppt.googleeventid || apiAppt.id,
+                calendar_id: calendarId || '',
+                calendar_name: apiAppt.organizer?.displayName || calendar?.name || apiAppt.calendar_name,
                 color: finalColor,
                 colorId: appointmentColorId,
-                start: apiAppt.start,
-                end: apiAppt.end,
-            } as Appointment;
+                start: typeof startNode === 'string' ? { dateTime: startNode } : startNode,
+                end: typeof endNode === 'string' ? { dateTime: endNode } : endNode,
+                services: Array.isArray(apiAppt.services) ? apiAppt.services.map((s: any) => ({
+                    id: String(s.id),
+                    name: s.name || '',
+                    price: Number(s.price || 0),
+                    category: '',
+                    duration_minutes: 30,
+                    is_active: true
+                } as Service)) : []
+            };
+
+            console.log("Mapped appointment:", appointment);
+            return appointment;
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
         console.error("Failed to fetch appointments:", error);
@@ -242,6 +279,8 @@ export default function AppointmentsPage() {
     const [isCreateOpen, setCreateOpen] = React.useState(false);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [fetchRange, setFetchRange] = React.useState<{ start: Date; end: Date } | null>(null);
+    const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(true);
+    const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(true);
 
     const [editingAppointment, setEditingAppointment] = React.useState<Appointment | null>(null);
     const [deletingAppointment, setDeletingAppointment] = React.useState<Appointment | null>(null);
@@ -270,7 +309,7 @@ export default function AppointmentsPage() {
         setCreateOpen(true);
     };
 
-    const [slotInitialData, setSlotInitialData] = React.useState<{ date: string; time: string } | null>(null);
+    const [slotInitialData, setSlotInitialData] = React.useState<{ date: string; time: string; summary?: string } | null>(null);
 
     const handleSlotClick = React.useCallback((date: Date) => {
         setEditingAppointment(null);
@@ -332,11 +371,32 @@ export default function AppointmentsPage() {
 
     const loadInitialData = React.useCallback(async () => {
         setIsDataLoading(true);
-        const [fetchedCalendars, fetchedServices, fetchedDoctors] = await Promise.all([getCalendars(), getServices(), getDoctors()]);
+        const [fetchedCalendars, fetchedServices, fetchedDoctors, fetchedConfig] = await Promise.all([
+            getCalendars(),
+            getServices(),
+            getDoctors(),
+            api.get(API_ROUTES.SYSTEM.CONFIGS).catch(() => [])
+        ]);
         setCalendars(fetchedCalendars);
         setServices(fetchedServices);
         setDoctors(fetchedDoctors);
         setAssignees(fetchedDoctors);
+
+        if (Array.isArray(fetchedConfig)) {
+            const calendarConfig = fetchedConfig.find((c: any) => c.key === 'CHECK_CALENDAR_AVAILABILITY');
+            const doctorConfig = fetchedConfig.find((c: any) => c.key === 'CHECK_DOCTOR_AVAILABILITY');
+
+            if (calendarConfig) {
+                const val = String(calendarConfig.value).toLowerCase() === 'true';
+                console.log(`Config: CHECK_CALENDAR_AVAILABILITY = ${val} (raw value: ${calendarConfig.value})`);
+                setCheckCalendarAvailability(val);
+            }
+            if (doctorConfig) {
+                const val = String(doctorConfig.value).toLowerCase() === 'true';
+                console.log(`Config: CHECK_DOCTOR_AVAILABILITY = ${val} (raw value: ${doctorConfig.value})`);
+                setCheckDoctorAvailability(val);
+            }
+        }
 
         const serviceMap = new Map<string, Service[]>();
         for (const doctor of fetchedDoctors) {
@@ -389,8 +449,10 @@ export default function AppointmentsPage() {
 
         // Persist change to backend
         const payload = {
-            eventId: appointment.id,
-            calendarId: appointment.calendar_id,
+            appointmentId: appointment.id,
+            googleEventId: appointment.googleEventId,
+            google_calendar_id: appointment.google_calendar_id || appointment.calendar_id,
+            calendarId: appointment.google_calendar_id || appointment.calendar_id, // compatibility
             colorId: colorId
         };
 
@@ -419,10 +481,17 @@ export default function AppointmentsPage() {
     const confirmDeleteAppointment = async () => {
         if (!deletingAppointment) return;
         try {
-            const responseData = await api.delete(API_ROUTES.APPOINTMENTS_DELETE, { eventId: deletingAppointment.id, calendarId: deletingAppointment.calendar_id });
+            const responseData = await api.delete(API_ROUTES.APPOINTMENTS_DELETE, {
+                appointmentId: deletingAppointment.id,
+                googleEventId: deletingAppointment.googleEventId,
+                google_calendar_id: deletingAppointment.google_calendar_id || deletingAppointment.calendar_id,
+                calendarId: deletingAppointment.google_calendar_id || deletingAppointment.calendar_id // compatibility
+            });
             const result = Array.isArray(responseData) ? responseData[0] : responseData;
 
-            if (result.code === 200 || result.success) {
+            const isSuccess = !result.error && (result.code === 200 || result.success || result.message);
+
+            if (isSuccess) {
                 toast({
                     title: tToasts('appointmentCancelled'),
                     description: result.message || tToasts('appointmentCancelledDesc'),
@@ -448,7 +517,7 @@ export default function AppointmentsPage() {
     }, []);
 
     const calendarEvents = React.useMemo(() => {
-        return appointments.map(appt => {
+        const events = appointments.map(appt => {
             if (!appt.start?.dateTime || !appt.end?.dateTime) {
                 console.warn("Appointment missing start or end dateTime:", appt);
                 return null;
@@ -463,8 +532,8 @@ export default function AppointmentsPage() {
                 }
 
                 return {
-                    id: appt.id,
-                    title: appt.service_name,
+                    id: String(appt.id),
+                    title: appt.summary || appt.service_name || 'Cita',
                     start,
                     end,
                     assignee: appt.doctorEmail,
@@ -477,6 +546,9 @@ export default function AppointmentsPage() {
                 return null;
             }
         }).filter(Boolean) as ({ id: string; title: string; start: Date; end: Date; assignee: string | undefined; data: Appointment; color?: string; colorId?: string })[];
+
+        console.log("Calendar events generated:", events);
+        return events;
     }, [appointments]);
 
 
@@ -510,8 +582,8 @@ export default function AppointmentsPage() {
     }, [selectedCalendarIds]);
 
     return (
-        <Card>
-            <CardContent className="p-0 h-[calc(100vh-10rem)]">
+        <Card className="border-none shadow-none h-full">
+            <CardContent className="p-0 h-[calc(100vh-6rem)] min-h-[600px]">
                 <Calendar
                     events={calendarEvents}
                     onDateChange={onDateChange}
@@ -621,6 +693,8 @@ export default function AppointmentsPage() {
                 calendars={calendars}
                 doctors={doctors}
                 doctorServiceMap={doctorServiceMap}
+                checkCalendarAvailability={checkCalendarAvailability}
+                checkDoctorAvailability={checkDoctorAvailability}
             />
 
             <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>

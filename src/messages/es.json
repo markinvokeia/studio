@@ -1,4 +1,3 @@
-
 {
     "Navigation": {
         "Dashboard": "Panel de Control",
@@ -165,9 +164,38 @@
         "goToLast": "Ir a la última página"
     },
     "DatePicker": {
-        "months": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
-        "weekdays": ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"],
-        "weekdaysLong": ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"],
+        "months": [
+            "Enero",
+            "Febrero",
+            "Marzo",
+            "Abril",
+            "Mayo",
+            "Junio",
+            "Julio",
+            "Agosto",
+            "Septiembre",
+            "Octubre",
+            "Noviembre",
+            "Diciembre"
+        ],
+        "weekdays": [
+            "Dom",
+            "Lun",
+            "Mar",
+            "Mié",
+            "Jue",
+            "Vie",
+            "Sáb"
+        ],
+        "weekdaysLong": [
+            "Domingo",
+            "Lunes",
+            "Martes",
+            "Miércoles",
+            "Jueves",
+            "Viernes",
+            "Sábado"
+        ],
         "labelPrevious": "Ir al mes anterior",
         "labelNext": "Ir al mes siguiente",
         "labelMonthDropdown": "Elegir el mes",
@@ -347,7 +375,8 @@
         "completed": "Completada",
         "confirmed": "Confirmada",
         "pending": "Pendiente",
-        "cancelled": "Cancelada"
+        "cancelled": "Cancelada",
+        "scheduled": "Programada"
     },
     "AilmentsPage": {
         "title": "Padecimientos",

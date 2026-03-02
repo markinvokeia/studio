@@ -25,59 +25,60 @@ interface AppointmentColumnsProps {
 }
 
 export const getAppointmentColumns = ({ t, tStatus, onEdit, onCancel }: AppointmentColumnsProps): ColumnDef<Appointment>[] => [
-    { accessorKey: 'service_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('service')} /> },
-    { accessorKey: 'patientName', header: ({column}) => <DataTableColumnHeader column={column} title={t('patient')} /> },
-    { accessorKey: 'doctorName', header: ({column}) => <DataTableColumnHeader column={column} title={t('doctor')} /> },
-    { accessorKey: 'calendar_name', header: ({column}) => <DataTableColumnHeader column={column} title={t('calendar')} /> },
-    { 
-      accessorKey: 'date', 
-      header: ({column}) => <DataTableColumnHeader column={column} title={t('date')} />,
-      size: 200,
-    },
-    { accessorKey: 'time', header: ({column}) => <DataTableColumnHeader column={column} title={t('time')} /> },
-    { 
-      accessorKey: 'status', 
-      header: ({column}) => <DataTableColumnHeader column={column} title={t('status')} />,
-      cell: ({ row }) => {
-        const status = row.getValue('status') as string;
-        const variant = {
-            completed: 'success',
-            confirmed: 'default',
-            pending: 'info',
-            cancelled: 'destructive',
-        }[status.toLowerCase()] || 'default';
+  { accessorKey: 'summary', header: ({ column }) => <DataTableColumnHeader column={column} title={t('service')} /> },
+  { accessorKey: 'patientName', header: ({ column }) => <DataTableColumnHeader column={column} title={t('patient')} /> },
+  { accessorKey: 'doctorName', header: ({ column }) => <DataTableColumnHeader column={column} title={t('doctor')} /> },
+  { accessorKey: 'calendar_name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('calendar')} /> },
+  {
+    accessorKey: 'date',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('date')} />,
+    size: 200,
+  },
+  { accessorKey: 'time', header: ({ column }) => <DataTableColumnHeader column={column} title={t('time')} /> },
+  {
+    accessorKey: 'status',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('status')} />,
+    cell: ({ row }) => {
+      const status = row.getValue('status') as string;
+      const variant = {
+        completed: 'success',
+        confirmed: 'default',
+        pending: 'info',
+        cancelled: 'destructive',
+        scheduled: 'info',
+      }[status.toLowerCase()] || 'default';
 
-        return (
-            <Badge variant={variant as any} className="capitalize">{tStatus(status.toLowerCase())}</Badge>
-        );
-      }
+      return (
+        <Badge variant={variant as any} className="capitalize">{tStatus(status.toLowerCase())}</Badge>
+      );
+    }
+  },
+  {
+    id: 'actions',
+    cell: ({ row }) => {
+      const appointment = row.original;
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => onEdit(appointment)}>{t('edit')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onCancel(appointment)} className="text-destructive">{t('cancel')}</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
     },
-    {
-        id: 'actions',
-        cell: ({ row }) => {
-        const appointment = row.original;
-        return (
-            <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => onEdit(appointment)}>{t('edit')}</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onCancel(appointment)} className="text-destructive">{t('cancel')}</DropdownMenuItem>
-            </DropdownMenuContent>
-            </DropdownMenu>
-        );
-        },
-    },
+  },
 ];
 
 export function AppointmentColumnsWrapper({ onEdit, onCancel }: { onEdit: (appointment: Appointment) => void; onCancel: (appointment: Appointment) => void; }) {
-    const t = useTranslations('AppointmentsColumns');
-    const tStatus = useTranslations('AppointmentStatus');
-    const columns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns({t, tStatus, onEdit, onCancel}), [t, tStatus, onEdit, onCancel]);
-    return columns;
+  const t = useTranslations('AppointmentsColumns');
+  const tStatus = useTranslations('AppointmentStatus');
+  const columns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns({ t, tStatus, onEdit, onCancel }), [t, tStatus, onEdit, onCancel]);
+  return columns;
 }

@@ -340,23 +340,30 @@ export type Message = {
 };
 
 export type Appointment = {
-  id: string;
+  id: string; // appointmentId in backend
+  patientId: string;
   patientName: string;
   patientEmail?: string;
-  service_name: string;
+  patientPhone?: string;
+  doctorId: string;
+  doctorName?: string;
+  doctorEmail?: string;
+  summary: string; // was service_name before
+  service_name?: string; // keeping for backward compatibility if needed in UI, but summary is the new standard
   description?: string;
   date: string;
   time: string;
-  status: 'confirmed' | 'completed' | 'cancelled' | 'pending';
-  patientPhone?: string;
-  doctorName?: string;
-  doctorEmail?: string;
-  calendar_id: string;
+  status: 'confirmed' | 'completed' | 'cancelled' | 'pending' | 'scheduled';
+  created_at?: string;
+  google_calendar_id: string;
+  googleEventId?: string;
+  calendar_id?: string; // keeping legacy for a moment to avoid immediate break
   calendar_name?: string;
   color?: string;
   colorId?: string;
   start?: any;
   end?: any;
+  services?: Service[];
 };
 
 export type UserLog = {
