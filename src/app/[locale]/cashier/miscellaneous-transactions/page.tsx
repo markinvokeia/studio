@@ -543,7 +543,54 @@ export default function MiscellaneousTransactionsPage() {
                                 />
                             </div>
                             <div className="grid grid-cols-3 gap-4">
-                                <FormField control={form.control} name="amount" render={({ field }) => (<FormItem className="col-span-2"><FormLabel>{t('dialog.amount')}</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="amount" render={({ field: { onChange, value } }) => {
+                                    const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
+
+                                    React.useEffect(() => {
+                                      setInputValue(value ? String(value) : '');
+                                    }, [value]);
+
+                                    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                                        const rawValue = e.target.value;
+                                        const sanitized = rawValue.replace(/[^0-9.]/g, '');
+                                        const parts = sanitized.split('.');
+                                        let formatted = parts[0];
+                                        if (parts.length > 1) {
+                                            formatted += '.' + parts[1].slice(0, 2);
+                                        }
+                                        setInputValue(formatted);
+                                        const numValue = formatted === '' ? 0 : parseFloat(formatted);
+                                        onChange(isNaN(numValue) ? 0 : numValue);
+                                    };
+
+                                    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+                                        const numValue = parseFloat(e.target.value);
+                                        if (!isNaN(numValue) && numValue >= 0) {
+                                            onChange(numValue);
+                                            setInputValue(numValue.toFixed(2));
+                                        } else if (e.target.value !== '') {
+                                            onChange(0);
+                                            setInputValue('');
+                                        }
+                                    };
+
+                                    return (
+                                        <FormItem className="col-span-2">
+                                            <FormLabel>{t('dialog.amount')}</FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    type="text"
+                                                    inputMode="decimal"
+                                                    value={inputValue}
+                                                    onChange={handleChange}
+                                                    onBlur={handleBlur}
+                                                    placeholder="0.00"
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    );
+                                }} />
                                 <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>{t('dialog.currency')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                             </div>
                             <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>{t('dialog.description')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />

@@ -48,7 +48,7 @@ import { Skeleton } from '../ui/skeleton';
 
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
-  amount: z.coerce.number().min(0, t('validation.amountPositive')), // Allow 0
+  amount: z.coerce.number().min(0, t('validation.amountPositive')),
   method: z.string().optional(), // Optional
   status: z.enum(['pending', 'completed', 'failed']),
   payment_date: z.date({
@@ -924,21 +924,54 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                   <FormField
                     control={form.control}
                     name="amount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('paymentDialog.amount')} ({watchedPaymentCurrency})</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            step="0.01" 
-                            {...field}
-                            value={field.value ? Number(field.value).toFixed(2) : ''}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field: { onChange, value }, fieldState }) => {
+                      const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
+
+                      React.useEffect(() => {
+                        setInputValue(value ? String(value) : '');
+                      }, [value]);
+
+                      const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                        const rawValue = e.target.value;
+                        const sanitized = rawValue.replace(/[^0-9.]/g, '');
+                        const parts = sanitized.split('.');
+                        let formatted = parts[0];
+                        if (parts.length > 1) {
+                          formatted += '.' + parts[1].slice(0, 2);
+                        }
+                        setInputValue(formatted);
+                        const numValue = formatted === '' ? 0 : parseFloat(formatted);
+                        onChange(isNaN(numValue) ? 0 : numValue);
+                      };
+
+                      const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+                        const numValue = parseFloat(e.target.value);
+                        if (!isNaN(numValue) && numValue >= 0) {
+                          onChange(numValue);
+                          setInputValue(numValue.toFixed(2));
+                        } else if (e.target.value !== '') {
+                          onChange(0);
+                          setInputValue('');
+                        }
+                      };
+
+                      return (
+                        <FormItem>
+                          <FormLabel>{t('paymentDialog.amount')} ({watchedPaymentCurrency})</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="text"
+                              inputMode="decimal"
+                              value={inputValue}
+                              onChange={handleChange}
+                              onBlur={handleBlur}
+                              placeholder="0.00"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                   <FormField
                     control={form.control}
@@ -969,21 +1002,54 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                   <FormField
                     control={form.control}
                     name="exchange_rate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('paymentDialog.exchangeRate')}</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            step="0.01" 
-                            {...field}
-                            value={field.value ? Number(field.value).toFixed(2) : ''}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field: { onChange, value } }) => {
+                      const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
+
+                      React.useEffect(() => {
+                        setInputValue(value ? String(value) : '');
+                      }, [value]);
+
+                      const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                        const rawValue = e.target.value;
+                        const sanitized = rawValue.replace(/[^0-9.]/g, '');
+                        const parts = sanitized.split('.');
+                        let formatted = parts[0];
+                        if (parts.length > 1) {
+                          formatted += '.' + parts[1].slice(0, 2);
+                        }
+                        setInputValue(formatted);
+                        const numValue = formatted === '' ? 0 : parseFloat(formatted);
+                        onChange(isNaN(numValue) ? 0 : numValue);
+                      };
+
+                      const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+                        const numValue = parseFloat(e.target.value);
+                        if (!isNaN(numValue) && numValue >= 0) {
+                          onChange(numValue);
+                          setInputValue(numValue.toFixed(2));
+                        } else if (e.target.value !== '') {
+                          onChange(0);
+                          setInputValue('');
+                        }
+                      };
+
+                      return (
+                        <FormItem>
+                          <FormLabel>{t('paymentDialog.exchangeRate')}</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="text"
+                              inputMode="decimal"
+                              value={inputValue}
+                              onChange={handleChange}
+                              onBlur={handleBlur}
+                              placeholder="0.00"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                   {equivalentAmount !== null && (
                     <FormItem>
@@ -1445,15 +1511,62 @@ const onSubmit = async (values: CreateInvoiceFormValues) => {
                           }
                         }} /></FormControl><FormMessage /></FormItem>
                       )} />
-                      <FormField control={form.control} name={`items.${index}.unit_price`} render={({ field }) => (
-                        <FormItem className="w-full md:w-28"><FormControl><Input type="number" {...field} readOnly={invoiceType === 'credit_note'} onChange={(e) => {
-                          if (invoiceType !== 'credit_note') {
-                            field.onChange(e);
-                            const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                            form.setValue(`items.${index}.total`, quantity * Number(e.target.value));
+                      <FormField control={form.control} name={`items.${index}.unit_price`} render={({ field: { onChange, value } }) => {
+                        const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
+
+                        React.useEffect(() => {
+                          setInputValue(value ? String(value) : '');
+                        }, [value]);
+
+                        const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                          const rawValue = e.target.value;
+                          const sanitized = rawValue.replace(/[^0-9.]/g, '');
+                          const parts = sanitized.split('.');
+                          let formatted = parts[0];
+                          if (parts.length > 1) {
+                            formatted += '.' + parts[1].slice(0, 2);
                           }
-                        }} /></FormControl><FormMessage /></FormItem>
-                      )} />
+                          setInputValue(formatted);
+                          const numValue = formatted === '' ? 0 : parseFloat(formatted);
+                          onChange(isNaN(numValue) ? 0 : numValue);
+                          if (invoiceType !== 'credit_note') {
+                            const quantity = form.getValues(`items.${index}.quantity`) || 1;
+                            form.setValue(`items.${index}.total`, quantity * numValue);
+                          }
+                        };
+
+                        const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+                          const numValue = parseFloat(e.target.value);
+                          if (!isNaN(numValue) && numValue >= 0) {
+                            onChange(numValue);
+                            setInputValue(numValue.toFixed(2));
+                            if (invoiceType !== 'credit_note') {
+                              const quantity = form.getValues(`items.${index}.quantity`) || 1;
+                              form.setValue(`items.${index}.total`, quantity * numValue);
+                            }
+                          } else if (e.target.value !== '') {
+                            onChange(0);
+                            setInputValue('');
+                          }
+                        };
+
+                        return (
+                          <FormItem className="w-full md:w-28">
+                            <FormControl>
+                              <Input 
+                                type="text"
+                                inputMode="decimal"
+                                value={inputValue}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                                readOnly={invoiceType === 'credit_note'}
+                                placeholder="0.00"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }} />
                       <FormField control={form.control} name={`items.${index}.total`} render={({ field }) => (
                         <FormItem className="w-full md:w-28"><FormControl><Input type="number" readOnly disabled {...field} /></FormControl><FormMessage /></FormItem>
                       )} />

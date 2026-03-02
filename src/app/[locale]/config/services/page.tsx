@@ -334,15 +334,54 @@ export default function ServicesPage() {
                 <FormField
                   control={form.control}
                   name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('createDialog.price')}</FormLabel>
-                      <FormControl>
-                        <Input type="number" placeholder="0.00" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field: { onChange, value } }) => {
+                    const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
+
+                    React.useEffect(() => {
+                      setInputValue(value ? String(value) : '');
+                    }, [value]);
+
+                    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                      const rawValue = e.target.value;
+                      const sanitized = rawValue.replace(/[^0-9.]/g, '');
+                      const parts = sanitized.split('.');
+                      let formatted = parts[0];
+                      if (parts.length > 1) {
+                        formatted += '.' + parts[1].slice(0, 2);
+                      }
+                      setInputValue(formatted);
+                      const numValue = formatted === '' ? 0 : parseFloat(formatted);
+                      onChange(isNaN(numValue) ? 0 : numValue);
+                    };
+
+                    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+                      const numValue = parseFloat(e.target.value);
+                      if (!isNaN(numValue) && numValue >= 0) {
+                        onChange(numValue);
+                        setInputValue(numValue.toFixed(2));
+                      } else if (e.target.value !== '') {
+                        onChange(0);
+                        setInputValue('');
+                      }
+                    };
+
+                    return (
+                      <FormItem>
+                        <FormLabel>{t('createDialog.price')}</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="text"
+                            inputMode="decimal"
+                            value={inputValue}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            placeholder="0.00"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
                 <FormField
                   control={form.control}
