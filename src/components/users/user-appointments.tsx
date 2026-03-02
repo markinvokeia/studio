@@ -7,7 +7,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
-import { Appointment, User } from '@/lib/types';
+import { Appointment, User, Service } from '@/lib/types';
 import { api } from '@/services/api';
 import { ColumnDef } from '@tanstack/react-table';
 import { addMonths, format, parseISO } from 'date-fns';
@@ -16,8 +16,12 @@ import * as React from 'react';
 
 const getColumns = (t: (key: string) => string, tStatus: (key: string) => string): ColumnDef<Appointment>[] => [
   {
-    accessorKey: 'service_name',
+    accessorKey: 'summary',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('service')} />,
+  },
+  {
+    accessorKey: 'doctorName',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('doctor')} />,
   },
   {
     accessorKey: 'date',
@@ -37,6 +41,7 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
         confirmed: 'default',
         pending: 'info',
         cancelled: 'destructive',
+        scheduled: 'info',
       }[status.toLowerCase()] ?? ('default' as any);
 
       return (
@@ -59,14 +64,14 @@ async function getAppointmentsForUser(user: User | null): Promise<Appointment[]>
   const params = new URLSearchParams({
     startingDateAndTime: formatDateForAPI(startDate),
     endingDateAndTime: formatDateForAPI(endDate),
-    attendeesEmails: user.email,
+    patientId: String(user.id),
   });
 
   try {
     const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, {
       startingDateAndTime: formatDateForAPI(startDate),
       endingDateAndTime: formatDateForAPI(endDate),
-      attendeesEmails: user.email,
+      patientId: String(user.id),
     });
     let appointmentsData: any[] = [];
 
@@ -82,25 +87,47 @@ async function getAppointmentsForUser(user: User | null): Promise<Appointment[]>
     }
 
     const appointments = appointmentsData.map((apiAppt: any) => {
-      const appointmentDateTimeStr = apiAppt.start_time || (apiAppt.start && apiAppt.start.dateTime);
+      const startNode = apiAppt.start_time || apiAppt.start;
+      const appointmentDateTimeStr = typeof startNode === 'string' ? startNode : (startNode?.dateTime);
       if (!appointmentDateTimeStr) return null;
 
       const appointmentDateTime = parseISO(appointmentDateTimeStr);
       if (isNaN(appointmentDateTime.getTime())) return null;
 
-      return {
-        id: apiAppt.id ? String(apiAppt.id) : `appt_${Math.random().toString(36).substr(2, 9)}`,
+      const doctorId = apiAppt.doctor_id || apiAppt.doctorId || apiAppt.doctorid;
+      const doctorName = apiAppt.doctor_name || apiAppt.doctorName || apiAppt.doctorname || 'Doctor';
+
+      const endNode = apiAppt.end_time || apiAppt.end;
+
+      const appointment = {
+        id: String(apiAppt.appointment_id || apiAppt.appointmentId || apiAppt.appointmentid || apiAppt.id),
+        patientId: String(user.id),
         patientName: user.name,
-        service_name: apiAppt.summary || 'No Service Name',
+        doctorId: String(doctorId || ''),
+        doctorName: doctorName,
+        doctorEmail: apiAppt.doctor_email || apiAppt.doctorEmail || apiAppt.doctoremail || '',
+        summary: apiAppt.summary || 'Cita',
+        description: apiAppt.description || '',
         date: format(appointmentDateTime, 'yyyy-MM-dd'),
         time: format(appointmentDateTime, 'HH:mm'),
         status: apiAppt.status || 'confirmed',
-        patientPhone: apiAppt.patientPhone,
-        doctorName: apiAppt.doctorName,
-        calendar_id: apiAppt.organizer?.email,
-        calendar_name: apiAppt.organizer?.displayName || apiAppt.organizer?.email || '',
-      };
-    }).filter(apt => apt !== null) as Appointment[];
+        created_at: apiAppt.created_at || apiAppt.createdat,
+        google_calendar_id: apiAppt.google_calendar_id || '',
+        googleEventId: apiAppt.google_event_id || apiAppt.googleEventId || apiAppt.googleeventid || apiAppt.id,
+        color: apiAppt.color,
+        start: typeof startNode === 'string' ? { dateTime: startNode } : startNode,
+        end: typeof endNode === 'string' ? { dateTime: endNode } : endNode,
+        services: Array.isArray(apiAppt.services) ? apiAppt.services.map((s: any) => ({
+          id: String(s.id),
+          name: s.name || '',
+          price: Number(s.price || 0),
+          category: '',
+          duration_minutes: 30,
+          is_active: true
+        } as Service)) : []
+      } as Appointment;
+      return appointment;
+    }).filter((apt): apt is Appointment => apt !== null);
 
     return appointments;
   } catch (error) {
@@ -148,10 +175,11 @@ export function UserAppointments({ user }: UserAppointmentsProps) {
     <DataTable
       columns={columns}
       data={appointments}
-      filterColumnId="service_name"
+      filterColumnId="summary"
       filterPlaceholder={tAppointmentsPage('filterByService')}
       columnTranslations={{
         service_name: t('service'),
+        doctorName: t('doctor'),
         date: t('date'),
         time: t('time'),
         status: t('status'),

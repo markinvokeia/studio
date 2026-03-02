@@ -73,15 +73,25 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
   const [allServices, setAllServices] = React.useState<Service[]>([]);
   const [doctorServiceMap, setDoctorServiceMap] = React.useState<Map<string, Service[]>>(new Map());
   const [patientUser, setPatientUser] = React.useState<UserType | null>(null);
+  const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(true);
+  const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(true);
 
   React.useEffect(() => {
     const fetchData = async () => {
       try {
-        const [calData, docData, srvData] = await Promise.all([
+        const [calData, docData, srvData, configData] = await Promise.all([
           api.get(API_ROUTES.CALENDARS),
           api.get(API_ROUTES.USERS, { filter_type: 'DOCTOR' }),
-          api.get(API_ROUTES.SERVICES, { is_sales: isSales ? 'true' : 'false' })
+          api.get(API_ROUTES.SERVICES, { is_sales: isSales ? 'true' : 'false' }),
+          api.get(API_ROUTES.SYSTEM.CONFIGS).catch(() => [])
         ]);
+
+        if (Array.isArray(configData)) {
+          const calConfig = configData.find((c: any) => c.key === 'CHECK_CALENDAR_AVAILABILITY');
+          const docConfig = configData.find((c: any) => c.key === 'CHECK_DOCTOR_AVAILABILITY');
+          if (calConfig) setCheckCalendarAvailability(String(calConfig.value).toLowerCase() === 'true');
+          if (docConfig) setCheckDoctorAvailability(String(docConfig.value).toLowerCase() === 'true');
+        }
 
         const cals = Array.isArray(calData) ? calData : (calData.calendars || []);
         setCalendars(cals.map((c: any) => ({ ...c, id: c.id || c.google_calendar_id })));
@@ -236,7 +246,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         order_item_id: parseInt(selectedItem.id, 10),
         schedule_date_time: selectedDate.toISOString(),
         user_id: userId,
-        appointment_id: appointment.id,
+        appointment_id: appointment.appointmentId || appointment.id,
       };
 
       const apiRoute = isSales
@@ -460,6 +470,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         onOpenChange={setIsAppointmentDialogOpen}
         initialData={{
           user: patient || patientUser || undefined,
+          summary: selectedItem?.service_name || '',
           description: selectedItem?.service_name || '',
           services: selectedItem ? allServices.filter(s => String(s.id) === String(selectedItem.service_id)) : []
         }}
@@ -467,6 +478,8 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         calendars={calendars}
         doctors={doctors}
         doctorServiceMap={doctorServiceMap}
+        checkCalendarAvailability={checkCalendarAvailability}
+        checkDoctorAvailability={checkDoctorAvailability}
       />
     </>
   );
