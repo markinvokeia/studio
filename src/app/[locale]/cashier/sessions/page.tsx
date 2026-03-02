@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { ChevronDown, Printer, RefreshCw } from 'lucide-react';
+import { ChevronDown, Printer, RefreshCw, History } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { CashSessionsColumnsWrapper } from './columns';
@@ -378,9 +378,16 @@ export default function CashSessionsPage() {
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <Card className="flex-1 flex flex-col min-h-0">
-                <CardHeader className="flex-none">
-                    <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
+                <CardHeader className="flex-none p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <History className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col">
+                            <CardTitle className="text-lg">{t('title')}</CardTitle>
+                            <CardDescription className="text-xs">{t('description')}</CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     <DataTable
@@ -408,10 +415,17 @@ export default function CashSessionsPage() {
                     {selectedSession && (
                         <>
                             <DialogHeader>
-                                <DialogTitle>{t('detailsTitle')}</DialogTitle>
-                                <DialogDescription>{t('detailsDescription', { id: selectedSession.id })}</DialogDescription>
+                                <div className="flex items-start gap-3">
+                                    <div className="header-icon-circle mt-0.5">
+                                        <History className="h-5 w-5" />
+                                    </div>
+                                    <div className="flex flex-col text-left">
+                                        <DialogTitle>{t('detailsTitle')}</DialogTitle>
+                                        <DialogDescription>{t('detailsDescription', { id: selectedSession.id })}</DialogDescription>
+                                    </div>
+                                </div>
                             </DialogHeader>
-                            <div className="py-4 max-h-[70vh] overflow-y-auto">
+                            <div className="py-4 px-6 max-h-[70vh] overflow-y-auto">
                                 <SessionDetails session={selectedSession} movements={movements} />
                             </div>
                             {selectedSession?.estado === 'CLOSE' && (
@@ -429,4 +443,3 @@ export default function CashSessionsPage() {
         </div>
     );
 }
-
