@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -43,7 +44,7 @@ export const OpenCashSessionWidget = () => {
                                 variant="outline" 
                                 className={cn(
                                     "h-auto py-1.5 px-3 flex items-center gap-3",
-                                    "border-none bg-emerald-600 text-white",
+                                    "border-none bg-emerald-600 text-[var(--nav-foreground)]",
                                     "hover:bg-emerald-700",
                                     "transition-all duration-200 shadow-sm rounded-lg"
                                 )}
@@ -61,7 +62,7 @@ export const OpenCashSessionWidget = () => {
                                     </div>
                                 </div>
 
-                                <div className="pl-1 border-l border-white/20">
+                                <div className="pl-1 border-l border-current/20">
                                     <ArrowRight className="h-4 w-4" />
                                 </div>
                             </Button>
@@ -84,7 +85,7 @@ export const OpenCashSessionWidget = () => {
                             variant="outline" 
                             size="sm" 
                             className={cn(
-                                "h-9 border-none bg-orange-500 text-white",
+                                "h-9 border-none bg-orange-500 text-[var(--nav-foreground)]",
                                 "hover:bg-orange-600 shadow-sm rounded-lg",
                                 "transition-all"
                             )}
