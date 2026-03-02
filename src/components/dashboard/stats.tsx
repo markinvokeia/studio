@@ -32,8 +32,11 @@ export function Stats({ data }: StatsProps) {
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
            <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
-              <Skeleton className="h-5 w-2/3" />
+            <CardHeader className="p-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+                <Skeleton className="h-5 w-2/3" />
+              </div>
             </CardHeader>
             <CardContent>
               <Skeleton className="h-7 w-1/2 mb-2" />
@@ -58,13 +61,17 @@ export function Stats({ data }: StatsProps) {
 
         return (
           <Card key={index} className="flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{stat.title}</CardTitle>
-              {Icon && (
-                <div className={cn("header-icon-circle h-8 w-8", IconInfo.className)}>
-                    <Icon className="h-4 w-4" />
-                </div>
-              )}
+            <CardHeader className="p-4">
+              <div className="flex items-center gap-3">
+                {Icon && (
+                  <div className={cn("header-icon-circle h-8 w-8 shrink-0", IconInfo.className)}>
+                      <Icon className="h-4 w-4" />
+                  </div>
+                )}
+                <CardTitle className="text-xs font-bold uppercase tracking-wider">
+                  {stat.title}
+                </CardTitle>
+              </div>
             </CardHeader>
             <CardContent className="pt-0 pb-4">
               <div className="text-xl font-black text-foreground">{stat.value}</div>

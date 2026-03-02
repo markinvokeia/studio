@@ -51,7 +51,7 @@
 
     /* Card Header for Invoke - matches Claro for better visibility in content area */
     --card-header-bg: 260 30% 96%;
-    --card-header-foreground: 260 60% 5%;
+    --card-header-foreground: 0 0% 0%;
 
     /* Dashboard Chart Colors */
     --chart-1: 0 84% 60%;   /* Rojo */
@@ -75,7 +75,7 @@
     --secondary-foreground: 240 10% 10%;
     --muted: 0 0% 100%; 
     --muted-foreground: 240 10% 40%;
-    --accent: 240 10% 94%; 
+    --accent: 240 5% 94%; 
     --accent-foreground: 240 10% 10%;
     --border: 240 5% 94%;
     --input: 240 5% 94%;
