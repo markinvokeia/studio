@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -43,9 +44,9 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                     <nav className="flex flex-col items-center gap-2">
                         {navItems.map(item => {
                             const isActive = item.items
-                                ? (item.href === '/cashier' 
-                                    ? item.items.some(subItem => subItem.href !== '' && effectivePathname === subItem.href)
-                                    : item.items.some(subItem => subItem.href !== '' && effectivePathname === subItem.href) || effectivePathname.startsWith(item.href + '/'))
+                                ? item.items.some(subItem => 
+                                    subItem.href !== '' && (effectivePathname === subItem.href || effectivePathname.startsWith(subItem.href + '/'))
+                                  )
                                 : (item.href === '/' ? effectivePathname === '/' : effectivePathname === item.href || effectivePathname.startsWith(item.href + '/'));
 
                             const isHovered = activeItem?.title === item.title;
@@ -101,9 +102,20 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
 }
 
 const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void }) => {
+    const pathname = usePathname();
     const t = useTranslations('Navigation');
     const locale = useLocale();
     if (!item || !item.items) return null;
+
+    const getEffectivePathname = (p: string, l: string) => {
+        const localePrefix = `/${l}`;
+        if (p.startsWith(localePrefix)) {
+            return p.substring(localePrefix.length) || '/';
+        }
+        return p;
+    };
+
+    const effectivePathname = getEffectivePathname(pathname, locale);
 
     return (
         <div
@@ -116,16 +128,25 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
             </div>
             <div className="flex-1 overflow-y-auto py-2">
                 <nav className="grid gap-1 pl-2 pr-0">
-                    {item.items.map((subItem: any, index: number) => (
-                        <Link
-                            key={index}
-                            href={`/${locale}${subItem.href}`}
-                            className="flex items-center gap-3 px-4 py-2.5 rounded-l-lg rounded-r-none text-sm font-bold transition-all hover:bg-white/10 active:scale-95"
-                        >
-                            <subItem.icon className="h-4 w-4 opacity-90" />
-                            <span>{t(subItem.title as any)}</span>
-                        </Link>
-                    ))}
+                    {item.items.map((subItem: any, index: number) => {
+                        const isSubActive = subItem.href === '/' 
+                            ? effectivePathname === '/' 
+                            : (effectivePathname === subItem.href || effectivePathname.startsWith(subItem.href + '/'));
+
+                        return (
+                            <Link
+                                key={index}
+                                href={`/${locale}${subItem.href}`}
+                                className={cn(
+                                    "flex items-center gap-3 px-4 py-2.5 rounded-l-lg rounded-r-none text-sm font-bold transition-all hover:bg-white/10 active:scale-95",
+                                    isSubActive ? "bg-white/20 text-white" : "text-white/70"
+                                )}
+                            >
+                                <subItem.icon className={cn("h-4 w-4 opacity-90", isSubActive ? "opacity-100" : "opacity-70")} />
+                                <span>{t(subItem.title as any)}</span>
+                            </Link>
+                        )
+                    })}
                 </nav>
             </div>
         </div>
