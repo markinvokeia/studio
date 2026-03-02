@@ -80,18 +80,20 @@ export function InvoiceStatusChart({ chartData, isLoading }: InvoiceStatusChartP
   return (
     <Card className="flex h-full flex-col lg:col-span-1">
       <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="header-icon-circle">
-            <DocumentCheckIcon className="h-6 w-6" />
+        <div className="flex items-start gap-3">
+          <div className="header-icon-circle mt-0.5">
+            <DocumentCheckIcon className="h-5 w-5" />
           </div>
-          <CardTitle>{t('title')}</CardTitle>
+          <div className="flex flex-col">
+            <CardTitle>{t('title')}</CardTitle>
+            <CardDescription>{t('description')}</CardDescription>
+          </div>
         </div>
-        <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 pb-0 pt-6">
+      <CardContent className="flex-1 pb-0 pt-2">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square max-h-[250px]"
+          className="mx-auto aspect-square max-h-[200px]"
         >
           <PieChart>
             <ChartTooltip
@@ -102,7 +104,7 @@ export function InvoiceStatusChart({ chartData, isLoading }: InvoiceStatusChartP
               data={chartData}
               dataKey="value"
               nameKey="name"
-              innerRadius={40}
+              innerRadius={30}
               strokeWidth={5}
             >
               {chartData.map((entry, index) => (
@@ -111,13 +113,13 @@ export function InvoiceStatusChart({ chartData, isLoading }: InvoiceStatusChartP
             </Pie>
             <ChartLegend
               content={<ChartLegendContent nameKey="name" />}
-              className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
+              className="-translate-y-2 flex-wrap gap-1.5 [&>*]:basis-1/4 [&>*]:justify-center text-[10px]"
             />
           </PieChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col gap-1.5 pb-6 pt-4 bg-muted/5">
-        <div className="flex items-center justify-center text-xs text-muted-foreground font-bold">
+      <CardFooter className="flex-col gap-1.5 pb-4 pt-2 bg-muted/5">
+        <div className="flex items-center justify-center text-[10px] text-muted-foreground font-bold">
           {t('totalInvoices', {total: totalValue})}
         </div>
       </CardFooter>

@@ -64,17 +64,17 @@ export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }
   return (
     <Card className="h-full">
       <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="header-icon-circle">
-            <ChartBarSquareIcon className="h-6 w-6" />
+        <div className="flex items-start gap-3">
+          <div className="header-icon-circle mt-0.5">
+            <ChartBarSquareIcon className="h-5 w-5" />
           </div>
-          <CardTitle>{t('title')}</CardTitle>
+          <div className="flex flex-col">
+            <CardTitle>{t('title')}</CardTitle>
+            <CardDescription>{t('description')}</CardDescription>
+          </div>
         </div>
-        <CardDescription>
-          {t('description')}
-        </CardDescription>
       </CardHeader>
-      <CardContent className="pt-6">
+      <CardContent className="pt-2">
         {isLoading ? (
           <div className="h-[250px] w-full flex items-center justify-center">
             <Skeleton className="h-full w-full" />
@@ -114,14 +114,14 @@ export function SalesSummaryChart({ salesTrend = 0, date, chartData, isLoading }
           </ChartContainer>
         )}
       </CardContent>
-      <CardFooter className="bg-muted/5 py-4">
+      <CardFooter className="bg-muted/5 py-3">
         <div className="flex w-full items-start gap-2 text-sm">
           <div className="grid gap-1">
             <div className={cn("flex items-center gap-2 font-bold leading-none", isTrendingUp ? "text-green-500" : "text-red-500")}>
               {t(isTrendingUp ? 'trendingUp' : 'trendingDown', { trend: Math.abs(salesTrend).toFixed(1) })}
               {isTrendingUp ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
             </div>
-            <div className="flex items-center gap-2 leading-none text-muted-foreground font-medium">
+            <div className="flex items-center gap-2 leading-none text-muted-foreground font-medium text-xs">
               {footerDateText}
             </div>
           </div>

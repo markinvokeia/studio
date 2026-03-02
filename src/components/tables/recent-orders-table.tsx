@@ -76,16 +76,18 @@ export function RecentOrdersTable({ orders, onRefresh, isRefreshing, className }
 
   return (
     <Card className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
-      <CardHeader className="flex-none p-6 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="header-icon-circle">
-            <DocumentCheckIcon className="h-6 w-6" />
+      <CardHeader className="flex-none p-4 pb-2">
+        <div className="flex items-start gap-3">
+          <div className="header-icon-circle mt-0.5">
+            <DocumentCheckIcon className="h-5 w-5" />
           </div>
-          <CardTitle className="text-lg lg:text-xl">{t('RecentOrdersTable.title')}</CardTitle>
+          <div className="flex flex-col">
+            <CardTitle className="text-lg">{t('RecentOrdersTable.title')}</CardTitle>
+            <CardDescription className="text-xs">{t('RecentOrdersTable.description')}</CardDescription>
+          </div>
         </div>
-        <CardDescription className="text-xs">{t('RecentOrdersTable.description')}</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pt-4">
+      <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pt-2">
         <DataTable
           columns={columns}
           data={orders}

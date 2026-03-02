@@ -40,27 +40,29 @@ export function SalesByServiceChart({ chartData, isLoading }: SalesByServiceChar
   return (
     <Card className='lg:col-span-1'>
       <CardHeader>
-        <div className="flex items-center gap-3">
-            <div className="header-icon-circle">
-                <TagIcon className="h-6 w-6" />
+        <div className="flex items-start gap-3">
+            <div className="header-icon-circle mt-0.5">
+                <TagIcon className="h-5 w-5" />
             </div>
-            <CardTitle>{t('title')}</CardTitle>
+            <div className="flex flex-col">
+              <CardTitle>{t('title')}</CardTitle>
+              <CardDescription>{t('description')}</CardDescription>
+            </div>
         </div>
-        <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4 pt-6">
+      <CardContent className="space-y-4 pt-4">
         {chartData.length > 0 ? chartData.map((service, index) => (
-            <div key={service.name} className="space-y-1.5">
-                <div className="flex justify-between items-center text-sm font-bold">
-                    <span className="text-foreground/80">{service.name}</span>
+            <div key={service.name} className="space-y-1">
+                <div className="flex justify-between items-center text-xs font-bold">
+                    <span className="text-foreground/80 truncate pr-2">{service.name}</span>
                     <span>{service.percentage.toFixed(0)}%</span>
                 </div>
-                <Progress value={service.percentage} className="h-2 bg-muted" style={{
+                <Progress value={service.percentage} className="h-1.5 bg-muted" style={{
                     '--progress-color': service.color || `hsl(var(--chart-${(index % 3) + 1}))`
                 } as React.CSSProperties} />
             </div>
         )) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground py-10">
+            <div className="flex items-center justify-center h-full text-muted-foreground py-10 text-sm">
                 {t('noData')}
             </div>
         )}

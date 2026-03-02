@@ -478,17 +478,19 @@ export function RecentQuotesTable({
     <>
       <Card className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
         {title && (
-          <CardHeader className="flex-none p-6 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="header-icon-circle">
-                <DocumentTextIcon className="h-6 w-6" />
+          <CardHeader className="flex-none p-4 pb-2">
+            <div className="flex items-start gap-3">
+              <div className="header-icon-circle mt-0.5">
+                <DocumentTextIcon className="h-5 w-5" />
               </div>
-              <CardTitle className="text-lg lg:text-xl">{title}</CardTitle>
+              <div className="flex flex-col">
+                <CardTitle className="text-lg">{title}</CardTitle>
+                {description && <CardDescription className="text-xs">{description}</CardDescription>}
+              </div>
             </div>
-            {description && <CardDescription className="text-xs">{description}</CardDescription>}
           </CardHeader>
         )}
-        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pt-4">
+        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pt-2">
           <div className="flex flex-col flex-1 min-h-0 space-y-4 overflow-hidden">
             {standalone ? (
               <DataTableAdvancedToolbar

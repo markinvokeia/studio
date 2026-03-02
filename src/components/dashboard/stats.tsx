@@ -59,16 +59,16 @@ export function Stats({ data }: StatsProps) {
         return (
           <Card key={index} className="flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
-              <CardTitle className="text-sm font-bold uppercase tracking-wider">{stat.title}</CardTitle>
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{stat.title}</CardTitle>
               {Icon && (
-                <div className={cn("header-icon-circle", IconInfo.className)}>
-                    <Icon className="h-5 w-5" />
+                <div className={cn("header-icon-circle h-8 w-8", IconInfo.className)}>
+                    <Icon className="h-4 w-4" />
                 </div>
               )}
             </CardHeader>
-            <CardContent className="pt-4 pb-4">
-              <div className="text-2xl font-black text-foreground">{stat.value}</div>
-              <p className={cn("text-xs font-bold mt-1", changeColor)}>{stat.change}</p>
+            <CardContent className="pt-0 pb-4">
+              <div className="text-xl font-black text-foreground">{stat.value}</div>
+              <p className={cn("text-[10px] font-bold mt-0.5", changeColor)}>{stat.change}</p>
             </CardContent>
           </Card>
         );
