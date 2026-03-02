@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +20,7 @@ import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Check, ChevronsUpDown, MoreHorizontal } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, MoreHorizontal, ShoppingCart } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
@@ -206,20 +205,22 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
       cell: ({ row }) => {
         const order = row.original;
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
 <DropdownMenuLabel>{tUserColumns('actions')}</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => handleInvoiceClick(order)}>
                 {t('Navigation.InvoiceAction')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        </div>
         );
       }
     }
@@ -250,9 +251,16 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
     <div className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
       <Card className="h-full flex-1 flex flex-col min-h-0">
         {title && (
-          <CardHeader className="flex-none p-4 pb-0">
-            <CardTitle className="text-lg lg:text-xl">{title}</CardTitle>
-            {description && <CardDescription className="text-xs">{description}</CardDescription>}
+          <CardHeader className="flex-none p-4">
+            <div className="flex items-start gap-3">
+              <div className="header-icon-circle mt-0.5">
+                <ShoppingCart className="h-5 w-5" />
+              </div>
+              <div className="flex flex-col">
+                <CardTitle className="text-lg">{title}</CardTitle>
+                {description && <CardDescription className="text-xs">{description}</CardDescription>}
+              </div>
+            </div>
           </CardHeader>
         )}
         <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden">

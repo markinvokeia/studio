@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -26,7 +25,7 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowRight, Box, CalendarIcon, FileUp, Loader2, MoreHorizontal, Printer, Send, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Box, CalendarIcon, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
@@ -695,9 +694,16 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       />
       <Card className={cn("h-full flex-1 flex flex-col min-h-0 border-0 lg:border shadow-none lg:shadow-sm", className)}>
         {title && (
-          <CardHeader className="bg-primary text-primary-foreground flex-none p-4">
-            <CardTitle className="text-lg lg:text-xl">{title}</CardTitle>
-            {description && <CardDescription className="text-primary-foreground/70 text-xs">{description}</CardDescription>}
+          <CardHeader className="flex-none p-4">
+            <div className="flex items-start gap-3">
+              <div className="header-icon-circle mt-0.5">
+                <Receipt className="h-5 w-5" />
+              </div>
+              <div className="flex flex-col">
+                <CardTitle className="text-lg">{title}</CardTitle>
+                {description && <CardDescription className="text-xs">{description}</CardDescription>}
+              </div>
+            </div>
           </CardHeader>
         )}
         <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden bg-background">
@@ -795,7 +801,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handlePaymentSubmit)} className="space-y-4 px-6 py-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
               {paymentSubmissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />

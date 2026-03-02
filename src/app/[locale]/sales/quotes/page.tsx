@@ -1,4 +1,3 @@
-
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -42,7 +41,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Check, ChevronsUpDown, RefreshCw, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, FileText, RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -807,11 +806,16 @@ const handleCreateQuote = async () => {
                         selectedQuote && (
                             <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0">
                                 <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
-                                    <div className="min-w-0 flex-1">
-                                        <CardTitle className="text-lg lg:text-xl truncate">{t('detailsFor', { name: selectedQuote.user_name })}</CardTitle>
-                                        <CardDescription className="text-xs">{t('quoteId')}: {selectedQuote.doc_no || selectedQuote.id}</CardDescription>
+                                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                                        <div className="header-icon-circle mt-0.5">
+                                            <FileText className="h-5 w-5" />
+                                        </div>
+                                        <div className="flex flex-col truncate">
+                                            <CardTitle className="text-lg truncate">{t('detailsFor', { name: selectedQuote.user_name })}</CardTitle>
+                                            <CardDescription className="text-xs truncate">{t('quoteId')}: {selectedQuote.doc_no || selectedQuote.id}</CardDescription>
+                                        </div>
                                     </div>
-                                    <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                                    <Button variant="ghost" size="icon" onClick={handleCloseDetails} className="ml-2 shrink-0">
                                         <X className="h-5 w-5" />
                                         <span className="sr-only">{t('common.closeDetails')}</span>
                                     </Button>
@@ -1050,7 +1054,7 @@ const handleCreateQuote = async () => {
                 </DialogContent>
             </Dialog>
             <AlertDialog open={isDeleteQuoteDialogOpen} onOpenChange={setIsDeleteQuoteDialogOpen}>
-                <AlertDialogContent>
+                <AlertDialogContent className="max-w-md">
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('deleteQuoteDialog.title')}</AlertDialogTitle>
                         <AlertDialogDescription>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PaymentsTable } from '@/components/tables/payments-table';
@@ -27,7 +26,7 @@ import api from '@/services/api';
 import { getSalesPayments } from '@/services/payments-service';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
-import { AlertTriangle, CalendarIcon, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, Check, ChevronsUpDown, CreditCard, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -158,8 +157,8 @@ export default function PaymentsPage() {
             a.remove();
 
             toast({
-                title: "Download Started",
-                description: `Your PDF for Payment #${fileName} is downloading.`,
+                title: t('prepaidDialog.toasts.successTitle'),
+                description: t('prepaidDialog.toasts.successDescription'),
             });
 
         } catch (error) {
@@ -304,9 +303,16 @@ export default function PaymentsPage() {
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden pr-2 pb-4">
             <Card className="flex-1 flex flex-col min-h-0 shadow-sm border-0">
-                <CardHeader className="bg-primary text-primary-foreground flex-none">
-                    <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription className="text-primary-foreground/70">{t('description')}</CardDescription>
+                <CardHeader className="p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <CreditCard className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col">
+                            <CardTitle className="text-lg">{t('title')}</CardTitle>
+                            <CardDescription className="text-xs">{t('description')}</CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-background">
                     <PaymentsTable
@@ -504,7 +510,12 @@ export default function PaymentsPage() {
                                                 </FormControl>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0" align="start">
-                                                <DatePicker mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                <DatePicker
+                                                    mode="single"
+                                                    selected={field.value}
+                                                    onSelect={field.onChange}
+                                                    initialFocus
+                                                />
                                             </PopoverContent>
                                         </Popover>
                                         <FormMessage />
