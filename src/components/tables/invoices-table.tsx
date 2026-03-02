@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -25,7 +26,7 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowRight, Box, CalendarIcon, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Box, CalendarIcon, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2, CreditCard } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
@@ -37,8 +38,8 @@ import { Checkbox } from '../ui/checkbox';
 import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { DialogDescription } from '../ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { ScrollArea } from '../ui/scroll-area';
@@ -93,17 +94,6 @@ const createInvoiceFormSchema = z.object({
   parent_id: z.string().optional(),
 });
 type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
-
-async function getServices(isSales: boolean): Promise<Service[]> {
-  try {
-    const data = await api.get(API_ROUTES.SERVICES, { is_sales: isSales ? 'true' : 'false' });
-    const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
-    return servicesData.map((s: any) => ({ ...s, id: String(s.id) }));
-  } catch (error) {
-    console.error("Failed to fetch services:", error);
-    return [];
-  }
-}
 
 const getColumns = (
   t: (key: string) => string,
@@ -285,33 +275,6 @@ const getColumns = (
 };
 
 
-interface InvoicesTableProps {
-  invoices: Invoice[];
-  isLoading?: boolean;
-  onRowSelectionChange?: (selectedRows: Invoice[]) => void;
-  onRefresh?: () => void;
-  onPrint?: (invoice: Invoice) => void;
-  onSendEmail?: (invoice: Invoice) => void;
-  onCreate?: () => void;
-  onImport?: () => void;
-  onConfirm?: (invoice: Invoice) => void;
-  isRefreshing?: boolean;
-  rowSelection?: RowSelectionState;
-  setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
-  columnTranslations?: { [key: string]: string };
-  filterOptions?: { label: string; value: string }[];
-  onFilterChange?: (value: string) => void;
-  filterValue?: string;
-  onEdit?: (invoice: Invoice) => void;
-  isCompact?: boolean;
-  isSales?: boolean;
-  className?: string;
-  title?: string;
-  description?: string;
-  standalone?: boolean;
-  canCreate?: boolean;
-}
-
 export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, onEdit, isSales = true, isCompact = false, className, title, description, standalone = false, canCreate = true }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
@@ -324,6 +287,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const [isFormDialogOpen, setIsFormDialogOpen] = React.useState(false);
   const [editingInvoice, setEditingInvoice] = React.useState<Invoice | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
+  const [isNoSessionAlertOpen, setIsNoSessionAlertOpen] = React.useState(false);
   const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = React.useState<Invoice | null>(null);
   const [activeCashSessionId, setActiveCashSessionId] = React.useState<string | null>(null);
   const [paymentSubmissionError, setPaymentSubmissionError] = React.useState<string | null>(null);
@@ -466,7 +430,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       const sessionValidation = await validateActiveSession();
 
       if (!sessionValidation.isValid) {
-        showCashSessionError(sessionValidation.error);
+        setIsNoSessionAlertOpen(true);
         return;
       }
 
@@ -775,10 +739,17 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{t('paymentDialog.title')}</DialogTitle>
-            <DialogDescription>
-              {t('paymentDialog.description', { invoiceId: selectedInvoiceForPayment?.doc_no || selectedInvoiceForPayment?.id })}
-            </DialogDescription>
+            <div className="flex items-start gap-3">
+              <div className="header-icon-circle mt-0.5">
+                <CreditCard className="h-5 w-5" />
+              </div>
+              <div className="flex flex-col text-left">
+                <DialogTitle>{t('paymentDialog.title')}</DialogTitle>
+                <DialogDescription>
+                  {t('paymentDialog.description', { invoiceId: selectedInvoiceForPayment?.doc_no || selectedInvoiceForPayment?.id })}
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handlePaymentSubmit)} className="space-y-4 px-6 py-4">
@@ -1132,6 +1103,56 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           </Form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isNoSessionAlertOpen} onOpenChange={setIsNoSessionAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-start gap-3">
+              <div className="header-icon-circle mt-0.5">
+                <AlertTriangle className="h-5 w-5 text-yellow-500" />
+              </div>
+              <div className="flex flex-col text-left">
+                <AlertDialogTitle>{t('noSessionDialog.title')}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {t('noSessionDialog.description')}
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('paymentDialog.cancel')}</AlertDialogCancel>
+            <Link href={`/${locale}/cashier`} passHref>
+              <Button>
+                <Box className="mr-2 h-4 w-4" />
+                {t('noSessionDialog.openCashSession')}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-start gap-3">
+              <div className="header-icon-circle mt-0.5">
+                <Check className="h-5 w-5" />
+              </div>
+              <div className="flex flex-col text-left">
+                <AlertDialogTitle>{t('confirmInvoiceDialog.title')}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {t('confirmInvoiceDialog.description', { id: confirmingInvoice?.id })}
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('confirmInvoiceDialog.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmInvoice}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
@@ -1322,8 +1343,15 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? tRoot('editDialog.title') || 'Edit Invoice' : t('title')}</DialogTitle>
-          <DialogDescription>{isEditing ? tRoot('editDialog.description') || 'Change invoice details and lines.' : t('description')}</DialogDescription>
+          <div className="flex items-start gap-3">
+            <div className="header-icon-circle mt-0.5">
+              <Receipt className="h-5 w-5" />
+            </div>
+            <div className="flex flex-col text-left">
+              <DialogTitle>{isEditing ? tRoot('editDialog.title') || 'Edit Invoice' : t('title')}</DialogTitle>
+              <DialogDescription>{isEditing ? tRoot('editDialog.description') || 'Change invoice details and lines.' : t('description')}</DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
@@ -1548,4 +1576,31 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
       </DialogContent>
     </Dialog>
   );
+}
+
+interface InvoicesTableProps {
+  invoices: Invoice[];
+  isLoading?: boolean;
+  onRowSelectionChange?: (selectedRows: Invoice[]) => void;
+  onRefresh?: () => void;
+  onPrint?: (invoice: Invoice) => void;
+  onSendEmail?: (invoice: Invoice) => void;
+  onCreate?: () => void;
+  onImport?: () => void;
+  onConfirm?: (invoice: Invoice) => void;
+  isRefreshing?: boolean;
+  rowSelection?: RowSelectionState;
+  setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  columnTranslations?: { [key: string]: string };
+  filterOptions?: { label: string; value: string }[];
+  onFilterChange?: (value: string) => void;
+  filterValue?: string;
+  onEdit?: (invoice: Invoice) => void;
+  isCompact?: boolean;
+  isSales?: boolean;
+  className?: string;
+  title?: string;
+  description?: string;
+  standalone?: boolean;
+  canCreate?: boolean;
 }

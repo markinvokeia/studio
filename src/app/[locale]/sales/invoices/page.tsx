@@ -1,3 +1,4 @@
+
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -24,7 +25,7 @@ import { getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { File, FileUp, Loader2, RefreshCw, X } from 'lucide-react';
+import { File, FileUp, Loader2, RefreshCw, X, Receipt } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -560,9 +561,14 @@ export default function InvoicesPage() {
                         selectedInvoice && (
                             <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0">
                                 <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
-                                    <div className="min-w-0 flex-1">
-                                        <CardTitle className="text-lg lg:text-xl truncate">{t('detailsFor', { name: selectedInvoice.user_name })}</CardTitle>
-                                        <CardDescription className="text-xs">{t('invoiceId')}: {selectedInvoice.doc_no || selectedInvoice.id}</CardDescription>
+                                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                                        <div className="header-icon-circle mt-0.5">
+                                            <Receipt className="h-5 w-5" />
+                                        </div>
+                                        <div className="flex flex-col truncate text-left">
+                                            <CardTitle className="text-lg lg:text-xl truncate">{t('detailsFor', { name: selectedInvoice.user_name })}</CardTitle>
+                                            <CardDescription className="text-xs">{t('invoiceId')}: {selectedInvoice.doc_no || selectedInvoice.id}</CardDescription>
+                                        </div>
                                     </div>
                                     <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                                         <X className="h-5 w-5" />
@@ -618,10 +624,17 @@ export default function InvoicesPage() {
             <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{t('sendEmailDialog.title')}</DialogTitle>
-                        <DialogDescription>{t('sendEmailDialog.description', { id: selectedInvoiceForEmail?.id })}</DialogDescription>
+                        <div className="flex items-start gap-3">
+                            <div className="header-icon-circle mt-0.5">
+                                <Send className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col text-left">
+                                <DialogTitle>{t('sendEmailDialog.title')}</DialogTitle>
+                                <DialogDescription>{t('sendEmailDialog.description', { id: selectedInvoiceForEmail?.id })}</DialogDescription>
+                            </div>
+                        </div>
                     </DialogHeader>
-                    <div className="py-4">
+                    <div className="py-4 px-6">
                         <Label htmlFor="email-recipients">{t('sendEmailDialog.recipients')}</Label>
                         <Input
                             id="email-recipients"
@@ -657,12 +670,17 @@ export default function InvoicesPage() {
             <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{t('importDialog.title')}</DialogTitle>
-                        <DialogDescription>
-                            {t('importDialog.description')}
-                        </DialogDescription>
+                        <div className="flex items-start gap-3">
+                            <div className="header-icon-circle mt-0.5">
+                                <FileUp className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col text-left">
+                                <DialogTitle>{t('importDialog.title')}</DialogTitle>
+                                <DialogDescription>{t('importDialog.description')}</DialogDescription>
+                            </div>
+                        </div>
                     </DialogHeader>
-                    <div className="py-4 space-y-4">
+                    <div className="py-4 px-6 space-y-4">
                         <div className="flex items-center justify-center w-full">
                             <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50">
                                 {importFile ? (
@@ -711,8 +729,15 @@ export default function InvoicesPage() {
             <AlertDialog open={isDeleteItemDialogOpen} onOpenChange={setIsDeleteItemDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>{t('deleteItemDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('deleteItemDialog.description')}</AlertDialogDescription>
+                        <div className="flex items-start gap-3">
+                            <div className="header-icon-circle mt-0.5">
+                                <Trash2 className="h-5 w-5 text-destructive" />
+                            </div>
+                            <div className="flex flex-col text-left">
+                                <AlertDialogTitle>{t('deleteItemDialog.title')}</AlertDialogTitle>
+                                <AlertDialogDescription>{t('deleteItemDialog.description')}</AlertDialogDescription>
+                            </div>
+                        </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
@@ -723,10 +748,15 @@ export default function InvoicesPage() {
             <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>{t('confirmInvoiceDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {t('confirmInvoiceDialog.description', { id: confirmingInvoice?.id })}
-                        </AlertDialogDescription>
+                        <div className="flex items-start gap-3">
+                            <div className="header-icon-circle mt-0.5">
+                                <Check className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col text-left">
+                                <AlertDialogTitle>{t('confirmInvoiceDialog.title')}</AlertDialogTitle>
+                                <AlertDialogDescription>{t('confirmInvoiceDialog.description', { id: confirmingInvoice?.id })}</AlertDialogDescription>
+                            </div>
+                        </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>{t('confirmInvoiceDialog.cancel')}</AlertDialogCancel>
@@ -782,7 +812,14 @@ const ItemFormDialog = ({
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{title}</DialogTitle>
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <Receipt className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col text-left">
+                            <DialogTitle>{title}</DialogTitle>
+                        </div>
+                    </div>
                 </DialogHeader>
                 {isLoading ? (
                     <div className="flex items-center justify-center p-8">
@@ -790,7 +827,7 @@ const ItemFormDialog = ({
                     </div>
                 ) : (
                     <Form {...itemForm}>
-                        <form onSubmit={itemForm.handleSubmit(onSubmit)} className="space-y-4">
+                        <form onSubmit={itemForm.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
                             <FormField
                                 control={itemForm.control}
                                 name="service_id"
