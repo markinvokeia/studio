@@ -477,13 +477,12 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   };
 
-  const handleConfirmInvoiceInternal = async () => {
-    if (!confirmingInvoice) return;
+  const handleConfirmInvoiceInternal = async (invoice: Invoice) => {
     try {
-      await api.post(isSales ? API_ROUTES.SALES.INVOICES_CONFIRM : API_ROUTES.PURCHASES.INVOICES_CONFIRM, { id: parseInt(confirmingInvoice.id, 10) });
+      await api.post(isSales ? API_ROUTES.SALES.INVOICES_CONFIRM : API_ROUTES.PURCHASES.INVOICES_CONFIRM, { id: parseInt(invoice.id, 10) });
       toast({
         title: 'Invoice Confirmed',
-        description: `Invoice #${confirmingInvoice.id} has been confirmed.`,
+        description: `Invoice #${invoice.id} has been confirmed.`,
       });
       setIsConfirmDialogOpen(false);
       setConfirmingInvoice(null);
@@ -774,7 +773,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             </div>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handlePaymentSubmit)} className="space-y-4 px-6 py-4">
+            <form onSubmit={form.handleSubmit(handlePaymentSubmit)} className="space-y-4 py-4 px-6">
               {paymentSubmissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
@@ -1171,7 +1170,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('confirmInvoiceDialog.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmInvoiceInternal}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
+            <AlertDialogAction onClick={() => confirmingInvoice && handleConfirmInvoiceInternal(confirmingInvoice)}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
