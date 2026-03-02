@@ -171,10 +171,10 @@ const UserStats = ({ user, t, onPrint }: { user: User, t: (key: string) => strin
         </h4>
         <div className="flex items-center gap-1">
           {onPrint && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 p-0 hover:bg-accent/50" 
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 hover:bg-accent/50"
               onClick={handlePrint}
               disabled={isPrinting}
               title={t('UsersPage.stats.printFinancialSummary')}
@@ -526,7 +526,7 @@ export default function UsersPage() {
 
   const handleSaveDischarge = async () => {
     if (!selectedUser || !dischargeDate) return;
-    
+
     setIsSubmittingDischarge(true);
     try {
       const payload = {
@@ -534,11 +534,11 @@ export default function UsersPage() {
         appointment_date: format(dischargeDate, 'yyyy-MM-dd')
       };
       await api.post(API_ROUTES.PATIENT_DISCHARGE, payload);
-      
+
       toast({
         title: t('ClinicHistoryPage.discharge.toast.success'),
       });
-      
+
       setIsDischargeDialogOpen(false);
       setDischargeDate(null);
       fetchPatientDischarge(selectedUser.id);
@@ -556,18 +556,18 @@ export default function UsersPage() {
 
   const handleCancelDischarge = async () => {
     if (!selectedUser) return;
-    
+
     setIsSubmittingDischarge(true);
     try {
       const payload = {
         id: selectedUser.id
       };
       await api.post(API_ROUTES.PATIENT_DISCHARGE_CANCEL, payload);
-      
+
       toast({
         title: t('ClinicHistoryPage.discharge.toast.cancelSuccess'),
       });
-      
+
       setCurrentDischarge(null);
     } catch (error: any) {
       console.error("Error cancelling discharge:", error);
@@ -837,7 +837,7 @@ export default function UsersPage() {
     setDate(undefined);
     setShowDebtors(false);
     setShowOnlyActive(true);
-    setColumnFilters((prev) => prev.filter(f => f.id !== 'email')); 
+    setColumnFilters((prev) => prev.filter(f => f.id !== 'email'));
   };
 
   const filtersOptionList = [
@@ -977,9 +977,9 @@ export default function UsersPage() {
                           <CheckCircle className="h-3 w-3 mr-1" />
                           {t('ClinicHistoryPage.discharge.dischargedBadge', { date: format(parseISO(currentDischarge.appointment_date), 'dd/MM/yyyy') })}
                         </Badge>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={handleCancelDischarge}
                           disabled={isSubmittingDischarge}
                         >
@@ -988,9 +988,9 @@ export default function UsersPage() {
                         </Button>
                       </>
                     ) : (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => setIsDischargeDialogOpen(true)}
                       >
                         <CheckCircle className="h-4 w-4 mr-1" />
@@ -1034,13 +1034,13 @@ export default function UsersPage() {
                         <UserQuotes userId={selectedUser.id} onQuoteSelect={setSelectedQuote} />
                       </TabsContent>
                       <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserOrders userId={selectedUser.id} selectedQuote={selectedQuote} />
+                        <UserOrders userId={selectedUser.id} />
                       </TabsContent>
                       <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                         <UserInvoices userId={selectedUser.id} />
                       </TabsContent>
                       <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserPayments userId={selectedUser.id} selectedQuote={selectedQuote} />
+                        <UserPayments userId={selectedUser.id} />
                       </TabsContent>
                       <TabsContent value="appointments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                         <UserAppointments user={selectedUser} />
@@ -1193,96 +1193,96 @@ export default function UsersPage() {
                 <Button type="submit">{editingUser ? t('UsersPage.createDialog.editSave') : t('UsersPage.createDialog.save')}</Button>
               </div>
             </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
-        <Dialog open={isDischargeDialogOpen} onOpenChange={setIsDischargeDialogOpen}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>{t('ClinicHistoryPage.discharge.dialogTitle')}</DialogTitle>
-              <DialogDescription>
-                {t('ClinicHistoryPage.discharge.dialogDescription')}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4 px-6">
-              <div className="grid gap-2">
-                <Label>{t('ClinicHistoryPage.discharge.optionsLabel')}</Label>
-                <div className="flex flex-wrap gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setDischargeDate(addMonths(new Date(), 1))}
-                  >
-                    {t('ClinicHistoryPage.discharge.option1Month')}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setDischargeDate(addMonths(new Date(), 3))}
-                  >
-                    {t('ClinicHistoryPage.discharge.option3Months')}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setDischargeDate(addMonths(new Date(), 6))}
-                  >
-                    {t('ClinicHistoryPage.discharge.option6Months')}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setDischargeDate(addMonths(new Date(), 12))}
-                  >
-                    {t('ClinicHistoryPage.discharge.option1Year')}
-                  </Button>
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label>{t('ClinicHistoryPage.discharge.dateLabel')}</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !dischargeDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dischargeDate ? format(dischargeDate, 'dd/MM/yyyy') : t('ClinicHistoryPage.discharge.datePlaceholder')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <DatePicker
-                      mode="single"
-                      selected={dischargeDate || undefined}
-                      onSelect={(date: Date | undefined) => setDischargeDate(date || null)}
-                      initialFocus
-                      disabled={(date: Date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                    />
-                  </PopoverContent>
-                </Popover>
+      <Dialog open={isDischargeDialogOpen} onOpenChange={setIsDischargeDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{t('ClinicHistoryPage.discharge.dialogTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('ClinicHistoryPage.discharge.dialogDescription')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4 px-6">
+            <div className="grid gap-2">
+              <Label>{t('ClinicHistoryPage.discharge.optionsLabel')}</Label>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDischargeDate(addMonths(new Date(), 1))}
+                >
+                  {t('ClinicHistoryPage.discharge.option1Month')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDischargeDate(addMonths(new Date(), 3))}
+                >
+                  {t('ClinicHistoryPage.discharge.option3Months')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDischargeDate(addMonths(new Date(), 6))}
+                >
+                  {t('ClinicHistoryPage.discharge.option6Months')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDischargeDate(addMonths(new Date(), 12))}
+                >
+                  {t('ClinicHistoryPage.discharge.option1Year')}
+                </Button>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => {
-                setIsDischargeDialogOpen(false);
-                setDischargeDate(null);
-              }}>
-                {t('ClinicHistoryPage.discharge.cancelButton')}
-              </Button>
-              <Button 
-                onClick={handleSaveDischarge} 
-                disabled={!dischargeDate || isSubmittingDischarge}
-              >
-                {isSubmittingDischarge ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {t('ClinicHistoryPage.discharge.saveButton')}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            <div className="grid gap-2">
+              <Label>{t('ClinicHistoryPage.discharge.dateLabel')}</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !dischargeDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dischargeDate ? format(dischargeDate, 'dd/MM/yyyy') : t('ClinicHistoryPage.discharge.datePlaceholder')}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <DatePicker
+                    mode="single"
+                    selected={dischargeDate || undefined}
+                    onSelect={(date: Date | undefined) => setDischargeDate(date || null)}
+                    initialFocus
+                    disabled={(date: Date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsDischargeDialogOpen(false);
+              setDischargeDate(null);
+            }}>
+              {t('ClinicHistoryPage.discharge.cancelButton')}
+            </Button>
+            <Button
+              onClick={handleSaveDischarge}
+              disabled={!dischargeDate || isSubmittingDischarge}
+            >
+              {isSubmittingDischarge ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {t('ClinicHistoryPage.discharge.saveButton')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
