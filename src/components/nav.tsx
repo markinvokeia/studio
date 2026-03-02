@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -58,7 +57,7 @@ export function Nav({ items }: NavProps) {
 
   const renderLink = (item: NavItem, index: number, isSubItem = false) => {
     if (item.isSeparator) {
-      return <Separator key={`separator-${index}`} className="my-2" />;
+      return <Separator key={`separator-${index}`} className="my-2 opacity-10" />;
     }
 
     const title = t(item.title as any);
@@ -81,7 +80,7 @@ export function Nav({ items }: NavProps) {
       'flex items-center gap-3 rounded-lg px-4 py-2 transition-all font-semibold',
       isActive
         ? 'bg-accent text-accent-foreground'
-        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
+        : 'text-[var(--nav-foreground)]/70 hover:bg-accent/50 hover:text-[var(--nav-foreground)]',
       isSubItem && 'text-sm font-normal pl-8',
       !isSubItem && 'text-base'
     );
@@ -121,13 +120,13 @@ export function Nav({ items }: NavProps) {
             <AccordionItem value={value} className="border-b-0">
               <AccordionTrigger
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-4 py-2 text-muted-foreground transition-all hover:bg-muted/50 hover:text-foreground hover:no-underline font-semibold text-base',
-                   isActive && 'text-foreground'
+                  'flex items-center gap-3 rounded-lg px-4 py-2 text-[var(--nav-foreground)]/70 transition-all hover:bg-accent/50 hover:text-[var(--nav-foreground)] hover:no-underline font-semibold text-base',
+                   isActive && 'text-[var(--nav-foreground)] font-bold'
                 )}
               >
                 {title}
               </AccordionTrigger>
-              <AccordionContent className="pl-4 pt-1">
+              <AccordionContent className="bg-[var(--muted)]/20 rounded-lg mx-2 pt-1">
                 <div className="grid gap-1">
                   {item.items?.map((subItem, subIndex) => renderLink(subItem, subIndex, true))}
                 </div>

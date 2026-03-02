@@ -1,4 +1,3 @@
-
 'use client';
 
 import { OpenCashSessionWidget } from '@/components/cash-session-widget';
@@ -172,7 +171,7 @@ export function Header() {
 
     return (
         <>
-            <header className="sticky top-0 z-[40] w-full bg-[var(--header-gradient)] text-primary-foreground shadow-[0_4px_20px_rgba(0,0,0,0.1)] border-none transition-colors duration-300">
+            <header className="sticky top-0 z-[40] w-full bg-[var(--nav-bg)] text-[var(--nav-foreground)] shadow-[0_4px_20px_rgba(0,0,0,0.1)] border-none transition-colors duration-300">
                 <div className="flex h-14 items-center justify-between px-4 lg:h-[60px] lg:px-6">
                     <div className="flex items-center gap-4">
                         <OpenCashSessionWidget />
@@ -185,9 +184,9 @@ export function Header() {
                                 size="icon" 
                                 className={cn(
                                     "relative rounded-full transition-all duration-300",
-                                    "border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground",
-                                    "hover:bg-primary-foreground/20 hover:border-primary-foreground/40",
-                                    pendingCount > 0 && "border-primary/50 bg-primary/20 shadow-[0_0_15px_rgba(124,58,237,0.3)]"
+                                    "border-[var(--nav-foreground)]/20 bg-black/5 text-[var(--nav-foreground)]",
+                                    "hover:bg-accent/50 hover:border-[var(--nav-foreground)]/40",
+                                    pendingCount > 0 && "border-red-500/50 bg-red-500/10"
                                 )}
                             >
                                 <div className={cn(pendingCount > 0 && 'animate-bell-ring')}>
@@ -195,7 +194,7 @@ export function Header() {
                                 </div>
                                 {pendingCount > 0 && (
                                     <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-red-600 ring-2 ring-background">
-                                        {pendingCount}
+                                        {pendingCount > 99 ? '99+' : pendingCount}
                                     </span>
                                 )}
                                 <span className="sr-only">{t('alerts')}</span>
@@ -206,7 +205,7 @@ export function Header() {
                         
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary-foreground/10 text-primary-foreground">
+                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-accent/50 text-[var(--nav-foreground)]">
                                     <Globe className="h-5 w-5" />
                                     <span className="sr-only">{t('toggleLanguage')}</span>
                                 </Button>
@@ -235,7 +234,7 @@ export function Header() {
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary-foreground/10 text-primary-foreground">
+                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-accent/50 text-[var(--nav-foreground)]">
                                     <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                                     <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                                     <span className="sr-only">{t('toggleTheme')}</span>
@@ -265,7 +264,7 @@ export function Header() {
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full ring-2 ring-primary-foreground/20 hover:ring-primary-foreground/40 transition-all overflow-hidden">
+                                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full ring-2 ring-[var(--nav-foreground)]/20 hover:ring-[var(--nav-foreground)]/40 transition-all overflow-hidden">
                                     <Image src="https://picsum.photos/seed/user/36/36" width={36} height={36} alt="Avatar" className="object-cover" />
                                 </Button>
                             </DropdownMenuTrigger>
