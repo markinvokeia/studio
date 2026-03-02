@@ -1,3 +1,4 @@
+
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -41,7 +42,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Check, ChevronsUpDown, FileText, RefreshCw, X, ShoppingCart } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, FileText, RefreshCw, X, ShoppingCart, Receipt } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -315,7 +316,7 @@ async function getUsers(t: (key: string) => string): Promise<User[]> {
         const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
         const usersData = Array.isArray(data.data) ? data.data : [];
         return usersData.map((apiUser: any) => ({
-            id: apiUser.id ? String(apiUser.id) : t('defaults.notAvailable'),
+            id: apiUser.id ? String(apiUser.id) : t('defaults.noName'),
             name: apiUser.name || t('defaults.noName'),
             email: apiUser.email || t('defaults.noEmail'),
             phone_number: apiUser.phone_number || '000-000-0000',
@@ -889,7 +890,7 @@ const handleCreateQuote = async () => {
                                                 )}
                                             </TabsContent>
                                             <TabsContent value="invoices" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
-                                                <div className="flex-1 min-h-[400px] flex flex-col">
+                                                <div className="flex-1 min-h-[400px]">
                                                     <div className="flex items-center justify-between mb-2 flex-none">
                                                         <h4 className="text-sm font-semibold flex items-center gap-2">
                                                             <Receipt className="h-4 w-4" />

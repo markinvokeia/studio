@@ -1,3 +1,4 @@
+
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -13,7 +14,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { Invoice, InvoiceItem, Order, OrderItem, Payment } from '@/lib/types';
 import { api } from '@/services/api';
 import { RowSelectionState } from '@tanstack/react-table';
-import { RefreshCw, X } from 'lucide-react';
+import { RefreshCw, X, ShoppingCart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -138,7 +139,7 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
             status: apiPayment.status || 'completed',
             createdAt: apiPayment.payment_date || apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.payment_date || apiPayment.updatedAt || new Date().toISOString().split('T')[0],
-            currency: isNewFormat ? apiPayment.invoice_currency : (apiPayment.currency || 'USD'),
+            currency: isNewFormat ? apiPayment.invoice_currency : (apiPayment.source_currency || 'USD'),
             payment_date: apiPayment.payment_date || apiPayment.created_at,
             amount_applied: isNewFormat ? parseFloat(apiPayment.amount_applied) : (parseFloat(apiPayment.amount) || 0),
             source_amount: isNewFormat ? parseFloat(apiPayment.source_amount) : (parseFloat(apiPayment.amount) || 0),
@@ -295,9 +296,14 @@ export default function OrdersPage() {
                     selectedOrder && (
                         <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0">
                             <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
-                                <div className="min-w-0 flex-1">
-                                    <CardTitle className="text-lg lg:text-xl truncate">{t('detailsFor', { name: selectedOrder.user_name })}</CardTitle>
-                                    <CardDescription className="text-xs">{t('orderId')}: {selectedOrder.doc_no}</CardDescription>
+                                <div className="flex items-start gap-3 min-w-0 flex-1">
+                                    <div className="header-icon-circle mt-0.5">
+                                        <ShoppingCart className="h-5 w-5" />
+                                    </div>
+                                    <div className="min-w-0 flex-1 text-left">
+                                        <CardTitle className="text-lg lg:text-xl truncate">{t('detailsFor', { name: selectedOrder.user_name })}</CardTitle>
+                                        <CardDescription className="text-xs">{t('orderId')}: {selectedOrder.doc_no}</CardDescription>
+                                    </div>
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
                                     <X className="h-5 w-5" />

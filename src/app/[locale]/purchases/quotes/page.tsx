@@ -1,3 +1,4 @@
+
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -41,7 +42,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Check, ChevronsUpDown, FileText, RefreshCw, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, FileText, RefreshCw, X, ShoppingCart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -182,10 +183,10 @@ async function getOrderItems(orderId: string, t: (key: string) => string): Promi
         const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
         return itemsData.map((apiItem: any) => ({
             id: apiItem.order_item_id ? String(apiItem.order_item_id) : 'N/A',
-            service_id: apiItem.service_id || apiItem.serviceId || apiItem.id,
+            service_id: apiItem.service_id || apiItem.serviceId || apiItem.service_id_raw || apiItem.id,
             service_name: apiItem.service_name || 'N/A',
-            unit_price: apiItem.unit_price,
             quantity: apiItem.quantity,
+            unit_price: apiItem.unit_price,
             total: apiItem.total,
             tooth_number: apiItem.tooth_number ? Number(apiItem.tooth_number) : undefined,
             status: apiItem.status || 'scheduled',
@@ -831,7 +832,7 @@ const handleCreateQuote = async () => {
                                         <div className="header-icon-circle mt-0.5">
                                             <FileText className="h-5 w-5" />
                                         </div>
-                                        <div className="flex flex-col truncate">
+                                        <div className="flex flex-col truncate text-left">
                                             <CardTitle className="text-lg truncate">{t('detailsFor', { name: selectedQuote.user_name })}</CardTitle>
                                             <CardDescription className="text-xs truncate">{t('quoteId')}: {selectedQuote.doc_no || selectedQuote.id}</CardDescription>
                                         </div>
@@ -841,7 +842,7 @@ const handleCreateQuote = async () => {
                                         <span className="sr-only">{t('common.closeDetails')}</span>
                                     </Button>
                                 </CardHeader>
-                                <CardContent className="flex-1 flex flex-col overflow-hidden p-4 pt-0 min-h-0">
+                                <CardContent className="flex-1 flex flex-col overflow-hidden p-4 pt-0 min-h-0 bg-card">
                                     <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
                                         <TabsList>
                                             <TabsTrigger value="items" className="text-xs">{t('tabs.items')}</TabsTrigger>
@@ -864,16 +865,24 @@ const handleCreateQuote = async () => {
                                                 />
                                             </TabsContent>
                                             <TabsContent value="orders" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
-                                                <div className="flex-1 min-h-[400px]">
-                                                    <OrdersTable
-                                                        orders={orders}
-                                                        isLoading={isLoadingOrders}
-                                                        onRowSelectionChange={handleOrderSelectionChange}
-                                                        onRefresh={loadOrders}
-                                                        isRefreshing={isLoadingOrders}
-                                                        columnsToHide={['user_name', 'quote_id']}
-                                                        isCompact={true}
-                                                    />
+                                                <div className="flex-1 min-h-[400px] flex flex-col">
+                                                    <div className="flex items-center justify-between mb-2 flex-none">
+                                                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                                                            <ShoppingCart className="h-4 w-4" />
+                                                            {t('tabs.orders')}
+                                                        </h4>
+                                                    </div>
+                                                    <div className="flex-1 min-h-0">
+                                                        <OrdersTable
+                                                            orders={orders}
+                                                            isLoading={isLoadingOrders}
+                                                            onRowSelectionChange={handleOrderSelectionChange}
+                                                            onRefresh={loadOrders}
+                                                            isRefreshing={isLoadingOrders}
+                                                            columnsToHide={['user_name', 'quote_id']}
+                                                            isCompact={true}
+                                                        />
+                                                    </div>
                                                 </div>
                                                 {selectedOrder && (
                                                     <div className="mt-4 border-t pt-4 flex-1 flex flex-col min-h-[400px]">
@@ -904,26 +913,34 @@ const handleCreateQuote = async () => {
                                             </TabsContent>
                                             <TabsContent value="invoices" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
                                                 <div className="flex-1 min-h-[400px]">
-                                                    <InvoicesTable
-                                                        invoices={invoices}
-                                                        isLoading={isLoadingInvoices}
-                                                        onRowSelectionChange={handleInvoiceSelectionChange}
-                                                        onRefresh={loadInvoices}
-                                                        isRefreshing={isLoadingInvoices}
-                                                        isCompact={true}
-                                                        canCreate={false}
-                                                        columnTranslations={{
-                                                            doc_no: tRoot('InvoicesPage.columns.docNo'),
-                                                            user_name: tRoot('InvoicesPage.columns.userName'),
-                                                            total: tRoot('InvoicesPage.columns.total'),
-                                                            currency: tRoot('InvoicesPage.columns.currency'),
-                                                            status: tRoot('InvoicesPage.columns.status'),
-                                                            type: tRoot('InvoicesPage.columns.type'),
-                                                            payment_status: tRoot('InvoicesPage.columns.paymentStatus'),
-                                                            paid_amount: tRoot('InvoicesPage.columns.paidAmount'),
-                                                            createdAt: tRoot('InvoicesPage.columns.createdAt'),
-                                                        }}
-                                                    />
+                                                    <div className="flex items-center justify-between mb-2 flex-none">
+                                                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                                                            <Receipt className="h-4 w-4" />
+                                                            {t('tabs.invoices')}
+                                                        </h4>
+                                                    </div>
+                                                    <div className="flex-1 min-h-0">
+                                                        <InvoicesTable
+                                                            invoices={invoices}
+                                                            isLoading={isLoadingInvoices}
+                                                            onRowSelectionChange={handleInvoiceSelectionChange}
+                                                            onRefresh={loadInvoices}
+                                                            isRefreshing={isLoadingInvoices}
+                                                            isCompact={true}
+                                                            canCreate={false}
+                                                            columnTranslations={{
+                                                                doc_no: tRoot('InvoicesPage.columns.docNo'),
+                                                                user_name: tRoot('InvoicesPage.columns.userName'),
+                                                                total: tRoot('InvoicesPage.columns.total'),
+                                                                currency: tRoot('InvoicesPage.columns.currency'),
+                                                                status: tRoot('InvoicesPage.columns.status'),
+                                                                type: tRoot('InvoicesPage.columns.type'),
+                                                                payment_status: tRoot('InvoicesPage.columns.paymentStatus'),
+                                                                paid_amount: tRoot('InvoicesPage.columns.paidAmount'),
+                                                                createdAt: tRoot('InvoicesPage.columns.createdAt'),
+                                                            }}
+                                                        />
+                                                    </div>
                                                 </div>
                                                 {selectedInvoice && (
                                                     <div className="mt-4 border-t pt-4 flex-1 flex flex-col min-h-[400px]">

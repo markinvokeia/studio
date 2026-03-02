@@ -32,6 +32,18 @@ return (
     <AuthProvider>
       <AlertNotificationsProvider>
         <NextIntlClientProvider locale={locale} messages={messages}>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                const observerError = 'ResizeObserver loop completed with undelivered notifications.';
+                window.addEventListener('error', (event) => {
+                  if (event.message === observerError || event.message === 'ResizeObserver loop limit exceeded') {
+                    event.stopImmediatePropagation();
+                  }
+                });
+              `,
+            }}
+          />
           <PrivateRoute>
             {children}
           </PrivateRoute>
