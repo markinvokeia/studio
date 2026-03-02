@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -23,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Tags } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -224,12 +223,19 @@ export default function MiscellaneousCategoriesPage() {
 
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <Card className="flex-1 flex flex-col min-h-0">
-                <CardHeader className="flex-none">
-                    <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
+            <Card className="flex-1 flex flex-col min-h-0 border-0 lg:border shadow-none lg:shadow-sm">
+                <CardHeader className="flex-none p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <Tags className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col">
+                            <CardTitle className="text-lg">{t('title')}</CardTitle>
+                            <CardDescription className="text-xs">{t('description')}</CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-background">
                     <DataTable
                         columns={columns}
                         data={categories}
@@ -251,7 +257,14 @@ export default function MiscellaneousCategoriesPage() {
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editingCategory ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
+                        <div className="flex items-start gap-3">
+                            <div className="header-icon-circle mt-0.5">
+                                <Tags className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col text-left">
+                                <DialogTitle>{editingCategory ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
+                            </div>
+                        </div>
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
@@ -341,8 +354,15 @@ export default function MiscellaneousCategoriesPage() {
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('deleteDialog.description', { name: deletingCategory?.name })}</AlertDialogDescription>
+                        <div className="flex items-start gap-3">
+                            <div className="header-icon-circle mt-0.5">
+                                <AlertTriangle className="h-5 w-5 text-destructive" />
+                            </div>
+                            <div className="flex flex-col text-left">
+                                <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
+                                <AlertDialogDescription>{t('deleteDialog.description', { name: deletingCategory?.name })}</AlertDialogDescription>
+                            </div>
+                        </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
