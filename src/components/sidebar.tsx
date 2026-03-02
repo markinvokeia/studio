@@ -112,7 +112,7 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
             onMouseLeave={onLeave}
             style={{ width: '200px' }}
         >
-            <div className="flex h-12 items-center px-6 border-b border-[var(--nav-foreground)]/10 bg-black/5">
+            <div className="flex h-12 items-center px-6 border-b border-[var(--nav-foreground)]/10">
                 <h2 className="text-xs font-black uppercase tracking-widest">{t(item.title as any)}</h2>
             </div>
             <div className="flex-1 overflow-y-auto py-2">
@@ -121,7 +121,7 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
                         <Link
                             key={index}
                             href={`/${locale}${subItem.href}`}
-                            className="flex items-center gap-3 px-4 py-2.5 rounded-l-lg rounded-r-none text-sm font-bold transition-all hover:bg-accent/50 active:scale-95"
+                            className="flex items-center gap-3 px-4 py-2.5 rounded-l-lg rounded-r-none text-sm font-bold transition-all hover:bg-white/10 active:scale-95"
                         >
                             <subItem.icon className="h-4 w-4 opacity-80" />
                             <span>{t(subItem.title as any)}</span>

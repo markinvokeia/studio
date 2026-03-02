@@ -32,7 +32,7 @@
     --primary-foreground: 0 0% 100%;
     --secondary: 341 90% 60%; /* Rosa brillante */
     --secondary-foreground: 0 0% 100%;
-    --muted: 263 67% 45%; /* Fondo Submenu Sólido (Violeta más claro) */
+    --muted: 263 67% 50%; /* Color del Submenu (Mismo que accent) */
     --muted-foreground: 260 10% 95%;
     --accent: 263 67% 50%; /* Hover/Selected */
     --accent-foreground: 0 0% 100%;
@@ -50,7 +50,7 @@
     --header-foreground: #ffffff;
   }
 
-  /* TEMA CLARO (Gris muy claro / Casi blanco) */
+  /* TEMA CLARO (Gris ultra claro) */
   .claro {
     --background: 0 0% 100%;
     --foreground: 240 10% 10%;
@@ -58,50 +58,50 @@
     --card-foreground: 240 10% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 10%;
-    --primary: 221 83% 33%; /* Azul oscuro para botones */
+    --primary: 221 83% 33%; /* Azul oscuro */
     --primary-foreground: 0 0% 100%;
     --secondary: 210 20% 96%;
     --secondary-foreground: 240 10% 10%;
-    --muted: 0 0% 100%; /* Fondo Submenu Sólido (Blanco) */
+    --muted: 0 0% 100%; /* Submenu blanco sólido */
     --muted-foreground: 240 10% 40%;
-    --accent: 240 5% 96%; /* Hover/Selected (Gris casi imperceptible) */
+    --accent: 240 5% 96%; /* Casi blanco */
     --accent-foreground: 240 10% 10%;
     --border: 240 5% 94%;
     --input: 240 5% 94%;
     --ring: 221 83% 33%;
     
     /* Semantic Nav Tokens */
-    --nav-bg: #f9fafb; /* Gris ultra claro */
-    --nav-foreground: #111827; /* Texto oscuro para barra superior */
+    --nav-bg: #f9fafb;
+    --nav-foreground: #111827;
     --header-bg: #f9fafb;
     --header-foreground: #111827;
   }
 
   /* TEMA OSCURO (Gris Pálido / Casi Negro) */
   .dark {
-    --background: 240 10% 2%; /* Negro puro */
+    --background: 0 0% 0%; /* Negro puro */
     --foreground: 240 5% 85%;
-    --card: 240 10% 6%; /* Gris oscuro pálido */
+    --card: 263 30% 10%; /* Violeta muy oscuro */
     --card-foreground: 240 5% 85%;
     --popover: 240 10% 6%;
     --popover-foreground: 240 5% 85%;
-    --primary: 263 30% 40%; /* Violeta pálido grisáceo */
-    --primary-foreground: 0 0% 95%;
+    --primary: 263 30% 40%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 240 10% 12%;
     --secondary-foreground: 240 5% 85%;
-    --muted: 240 10% 10%; /* Fondo Submenu Sólido */
+    --muted: 240 10% 15%; /* Submenu del color del accent */
     --muted-foreground: 240 5% 60%;
-    --accent: 240 10% 15%; /* Hover */
-    --accent-foreground: 240 5% 95%;
+    --accent: 240 10% 15%;
+    --accent-foreground: 0 0% 100%;
     --border: 240 10% 12%;
     --input: 240 10% 12%;
     --ring: 263 30% 40%;
     
     /* Semantic Nav Tokens */
     --nav-bg: #0a0a0a;
-    --nav-foreground: #d1d5db;
+    --nav-foreground: #ffffff;
     --header-bg: #0a0a0a;
-    --header-foreground: #d1d5db;
+    --header-foreground: #ffffff;
   }
 }
 
