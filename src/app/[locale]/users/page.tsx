@@ -49,7 +49,7 @@ import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } fro
 import { endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek, addMonths } from 'date-fns';
 import { AlertTriangle, Banknote, CalendarIcon, CheckCircle, ChevronDown, ChevronUp, CreditCard, DollarSign, Loader2, Users, Printer, Receipt, X, XCircle } from 'lucide-react';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { useForm } from 'react-hook-form';
