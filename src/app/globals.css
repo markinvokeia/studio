@@ -34,10 +34,8 @@
     --secondary-foreground: 0 0% 100%;
     --muted: 263 67% 45%; 
     --muted-foreground: 0 0% 100%;
-    --accent: 263 67% 35%; 
+    --accent: 263 67% 45%; 
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
     --border: 260 20% 90%;
     --input: 260 20% 90%;
     --ring: 263 67% 35%;
@@ -50,7 +48,7 @@
     --header-foreground: #ffffff;
 
     /* Card Header for Invoke - matches Claro for better visibility in content area */
-    --card-header-bg: 260 30% 96%;
+    --card-header-bg: 240 5% 96%;
     --card-header-foreground: 0 0% 0%;
 
     /* Dashboard Chart Colors */
@@ -70,21 +68,19 @@
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 10%;
     --primary: 221 83% 33%; /* Azul oscuro */
-    --primary-foreground: 0 0% 100%;
     --secondary: 210 20% 96%;
-    --secondary-foreground: 240 10% 10%;
     --muted: 0 0% 100%; 
     --muted-foreground: 240 10% 40%;
-    --accent: 240 5% 94%; 
+    --accent: 210 17% 98%; /* Casi blanco (antes era nav-bg) */
     --accent-foreground: 240 10% 10%;
     --border: 240 5% 94%;
     --input: 240 5% 94%;
     --ring: 221 83% 33%;
     
     /* Semantic Nav Tokens */
-    --nav-bg: #f9fafb;
+    --nav-bg: #efeff1; /* Gris suave (antes era el fondo del submenú/accent) */
     --nav-foreground: #111827;
-    --header-bg: #f9fafb;
+    --header-bg: #efeff1; 
     --header-foreground: #111827;
 
     --card-header-bg: 240 5% 96%;
@@ -100,32 +96,32 @@
 
   /* TEMA OSCURO */
   .dark {
-    --background: 240 10% 4%; 
-    --foreground: 240 5% 85%;
-    --card: 240 10% 8%; 
-    --card-foreground: 240 5% 85%;
-    --popover: 240 10% 6%;
-    --popover-foreground: 240 5% 85%;
-    --primary: 263 30% 45%;
+    --background: 240 10% 15%; 
+    --foreground: 240 5% 95%;
+    --card: 240 10% 18%; 
+    --card-foreground: 240 5% 95%;
+    --popover: 240 10% 16%;
+    --popover-foreground: 240 5% 95%;
+    --primary: 240 10% 25%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 10% 15%;
-    --secondary-foreground: 240 5% 85%;
-    --muted: 240 10% 12%; 
-    --muted-foreground: 240 5% 65%;
-    --accent: 240 10% 15%;
+    --secondary: 240 10% 20%;
+    --secondary-foreground: 240 5% 95%;
+    --muted: 240 10% 22%; 
+    --muted-foreground: 240 5% 75%;
+    --accent: 240 10% 25%;
     --accent-foreground: 0 0% 100%;
-    --border: 240 10% 15%;
-    --input: 240 10% 15%;
-    --ring: 263 30% 45%;
+    --border: 240 10% 20%;
+    --input: 240 10% 20%;
+    --ring: 240 10% 35%;
     
     /* Semantic Nav Tokens */
-    --nav-bg: #0a0a0a;
+    --nav-bg: #1a1a1a;
     --nav-foreground: #ffffff;
-    --header-bg: #0a0a0a;
+    --header-bg: #1a1a1a;
     --header-foreground: #ffffff;
 
-    --card-header-bg: 240 10% 12%;
-    --card-header-foreground: 240 5% 85%;
+    --card-header-bg: 240 10% 22%;
+    --card-header-foreground: 240 5% 95%;
 
     /* Dashboard Chart Colors */
     --chart-1: 0 84% 60%;
