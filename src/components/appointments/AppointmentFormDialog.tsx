@@ -403,6 +403,10 @@ export function AppointmentFormDialog({
 
         if (appointment.endTime) {
             endDateTime = parse(`${date} ${appointment.endTime}`, 'yyyy-MM-dd HH:mm', new Date());
+            if (endDateTime <= startDateTime) {
+                toast({ variant: "destructive", title: tToasts('error'), description: tToasts('endTimeInvalid') });
+                return;
+            }
         } else {
             let totalDuration = 0;
             if (doctor && doctor.id && services.length > 0) {

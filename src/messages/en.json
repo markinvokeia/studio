@@ -358,7 +358,8 @@
       "slotNoLongerAvailable": "Slot no longer available",
       "slotUnavailableDescription": "The selected time slot is no longer available.",
       "slotUnavailableTitle": "Slot Unavailable",
-      "unexpectedError": "Unexpected error"
+      "unexpectedError": "Unexpected error",
+      "endTimeInvalid": "End time must be after start time"
     }
   },
   "AppointmentsColumns": {

@@ -246,7 +246,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         order_item_id: parseInt(selectedItem.id, 10),
         schedule_date_time: selectedDate.toISOString(),
         user_id: userId,
-        appointment_id: appointment.appointmentId || appointment.id,
+        appointment_id: appointment.appointment_id || appointment.appointmentId || appointment.id,
       };
 
       const apiRoute = isSales

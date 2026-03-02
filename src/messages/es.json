@@ -358,7 +358,8 @@
             "slotNoLongerAvailable": "El horario ya no está disponible",
             "slotUnavailableDescription": "El horario seleccionado ya no está disponible.",
             "slotUnavailableTitle": "Horario no disponible",
-            "unexpectedError": "Error inesperado"
+            "unexpectedError": "Error inesperado",
+            "endTimeInvalid": "La hora de fin debe ser posterior a la de inicio"
         }
     },
     "AppointmentsColumns": {
