@@ -119,12 +119,12 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
 
     return (
         <div
-            className="fixed left-20 z-[30] hidden md:flex flex-col bg-accent text-accent-foreground shadow-[8px_8px_20px_rgba(0,0,0,0.1)] rounded-r-2xl overflow-hidden animate-in fade-in slide-in-from-left-2 duration-200 h-auto max-h-[85vh] my-auto top-0 bottom-0 border-l border-white/10"
+            className="fixed left-20 z-[30] hidden md:flex flex-col bg-accent text-accent-foreground shadow-[8px_8px_20px_rgba(0,0,0,0.1)] rounded-r-2xl overflow-hidden animate-in fade-in slide-in-from-left-2 duration-200 h-auto max-h-[85vh] my-auto top-0 bottom-0 border-l border-white/10 [.claro_&]:border-gray-200"
             onMouseLeave={onLeave}
             style={{ width: '200px' }}
         >
-            <div className="flex h-12 items-center px-6 border-b border-white/10">
-                <h2 className="text-xs font-black uppercase tracking-widest">{t(item.title as any)}</h2>
+            <div className="flex h-12 items-center px-6 border-b border-white/10 [.claro_&]:border-gray-200">
+                <h2 className="text-xs font-black uppercase tracking-widest [.claro_&]:text-gray-500">{t(item.title as any)}</h2>
             </div>
             <div className="flex-1 overflow-y-auto py-2">
                 <nav className="grid gap-1 pl-2 pr-0">
@@ -138,11 +138,18 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
                                 key={index}
                                 href={`/${locale}${subItem.href}`}
                                 className={cn(
-                                    "flex items-center gap-3 px-4 py-2.5 rounded-l-lg rounded-r-none text-sm font-bold transition-all hover:bg-white/10 active:scale-95",
-                                    isSubActive ? "bg-white/20 text-white" : "text-white/70"
+                                    "flex items-center gap-3 px-4 py-2.5 rounded-l-lg rounded-r-none text-sm font-bold transition-all active:scale-95",
+                                    "hover:bg-white/10 [.claro_&]:hover:bg-black/5",
+                                    isSubActive 
+                                        ? "bg-white/20 text-white [.claro_&]:bg-black/10 [.claro_&]:text-gray-900" 
+                                        : "text-white/70 [.claro_&]:text-gray-600"
                                 )}
                             >
-                                <subItem.icon className={cn("h-4 w-4 opacity-90", isSubActive ? "opacity-100" : "opacity-70")} />
+                                <subItem.icon className={cn(
+                                    "h-4 w-4 transition-opacity", 
+                                    isSubActive ? "opacity-100" : "opacity-70",
+                                    "[.claro_&]:text-gray-700"
+                                )} />
                                 <span>{t(subItem.title as any)}</span>
                             </Link>
                         )
