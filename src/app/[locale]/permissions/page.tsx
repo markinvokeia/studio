@@ -32,7 +32,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, Shield, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -179,9 +179,16 @@ export default function PermissionsPage() {
         isRightPanelOpen={!!selectedPermission}
         leftPanel={
           <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="bg-primary text-primary-foreground flex-none">
-              <CardTitle>{t('title')}</CardTitle>
-              <CardDescription className="text-primary-foreground/70">{t('description')}</CardDescription>
+            <CardHeader className="flex-none p-4">
+              <div className="flex items-start gap-3">
+                <div className="header-icon-circle mt-0.5">
+                  <Shield className="h-5 w-5" />
+                </div>
+                <div className="flex flex-col">
+                  <CardTitle className="text-lg">{t('title')}</CardTitle>
+                  <CardDescription className="text-xs">{t('description')}</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-background">
               <DataTable

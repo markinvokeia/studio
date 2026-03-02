@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { GlobalNotificationSetting, NotificationCategory, NotificationPlatform } from '@/lib/types';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, Mail, MessageSquare, Phone, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Mail, MessageSquare, Phone, RefreshCw, Mails } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -262,20 +262,25 @@ export default function NotificationSettingsPage() {
 
     if (isLoading) {
         return (
-            <Card className="flex-1 flex flex-col min-h-0">
-                <CardContent className="flex-1 flex items-center justify-center">
-                    <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
-                </CardContent>
-            </Card>
+            <div className="flex-1 flex flex-col min-h-0 items-center justify-center">
+                <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
         );
     }
 
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden gap-4">
             <Card className="shadow-sm border-0">
-                <CardHeader className="bg-primary text-primary-foreground">
-                    <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription className="text-primary-foreground/70">{t('description')}</CardDescription>
+                <CardHeader className="p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <Mails className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col">
+                            <CardTitle className="text-lg">{t('title')}</CardTitle>
+                            <CardDescription className="text-xs">{t('description')}</CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent className="p-6 bg-background">
                     <div className="flex items-center justify-between mb-6 p-4 bg-muted/50 rounded-lg">

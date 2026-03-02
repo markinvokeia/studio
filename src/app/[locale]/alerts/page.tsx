@@ -37,7 +37,8 @@ import {
     User,
     UserPlus,
     XCircle,
-    MessageCircle
+    MessageCircle,
+    BellRing
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';
@@ -394,9 +395,16 @@ function AlertsCenterPageContent() {
     return (
         <div className="flex-1 overflow-y-auto pr-2 space-y-4 pb-24 min-h-0">
             <Card className="shadow-sm border-0">
-                <CardHeader className="bg-primary text-primary-foreground">
-                    <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription className="text-primary-foreground/70">{t('description')}</CardDescription>
+                <CardHeader className="p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <BellRing className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col">
+                            <CardTitle className="text-lg">{t('title')}</CardTitle>
+                            <CardDescription className="text-xs">{t('description')}</CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-background">
                     <SummaryCard title={t('summary.total')} count={summaryCounts.total} color="border-primary" />
@@ -407,17 +415,24 @@ function AlertsCenterPageContent() {
             </Card>
 
             <Card className="shadow-sm border-0">
-                <CardHeader className="bg-primary text-primary-foreground">
-                    <div className="flex items-center justify-between">
-                        <CardTitle>{t('dailyAlerts')}</CardTitle>
+                <CardHeader className="p-4">
+                    <div className="flex items-center justify-between w-full">
+                        <div className="flex items-start gap-3">
+                            <div className="header-icon-circle mt-0.5">
+                                <FileText className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col">
+                                <CardTitle className="text-lg">{t('dailyAlerts')}</CardTitle>
+                            </div>
+                        </div>
                         <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20" onClick={() => loadAlerts()} disabled={loading}>
+                            <Button variant="outline" size="sm" className="h-9" onClick={() => loadAlerts()} disabled={loading}>
                                 <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                                 {t('reload')}
                             </Button>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20"><Filter className="mr-2 h-4 w-4" /> {t('filters.title')}</Button>
+                                    <Button variant="outline" size="sm" className="h-9"><Filter className="mr-2 h-4 w-4" /> {t('filters.title')}</Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent className="w-80">
                                     <div className="space-y-4 p-4">

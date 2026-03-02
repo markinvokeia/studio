@@ -47,7 +47,7 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek, addMonths } from 'date-fns';
-import { AlertTriangle, Banknote, CalendarIcon, CheckCircle, ChevronDown, ChevronUp, CreditCard, DollarSign, Loader2, Printer, Receipt, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Banknote, CalendarIcon, CheckCircle, ChevronDown, ChevronUp, CreditCard, DollarSign, Loader2, Users, Printer, Receipt, X, XCircle } from 'lucide-react';
 import { isValidPhoneNumber } from 'libphonenumber-js';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -893,9 +893,16 @@ export default function UsersPage() {
           isRightPanelOpen={!!selectedUser}
           leftPanel={
             <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-              <CardHeader className="bg-primary text-primary-foreground flex-none p-4">
-                <CardTitle className="text-lg lg:text-xl">{t('UsersPage.title')}</CardTitle>
-                <CardDescription className="text-primary-foreground/70 text-xs">{t('UsersPage.description')}</CardDescription>
+              <CardHeader className="flex-none p-4">
+                <div className="flex items-start gap-3">
+                  <div className="header-icon-circle mt-0.5">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div className="flex flex-col">
+                    <CardTitle className="text-lg">{t('UsersPage.title')}</CardTitle>
+                    <CardDescription className="text-xs">{t('UsersPage.description')}</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-background">
                 <DataTable
@@ -1070,7 +1077,7 @@ export default function UsersPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingUser ? t('UsersPage.createDialog.editTitle') : t('UsersPage.createDialog.title')}</DialogTitle>
-            <DialogDescription>{editingUser ? t('UsersPage.createDialog.editDescription') : t('UsersPage.createDialog.description')}</DialogDescription>
+            <DialogDescription>{editingUser ? t('UsersPage.createDialog.editDescription') : t('UsersPage.createDialog.createDescription')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">

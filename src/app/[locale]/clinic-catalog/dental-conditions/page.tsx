@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { DentalCondition } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Smile } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -167,9 +167,16 @@ export default function DentalConditionsPage() {
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <Card className="flex-1 flex flex-col min-h-0 overflow-hidden shadow-sm border-0">
-                <CardHeader className="bg-primary text-primary-foreground">
-                    <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription className="text-primary-foreground/70">{t('description')}</CardDescription>
+                <CardHeader className="p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <Smile className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col">
+                            <CardTitle className="text-lg">{t('title')}</CardTitle>
+                            <CardDescription className="text-xs">{t('description')}</CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-background">
                     <DataTable
