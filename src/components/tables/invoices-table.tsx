@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -1314,7 +1315,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
 
   const onSubmit = async (values: CreateInvoiceFormValues) => {
     setSubmissionError(null);
-    setIsSubmitting(true);
+    setIsSubmitting(false);
     try {
       if (values.type === 'invoice' && (!values.items || values.items.length === 0)) {
         throw new Error(t('atLeastOneItem') || 'Debe agregar al menos un artículo.');

@@ -25,7 +25,7 @@ import { getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { File, FileUp, Loader2, PlusCircle, RefreshCw, X, Receipt } from 'lucide-react';
+import { File, FileUp, Loader2, PlusCircle, RefreshCw, X, Receipt, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
