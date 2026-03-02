@@ -1161,7 +1161,31 @@
     "invoiceId": "Invoice ID",
     "tabs": {
       "items": "Items",
-      "payments": "Payments"
+      "payments": "Payments",
+      "creditNotes": "Credit Notes"
+    },
+    "creditNotesTable": {
+      "title": "Associated Credit Notes",
+      "noCreditNotes": "There are no credit notes associated with this invoice",
+      "filterPlaceholder": "Filter credit notes...",
+      "doc_no": "Doc. No",
+      "date": "Date",
+      "total": "Total",
+      "currency": "Currency",
+      "status": "Status",
+      "statuses": {
+        "draft": "Draft",
+        "booked": "Booked",
+        "sent": "Sent",
+        "paid": "Paid",
+        "overdue": "Overdue"
+      }
+    },
+    "actions": {
+      "print": "Print",
+      "sendEmail": "Send by email",
+      "title": "Actions",
+      "openMenu": "Open menu"
     },
     "sendEmailDialog": {
       "title": "Send Invoice by Email",

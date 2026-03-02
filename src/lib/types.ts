@@ -159,6 +159,11 @@ export type Invoice = {
   updatedAt: string;
 };
 
+export type CreditNote = Invoice & {
+  type: 'credit_note';
+  parent_id?: string;
+};
+
 export type InvoiceItem = {
   id: string;
   service_id: string;

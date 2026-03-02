@@ -1161,7 +1161,31 @@
         "invoiceId": "ID de Factura",
         "tabs": {
             "items": "Artículos",
-            "payments": "Pagos"
+            "payments": "Pagos",
+            "creditNotes": "Notas de Crédito"
+        },
+        "creditNotesTable": {
+            "title": "Notas de Crédito Asociadas",
+            "noCreditNotes": "No hay notas de crédito asociadas a esta factura",
+            "filterPlaceholder": "Filtrar notas de crédito...",
+            "doc_no": "No. Documento",
+            "date": "Fecha",
+            "total": "Total",
+            "currency": "Moneda",
+            "status": "Estado",
+            "statuses": {
+                "draft": "Borrador",
+                "booked": "Confirmado",
+                "sent": "Enviado",
+                "paid": "Pagado",
+                "overdue": "Vencido"
+            }
+        },
+        "actions": {
+            "print": "Imprimir",
+            "sendEmail": "Enviar por correo",
+            "title": "Acciones",
+            "openMenu": "Abrir menú"
         },
         "sendEmailDialog": {
             "title": "Enviar Factura por Correo",
