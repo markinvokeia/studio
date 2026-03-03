@@ -522,9 +522,9 @@ export default function SequencesPage() {
               />
 
               {preview && (
-                <Alert className="py-2 flex items-center gap-2">
+                <Alert className="py-2 flex items-center justify-center gap-2">
                   <Info className="h-4 w-4 static" />
-                  <AlertDescription className="text-xs p-0 translate-y-0">
+                  <AlertDescription className="text-xs p-0 pl-0 translate-y-0">
                     {t('createDialog.previewExample')}
                     <code className="bg-muted px-2 py-0.5 rounded mx-1 font-bold">{preview}</code>
                   </AlertDescription>
@@ -642,7 +642,7 @@ export default function SequencesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
+            <AccordionCancel>{t('deleteDialog.cancel')}</AccordionCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
               {t('deleteDialog.confirm')}
             </AlertDialogAction>
